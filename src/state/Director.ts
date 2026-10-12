@@ -638,8 +638,11 @@ export class Director {
           held = p;
         }
       }
-      this.heldMoved = true;
-      if (held && this.facing !== 'south') {
+      // Only once it is actually written: nothing held long enough yet means later, and while the
+      // visitor faces that wall it waits — keeping its place rather than giving it to another stray.
+      if (held && this.facing === 'south') return;
+      if (held) {
+        this.heldMoved = true;
         this.scheduler.mark('stray', this.now);
         this.strays.set(held.id, 'south');
         this.queue(0, {
@@ -848,7 +851,10 @@ export class Director {
 
   /** The world could not find room for a piece of writing: let its relation be tried again later. */
   writeFailed(key: string): void {
-    if (key.startsWith('stray:')) this.strays.delete(key.slice(6));
+    if (key.startsWith('stray:')) {
+      if (this.strays.get(key.slice(6)) === 'south') this.heldMoved = false;
+      this.strays.delete(key.slice(6));
+    }
     // A beat whose writing found no room is played again at the next meeting.
     const m = /^enc:([^:]+):(\d+)$/.exec(key);
     if (m) this.played.set(m[1], Math.max(0, Number(m[2]) - 1));

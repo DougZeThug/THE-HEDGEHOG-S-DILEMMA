@@ -73,7 +73,7 @@ export class App {
     ]);
 
     this.setupRenderer();
-    this.room = new Room();
+    this.room = new Room(this.prefs.quality);
     this.chair = new Chair();
     this.lighting = new Lighting(this.prefs.quality);
     this.text = new WallText(this.room, 4242);

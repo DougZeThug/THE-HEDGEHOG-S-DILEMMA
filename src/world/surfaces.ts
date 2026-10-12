@@ -11,7 +11,17 @@ import type { Surface } from '../content/types';
  * pencil ticks of someone's height, days counted.
  */
 
-const PX_PER_M = 200;
+// Texel density. Every size below is authored at 200 px/m and scaled by K, so a lower
+// density paints the same room, only softer — and a quarter of the pixels to bake at load.
+let PX_PER_M = 200;
+let K = 1;
+const DENSITY = { low: 100, medium: 200, high: 200 } as const;
+
+/** Set before painting: low-quality devices bake their surfaces at half the resolution. */
+export function surfaceDetail(quality: keyof typeof DENSITY): void {
+  PX_PER_M = DENSITY[quality];
+  K = PX_PER_M / 200;
+}
 
 function canvas(w: number, h: number): [HTMLCanvasElement, CanvasRenderingContext2D] {
   const c = document.createElement('canvas');
@@ -43,9 +53,9 @@ function plaster(W: number, H: number, seed: number, tone: [number, number, numb
   const r = new Rng(seed + 3);
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
-      const m = n1.fbm(x / 260, y / 260, 4) - 0.5; // broad, soft
-      const tr = n2.fbm(x / 140, y / 34, 3) - 0.5; // trowel passes, mostly horizontal
-      const warm = n3.fbm(x / 500, y / 500, 2) - 0.5;
+      const m = n1.fbm(x / (260 * K), y / (260 * K), 4) - 0.5; // broad, soft
+      const tr = n2.fbm(x / (140 * K), y / (34 * K), 3) - 0.5; // trowel passes, mostly horizontal
+      const warm = n3.fbm(x / (500 * K), y / (500 * K), 2) - 0.5;
       const fine = r.next() - 0.5;
       const d = m * scale.mottle + tr * scale.trowel + fine * scale.grain;
       const i = (y * W + x) * 4;
@@ -80,7 +90,8 @@ function corners(g: CanvasRenderingContext2D, W: number, H: number, edges: { top
 }
 
 /** Graphite that was written and rubbed out: a grey ghost, smeared, with eraser passes through it. */
-function erasedWriting(g: CanvasRenderingContext2D, text: string, x: number, y: number, px: number, r: Rng, strength = 1, font = 'Reenie Beanie') {
+function erasedWriting(g: CanvasRenderingContext2D, text: string, x: number, y: number, size: number, r: Rng, strength = 1, font = 'Reenie Beanie') {
+  const px = size * K;
   const [tc, tg] = canvas(Math.ceil(px * text.length * 0.6 + px), Math.ceil(px * 1.6));
   tg.font = `400 ${px}px "${font}", cursive`;
   tg.fillStyle = 'rgb(62,62,68)';
@@ -89,15 +100,15 @@ function erasedWriting(g: CanvasRenderingContext2D, text: string, x: number, y: 
   g.save();
   g.translate(x, y);
   g.rotate(r.range(-0.04, 0.04));
-  g.filter = 'blur(1.4px)';
+  g.filter = `blur(${1.4 * K}px)`;
   g.globalAlpha = 0.05 * strength;
   g.drawImage(tc, 0, 0);
   g.globalAlpha = 0.025 * strength;
-  g.drawImage(tc, r.range(2, 6), r.range(-1, 1.5)); // smear in the direction of rubbing
-  g.filter = 'blur(6px)';
+  g.drawImage(tc, r.range(2, 6) * K, r.range(-1, 1.5) * K); // smear in the direction of rubbing
+  g.filter = `blur(${6 * K}px)`;
   g.globalAlpha = 0.018 * strength;
   g.fillStyle = 'rgb(128,128,134)';
-  for (let k = 0; k < 3; k++) g.fillRect(r.range(-6, tc.width * 0.5), tc.height * r.range(0.3, 0.5), tc.width * r.range(0.3, 0.6), tc.height * 0.22);
+  for (let k = 0; k < 3; k++) g.fillRect(r.range(-6 * K, tc.width * 0.5), tc.height * r.range(0.3, 0.5), tc.width * r.range(0.3, 0.6), tc.height * 0.22);
   g.restore();
   g.filter = 'none';
   g.globalAlpha = 1;
@@ -116,9 +127,9 @@ function removedSheet(g: CanvasRenderingContext2D, cx: number, cy: number, w: nu
     g.translate((sx * w) / 2, (sy * h) / 2);
     g.rotate(sx * sy * r.range(0.5, 0.9));
     g.fillStyle = `rgba(196,176,128,${r.range(0.07, 0.12)})`;
-    g.fillRect(-13, -4.5, 26, 9);
+    g.fillRect(-13 * K, -4.5 * K, 26 * K, 9 * K);
     g.fillStyle = 'rgba(255,255,255,0.05)';
-    g.fillRect(-13, -4.5, 26, 2);
+    g.fillRect(-13 * K, -4.5 * K, 26 * K, 2 * K);
     g.restore();
   }
   g.restore();
@@ -127,20 +138,20 @@ function removedSheet(g: CanvasRenderingContext2D, cx: number, cy: number, w: nu
 /** Pencil ticks at a child's height, with initials, mostly rubbed away. */
 function heightMarks(g: CanvasRenderingContext2D, x: number, floorY: number, r: Rng) {
   g.save();
-  g.filter = 'blur(0.6px)';
+  g.filter = `blur(${0.6 * K}px)`;
   for (const [h, label] of [[0.82, 'J'], [0.94, ''], [1.03, 'J'], [1.16, '']] as const) {
     const y = floorY - h * PX_PER_M;
     g.globalAlpha = r.range(0.07, 0.12);
     g.strokeStyle = 'rgb(60,60,66)';
-    g.lineWidth = 1.2;
+    g.lineWidth = 1.2 * K;
     g.beginPath();
     g.moveTo(x, y);
-    g.lineTo(x + r.range(16, 24), y + r.range(-1, 1));
+    g.lineTo(x + r.range(16, 24) * K, y + r.range(-1, 1) * K);
     g.stroke();
     if (label) {
-      g.font = '400 14px "Reenie Beanie", cursive';
+      g.font = `400 ${14 * K}px "Reenie Beanie", cursive`;
       g.fillStyle = 'rgb(60,60,66)';
-      g.fillText(label, x + 28, y + 4);
+      g.fillText(label, x + 28 * K, y + 4 * K);
     }
   }
   g.restore();
@@ -151,21 +162,21 @@ function heightMarks(g: CanvasRenderingContext2D, x: number, floorY: number, r: 
 function tally(g: CanvasRenderingContext2D, x: number, y: number, groups: number, r: Rng) {
   g.save();
   g.strokeStyle = 'rgb(66,66,72)';
-  g.lineWidth = 1;
+  g.lineWidth = K;
   g.globalAlpha = 0.11;
-  g.filter = 'blur(0.4px)';
+  g.filter = `blur(${0.4 * K}px)`;
   for (let k = 0; k < groups; k++) {
-    const gx = x + k * 20;
+    const gx = x + k * 20 * K;
     for (let i = 0; i < 4; i++) {
       g.beginPath();
-      g.moveTo(gx + i * 3.5, y + r.range(-1, 1));
-      g.lineTo(gx + i * 3.5 + r.range(-0.8, 0.8), y + 13);
+      g.moveTo(gx + i * 3.5 * K, y + r.range(-1, 1) * K);
+      g.lineTo(gx + (i * 3.5 + r.range(-0.8, 0.8)) * K, y + 13 * K);
       g.stroke();
     }
     if (k < groups - 1 || r.chance(0.5)) {
       g.beginPath();
-      g.moveTo(gx - 2, y + 10);
-      g.lineTo(gx + 14, y + 2);
+      g.moveTo(gx - 2 * K, y + 10 * K);
+      g.lineTo(gx + 14 * K, y + 2 * K);
       g.stroke();
     }
   }
@@ -178,9 +189,9 @@ function baseScuffs(g: CanvasRenderingContext2D, W: number, H: number, r: Rng, n
   for (let i = 0; i < n; i++) {
     g.fillStyle = `rgba(80,78,74,${r.range(0.03, 0.08)})`;
     g.save();
-    g.translate(r.range(0, W), H - r.range(18, 60));
+    g.translate(r.range(0, W), H - r.range(18, 60) * K);
     g.rotate(r.range(-0.3, 0.3));
-    g.fillRect(0, 0, r.range(6, 34), r.range(1, 2.5));
+    g.fillRect(0, 0, r.range(6, 34) * K, r.range(1, 2.5) * K);
     g.restore();
   }
 }
@@ -216,12 +227,12 @@ export function wallMaps(surface: Surface, seed: number, wM: number, hM: number)
     g.save();
     g.globalAlpha = 0.06;
     g.strokeStyle = 'rgb(60,60,66)';
-    g.filter = 'blur(1px)';
-    g.lineWidth = 2;
+    g.filter = `blur(${K}px)`;
+    g.lineWidth = 2 * K;
     g.beginPath();
     const sx = mx(2.4), sy = my(0.62);
     g.moveTo(sx, sy);
-    for (let k = 0; k < 14; k++) g.lineTo(sx + k * 5 + r.range(-2, 2), sy + (k % 2 ? -9 : 9) + r.range(-2, 2));
+    for (let k = 0; k < 14; k++) g.lineTo(sx + (k * 5 + r.range(-2, 2)) * K, sy + ((k % 2 ? -9 : 9) + r.range(-2, 2)) * K);
     g.stroke();
     g.restore();
     g.filter = 'none';
@@ -256,9 +267,9 @@ export function floorMaps(seed: number, wM: number, dM: number): SurfaceMaps {
     for (let x = 0; x < W; x++) {
       const along = y > cy ? 1 : Math.max(0, 1 - (cy - y) / (0.4 * PX_PER_M));
       const across = Math.exp(-(((x - cx) / (0.55 * PX_PER_M)) ** 2));
-      const path = along * across * (0.6 + 0.4 * n.fbm(x / 60, y / 60, 2));
+      const path = along * across * (0.6 + 0.4 * n.fbm(x / (60 * K), y / (60 * K), 2));
       const ring = Math.exp(-(((Math.hypot(x - cx, y - cy) - 0.42 * PX_PER_M) / (0.22 * PX_PER_M)) ** 2));
-      const rough = 0.9 - 0.16 * path - 0.1 * ring + (n.fbm(x / 30, y / 30, 2) - 0.5) * 0.06;
+      const rough = 0.9 - 0.16 * path - 0.1 * ring + (n.fbm(x / (30 * K), y / (30 * K), 2) - 0.5) * 0.06;
       const i = (y * W + x) * 4;
       rimg.data[i] = rimg.data[i + 1] = rimg.data[i + 2] = Math.round(rough * 255);
       rimg.data[i + 3] = 255;
@@ -281,7 +292,7 @@ export function floorMaps(seed: number, wM: number, dM: number): SurfaceMaps {
   for (let i = 0; i < 70; i++) {
     const a = r.range(0, Math.PI * 2), d = r.range(0.2, 0.55) * PX_PER_M;
     g.strokeStyle = `rgba(96,90,82,${r.range(0.025, 0.07)})`;
-    g.lineWidth = r.range(0.6, 1.6);
+    g.lineWidth = r.range(0.6, 1.6) * K;
     g.beginPath();
     g.arc(cx, cy, d, a, a + r.range(0.04, 0.22));
     g.stroke();
@@ -296,18 +307,18 @@ export function floorMaps(seed: number, wM: number, dM: number): SurfaceMaps {
   for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
     g.fillStyle = 'rgba(88,82,74,0.09)';
     g.beginPath();
-    g.arc(sx * 0.155 * PX_PER_M, sy * 0.14 * PX_PER_M, 2.6, 0, Math.PI * 2);
+    g.arc(sx * 0.155 * PX_PER_M, sy * 0.14 * PX_PER_M, 2.6 * K, 0, Math.PI * 2);
     g.fill();
   }
   g.restore();
   // Heel marks, sparse, mostly along the path.
   for (let i = 0; i < 26; i++) {
-    const y = r.range(cy, H - 10), x = cx + r.range(-0.6, 0.6) * PX_PER_M;
+    const y = r.range(cy, H - 10 * K), x = cx + r.range(-0.6, 0.6) * PX_PER_M;
     g.save();
     g.translate(x, y);
     g.rotate(r.range(0, Math.PI));
     g.fillStyle = `rgba(70,66,62,${r.range(0.03, 0.08)})`;
-    g.fillRect(0, 0, r.range(4, 16), r.range(0.8, 1.8));
+    g.fillRect(0, 0, r.range(4, 16) * K, r.range(0.8, 1.8) * K);
     g.restore();
   }
   // The floor darkens toward the walls.
@@ -327,7 +338,7 @@ export function ceilingMaps(seed: number, wM: number, dM: number): SurfaceMaps {
   const { c, g, bc } = plaster(W, H, seed, [229, 232, 235], { mottle: 4, trowel: 1.5, grain: 2 });
   for (let x = 1.2 * PX_PER_M; x < W; x += 1.2 * PX_PER_M) {
     g.fillStyle = 'rgba(120,124,130,0.06)';
-    g.fillRect(x, 0, 1, H);
+    g.fillRect(x, 0, Math.max(1, K), H);
   }
   // Light spilling from the frosted panel onto the ceiling around it.
   const px = W / 2 + 0.1 * PX_PER_M, pz = H / 2 + 0.95 * PX_PER_M;

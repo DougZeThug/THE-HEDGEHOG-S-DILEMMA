@@ -198,6 +198,17 @@ describe('situation: erosion', () => {
     expect(JSON.stringify(v.d.situations.snapshot())).not.toContain('used to be');
   });
 
+  it('writing again while it waits begins it again with the newer words', () => {
+    const v = new Visit(['erosion']);
+    v.run(10, { x: 0, z: 1.5 });
+    v.d.contribute('the blue kitchen', interpretLocally('the blue kitchen'));
+    // Stay at that wall, so the first contribution cannot be rubbed out yet.
+    v.run(150, { x: 0, z: 1.5, facing: 'north' });
+    v.d.contribute('my grandmother laughing', interpretLocally('my grandmother laughing'));
+    const erode = v.run(400, { x: 0, z: 2.6, facing: 'south' }, (c) => c.cue.type === 'erode');
+    expect(erode && erode.cue.type === 'erode' && erode.cue).toMatchObject({ key: 'contrib:2', keep: 'grandmother' });
+  });
+
   it('forgetting cancels it', () => {
     const v = new Visit(['erosion']);
     v.run(10, { x: 0, z: 1.5 });

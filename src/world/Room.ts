@@ -4,7 +4,7 @@ import { ROOM, surfaceSize } from './layout';
 
 /** Where the frosted panel hangs: north of the chair, so the chair's shadow falls toward whoever arrives. */
 export const PANEL = { x: 0.1, z: -0.95 };
-import { wallMaps, floorMaps, ceilingMaps } from './surfaces';
+import { wallMaps, floorMaps, ceilingMaps, surfaceDetail } from './surfaces';
 
 export interface SurfaceFrame {
   surface: Surface;
@@ -27,7 +27,8 @@ export class Room {
   readonly panel: THREE.Mesh;
   scale = 1;
 
-  constructor() {
+  constructor(quality: 'low' | 'medium' | 'high' = 'medium') {
+    surfaceDetail(quality);
     const H = ROOM.height;
     const wallSurfaces: Surface[] = ['north', 'east', 'south', 'west'];
     const seeds: Record<Surface, number> = { north: 11, east: 23, south: 37, west: 41, floor: 53, ceiling: 67 };

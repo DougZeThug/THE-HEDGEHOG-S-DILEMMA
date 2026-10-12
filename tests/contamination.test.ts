@@ -69,4 +69,18 @@ describe('the walls are not neatly partitioned', () => {
     expect((held!.cue as Write).source).toBe('good-day');
     expect((held!.cue as Write).surface).toBe('south');
   });
+
+  it('the held line still reaches the empty wall if the visitor happened to be facing it when the time came', () => {
+    const d = new Director({ seed: 4, situations: ['residue'] });
+    const base: VisitorInput = { x: 0, z: 2.4, yaw: 0, pitch: 0, gazePhraseId: null, gazeChair: false, nearSurface: null, kneeling: false };
+    const cues: TimedCue[] = [];
+    for (let t = 0; t < 25; t += 0.1) cues.push(...d.tick(0.1, { ...base, x: 2.2, z: 0, gazePhraseId: 'good-day' }, 'east'));
+    // Wander, but face the south wall right through the transformation.
+    for (let t = 0; t < 650 || d.phase !== 'transform'; t += 0.1) cues.push(...d.tick(0.1, { ...base, x: Math.sin(t * 0.05) * 2, z: Math.cos(t * 0.05) * 2 }, 'south'));
+    for (let t = 0; t < 120; t += 0.1) cues.push(...d.tick(0.1, { ...base, x: 0.3, z: 1 }, 'south'));
+    expect(cues.some((c) => c.rule === 'stray-held')).toBe(false);
+    for (let t = 0; t < 120; t += 0.1) cues.push(...d.tick(0.1, { ...base, x: 0.3, z: 1 }, 'north'));
+    const held = cues.find((c) => c.rule === 'stray-held');
+    expect(held && (held.cue as Write).source).toBe('good-day');
+  });
 });

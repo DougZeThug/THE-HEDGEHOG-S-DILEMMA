@@ -278,7 +278,8 @@ export const erosion: SituationDef = {
     const { h, st } = c;
     const d = st.data as { key: string; keep: string; surface: Surface };
     const still = h.lastContribution();
-    if (!still || still.key !== d.key) return c.end();
+    if (!still) return c.end(); // forgotten
+    if (still.key !== d.key) return c.end('abort'); // something newer was written: begin again with that
     if (h.facing === d.surface || h.distToSurface(d.surface) < 3) return;
     c.emit(0, { type: 'erode', key: d.key, keep: d.keep });
     const kin = PHRASES.find((p) => p.tier !== 'annotation' && (p.keywords ?? []).includes(d.keep));
