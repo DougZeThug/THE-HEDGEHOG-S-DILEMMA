@@ -1,0 +1,26 @@
+{
+  "vf-laugh-next-room": [
+    "vf-laugh-next-room-1.mp3",
+    "vf-laugh-next-room-2.mp3"
+  ],
+  "vf-two-voices": [
+    "vf-two-voices-1.mp3",
+    "vf-two-voices-2.mp3"
+  ],
+  "vf-breath": [
+    "vf-breath-1.mp3",
+    "vf-breath-2.mp3"
+  ],
+  "vf-hum": [
+    "vf-hum-1.mp3",
+    "vf-hum-2.mp3"
+  ],
+  "style:whisper": [
+    "style-whisper-1.mp3",
+    "style-whisper-2.mp3",
+    "style-whisper-3.mp3"
+  ],
+  "style:distant": [
+    "style-distant-2.mp3"
+  ]
+}

@@ -1,0 +1,212 @@
+import type { Phrase, Surface } from '../content/types';
+import { Rng, hashString } from '../core/rng';
+
+/** The room as built (metres). The chair stands at the origin. */
+export const ROOM = { halfW: 3.2, halfD: 3.2, height: 3.1 };
+
+export interface SurfaceSize {
+  /** Extent along u (metres). */
+  w: number;
+  /** Extent along v (metres). */
+  h: number;
+}
+
+export function surfaceSize(s: Surface): SurfaceSize {
+  if (s === 'north' || s === 'south') return { w: ROOM.halfW * 2, h: ROOM.height };
+  if (s === 'east' || s === 'west') return { w: ROOM.halfD * 2, h: ROOM.height };
+  return { w: ROOM.halfW * 2, h: ROOM.halfD * 2 };
+}
+
+export interface Rect {
+  /** Centre along u, metres from the surface's left edge (as seen from inside). */
+  u: number;
+  /** Centre height (walls) or depth (floor/ceiling), metres. */
+  v: number;
+  w: number;
+  h: number;
+}
+
+export interface Placement extends Rect {
+  surface: Surface;
+  /** Small in-plane rotation (radians) — handwriting is never quite level. */
+  rot: number;
+}
+
+/** Authored compositional regions (fractions of u, metres of v). */
+interface Cluster {
+  name: string;
+  u: [number, number];
+  v: [number, number];
+}
+
+const CLUSTERS: Record<Surface, Cluster[]> = {
+  north: [
+    { name: 'left', u: [0.03, 0.4], v: [0.7, 2.8] },
+    { name: 'right', u: [0.6, 0.97], v: [0.5, 2.6] },
+    { name: 'top', u: [0.3, 0.72], v: [2.25, 2.95] },
+    { name: 'low', u: [0.34, 0.66], v: [0.25, 0.95] },
+  ],
+  east: [
+    { name: 'mid', u: [0.05, 0.95], v: [0.95, 2.25] },
+    { name: 'high', u: [0.12, 0.88], v: [2.25, 2.9] },
+    { name: 'low', u: [0.08, 0.92], v: [0.3, 0.95] },
+  ],
+  west: [
+    { name: 'dense', u: [0.08, 0.92], v: [0.7, 2.75] },
+    { name: 'low', u: [0.05, 0.55], v: [0.25, 0.7] },
+  ],
+  south: [
+    { name: 'sparse', u: [0.06, 0.94], v: [0.5, 2.5] },
+  ],
+  floor: [{ name: 'near', u: [0.4, 0.6], v: [2.5, 3.9] }],
+  ceiling: [{ name: 'centre', u: [0.3, 0.7], v: [2.2, 4.2] }],
+};
+
+/**
+ * Regions kept deliberately empty: the column of wall directly behind the chair, and
+ * the band of the south wall where visitors' own words will be written.
+ */
+export const RESERVED: Partial<Record<Surface, Rect[]>> = {
+  north: [{ u: ROOM.halfW, v: 1.55, w: 1.1, h: 1.2 }],
+  south: [{ u: ROOM.halfW, v: 1.45, w: 2.2, h: 0.9 }],
+};
+
+function chooseCluster(p: Phrase): string {
+  const d = p.dims;
+  switch (p.surface) {
+    case 'north':
+      if (p.size === 'xs' || p.tier === 'near') return 'low';
+      if (p.kind === 'question' && p.size !== 'm') return 'top';
+      return (d.fear ?? 0) + (d.isolation ?? 0) > (d.desire ?? 0) + (d.affection ?? 0) + (d.connection ?? 0) ? 'right' : 'left';
+    case 'east':
+      if (p.size === 'xs' || p.tier === 'still') return 'low';
+      if (p.kind === 'word') return 'high';
+      return 'mid';
+    case 'west':
+      return p.size === 'xs' && p.tier !== 'arrival' ? 'low' : 'dense';
+    default:
+      return CLUSTERS[p.surface][0].name;
+  }
+}
+
+export function overlaps(a: Rect, b: Rect, pad = 0.05): boolean {
+  return Math.abs(a.u - b.u) * 2 < a.w + b.w + pad * 2 && Math.abs(a.v - b.v) * 2 < a.h + b.h + pad * 2;
+}
+
+export type Measure = (p: Phrase) => { w: number; h: number };
+
+export class SurfaceLayout {
+  readonly placed = new Map<Surface, Placement[]>();
+  constructor(private rng: Rng) {
+    for (const s of Object.keys(CLUSTERS) as Surface[]) this.placed.set(s, []);
+  }
+
+  private free(surface: Surface, r: Rect, pad: number, ignoreReserved = false): boolean {
+    const size = surfaceSize(surface);
+    if (r.u - r.w / 2 < 0.05 || r.u + r.w / 2 > size.w - 0.05) return false;
+    if (r.v - r.h / 2 < 0.12 || r.v + r.h / 2 > size.h - 0.08) return false;
+    for (const q of this.placed.get(surface)!) if (overlaps(r, q, pad)) return false;
+    if (!ignoreReserved) for (const q of RESERVED[surface] ?? []) if (overlaps(r, q, 0)) return false;
+    // Keep floor writing clear of the chair's footprint.
+    if (surface === 'floor' && overlaps(r, { u: ROOM.halfW, v: ROOM.halfD, w: 0.5, h: 0.5 }, 0.02)) return false;
+    return true;
+  }
+
+  add(p: Placement): Placement {
+    this.placed.get(p.surface)!.push(p);
+    return p;
+  }
+
+  remove(p: Placement): void {
+    const arr = this.placed.get(p.surface)!;
+    const i = arr.indexOf(p);
+    if (i >= 0) arr.splice(i, 1);
+  }
+
+  /** Find a free spot in a region; returns null if the region is full. */
+  findIn(surface: Surface, w: number, h: number, uRange: [number, number], vRange: [number, number], pad: number, tries = 90, ignoreReserved = false): Rect | null {
+    const size = surfaceSize(surface);
+    const u0 = uRange[0] * size.w + w / 2;
+    const u1 = uRange[1] * size.w - w / 2;
+    const v0 = vRange[0] + h / 2;
+    const v1 = vRange[1] - h / 2;
+    for (let i = 0; i < tries; i++) {
+      const r = { u: u1 > u0 ? this.rng.range(u0, u1) : (u0 + u1) / 2, v: v1 > v0 ? this.rng.range(v0, v1) : (v0 + v1) / 2, w, h };
+      if (this.free(surface, r, pad, ignoreReserved)) return r;
+    }
+    return null;
+  }
+
+  /** Exhaustive scan for any free spot, nearest the middle band of the surface first. */
+  scan(surface: Surface, w: number, h: number, pad: number, ignoreReserved = false): Rect | null {
+    const size = surfaceSize(surface);
+    const step = 0.05;
+    const cands: Rect[] = [];
+    for (let v = h / 2 + 0.13; v <= size.h - h / 2 - 0.08; v += step)
+      for (let u = w / 2 + 0.06; u <= size.w - w / 2 - 0.06; u += step) cands.push({ u, v, w, h });
+    const mid = surface === 'floor' || surface === 'ceiling' ? size.h / 2 : 1.5;
+    cands.sort((a, b) => Math.abs(a.v - mid) - Math.abs(b.v - mid) + (this.rng.next() - 0.5) * 0.4);
+    for (const r of cands) if (this.free(surface, r, pad, ignoreReserved)) return r;
+    return null;
+  }
+
+  /** Spot beside an existing placement: below, then right, left, above. */
+  findBeside(target: Placement, w: number, h: number): Rect | null {
+    const g = 0.04;
+    const opts: Rect[] = [
+      { u: target.u + target.w * 0.15, v: target.v - target.h / 2 - h / 2 - g, w, h },
+      { u: target.u - target.w * 0.1, v: target.v - target.h / 2 - h / 2 - g * 2, w, h },
+      { u: target.u + target.w / 2 + w / 2 + g * 2, v: target.v - target.h * 0.2, w, h },
+      { u: target.u - target.w / 2 - w / 2 - g * 2, v: target.v + target.h * 0.1, w, h },
+      { u: target.u, v: target.v + target.h / 2 + h / 2 + g, w, h },
+    ];
+    for (const r of opts) if (this.free(target.surface, r, 0.015)) return r;
+    for (let i = 0; i < 40; i++) {
+      const r = { u: target.u + this.rng.range(-0.9, 0.9), v: target.v + this.rng.range(-0.7, 0.5), w, h };
+      if (this.free(target.surface, r, 0.02)) return r;
+    }
+    return null;
+  }
+
+  place(p: Phrase, measure: Measure): Placement {
+    const { w, h } = measure(p);
+    const size = surfaceSize(p.surface);
+    const rot = p.hand === 'typed' ? 0 : ((hashString(p.id) % 1000) / 1000 - 0.5) * 0.05;
+    if (p.at) {
+      return this.add({ surface: p.surface, u: p.at[0] * size.w, v: p.surface === 'floor' || p.surface === 'ceiling' ? p.at[1] * size.h : p.at[1], w, h, rot });
+    }
+    const cname = chooseCluster(p);
+    const clusters = CLUSTERS[p.surface];
+    const c = clusters.find((x) => x.name === cname) ?? clusters[0];
+    const r =
+      this.findIn(p.surface, w, h, c.u, c.v, 0.07) ??
+      this.findIn(p.surface, w, h, c.u, c.v, 0.02) ??
+      this.findIn(p.surface, w, h, [0.02, 0.98], [0.2, size.h - 0.1], 0.02, 200) ??
+      this.scan(p.surface, w, h, 0.02) ??
+      this.scan(p.surface, w, h, 0);
+    if (r) return this.add({ surface: p.surface, ...r, rot });
+    // The wall is full: the writing goes onto another wall rather than over other writing.
+    for (const other of ['south', 'west', 'north', 'east'] as Surface[]) {
+      if (other === p.surface) continue;
+      const o = this.scan(other, w, h, 0.02);
+      if (o) return this.add({ surface: other, ...o, rot });
+    }
+    return this.add({ surface: p.surface, u: size.w / 2, v: 1.6, w, h, rot });
+  }
+}
+
+/** Lay out every placeable phrase deterministically. Large writing first so it gets the best room. */
+export function layoutPhrases(phrases: readonly Phrase[], measure: Measure, seed: number): Map<string, Placement> {
+  const layout = new SurfaceLayout(new Rng(seed));
+  const out = new Map<string, Placement>();
+  const order = phrases
+    .filter((p) => p.tier !== 'annotation')
+    .sort((a, b) => (b.at ? 1 : 0) - (a.at ? 1 : 0) || measure(b).w * measure(b).h - measure(a).w * measure(a).h || (a.id < b.id ? -1 : 1));
+  for (const p of order) out.set(p.id, layout.place(p, measure));
+  (out as Map<string, Placement> & { layout?: SurfaceLayout }).layout = layout;
+  return out;
+}
+
+export function layoutOf(m: Map<string, Placement>): SurfaceLayout {
+  return (m as Map<string, Placement> & { layout: SurfaceLayout }).layout;
+}

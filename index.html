@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#f3f2ef" />
+    <meta name="description" content="An interactive installation: a white room, a small wooden chair, and words on the walls." />
+    <title>The Hedgehog's Dilemma</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23f1efea'/%3E%3Cpath d='M12 13h8v2h-8zM12 15v8M20 15v8M12 13V6M20 13V6M12 8h8M12 10h8' stroke='%238d5d36' stroke-width='1.5' fill='none'/%3E%3C/svg%3E" />
+  </head>
+  <body>
+    <div id="stage" aria-hidden="true"></div>
+
+    <main id="threshold" class="layer">
+      <div class="threshold-inner">
+        <h1>the hedgehog’s dilemma</h1>
+        <p class="threshold-line" id="threshold-line">A white room. A small chair. Some things written on the walls.</p>
+        <button id="enter" class="quiet-button" disabled>loading the room…</button>
+        <p class="threshold-note">Sound matters here. Headphones, if you have them.<br />Nothing you do or write leaves this browser.</p>
+        <details class="threshold-how">
+          <summary>how to be in the room</summary>
+          <ul>
+            <li><kbd>W A S D</kbd> or <kbd>↑ ↓</kbd> to walk, <kbd>← →</kbd> or the mouse to look. <kbd>Shift</kbd> to go slower.</li>
+            <li><kbd>F</kbd> walks you gently toward whatever you are looking at. <kbd>C</kbd> turns you to the chair.</li>
+            <li>Near the chair, <kbd>Space</kbd> or a click lets you kneel.</li>
+            <li><kbd>T</kbd> to leave something of your own on the wall.</li>
+            <li><kbd>Esc</kbd> for sound, comfort and quality settings, and to leave.</li>
+            <li>On a touch screen: drag on the left to walk, on the right to look; tap writing to go to it.</li>
+            <li>Without a mouse: <kbd>Tab</kbd> turns you toward the next piece of writing.</li>
+          </ul>
+        </details>
+      </div>
+    </main>
+
+    <div id="captions" class="captions" aria-live="polite" aria-atomic="true"></div>
+    <div id="hint" class="hint" aria-hidden="true"></div>
+
+    <button id="menu-btn" class="corner-btn corner-right" aria-label="Settings and leaving" hidden>···</button>
+    <button id="write-btn" class="corner-btn corner-left" aria-label="Leave something on the wall" hidden>✎</button>
+
+    <div id="contribute" class="layer contribute" hidden>
+      <form id="contribute-form" autocomplete="off">
+        <label for="contribute-input" class="sr-only">Leave something on the wall</label>
+        <input id="contribute-input" maxlength="140" placeholder="leave something here" spellcheck="false" />
+        <p class="contribute-note">A word, a sentence, a memory. <kbd>Enter</kbd> to leave it, <kbd>Esc</kbd> to keep it.</p>
+      </form>
+    </div>
+
+    <div id="settings" class="layer settings" role="dialog" aria-modal="true" aria-labelledby="settings-title" hidden>
+      <div class="settings-inner">
+        <h2 id="settings-title">paused</h2>
+        <button id="resume" class="quiet-button">return to the room</button>
+        <fieldset>
+          <legend>sound</legend>
+          <label class="row"><span>volume</span><input id="opt-volume" type="range" min="0" max="1" step="0.01" /></label>
+          <label class="row check"><input id="opt-mute" type="checkbox" /> <span>mute</span></label>
+          <label class="row check"><input id="opt-captions" type="checkbox" /> <span>show what is heard (captions)</span></label>
+          <label class="row check"><input id="opt-speech" type="checkbox" /> <span>speak voices with the computer’s own voice</span></label>
+        </fieldset>
+        <fieldset>
+          <legend>comfort</legend>
+          <label class="row"><span>intensity</span>
+            <select id="opt-intensity"><option value="gentle">gentle</option><option value="full">full</option></select>
+          </label>
+          <label class="row check"><input id="opt-motion" type="checkbox" /> <span>reduced motion</span></label>
+          <label class="row"><span>quality</span>
+            <select id="opt-quality"><option value="low">low</option><option value="medium">medium</option><option value="high">high</option></select>
+          </label>
+        </fieldset>
+        <fieldset>
+          <legend>privacy</legend>
+          <p class="small">Nothing you write, and nothing about how you move, is sent anywhere. What you write lives only in this tab and is gone when you close it. The microphone is never used. Only your settings and a count of visits are remembered on this device.</p>
+          <button id="forget" class="quiet-button small">forget what I wrote, and that I was here</button>
+        </fieldset>
+        <button id="leave" class="quiet-button">leave the room</button>
+      </div>
+    </div>
+
+    <div id="departure" class="layer departure" hidden>
+      <p class="departure-line" id="departure-line"></p>
+      <button id="return" class="quiet-button" hidden>go back in</button>
+    </div>
+
+    <pre id="debug" class="debug" hidden></pre>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
