@@ -41,6 +41,27 @@ interface Syllable {
   pauseAfter: number;
 }
 
+function measure(buf: AudioBuffer) {
+  let sum = 0, peak = 0, n = 0;
+  for (let ch = 0; ch < buf.numberOfChannels; ch++) {
+    const d = buf.getChannelData(ch);
+    for (let i = 0; i < d.length; i += 4) {
+      sum += d[i] * d[i];
+      peak = Math.max(peak, Math.abs(d[i]));
+      n++;
+    }
+  }
+  return { rms: Math.sqrt(sum / Math.max(1, n)) || 1e-6, peak: peak || 1e-6 };
+}
+
+/** Gain to bring a recording to about -24 dBFS RMS without pushing its peak past -3 dBFS. */
+function normaliseGain(buf: AudioBuffer): number {
+  const { rms, peak } = measure(buf);
+  const target = Math.pow(10, -24 / 20);
+  const ceiling = Math.pow(10, -3 / 20);
+  return Math.min(target / rms, ceiling / peak, 16);
+}
+
 export function syllabify(text: string): Syllable[] {
   const out: Syllable[] = [];
   const words = text.toLowerCase().replace(/[^a-z.,?!' ]/g, ' ').split(/\s+/).filter(Boolean);
@@ -107,16 +128,37 @@ export class Voices {
     return !!this.manifest[key]?.length;
   }
 
+  /** Per-file gain that brings recordings to a common loudness (they arrive at arbitrary levels). */
+  private norm = new Map<string, number>();
+
   private loadBuffer(file: string): Promise<AudioBuffer | null> {
     let p = this.buffers.get(file);
     if (!p) {
       p = fetch(this.base + file)
         .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(String(r.status)))))
         .then((b) => this.a.ctx.decodeAudioData(b))
+        .then((buf) => {
+          this.norm.set(file, normaliseGain(buf));
+          return buf;
+        })
         .catch(() => null);
       this.buffers.set(file, p);
     }
     return p;
+  }
+
+  /** Loudness diagnostics for QA: file → [rms dBFS, peak dBFS, seconds]. */
+  async levels(): Promise<Record<string, [number, number, number]>> {
+    const out: Record<string, [number, number, number]> = {};
+    for (const files of Object.values(this.manifest))
+      for (const f of files) {
+        const b = await this.loadBuffer(f);
+        if (b) {
+          const { rms, peak } = measure(b);
+          out[f] = [+(20 * Math.log10(rms)).toFixed(1), +(20 * Math.log10(peak)).toFixed(1), +b.duration.toFixed(2)];
+        }
+      }
+    return out;
   }
 
   /** Preload all recorded assets in the background. */
@@ -189,13 +231,20 @@ export class Voices {
   async play(kind: VoiceKind, text: string | null, place: VoicePlacement, gain: number, assetKey?: string): Promise<number> {
     if (this.active > 3) return 0; // never a crowd
     const g = gain * (0.55 + 0.45 * this.a.intensity);
-    if (assetKey && this.hasAsset(assetKey)) {
-      const files = this.manifest[assetKey];
-      const buf = await this.loadBuffer(files[this.rng.int(0, files.length - 1)]);
-      if (buf) return this.playBuffer(buf, place, g, kind === 'flat' ? 0.05 : 0.3);
-    }
-    if (text && this.speechFallback && 'speechSynthesis' in window && !['laugh', 'murmur', 'breath', 'hum'].includes(kind)) {
+    const nonVerbal = ['laugh', 'murmur', 'breath', 'hum'].includes(kind);
+    if (text && this.speechFallback && 'speechSynthesis' in window && !nonVerbal) {
       return this.speak(text, kind, g);
+    }
+    // A recording made for this exact moment, or a recorded texture for this manner of speaking.
+    const key = assetKey && this.hasAsset(assetKey) ? assetKey : this.hasAsset(`style:${kind}`) ? `style:${kind}` : null;
+    if (key) {
+      const files = this.manifest[key];
+      const file = files[this.rng.int(0, files.length - 1)];
+      const buf = await this.loadBuffer(file);
+      if (buf) {
+        const level = this.norm.get(file) ?? 1;
+        return this.playBuffer(buf, place, g * level, kind === 'flat' ? 0.05 : 0.3);
+      }
     }
     switch (kind) {
       case 'breath':

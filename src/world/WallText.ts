@@ -186,7 +186,7 @@ export class WallText {
   }
 
   /** Write new text beside a phrase or somewhere on a surface. Returns false if there was no room. */
-  write(o: { key: string; text: string; hand: Hand; size: Size; beside?: string; surface?: Surface; purpose: Exclude<Purpose, 'phrase'>; ttl: number; now: number }): boolean {
+  write(o: { key: string; text: string; hand: Hand; size: Size; beside?: string; surface?: Surface; near?: { u: number; v: number }; purpose: Exclude<Purpose, 'phrase'>; ttl: number; now: number }): boolean {
     if (this.items.has(o.key)) return false;
     const m = measureText(o.text, o.hand, o.size);
     let rect = null as null | { u: number; v: number; w: number; h: number };
@@ -195,6 +195,13 @@ export class WallText {
     if (target) {
       surface = target.surface;
       rect = this.layout.findBeside(target, m.w, m.h);
+    }
+    if (!rect && surface && o.near) {
+      const size = surfaceSize(surface);
+      for (const spread of [0.5, 1, 1.8]) {
+        rect = this.layout.findIn(surface, m.w, m.h, [(o.near.u - spread - m.w / 2) / size.w, (o.near.u + spread + m.w / 2) / size.w], [Math.max(0.3, o.near.v - spread * 0.5 - m.h / 2), Math.min(size.h - 0.15, o.near.v + spread * 0.5 + m.h / 2)], 0.03, 120, o.purpose === 'contribution');
+        if (rect) break;
+      }
     }
     if (!rect && surface) {
       const size = surfaceSize(surface);

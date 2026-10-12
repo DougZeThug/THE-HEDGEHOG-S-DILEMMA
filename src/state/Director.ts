@@ -574,7 +574,8 @@ export class Director {
     const g = new Set(it.gestures);
     if (g.has('quiet')) this.queue(0, { type: 'silence', depth: 0.55 + 0.25 * it.intensity, seconds: 10 }, 'contribution', { major: true, ttl: 5, priority: 5 });
     if (g.has('writeOnWall')) {
-      const surface: Surface = this.facing === 'south' || this.rng.chance(0.6) ? 'south' : this.facing;
+      // Written where the visitor is looking, so they can watch it arrive.
+      const surface: Surface = this.facing;
       this.queue(0.5, { type: 'write', key, text, hand: 'visitor', size: text.length > 60 ? 'xs' : 's', surface, purpose: 'contribution', ttl: 0 }, 'contribution');
     }
     if (g.has('revealRelated')) {

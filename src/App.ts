@@ -9,6 +9,7 @@ import { FONTS_TO_LOAD } from './world/textures';
 import { ROOM } from './world/layout';
 import { Director } from './state/Director';
 import type { Cue, VoicePosition } from './state/cues';
+import type { Surface } from './content/types';
 import { PHRASES } from './content/phrases';
 import { THRESHOLD_LINES } from './content/relations';
 import { AudioEngine } from './audio/AudioEngine';
@@ -227,7 +228,8 @@ export class App {
         this.text.hide(cue.phraseId, cue.seconds);
         break;
       case 'write': {
-        const ok = this.text.write({ key: cue.key, text: cue.text, hand: cue.hand, size: cue.size, beside: cue.beside, surface: cue.surface, purpose: cue.purpose, ttl: cue.ttl, now: this.time });
+        const near = cue.surface && !cue.beside ? this.viewPointOn(cue.surface) : undefined;
+        const ok = this.text.write({ key: cue.key, text: cue.text, hand: cue.hand, size: cue.size, beside: cue.beside, surface: cue.surface, near, purpose: cue.purpose, ttl: cue.ttl, now: this.time });
         if (ok && cue.strike) this.text.strike(cue.strike, this.time, cue.ttl);
         break;
       }
@@ -250,6 +252,19 @@ export class App {
         this.lighting.triggerFlash(cue.kind, cue.amount * (this.prefs.intensity === 'gentle' ? 0.5 : 1), cue.seconds, this.time);
         break;
     }
+  }
+
+  /** Where the centre of view meets a surface, in layout (u, v) coordinates. */
+  private viewPointOn(surface: Surface): { u: number; v: number } | undefined {
+    const frame = this.room.frames[surface];
+    this.raycaster.setFromCamera(new THREE.Vector2(0, 0), this.rig.camera);
+    const hit = this.raycaster.intersectObject(frame.mesh, false)[0];
+    if (!hit) return undefined;
+    const local = frame.group.worldToLocal(hit.point.clone());
+    const s = this.room.scale;
+    if (surface === 'floor') return { u: local.x / s + frame.size.w / 2, v: frame.size.h / 2 - local.y / s };
+    if (surface === 'ceiling') return { u: local.x / s + frame.size.w / 2, v: local.y / s + frame.size.h / 2 };
+    return { u: local.x / s + frame.size.w / 2, v: local.y + frame.size.h / 2 };
   }
 
   private place(p: VoicePosition): VoicePlacement {
