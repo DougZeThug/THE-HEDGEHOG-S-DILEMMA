@@ -1,7 +1,10 @@
 import * as THREE from 'three';
 import type { Surface } from '../content/types';
 import { ROOM, surfaceSize } from './layout';
-import { plasterTextures } from './textures';
+
+/** Where the frosted panel hangs: north of the chair, so the chair's shadow falls toward whoever arrives. */
+export const PANEL = { x: 0.1, z: -0.95 };
+import { wallMaps, floorMaps, ceilingMaps } from './surfaces';
 
 export interface SurfaceFrame {
   surface: Surface;
@@ -32,20 +35,17 @@ export class Room {
       const size = surfaceSize(s);
       const isFloor = s === 'floor';
       const isCeil = s === 'ceiling';
-      const tex = plasterTextures(seeds[s], size.w, size.h, {
-        floor: isFloor,
-        ceiling: isCeil,
-        tone: isFloor ? [229, 226, 220] : isCeil ? [240, 239, 236] : s === 'west' ? [233, 232, 229] : s === 'east' ? [238, 235, 229] : [236, 234, 229],
-      });
+      const tex = isFloor ? floorMaps(seeds[s], size.w, size.h) : isCeil ? ceilingMaps(seeds[s], size.w, size.h) : wallMaps(s, seeds[s], size.w, size.h);
       const mat = new THREE.MeshStandardMaterial({
         map: tex.map,
         bumpMap: tex.bump,
-        bumpScale: isFloor ? 0.6 : 1.1,
-        roughness: isFloor ? 0.82 : 0.94,
+        bumpScale: isFloor ? 0.5 : 0.9,
+        roughnessMap: tex.rough ?? null,
+        roughness: isFloor ? 1 : 0.95,
         metalness: 0,
         color: 0xffffff,
-        // A white ceiling is lit only by bounce; a little self-light stands in for it.
-        emissive: new THREE.Color(isCeil ? 0x302e2b : 0x000000),
+        // A white ceiling is lit only by bounce; a little cool self-light stands in for it.
+        emissive: new THREE.Color(isCeil ? 0x23262a : 0x000000),
       });
       const mesh = new THREE.Mesh(new THREE.PlaneGeometry(size.w, size.h), mat);
       mesh.receiveShadow = true;
@@ -67,29 +67,48 @@ export class Room {
     this.frames.east.group.rotation.y = -Math.PI / 2;
     this.frames.west.group.rotation.y = Math.PI / 2;
 
-    // Frosted ceiling panel — the only visible source of light.
-    const panelMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xfffbf2, emissiveIntensity: 2.4, roughness: 1 });
+    // Frosted ceiling panel — the only visible source of light. Brighter at its centre,
+    // softening toward a thin frame, like light through etched glass.
+    const pc = document.createElement('canvas');
+    pc.width = pc.height = 128;
+    const pg = pc.getContext('2d')!;
+    const grd = pg.createRadialGradient(64, 64, 6, 64, 64, 92);
+    grd.addColorStop(0, '#ffffff');
+    grd.addColorStop(0.6, '#f4f2ec');
+    grd.addColorStop(1, '#d8d6d0');
+    pg.fillStyle = grd;
+    pg.fillRect(0, 0, 128, 128);
+    const ptex = new THREE.CanvasTexture(pc);
+    ptex.colorSpace = THREE.SRGBColorSpace;
+    const panelMat = new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0xffffff, emissiveMap: ptex, emissiveIntensity: 2.2, roughness: 1 });
     this.panel = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.9), panelMat);
     this.panel.rotation.x = Math.PI / 2;
-    this.panel.position.set(0, H - 0.021, -0.2);
+    this.panel.position.set(PANEL.x, H - 0.021, PANEL.z);
     const rim = new THREE.Mesh(
       new THREE.BoxGeometry(0.96, 0.02, 0.96),
-      new THREE.MeshStandardMaterial({ color: 0xe6e4df, roughness: 0.6 }),
+      new THREE.MeshStandardMaterial({ color: 0xc9c7c2, roughness: 0.55 }),
     );
-    rim.position.set(0, H - 0.008, -0.2);
+    rim.position.set(PANEL.x, H - 0.008, PANEL.z);
     this.group.add(rim, this.panel);
 
     this.setScale(1);
   }
 
+  /** Soft grey trim: a skirting with a small shadow gap above it, and a fine shadow gap at the ceiling. */
   private addSkirting(group: THREE.Group, w: number) {
-    const mat = new THREE.MeshStandardMaterial({ color: 0xf1efea, roughness: 0.55 });
-    const sk = new THREE.Mesh(new THREE.BoxGeometry(w, 0.075, 0.014), mat);
-    sk.position.set(0, -ROOM.height / 2 + 0.0375, 0.007);
-    sk.castShadow = false;
+    const trim = new THREE.MeshStandardMaterial({ color: 0xcfccc6, roughness: 0.6 });
+    const gap = new THREE.MeshStandardMaterial({ color: 0x8f8c86, roughness: 0.9 });
+    const sk = new THREE.Mesh(new THREE.BoxGeometry(w, 0.085, 0.012), trim);
+    sk.position.set(0, -ROOM.height / 2 + 0.0425, 0.006);
     sk.receiveShadow = true;
     sk.name = 'skirting';
-    group.add(sk);
+    const reveal = new THREE.Mesh(new THREE.PlaneGeometry(w, 0.006), gap);
+    reveal.position.set(0, -ROOM.height / 2 + 0.088, 0.0015);
+    reveal.name = 'skirting';
+    const top = new THREE.Mesh(new THREE.PlaneGeometry(w, 0.012), gap);
+    top.position.set(0, ROOM.height / 2 - 0.006, 0.0015);
+    top.name = 'skirting';
+    group.add(sk, reveal, top);
   }
 
   /** Horizontal half-extents at the current scale. */
@@ -110,8 +129,7 @@ export class Room {
     f.west.group.position.set(-ROOM.halfW * s, H / 2, 0);
     for (const k of ['north', 'south', 'east', 'west'] as Surface[]) {
       f[k].mesh.scale.x = s;
-      const sk = f[k].group.getObjectByName('skirting');
-      if (sk) sk.scale.x = s;
+      for (const o of f[k].group.children) if (o.name === 'skirting') o.scale.x = s;
     }
     f.floor.mesh.scale.set(s, s, 1);
     f.ceiling.mesh.scale.set(s, s, 1);

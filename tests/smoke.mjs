@@ -28,12 +28,14 @@ page.on('console', (m) => {
 });
 page.on('pageerror', (e) => errors.push(String(e)));
 
-const shot = async (name) => page.screenshot({ path: `${OUT}/${name}.png` });
+const shot = async (name) => page.screenshot({ path: `${OUT}/${name}.png`, timeout: 90000 });
 const wait = (ms) => page.waitForTimeout(ms);
 const hh = (fn, arg) => page.evaluate(fn, arg);
 
 await page.goto(BASE + '?debug&seed=7');
 await page.waitForFunction(() => !document.getElementById('enter').disabled, null, { timeout: 60000 });
+// Software GL compiles shaders on the first frames; give it a moment before the first capture.
+await page.evaluate(() => new Promise((r) => { let n = 0; const f = () => (++n > 5 ? r(null) : requestAnimationFrame(f)); requestAnimationFrame(f); }));
 await shot('00-threshold');
 await page.click('#enter');
 await wait(10000);

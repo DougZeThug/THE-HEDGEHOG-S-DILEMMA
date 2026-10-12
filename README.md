@@ -50,6 +50,31 @@ Or do nothing. Standing still is a way of being here; the room does not need you
 
 For inspection: add `?debug` to the URL for a live overlay of the engine's state, or `?seed=N` to fix the variation seed.
 
+## The room itself
+
+Minimal, but authored. The emptiness is meant to look chosen, not default.
+
+- **Surfaces** are painted once at load (`src/world/surfaces.ts`):
+  - off-white, hand-trowelled plaster with broad mottling and faint horizontal passes;
+  - a subtly varied matte floor, slightly smoother along the path people walk in, scuffed in arcs around the chair;
+  - a ceiling a little cooler than the walls, with the faintest board joints;
+  - soft grey trim: a skirting with a shadow gap above it, and a fine shadow gap where walls meet the ceiling.
+- **Physical history**, at the edge of visibility:
+  - writing that was rubbed out (a graphite ghost of "I'm sorry" in the empty space behind the chair);
+  - masking-tape residue around paler rectangles where something once hung;
+  - pencil height marks with an initial near one corner, and a few days counted in fives low on the wall behind you;
+  - scuffs along the skirting, soft occlusion in every corner;
+  - on the floor, a little to one side, the pressed marks of where the chair used to stand.
+- **Light** comes almost entirely from one frosted overhead panel, hung slightly north of the chair.
+  - The floor is brightest around the chair, the walls fall away gently toward the corners, and the ceiling stays dim.
+  - The chair's shadow is soft-edged and stretches toward whoever arrives.
+  - The shadow-casting source can still drift away from where the panel says it should be.
+- **The chair** is a small hand-made ladder-back (`src/world/Chair.ts`, `src/world/wood.ts`):
+  - turned legs that splay slightly, back posts that lean and end in finials;
+  - an arched crest rail and slats bent to receive a back, and a dished, slightly trapezoidal seat;
+  - oiled walnut with long calm grain;
+  - wear baked into the wood: paler across the seat's front edge and the middle of the crest rail, where hands and bodies touched it, and darker at the feet.
+
 ## What the room does
 
 All of this is implemented and running; none of it is shown to the visitor as numbers or goals.

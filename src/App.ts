@@ -117,7 +117,7 @@ export class App {
   private setupRenderer() {
     this.renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
     this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.shadowMap.type = THREE.VSMShadowMap;
     this.renderer.toneMapping = THREE.NeutralToneMapping;
     this.renderer.toneMappingExposure = 1.05;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -649,7 +649,7 @@ export class App {
     }
     if (this.renderer && this.post) {
       this.onResize();
-      const size = p.quality === 'low' ? 1024 : 2048;
+      const size = p.quality === 'low' ? 512 : p.quality === 'medium' ? 1024 : 2048;
       const sh = this.lighting.key.shadow;
       if (sh.mapSize.x !== size) {
         sh.mapSize.set(size, size);
