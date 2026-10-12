@@ -11,6 +11,7 @@ import { PhaseTracker } from './Phase';
 import { PhraseSelector, type SelectContext, type SelectQuery } from './PhraseSelector';
 import type { Cue, TimedCue, VoiceKind, VoicePosition } from './cues';
 import type { Interpretation } from '../interpret/schema';
+import { ARCS, type Arc, type EncounterBeat, type Gesture } from '../content/encounters';
 import { SituationRunner, type PhraseGeometry, type SituationHost, type ContributionTrace } from './situations/Situation';
 import { SITUATIONS, SITUATION_BY_ID, keptWord } from './situations/library';
 import { ROOM } from '../world/layout';
@@ -84,7 +85,8 @@ export class Director {
   private geometry: (id: string) => PhraseGeometry | undefined;
   private annotationsUsed = new Set<string>();
   private recontextsUsed = new Set<string>();
-  private relationsShown = new Set<string>();
+  /** How many beats of each phrase's arc have been played. */
+  private played = new Map<string, number>();
   private spokenFirstApproach = false;
   private stillStage = 0;
   private lastSeenWithdraw = -Infinity;
@@ -257,7 +259,7 @@ export class Director {
       this.ruleStillness();
       this.ruleApproach();
       this.ruleWithdraw();
-      this.ruleGaze();
+      this.ruleEncounters();
       this.ruleWarmResurface();
       this.ruleMusic();
       this.ruleRecontext();
@@ -459,40 +461,101 @@ export class Director {
     }
   }
 
-  /** Attention: holding a phrase in view lets its relations come forward. */
-  private ruleGaze() {
+  /**
+   * Encounters. The same words, met again, in a different context. Each phrase has an arc —
+   * authored for the central ones, derived from relations for the rest — and each meeting
+   * plays the next beat of it. Most beats are nothing at all; empty beats count too, so the
+   * visitor never learns that looking makes things happen.
+   */
+  private ruleEncounters() {
+    for (const { id } of this.visitor.encounterStarted) {
+      const p = PHRASE_BY_ID.get(id);
+      if (!p) continue;
+      const n = this.played.get(id) ?? 0;
+      const beat = this.beatFor(p, n);
+      if (beat === null) continue;
+      // An empty beat is just the phrase, alone: it always happens, and takes no room.
+      if (!beat.gestures.length) {
+        this.played.set(id, n + 1);
+        continue;
+      }
+      if (!this.scheduler.ready('encounter', this.now, 10)) continue; // the beat waits for a later meeting
+      if (beat.gestures.some((g) => ('sound' in g || ('voice' in g && g.from === 'beyond')) && this.situations.claimed('beyond'))) continue;
+      // A voice belongs to the moment of looking; if the room has just spoken, the beat waits.
+      if (beat.gestures.some((g) => 'voice' in g || 'breath' in g || 'silence' in g) && !this.scheduler.majorFree(this.now)) continue;
+      this.scheduler.mark('encounter', this.now);
+      this.played.set(id, n + 1);
+      this.playBeat(p, n + 1, beat);
+    }
+  }
+
+  /** Beat for the (n+1)th meeting, or null when the phrase has nothing more and should rest. */
+  private beatFor(p: Phrase, n: number): EncounterBeat | null {
+    const arc = ARCS[p.id] ?? this.defaultArc(p);
+    const variants = arc[n];
+    if (!variants) return n < 6 ? { gestures: [] } : null;
     const v = this.visitor;
-    const id = v.gazeId;
-    if (!id || v.gazeFor < 5 || !this.scheduler.ready('gaze-relate', this.now, 11)) return;
-    const p = PHRASE_BY_ID.get(id);
-    if (!p || this.relationsShown.has(id)) return;
+    return (
+      variants.find((b) => {
+        const w = b.when;
+        if (!w) return true;
+        if (w.phase && !w.phase.includes(this.phase)) return false;
+        if (w.motif && !this.memory.has(w.motif)) return false;
+        if (w.near !== undefined && w.near !== v.near) return false;
+        return true;
+      }) ?? { gestures: [] }
+    );
+  }
+
+  /** A restrained arc from a phrase's own relations: alone; one relation; a different context; rest. */
+  private defaultArc(p: Phrase): Arc {
     const late = this.phase === 'contradiction' || this.phase === 'transform';
-    const pool = late ? [...(p.contradicts ?? []), ...(p.echoes ?? [])] : [...(p.echoes ?? []), ...(this.phase !== 'arrival' ? p.contradicts ?? [] : [])];
-    const candidates = pool.map((r) => PHRASE_BY_ID.get(r)).filter((x): x is Phrase => !!x && (x.tier !== 'transform' || this.phase === 'transform'));
-    if (!candidates.length) {
-      this.relationsShown.add(id);
-      return;
-    }
-    this.scheduler.mark('gaze-relate', this.now);
-    this.relationsShown.add(id);
-    const r = candidates[0];
-    const contradicting = (p.contradicts ?? []).includes(r.id) || (r.contradicts ?? []).includes(id);
-    const rVisible = this.visible.has(r.id);
-    if (r.tier === 'annotation' || (!rVisible && r.surface !== p.surface) || (contradicting && late && this.rng.chance(0.5))) {
-      // Written beside it, in another hand — like somebody answered.
-      this.queue(0.5, {
-        type: 'write', key: `ann:${id}:${r.id}`, text: r.text, hand: r.tier === 'annotation' ? r.hand : this.rng.pick(['pencil', 'faint', 'cyan'] as const),
-        size: 'xs', beside: id, purpose: 'annotation', strike: contradicting && this.rng.chance(0.4) ? id : undefined, ttl: 75,
-      }, 'gaze-annotate');
-    } else {
-      if (!rVisible) this.reveal(r.id, 0.5, 'gaze-reveal', 'emerge', 7);
-      if (r.surface === p.surface) this.queue(2, { type: 'link', a: id, b: r.id, ttl: 40 }, 'gaze-link');
-    }
-    // Sometimes the phrase is spoken — and late in the visit, not in the voice it was written in.
-    if (p.voice && this.rng.chance(late ? 0.45 : 0.3) && !this.memory.spoken.has(p.id)) {
-      const style = late && contradicting ? (p.voice === 'flat' ? 'tender' : 'flat') : p.voice;
-      const pos: VoicePosition = late && this.rng.chance(0.5) ? { kind: 'behind' } : { kind: 'surface', phraseId: p.id };
-      this.speakPhrase('gaze-voice', p, pos, 3, style, 0.65);
+    const echoes = (p.echoes ?? []).map((id) => PHRASE_BY_ID.get(id)).filter((x): x is Phrase => !!x);
+    const contra = (p.contradicts ?? []).map((id) => PHRASE_BY_ID.get(id)).filter((x): x is Phrase => !!x);
+    const ok = (x: Phrase) => x.tier !== 'transform' || this.phase === 'transform';
+    const first = [...(this.phase === 'arrival' ? echoes : [...echoes, ...contra])].find(ok);
+    const second = [...(late ? [...contra, ...echoes] : [...echoes, ...contra])].find((x) => ok(x) && x !== first);
+    const relate = (r: Phrase): Gesture =>
+      r.tier === 'annotation' || (!this.visible.has(r.id) && r.surface !== p.surface)
+        ? { annotate: r.id, hand: r.tier === 'annotation' ? r.hand : 'faint', strike: late && contra.includes(r) && this.rng.chance(0.3) }
+        : { reveal: r.id, link: r.surface === p.surface };
+    const arc: Arc = [[{ gestures: [] }]];
+    arc.push([{ gestures: first ? [relate(first)] : [], delay: 1.5 }]);
+    if (second) arc.push([{ gestures: [relate(second)], delay: 1.5 }]);
+    else if (p.voice) arc.push([{ gestures: [{ voice: p.voice === 'flat' ? 'tender' : 'flat', from: 'behind', gain: 0.5 }], delay: 2 }]);
+    return arc;
+  }
+
+  private playBeat(p: Phrase, n: number, beat: EncounterBeat) {
+    const rule = `encounter:${p.id}:${n}`;
+    const d = beat.delay ?? 1.5;
+    const beyond = (): VoicePosition => ({ kind: 'beyond', surface: this.rng.pick(SURFACES.filter((s) => s !== this.facing)) });
+    for (const g of beat.gestures) {
+      if ('voice' in g) {
+        const pos: VoicePosition =
+          g.from === 'behind' ? { kind: 'behind' } : g.from === 'chair' ? { kind: 'chair' } : g.from === 'surface' ? { kind: 'surface', phraseId: p.id } : g.from === 'nowhere' ? { kind: 'nowhere' } : beyond();
+        this.voice(rule, d, g.voice, p.text, p.text, pos, { phraseId: p.id, gain: g.gain ?? 0.5, ttl: 4, priority: 4 });
+        this.memory.spoken.set(p.id, this.now + d);
+      } else if ('annotate' in g) {
+        const a = PHRASE_BY_ID.get(g.annotate);
+        if (!a) continue;
+        this.queue(d, {
+          // An authored answer is written to be read from where the phrase is read.
+          type: 'write', key: `enc:${p.id}:${n}`, text: a.text, hand: g.hand ?? a.hand, size: ARCS[p.id] ? 's' : 'xs', beside: p.id, purpose: 'annotation',
+          strike: g.strike ? p.id : undefined, ttl: 300, source: a.id,
+        }, rule);
+      } else if ('reveal' in g) {
+        if (!this.visible.has(g.reveal)) this.reveal(g.reveal, d, rule, 'emerge', 8);
+        const r = PHRASE_BY_ID.get(g.reveal);
+        if (g.link && r && r.surface === p.surface) this.queue(d + 2, { type: 'link', a: p.id, b: r.id, ttl: 60 }, rule);
+      } else if ('sound' in g) {
+        const pos: VoicePosition = g.sound === 'chair-creak' ? { kind: 'chair' } : beyond();
+        this.queue(d, { type: 'sound', kind: g.sound, position: pos, gain: g.gain ?? 0.45 }, rule);
+      } else if ('silence' in g) {
+        this.queue(d, { type: 'silence', depth: g.silence, seconds: g.seconds }, rule, { priority: 3 });
+      } else if ('breath' in g) {
+        this.fragment(rule, VOICE_FRAGMENTS.find((f) => f.id === 'vf-breath')!, { kind: g.breath }, d, 0.4);
+      }
     }
   }
 
@@ -506,7 +569,7 @@ export class Director {
     const id = mem.warmMemories[this.rng.int(0, mem.warmMemories.length - 1)];
     const p = PHRASE_BY_ID.get(id)!;
     this.queue(0, {
-      type: 'write', key: `recall:${id}:${Math.round(this.now)}`, text: p.text, hand: 'cyan', size: 'xs', surface: this.facing, purpose: 'recall', ttl: 60,
+      type: 'write', key: `recall:${id}:${Math.round(this.now)}`, text: p.text, hand: 'cyan', size: 'xs', surface: this.facing, purpose: 'recall', ttl: 60, source: id,
     }, 'resurface');
     const f2 = this.rng.chance(0.5) ? 'vf-laugh-next-room' : 'vf-hum';
     this.fragment('resurface', VOICE_FRAGMENTS.find((x) => x.id === f2)!, { kind: 'beyond', surface: this.rng.pick(SURFACES) }, 4, 0.45);
@@ -537,7 +600,7 @@ export class Director {
     this.recontextsUsed.add(r.id);
     if (!this.visible.has(r.beside)) this.reveal(r.beside, 0, 'recontext', 'emerge', 8);
     this.queue(6, {
-      type: 'write', key: `rc:${r.id}`, text: PHRASE_BY_ID.get(r.phrase)!.text, hand: r.hand, size: 'xs', beside: r.beside, purpose: 'recontext', ttl: 120,
+      type: 'write', key: `rc:${r.id}`, text: PHRASE_BY_ID.get(r.phrase)!.text, hand: r.hand, size: 'xs', beside: r.beside, purpose: 'recontext', ttl: 120, source: r.phrase,
     }, 'recontext');
   }
 
@@ -583,7 +646,6 @@ export class Director {
   private onMotif(m: Motif) {
     switch (m) {
       case 'hesitation':
-        this.queue(1, { type: 'write', key: 'ann:hes', text: PHRASE_BY_ID.get('come-back-dont')!.text, hand: 'pencil', size: 'xs', beside: 'stay', purpose: 'annotation', ttl: 140 }, 'motif-hesitation');
         if (PHRASE_BY_ID.get('if-closer')) this.speakPhrase('motif-hesitation', PHRASE_BY_ID.get('if-closer')!, { kind: 'chair' }, 8, 'whisper', 0.6);
         break;
       case 'stillness':
@@ -605,8 +667,7 @@ export class Director {
 
   private onPhase(p: Phase) {
     if (p === 'contradiction') {
-      // The room's first open contradiction: an annotation on the line the visitor arrived facing.
-      this.queue(4, { type: 'write', key: 'ann:afraid', text: PHRASE_BY_ID.get('maybe-wanted')!.text, hand: 'pencil', size: 'xs', beside: 'afraid-leave', purpose: 'annotation', ttl: 160 }, 'phase-contradiction');
+      // The contradiction phase brings the fear of being left onto the wall; what it means is left to later meetings.
       if (!this.visible.has('afraid-leave')) this.reveal('afraid-leave', 0, 'phase-contradiction', 'emerge', 6);
     }
     if (p === 'transform') {
@@ -706,8 +767,9 @@ export class Director {
 
   /** The world could not find room for a piece of writing: let its relation be tried again later. */
   writeFailed(key: string): void {
-    const m = /^ann:([^:]+):/.exec(key);
-    if (m) this.relationsShown.delete(m[1]);
+    // A beat whose writing found no room is played again at the next meeting.
+    const m = /^enc:([^:]+):(\d+)$/.exec(key);
+    if (m) this.played.set(m[1], Math.max(0, Number(m[2]) - 1));
   }
 
   /** Clears contributions from memory (privacy: "forget what I wrote"). */
@@ -756,6 +818,7 @@ export class Director {
       memory: this.memory.snapshot(),
       visible: this.visible.size,
       situations: this.situations.snapshot(),
+      encounters: [...this.visitor.encounters.entries()].filter(([, e]) => e.count > 1).map(([id, e]) => `${id}×${e.count}`).slice(-8),
       pending: this.scheduler.snapshot(this.now).slice(0, 8).map((e) => `${e.in}s ${e.payload.rule}:${e.payload.cue.type}`),
       recent: this.log.slice(-8).map((c) => {
         const cu = c.cue as { phraseId?: string; caption?: string; text?: string };

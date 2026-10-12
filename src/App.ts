@@ -191,6 +191,7 @@ export class App {
     // Attention.
     const cam = this.rig.camera;
     this.gazeId = this.text.attention(cam);
+    const gazePhrase = this.text.phraseOf(this.gazeId);
     this.raycaster.setFromCamera(new THREE.Vector2(0, 0), cam);
     this.gazeChair = this.raycaster.intersectObject(this.chair.hit, false).length > 0 && this.rig.distanceToChair() < 6;
 
@@ -200,7 +201,7 @@ export class App {
         z: this.rig.pos.z - this.chair.group.position.z,
         yaw: this.rig.yaw,
         pitch: this.rig.pitch,
-        gazePhraseId: this.gazeId,
+        gazePhraseId: gazePhrase,
         gazeChair: this.gazeChair,
         nearSurface: this.room.nearWall(this.rig.pos.x, this.rig.pos.z),
         kneeling: this.rig.kneeling,
@@ -214,7 +215,7 @@ export class App {
     const scaleTarget = this.prefs.reducedMotion ? 1 + (env.roomScale - 1) * 0.3 : env.roomScale;
     this.room.setScale(this.room.scale + (scaleTarget - this.room.scale) * (1 - Math.exp(-dt / 6)));
     this.lighting.update(dt, env, this.time, this.chair.group.position);
-    this.text.update(dt, this.time, cam, env, this.gazeId, v.gazeId === this.gazeId ? v.gazeFor : 0);
+    this.text.update(dt, this.time, cam, env, this.gazeId, v.gazeId === gazePhrase ? v.gazeFor : 0);
     this.post.update(dt, env, this.time);
 
     if (this.audio) {
@@ -243,7 +244,7 @@ export class App {
         const near = cue.nearPoint && cue.surface === 'floor'
           ? { u: c.x + cue.nearPoint.x + ROOM.halfW, v: c.z + cue.nearPoint.z + ROOM.halfD }
           : cue.surface && !cue.beside ? this.viewPointOn(cue.surface) : undefined;
-        const ok = this.text.write({ key: cue.key, text: cue.text, hand: cue.hand, size: cue.size, beside: cue.beside, surface: cue.surface, near, purpose: cue.purpose, ttl: cue.ttl, now: this.time });
+        const ok = this.text.write({ key: cue.key, text: cue.text, hand: cue.hand, size: cue.size, beside: cue.beside, surface: cue.surface, near, purpose: cue.purpose, ttl: cue.ttl, now: this.time, source: cue.source });
         if (ok && cue.strike) this.text.strike(cue.strike, this.time, cue.ttl);
         if (!ok) this.director.writeFailed(cue.key);
         break;
@@ -259,6 +260,9 @@ export class App {
           if (cue.melody?.length) this.music.playMelody(cue.melody, cue.stopAt);
           else this.music.play(cue.mood, cue.notes, cue.truncate);
         }
+        break;
+      case 'sound':
+        if (this.voices && this.audio) void this.voices.sound(cue.kind, this.place(cue.position), cue.gain);
         break;
       case 'stopVoice':
         this.voices?.stop(cue.tag, cue.fade);
@@ -785,14 +789,14 @@ export class App {
         z: this.rig.pos.z - this.chair.group.position.z,
         yaw: this.rig.yaw,
         pitch: this.rig.pitch,
-        gazePhraseId: this.text.attention(cam),
+        gazePhraseId: this.text.phraseOf(this.text.attention(cam)),
         gazeChair: false,
         nearSurface: this.room.nearWall(this.rig.pos.x, this.rig.pos.z),
         kneeling: this.rig.kneeling,
       };
       this.time += step;
       for (const c of this.director.tick(step, input, this.room.facing(this.rig.yaw))) this.apply(c.cue);
-      this.text.update(step, this.time, cam, this.director.env, input.gazePhraseId, this.director.visitor.gazeFor);
+      this.text.update(step, this.time, cam, this.director.env, this.text.attention(cam), this.director.visitor.gazeFor);
     }
     this.enteredAt = Math.min(this.enteredAt, this.time - 30);
   }
@@ -807,6 +811,7 @@ export class App {
       `visitor ${JSON.stringify(s.visitor)}\nfield ${JSON.stringify(s.field)}\nmotifs ${JSON.stringify(s.memory.strength)} formed ${s.memory.formed.join(',')}\n` +
       `env ${JSON.stringify(Object.fromEntries(Object.entries(this.director.env).map(([k, v]) => [k, +v.toFixed(2)])))}\n` +
       `situations ${JSON.stringify(s.situations)}\n` +
+      `met again ${s.encounters.join(' ')}\n` +
       `pending\n  ${s.pending.join('\n  ')}\nrecent\n  ${s.recent.join('\n  ')}`;
   }
 }

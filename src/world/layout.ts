@@ -172,21 +172,28 @@ export class SurfaceLayout {
     return null;
   }
 
-  /** Spot beside an existing placement: below, then right, left, above. */
+  /**
+   * Spot beside an existing placement: first the natural places (just below, to the
+   * right, to the left, above), then widening rings around it. Writing that answers a
+   * phrase may go into the space kept empty behind the chair — but never far away.
+   */
   findBeside(target: Placement, w: number, h: number): Rect | null {
     const g = 0.04;
-    const opts: Rect[] = [
+    const natural: Rect[] = [
+      { u: target.u - target.w / 2 + w / 2 + target.w * 0.08, v: target.v - target.h / 2 - h / 2 - g, w, h },
       { u: target.u + target.w * 0.15, v: target.v - target.h / 2 - h / 2 - g, w, h },
-      { u: target.u - target.w * 0.1, v: target.v - target.h / 2 - h / 2 - g * 2, w, h },
       { u: target.u + target.w / 2 + w / 2 + g * 2, v: target.v - target.h * 0.2, w, h },
       { u: target.u - target.w / 2 - w / 2 - g * 2, v: target.v + target.h * 0.1, w, h },
       { u: target.u, v: target.v + target.h / 2 + h / 2 + g, w, h },
     ];
-    for (const r of opts) if (this.free(target.surface, r, 0.015)) return r;
-    for (let i = 0; i < 40; i++) {
-      const r = { u: target.u + this.rng.range(-0.9, 0.9), v: target.v + this.rng.range(-0.7, 0.5), w, h };
-      if (this.free(target.surface, r, 0.02)) return r;
-    }
+    for (const r of natural) if (this.free(target.surface, r, 0.015, true)) return r;
+    const rings: Rect[] = [];
+    for (let rad = 0.1; rad <= 1.2; rad += 0.08)
+      for (let k = 0; k < 16; k++) {
+        const a = (k / 16) * Math.PI * 2;
+        rings.push({ u: target.u + Math.cos(a) * (target.w / 2 + w / 2 + rad) * 0.9, v: target.v + Math.sin(a) * (target.h / 2 + h / 2 + rad * 0.5), w, h });
+      }
+    for (const r of rings) if (this.free(target.surface, r, 0.015, true)) return r;
     return null;
   }
 

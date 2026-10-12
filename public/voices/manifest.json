@@ -22,5 +22,16 @@
   ],
   "style:distant": [
     "style-distant-2.mp3"
+  ],
+  "sfx:door": [
+    "sfx-door-1.mp3",
+    "sfx-door-2.mp3"
+  ],
+  "sfx:cup": [
+    "sfx-cup-1.mp3",
+    "sfx-cup-2.mp3"
+  ],
+  "sfx:chair-creak": [
+    "sfx-chair-creak-1.mp3"
   ]
 }

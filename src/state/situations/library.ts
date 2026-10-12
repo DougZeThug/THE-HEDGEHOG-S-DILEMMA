@@ -71,7 +71,7 @@ export const nextRoom: SituationDef = {
       const len = Math.hypot(v.x, v.z) || 1;
       c.emit(0, {
         type: 'write', key: `nr:${m.id}`, text: m.text, hand: 'cyan', size: 'xs', surface: 'floor', purpose: 'recall', ttl: 150,
-        nearPoint: { x: (v.x / len) * 0.42, z: (v.z / len) * 0.42 },
+        nearPoint: { x: (v.x / len) * 0.42, z: (v.z / len) * 0.42 }, source: m.id,
       });
       c.emit(1.5, { type: 'silence', depth: 0.65, seconds: LAUGH_SECONDS + 1.5 }, { priority: 5 });
       c.go('remembered');
@@ -210,7 +210,7 @@ export const listening: SituationDef = {
     if (st.stage === 'after') {
       if (c.since < 120 || h.facing === 'west' || h.distToSurface('west') < 4 || h.visitor.speed > 0.3) return;
       const q = PHRASE_BY_ID.get('who-talking')!;
-      c.emit(0, { type: 'write', key: 'listen:q', text: q.text, hand: 'faint', size: 'xs', surface: h.facing, purpose: 'recall', ttl: 120 });
+      c.emit(0, { type: 'write', key: 'listen:q', text: q.text, hand: 'faint', size: 'xs', surface: h.facing, purpose: 'recall', ttl: 120, source: q.id });
       c.end();
     }
   },
@@ -282,7 +282,7 @@ export const erosion: SituationDef = {
     if (h.facing === d.surface || h.distToSurface(d.surface) < 3) return;
     c.emit(0, { type: 'erode', key: d.key, keep: d.keep });
     const kin = PHRASES.find((p) => p.tier !== 'annotation' && (p.keywords ?? []).includes(d.keep));
-    if (kin) c.emit(8, { type: 'write', key: `${d.key}:kin`, text: kin.text, hand: 'faint', size: 'xs', beside: `${d.key}:kept`, purpose: 'annotation', ttl: 240 });
+    if (kin) c.emit(8, { type: 'write', key: `${d.key}:kin`, text: kin.text, hand: 'faint', size: 'xs', beside: `${d.key}:kept`, purpose: 'annotation', ttl: 240, source: kin.id });
     c.end();
   },
 };

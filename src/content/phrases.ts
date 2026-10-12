@@ -106,6 +106,15 @@ export const PHRASES: Phrase[] = [
     surface: 'north', tier: 'contradiction', hand: 'marker', size: 's', voice: 'flat',
     echoes: ['not-so-tight', 'arm-dead'], keywords: ['love', 'go away'],
   }),
+  p('didnt-know-how', "I didn't know how.", { shame: 0.5, uncertainty: 0.6, desire: 0.3, grief: 0.3 }, {
+    surface: 'north', tier: 'annotation', hand: 'pencil',
+  }),
+  p('raining-anyway', 'It was raining anyway.', { relief: 0.4, nostalgia: 0.3, contradiction: 0.3, isolation: 0.2 }, {
+    surface: 'south', tier: 'annotation', hand: 'faint',
+  }),
+  p('didnt-explain', "I didn't explain it.", { shame: 0.5, misunderstanding: 0.5, forgiveness: 0.3 }, {
+    surface: 'west', tier: 'annotation', hand: 'pencil',
+  }),
   p('come-back-dont', "Come back. Don't.", { desire: 0.6, fear: 0.5, contradiction: 0.8 }, {
     surface: 'north', tier: 'annotation', hand: 'pencil', voice: 'whisper', echoes: ['stay'],
   }),

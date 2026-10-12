@@ -29,6 +29,8 @@ export type Cue =
       surface?: Surface;
       /** For the floor: write near this point (chair-relative metres). */
       nearPoint?: { x: number; z: number };
+      /** The phrase these words come from: looking at them is meeting that phrase again. */
+      source?: string;
       purpose: 'annotation' | 'recall' | 'recontext' | 'contribution';
       /** Phrase that gets a faint line struck through it. */
       strike?: string;
@@ -66,6 +68,8 @@ export type Cue =
   /** Turn the chair a fraction of the way toward a point (chair-relative metres). */
   | { type: 'chairTurn'; x: number; z: number; amount: number }
   | { type: 'flash'; kind: 'warm' | 'cold'; amount: number; seconds: number }
+  /** A small household sound: a door closing somewhere, a cup set down, the chair creaking. */
+  | { type: 'sound'; kind: 'door' | 'chair-creak' | 'cup'; position: VoicePosition; gain: number }
   /** Cut off a tagged sound, with a short fade. */
   | { type: 'stopVoice'; tag: string; fade: number }
   /** A faint warmth left at a place on the floor (chair-relative metres), fading over `seconds`. */
