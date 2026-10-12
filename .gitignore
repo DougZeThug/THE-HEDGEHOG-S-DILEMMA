@@ -3,3 +3,8 @@ dist
 *.log
 .DS_Store
 test-output
+# Secrets never live in the repository
+.env
+.env.*
+!.env.example
+*.key

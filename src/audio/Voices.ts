@@ -1,6 +1,7 @@
 import type { AudioEngine } from './AudioEngine';
 import type { VoiceKind } from '../state/cues';
 import { Rng, hashString } from '../core/rng';
+import { chooseSource, type Source } from './selection';
 
 /**
  * Voices.
@@ -27,6 +28,8 @@ export interface VoicePlacement {
 }
 
 export interface PlayOptions {
+  /** Recorded performance files for this phrase, best first for this moment. */
+  performances?: string[];
   /** Semitones above the base for a hummed tune; -100 is a rest. */
   melody?: number[];
   /** Never substitute a recording. */
@@ -262,6 +265,8 @@ export class Voices {
   }
 
   private tagged = new Map<string, GainNode[]>();
+  /** Where the most recent voice came from (for inspection and tests). */
+  lastSource: Source | null = null;
 
   /**
    * A small household sound somewhere: a door closing in another room, a cup set down,
@@ -398,21 +403,23 @@ export class Voices {
 
   private async play_(kind: VoiceKind, text: string | null, place: VoicePlacement, gain: number, assetKey: string | undefined, opts: PlayOptions): Promise<number> {
     const g = gain * (0.55 + 0.45 * this.a.intensity);
-    const nonVerbal = ['laugh', 'murmur', 'breath', 'hum'].includes(kind);
-    if (text && this.speechFallback && 'speechSynthesis' in window && !nonVerbal) {
-      return this.speak(text, kind, g);
-    }
-    // A recording made for this exact moment, or a recorded texture for this manner of speaking.
-    const key = opts.synth ? null : assetKey && this.hasAsset(assetKey) ? assetKey : this.hasAsset(`style:${kind}`) ? `style:${kind}` : null;
-    if (key) {
-      const files = this.manifest[key];
-      const file = files[this.rng.int(0, files.length - 1)];
+    const src = chooseSource({
+      manifest: this.manifest, assetKey, performances: opts.performances, text, kind,
+      speechFallback: this.speechFallback, speechAvailable: 'speechSynthesis' in window, synthOnly: opts.synth,
+      pick: (n) => this.rng.int(0, n - 1),
+    });
+    this.lastSource = src;
+    if (src.kind === 'recording' || src.kind === 'texture') {
+      const file = src.kind === 'recording' ? src.file : this.manifest[src.key][this.rng.int(0, this.manifest[src.key].length - 1)];
       const buf = await this.loadBuffer(file);
       if (buf) {
-        const level = this.norm.get(file) ?? 1;
-        return this.playBuffer(buf, place, g * level, kind === 'flat' ? 0.05 : 0.3);
+        // Intelligible recordings sit a little above the room tone so words aren't masked.
+        const level = (this.norm.get(file) ?? 1) * (src.kind === 'recording' ? 1.35 : 1);
+        // Recorded speech is dry; the room supplies the space. Flat delivery stays closest.
+        return this.playBuffer(buf, place, g * level, kind === 'flat' ? 0.05 : src.kind === 'recording' ? 0.22 : 0.3);
       }
     }
+    if (src.kind === 'speech' && text) return this.speak(text, kind, g);
     switch (kind) {
       case 'breath':
         return this.breath(place, g);

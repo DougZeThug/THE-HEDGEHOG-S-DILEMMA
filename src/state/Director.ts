@@ -13,6 +13,7 @@ import type { Cue, TimedCue, VoiceKind, VoicePosition } from './cues';
 import type { Interpretation } from '../interpret/schema';
 import { ARCS, type Arc, type EncounterBeat, type Gesture } from '../content/encounters';
 import { belonging, CHARACTER_WALLS } from '../content/walls';
+import { rankPerformances } from './performance';
 import { SituationRunner, type PhraseGeometry, type SituationHost, type ContributionTrace } from './situations/Situation';
 import { SITUATIONS, SITUATION_BY_ID, keptWord } from './situations/library';
 import { ROOM } from '../world/layout';
@@ -223,9 +224,14 @@ export class Director {
     position: VoicePosition,
     extra: { gain?: number; assetId?: string; phraseId?: string; ttl?: number; priority?: number } = {},
   ) {
+    // A phrase with recorded performances: choose the one directed for this moment.
+    const ranked = extra.phraseId && kind !== 'laugh' && kind !== 'murmur' && kind !== 'breath' && kind !== 'hum' ? rankPerformances(extra.phraseId, this.field.v, kind) : [];
     this.queue(
       delay,
-      { type: 'voice', kind, text, caption, position, gain: extra.gain ?? 0.8, assetId: extra.assetId, phraseId: extra.phraseId },
+      {
+        type: 'voice', kind, text, caption, position, gain: extra.gain ?? 0.8, assetId: extra.assetId, phraseId: extra.phraseId,
+        ...(ranked.length ? { performance: ranked[0].id, performances: ranked.map((p) => p.file) } : {}),
+      },
       rule,
       { major: true, ttl: extra.ttl ?? 20, priority: extra.priority ?? 1 },
     );

@@ -33,5 +33,71 @@
   ],
   "sfx:chair-creak": [
     "sfx-chair-creak-1.mp3"
+  ],
+  "phrase:stay": [
+    "dialogue/stay--tender.mp3",
+    "dialogue/stay--guarded.mp3",
+    "dialogue/stay--remembered.mp3"
+  ],
+  "phrase:closer": [
+    "dialogue/closer--quiet.mp3",
+    "dialogue/closer--flat.mp3"
+  ],
+  "phrase:afraid-leave": [
+    "dialogue/afraid-leave--confessional.mp3",
+    "dialogue/afraid-leave--remembered.mp3"
+  ],
+  "phrase:if-closer": [
+    "dialogue/if-closer.mp3"
+  ],
+  "phrase:why-understand": [
+    "dialogue/why-understand--frustrated.mp3",
+    "dialogue/why-understand--quiet.mp3"
+  ],
+  "phrase:love-go-away": [
+    "dialogue/love-go-away--flat.mp3",
+    "dialogue/love-go-away--fond.mp3"
+  ],
+  "phrase:two-cups": [
+    "dialogue/two-cups.mp3"
+  ],
+  "phrase:laugh-breathe": [
+    "dialogue/laugh-breathe.mp3"
+  ],
+  "phrase:understood-minute": [
+    "dialogue/understood-minute.mp3"
+  ],
+  "phrase:crumbs": [
+    "dialogue/crumbs.mp3"
+  ],
+  "phrase:remember-me": [
+    "dialogue/remember-me.mp3"
+  ],
+  "phrase:glad-came": [
+    "dialogue/glad-came.mp3"
+  ],
+  "phrase:still-here": [
+    "dialogue/still-here.mp3"
+  ],
+  "phrase:not-going": [
+    "dialogue/not-going.mp3"
+  ],
+  "phrase:this-bit": [
+    "dialogue/this-bit.mp3"
+  ],
+  "phrase:alone-ok": [
+    "dialogue/alone-ok.mp3"
+  ],
+  "phrase:sorry-like-that": [
+    "dialogue/sorry-like-that.mp3"
+  ],
+  "phrase:happy-then": [
+    "dialogue/happy-then.mp3"
+  ],
+  "phrase:laugh": [
+    "dialogue/laugh.mp3"
+  ],
+  "phrase:was-it-me": [
+    "dialogue/was-it-me.mp3"
   ]
 }

@@ -187,7 +187,7 @@ export const PHRASES: Phrase[] = [
     surface: 'east', hand: 'pen', voice: 'whisper', keywords: ['summer', 'tent', 'camping', 'holiday'],
   }),
   p('laugh-breathe', "You made me laugh so hard I couldn't breathe.", { happiness: 0.9, affection: 0.6, nostalgia: 0.5 }, {
-    surface: 'west', tier: 'arrival', hand: 'crayon', echoes: ['laugh'], keywords: ['laugh', 'funny', 'breathe'],
+    surface: 'west', tier: 'arrival', hand: 'crayon', voice: 'tender', echoes: ['laugh'], keywords: ['laugh', 'funny', 'breathe'],
   }),
   p('cereal', 'We ate cereal for dinner and it was perfect.', { happiness: 0.8, nostalgia: 0.5, relief: 0.3 }, {
     surface: 'east', hand: 'pencil', keywords: ['dinner', 'cereal', 'food', 'perfect'],
@@ -208,7 +208,7 @@ export const PHRASES: Phrase[] = [
     surface: 'east', tier: 'contradiction', hand: 'pencil', voice: 'whisper', echoes: ['still-warm'], keywords: ['we', 'still', 'accident', 'us'],
   }),
   p('understood-minute', 'You understood me once, completely, for about a minute.', { connection: 0.8, happiness: 0.5, nostalgia: 0.5, grief: 0.3 }, {
-    surface: 'east', tier: 'familiar', hand: 'pen', echoes: ['why-understand'], keywords: ['understood', 'understand'],
+    surface: 'east', tier: 'familiar', hand: 'pen', voice: 'tender', echoes: ['why-understand'], keywords: ['understood', 'understand'],
   }),
   p('kitchen-light', 'the light in the kitchen at four in the afternoon', { nostalgia: 0.7, happiness: 0.5, relief: 0.4 }, {
     surface: 'east', hand: 'crayon', keywords: ['light', 'kitchen', 'afternoon'],

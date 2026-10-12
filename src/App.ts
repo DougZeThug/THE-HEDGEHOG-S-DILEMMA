@@ -345,7 +345,9 @@ export class App {
     let dur = 3;
     if (this.voices && this.audio) {
       const assetKey = cue.assetId ?? (cue.phraseId ? `phrase:${cue.phraseId}` : undefined);
-      dur = await this.voices.play(cue.kind, cue.text, { ...this.place(cue.position), tag: cue.tag }, cue.gain, assetKey, { melody: cue.melody, synth: cue.synth });
+      dur = await this.voices.play(cue.kind, cue.text, { ...this.place(cue.position), tag: cue.tag }, cue.gain, assetKey, {
+        melody: cue.melody, synth: cue.synth, performances: cue.performances,
+      });
     }
     if (dur > 0) this.captions.show(cue.caption, dur, cue.text === null);
   }

@@ -172,11 +172,67 @@ Design rules the code follows:
 - Everything in the ambience and music is synthesised live with the Web Audio API.
 - Positional sound uses HRTF panners: the hum comes from the ceiling panel, ventilation from a high corner, voices from the chair, from a wall, from behind you, from beyond a wall (muffled), or from nowhere (drifting, unpositioned).
 - `public/voices/` holds **recorded textures** (laughter through a wall, breathing, humming, murmured conversation, whispers) generated once, offline, with the ElevenLabs sound-effects API via `scripts/generate-voices.mjs`. They are loudness-normalised at load time. The app makes no network calls to any service at runtime.
-- Spoken *lines* are not recorded yet. Whispered and distant lines use the recorded whisper/distant-voice textures (unintelligible by design); tender, flat and child-like lines use synthesised formant textures shaped by each line's syllables. Captions carry the words. To add recorded performances, drop files in `public/voices/` and list them in `manifest.json` under `phrase:<phrase-id>`; they take precedence automatically.
-- An optional **browser speech** setting speaks lines intelligibly with the system voice. It is off by default and non-spatial: a fallback for people who want the words spoken, not the intended voice of the piece.
+- **Spoken lines** — 20 central phrases have recorded, intelligible performances (26 in all), in `public/voices/dialogue/` (see *Recorded voices* below). The room chooses which performance of a line to use from its emotional field, and plays it from a place in the room. Lines without a recording keep the earlier unintelligible textures; captions carry the words either way.
+- Where a voice comes from, in order: the recorded performance chosen for this moment → another recorded performance of the same phrase → the browser's own speech, only if the visitor turns that setting on → a recorded texture or synthesis. A recording always wins over browser speech (`src/audio/selection.ts`).
+- The optional **browser speech** setting speaks unrecorded lines intelligibly with the system voice. It is off by default and non-spatial.
 - Safety: a limiter before the output, all level changes ramped, at most four voices at once, generous headroom (measured peaks for every voice type and the music were between −18 and −35 dBFS in headless Chromium).
 
 To regenerate the recorded textures: `ELEVENLABS_API_KEY=sk_... node scripts/generate-voices.mjs` (the key is read from the environment and never stored). Sound-effect output from ElevenLabs is subject to their terms for your plan.
+
+## Recorded voices
+
+The voices are meant to sound like fragments of somebody's life, not a narrator reading the walls. They are generated **offline** with ElevenLabs text-to-speech (`eleven_v3`). The browser never contacts ElevenLabs; it only plays files listed in `public/voices/manifest.json`.
+
+**Voice palette** (`src/content/dialogue.json`). These are ElevenLabs default voices; Voice Design isn't available on the current plan.
+
+| | Voice | Purpose |
+|---|---|---|
+| intimate | Jessica | Young adult, gentle, hesitant; speaks to one person at close range. |
+| restrained | Chris | Ordinary and grounded; composure that emotion gets through anyway. |
+| warm | Laura | Spontaneous, laughs easily; happy memories without sentiment. |
+| distant | River | Remembering a conversation from years ago; ambiguous rather than sad. |
+| young | Will | Youthful vulnerability (a young adult stock voice, not a child). |
+
+**Direction.** Each performance names its phrase, voice, the exact authored text (which is the caption), the model input, a written direction, the emotional context it was directed for, and its file.
+- Audio tags are used sparingly: at most one per line, in about half the lines, and never "whispers" by default.
+- "I wanted you to stay." has three performances:
+  - tender (intimate), chosen when warmth dominates;
+  - guarded (restrained), chosen when exposure and tension dominate;
+  - remembered (distant), chosen when reminiscence dominates.
+- Other key lines have two performances each.
+- The Director picks a performance with `rankPerformances` (`src/state/performance.ts`), using the existing EmotionalField and the manner the moment asks for. Speech is no more frequent than before; the recordings only change *how* a line sounds when the room already chose to speak it.
+
+**Generation** (`scripts/generate-dialogue.mjs`, logic in `scripts/dialogue-lib.mjs`):
+```bash
+node scripts/generate-dialogue.mjs --dry-run                       # plan and estimated credits, no key needed
+ELEVENLABS_API_KEY=… node scripts/generate-dialogue.mjs --pilot     # three contrasting lines
+ELEVENLABS_API_KEY=… node scripts/generate-dialogue.mjs --budget=900
+node scripts/generate-dialogue.mjs --approve=stay--tender --reject=closer--flat   # after listening
+```
+- **Idempotent.** A request is identified by voice, model, input, stability and seed. Identical requests are never repeated.
+- **Protected.** Approved recordings are never overwritten without `--regenerate=<id>`.
+- **Budget.** Jobs beyond `--budget` stay queued.
+- **Failures.** Rate limits are retried with back-off. Invalid voices are recorded and skipped. Quota and permission failures stop the run and leave the remaining jobs queued.
+- **Checks.** Every file is checked to be valid MP3, and transcribed with ElevenLabs speech-to-text. A recording whose words don't match the authored text, or that speaks its tag aloud, is marked `needs-review` and kept out of the manifest.
+- **Ledger.** Status, hashes, estimated and actual credits, request ids, transcripts and review decisions go to `scripts/dialogue-ledger.json`. Generation status lives there rather than in the direction file, so authored direction and machine state stay separate.
+
+**Account capabilities, as tested** (October 2026):
+- Text-to-speech works with ElevenLabs default voices on every model tried (`eleven_v3`, `eleven_multilingual_v2`, `eleven_flash_v2_5`, `eleven_turbo_v2_5`), as do the dialogue and speech-to-text endpoints.
+- Community/library and legacy voices (e.g. Rachel) return `402 paid_plan_required`; Sarah and Callum return `404 voice_not_found`.
+- Voice Design returns `403 feature_not_available` ("only available on a paid plan").
+- The key is restricted: it lacks `user_read`, `voices_read` and `models_read`, so the remaining credit balance and the voice list can't be read through the API.
+  - Costs are tracked from each response's `character-cost` header instead.
+  - Adding `user_read` to the key would let the script check the balance before a batch.
+- The first batch (26 performances, 20 phrases) cost **815 credits**, exactly as estimated. Capability probing used about 64 more.
+
+**What has and hasn't been checked.**
+- **Technical** (automated):
+  - every file decodes;
+  - durations are 0.9–4.0 s;
+  - each transcript matches the authored words, and no tag was spoken;
+  - levels are normalised at load;
+  - each performance plays from the right place, is chosen for the right context, carries the exact caption, and respects mute.
+- **Artistic:** not yet done. None of the recordings has been auditioned by a person, so their status is `validated`, not `approved`. Listen, then approve or reject with the flags above; rejected takes leave the manifest immediately.
 
 ## Accessibility, comfort and privacy
 
@@ -187,7 +243,7 @@ To regenerate the recorded textures: `ELEVENLABS_API_KEY=sk_... node scripts/gen
 
 ## What is incomplete or uses fallback content
 
-- **Spoken lines** use synthesised, unintelligible voice textures with captions (or optional browser speech). Recorded performances of the lines are the main missing artistic asset.
+- **Spoken lines**: 20 phrases have recorded performances that have been technically validated but not auditioned; everything else uses unintelligible textures with captions.
 - **Recorded textures** were generated, not performed; I could check their duration and levels but not audition them. One clip that came back near-silent was discarded.
 - **Visual verification** was done in headless Chromium with software rendering (slow, so behaviour over time was checked with the engine's fast-forward). Real-GPU performance and look on varied hardware still need a human eye.
 - **Speech/microphone input** is intentionally not implemented.
@@ -195,7 +251,7 @@ To regenerate the recorded textures: `ELEVENLABS_API_KEY=sk_... node scripts/gen
 
 ## Testing and review
 
-- 77 unit tests (Vitest) cover the visitor model (stillness, approach/withdraw hysteresis, reading), the emotional field (non-monotonic closeness, relief after withdrawal, hush), the phrase selector, the scheduler, deterministic and divergent experiences for scripted visitors (still, hesitant, close, wandering, warm), contributions (always written, never answered within a minute, at most one gesture), the interpreter and its validator, the corpus, wall layout, each authored situation (followed and ignored paths, absences, what generic rules must not do while a situation holds a channel), contamination (lines start out of place, migrate gradually beside what belongs, vary between visits; the held line reaching the empty wall), and encounters (the three meetings with "I wanted you to stay.", what counts as a new meeting, default arcs, variants that depend on the visit, pacing).
+- 105 unit tests (Vitest) cover the visitor model (stillness, approach/withdraw hysteresis, reading), the emotional field (non-monotonic closeness, relief after withdrawal, hush), the phrase selector, the scheduler, deterministic and divergent experiences for scripted visitors (still, hesitant, close, wandering, warm), contributions (always written, never answered within a minute, at most one gesture), the interpreter and its validator, the corpus, wall layout, each authored situation (followed and ignored paths, absences, what generic rules must not do while a situation holds a channel), contamination (lines start out of place, migrate gradually beside what belongs, vary between visits; the held line reaching the empty wall), recorded voices (direction matches the corpus; idempotent, budgeted generation; rate-limit, invalid-voice, quota and invalid-audio handling with a simulated API; transcript checks; manifest compatibility; playback priority; context-based performance choice; no credentials anywhere and no API calls from the browser), and encounters (the three meetings with "I wanted you to stay.", what counts as a new meeting, default arcs, variants that depend on the visit, pacing).
 - `npm run smoke` drives a full visit in headless Chromium: entering, walking, kneeling, every wall, stillness, a contribution, settings, leaving and returning. It fails on any console error or on any overlapping writing.
 - Two separate reviews were run on the finished build. A critical artistic review led to cutting lines that stated the dilemma outright or sounded like therapy, removing a rule that put jokes on a timer, making the chair's responses mostly subtraction, varying stillness per visit, and making contributions unanswered. A QA/accessibility review found 15 bugs, all fixed and re-verified in the browser. They included contributions that could silently fail to appear, still-only writing that never vanished, auto-walk continuing while paused, the inspector log keeping visitors' words, an abrupt dark-to-white return, speech ignoring mute and pause, a quality setting that only half applied, low-contrast controls, the passing-traffic swell never sounding, and the voice limit being exceedable.
 

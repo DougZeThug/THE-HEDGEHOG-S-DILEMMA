@@ -52,6 +52,10 @@ export type Cue =
       melody?: number[];
       /** Always synthesise (never substitute a recording), e.g. when the tune must be known. */
       synth?: boolean;
+      /** The recorded performance chosen for this moment (an id from src/content/dialogue.json). */
+      performance?: string;
+      /** Recorded files for this phrase, best first for this moment. */
+      performances?: string[];
     }
   | {
       type: 'music';
