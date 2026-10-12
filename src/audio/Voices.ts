@@ -1,0 +1,496 @@
+import type { AudioEngine } from './AudioEngine';
+import type { VoiceKind } from '../state/cues';
+import { Rng, hashString } from '../core/rng';
+
+/**
+ * Voices.
+ *
+ * Three sources, in order of preference:
+ *  1. Recorded assets listed in /voices/manifest.json (keyed by fragment id or "phrase:<id>").
+ *  2. Synthesised voice *textures*: formant-filtered whispers shaped by the syllables of
+ *     the text, voiced murmurs heard through a wall, breath, laughter, humming. They are
+ *     not meant to be intelligible — captions carry the words — they carry the body.
+ *  3. Optional browser speech (off by default): intelligible but generic, non-spatial,
+ *     and explicitly a fallback rather than the intended voice of the piece.
+ */
+
+export interface VoicePlacement {
+  /** Fixed position, or a path start→end over the duration. */
+  from?: [number, number, number];
+  to?: [number, number, number];
+  /** Behind a wall: muffled. */
+  muffled?: boolean;
+  /** No position at all: inside the head, drifting. */
+  nowhere?: boolean;
+}
+
+type Formants = [number, number, number];
+const VOWELS: Record<string, Formants> = {
+  a: [780, 1250, 2550],
+  e: [520, 1850, 2500],
+  i: [320, 2250, 2950],
+  o: [520, 900, 2450],
+  u: [340, 850, 2300],
+  '@': [560, 1450, 2500],
+};
+
+interface Syllable {
+  vowel: string;
+  onset: 'fric' | 'plos' | 'none';
+  stress: boolean;
+  pauseAfter: number;
+}
+
+export function syllabify(text: string): Syllable[] {
+  const out: Syllable[] = [];
+  const words = text.toLowerCase().replace(/[^a-z.,?!' ]/g, ' ').split(/\s+/).filter(Boolean);
+  for (const raw of words) {
+    const punct = /[.?!]$/.test(raw) ? 0.42 : /,$/.test(raw) ? 0.22 : 0.05;
+    const w = raw.replace(/[^a-z']/g, '');
+    const groups = w.match(/[aeiouy]+/g) ?? ['@'];
+    // silent final e
+    if (groups.length > 1 && w.endsWith('e') && !w.endsWith('ee')) groups.pop();
+    const onsets = w.split(/[aeiouy]+/);
+    groups.forEach((g, i) => {
+      const c = onsets[i] ?? '';
+      const onset: Syllable['onset'] = /^(s|sh|f|th|h|z|ch|v)/.test(c) ? 'fric' : /^[pbtdkgc]/.test(c) ? 'plos' : 'none';
+      const v = g.includes('ee') || g === 'y' || g[0] === 'i' ? 'i' : g[0] === 'a' ? 'a' : g[0] === 'e' ? 'e' : g[0] === 'o' ? (g.includes('u') ? 'u' : 'o') : g[0] === 'u' ? 'u' : '@';
+      out.push({ vowel: v, onset, stress: i === 0, pauseAfter: i === groups.length - 1 ? punct : 0 });
+    });
+  }
+  return out.length ? out : [{ vowel: '@', onset: 'none', stress: true, pauseAfter: 0.2 }];
+}
+
+interface StyleDef {
+  syll: number;
+  formantShift: number;
+  voiced: boolean;
+  f0?: number;
+  reverb: number;
+  lowpass: number;
+  gain: number;
+  stressAmt: number;
+  attack: number;
+}
+
+const STYLES: Record<string, StyleDef> = {
+  whisper: { syll: 0.2, formantShift: 1, voiced: false, reverb: 0.35, lowpass: 5200, gain: 1, stressAmt: 0.35, attack: 0.03 },
+  tender: { syll: 0.25, formantShift: 0.92, voiced: false, reverb: 0.22, lowpass: 3200, gain: 1.05, stressAmt: 0.45, attack: 0.05 },
+  flat: { syll: 0.17, formantShift: 0.96, voiced: false, reverb: 0.04, lowpass: 7000, gain: 0.95, stressAmt: 0, attack: 0.008 },
+  child: { syll: 0.17, formantShift: 1.2, voiced: false, reverb: 0.3, lowpass: 6000, gain: 0.9, stressAmt: 0.4, attack: 0.025 },
+  distant: { syll: 0.19, formantShift: 1, voiced: true, f0: 165, reverb: 0.6, lowpass: 900, gain: 0.9, stressAmt: 0.5, attack: 0.03 },
+};
+
+export class Voices {
+  private manifest: Record<string, string[]> = {};
+  private buffers = new Map<string, Promise<AudioBuffer | null>>();
+  private rng = new Rng(31);
+  speechFallback = false;
+  private active = 0;
+
+  constructor(private a: AudioEngine, private base = './voices/') {}
+
+  async loadManifest() {
+    try {
+      const r = await fetch(this.base + 'manifest.json', { cache: 'no-cache' });
+      if (r.ok) this.manifest = await r.json();
+    } catch {
+      this.manifest = {};
+    }
+  }
+
+  get assetCount() {
+    return Object.values(this.manifest).reduce((n, v) => n + v.length, 0);
+  }
+
+  hasAsset(key: string) {
+    return !!this.manifest[key]?.length;
+  }
+
+  private loadBuffer(file: string): Promise<AudioBuffer | null> {
+    let p = this.buffers.get(file);
+    if (!p) {
+      p = fetch(this.base + file)
+        .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(String(r.status)))))
+        .then((b) => this.a.ctx.decodeAudioData(b))
+        .catch(() => null);
+      this.buffers.set(file, p);
+    }
+    return p;
+  }
+
+  /** Preload all recorded assets in the background. */
+  preload() {
+    for (const files of Object.values(this.manifest)) for (const f of files) void this.loadBuffer(f);
+  }
+
+  /** Build the spatial tail: [input] → (muffle) → panner/stereo → bus (+ reverb send). Returns input node. */
+  private chain(place: VoicePlacement, reverb: number, dur: number, gain: number): GainNode {
+    const c = this.a.ctx;
+    const t = c.currentTime;
+    const input = c.createGain();
+    input.gain.value = gain;
+    let node: AudioNode = input;
+    if (place.muffled) {
+      const lp = c.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.value = 750;
+      lp.Q.value = 0.4;
+      node.connect(lp);
+      node = lp;
+    }
+    let outNode: AudioNode;
+    if (place.nowhere || !place.from) {
+      const sp = c.createStereoPanner();
+      const lfo = c.createOscillator();
+      lfo.frequency.value = 0.07;
+      const lg = c.createGain();
+      lg.gain.value = 0.55;
+      lfo.connect(lg).connect(sp.pan);
+      lfo.start(t);
+      lfo.stop(t + dur + 4);
+      node.connect(sp);
+      outNode = sp;
+    } else {
+      const [x, y, z] = place.from;
+      const p = this.a.panner(x, y, z, 0.8, 1.15);
+      if (place.to) {
+        const [x2, y2, z2] = place.to;
+        p.positionX.setValueAtTime(x, t);
+        p.positionY.setValueAtTime(y, t);
+        p.positionZ.setValueAtTime(z, t);
+        p.positionX.linearRampToValueAtTime(x2, t + dur);
+        p.positionY.linearRampToValueAtTime(y2, t + dur);
+        p.positionZ.linearRampToValueAtTime(z2, t + dur);
+      }
+      node.connect(p);
+      outNode = p;
+    }
+    outNode.connect(this.a.buses.voices);
+    const send = c.createGain();
+    send.gain.value = reverb;
+    outNode.connect(send).connect(this.a.reverbIn);
+    // Detach after the sound is done.
+    setTimeout(() => {
+      try {
+        input.disconnect();
+        outNode.disconnect();
+        send.disconnect();
+      } catch {
+        /* already gone */
+      }
+    }, (dur + 6) * 1000);
+    return input;
+  }
+
+  /**
+   * Play a voice event. Returns its approximate duration (seconds) for captions.
+   */
+  async play(kind: VoiceKind, text: string | null, place: VoicePlacement, gain: number, assetKey?: string): Promise<number> {
+    if (this.active > 3) return 0; // never a crowd
+    const g = gain * (0.55 + 0.45 * this.a.intensity);
+    if (assetKey && this.hasAsset(assetKey)) {
+      const files = this.manifest[assetKey];
+      const buf = await this.loadBuffer(files[this.rng.int(0, files.length - 1)]);
+      if (buf) return this.playBuffer(buf, place, g, kind === 'flat' ? 0.05 : 0.3);
+    }
+    if (text && this.speechFallback && 'speechSynthesis' in window && !['laugh', 'murmur', 'breath', 'hum'].includes(kind)) {
+      return this.speak(text, kind, g);
+    }
+    switch (kind) {
+      case 'breath':
+        return this.breath(place, g);
+      case 'laugh':
+        return this.laugh(place, g);
+      case 'murmur':
+        return this.murmur(place, g);
+      case 'hum':
+        return this.hum(place, g);
+      default:
+        return this.utter(text ?? '...', STYLES[kind] ?? STYLES.whisper, place, g, hashString(text ?? kind));
+    }
+  }
+
+  private playBuffer(buf: AudioBuffer, place: VoicePlacement, gain: number, reverb: number): number {
+    const c = this.a.ctx;
+    const src = c.createBufferSource();
+    src.buffer = buf;
+    const input = this.chain({ ...place, muffled: place.muffled }, reverb, buf.duration, gain * 0.9);
+    src.connect(input);
+    src.start();
+    this.track(buf.duration);
+    return buf.duration;
+  }
+
+  private track(dur: number) {
+    this.active++;
+    setTimeout(() => this.active--, dur * 1000 + 500);
+  }
+
+  private speak(text: string, kind: VoiceKind, gain: number): number {
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = kind === 'flat' ? 0.95 : 0.8;
+    u.pitch = kind === 'child' ? 1.3 : kind === 'flat' ? 0.8 : 0.95;
+    u.volume = Math.min(1, gain * (this.a.isMuted ? 0 : this.a.vol) * 0.8);
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(u);
+    const dur = Math.max(1.5, text.split(/\s+/).length * 0.42);
+    this.track(dur);
+    return dur;
+  }
+
+  /** Formant bank shared by whisper and voiced styles. */
+  private formantBank(source: AudioNode, shift: number, q: number, out: AudioNode): BiquadFilterNode[] {
+    const c = this.a.ctx;
+    const gains = [1, 0.7, 0.35];
+    return VOWELS['@'].map((f, i) => {
+      const bp = c.createBiquadFilter();
+      bp.type = 'bandpass';
+      bp.frequency.value = f * shift;
+      bp.Q.value = q * (i === 0 ? 0.8 : 1);
+      const g = c.createGain();
+      g.gain.value = gains[i] * (1 + i * 0.6);
+      source.connect(bp).connect(g).connect(out);
+      return bp;
+    });
+  }
+
+  private utter(text: string, st: StyleDef, place: VoicePlacement, gain: number, seed: number): number {
+    const c = this.a.ctx;
+    const r = new Rng(seed);
+    const syl = syllabify(text);
+    let dur = 0.2;
+    for (const s of syl) dur += st.syll * (s.stress ? 1.15 : 0.9) + s.pauseAfter;
+    const t0 = c.currentTime + 0.05;
+    const env = c.createGain();
+    env.gain.value = 0;
+    const lp = c.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = st.lowpass;
+    const hp = c.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.frequency.value = st.voiced ? 90 : 350;
+    const sum = c.createGain();
+    sum.gain.value = st.voiced ? 0.5 : 2.2;
+    const tail = this.chain(place, st.reverb, dur + 1, gain * st.gain * 0.5);
+    sum.connect(env).connect(hp).connect(lp).connect(tail);
+
+    const noise = this.a.noiseSource();
+    let osc: OscillatorNode | null = null;
+    let src: AudioNode = noise;
+    if (st.voiced) {
+      osc = c.createOscillator();
+      osc.type = 'sawtooth';
+      osc.frequency.value = (st.f0 ?? 160) * r.range(0.85, 1.2);
+      const mix = c.createGain();
+      const ng = c.createGain();
+      ng.gain.value = 0.12;
+      osc.connect(mix);
+      noise.connect(ng).connect(mix);
+      src = mix;
+    }
+    const bank = this.formantBank(src, st.formantShift, st.voiced ? 6 : 9, sum);
+
+    // Consonant layer.
+    const fric = c.createBiquadFilter();
+    fric.type = 'highpass';
+    fric.frequency.value = 3800;
+    const fricG = c.createGain();
+    fricG.gain.value = 0;
+    noise.connect(fric).connect(fricG).connect(env);
+
+    let t = t0;
+    for (const s of syl) {
+      const d = st.syll * (s.stress ? 1.15 : 0.9) * r.range(0.9, 1.1);
+      const fm = VOWELS[s.vowel] ?? VOWELS['@'];
+      bank.forEach((bp, i) => bp.frequency.setTargetAtTime(fm[i] * st.formantShift * r.range(0.95, 1.05), t, 0.025));
+      const lvl = 1 - st.stressAmt + (s.stress ? st.stressAmt : 0) * r.range(0.8, 1);
+      if (s.onset === 'fric') {
+        fricG.gain.setValueAtTime(0, t);
+        fricG.gain.linearRampToValueAtTime(0.25 * lvl, t + 0.02);
+        fricG.gain.linearRampToValueAtTime(0, t + 0.07);
+      } else if (s.onset === 'plos') {
+        fricG.gain.setValueAtTime(0.35 * lvl, t);
+        fricG.gain.exponentialRampToValueAtTime(0.0001, t + 0.018);
+      }
+      const on = t + (s.onset === 'none' ? 0 : 0.03);
+      env.gain.setValueAtTime(env.gain.value > 0 ? 0.05 : 0, on);
+      env.gain.linearRampToValueAtTime(lvl, on + st.attack);
+      env.gain.setTargetAtTime(lvl * 0.75, on + st.attack, d * 0.4);
+      env.gain.setTargetAtTime(0, on + d * 0.8, 0.025);
+      if (osc) osc.frequency.setTargetAtTime((st.f0 ?? 160) * (s.stress ? 1.08 : 0.96) * (1 - (t - t0) / (dur * 6)), t, 0.04);
+      t += d + s.pauseAfter;
+    }
+    noise.start(t0);
+    noise.stop(t + 0.5);
+    if (osc) {
+      osc.start(t0);
+      osc.stop(t + 0.5);
+    }
+    this.track(dur);
+    return dur;
+  }
+
+  private breath(place: VoicePlacement, gain: number): number {
+    const c = this.a.ctx;
+    const t0 = c.currentTime + 0.05;
+    const n = this.a.noiseSource();
+    const bp = c.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.Q.value = 0.9;
+    const g = c.createGain();
+    g.gain.value = 0;
+    const cycles = 2;
+    const dur = cycles * 3.4;
+    const tail = this.chain(place, 0.15, dur, gain * 0.55);
+    n.connect(bp).connect(g).connect(tail);
+    for (let i = 0; i < cycles; i++) {
+      const t = t0 + i * 3.4;
+      // inhale
+      bp.frequency.setValueAtTime(900, t);
+      bp.frequency.linearRampToValueAtTime(1600, t + 1.1);
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(0.35, t + 0.9);
+      g.gain.linearRampToValueAtTime(0, t + 1.2);
+      // exhale
+      bp.frequency.setValueAtTime(1300, t + 1.5);
+      bp.frequency.linearRampToValueAtTime(700, t + 3.1);
+      g.gain.setValueAtTime(0, t + 1.4);
+      g.gain.linearRampToValueAtTime(0.5, t + 1.7);
+      g.gain.linearRampToValueAtTime(0, t + 3.1);
+    }
+    n.start(t0);
+    n.stop(t0 + dur + 0.2);
+    this.track(dur);
+    return dur;
+  }
+
+  private voicedPulse(f0: number, out: AudioNode, vowel: Formants, t: number, d: number, lvl: number) {
+    const c = this.a.ctx;
+    const o = c.createOscillator();
+    o.type = 'sawtooth';
+    o.frequency.setValueAtTime(f0 * 1.06, t);
+    o.frequency.exponentialRampToValueAtTime(f0 * 0.92, t + d);
+    const g = c.createGain();
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(lvl, t + 0.012);
+    g.gain.setTargetAtTime(0, t + d * 0.6, d * 0.2);
+    const sum = c.createGain();
+    sum.gain.value = 0.6;
+    vowel.forEach((f, i) => {
+      const bp = c.createBiquadFilter();
+      bp.type = 'bandpass';
+      bp.frequency.value = f;
+      bp.Q.value = 5;
+      const fg = c.createGain();
+      fg.gain.value = [1, 0.6, 0.3][i];
+      o.connect(bp).connect(fg).connect(sum);
+    });
+    // breathy aspiration on the onset
+    const n = this.a.noiseSource();
+    const hg = c.createGain();
+    hg.gain.setValueAtTime(0.08 * lvl, t);
+    hg.gain.exponentialRampToValueAtTime(0.0001, t + 0.06);
+    n.connect(hg).connect(g);
+    sum.connect(g).connect(out);
+    o.start(t);
+    o.stop(t + d + 0.2);
+    n.start(t);
+    n.stop(t + 0.08);
+  }
+
+  private laugh(place: VoicePlacement, gain: number): number {
+    const c = this.a.ctx;
+    const t0 = c.currentTime + 0.05;
+    const r = this.rng;
+    let end = t0;
+    const out = c.createGain();
+    out.gain.value = 1;
+    const voices = r.chance(0.6) ? 2 : 1;
+    let dur = 0;
+    for (let v = 0; v < voices; v++) {
+      const f0 = v === 0 ? r.range(210, 270) : r.range(140, 180);
+      let t = t0 + v * r.range(0.25, 0.7);
+      const pulses = r.int(5, 9);
+      for (let i = 0; i < pulses; i++) {
+        const d = r.range(0.08, 0.12);
+        this.voicedPulse(f0 * (1 - i * 0.025), out, VOWELS.a, t, d, (1 - i / (pulses + 2)) * 0.5);
+        t += d + r.range(0.06, 0.1);
+      }
+      end = Math.max(end, t);
+    }
+    dur = end - t0 + 0.5;
+    const tail = this.chain({ ...place, muffled: place.muffled ?? true }, 0.45, dur, gain * 0.6);
+    out.connect(tail);
+    this.track(dur);
+    return dur;
+  }
+
+  private murmur(place: VoicePlacement, gain: number): number {
+    const c = this.a.ctx;
+    const r = this.rng;
+    const turns = r.int(3, 5);
+    const out = c.createGain();
+    let t = c.currentTime + 0.1;
+    const t0 = t;
+    for (let i = 0; i < turns; i++) {
+      const f0 = i % 2 ? r.range(185, 215) : r.range(110, 135);
+      const n = r.int(5, 11);
+      for (let k = 0; k < n; k++) {
+        const d = r.range(0.11, 0.2);
+        const v = r.pick(Object.values(VOWELS));
+        this.voicedPulse(f0 * (1 + 0.1 * Math.sin(k * 0.9)) * (1 - k / (n * 8)), out, v, t, d, k === 0 ? 0.45 : 0.32);
+        t += d + r.range(0.01, 0.06);
+      }
+      t += r.range(0.3, 0.8);
+    }
+    const dur = t - t0;
+    const tail = this.chain({ ...place, muffled: true }, 0.4, dur, gain * 0.55);
+    out.connect(tail);
+    this.track(dur);
+    return dur;
+  }
+
+  private hum(place: VoicePlacement, gain: number): number {
+    const c = this.a.ctx;
+    const r = this.rng;
+    const scale = [0, 2, 4, 7, 9, 12];
+    const base = r.range(190, 230);
+    const o = c.createOscillator();
+    o.type = 'triangle';
+    const g = c.createGain();
+    g.gain.value = 0;
+    const lp = c.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 900;
+    const nasal = c.createBiquadFilter();
+    nasal.type = 'peaking';
+    nasal.frequency.value = 270;
+    nasal.gain.value = 8;
+    let t = c.currentTime + 0.1;
+    const t0 = t;
+    let idx = 2;
+    const notes = r.int(6, 10);
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(0.4, t + 0.3);
+    for (let i = 0; i < notes; i++) {
+      idx = Math.max(0, Math.min(scale.length - 1, idx + r.pick([-1, 1, -2, 1, 0])));
+      o.frequency.setTargetAtTime(base * Math.pow(2, scale[idx] / 12), t, 0.06);
+      const d = r.range(0.35, 0.8) * (i === notes - 1 ? 1.8 : 1);
+      g.gain.setTargetAtTime(r.range(0.25, 0.4), t, 0.05);
+      t += d;
+      if (r.chance(0.2)) {
+        g.gain.setTargetAtTime(0.02, t - 0.05, 0.04);
+        t += 0.2;
+      }
+    }
+    g.gain.setTargetAtTime(0, t, 0.2);
+    const dur = t - t0 + 0.8;
+    const tail = this.chain({ ...place, muffled: place.muffled ?? true }, 0.4, dur, gain * 0.5);
+    o.connect(nasal).connect(lp).connect(g).connect(tail);
+    o.start(t0);
+    o.stop(t + 1);
+    this.track(dur);
+    return dur;
+  }
+}
