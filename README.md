@@ -54,7 +54,7 @@ For inspection: add `?debug` to the URL for a live overlay of the engine's state
 
 All of this is implemented and running; none of it is shown to the visitor as numbers or goals.
 
-- **Arrival.** The screen opens from white; the light-fitting hum arrives before the words. About 50 pieces of writing are on the walls, composed in authored regions with deliberate emptiness directly behind the chair and on most of the wall behind you.
+- **Arrival.** The screen opens from white; the light-fitting hum arrives before the words. About 40 pieces of writing are on the walls, composed in authored regions with deliberate emptiness directly behind the chair and on most of the wall behind you.
 - **Proximity.** Coming close to the chair is usually met by subtraction: the hum drops away for a few seconds and the light settles. ("It used to fit me." is written small on the floor beside it.) Sometimes there is breath. If you stay, the light warms — or, if you are restless or have retreated before, it hardens and cools instead, and at most twice in a visit a voice speaks: from the chair, or, when closeness has become exposure, an affectionate line spoken flatly from behind you. Settling near the chair turns exposure into company. Stepping away releases what built up as relief; staying far away becomes solitude.
 - **Hesitation.** Approaching and retreating repeatedly forms a motif: "Come back. Don't." is written beside "I wanted you to stay.", a whisper asks "If I come closer, will you stay?", and the chair's shadow begins to drift away from where the light says it should fall. Nothing labels the drift.
 - **Stillness.** Standing still thins the room. Writing that only exists while you are still may surface ("How long have I been standing here?") and dissolves the moment you move; in some visits a whisper drifts in from a far corner toward the chair; eventually the room goes almost silent, and sometimes a few piano notes follow. The timings, and which of these happen, differ from visit to visit.
@@ -69,7 +69,7 @@ All of this is implemented and running; none of it is shown to the visitor as nu
 
 ```
 src/
-  content/      phrases.ts (118 authored phrases), relations.ts (re-contextualisations,
+  content/      phrases.ts (116 authored phrases), relations.ts (re-contextualisations,
                 voice fragments, interpretation lexicon, departure lines), types.ts
   state/        VisitorModel  observable behaviour: distance, stillness, approach/withdraw
                               cycles with hysteresis, attention and reading, surfaces visited
@@ -128,6 +128,12 @@ To regenerate the recorded textures: `ELEVENLABS_API_KEY=sk_... node scripts/gen
 - **Visual verification** was done in headless Chromium with software rendering (slow, so behaviour over time was checked with the engine's fast-forward). Real-GPU performance and look on varied hardware still need a human eye.
 - **Speech/microphone input** is intentionally not implemented.
 - **Remote AI interpretation** exists only as a typed interface plus a strict validator.
+
+## Testing and review
+
+- 52 unit tests (Vitest) cover the visitor model (stillness, approach/withdraw hysteresis, reading), the emotional field (non-monotonic closeness, relief after withdrawal, hush), the phrase selector, the scheduler, deterministic and divergent experiences for scripted visitors (still, hesitant, close, wandering, warm), contributions (always written, never answered within a minute, at most one gesture), the interpreter and its validator, the corpus, and wall layout.
+- `npm run smoke` drives a full visit in headless Chromium: entering, walking, kneeling, every wall, stillness, a contribution, settings, leaving and returning. It fails on any console error or on any overlapping writing.
+- Two separate reviews were run on the finished build. A critical artistic review led to cutting lines that stated the dilemma outright or sounded like therapy, removing a rule that put jokes on a timer, making the chair's responses mostly subtraction, varying stillness per visit, and making contributions unanswered. A QA/accessibility review found 15 bugs, all fixed and re-verified in the browser. They included contributions that could silently fail to appear, still-only writing that never vanished, auto-walk continuing while paused, the inspector log keeping visitors' words, an abrupt dark-to-white return, speech ignoring mute and pause, a quality setting that only half applied, low-contrast controls, the passing-traffic swell never sounding, and the voice limit being exceedable.
 
 ## Credits
 

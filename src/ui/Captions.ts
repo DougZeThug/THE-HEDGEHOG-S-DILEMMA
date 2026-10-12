@@ -1,6 +1,13 @@
 /** Quiet captions for what is heard. One at a time. */
 export class Captions {
-  enabled = true;
+  private _enabled = true;
+  get enabled() {
+    return this._enabled;
+  }
+  set enabled(v: boolean) {
+    this._enabled = v;
+    if (!v) this.clear();
+  }
   constructor(private el: HTMLElement) {}
 
   show(text: string, seconds: number, sound = false) {

@@ -138,7 +138,7 @@ export class SurfaceLayout {
   }
 
   /** Exhaustive scan for any free spot, nearest the middle band of the surface first. */
-  scan(surface: Surface, w: number, h: number, pad: number): Rect | null {
+  scan(surface: Surface, w: number, h: number, pad: number, ignoreReserved = false): Rect | null {
     const size = surfaceSize(surface);
     const step = 0.05;
     const cands: Rect[] = [];
@@ -146,7 +146,7 @@ export class SurfaceLayout {
       for (let u = w / 2 + 0.06; u <= size.w - w / 2 - 0.06; u += step) cands.push({ u, v, w, h });
     const mid = surface === 'floor' || surface === 'ceiling' ? size.h / 2 : 1.5;
     cands.sort((a, b) => Math.abs(a.v - mid) - Math.abs(b.v - mid) + (this.rng.next() - 0.5) * 0.4);
-    for (const r of cands) if (this.free(surface, r, pad)) return r;
+    for (const r of cands) if (this.free(surface, r, pad, ignoreReserved)) return r;
     return null;
   }
 
@@ -183,8 +183,15 @@ export class SurfaceLayout {
       this.findIn(p.surface, w, h, c.u, c.v, 0.02) ??
       this.findIn(p.surface, w, h, [0.02, 0.98], [0.2, size.h - 0.1], 0.02, 200) ??
       this.scan(p.surface, w, h, 0.02) ??
-      this.scan(p.surface, w * 0.85, h * 0.85, 0) ?? { u: size.w / 2, v: 1.6, w, h };
-    return this.add({ surface: p.surface, ...r, rot });
+      this.scan(p.surface, w, h, 0);
+    if (r) return this.add({ surface: p.surface, ...r, rot });
+    // The wall is full: the writing goes onto another wall rather than over other writing.
+    for (const other of ['south', 'west', 'north', 'east'] as Surface[]) {
+      if (other === p.surface) continue;
+      const o = this.scan(other, w, h, 0.02);
+      if (o) return this.add({ surface: other, ...o, rot });
+    }
+    return this.add({ surface: p.surface, u: size.w / 2, v: 1.6, w, h, rot });
   }
 }
 

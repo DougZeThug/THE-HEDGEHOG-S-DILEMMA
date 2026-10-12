@@ -40,6 +40,19 @@ await wait(10000);
 await shot('01-arrival');
 
 // Speed the simulation clock for behaviour checks via the inspector.
+// No piece of writing may sit on top of another (real fonts, real measurement).
+const overlaps = await hh(() => {
+  const its = [...window.__hedgehog.text.items.values()];
+  const out = [];
+  for (const x of its) for (const y of its) {
+    if (x.key >= y.key) continue;
+    const p = x.placement, q = y.placement;
+    if (p.surface === q.surface && Math.abs(p.u - q.u) * 2 < p.w + q.w && Math.abs(p.v - q.v) * 2 < p.h + q.h) out.push(`${x.key} / ${y.key}`);
+  }
+  return out;
+});
+if (overlaps.length) errors.push('overlapping writing: ' + overlaps.join(', '));
+
 const state = await hh(() => {
   const a = window.__hedgehog;
   return { phase: a.director.phase, audio: a.audio?.ctx.state, visible: a.director.visible.size };

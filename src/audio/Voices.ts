@@ -229,7 +229,22 @@ export class Voices {
    * Play a voice event. Returns its approximate duration (seconds) for captions.
    */
   async play(kind: VoiceKind, text: string | null, place: VoicePlacement, gain: number, assetKey?: string): Promise<number> {
-    if (this.active > 3) return 0; // never a crowd
+    if (this.active >= 4) return 0; // never a crowd
+    this.active++; // reserve the slot before anything asynchronous
+    let dur = 0;
+    try {
+      dur = await this.play_(kind, text, place, gain, assetKey);
+    } finally {
+      setTimeout(() => this.active--, dur * 1000 + 500);
+    }
+    return dur;
+  }
+
+  stopSpeech() {
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+  }
+
+  private async play_(kind: VoiceKind, text: string | null, place: VoicePlacement, gain: number, assetKey?: string): Promise<number> {
     const g = gain * (0.55 + 0.45 * this.a.intensity);
     const nonVerbal = ['laugh', 'murmur', 'breath', 'hum'].includes(kind);
     if (text && this.speechFallback && 'speechSynthesis' in window && !nonVerbal) {
@@ -267,14 +282,9 @@ export class Voices {
     const input = this.chain({ ...place, muffled: place.muffled }, reverb, buf.duration, gain * 0.9);
     src.connect(input);
     src.start();
-    this.track(buf.duration);
     return buf.duration;
   }
 
-  private track(dur: number) {
-    this.active++;
-    setTimeout(() => this.active--, dur * 1000 + 500);
-  }
 
   private speak(text: string, kind: VoiceKind, gain: number): number {
     const u = new SpeechSynthesisUtterance(text);
@@ -284,7 +294,6 @@ export class Voices {
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(u);
     const dur = Math.max(1.5, text.split(/\s+/).length * 0.42);
-    this.track(dur);
     return dur;
   }
 
@@ -376,7 +385,6 @@ export class Voices {
       osc.start(t0);
       osc.stop(t + 0.5);
     }
-    this.track(dur);
     return dur;
   }
 
@@ -410,7 +418,6 @@ export class Voices {
     }
     n.start(t0);
     n.stop(t0 + dur + 0.2);
-    this.track(dur);
     return dur;
   }
 
@@ -471,7 +478,6 @@ export class Voices {
     dur = end - t0 + 0.5;
     const tail = this.chain({ ...place, muffled: place.muffled ?? true }, 0.45, dur, gain * 0.6);
     out.connect(tail);
-    this.track(dur);
     return dur;
   }
 
@@ -496,7 +502,6 @@ export class Voices {
     const dur = t - t0;
     const tail = this.chain({ ...place, muffled: true }, 0.4, dur, gain * 0.55);
     out.connect(tail);
-    this.track(dur);
     return dur;
   }
 
@@ -539,7 +544,6 @@ export class Voices {
     o.connect(nasal).connect(lp).connect(g).connect(tail);
     o.start(t0);
     o.stop(t + 1);
-    this.track(dur);
     return dur;
   }
 }

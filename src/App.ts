@@ -201,7 +201,8 @@ export class App {
 
     const env = this.director.env;
     const v = this.director.visitor;
-    this.room.setScale(this.room.scale + (env.roomScale - this.room.scale) * (1 - Math.exp(-dt / 6)));
+    const scaleTarget = this.prefs.reducedMotion ? 1 + (env.roomScale - 1) * 0.3 : env.roomScale;
+    this.room.setScale(this.room.scale + (scaleTarget - this.room.scale) * (1 - Math.exp(-dt / 6)));
     this.lighting.update(dt, env, this.time, this.chair.group.position);
     this.text.update(dt, this.time, cam, env, this.gazeId, v.gazeId === this.gazeId ? v.gazeFor : 0);
     this.post.update(dt, env, this.time);
@@ -231,6 +232,7 @@ export class App {
         const near = cue.surface && !cue.beside ? this.viewPointOn(cue.surface) : undefined;
         const ok = this.text.write({ key: cue.key, text: cue.text, hand: cue.hand, size: cue.size, beside: cue.beside, surface: cue.surface, near, purpose: cue.purpose, ttl: cue.ttl, now: this.time });
         if (ok && cue.strike) this.text.strike(cue.strike, this.time, cue.ttl);
+        if (!ok) this.director.writeFailed(cue.key);
         break;
       }
       case 'link':
@@ -603,11 +605,23 @@ export class App {
     if (this.voices) this.voices.speechFallback = p.speech;
     this.captions.enabled = p.captions;
     if (this.rig) this.rig.reducedMotion = p.reducedMotion;
+    document.documentElement.classList.toggle('reduce-motion', p.reducedMotion);
+    if (p.muted || !p.speech) this.voices?.stopSpeech();
     if (this.post) {
       this.post.reducedMotion = p.reducedMotion;
       this.post.intensityScale = p.intensity === 'gentle' ? 0.4 : 1;
     }
-    if (this.renderer && this.post) this.onResize();
+    if (this.renderer && this.post) {
+      this.onResize();
+      const size = p.quality === 'low' ? 1024 : 2048;
+      const sh = this.lighting.key.shadow;
+      if (sh.mapSize.x !== size) {
+        sh.mapSize.set(size, size);
+        sh.map?.dispose();
+        sh.map = null as unknown as THREE.WebGLRenderTarget;
+      }
+      this.post.setSamples(p.quality === 'high' ? 4 : p.quality === 'medium' ? 2 : 0);
+    }
   }
 
   private syncSettingsUI() {
@@ -626,9 +640,11 @@ export class App {
     this.mode = 'settings';
     if (document.pointerLockElement) document.exitPointerLock();
     this.rig.keys.clear();
+    this.rig.cancelAttend();
     $('settings').hidden = false;
     $('resume').focus();
-    if (this.audio) this.audio.ramp(this.audio.duck.gain, 0.35, 0.8);
+    if (this.audio) this.audio.ramp(this.audio.pause.gain, 0.3, 0.8);
+    this.voices?.stopSpeech();
   }
 
   closeSettings() {
@@ -636,7 +652,7 @@ export class App {
     this.mode = 'room';
     $('settings').hidden = true;
     this.renderer.domElement.focus();
-    if (this.audio) this.audio.ramp(this.audio.duck.gain, 1, 1.5);
+    if (this.audio) this.audio.ramp(this.audio.pause.gain, 1, 1.5);
   }
 
   openContribute() {
@@ -644,6 +660,7 @@ export class App {
     this.mode = 'contribute';
     if (document.pointerLockElement) document.exitPointerLock();
     this.rig.keys.clear();
+    this.rig.cancelAttend();
     $('contribute').hidden = false;
     const inp = $<HTMLInputElement>('contribute-input');
     inp.value = '';
@@ -677,6 +694,7 @@ export class App {
     const line = this.director.departureLine();
     this.director.depart();
     this.post.depart = 1;
+    this.voices?.stopSpeech();
     if (this.audio) this.audio.silence(0.97, 9999);
     this.captions.clear();
     $('menu-btn').hidden = true;
@@ -702,17 +720,22 @@ export class App {
     this.audio?.silence(0, 0.1);
     this.mode = 'room';
     this.director.returnAfterDeparture();
+    // Back in from the dark, slowly: the overlay fades while the room lightens beneath it.
     this.post.depart = 0;
     this.rig.pos.set(0.15, 0, 2.55);
     this.rig.yaw = 0.06;
     this.rig.pitch = -0.06;
     this.rig.setKneel(false);
-    this.enteredAt = this.time;
+    this.rig.cancelAttend();
     const dep = $('departure');
     dep.classList.remove('on');
     $('departure-line').classList.remove('on');
     $('return').hidden = true;
-    setTimeout(() => (dep.hidden = true), 1200);
+    const hide = () => {
+      if (!dep.classList.contains('on')) dep.hidden = true;
+    };
+    dep.addEventListener('transitionend', hide, { once: true });
+    setTimeout(hide, 3600);
     $('menu-btn').hidden = false;
     $('write-btn').hidden = false;
     this.renderer.domElement.focus();

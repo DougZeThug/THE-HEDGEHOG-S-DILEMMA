@@ -203,15 +203,35 @@ export class WallText {
         if (rect) break;
       }
     }
+    if (!rect && target) rect = this.layout.scan(target.surface, m.w, m.h, 0.02);
     if (!rect && surface) {
       const size = surfaceSize(surface);
       if (o.purpose === 'contribution' && surface === 'south')
         rect = this.layout.findIn(surface, m.w, m.h, [0.3, 0.7], [1.0, 1.95], 0.05, 120, true) ?? this.layout.findIn(surface, m.w, m.h, [0.08, 0.92], [0.6, 2.4], 0.03, 120, true);
       else rect = this.layout.findIn(surface, m.w, m.h, [0.05, 0.95], [0.9, Math.min(2.3, size.h - 0.2)], 0.03, 120);
     }
+    if (!rect && surface) rect = this.layout.scan(surface, m.w, m.h, 0.02, o.purpose === 'contribution');
+    // A visitor's words are always written: try the other walls, then the band kept for them.
+    let size = o.size;
+    if (!rect && o.purpose === 'contribution') {
+      for (const s of ['south', 'north', 'east', 'west'] as Surface[]) {
+        if (s === surface) continue;
+        rect = this.layout.scan(s, m.w, m.h, 0.02, true);
+        if (rect) {
+          surface = s;
+          break;
+        }
+      }
+      if (!rect && size !== 'xs') {
+        size = 'xs';
+        const mx = measureText(o.text, o.hand, 'xs');
+        surface = 'south';
+        rect = this.layout.scan('south', mx.w, mx.h, 0, true);
+      }
+    }
     if (!rect || !surface) return false;
     const pl = this.layout.add({ surface, ...rect, rot: (((hashString(o.key) % 100) / 100) - 0.5) * 0.06 });
-    const it = this.create(o.key, o.text, o.hand, o.size, pl, o.purpose);
+    const it = this.create(o.key, o.text, o.hand, size, pl, o.purpose);
     it.expires = o.ttl > 0 ? o.now + o.ttl : 0;
     this.reveal(o.key, o.purpose === 'contribution' ? 5 : 7);
     return true;

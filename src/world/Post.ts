@@ -69,6 +69,15 @@ export class Post {
     this.composer.addPass(this.grade);
   }
 
+  setSamples(n: number) {
+    for (const rt of [this.composer.renderTarget1, this.composer.renderTarget2]) {
+      if (rt.samples !== n) {
+        rt.samples = n;
+        rt.dispose();
+      }
+    }
+  }
+
   setSize(w: number, h: number, pr: number) {
     this.composer.setPixelRatio(pr);
     this.composer.setSize(w, h);

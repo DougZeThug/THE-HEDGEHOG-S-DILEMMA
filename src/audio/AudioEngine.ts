@@ -23,6 +23,8 @@ export class AudioEngine {
   private revSmallGain: GainNode;
   private revLargeGain: GainNode;
   readonly analyser: AnalyserNode;
+  /** Whole-mix stage for pausing (settings open); independent of silences. */
+  readonly pause: GainNode;
   private noiseBuf: AudioBuffer | null = null;
   private volume = 0.8;
   private muted = false;
@@ -44,7 +46,8 @@ export class AudioEngine {
     this.master.gain.value = 0;
     this.analyser = c.createAnalyser();
     this.analyser.fftSize = 2048;
-    this.master.connect(this.limiter).connect(this.out).connect(c.destination);
+    this.pause = c.createGain();
+    this.master.connect(this.pause).connect(this.limiter).connect(this.out).connect(c.destination);
     this.out.connect(this.analyser);
 
     this.duck = c.createGain();
@@ -75,6 +78,7 @@ export class AudioEngine {
   }
 
   async suspend() {
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     if (this.ctx.state === 'running') await this.ctx.suspend();
   }
 
@@ -88,6 +92,7 @@ export class AudioEngine {
   }
   setMuted(m: boolean) {
     this.muted = m;
+    if (m && 'speechSynthesis' in window) window.speechSynthesis.cancel();
     this.applyMaster(0.3);
   }
   get isMuted() {

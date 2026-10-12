@@ -189,7 +189,8 @@ export class Director {
       if (!this.accept(cue)) continue;
       const tc = { t: +this.now.toFixed(2), cue, rule };
       out.push(tc);
-      this.log.push(tc);
+      // The inspector log never keeps a visitor's own words.
+      this.log.push(cue.type === 'write' && cue.purpose === 'contribution' ? { ...tc, cue: { ...cue, text: '[visitor’s words]' } } : tc);
       if (this.log.length > 400) this.log.shift();
     }
     return out;
@@ -261,8 +262,8 @@ export class Director {
     const [t1, t2, t3, t4] = this.stillAt;
     if (v.stillFor === 0 && this.stillStage > 0) {
       this.stillStage = 0;
-      for (const [id, st] of this.visible) if (st.mode === 'still') this.queue(0, { type: 'hide', phraseId: id, seconds: 2.5 }, 'still-break');
       this.scheduler.cancelWhere((e) => e.rule.startsWith('still'));
+      for (const [id, st] of this.visible) if (st.mode === 'still') this.queue(0, { type: 'hide', phraseId: id, seconds: 2.5 }, 'unstill');
       return;
     }
     if (s > t1 && this.stillStage < 1) {
@@ -540,7 +541,7 @@ export class Director {
       lightIntensity: clamp(0.95 + 0.16 * f.exposure - 0.12 * f.hush - 0.1 * f.solitude * (1 - f.relief) + 0.05 * f.warmth, 0.55, 1.25),
       lightWarmth: clamp(0.65 * f.warmth + 0.45 * f.reminiscence - 0.55 * f.exposure - 0.3 * f.solitude * (1 - f.reminiscence) + 0.2 * f.relief, -1, 1),
       shadowDrift: 0.42 * f.dissonance + 0.5 * m.hesitation + 0.15 * late,
-      roomScale: 1 + 0.13 * f.solitude * (0.4 + late) + 0.07 * (v.kneeling ? 1 : 0) + 0.04 * f.hush - 0.04 * f.exposure * late,
+      roomScale: Math.max(1, 1 + 0.13 * f.solitude * (0.4 + late) + 0.07 * (v.kneeling ? 1 : 0) + 0.04 * f.hush - 0.04 * f.exposure * late),
       darkness: clamp(0.35 * extreme + 0.18 * smoothstep(40, 120, v.deepStillFor) + (this.departing ? 1 : 0)),
       textContrast: clamp(1 + 0.35 * f.hush - 0.2 * f.tension + 0.1 * f.reminiscence, 0.7, 1.4),
       chairGlow: clamp(0.15 + 0.6 * f.warmth * (1 - f.exposure) + 0.25 * m.closeness),
@@ -613,6 +614,12 @@ export class Director {
         break;
       }
     }
+  }
+
+  /** The world could not find room for a piece of writing: let its relation be tried again later. */
+  writeFailed(key: string): void {
+    const m = /^ann:([^:]+):/.exec(key);
+    if (m) this.relationsShown.delete(m[1]);
   }
 
   /** Clears contributions from memory (privacy: "forget what I wrote"). */

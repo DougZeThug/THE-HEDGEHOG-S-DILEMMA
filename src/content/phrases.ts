@@ -205,10 +205,10 @@ export const PHRASES: Phrase[] = [
     surface: 'east', hand: 'crayon', keywords: ['light', 'kitchen', 'afternoon'],
   }),
   p('biscuit', 'You always took the last biscuit and I let you.', { affection: 0.7, happiness: 0.5, nostalgia: 0.5 }, {
-    surface: 'east', tier: 'familiar', hand: 'pencil', keywords: ['biscuit', 'cookie'],
+    surface: 'south', tier: 'familiar', hand: 'pencil', keywords: ['biscuit', 'cookie'],
   }),
   p('board-games', 'We were terrible at board games and loved it.', { happiness: 0.8, connection: 0.6, nostalgia: 0.5 }, {
-    surface: 'east', tier: 'contradiction', hand: 'pen', keywords: ['games', 'played', 'play'],
+    surface: 'south', tier: 'contradiction', hand: 'pen', keywords: ['games', 'played', 'play'],
   }),
   p('nothing-happened', 'Nothing happened. That was the nice part.', { relief: 0.7, happiness: 0.6 }, {
     surface: 'east', tier: 'still', hand: 'pencil', keywords: ['nothing', 'nice', 'quiet'],
@@ -220,19 +220,19 @@ export const PHRASES: Phrase[] = [
     nostalgia: 0.8, happiness: 0.6, connection: 0.4,
   }, { surface: 'east', tier: 'contradiction', hand: 'pencil', keywords: ['night', 'window', 'talked', 'warm'] }),
   p('laugh-film', 'You laughed at the wrong bit of the film and then so did everyone.', { happiness: 0.8, connection: 0.6, nostalgia: 0.5 }, {
-    surface: 'east', tier: 'familiar', hand: 'pencil', echoes: ['laugh'], keywords: ['laughed', 'laugh', 'film', 'cinema'],
+    surface: 'south', tier: 'familiar', hand: 'pencil', echoes: ['laugh'], keywords: ['laughed', 'laugh', 'film', 'cinema'],
   }),
   p('crumbs', "You've got crumbs on you.", { affection: 0.6, happiness: 0.5, connection: 0.4 }, {
     surface: 'east', tier: 'familiar', hand: 'crayon', size: 'xs', voice: 'tender', keywords: ['crumbs'],
   }),
   p('dog', "The dog didn't care what I'd done. That helped.", { relief: 0.6, forgiveness: 0.6, happiness: 0.4, affection: 0.5 }, {
-    surface: 'east', tier: 'transform', hand: 'pencil', keywords: ['dog', 'cat', 'pet'],
+    surface: 'south', tier: 'transform', hand: 'pencil', keywords: ['dog', 'cat', 'pet'],
   }),
   p('soup', 'I was going to say something important. It was about soup.', { happiness: 0.5, uncertainty: 0.4 }, {
-    surface: 'east', tier: 'contradiction', hand: 'pencil', size: 'xs', keywords: ['soup', 'important', 'say'],
+    surface: 'south', tier: 'contradiction', hand: 'pencil', size: 'xs', keywords: ['soup', 'important', 'say'],
   }),
   p('forgot-voice', 'I forgot your voice and then I remembered it in a shop.', { grief: 0.6, nostalgia: 0.7, happiness: 0.3 }, {
-    surface: 'east', tier: 'transform', hand: 'pen', echoes: ['remember-me', 'laugh'], keywords: ['voice', 'forgot', 'remembered'],
+    surface: 'south', tier: 'transform', hand: 'pen', echoes: ['remember-me', 'laugh'], keywords: ['voice', 'forgot', 'remembered'],
   }),
 
   // ───────────────────────── WEST · being misread ─────────────────────────

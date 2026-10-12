@@ -26,6 +26,7 @@ export class Ambience {
   private ventFilter: BiquadFilterNode;
   private outside: GainNode;
   private outsideFilter: BiquadFilterNode;
+  private swell: GainNode;
   private drone: GainNode;
   private droneFilter: BiquadFilterNode;
   private droneOsc: OscillatorNode[] = [];
@@ -95,7 +96,9 @@ export class Ambience {
     const lp2 = c.createBiquadFilter();
     lp2.type = 'lowpass';
     lp2.frequency.value = 400;
-    on.connect(lp2).connect(this.outsideFilter).connect(this.outside).connect(bus);
+    this.swell = c.createGain();
+    this.swell.gain.value = 1;
+    on.connect(lp2).connect(this.outsideFilter).connect(this.swell).connect(this.outside).connect(bus);
     on.start();
 
     // Drone
@@ -151,12 +154,11 @@ export class Ambience {
     if (t > this.nextSwell) {
       this.nextSwell = t + this.rng.range(28, 75);
       const now = a.ctx.currentTime;
-      const g = this.outside.gain;
-      const base = (0.02 + 0.14 * env.outside) * f;
+      const g = this.swell.gain;
       g.cancelScheduledValues(now);
-      g.setValueAtTime(g.value, now);
-      g.linearRampToValueAtTime(base + 0.12 * f * env.outside + 0.03 * f, now + 3.5);
-      g.linearRampToValueAtTime(base, now + 8);
+      g.setValueAtTime(1, now);
+      g.linearRampToValueAtTime(1.9 + this.rng.range(0, 0.8), now + 3.5);
+      g.linearRampToValueAtTime(1, now + 8);
       const fr = this.outsideFilter.frequency;
       fr.cancelScheduledValues(now);
       fr.setValueAtTime(140, now);

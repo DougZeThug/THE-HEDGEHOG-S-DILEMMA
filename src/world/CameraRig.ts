@@ -73,6 +73,7 @@ export class CameraRig {
 
   setKneel(k: boolean) {
     this.kneeling = k;
+    if (k) this.cancelAttend();
   }
 
   get eyeHeight() {
@@ -110,6 +111,7 @@ export class CameraRig {
       tx *= speed / mag;
       tz *= speed / mag;
     }
+    if (this.goal && (!this.enabled || this.kneeling)) this.goal = null;
     if (this.goal) {
       const d = new THREE.Vector2(this.goal.x - this.pos.x, this.goal.z - this.pos.z);
       const len = d.length();
@@ -121,7 +123,7 @@ export class CameraRig {
         tz = d.y;
       }
     }
-    if (this.lookGoal) {
+    if (this.lookGoal && this.enabled) {
       const lg = this.lookGoal;
       const dy = angleDiff(this.yaw, lg.yaw);
       this.yaw += dy * (1 - Math.exp(-dt / 0.9));
@@ -159,7 +161,7 @@ export class CameraRig {
     }
     this.camera.position.set(this.pos.x, this.eye + bob + sway, this.pos.z);
     this.camera.rotation.set(this.pitch, this.yaw, 0);
-    const fovTarget = this.kneeling ? 70 : 62;
+    const fovTarget = this.kneeling && !this.reducedMotion ? 70 : 62;
     this.camera.fov = approach(this.camera.fov, fovTarget, dt, 1.5);
     this.camera.updateProjectionMatrix();
   }
