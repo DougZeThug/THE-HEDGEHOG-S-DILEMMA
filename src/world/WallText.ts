@@ -135,6 +135,7 @@ export class WallText {
     const { mat, uniforms } = makeTextMaterial(tex, hand, w / h, hashString(key));
     const mesh = new THREE.Mesh(this.geo, mat);
     mesh.scale.set(w, h, 1);
+    mesh.userData.text = text;
     mesh.renderOrder = 2;
     mesh.visible = false;
     mesh.receiveShadow = true;
@@ -307,6 +308,36 @@ export class WallText {
     ln.mesh.position.set(mid.x, mid.y, 0.005);
     ln.mesh.scale.set(L, 0.022, 1);
     ln.mesh.rotation.z = Math.atan2(n.y, n.x);
+  }
+
+  /**
+   * Rub out a piece of writing except for one word, which stays where it was written.
+   * The remaining word becomes its own item, `${key}:kept`.
+   */
+  erode(key: string, keep: string, now: number): boolean {
+    const it = this.items.get(key);
+    if (!it || it.vis <= 0 || !keep) return false;
+    const text = (it.mesh.userData.text as string) ?? '';
+    const idx = text.toLowerCase().indexOf(keep);
+    const word = idx >= 0 ? text.slice(idx, idx + keep.length) : keep;
+    const m = measureText(word, it.hand, it.size);
+    const pl = it.placement;
+    const single = pl.h < measureText('Ag', it.hand, it.size).h * 1.5;
+    const frac = idx >= 0 && text.length ? idx / text.length : 0;
+    const left = pl.u - pl.w / 2 + (single ? frac * pl.w : 0);
+    const kept = this.layout.add({ surface: pl.surface, u: Math.min(left + m.w / 2, pl.u + pl.w / 2 - m.w / 2), v: single ? pl.v : pl.v + pl.h / 2 - m.h / 2, w: m.w, h: m.h, rot: pl.rot });
+    const k = this.create(`${key}:kept`, word, it.hand, it.size, kept, it.purpose);
+    k.vis = 0.5;
+    k.target = 1;
+    k.rate = 1 / 6;
+    k.mesh.visible = true;
+    k.expires = it.expires;
+    // The rest is rubbed out, slowly and unevenly.
+    it.target = 0;
+    it.rate = 1 / 9;
+    it.expires = it.expires === 0 ? now : it.expires;
+    if (it.purpose === 'contribution') it.expires = -1;
+    return true;
   }
 
   removeContributions() {

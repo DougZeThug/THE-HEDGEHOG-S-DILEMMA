@@ -80,7 +80,17 @@ export class App {
     this.scene.add(this.room.group, this.chair.group, this.lighting.group);
     this.scene.background = new THREE.Color(0xf3f2ef);
     this.rig = new CameraRig(innerWidth / innerHeight);
-    this.director = new Director({ seed, visits: this.visits + 1 });
+    const forced = params.get('situations')?.split(',').map((s) => s.trim()).filter(Boolean);
+    this.director = new Director({
+      seed,
+      visits: this.visits + 1,
+      situations: forced,
+      // Where each piece of writing is, for situations that relate place to memory.
+      geometry: (id) => {
+        const it = this.text.items.get(id);
+        return it ? { surface: it.placement.surface, x: it.centre.x, y: it.centre.y, z: it.centre.z } : undefined;
+      },
+    });
     for (const [id, st] of this.director.visible) if (st.base) this.text.setShown(id);
 
     const samples = this.prefs.quality === 'high' ? 4 : this.prefs.quality === 'medium' ? 2 : 0;
@@ -229,7 +239,10 @@ export class App {
         this.text.hide(cue.phraseId, cue.seconds);
         break;
       case 'write': {
-        const near = cue.surface && !cue.beside ? this.viewPointOn(cue.surface) : undefined;
+        const c = this.chair.group.position;
+        const near = cue.nearPoint && cue.surface === 'floor'
+          ? { u: c.x + cue.nearPoint.x + ROOM.halfW, v: c.z + cue.nearPoint.z + ROOM.halfD }
+          : cue.surface && !cue.beside ? this.viewPointOn(cue.surface) : undefined;
         const ok = this.text.write({ key: cue.key, text: cue.text, hand: cue.hand, size: cue.size, beside: cue.beside, surface: cue.surface, near, purpose: cue.purpose, ttl: cue.ttl, now: this.time });
         if (ok && cue.strike) this.text.strike(cue.strike, this.time, cue.ttl);
         if (!ok) this.director.writeFailed(cue.key);
@@ -242,7 +255,26 @@ export class App {
         void this.playVoice(cue);
         break;
       case 'music':
-        if (this.music && this.audio) this.music.play(cue.mood, cue.notes, cue.truncate);
+        if (this.music && this.audio) {
+          if (cue.melody?.length) this.music.playMelody(cue.melody, cue.stopAt);
+          else this.music.play(cue.mood, cue.notes, cue.truncate);
+        }
+        break;
+      case 'stopVoice':
+        this.voices?.stop(cue.tag, cue.fade);
+        break;
+      case 'glow': {
+        const c = this.chair.group.position;
+        this.lighting.leaveResidue(c.x + cue.x, c.z + cue.z, cue.amount * (this.prefs.intensity === 'gentle' ? 0.6 : 1), cue.seconds, this.time);
+        break;
+      }
+      case 'chairTurn': {
+        const c = this.chair.group.position;
+        this.chair.turnToward(c.x + cue.x, c.z + cue.z, cue.amount);
+        break;
+      }
+      case 'erode':
+        this.text.erode(cue.key, cue.keep, this.time);
         break;
       case 'silence':
         this.audio?.silence(cue.depth * (this.prefs.intensity === 'gentle' ? 0.8 : 1), cue.seconds);
@@ -309,7 +341,7 @@ export class App {
     let dur = 3;
     if (this.voices && this.audio) {
       const assetKey = cue.assetId ?? (cue.phraseId ? `phrase:${cue.phraseId}` : undefined);
-      dur = await this.voices.play(cue.kind, cue.text, this.place(cue.position), cue.gain, assetKey);
+      dur = await this.voices.play(cue.kind, cue.text, { ...this.place(cue.position), tag: cue.tag }, cue.gain, assetKey, { melody: cue.melody, synth: cue.synth });
     }
     if (dur > 0) this.captions.show(cue.caption, dur, cue.text === null);
   }
@@ -774,6 +806,7 @@ export class App {
       `phase ${s.phase}  gaze ${this.gazeId ?? '-'}${this.gazeChair ? ' [chair]' : ''}\n` +
       `visitor ${JSON.stringify(s.visitor)}\nfield ${JSON.stringify(s.field)}\nmotifs ${JSON.stringify(s.memory.strength)} formed ${s.memory.formed.join(',')}\n` +
       `env ${JSON.stringify(Object.fromEntries(Object.entries(this.director.env).map(([k, v]) => [k, +v.toFixed(2)])))}\n` +
+      `situations ${JSON.stringify(s.situations)}\n` +
       `pending\n  ${s.pending.join('\n  ')}\nrecent\n  ${s.recent.join('\n  ')}`;
   }
 }

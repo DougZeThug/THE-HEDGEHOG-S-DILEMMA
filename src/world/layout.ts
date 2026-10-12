@@ -17,6 +17,28 @@ export function surfaceSize(s: Surface): SurfaceSize {
   return { w: ROOM.halfW * 2, h: ROOM.halfD * 2 };
 }
 
+/**
+ * World position (metres, chair at the origin, room at scale 1) of a layout point.
+ * Mirrors Room.world() so the engine can reason about where writing is without a renderer.
+ */
+export function layoutToWorld(surface: Surface, u: number, v: number): { x: number; y: number; z: number } {
+  const { halfW, halfD, height } = ROOM;
+  switch (surface) {
+    case 'north':
+      return { x: -halfW + u, y: v, z: -halfD };
+    case 'south':
+      return { x: halfW - u, y: v, z: halfD };
+    case 'east':
+      return { x: halfW, y: v, z: -halfD + u };
+    case 'west':
+      return { x: -halfW, y: v, z: halfD - u };
+    case 'floor':
+      return { x: -halfW + u, y: 0, z: -halfD + v };
+    case 'ceiling':
+      return { x: -halfW + u, y: height, z: -halfD + v };
+  }
+}
+
 export interface Rect {
   /** Centre along u, metres from the surface's left edge (as seen from inside). */
   u: number;

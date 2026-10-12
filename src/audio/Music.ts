@@ -89,6 +89,26 @@ export class Music {
     return dur;
   }
 
+  /**
+   * Play a given tune as written, slowly. With `stopAt`, it stops after that many notes —
+   * the last one quieter, the rest of the tune never arriving.
+   */
+  playMelody(notes: number[], stopAt?: number): number {
+    if (this.busy) return 0;
+    const c = this.a.ctx;
+    const count = stopAt ? Math.min(notes.length, Math.max(1, stopAt)) : notes.length;
+    let t = c.currentTime + 0.3;
+    const k = 0.7 + 0.3 * this.a.intensity;
+    for (let i = 0; i < count; i++) {
+      const last = i === count - 1;
+      this.note(notes[i], t, (last && stopAt ? 0.18 : this.rng.range(0.26, 0.36)) * k);
+      t += this.rng.range(0.85, 1.15);
+    }
+    const dur = t - c.currentTime + 3;
+    this.playingUntil = c.currentTime + dur;
+    return dur;
+  }
+
   private note(midi: number, t: number, vel: number) {
     const c = this.a.ctx;
     const f = mtof(midi);

@@ -22,7 +22,19 @@ export interface VoicePlacement {
   muffled?: boolean;
   /** No position at all: inside the head, drifting. */
   nowhere?: boolean;
+  /** Handle for cutting the sound off later. */
+  tag?: string;
 }
+
+export interface PlayOptions {
+  /** Semitones above the base for a hummed tune; -100 is a rest. */
+  melody?: number[];
+  /** Never substitute a recording. */
+  synth?: boolean;
+}
+
+/** Seconds per note of a given hummed melody (kept in step with the composer). */
+const HUM_NOTE = 0.62;
 
 type Formants = [number, number, number];
 const VOWELS: Record<string, Formants> = {
@@ -172,6 +184,15 @@ export class Voices {
     const t = c.currentTime;
     const input = c.createGain();
     input.gain.value = gain;
+    if (place.tag) {
+      const list = this.tagged.get(place.tag) ?? [];
+      list.push(input);
+      this.tagged.set(place.tag, list);
+      setTimeout(() => {
+        const l = this.tagged.get(place.tag!);
+        if (l) this.tagged.set(place.tag!, l.filter((n) => n !== input));
+      }, (dur + 6) * 1000);
+    }
     let node: AudioNode = input;
     if (place.muffled) {
       const lp = c.createBiquadFilter();
@@ -228,30 +249,43 @@ export class Voices {
   /**
    * Play a voice event. Returns its approximate duration (seconds) for captions.
    */
-  async play(kind: VoiceKind, text: string | null, place: VoicePlacement, gain: number, assetKey?: string): Promise<number> {
+  async play(kind: VoiceKind, text: string | null, place: VoicePlacement, gain: number, assetKey?: string, opts: PlayOptions = {}): Promise<number> {
     if (this.active >= 4) return 0; // never a crowd
     this.active++; // reserve the slot before anything asynchronous
     let dur = 0;
     try {
-      dur = await this.play_(kind, text, place, gain, assetKey);
+      dur = await this.play_(kind, text, place, gain, opts.synth ? undefined : assetKey, opts);
     } finally {
       setTimeout(() => this.active--, dur * 1000 + 500);
     }
     return dur;
   }
 
+  private tagged = new Map<string, GainNode[]>();
+
+  /** Cut off every sound carrying this tag, with a short fade (no click). */
+  stop(tag: string, fade: number) {
+    const t = this.a.ctx.currentTime;
+    for (const g of this.tagged.get(tag) ?? []) {
+      g.gain.cancelScheduledValues(t);
+      g.gain.setValueAtTime(g.gain.value, t);
+      g.gain.linearRampToValueAtTime(0, t + Math.max(0.02, fade));
+    }
+    this.tagged.delete(tag);
+  }
+
   stopSpeech() {
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
   }
 
-  private async play_(kind: VoiceKind, text: string | null, place: VoicePlacement, gain: number, assetKey?: string): Promise<number> {
+  private async play_(kind: VoiceKind, text: string | null, place: VoicePlacement, gain: number, assetKey: string | undefined, opts: PlayOptions): Promise<number> {
     const g = gain * (0.55 + 0.45 * this.a.intensity);
     const nonVerbal = ['laugh', 'murmur', 'breath', 'hum'].includes(kind);
     if (text && this.speechFallback && 'speechSynthesis' in window && !nonVerbal) {
       return this.speak(text, kind, g);
     }
     // A recording made for this exact moment, or a recorded texture for this manner of speaking.
-    const key = assetKey && this.hasAsset(assetKey) ? assetKey : this.hasAsset(`style:${kind}`) ? `style:${kind}` : null;
+    const key = opts.synth ? null : assetKey && this.hasAsset(assetKey) ? assetKey : this.hasAsset(`style:${kind}`) ? `style:${kind}` : null;
     if (key) {
       const files = this.manifest[key];
       const file = files[this.rng.int(0, files.length - 1)];
@@ -269,7 +303,7 @@ export class Voices {
       case 'murmur':
         return this.murmur(place, g);
       case 'hum':
-        return this.hum(place, g);
+        return opts.melody?.length ? this.humTune(place, g, opts.melody) : this.hum(place, g);
       default:
         return this.utter(text ?? '...', STYLES[kind] ?? STYLES.whisper, place, g, hashString(text ?? kind));
     }
@@ -540,6 +574,41 @@ export class Voices {
     }
     g.gain.setTargetAtTime(0, t, 0.2);
     const dur = t - t0 + 0.8;
+    const tail = this.chain({ ...place, muffled: place.muffled ?? true }, 0.4, dur, gain * 0.5);
+    o.connect(nasal).connect(lp).connect(g).connect(tail);
+    o.start(t0);
+    o.stop(t + 1);
+    return dur;
+  }
+
+  /** Hum a given tune, one note per HUM_NOTE seconds, legato, with breaths at the rests. */
+  private humTune(place: VoicePlacement, gain: number, melody: number[]): number {
+    const c = this.a.ctx;
+    const base = 205;
+    const o = c.createOscillator();
+    o.type = 'triangle';
+    const g = c.createGain();
+    g.gain.value = 0;
+    const lp = c.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 900;
+    const nasal = c.createBiquadFilter();
+    nasal.type = 'peaking';
+    nasal.frequency.value = 270;
+    nasal.gain.value = 8;
+    const t0 = c.currentTime + 0.1;
+    let t = t0;
+    for (const n of melody) {
+      if (n <= -50) {
+        g.gain.setTargetAtTime(0.0, t, 0.05);
+      } else {
+        o.frequency.setTargetAtTime(base * Math.pow(2, n / 12), t, 0.05);
+        g.gain.setTargetAtTime(0.32 + this.rng.range(-0.05, 0.05), t, 0.06);
+      }
+      t += HUM_NOTE;
+    }
+    g.gain.setTargetAtTime(0, t, 0.25);
+    const dur = t - t0 + 0.6;
     const tail = this.chain({ ...place, muffled: place.muffled ?? true }, 0.4, dur, gain * 0.5);
     o.connect(nasal).connect(lp).connect(g).connect(tail);
     o.start(t0);

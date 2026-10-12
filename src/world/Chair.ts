@@ -117,6 +117,25 @@ export class Chair {
     return g;
   }
 
+  /**
+   * Lean toward a world point: turn part of the way to face it (at most ~20°), and if it
+   * already faces it, shift a few centimetres toward it instead.
+   */
+  turnToward(x: number, z: number, amount: number) {
+    const p = this.group.position;
+    const want = Math.atan2(x - p.x, z - p.z);
+    let d = want - this.group.rotation.y;
+    while (d > Math.PI) d -= Math.PI * 2;
+    while (d < -Math.PI) d += Math.PI * 2;
+    const turn = Math.max(-0.35, Math.min(0.35, d * amount));
+    this.group.rotation.y += turn;
+    if (Math.abs(turn) < 0.08) {
+      const len = Math.hypot(x - p.x, z - p.z) || 1;
+      p.x += ((x - p.x) / len) * 0.06 * amount;
+      p.z += ((z - p.z) / len) * 0.06 * amount;
+    }
+  }
+
   nudge(dx: number, dz: number, dyaw: number) {
     this.group.position.x += dx;
     this.group.position.z += dz;

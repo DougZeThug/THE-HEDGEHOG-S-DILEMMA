@@ -11,6 +11,10 @@ import { PhaseTracker } from './Phase';
 import { PhraseSelector, type SelectContext, type SelectQuery } from './PhraseSelector';
 import type { Cue, TimedCue, VoiceKind, VoicePosition } from './cues';
 import type { Interpretation } from '../interpret/schema';
+import { SituationRunner, type PhraseGeometry, type SituationHost, type ContributionTrace } from './situations/Situation';
+import { SITUATIONS, SITUATION_BY_ID, keptWord } from './situations/library';
+import { ROOM } from '../world/layout';
+import { hashString } from '../core/rng';
 
 /** Continuous environment targets, recomputed every tick from the field. */
 export interface Environment {
@@ -47,6 +51,10 @@ export interface VisibleState {
 export interface DirectorOptions {
   seed: number;
   visits?: number;
+  /** Where each phrase is (world metres, chair at origin). Situations need it to relate place and writing. */
+  geometry?: (phraseId: string) => PhraseGeometry | undefined;
+  /** Force a repertoire of situations (for inspection and tests). */
+  situations?: string[];
 }
 
 const SURFACES: Surface[] = ['north', 'east', 'south', 'west'];
@@ -65,7 +73,15 @@ export class Director {
   visits: number;
   departing = false;
 
-  private facing: Surface = 'north';
+  private _facing: Surface = 'north';
+  get facing(): Surface {
+    return this._facing;
+  }
+  readonly situations: SituationRunner;
+  private readonly host: SituationHost;
+  private readonly owned: Set<string>;
+  private lastContrib: ContributionTrace | null = null;
+  private geometry: (id: string) => PhraseGeometry | undefined;
   private annotationsUsed = new Set<string>();
   private recontextsUsed = new Set<string>();
   private relationsShown = new Set<string>();
@@ -92,12 +108,75 @@ export class Director {
     this.stillVoice = this.rng.chance(0.55);
     this.stillMusic = this.rng.chance(0.4);
     for (const p of PHRASES) if (p.tier === 'arrival' || p.tier === 'near') this.visible.set(p.id, { mode: 'shown', since: 0, base: true });
+    this.geometry = opts.geometry ?? (() => undefined);
+    this.situations = new SituationRunner(Director.repertoire(this.visits, opts.situations));
+    this.owned = this.situations.owned();
+    this.host = this.makeHost();
     this.env = this.computeEnv();
     // Returning visitors find a room that remembers being visited.
     if (this.visits > 1) {
       this.reveal('remember-me', 20, 'return', 'emerge', 10);
       if (this.visits > 2) this.queue(30, { type: 'chairNudge', dx: 0.05, dz: -0.03, dyaw: 0.12 }, 'return');
     }
+  }
+
+  /** Seeded choice of which situations this visit can hold: three of the four, plus erosion if the visitor writes. */
+  static repertoire(visits: number, forced?: string[]) {
+    if (forced?.length) return forced.map((id) => SITUATION_BY_ID.get(id)).filter((d): d is NonNullable<typeof d> => !!d);
+    const r = new Rng(hashString(`situations:${visits}`));
+    const main = SITUATIONS.filter((d) => d.id !== 'erosion');
+    for (let i = main.length - 1; i > 0; i--) {
+      const j = r.int(0, i);
+      [main[i], main[j]] = [main[j], main[i]];
+    }
+    return [...main.slice(0, 3), SITUATION_BY_ID.get('erosion')!];
+  }
+
+  private makeHost(): SituationHost {
+    const d = this;
+    return {
+      get now() {
+        return d.now;
+      },
+      get visitor() {
+        return d.visitor;
+      },
+      get memory() {
+        return d.memory;
+      },
+      get field() {
+        return d.field.v;
+      },
+      get phase() {
+        return d.phase;
+      },
+      get facing() {
+        return d.facing;
+      },
+      get visible() {
+        return d.visible;
+      },
+      get rng() {
+        return d.rng;
+      },
+      geometry: (id) => d.geometry(id),
+      distToSurface: (s) => {
+        const sc = d.env?.roomScale ?? 1;
+        const { x, z } = d.visitor;
+        if (s === 'north') return z + ROOM.halfD * sc;
+        if (s === 'south') return ROOM.halfD * sc - z;
+        if (s === 'east') return ROOM.halfW * sc - x;
+        if (s === 'west') return x + ROOM.halfW * sc;
+        return 0;
+      },
+      emit: (rule, delay, cue, opts) => d.queue(delay, cue, rule, opts),
+      cancel: (rule) => d.scheduler.cancelWhere((e) => e.rule === rule),
+      reveal: (rule, id, delay, mode, seconds) => d.reveal(id, delay, rule, mode, seconds),
+      speak: (rule, p, position, delay, style, gain) => d.speakPhrase(rule, p, position, delay, style, gain),
+      musicReady: (sec) => d.scheduler.ready('music', d.now, sec),
+      markMusic: () => d.scheduler.mark('music', d.now),
+      lastContribution: () => d.lastContrib,
+    };
   }
 
   get phase(): Phase {
@@ -152,6 +231,10 @@ export class Director {
   }
 
   private fragment(rule: string, f: VoiceFragment, position: VoicePosition, delay = 0, gain = 0.6) {
+    if (position.kind === 'chair' && this.situations.claimed('chair-voice') && !rule.startsWith('sit:')) return;
+    // Sounds that belong to an authored situation are not used as generic texture.
+    if (this.owned.has(f.id) && !rule.startsWith('sit:')) return;
+    if (position.kind === 'beyond' && this.situations.claimed('beyond')) return;
     const kind = f.kind === 'speech' ? 'distant' : f.kind;
     this.voice(rule, delay, kind, f.kind === 'speech' ? f.caption : null, f.caption, position, { assetId: f.id, gain });
   }
@@ -159,7 +242,7 @@ export class Director {
   // ───────────────────────────── tick ─────────────────────────────
 
   tick(dt: number, input: VisitorInput, facing: Surface): TimedCue[] {
-    this.facing = facing;
+    this._facing = facing;
     const v = this.visitor;
     v.update(dt, input);
     const formed = this.memory.update(v, dt);
@@ -169,6 +252,7 @@ export class Director {
     if (!this.departing) {
       for (const m of formed) this.onMotif(m);
       if (phaseChanged) this.onPhase(phaseChanged);
+      this.situations.tick(this.host);
       this.ruleDriftReveal();
       this.ruleStillness();
       this.ruleApproach();
@@ -296,7 +380,7 @@ export class Director {
     }
     if (s > t4 && this.stillStage < 4) {
       this.stillStage = 4;
-      if (this.stillMusic && this.scheduler.ready('music', this.now, 40)) {
+      if (this.stillMusic && !this.situations.claimed('music') && this.scheduler.ready('music', this.now, 40)) {
         this.scheduler.mark('music', this.now);
         this.queue(0, { type: 'music', mood: 'sparse', notes: 4, truncate: true }, 'still-music', { major: true, ttl: 40 });
       } else if (this.memory.warmMemories.length && this.rng.chance(0.5)) {
@@ -315,11 +399,12 @@ export class Director {
     if (!this.spokenFirstApproach && v.nearFor > 1.5) {
       this.spokenFirstApproach = true;
       this.queue(0, { type: 'silence', depth: 0.4, seconds: 7 }, 'first-approach', { major: true, ttl: 4 });
-      if (this.rng.chance(0.35)) this.fragment('first-approach', VOICE_FRAGMENTS.find((f) => f.id === 'vf-breath')!, { kind: 'chair' }, 8, 0.45);
+      if (this.rng.chance(0.35) && !this.situations.claimed('chair-voice'))
+        this.fragment('first-approach', VOICE_FRAGMENTS.find((f) => f.id === 'vf-breath')!, { kind: 'chair' }, 8, 0.45);
       return;
     }
     const f = this.field.v;
-    if (v.nearFor > 13 && this.nearVoices < 2 && this.scheduler.ready('near-dwell', this.now, 75)) {
+    if (v.nearFor > 13 && this.nearVoices < 2 && !this.situations.claimed('chair-voice') && this.scheduler.ready('near-dwell', this.now, 75)) {
       this.scheduler.mark('near-dwell', this.now);
       if (!this.rng.chance(0.6)) return;
       this.nearVoices++;
@@ -431,7 +516,7 @@ export class Director {
   private ruleMusic() {
     const f = this.field.v;
     const gap = { arrival: 9999, familiar: 120, contradiction: 95, transform: 80 }[this.phase];
-    if (!this.scheduler.ready('music', this.now, gap) || this.now < 75) return;
+    if (!this.scheduler.ready('music', this.now, gap) || this.now < 75 || this.situations.claimed('music')) return;
     const pressure = Math.max(f.warmth, f.reminiscence * 1.1, f.dissonance, f.hush * 0.9);
     if (pressure < 0.42) return;
     this.scheduler.mark('music', this.now);
@@ -459,9 +544,11 @@ export class Director {
   /** Life elsewhere: muffled laughter, two people talking, someone humming. */
   private ruleDistantLife() {
     if (this.phase === 'arrival' || this.now < this.nextDistantLife) return;
+    // Distant life is mostly situational now; this is only a fallback for long quiet stretches.
+    if (this.situations.claimed('beyond') || this.now - this.situations.lastBeyond < 180) return;
     this.nextDistantLife = this.now + this.rng.range(70, 130);
     const ctx = this.ctx();
-    const weights = VOICE_FRAGMENTS.filter((f) => f.kind !== 'breath').map((f) => {
+    const weights = VOICE_FRAGMENTS.filter((f) => f.kind !== 'breath' && !this.owned.has(f.id)).map((f) => {
       const pull: Record<string, number> = {
         happiness: ctx.field.warmth + ctx.field.reminiscence, connection: ctx.field.solitude, isolation: ctx.field.solitude,
         nostalgia: ctx.field.reminiscence, misunderstanding: ctx.field.dissonance, affection: ctx.field.warmth,
@@ -565,6 +652,7 @@ export class Director {
     this.contributionCount++;
     this.memory.contributions.push({ dims: it.dims, at: this.now });
     const key = `contrib:${this.contributionCount}`;
+    this.lastContrib = { key, keep: keptWord(text), surface: this.facing, at: this.now };
     // The words are always written. The room does not reply: at most one other thing
     // happens, often nothing, and anything related surfaces much later, as if by itself.
     this.queue(0.5, { type: 'write', key, text, hand: 'visitor', size: text.length > 60 ? 'xs' : 's', surface: this.facing, purpose: 'contribution', ttl: 0 }, 'contribution');
@@ -624,6 +712,8 @@ export class Director {
 
   /** Clears contributions from memory (privacy: "forget what I wrote"). */
   forgetContributions(): void {
+    this.lastContrib = null;
+    this.situations.drop('erosion');
     this.memory.contributions = [];
     this.scheduler.cancelWhere((e) => e.rule.startsWith('contribution'));
   }
@@ -665,6 +755,7 @@ export class Director {
       field: this.field.snapshot(),
       memory: this.memory.snapshot(),
       visible: this.visible.size,
+      situations: this.situations.snapshot(),
       pending: this.scheduler.snapshot(this.now).slice(0, 8).map((e) => `${e.in}s ${e.payload.rule}:${e.payload.cue.type}`),
       recent: this.log.slice(-8).map((c) => {
         const cu = c.cue as { phraseId?: string; caption?: string; text?: string };
