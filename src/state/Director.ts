@@ -74,13 +74,23 @@ export class Director {
   private lastSeenWithdraw = -Infinity;
   private chairNudges = 0;
   private kneelVoiced = false;
-  private exposedSince = -1;
   private contributionCount = 0;
   private nextDistantLife = 70;
+  private nearVoices = 0;
+  /** Stillness thresholds differ from visit to visit, so waiting is never a ladder. */
+  private stillAt: [number, number, number, number];
+  private stillVoice: boolean;
+  private stillMusic: boolean;
 
   constructor(opts: DirectorOptions) {
     this.rng = new Rng(opts.seed);
     this.visits = opts.visits ?? 1;
+    const t1 = this.rng.range(8, 15);
+    const t2 = t1 + this.rng.range(12, 20);
+    const t3 = t2 + this.rng.range(16, 26);
+    this.stillAt = [t1, t2, t3, t3 + this.rng.range(25, 40)];
+    this.stillVoice = this.rng.chance(0.55);
+    this.stillMusic = this.rng.chance(0.4);
     for (const p of PHRASES) if (p.tier === 'arrival' || p.tier === 'near') this.visible.set(p.id, { mode: 'shown', since: 0, base: true });
     this.env = this.computeEnv();
     // Returning visitors find a room that remembers being visited.
@@ -168,7 +178,6 @@ export class Director {
       this.ruleMusic();
       this.ruleRecontext();
       this.ruleDistantLife();
-      this.ruleDeflect();
       this.ruleKneel();
       this.ruleChairNudge(input);
     }
@@ -204,7 +213,7 @@ export class Director {
   }
 
   private budget(): number {
-    return { arrival: 0, familiar: 10, contradiction: 18, transform: 26 }[this.phase];
+    return { arrival: 0, familiar: 8, contradiction: 12, transform: 16 }[this.phase];
   }
 
   private cull() {
@@ -229,7 +238,7 @@ export class Director {
 
   /** The walls slowly offer more writing as the visit goes on. */
   private ruleDriftReveal() {
-    const gap = { arrival: 26, familiar: 19, contradiction: 16, transform: 18 }[this.phase];
+    const gap = { arrival: 34, familiar: 28, contradiction: 25, transform: 28 }[this.phase];
     if (this.now < 18 || !this.scheduler.ready('drift', this.now, gap)) return;
     if (this.phase === 'arrival' && this.now < 30) return;
     this.scheduler.mark('drift', this.now);
@@ -241,95 +250,95 @@ export class Director {
     if (p) this.reveal(p.id, 0, 'drift', 'emerge', this.rng.range(8, 14));
   }
 
-  /** Stillness is never empty: it thins the room and lets hidden things through. */
+  /**
+   * Stillness thins the room. Sometimes that is all it does; sometimes writing that only
+   * exists for someone standing still comes through, or a voice drifts in. The thresholds
+   * and what follows them differ per visit.
+   */
   private ruleStillness() {
     const v = this.visitor;
     const s = v.deepStillFor;
+    const [t1, t2, t3, t4] = this.stillAt;
     if (v.stillFor === 0 && this.stillStage > 0) {
       this.stillStage = 0;
       for (const [id, st] of this.visible) if (st.mode === 'still') this.queue(0, { type: 'hide', phraseId: id, seconds: 2.5 }, 'still-break');
       this.scheduler.cancelWhere((e) => e.rule.startsWith('still'));
       return;
     }
-    if (s > 9 && this.stillStage < 1) {
+    if (s > t1 && this.stillStage < 1) {
       this.stillStage = 1;
       const p = this.selector.select(this.ctx(), { tiers: ['still'], exclude: this.hiddenExcluding(), surfaces: [this.facing] }) ??
         this.selector.select(this.ctx(), { tiers: ['still'], exclude: this.hiddenExcluding() });
       if (p) this.reveal(p.id, 0, 'still-1', 'still', 7);
     }
-    if (s > 22 && this.stillStage < 2) {
+    if (s > t2 && this.stillStage < 2) {
       this.stillStage = 2;
-      const p = this.selector.select(this.ctx(), { tiers: ['still'], exclude: this.hiddenExcluding() });
-      if (p) this.reveal(p.id, 0, 'still-2', 'still', 9);
-      // A voice from nowhere drifts in towards the chair.
-      const sp = this.selector.select(this.ctx(), {
-        voiced: true,
-        tiers: ['still', 'arrival', 'familiar', ...(this.phase === 'arrival' ? [] : (['contradiction'] as const))],
-        bias: (x) => (this.memory.spoken.has(x.id) ? -0.6 : 0) + (x.tier === 'still' ? 0.25 : 0),
-      });
-      if (sp && this.scheduler.ready('still-voice', this.now, 70)) {
-        this.scheduler.mark('still-voice', this.now);
-        this.speakPhrase('still-voice', sp, { kind: 'approach' }, 2, 'whisper', 0.7);
+      if (this.rng.chance(0.6)) {
+        const p = this.selector.select(this.ctx(), { tiers: ['still'], exclude: this.hiddenExcluding() });
+        if (p) this.reveal(p.id, 0, 'still-2', 'still', 9);
+      }
+      if (this.stillVoice && this.scheduler.ready('still-voice', this.now, 90)) {
+        const sp = this.selector.select(this.ctx(), {
+          voiced: true,
+          tiers: ['still', 'arrival', 'familiar', ...(this.phase === 'arrival' ? [] : (['contradiction'] as const))],
+          bias: (x) => (this.memory.spoken.has(x.id) ? -0.6 : 0) + (x.tier === 'still' ? 0.25 : 0),
+        });
+        if (sp) {
+          this.scheduler.mark('still-voice', this.now);
+          this.speakPhrase('still-voice', sp, { kind: 'approach' }, 2, 'whisper', 0.65);
+        }
       }
     }
-    if (s > 42 && this.stillStage < 3) {
+    if (s > t3 && this.stillStage < 3) {
       this.stillStage = 3;
       this.queue(0, { type: 'silence', depth: 0.85, seconds: 26 }, 'still-silence', { major: true, ttl: 30 });
-      if (this.memory.warmMemories.length && this.rng.chance(0.6)) {
-        this.fragment('still-hum', VOICE_FRAGMENTS.find((f) => f.id === 'vf-hum')!, { kind: 'beyond', surface: 'east' }, 16, 0.45);
-      }
     }
-    if (s > 75 && this.stillStage < 4) {
+    if (s > t4 && this.stillStage < 4) {
       this.stillStage = 4;
-      if (this.scheduler.ready('music', this.now, 40)) {
+      if (this.stillMusic && this.scheduler.ready('music', this.now, 40)) {
         this.scheduler.mark('music', this.now);
         this.queue(0, { type: 'music', mood: 'sparse', notes: 4, truncate: true }, 'still-music', { major: true, ttl: 40 });
+      } else if (this.memory.warmMemories.length && this.rng.chance(0.5)) {
+        this.fragment('still-hum', VOICE_FRAGMENTS.find((f) => f.id === 'vf-hum')!, { kind: 'beyond', surface: 'east' }, 4, 0.4);
       }
-      const p = this.selector.select(this.ctx(), { tiers: ['still', 'transform'], exclude: this.hiddenExcluding() });
-      if (p) this.reveal(p.id, 6, 'still-4', 'still', 12);
     }
   }
 
-  /** Coming close to the chair. */
+  /**
+   * Coming close to the chair. Usually the room answers by subtraction — the hum drops,
+   * the light settles. A voice near the chair is rare: at most twice in a visit.
+   */
   private ruleApproach() {
     const v = this.visitor;
-    if (!v.near) {
-      this.exposedSince = -1;
-      return;
-    }
+    if (!v.near) return;
     if (!this.spokenFirstApproach && v.nearFor > 1.5) {
       this.spokenFirstApproach = true;
-      // The first approach is met with something small and close: breath, or a child's phrase.
-      if (this.rng.chance(0.5)) this.fragment('first-approach', VOICE_FRAGMENTS.find((f) => f.id === 'vf-breath')!, { kind: 'chair' }, 1.5, 0.5);
-      else this.speakPhrase('first-approach', PHRASE_BY_ID.get('used-to-fit')!, { kind: 'chair' }, 2, 'child', 0.55);
-      this.queue(0, { type: 'flash', kind: 'warm', amount: 0.25, seconds: 6 }, 'first-approach');
+      this.queue(0, { type: 'silence', depth: 0.4, seconds: 7 }, 'first-approach', { major: true, ttl: 4 });
+      if (this.rng.chance(0.35)) this.fragment('first-approach', VOICE_FRAGMENTS.find((f) => f.id === 'vf-breath')!, { kind: 'chair' }, 8, 0.45);
       return;
     }
     const f = this.field.v;
-    if (f.exposure > f.warmth + 0.08) {
-      if (this.exposedSince < 0) this.exposedSince = this.now;
-    } else this.exposedSince = -1;
-
-    if (v.nearFor > 13 && this.scheduler.ready('near-dwell', this.now, 48)) {
+    if (v.nearFor > 13 && this.nearVoices < 2 && this.scheduler.ready('near-dwell', this.now, 75)) {
       this.scheduler.mark('near-dwell', this.now);
+      if (!this.rng.chance(0.6)) return;
+      this.nearVoices++;
       const exposed = f.exposure > f.warmth + 0.05;
       if (exposed) {
         // Closeness as pressure: an affectionate line, spoken flatly, from behind.
         const p = this.selector.select(this.ctx(), {
           voiced: true,
-          tiers: ['arrival', 'familiar', 'contradiction', ...(this.phase === 'transform' ? (['transform'] as const) : [])],
-          bias: (x) => ((x.dims.fear ?? 0) + (x.dims.affection ?? 0) * 0.8 + (x.dims.contradiction ?? 0) * 0.5) * 0.4 - (this.memory.spoken.has(x.id) ? 0.5 : 0),
+          tiers: ['arrival', 'familiar', 'contradiction'],
+          bias: (x) => ((x.dims.affection ?? 0) + (x.dims.connection ?? 0) * 0.6) * 0.4 - (this.memory.spoken.has(x.id) ? 0.5 : 0),
         });
-        if (p) this.speakPhrase('near-exposed', p, { kind: 'behind' }, 0, 'flat', 0.7);
-        this.queue(0, { type: 'flash', kind: 'cold', amount: 0.35, seconds: 10 }, 'near-exposed');
+        if (p) this.speakPhrase('near-exposed', p, { kind: 'behind' }, 0, 'flat', 0.65);
       } else {
         // Closeness as company.
         const p = this.selector.select(this.ctx(), {
           voiced: true,
-          tiers: ['arrival', 'near', 'familiar', 'still', ...(this.phase === 'transform' ? (['transform'] as const) : [])],
-          bias: (x) => warmthOf(x.dims) * 0.3 + (x.dims.connection ?? 0) * 0.3 - (this.memory.spoken.has(x.id) ? 0.5 : 0),
+          tiers: ['arrival', 'familiar', 'still', ...(this.phase === 'transform' ? (['transform'] as const) : [])],
+          bias: (x) => warmthOf(x.dims) * 0.3 + (x.dims.connection ?? 0) * 0.4 - (this.memory.spoken.has(x.id) ? 0.5 : 0),
         });
-        if (p) this.speakPhrase('near-warm', p, { kind: 'chair' }, 0, p.voice === 'flat' ? 'tender' : p.voice, 0.75);
+        if (p) this.speakPhrase('near-warm', p, { kind: 'chair' }, 0, p.voice === 'flat' ? 'tender' : p.voice, 0.7);
       }
     }
     // A very long, settled closeness late in the visit.
@@ -467,24 +476,11 @@ export class Director {
     this.fragment('distant-life', frag, { kind: 'beyond', surface: wall }, 0, 0.4);
   }
 
-  /** People deflect. When the room gets tense, something small and absurd appears. */
-  private ruleDeflect() {
-    const f = this.field.v;
-    if (f.tension < 0.45 || this.phase === 'arrival' || !this.scheduler.ready('deflect', this.now, 70)) return;
-    this.scheduler.mark('deflect', this.now);
-    const p = this.selector.select(this.ctx(), {
-      exclude: this.hiddenExcluding(),
-      pool: PHRASES.filter((x) => ['soup', 'angry-cake', 'practise', 'biscuit', 'board-games', 'cereal', 'you-were-right'].includes(x.id)),
-      tiers: ['arrival', 'familiar', 'contradiction'],
-    });
-    if (p) this.reveal(p.id, 0, 'deflect', 'emerge', 6);
-  }
-
   private ruleKneel() {
     const v = this.visitor;
     if (!v.kneeling || this.kneelVoiced || v.kneelTime < 4) return;
     this.kneelVoiced = true;
-    this.speakPhrase('kneel', PHRASE_BY_ID.get(this.rng.chance(0.5) ? 'used-to-fit' : 'small-minute')!, { kind: 'chair' }, 0, 'child', 0.5);
+    if (this.rng.chance(0.4)) this.speakPhrase('kneel', PHRASE_BY_ID.get('small-minute')!, { kind: 'chair' }, 2, 'child', 0.45);
   }
 
   /** Late, while nobody is looking, the chair is not quite where it was. */
@@ -493,7 +489,7 @@ export class Director {
     if (input.gazeChair || this.visitor.distance < 2.2 || this.visitor.totalChairGaze < 8) return;
     this.chairNudges++;
     this.queue(0, { type: 'chairNudge', dx: this.rng.range(-0.06, 0.06), dz: this.rng.range(-0.06, 0.06), dyaw: this.rng.range(-0.2, 0.2) }, 'chair-nudge');
-    this.reveal('moving-chair', 40, 'chair-nudge', 'emerge', 10);
+    if (this.visits > 1) this.reveal('moving-chair', 90, 'chair-nudge', 'emerge', 10);
   }
 
   private onMotif(m: Motif) {
@@ -511,11 +507,8 @@ export class Director {
       case 'distance':
         this.reveal(this.rng.chance(0.5) ? 'far-enough' : 'happiest-unneeded', 2, 'motif-distance', 'emerge', 10);
         break;
-      case 'closeness':
-        this.queue(0, { type: 'flash', kind: 'warm', amount: 0.3, seconds: 12 }, 'motif-closeness');
-        break;
       case 'wandering':
-        this.reveal('room-enormous', 2, 'motif-wandering', 'emerge', 10);
+        this.fragment('motif-wandering', VOICE_FRAGMENTS.find((f) => f.id === 'vf-two-voices')!, { kind: 'beyond', surface: this.rng.pick(SURFACES) }, 6, 0.35);
         break;
       default:
         break;
@@ -571,56 +564,55 @@ export class Director {
     this.contributionCount++;
     this.memory.contributions.push({ dims: it.dims, at: this.now });
     const key = `contrib:${this.contributionCount}`;
-    const g = new Set(it.gestures);
-    if (g.has('quiet')) this.queue(0, { type: 'silence', depth: 0.55 + 0.25 * it.intensity, seconds: 10 }, 'contribution', { major: true, ttl: 5, priority: 5 });
-    if (g.has('writeOnWall')) {
-      // Written where the visitor is looking, so they can watch it arrive.
-      const surface: Surface = this.facing;
-      this.queue(0.5, { type: 'write', key, text, hand: 'visitor', size: text.length > 60 ? 'xs' : 's', surface, purpose: 'contribution', ttl: 0 }, 'contribution');
-    }
-    if (g.has('revealRelated')) {
-      let d = 5;
-      for (const id of it.related.slice(0, 2)) {
-        const p = PHRASE_BY_ID.get(id);
-        if (!p || p.tier === 'annotation') continue;
-        if (this.visible.has(id)) {
-          if (p.voice && !this.memory.spoken.has(id)) this.speakPhrase('contribution-echo', p, { kind: 'surface', phraseId: id }, d + 6, undefined, 0.55);
-        } else this.reveal(id, d, 'contribution', 'emerge', 10);
-        d += 7;
+    // The words are always written. The room does not reply: at most one other thing
+    // happens, often nothing, and anything related surfaces much later, as if by itself.
+    this.queue(0.5, { type: 'write', key, text, hand: 'visitor', size: text.length > 60 ? 'xs' : 's', surface: this.facing, purpose: 'contribution', ttl: 0 }, 'contribution');
+    const options = it.gestures.filter((g) => g !== 'writeOnWall' && g !== 'music');
+    if (!options.length || this.rng.chance(0.4)) return;
+    const g = this.rng.pick(options);
+    const later = this.rng.range(60, 180);
+    switch (g) {
+      case 'quiet':
+        this.queue(1, { type: 'silence', depth: 0.45 + 0.25 * it.intensity, seconds: 10 }, 'contribution-quiet', { major: true, ttl: 6 });
+        break;
+      case 'revealRelated': {
+        const p = it.related.map((id) => PHRASE_BY_ID.get(id)).find((x) => x && x.tier !== 'annotation' && !this.visible.has(x.id));
+        if (p) this.reveal(p.id, later, 'contribution-related', 'emerge', 12);
+        break;
       }
-    }
-    if (g.has('distantRecollection')) {
-      const p = it.related.map((id) => PHRASE_BY_ID.get(id)).find((x) => x?.voice && !this.memory.spoken.has(x.id));
-      if (p) this.speakPhrase('contribution-recollection', p, { kind: 'beyond', surface: this.rng.pick(SURFACES) }, 14, 'distant', 0.5);
-      else this.fragment('contribution-recollection', VOICE_FRAGMENTS.find((f) => f.id === 'vf-two-voices')!, { kind: 'beyond', surface: 'west' }, 14, 0.4);
-    }
-    if (g.has('rearrange')) {
-      const a = it.related[0];
-      const b = it.contradictions[0];
-      if (a && b) {
-        if (!this.visible.has(b)) this.reveal(b, 9, 'contribution-rearrange', 'emerge', 9);
+      case 'distantRecollection': {
+        const p = it.related.map((id) => PHRASE_BY_ID.get(id)).find((x) => x?.voice && !this.memory.spoken.has(x.id));
+        if (p) this.speakPhrase('contribution-recollection', p, { kind: 'beyond', surface: this.rng.pick(SURFACES) }, later, 'distant', 0.45);
+        else this.fragment('contribution-recollection', VOICE_FRAGMENTS.find((f) => f.id === 'vf-two-voices')!, { kind: 'beyond', surface: 'west' }, later, 0.35);
+        break;
+      }
+      case 'rearrange': {
+        const a = it.related[0];
+        const b = it.contradictions[0];
+        if (!a || !b) break;
+        if (!this.visible.has(b)) this.reveal(b, later, 'contribution-rearrange', 'emerge', 10);
         const pa = PHRASE_BY_ID.get(a);
         const pb = PHRASE_BY_ID.get(b);
-        if (pa && pb && pa.surface === pb.surface) this.queue(14, { type: 'link', a, b, ttl: 60 }, 'contribution-rearrange');
-        else if (pb) this.queue(14, { type: 'write', key: `${key}:re`, text: pb.text, hand: 'faint', size: 'xs', beside: a, purpose: 'annotation', ttl: 80 }, 'contribution-rearrange');
+        if (pa && pb && pa.surface === pb.surface) this.queue(later + 12, { type: 'link', a, b, ttl: 60 }, 'contribution-rearrange');
+        break;
+      }
+      case 'temperatureShift': {
+        // Authored asymmetries rather than sentiment colours: grief warms the light (memory),
+        // anger cools and hardens it, joy brings a little ache with it, shame makes the room look away.
+        const d = it.dims;
+        this.field.nudge({
+          warmth: 0.25 * (d.grief ?? 0) + 0.15 * (d.affection ?? 0) + 0.1 * (d.happiness ?? 0) - 0.15 * (d.anger ?? 0),
+          reminiscence: 0.4 * (d.nostalgia ?? 0) + 0.2 * (d.grief ?? 0) + 0.15 * (d.happiness ?? 0),
+          tension: 0.25 * (d.anger ?? 0) + 0.1 * (d.fear ?? 0),
+          exposure: -0.2 * (d.shame ?? 0) + 0.1 * (d.affection ?? 0),
+          hush: 0.2 * (d.fear ?? 0) + 0.15 * (d.uncertainty ?? 0),
+          dissonance: 0.12 * (d.happiness ?? 0) + 0.3 * (d.contradiction ?? 0),
+          solitude: 0.2 * (d.isolation ?? 0),
+          relief: 0.15 * (d.isolation ?? 0) + 0.2 * (d.forgiveness ?? 0),
+        });
+        break;
       }
     }
-    if (g.has('temperatureShift')) {
-      // Authored asymmetries rather than sentiment colours: grief warms the light (memory),
-      // anger cools and hardens it, joy brings a little ache with it, shame makes the room look away.
-      const d = it.dims;
-      this.field.nudge({
-        warmth: 0.25 * (d.grief ?? 0) + 0.15 * (d.affection ?? 0) + 0.1 * (d.happiness ?? 0) - 0.15 * (d.anger ?? 0),
-        reminiscence: 0.4 * (d.nostalgia ?? 0) + 0.2 * (d.grief ?? 0) + 0.15 * (d.happiness ?? 0),
-        tension: 0.25 * (d.anger ?? 0) + 0.1 * (d.fear ?? 0),
-        exposure: -0.2 * (d.shame ?? 0) + 0.1 * (d.affection ?? 0),
-        hush: 0.2 * (d.fear ?? 0) + 0.15 * (d.uncertainty ?? 0),
-        dissonance: 0.12 * (d.happiness ?? 0) + 0.3 * (d.contradiction ?? 0),
-        solitude: 0.2 * (d.isolation ?? 0),
-        relief: 0.15 * (d.isolation ?? 0) + 0.2 * (d.forgiveness ?? 0),
-      });
-    }
-    if (g.has('music')) this.queue(20, { type: 'music', mood: 'tender', notes: 5, truncate: false }, 'contribution-music', { major: true, ttl: 40 });
   }
 
   /** Clears contributions from memory (privacy: "forget what I wrote"). */

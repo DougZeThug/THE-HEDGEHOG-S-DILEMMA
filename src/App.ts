@@ -475,6 +475,20 @@ export class App {
     canvas.addEventListener('pointerup', endTouch);
     canvas.addEventListener('pointercancel', endTouch);
 
+    // The corner buttons stay out of sight until the pointer goes looking for them.
+    const corners = [$('menu-btn'), $('write-btn')];
+    let cornerTimer = 0;
+    const away = () => corners.forEach((b) => b.classList.add('away'));
+    away();
+    addEventListener('pointermove', (e) => {
+      if (e.pointerType !== 'mouse' || document.pointerLockElement) return;
+      if (e.clientY > innerHeight - 120 && (e.clientX < 140 || e.clientX > innerWidth - 140)) {
+        corners.forEach((b) => b.classList.remove('away'));
+        clearTimeout(cornerTimer);
+        cornerTimer = window.setTimeout(away, 2500);
+      }
+    });
+
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) void this.audio?.suspend();
       else if (this.mode !== 'threshold' && this.mode !== 'departed') void this.audio?.resume();
@@ -507,10 +521,10 @@ export class App {
     this.hintShown = true;
     const h = $('hint');
     h.textContent = this.touch
-      ? 'drag left to walk · drag right to look · or stay still'
-      : 'walk slowly, look, or stay still · Esc to pause';
+      ? 'drag left to walk · drag right to look'
+      : 'Esc to pause';
     h.classList.add('on');
-    setTimeout(() => h.classList.remove('on'), 9000);
+    setTimeout(() => h.classList.remove('on'), 5500);
   }
 
   private bindUI() {

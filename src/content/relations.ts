@@ -34,10 +34,10 @@ export interface VoiceFragment {
 }
 
 export const VOICE_FRAGMENTS: VoiceFragment[] = [
-  { id: 'vf-laugh-next-room', caption: '(laughter, in another room)', kind: 'laugh', dims: { happiness: 0.7, connection: 0.5, isolation: 0.3 } },
-  { id: 'vf-two-voices', caption: '(two people talking, too far away to follow)', kind: 'murmur', dims: { connection: 0.4, isolation: 0.6, misunderstanding: 0.4 } },
-  { id: 'vf-breath', caption: '(someone breathing, close)', kind: 'breath', dims: { fear: 0.4, affection: 0.4, connection: 0.4 } },
-  { id: 'vf-hum', caption: '(someone humming, not quite a song)', kind: 'hum', dims: { happiness: 0.5, nostalgia: 0.6, connection: 0.4 } },
+  { id: 'vf-laugh-next-room', caption: '(laughter, through the wall)', kind: 'laugh', dims: { happiness: 0.7, connection: 0.5, isolation: 0.3 } },
+  { id: 'vf-two-voices', caption: '(two voices, next door)', kind: 'murmur', dims: { connection: 0.4, isolation: 0.6, misunderstanding: 0.4 } },
+  { id: 'vf-breath', caption: '(breathing)', kind: 'breath', dims: { fear: 0.4, affection: 0.4, connection: 0.4 } },
+  { id: 'vf-hum', caption: '(humming)', kind: 'hum', dims: { happiness: 0.5, nostalgia: 0.6, connection: 0.4 } },
   { id: 'vf-be-right-back', caption: "I'll be right back.", kind: 'speech', dims: { uncertainty: 0.5, desire: 0.4, fear: 0.3 } },
   { id: 'vf-other-one', caption: 'No — the other one.', kind: 'speech', dims: { happiness: 0.3, connection: 0.5 } },
   { id: 'vf-hey', caption: 'hey.', kind: 'speech', dims: { connection: 0.6, affection: 0.4 } },
@@ -156,14 +156,14 @@ export const LEXICON: Record<string, DimVector> = {
 
 /** Departure lines: one is chosen by what the visit was like. Never a moral. */
 export const DEPARTURE_LINES: Record<string, string[]> = {
-  default: ['The light stays on.', 'The chair will be here.'],
-  hesitation: ['Next time, closer. Or not.', 'You almost did.'],
-  stillness: ['You were very quiet. So was I.', 'You stayed still for a long time.'],
-  closeness: ['It is still warm where you were.', 'You came all the way in.'],
-  distance: ['You kept to the edges. That is a way of being here too.', 'From over there it looked smaller.'],
-  warmth: ['Someone was humming.', 'You stayed with the good part.'],
-  contributor: ['What you wrote will be gone by morning.', 'Your handwriting was on the wall for a while.'],
-  wandering: ['You read nearly everything.', 'You went round and round.'],
+  default: ['The light stays on.', 'Someone turned the light off next door.'],
+  hesitation: ['The chair, from the door.', 'Somebody almost knocked.'],
+  stillness: ['The hum went on for a while after.', 'Nothing moved for a long time.'],
+  closeness: ['It is still warm where you were.'],
+  distance: ['From over there it looked smaller.'],
+  warmth: ['Someone was humming.'],
+  contributor: ['There is new writing on the wall.'],
+  wandering: ['Somebody will have to paint over all of this one day.'],
 };
 
 /** Arrival line shown faintly on the threshold, varied by return visits. */

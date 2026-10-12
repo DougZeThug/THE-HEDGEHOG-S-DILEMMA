@@ -16,9 +16,10 @@ describe('LocalInterpreter', () => {
     expect(a.dims.isolation ?? 0).toBeGreaterThan(0.2);
     expect(a.dims.contradiction ?? 0).toBeGreaterThan(0.2);
   });
-  it('happiness carries reminiscence and a little dissonance-worthy music, not just "yellow"', () => {
+  it('happy words are material, not a cue for a tune', () => {
     const a = interpretLocally('we laughed all summer');
-    expect(a.gestures).toContain('music');
+    expect(a.gestures).not.toContain('music');
+    expect(a.gestures).toContain('temperatureShift');
     expect(a.related.some((id) => ['summer', 'laugh', 'laugh-breathe', 'good-day', 'happy-then'].includes(id))).toBe(true);
   });
   it('treats unknown words as ordinary objects with memory', () => {

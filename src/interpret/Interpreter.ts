@@ -9,17 +9,3 @@ export interface Interpreter {
   readonly name: string;
   interpret(text: string): Promise<Interpretation>;
 }
-
-/**
- * Placeholder for an opt-in remote interpreter. Deliberately not wired into the app:
- * enabling it would require an explicit visitor opt-in, a configured endpoint, and the
- * response must pass validateInterpretation() before the engine sees it. Falls back to
- * the local interpreter on any failure.
- */
-export class RemoteInterpreterStub implements Interpreter {
-  readonly name = 'remote-stub';
-  constructor(private fallback: Interpreter) {}
-  async interpret(text: string): Promise<Interpretation> {
-    return this.fallback.interpret(text);
-  }
-}

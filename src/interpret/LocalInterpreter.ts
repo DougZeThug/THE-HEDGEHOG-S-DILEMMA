@@ -95,7 +95,6 @@ export function interpretLocally(text: string): Interpretation {
   if ((dims.nostalgia ?? 0) + (dims.grief ?? 0) > 0.6 || tense === 'past') g.push('distantRecollection');
   if ((dims.contradiction ?? 0) > 0.25 || question || contradictions.length) g.push('rearrange');
   if (hits > 0) g.push('temperatureShift');
-  if ((dims.happiness ?? 0) > 0.5 || (dims.affection ?? 0) > 0.5) g.push('music');
 
   return validateInterpretation({ dims, related, contradictions: contradictions.slice(0, 2), gestures: g, intensity, tense, question })!;
 }

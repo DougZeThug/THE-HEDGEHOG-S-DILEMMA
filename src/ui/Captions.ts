@@ -1,11 +1,14 @@
-/** Quiet captions for what is heard. Never more than two at once. */
+/** Quiet captions for what is heard. One at a time. */
 export class Captions {
   enabled = true;
   constructor(private el: HTMLElement) {}
 
   show(text: string, seconds: number, sound = false) {
     if (!this.enabled || !text) return;
-    while (this.el.children.length >= 2) this.el.firstElementChild?.remove();
+    for (const old of [...this.el.children]) {
+      old.classList.remove('on');
+      setTimeout(() => old.remove(), 900);
+    }
     const s = document.createElement('span');
     s.className = 'cap' + (sound ? ' sound' : '');
     s.textContent = text;

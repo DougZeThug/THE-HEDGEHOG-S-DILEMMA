@@ -14,11 +14,33 @@ describe('Director', () => {
     const { d, cues } = simulate(scripts.still, 240);
     const r = rules(cues);
     expect(r.has('still-1')).toBe(true);
-    expect(r.has('still-2')).toBe(true);
     expect(r.has('still-silence')).toBe(true);
-    expect(cues.some((c) => c.cue.type === 'voice')).toBe(true);
     expect(d.phase).not.toBe('arrival');
     expect(d.memory.has('stillness')).toBe(true);
+  });
+
+  it('stillness is not a fixed ladder: what it brings varies between visits', () => {
+    const firstAt = new Set<number>();
+    let withVoice = 0;
+    for (let seed = 1; seed <= 12; seed++) {
+      const { cues } = simulate(scripts.still, 120, seed);
+      const s1 = cues.find((c) => c.rule === 'still-1');
+      if (s1) firstAt.add(Math.round(s1.t));
+      if (cues.some((c) => c.rule === 'still-voice')) withVoice++;
+    }
+    expect(firstAt.size).toBeGreaterThan(3);
+    expect(withVoice).toBeGreaterThan(0);
+    expect(withVoice).toBeLessThan(12);
+  });
+
+  it('the chair does not answer every approach with a voice', () => {
+    let voiced = 0;
+    for (let seed = 1; seed <= 12; seed++) {
+      const { cues } = simulate(scripts.close, 30, seed);
+      if (cues.some((c) => c.rule === 'first-approach' && c.cue.type === 'voice')) voiced++;
+      expect(cues.some((c) => c.rule === 'first-approach' && c.cue.type === 'silence')).toBe(true);
+    }
+    expect(voiced).toBeLessThan(9);
   });
 
   it('a hesitant visitor forms the hesitation motif and the room answers with hesitation', () => {
@@ -67,19 +89,24 @@ describe('Director', () => {
     for (let i = 1; i < majors.length; i++) expect(majors[i] - majors[i - 1]).toBeGreaterThanOrEqual(6.9);
   });
 
-  it('turns a contribution into composition, not a reply', () => {
-    const { d } = simulate(scripts.still, 30);
+  it('writes a contribution on the wall and does not reply to it', () => {
     const text = 'I miss who I used to be.';
-    d.contribute(text, interpretLocally(text));
-    const { cues } = simulate(scripts.still, 40, 7, 0.1, d);
-    const types = new Set(cues.map((c) => c.cue.type));
-    expect(types.has('write')).toBe(true);
-    expect(types.has('silence')).toBe(true);
-    expect(cues.some((c) => c.rule === 'contribution' && c.cue.type === 'reveal') || cues.some((c) => c.rule === 'contribution-echo')).toBe(true);
-    expect(cues.some((c) => c.rule === 'contribution-recollection')).toBe(true);
-    // The written text is the visitor's own; nothing generated is addressed back at them.
-    const w = cues.find((c) => c.cue.type === 'write' && c.rule === 'contribution');
-    expect(w && w.cue.type === 'write' && w.cue.text).toBe(text);
+    const extras: number[] = [];
+    for (let seed = 1; seed <= 24; seed++) {
+      const { d } = simulate(scripts.still, 20, seed);
+      d.contribute(text, interpretLocally(text));
+      const { cues } = simulate(scripts.still, 220, seed, 0.1, d);
+      const own = cues.filter((c) => c.rule.startsWith('contribution'));
+      const w = own.find((c) => c.cue.type === 'write');
+      expect(w && w.cue.type === 'write' && w.cue.text).toBe(text);
+      // Nothing that could read as an answer arrives within the first minute.
+      for (const c of own) if (c.cue.type === 'reveal' || c.cue.type === 'voice') expect(c.t - 20).toBeGreaterThanOrEqual(59);
+      extras.push(new Set(own.filter((c) => c.cue.type !== 'write').map((c) => c.rule)).size);
+    }
+    // At most one other gesture, and often none at all.
+    expect(Math.max(...extras)).toBeLessThanOrEqual(1);
+    expect(extras.filter((n) => n === 0).length).toBeGreaterThan(4);
+    expect(extras.filter((n) => n === 1).length).toBeGreaterThan(4);
   });
 
   it('chooses a departure line from the visit, and returns gracefully', () => {
