@@ -3,15 +3,16 @@ import { EventScheduler } from '../core/scheduler';
 import { clamp, smoothstep } from '../core/math';
 import { PHRASES, PHRASE_BY_ID } from '../content/phrases';
 import { DEPARTURE_LINES, RECONTEXTS, VOICE_FRAGMENTS, type VoiceFragment } from '../content/relations';
-import type { Phase, Phrase, Surface } from '../content/types';
+import type { Phase, Phrase, Surface, Tier } from '../content/types';
 import { VisitorModel, type VisitorInput } from './VisitorModel';
 import { Memory, warmthOf, type Motif } from './Memory';
 import { EmotionalField } from './EmotionalField';
 import { PhaseTracker } from './Phase';
-import { PhraseSelector, type SelectContext, type SelectQuery } from './PhraseSelector';
+import { PhraseSelector, TIER_OPEN, type SelectContext, type SelectQuery } from './PhraseSelector';
 import type { Cue, TimedCue, VoiceKind, VoicePosition } from './cues';
 import type { Interpretation } from '../interpret/schema';
 import { ARCS, type Arc, type EncounterBeat, type Gesture } from '../content/encounters';
+import { belonging, CHARACTER_WALLS } from '../content/walls';
 import { SituationRunner, type PhraseGeometry, type SituationHost, type ContributionTrace } from './situations/Situation';
 import { SITUATIONS, SITUATION_BY_ID, keptWord } from './situations/library';
 import { ROOM } from '../world/layout';
@@ -87,6 +88,10 @@ export class Director {
   private recontextsUsed = new Set<string>();
   /** How many beats of each phrase's arc have been played. */
   private played = new Map<string, number>();
+  /** Lines that have migrated to a wall that isn't theirs: phrase id → wall. */
+  readonly strays = new Map<string, Surface>();
+  private heldMoved = false;
+  private strayAnchors = new Set<string>();
   private spokenFirstApproach = false;
   private stillStage = 0;
   private lastSeenWithdraw = -Infinity;
@@ -263,6 +268,7 @@ export class Director {
       this.ruleWarmResurface();
       this.ruleMusic();
       this.ruleRecontext();
+      this.ruleContaminate();
       this.ruleDistantLife();
       this.ruleKneel();
       this.ruleChairNudge(input);
@@ -604,6 +610,75 @@ export class Director {
     }, 'recontext');
   }
 
+  /**
+   * Contamination. Each wall keeps its character, but as the visit deepens, writing
+   * migrates: a line is written again on a wall where it doesn't belong, beside the line
+   * that most belongs there — joy among the shame, a retraction among the warm memories.
+   * Late in the visit, the line the visitor held longest is written small on the empty
+   * wall behind them.
+   */
+  private ruleContaminate() {
+    const allowed = { arrival: 0, familiar: 2, contradiction: 4, transform: 7 }[this.phase];
+    if (this.now < 130 || this.strays.size >= allowed) return;
+    if (!this.scheduler.ready('stray', this.now, 55)) return;
+
+    if (this.phase === 'transform' && !this.heldMoved) {
+      let held: Phrase | undefined;
+      let most = 6;
+      for (const [id, secs] of this.visitor.gazeTotals) {
+        const p = PHRASE_BY_ID.get(id);
+        if (p && p.surface !== 'south' && p.tier !== 'annotation' && secs > most && !this.strays.has(id)) {
+          most = secs;
+          held = p;
+        }
+      }
+      this.heldMoved = true;
+      if (held && this.facing !== 'south') {
+        this.scheduler.mark('stray', this.now);
+        this.strays.set(held.id, 'south');
+        this.queue(0, {
+          type: 'write', key: `stray:${held.id}`, text: held.text, hand: held.hand === 'typed' ? 'pencil' : held.hand, size: 'xs',
+          surface: 'south', purpose: 'recontext', ttl: 0, source: held.id,
+        }, 'stray-held');
+        return;
+      }
+    }
+
+    // A wall the visitor isn't looking at, so the change is found rather than watched.
+    const walls = CHARACTER_WALLS.filter((w) => w !== this.facing && w !== 'south');
+    const wall = this.rng.pick(walls);
+    const anchor = PHRASES.filter((p) => p.surface === wall && this.visible.get(p.id)?.mode === 'shown' && p.tier !== 'near' && !this.strayAnchors.has(p.id))
+      .map((p) => ({ p, b: belonging(p, wall) }))
+      .sort((a, b) => b.b - a.b || (a.p.id < b.p.id ? -1 : 1))
+      .slice(0, 4);
+    if (!anchor.length) return;
+    const open = new Set<Tier>(TIER_OPEN[this.phase].filter((t) => t !== 'near'));
+    // Floor and ceiling writing belongs to where it is; it never wanders.
+    const cands = PHRASES.filter(
+      (p) => p.surface !== wall && p.surface !== 'floor' && p.surface !== 'ceiling' && open.has(p.tier) && !this.strays.has(p.id) && p.kind !== 'word' && p.kind !== 'passage',
+    ).map((p) => {
+      // Strongly something else, and nothing like this wall.
+      const foreign = 1 - belonging(p, wall);
+      const own = Math.max(...CHARACTER_WALLS.filter((w) => w !== wall).map((w) => belonging(p, w)));
+      // Unseen material arriving in the wrong place is stronger than a copy of something already read.
+      const unseen = this.visible.has(p.id) || this.visitor.read.has(p.id) ? 0 : 0.12;
+      return { p, s: foreign * own + unseen + this.selector.score(p, this.ctx()) * 0.15 };
+    });
+    cands.sort((a, b) => b.s - a.s || (a.p.id < b.p.id ? -1 : 1));
+    const top = cands.slice(0, 10);
+    const i = this.rng.weighted(top.map((c) => Math.exp((c.s - top[0].s) / 0.2)));
+    if (i < 0) return;
+    const p = top[i].p;
+    const beside = anchor[this.rng.int(0, anchor.length - 1)].p;
+    this.strayAnchors.add(beside.id);
+    this.scheduler.mark('stray', this.now);
+    this.strays.set(p.id, wall);
+    this.queue(0, {
+      type: 'write', key: `stray:${p.id}`, text: p.text, hand: p.hand, size: p.size === 'xs' ? 'xs' : 's',
+      beside: beside.id, purpose: 'recontext', ttl: 0, source: p.id,
+    }, 'stray');
+  }
+
   /** Life elsewhere: muffled laughter, two people talking, someone humming. */
   private ruleDistantLife() {
     if (this.phase === 'arrival' || this.now < this.nextDistantLife) return;
@@ -767,6 +842,7 @@ export class Director {
 
   /** The world could not find room for a piece of writing: let its relation be tried again later. */
   writeFailed(key: string): void {
+    if (key.startsWith('stray:')) this.strays.delete(key.slice(6));
     // A beat whose writing found no room is played again at the next meeting.
     const m = /^enc:([^:]+):(\d+)$/.exec(key);
     if (m) this.played.set(m[1], Math.max(0, Number(m[2]) - 1));
@@ -818,6 +894,7 @@ export class Director {
       memory: this.memory.snapshot(),
       visible: this.visible.size,
       situations: this.situations.snapshot(),
+      strays: [...this.strays.entries()].map(([id, w]) => `${id}→${w}`),
       encounters: [...this.visitor.encounters.entries()].filter(([, e]) => e.count > 1).map(([id, e]) => `${id}×${e.count}`).slice(-8),
       pending: this.scheduler.snapshot(this.now).slice(0, 8).map((e) => `${e.in}s ${e.payload.rule}:${e.payload.cue.type}`),
       recent: this.log.slice(-8).map((c) => {

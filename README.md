@@ -54,7 +54,7 @@ For inspection: add `?debug` to the URL for a live overlay of the engine's state
 
 All of this is implemented and running; none of it is shown to the visitor as numbers or goals.
 
-- **Arrival.** The screen opens from white; the light-fitting hum arrives before the words. About 35 pieces of writing are on the walls, composed in authored regions with deliberate emptiness directly behind the chair and on most of the wall behind you.
+- **Arrival.** The screen opens from white; the light-fitting hum arrives before the words. About 35 pieces of writing are on the walls, composed in authored regions with deliberate emptiness directly behind the chair and on most of the wall behind you, which holds only two lines.
 - **Proximity.** Coming close to the chair is usually met by subtraction: the hum drops away for a few seconds and the light settles. ("It used to fit me." is written small on the floor beside it.) Sometimes there is breath. If you stay, the light warms — or, if you are restless or have retreated before, it hardens and cools instead, and at most twice in a visit a voice speaks: from the chair, or, when closeness has become exposure, an affectionate line spoken flatly from behind you. Settling near the chair turns exposure into company. Stepping away releases what built up as relief; staying far away becomes solitude.
 - **Hesitation.** Approaching and retreating repeatedly forms a motif: "Come back. Don't." is written beside "I wanted you to stay.", a whisper asks "If I come closer, will you stay?", and the chair's shadow begins to drift away from where the light says it should fall. Nothing labels the drift.
 - **Stillness.** Standing still thins the room. Writing that only exists while you are still may surface ("How long have I been standing here?") and dissolves the moment you move; in some visits a whisper drifts in from a far corner toward the chair; eventually the room goes almost silent, and sometimes a few piano notes follow. The timings, and which of these happen, differ from visit to visit.
@@ -64,6 +64,23 @@ All of this is implemented and running; none of it is shown to the visitor as nu
 - **Life elsewhere.** Muffled laughter, two people talking in another room, someone humming. These now belong mostly to the authored situations below; the general rules only use them after long quiet stretches.
 - **Your words.** `T` lets you write a word, sentence or memory. It is written on the wall where you are looking, in its own hand. The room does not answer. Often nothing else happens. Sometimes one thing does — the room goes quiet, or its light shifts in an authored (not sentiment-coloured) way — and sometimes, a minute or three later, related writing surfaces elsewhere, a voice beyond a wall says something that rhymes with it, or two phrases are drawn into relation, as if on their own.
 - **Leaving.** "leave the room" in the menu dims everything to near-black, removes the sound, and offers one line about the room, chosen by how the visit went ("The chair, from the door.", "It is still warm where you were."). You can go back in: the room has kept everything, and has changed a little. Return visits on the same device (only a visit count is stored) begin differently.
+
+## The walls are not partitioned
+
+Each wall keeps a dominant character — north holds the dilemma itself, east the ordinary warm past, west being misread, south almost nothing — but the emotional spectrum leaks.
+
+- Some lines begin out of place:
+  - "You made me laugh so hard I couldn't breathe." is in amber crayon among the shame on the west wall.
+  - "I didn't mean it. I meant some of it." is among the warm memories.
+  - "I kept your jumper. I don't wear it." is on the dilemma wall.
+  - The most intimate line in the room, "You fell asleep on my shoulder and my arm went dead and I didn't move it.", is alone on the wall behind you when you arrive.
+- As the visit deepens, material migrates. From a little after two minutes, at most two lines while settling in, four once the room starts contradicting itself and seven late in the visit.
+  - A line is written, unchanged, on a wall where it doesn't belong, beside the line that most belongs there. For example, "You always took the last biscuit and I let you." beside "sorry", or "I love you. Go away." beside "That was a good day."
+  - It happens on a wall you aren't looking at, so it is found rather than watched.
+  - Each line that hosts a stranger does so once, and floor and ceiling writing never wanders.
+- Late in the visit, the line you held longest is written small on the empty wall behind you.
+
+Walls' characters are in `src/content/walls.ts`; migration is `ruleContaminate` in `src/state/Director.ts`.
 
 ## Meeting the same words again
 
@@ -153,7 +170,7 @@ To regenerate the recorded textures: `ELEVENLABS_API_KEY=sk_... node scripts/gen
 
 ## Testing and review
 
-- 72 unit tests (Vitest) cover the visitor model (stillness, approach/withdraw hysteresis, reading), the emotional field (non-monotonic closeness, relief after withdrawal, hush), the phrase selector, the scheduler, deterministic and divergent experiences for scripted visitors (still, hesitant, close, wandering, warm), contributions (always written, never answered within a minute, at most one gesture), the interpreter and its validator, the corpus, wall layout, each authored situation (followed and ignored paths, absences, what generic rules must not do while a situation holds a channel), and encounters (the three meetings with "I wanted you to stay.", what counts as a new meeting, default arcs, variants that depend on the visit, pacing).
+- 77 unit tests (Vitest) cover the visitor model (stillness, approach/withdraw hysteresis, reading), the emotional field (non-monotonic closeness, relief after withdrawal, hush), the phrase selector, the scheduler, deterministic and divergent experiences for scripted visitors (still, hesitant, close, wandering, warm), contributions (always written, never answered within a minute, at most one gesture), the interpreter and its validator, the corpus, wall layout, each authored situation (followed and ignored paths, absences, what generic rules must not do while a situation holds a channel), contamination (lines start out of place, migrate gradually beside what belongs, vary between visits; the held line reaching the empty wall), and encounters (the three meetings with "I wanted you to stay.", what counts as a new meeting, default arcs, variants that depend on the visit, pacing).
 - `npm run smoke` drives a full visit in headless Chromium: entering, walking, kneeling, every wall, stillness, a contribution, settings, leaving and returning. It fails on any console error or on any overlapping writing.
 - Two separate reviews were run on the finished build. A critical artistic review led to cutting lines that stated the dilemma outright or sounded like therapy, removing a rule that put jokes on a timer, making the chair's responses mostly subtraction, varying stillness per visit, and making contributions unanswered. A QA/accessibility review found 15 bugs, all fixed and re-verified in the browser. They included contributions that could silently fail to appear, still-only writing that never vanished, auto-walk continuing while paused, the inspector log keeping visitors' words, an abrupt dark-to-white return, speech ignoring mute and pause, a quality setting that only half applied, low-contrast controls, the passing-traffic swell never sounding, and the voice limit being exceedable.
 
