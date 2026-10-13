@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { Room } from './world/Room';
 import { Chair } from './world/Chair';
 import { Lighting, shadowMapSize } from './world/Lighting';
-import { lookFor, parseLook, LOOK_NAMES, type Look, type LookName } from './world/Style';
+import { lookFor, parseLook, LOOK_NAMES, LOOKS, type Look, type LookName } from './world/Style';
 import { MemoryLight } from './world/MemoryLight';
 import { WallText, wallClock, type TextItem } from './world/WallText';
 import { CameraRig } from './world/CameraRig';
@@ -187,7 +187,6 @@ export class App {
     this.room.setLook(l);
     this.post.grain = l.grain;
     this.post.vignette = l.vignette;
-    this.renderer.toneMappingExposure = l.exposure;
     this.chairContact = l.contact;
   }
 
@@ -607,6 +606,9 @@ export class App {
     this.room.setScale(this.room.scale + (scaleTarget - this.room.scale) * (1 - Math.exp(-dt / 6)));
     this.lighting.update(dt, env, this.time, this.chair.group.position, this.chair.group.rotation.y);
     if (this.lighting.shadowDirty) this.renderer.shadowMap.needsUpdate = true;
+    // Exposure, like the look's light, arrives with the room: the opening's dark stays as dark.
+    const room = THREE.MathUtils.clamp(this.lighting.score.area, 0, 1);
+    this.renderer.toneMappingExposure = LOOKS.original.exposure + (this.look.exposure - LOOKS.original.exposure) * room;
     // The chair's contact with the floor is there as the light on it is: none in the dark.
     (this.chair.contact.material as THREE.MeshBasicMaterial).opacity = this.chairContact * Math.min(1, this.lighting.keyLevel);
     if (this.memoryKey) {
