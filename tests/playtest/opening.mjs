@@ -72,7 +72,7 @@ const state = (page) => page.evaluate(() => {
     samples.push(s);
     if (s.stage === 'done') break;
     // Frames for people to look at (not while the voice is writing: a screenshot here stalls the sampling).
-    if ([3, 7, 11, 14].some((x) => s.t > x && s.t < x + 0.6) && !samples.some((p) => p.shot === Math.round(s.t))) {
+    if ([3, 11].some((x) => s.t > x && s.t < x + 0.6) && !samples.some((p) => p.shot === Math.round(s.t))) {
       s.shot = Math.round(s.t);
       await page.screenshot({ path: `${OUT}/first-${s.shot}s.png`, timeout: 120000 });
     }
@@ -83,8 +83,9 @@ const state = (page) => page.evaluate(() => {
   await page.screenshot({ path: `${OUT}/first-handoff.png`, timeout: 120000 });
   check(during.some((s) => s.title > 0.9) && during.filter((s) => s.t > 7).every((s) => s.title < 0.05), 'the title appears, holds, and is gone');
   check(during.filter((s) => s.title > 0.05).every((s) => s.black > 0.99), 'the title is on black');
-  const chairAt = during.find((s) => s.key > 0.3)?.t ?? 99, wallsAt = during.find((s) => s.area > 0.3)?.t ?? 99;
-  check(chairAt + 1.5 < wallsAt, `the chair is lit before the walls (${chairAt.toFixed(1)} s, ${wallsAt.toFixed(1)} s)`);
+  // Robust to sampling gaps (a screenshot stalls the sampler): a moment seen with the chair lit and the walls still dark.
+  const chairAlone = during.filter((s) => s.key > 0.2 && s.area < 0.05 && s.black < 0.01);
+  check(chairAlone.length >= 2 && during.findIndex((s) => s.key > 0.2) < during.findIndex((s) => s.area > 0.3), `the chair is lit before the walls (${chairAlone.length} samples of the chair alone)`);
   check(during.filter((s) => s.area > 0.5 && s.stage === 'room').every((s) => s.visible <= 1), 'the room comes up nearly empty');
   const stay = [...new Set(during.map((s) => +s.stay.toFixed(2)))].filter((x) => x > 0 && x < 0.78);
   check(stay.length >= 3, `the first line is written over time (${stay.length} partial states seen)`);

@@ -132,7 +132,7 @@ describe('writing follows a voice with a hand, not as captions', () => {
   for (const f of takes) {
     it(`${f}: each word starts when it is heard, never before; the line ends within a second of the voice`, () => {
       const e = T[f];
-      const own = handTiming(e.text, 'pencil', 'k');
+      const own = handTiming(e.text, f.includes('crumbs') ? 'crayon' : 'pencil', 'k');
       const plan = speechPlan(e.text, own.words.map((w) => [w.start, w.end]), e.chars, 10);
       const words = [...e.text.matchAll(/\S+/g)].map((m) => [m.index!, m.index! + m[0].length]);
       plan.forEach(([start], k) => expect(start).toBeGreaterThanOrEqual(10 + e.chars[words[k][0]][0] - 1e-6));

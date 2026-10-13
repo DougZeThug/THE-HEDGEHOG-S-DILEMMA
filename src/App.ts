@@ -191,9 +191,10 @@ export class App {
     }
     this.applyPrefs();
     this.enteredAt = this.time;
-    // Focus something a screen reader can name (the canvas lives in an aria-hidden layer).
+    // Focus the room itself (a labelled region a screen reader names); Skip is a tab away.
     $('skip').hidden = false;
-    $('skip').focus({ preventScroll: true });
+    $('stage').tabIndex = -1;
+    $('stage').focus({ preventScroll: true });
     void this.keepAwake();
     // A phone's back gesture (an edge swipe, easily made while walking) pauses instead of leaving.
     history.pushState({ room: 1 }, '');
@@ -256,6 +257,7 @@ export class App {
     if (o.skip) return;
     o.score.events.forEach((ev, i) => {
       if (o.fired.has(i) || t < ev.at) return;
+      if (ev.kind === 'handoff' && wallClock() < this.voiceUntil) return;
       o.fired.add(i);
       this.performOpening(ev);
     });
@@ -265,9 +267,14 @@ export class App {
 
   private performOpening(ev: ScoreEvent, skipping = false) {
     switch (ev.kind) {
-      case 'prepare':
+      case 'prepare': {
         this.text.prepare(ev.phrases);
+        // The voiced line is made now too, in the dark: making writing costs a moment, and that
+        // moment must not fall where the voice begins.
+        const v = this.opening?.score.events.find((e) => e.kind === 'voice');
+        if (v && v.kind === 'voice') this.prepareVoiceLine(v);
         break;
+      }
       case 'sound': {
         if (skipping || !this.voices || !this.audio) break;
         const c = this.chair.group.position;
@@ -290,17 +297,33 @@ export class App {
       }
       case 'voice': {
         if (skipping) break;
-        const st = this.text.placementOf(ev.besideOf);
-        const key = `opening:${ev.phrase}`;
-        const near = st ? { u: st.u + st.w * 0.5 + 0.7, v: st.v - 0.5 } : undefined;
-        const ok = this.text.write({ key, text: ev.text, hand: ev.hand, size: 'l', surface: 'north', near, purpose: 'recall', ttl: 0, now: this.time, source: ev.phrase, start: false });
-        void this.speakAndWrite(ok ? key : null, ev.phrase, ev.text, ev.file);
+        const key = this.prepareVoiceLine(ev);
+        // The hand-off waits for the voice (it may start late on a slow phone).
+        this.voiceUntil = wallClock() + 30;
+        void this.speakAndWrite(key, ev.phrase, ev.text, ev.file).finally(() => {
+          this.voiceUntil = Math.min(this.voiceUntil, wallClock() + 0.8);
+        });
         break;
       }
       case 'handoff':
         this.finishOpening();
         break;
     }
+  }
+
+  /** Until when the opening's voice (and its writing) is still going, wall clock. */
+  private voiceUntil = 0;
+
+  /** The writing a voice will write in the opening: made once, in advance. */
+  private prepareVoiceLine(ev: Extract<ScoreEvent, { kind: 'voice' }>): string | null {
+    const key = `opening:${ev.phrase}`;
+    if (this.text.items.has(key)) return key;
+    const st = this.text.placementOf(ev.besideOf);
+    const near = st ? { u: st.u + st.w * 0.5 + 0.7, v: st.v - 0.5 } : undefined;
+    for (const size of ['l', 'm', 's'] as const) {
+      if (this.text.write({ key, text: ev.text, hand: ev.hand, size, surface: 'north', near, purpose: 'recall', ttl: 0, now: this.time, source: ev.phrase, start: false })) return key;
+    }
+    return null;
   }
 
   /** A voice from where its words are written, and the words written as they are heard. */
@@ -311,18 +334,22 @@ export class App {
         performances: [file], priority: true,
       });
     }
-    if (writeKey) this.writeWithVoice(writeKey, played);
+    const writtenBy = writeKey ? this.writeWithVoice(writeKey, played) : 0;
     this.captions.show(text, played.duration > 0 ? played.duration : 3.5, false);
+    // Wait for the voice to end and the hand to finish, then a breath.
+    const voiceEnd = wallClock() + Math.max(0, played.duration) ;
+    await new Promise((r) => setTimeout(r, Math.max(0, Math.max(voiceEnd, writtenBy) - wallClock()) * 1000));
   }
 
   /** Write a piece of writing following the recording just played (or at the hand's own pace if there is none). */
-  private writeWithVoice(key: string, played: Played) {
+  private writeWithVoice(key: string, played: Played): number {
     const timing = played.file ? (VOICE_TIMINGS as unknown as Record<string, { chars: [number, number][] }>)[played.file] : undefined;
     if (timing && played.startAt !== undefined && this.audio) {
       const ctx = this.audio.ctx;
       const latency = (ctx as AudioContext & { outputLatency?: number }).outputLatency || ctx.baseLatency || 0;
-      this.text.writeOn(key, { speech: timing.chars, audioStart: wallClock() + (played.startAt - ctx.currentTime) + latency });
-    } else this.text.writeOn(key);
+      return this.text.writeOn(key, { speech: timing.chars, audioStart: wallClock() + (played.startAt - ctx.currentTime) + latency });
+    }
+    return this.text.writeOn(key);
   }
 
   /** Finish an unfinished line: the hand goes on as the first missing word is heard. */
@@ -378,7 +405,7 @@ export class App {
     $('skip').hidden = true;
     $('menu-btn').hidden = false;
     $('write-btn').hidden = false;
-    this.renderer.domElement.focus();
+    if (this.mode === 'room') this.renderer.domElement.focus();
     this.director.release({ written: OPENING_WRITTEN, spoken: OPENING_SPOKEN, unfinished: OPENING_UNFINISHED.filter((id) => this.text.unfinished(id)) });
     this.handoffAt = this.time;
     writeOpeningSeen();
@@ -656,14 +683,21 @@ export class App {
       if (this.mode === 'threshold' || this.mode === 'departed') return;
       // Held keys repeat: walking keys are tracked as held, everything else acts once.
       if (e.repeat && !e.code.startsWith('Arrow') && !['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyQ', 'KeyE', 'ShiftLeft', 'ShiftRight'].includes(e.code)) return;
-      if (e.code === 'Escape' && this.opening) {
-        // During the opening, Esc is the way out of it (settings come afterwards).
+      if (e.code === 'Escape' && this.opening && this.mode === 'room') {
+        // During the opening, Esc is the way out of it (settings come afterwards; Esc inside
+        // settings or the writing field closes them as usual).
         this.skipOpening();
         e.preventDefault();
         return;
       }
       if (this.opening && this.opening.score.name === 'first' && stageAt(this.opening.score, wallClock() - this.opening.start) === 'title' && (e.code === 'Enter' || e.code === 'Space')) {
         this.advanceTitle();
+        e.preventDefault();
+        return;
+      }
+      // Before the visitor can walk, the room's keys (write, approach, turn to the chair, kneel,
+      // turn to writing) wait: they would act in the dark, or queue for later.
+      if (this.opening && !this.rig.walk && ['KeyT', 'KeyF', 'KeyC', 'Space', 'Tab', 'Enter'].includes(e.code)) {
         e.preventDefault();
         return;
       }
@@ -1005,6 +1039,7 @@ export class App {
 
   private applyPrefs() {
     const p = this.prefs;
+    this.text.reducedMotion = p.reducedMotion;
     if (this.audio) {
       this.audio.setVolume(p.volume);
       this.audio.setMuted(p.muted);
