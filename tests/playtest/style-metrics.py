@@ -138,6 +138,9 @@ for (p, s), v in rng.items():
     r = {}
     if 'reference' in v and 'dim' in v and v['reference'].get('backWall') and v['dim'].get('backWall'):
         r['dim backWall drop'] = round(1 - v['dim']['backWall']['luma'] / v['reference']['backWall']['luma'], 3)
+        if v['dim'].get('floorPool'):
+            # The dim should quote the chair alone: the pool holds, the wall goes (high pool/wall).
+            r['dim pool/backWall'] = round(v['dim']['floorPool']['luma'] / v['dim']['backWall']['luma'], 2)
     for n in ('reference', 'cool'):
         pool = v.get(n, {}).get('floorPool')
         if pool:

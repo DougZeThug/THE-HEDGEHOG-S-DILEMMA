@@ -24,7 +24,7 @@ try {
 const BASE = process.env.BASE ?? 'http://localhost:4173/';
 const OUT = process.env.OUT ?? 'test-output/review/style/run';
 const STYLES = (process.env.STYLES ?? 'original,subtle,reference').split(',');
-const PROFILES = (process.env.PROFILES ?? 'desktop,phone').split(',');
+const PROFILES = (process.env.PROFILES ?? 'desktop,phone').split(','); // also: phone3
 mkdirSync(OUT, { recursive: true });
 
 const browser = await chromium.launch({
@@ -105,7 +105,8 @@ const measure = (page) =>
 
 const result = { base: BASE, at: new Date().toISOString(), frames: [] };
 for (const profile of PROFILES) {
-  const opts = profile === 'phone' ? { ...devices['iPhone 13'], deviceScaleFactor: 1 } : { viewport: { width: 1280, height: 800 } };
+  // 'phone' at pixel ratio 1 (fast); 'phone3' as a real iPhone renders it (ratio 1.5 on low quality).
+  const opts = profile === 'phone' ? { ...devices['iPhone 13'], deviceScaleFactor: 1 } : profile === 'phone3' ? { ...devices['iPhone 13'] } : { viewport: { width: 1280, height: 800 } };
   for (const style of STYLES) {
     const ctx = await browser.newContext({ ...opts, reducedMotion: process.env.REDUCED ? 'reduce' : 'no-preference' });
     // The opening runs on the wall clock, and software GL is slow: to see a stage at an exact
@@ -148,7 +149,11 @@ for (const profile of PROFILES) {
           window.__freeze(cur < t ? now + (t - cur) * 1000 : now);
         }, t);
         await page.waitForTimeout(2500);
+        // Frozen where asked, or the frame is of another stage (software GL is slow to catch up).
+        const at = await page.evaluate(() => window.__hedgehog.score.t);
+        if (Math.abs(at - t) > 0.15) console.warn(`${profile} ${style} ${name}: frozen at ${at.toFixed(2)} s, wanted ${t}`);
         await shot(name);
+        result.frames[result.frames.length - 1].scoreT = +at.toFixed(2);
         await page.evaluate(() => window.__thaw());
       }
     } else {
@@ -162,22 +167,35 @@ for (const profile of PROFILES) {
       await page.waitForTimeout(1000);
       await shot(name);
     }
+    // The chair turned and moved (the Director's nudge): its shadow and contacts must follow.
+    await stand(page, VIEWS[1][1], VIEWS[1][2]);
+    await page.evaluate(() => {
+      const a = window.__hedgehog;
+      a.chair.nudge(0.12, -0.05, 0.5);
+    });
+    await page.waitForTimeout(1500);
+    await shot('chair-moved');
+    await page.evaluate(() => window.__hedgehog.chair.nudge(-0.12, 0.05, -0.5));
     // The room's own range, under this look, from the reference pose: the light cooled as when
     // the visitor comes close (lightWarmth -0.6), and the room taken back to the chair (a dim).
     await stand(page, VIEWS[0][1], VIEWS[0][2]);
+    // Settled at once (software GL would take many seconds of engine time to approach it).
     await page.evaluate(() => {
-      const d = window.__hedgehog.director;
+      const a = window.__hedgehog;
+      const d = a.director;
       const f = d.computeEnv.bind(d);
       d.computeEnv = () => ({ ...f(), lightWarmth: -0.6 });
+      a.lighting.cur.warmth = -0.6;
     });
-    await page.waitForTimeout(4000);
+    await page.waitForTimeout(1500);
     await shot('cool');
+    // The Director's own depth for its dims (the held silence, the turn to the last phase).
     await page.evaluate(() => {
       const a = window.__hedgehog;
       delete a.director.computeEnv;
-      a.lighting.dimToChair(0.35, 40, a.time);
+      a.lighting.dimToChair(0.15, 40, a.time);
     });
-    await page.waitForFunction(() => window.__hedgehog.lighting.roomLight < 0.36, null, { timeout: 120000 });
+    await page.waitForFunction(() => window.__hedgehog.lighting.roomLight < 0.16, null, { timeout: 120000 });
     await page.waitForTimeout(800);
     await shot('dim');
     // Switching presets live must compile nothing.

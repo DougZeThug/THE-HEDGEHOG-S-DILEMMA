@@ -76,8 +76,9 @@ function bentBoard(w: number, h: number, t: number, bend: number, arch: number):
 export class Chair {
   readonly group = new THREE.Group();
   readonly hit: THREE.Mesh;
-  /** Its contact with the floor (opacity set each frame with the light that falls on it). */
+  /** Its contact with the floor, and the panel's shade under the seat (opacities set each frame with their lights). */
   readonly contact: THREE.Mesh;
+  readonly seatShade: THREE.Mesh;
   /** Where the chair is meant to be; the nudge moves it away from here. */
   readonly home = new THREE.Vector3(0, 0, 0);
   baseYaw = 0.22;
@@ -146,7 +147,10 @@ export class Chair {
       const fin = new THREE.SphereGeometry(0.0158, 18, 12);
       fin.scale(1, 1.25, 1);
       fin.translate(postTop(sx).x, postTop(sx).y + 0.014, postTop(sx).z - 0.002);
-      fin.setAttribute('wear', new THREE.BufferAttribute(new Float32Array(fin.attributes.position.count).fill(0.6), 1));
+      // Turned wood like the posts (a sphere's own UVs would reach into the seat's part of the texture).
+      const fuv = fin.attributes.uv;
+      for (let k = 0; k < fuv.count; k++) fuv.setXY(k, fuv.getX(k) * 0.3, fuv.getY(k) * 0.12);
+      fin.setAttribute('wear', new THREE.BufferAttribute(new Float32Array(fin.attributes.position.count).fill(0.25), 1));
       add(fin);
     }
 
@@ -159,7 +163,7 @@ export class Chair {
     };
     rail(0.648, -0.196, 0.056, 0.014, 0.018);
     // Made by hand: the middle slat went in not quite level.
-    rail(0.565, -0.175, 0.034, 0.004, 0.015, 0.012);
+    rail(0.565, -0.175, 0.034, 0.004, 0.015, 0.03);
     rail(0.482, -0.158, 0.03, 0.002, 0.013);
 
     // Stretchers, slightly bowed, with a bead at the front.
@@ -188,18 +192,26 @@ export class Chair {
     mesh.receiveShadow = true;
     this.group.add(mesh);
 
-    // Where it touches the floor: four small dark contacts under the feet and the faintest
-    // shade under the seat. The soft shadow from the light can't make these (the frosted panel
-    // casts none, and lights the floor under the chair): without them the chair floats.
-    this.contact = new THREE.Mesh(
-      new THREE.PlaneGeometry(CONTACT_M, CONTACT_M),
-      new THREE.MeshBasicMaterial({ color: 0x2a2018, alphaMap: contactTexture(), transparent: true, opacity: 0, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }),
-    );
-    this.contact.rotation.x = -Math.PI / 2;
-    this.contact.position.y = 0.0015;
-    this.contact.renderOrder = 1;
-    this.contact.name = 'chair-contact';
-    this.group.add(this.contact);
+    // Where it touches the floor: four small dark contacts under the feet (with the key light),
+    // and under the seat the frosted panel's shade, the seat's own shape (with the panel's light:
+    // the panel is almost overhead and three can't cast a shadow from it). Neither drifts, and
+    // shouldn't: the key's shadow, which does, is separate. Without them the chair floats.
+    const plane = (tex: THREE.Texture, name: string) => {
+      const m = new THREE.Mesh(
+        new THREE.PlaneGeometry(CONTACT_M, CONTACT_M),
+        new THREE.MeshBasicMaterial({ color: 0x1d1b19, alphaMap: tex, transparent: true, opacity: 0, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }),
+      );
+      m.rotation.x = -Math.PI / 2;
+      m.position.y = 0.0015;
+      // After writing on the floor, so ink under the chair is shaded too.
+      m.renderOrder = 3;
+      m.name = name;
+      this.group.add(m);
+      return m;
+    };
+    const { feet, seat: seatShade } = contactTextures();
+    this.contact = plane(feet, 'chair-contact');
+    this.seatShade = plane(seatShade, 'chair-seat-shade');
 
     // Invisible proxy for gaze/click.
     this.hit = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.75, 0.42), new THREE.MeshBasicMaterial({ visible: false }));
@@ -237,37 +249,40 @@ export class Chair {
 
 const CONTACT_M = 0.7;
 
-/** The contacts, as an alpha map in the chair's own floor plan (canvas rows run front-ward). */
-function contactTexture(): THREE.CanvasTexture {
-  const N = 128, ppm = N / CONTACT_M;
-  const c = document.createElement('canvas');
-  c.width = c.height = N;
-  const g = c.getContext('2d')!;
-  g.fillStyle = '#000';
-  g.fillRect(0, 0, N, N);
-  const at = (x: number, z: number) => [N / 2 + x * ppm, N / 2 + z * ppm] as const;
-  const spot = (x: number, z: number, r: number, a: number) => {
-    const [px, py] = at(x, z);
-    const grd = g.createRadialGradient(px, py, 0, px, py, r * ppm);
-    grd.addColorStop(0, `rgba(255,255,255,${a})`);
-    grd.addColorStop(0.45, `rgba(255,255,255,${a * 0.45})`);
-    grd.addColorStop(1, 'rgba(255,255,255,0)');
-    g.fillStyle = grd;
-    g.fillRect(0, 0, N, N);
+/**
+ * The contacts, as alpha maps in the chair's own floor plan (rows run front-ward), baked per
+ * pixel (canvas blur filters aren't everywhere).
+ */
+function contactTextures(): { feet: THREE.DataTexture; seat: THREE.DataTexture } {
+  const N = 128, m = CONTACT_M / N;
+  const feet = new Uint8Array(N * N * 4), seat = new Uint8Array(N * N * 4);
+  const legs = [[-0.17, 0.165], [0.17, 0.165], [-0.158, -0.17], [0.158, -0.17]];
+  const sm = (a: number, b: number, x: number) => {
+    const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
+    return t * t * (3 - 2 * t);
   };
-  // Under the seat: the frosted panel is almost overhead and casts no shadow of its own (three
-  // can't), so the seat's shade from it is drawn here, the seat's shape, soft-edged. It doesn't
-  // drift, and shouldn't: the panel never moves (the key's shadow, which does, is separate).
-  g.save();
-  g.filter = `blur(${0.05 * ppm}px)`;
-  g.fillStyle = 'rgba(255,255,255,0.42)';
-  const [sx, sy] = at(-0.17, -0.14);
-  g.fillRect(sx, sy, 0.34 * ppm, 0.33 * ppm);
-  g.restore();
-  g.filter = 'none';
-  for (const [x, z] of [[-0.17, 0.165], [0.17, 0.165], [-0.158, -0.17], [0.158, -0.17]]) spot(x, z, 0.032, 0.85);
-  const t = new THREE.CanvasTexture(c);
-  return t;
+  for (let j = 0; j < N; j++)
+    for (let i = 0; i < N; i++) {
+      // Plane-local metres: x across, z toward the chair's front (the plane is laid face up).
+      const x = (i + 0.5) * m - CONTACT_M / 2, z = CONTACT_M / 2 - (j + 0.5) * m;
+      let f = 0;
+      for (const [lx, lz] of legs) f = Math.max(f, 0.85 * (1 - sm(0, 0.032, Math.hypot(x - lx, z - lz))));
+      // The seat's footprint, a rounded box, soft over about 5 cm.
+      const dx = Math.abs(x) - 0.13, dz = Math.abs(z) - 0.115;
+      const d = Math.hypot(Math.max(dx, 0), Math.max(dz, 0)) + Math.min(Math.max(dx, dz), 0) - 0.04;
+      const sh = 0.42 * (1 - sm(-0.03, 0.05, d));
+      const k = (j * N + i) * 4;
+      feet[k] = feet[k + 1] = feet[k + 2] = Math.round(f * 255);
+      seat[k] = seat[k + 1] = seat[k + 2] = Math.round(sh * 255);
+      feet[k + 3] = seat[k + 3] = 255;
+    }
+  const tex = (d: Uint8Array) => {
+    const t = new THREE.DataTexture(d, N, N);
+    t.magFilter = t.minFilter = THREE.LinearFilter;
+    t.needsUpdate = true;
+    return t;
+  };
+  return { feet: tex(feet), seat: tex(seat) };
 }
 
 /** Arrises (the rounded edges of a board) wear first: worn where the normal leaves the faces. */
@@ -319,8 +334,6 @@ function bakeWear(g: THREE.BufferGeometry, seatTop: number) {
     }
     // Crest rail: where hands pulled the chair out, again and again.
     if (y > 0.62) k += 0.14 * Math.exp(-((x / 0.07) ** 2));
-    // Finials, rubbed.
-    if (y > 0.7) k += 0.08;
     // Feet: darker, from the floor.
     if (y < 0.06) k -= 0.18 * (1 - y / 0.06);
     col[i * 3] = col[i * 3 + 1] = col[i * 3 + 2] = k;

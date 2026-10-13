@@ -66,7 +66,7 @@ Minimal, but authored. The emptiness is meant to look chosen, not default.
   - a ceiling a little cooler than the walls, with the faintest board joints;
   - soft grey trim: a skirting, and a soft shadow a few centimetres deep above it and where the walls meet the ceiling (not a ruled line).
 - **Physical history**, faint, but there to be found from a metre or two:
-  - writing that was rubbed out (a graphite ghost of "I'm sorry" in the empty space behind the chair);
+  - writing that was rubbed out: a single "you" in the empty space behind the chair, an apology lower and off to one side, and not only confessions (somewhere, a shopping list);
   - masking-tape residue around paler rectangles where something once hung;
   - pencil height marks with an initial near one corner, and a few days counted in fives low on the wall behind you;
   - scuffs along the skirting, graphite dust settled above it under the busiest writing, soft occlusion in every corner;

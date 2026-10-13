@@ -191,16 +191,17 @@ function tally(g: CanvasRenderingContext2D, x: number, y: number, groups: number
   g.globalAlpha = 1;
 }
 
-/** Graphite dust settled along the top of the skirting under the busiest writing: years of it. */
+/** Graphite and crayon dust settled along the top of the skirting under the busiest writing. */
 function graphiteDust(g: CanvasRenderingContext2D, x0: number, x1: number, y: number, r: Rng) {
-  g.save();
-  g.filter = `blur(${2 * K}px)`;
+  // Soft spots drawn as gradients (canvas blur filters aren't everywhere).
   for (let x = x0; x < x1; x += 6 * K) {
-    g.fillStyle = `rgba(70,70,76,${r.range(0.02, 0.07)})`;
-    g.fillRect(x, y - r.range(4, 14) * K, r.range(6, 18) * K, r.range(4, 14) * K);
+    const cy = y - r.range(3, 10) * K, rad = r.range(4, 10) * K;
+    const grd = g.createRadialGradient(x, cy, 0, x, cy, rad);
+    grd.addColorStop(0, `rgba(110,86,66,${r.range(0.015, 0.04)})`);
+    grd.addColorStop(1, 'rgba(110,86,66,0)');
+    g.fillStyle = grd;
+    g.fillRect(x - rad, cy - rad, rad * 2, rad * 2);
   }
-  g.restore();
-  g.filter = 'none';
 }
 
 /** Scuffs along the skirting: shoes, a chair back, a bag set down. */
@@ -231,9 +232,10 @@ export function wallMaps(surface: Surface, seed: number, wM: number, hM: number)
 
   // The history each wall carries.
   if (surface === 'north') {
-    // Behind the chair, in the space that is kept empty: something was written, and rubbed out.
-    erasedWriting(g, "I'm sorry", mx(2.75), my(1.75), 44, r, 1.2);
-    erasedWriting(g, 'you', mx(3.35), my(1.35), 36, r, 0.8);
+    // Behind the chair, in the space that is kept empty: one word, rubbed out (the other person).
+    // An apology was rubbed out too, lower and off to the side, not where the light gathers.
+    erasedWriting(g, 'you', mx(3.35), my(1.35), 36, r, 1.1);
+    erasedWriting(g, "I'm sorry", mx(4.4), my(1.0), 44, r, 0.9);
     removedSheet(g, mx(5.2), my(2.15), 0.42 * PX_PER_M, 0.3 * PX_PER_M, r);
     graphiteDust(g, mx(1.0), mx(3.2), my(0.09), r);
   } else if (surface === 'east') {
@@ -241,8 +243,10 @@ export function wallMaps(surface: Surface, seed: number, wM: number, hM: number)
     removedSheet(g, mx(3.6), my(2.4), 0.3 * PX_PER_M, 0.22 * PX_PER_M, r);
     erasedWriting(g, 'always', mx(4.9), my(0.7), 30, r, 0.8);
   } else if (surface === 'west') {
-    erasedWriting(g, 'why did you', mx(1.0), my(1.15), 34, r, 1);
-    erasedWriting(g, 'it was me', mx(4.2), my(2.55), 30, r, 0.9);
+    // Not every rubbed-out thing was a confession: a list, once.
+    erasedWriting(g, 'milk', mx(1.0), my(1.27), 30, r, 0.9);
+    erasedWriting(g, 'bread', mx(1.02), my(1.15), 30, r, 0.9);
+    erasedWriting(g, 'batteries', mx(0.99), my(1.03), 30, r, 0.8);
     // A word scribbled out hard, then erased anyway.
     g.save();
     g.globalAlpha = 0.06 * MARKS;

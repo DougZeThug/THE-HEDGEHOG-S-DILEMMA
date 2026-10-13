@@ -279,6 +279,7 @@ export class App {
           [
             ['fill', 0, 1.5], ['area', 0, 4], ['key', 0, 2], ['cone', 0.7, 1.3], ['glow', 0, 1.5], ['warmth', 0, 1.5], ['ceiling', 0, 1.5],
             ['exposure', 0.8, 1.4], ['vignette', 0, 0.6], ['grain', 0, 0.06], ['texture', 0, 2], ['contact', 0, 1.5], ['shadowSoft', 0.3, 3],
+            ['faint', 0.8, 1.6],
           ] as [keyof Look, number, number][]
         ).map(([k, lo, hi]) =>
           n('look', k, lo, hi, () => this.look[k], (v) => {
@@ -606,11 +607,14 @@ export class App {
     this.room.setScale(this.room.scale + (scaleTarget - this.room.scale) * (1 - Math.exp(-dt / 6)));
     this.lighting.update(dt, env, this.time, this.chair.group.position, this.chair.group.rotation.y);
     if (this.lighting.shadowDirty) this.renderer.shadowMap.needsUpdate = true;
-    // Exposure, like the look's light, arrives with the room: the opening's dark stays as dark.
-    const room = THREE.MathUtils.clamp(this.lighting.score.area, 0, 1);
+    // Exposure, like the look's light, comes and goes with the room's own light (the opening, a dim).
+    const room = THREE.MathUtils.clamp(this.lighting.score.area, 0, 1) * this.lighting.roomLight;
     this.renderer.toneMappingExposure = LOOKS.original.exposure + (this.look.exposure - LOOKS.original.exposure) * room;
+    this.text.faintBoost = 1 + (this.look.faint - 1) * room;
+    this.room.setWarmth(this.lighting.warmthNow);
     // The chair's contact with the floor is there as the light on it is: none in the dark.
     (this.chair.contact.material as THREE.MeshBasicMaterial).opacity = this.chairContact * Math.min(1, this.lighting.keyLevel);
+    (this.chair.seatShade.material as THREE.MeshBasicMaterial).opacity = this.chairContact * Math.min(1, this.lighting.panelLevel);
     if (this.memoryKey) {
       // The light washes the words out a little (to about half their strength), then gives them back.
       const m = this.memoryLight.update(this.time);

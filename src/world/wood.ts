@@ -27,7 +27,7 @@ export function woodMaps(seed = 7): { map: THREE.CanvasTexture; rough: THREE.Can
   const img = g.createImageData(W, H);
   const rimg = rg.createImageData(W, H);
   const warp = makeNoise(seed), fig = makeNoise(seed + 1), pore = new Rng(seed + 2);
-  const light = [128, 84, 48], dark = [86, 52, 28], deep = [50, 30, 16];
+  const light = [150, 102, 66], dark = [104, 68, 44], deep = [64, 42, 28];
   // The seat occupies canvas rows 0..seatH (v from 1 down to SEAT_V0; the canvas is flipped).
   const seatH = Math.round(H * (1 - SEAT_V0));
   const seatW = Math.round(W * 0.8);
@@ -55,10 +55,10 @@ export function woodMaps(seed = 7): { map: THREE.CanvasTexture; rough: THREE.Can
       let rough = 0.5 + 0.14 * late + 0.08 * (figure - 0.5) + (p > 0.992 ? 0.2 : 0);
       if (inSeat && x < seatW) {
         // Sat on and handled for years: the seat's top is paler, honey rather than walnut.
-        shade *= board === 1 ? 1.27 : 1.2;
+        shade *= board === 1 ? 1.14 : 1.08;
         // The glue line, faint.
         const joint = Math.abs(y - seatH * 0.52);
-        if (joint < 1.5) shade *= 0.8;
+        if (joint < 2) shade *= 0.7;
         // Edges darker and rougher: dust and old finish where nobody sits or holds.
         const ex = Math.min(x, seatW - x) / seatW, ey = Math.min(y, seatH - y) / seatH;
         const edge = 1 - Math.min(1, Math.min(ex / 0.12, ey / 0.16));
@@ -86,7 +86,9 @@ export function woodMaps(seed = 7): { map: THREE.CanvasTexture; rough: THREE.Can
   g.globalAlpha = 1;
   const map = new THREE.CanvasTexture(c);
   map.colorSpace = THREE.SRGBColorSpace;
-  map.wrapS = map.wrapT = THREE.RepeatWrapping;
+  // Along the grain it repeats; across it, never (the legs' rows must not wrap into the seat's).
+  map.wrapS = THREE.RepeatWrapping;
+  map.wrapT = THREE.ClampToEdgeWrapping;
   map.anisotropy = 8;
   const rough = new THREE.CanvasTexture(rc);
   rough.wrapS = rough.wrapT = THREE.RepeatWrapping;

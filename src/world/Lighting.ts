@@ -15,6 +15,10 @@ const HEMI = 1.15;
 const SHADOW_RADIUS = 5;
 export const shadowMapSize = (quality: 'low' | 'medium' | 'high') => (quality === 'low' ? 512 : 1024);
 
+/** What may change before the shadow is redrawn: key and target (m), cone (rad), chair (m, rad), blur, map. */
+const SIG_TOL = [0.003, 0.003, 0.003, 0.003, 0.003, 0.003, 0.002, 0.002, 0.003, 0.01, 0.5];
+const UP = new THREE.Vector3(0, 1, 0);
+
 const COOL = new THREE.Color('#dbe6f0');
 const WARM = new THREE.Color('#ffdcb4');
 
@@ -165,45 +169,59 @@ export class Lighting {
     c.extraCold = approach(c.extraCold, fc, dt, 1.5);
 
     const w = THREE.MathUtils.clamp(c.warmth + c.extraWarm - c.extraCold, -1, 1);
+    const sc = this.score;
+    const L = this.look;
+    // How much of the room's own light there is: none while the opening holds only the chair lit,
+    // less in a dim (the room going back to the chair alone). The look belongs to the lit room:
+    // its cream and its balance come with the room and go with it, so the chair-alone image (the
+    // opening's, and the dim's quotation of it) is white light on a dark room, as it always was.
+    const lit = THREE.MathUtils.clamp(sc.area, 0, 1) * mood;
     // At rest the light is the look's colour. As the Director cools it (the visitor close, the
     // room hardening) the cream goes first: by lightWarmth -0.6 the light is exactly as cool as it
     // was before the look, so a warmer room has lost none of its range.
-    const col = this.col.copy(neutralFor(this.look.warmth * THREE.MathUtils.clamp(1 + w / 0.6, 0, 1), this.neutral));
+    this.warmthNow = L.warmth * lit * THREE.MathUtils.clamp(1 + w / 0.6, 0, 1);
+    const col = this.col.copy(neutralFor(this.warmthNow, this.neutral));
     if (w > 0) col.lerp(WARM, w * 0.75);
     else col.lerp(COOL, -w * 0.85);
 
     const k = this.intensityScale * this.fade;
     const I = c.intensity * (1 + c.extraCold * 0.15);
-    const sc = this.score;
-    // The look's balance belongs to the lit room: while the opening holds the room dark (only
-    // the chair lit), it is the opening's light, unchanged; it arrives as the room does.
-    const L = this.look;
+    // The key on the chair: weighted by the opening only (a dim never touches the key).
     const room = THREE.MathUtils.clamp(sc.area, 0, 1);
     const as = (m: number) => 1 + (m - 1) * room;
+    // The room's own light: weighted by the dim (the area light's own level is already zero while
+    // the opening holds it dark, so its ramp keeps the opening's curve).
+    const asLit = (m: number, by: number) => 1 + (m - 1) * by;
     this.area.color.copy(col);
-    this.area.intensity = AREA * I * k * sc.area * mood * as(L.area);
+    this.area.intensity = AREA * I * k * sc.area * mood * asLit(L.area, mood);
     this.key.color.copy(col);
     this.key.intensity = KEY * I * k * (1 + c.extraCold * 0.4) * sc.key * as(L.key);
     this.key.angle = sc.cone * as(L.cone);
     this.hemi.color.copy(col).lerp(this.white, 0.4);
-    this.hemi.intensity = HEMI * (0.75 + 0.25 * I) * k * sc.hemi * mood * as(L.fill);
+    this.hemi.intensity = HEMI * (0.75 + 0.25 * I) * k * sc.hemi * mood * asLit(L.fill, lit);
     this.glow.intensity = (0.1 + c.glow * 0.7 + c.extraWarm * 1.2) * k * sc.glow * as(L.glow);
 
     // The shadow drifts: the key light orbits the chair a little, the visible panel does not.
     const ang = c.drift * (1 + 0.25 * Math.sin(now * 0.05));
-    const rel = this.keyBase.clone().sub(chairPos.clone().setY(0));
-    rel.applyAxisAngle(new THREE.Vector3(0, 1, 0), ang);
+    const rel = this.rel.copy(this.keyBase).sub(this.flat.copy(chairPos).setY(0));
+    rel.applyAxisAngle(UP, ang);
     this.key.position.copy(chairPos).setY(0).add(rel);
     this.key.target.position.copy(chairPos);
     this.glow.position.set(chairPos.x, 0.55, chairPos.z + 0.25);
     // The shadow map is redrawn only when what it shows changes: the light moved or widened, or
     // the chair moved or turned (its blur reads a million texels twenty times on every redraw).
-    const sig = this.shadowSig;
+    // Tolerances are what the eye can't see: 3 mm of key light moves the shadow under 1 mm.
     const kp = this.key.position, tg = this.key.target.position;
-    this.key.shadow.radius = SHADOW_RADIUS * (this.key.shadow.mapSize.x / 512) * this.look.shadowSoft;
-    const now4 = [kp.x, kp.y, kp.z, tg.x, tg.z, this.key.angle, chairPos.x, chairPos.z, chairYaw, this.key.shadow.radius, this.key.shadow.mapSize.x];
-    this.shadowDirty = now4.some((v, i) => Math.abs(v - sig[i]) > 1e-4);
-    if (this.shadowDirty) for (let i = 0; i < now4.length; i++) sig[i] = now4[i];
+    this.key.shadow.radius = SHADOW_RADIUS * (this.key.shadow.mapSize.x / 512) * as(this.look.shadowSoft);
+    const cur = this.sigNow;
+    cur[0] = kp.x; cur[1] = kp.y; cur[2] = kp.z; cur[3] = tg.x; cur[4] = tg.z;
+    cur[5] = this.key.angle; cur[6] = chairPos.x; cur[7] = chairPos.z; cur[8] = chairYaw;
+    cur[9] = this.key.shadow.radius; cur[10] = this.key.shadow.mapSize.x;
+    const sig = this.shadowSig;
+    let dirty = false;
+    for (let i = 0; i < cur.length; i++) if (!(Math.abs(cur[i] - sig[i]) <= SIG_TOL[i])) dirty = true;
+    this.shadowDirty = dirty;
+    if (dirty) sig.set(cur);
   }
 
   /** How much of the room's usual key light falls on the chair now (1 = as the room has it). */
@@ -211,7 +229,18 @@ export class Lighting {
     return this.key.intensity / (KEY * 0.85 * this.look.key);
   }
 
+  /** The look's warmth as it is now (0 white … 1 cream): the panel's glass and the ceiling follow it. */
+  warmthNow = 0;
+
+  /** How much of the room's usual panel (area) light there is now (1 = as the room has it). */
+  get panelLevel() {
+    return Math.min(1, this.score.area * this.mood);
+  }
+
   /** The key light or the chair changed since the shadow map was last drawn. */
   shadowDirty = true;
-  private shadowSig = new Array<number>(11).fill(NaN);
+  private shadowSig = new Float64Array(11).fill(Infinity);
+  private sigNow = new Float64Array(11);
+  private rel = new THREE.Vector3();
+  private flat = new THREE.Vector3();
 }

@@ -7,6 +7,25 @@ export const PANEL = { x: 0.1, z: -0.95 };
 import { wallMaps, floorMaps, ceilingMaps, surfaceDetail } from './surfaces';
 import { ceilingFor, panelFor, type Look } from './Style';
 
+/** The ceiling's bounce, as a map: 1 at the panel's rim, falling steeply toward the walls. */
+function ceilingGlow(wM: number, dM: number): THREE.CanvasTexture {
+  const ppm = 40;
+  const c = document.createElement('canvas');
+  c.width = Math.round(wM * ppm);
+  c.height = Math.round(dM * ppm);
+  const g = c.getContext('2d')!;
+  // Canvas rows run toward -z in the room (the ceiling is laid face down), as in surfaces.ts.
+  const px = c.width / 2 + PANEL.x * ppm, pz = c.height / 2 - PANEL.z * ppm;
+  const grd = g.createRadialGradient(px, pz, 0.45 * ppm, px, pz, 3.2 * ppm);
+  grd.addColorStop(0, '#ffffff');
+  grd.addColorStop(0.2, '#787878');
+  grd.addColorStop(1, '#262626');
+  g.fillStyle = grd;
+  g.fillRect(0, 0, c.width, c.height);
+  // Linear values (a factor, not a colour): 1 at the rim, 0.47 half a metre out, 0.15 at the walls.
+  return new THREE.CanvasTexture(c);
+}
+
 export interface SurfaceFrame {
   surface: Surface;
   /** Positioned on the surface plane: local +x = u direction, +y = v direction, +z = into the room. */
@@ -46,8 +65,10 @@ export class Room {
         roughness: isFloor ? 1 : 0.95,
         metalness: 0,
         color: 0xffffff,
-        // A white ceiling is lit only by bounce; a little cool self-light stands in for it.
+        // A white ceiling is lit only by bounce; a little self-light stands in for it, strongest
+        // round the panel and falling away to the walls (a flat grey lid reads as an office).
         emissive: new THREE.Color(isCeil ? 0x23262a : 0x000000),
+        emissiveMap: isCeil ? ceilingGlow(size.w, size.h) : null,
       });
       const mesh = new THREE.Mesh(new THREE.PlaneGeometry(size.w, size.h), mat);
       mesh.receiveShadow = true;
@@ -86,27 +107,42 @@ export class Room {
     this.panel = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.9), panelMat);
     this.panel.rotation.x = Math.PI / 2;
     this.panel.position.set(PANEL.x, H - 0.021, PANEL.z);
+    // The rim of the light well catches the light (lit from the panel itself, which no light here
+    // reaches): the brightest ring after the glass, not a drawn frame.
     const rim = new THREE.Mesh(
       new THREE.BoxGeometry(0.96, 0.02, 0.96),
-      new THREE.MeshStandardMaterial({ color: 0xc9c7c2, roughness: 0.55 }),
+      new THREE.MeshStandardMaterial({ color: 0xc9c7c2, roughness: 0.55, emissive: 0x000000 }),
     );
+    this.rim = rim.material as THREE.MeshStandardMaterial;
     rim.position.set(PANEL.x, H - 0.008, PANEL.z);
     this.group.add(rim, this.panel);
 
     this.setScale(1);
   }
 
+  private rim: THREE.MeshStandardMaterial;
+  private rimEmissive = new THREE.Color(0xffffff);
   private ceilingEmissive = new THREE.Color(0x23262a);
   private ceilingLit = 1;
 
-  /** The look's share of the room: the ceiling's bounce and colour, the panel's glass, the plaster's relief. */
+  /** The look's share of the room: the ceiling's bounce, the plaster's relief. */
   setLook(look: Look) {
-    ceilingFor(look.warmth, this.ceilingEmissive).multiplyScalar(look.ceiling);
-    (this.panel.material as THREE.MeshStandardMaterial).emissive.copy(panelFor(look.warmth));
+    this.ceilingBounce = look.ceiling;
     for (const s of Object.keys(this.frames) as Surface[]) {
       const m = this.frames[s].mesh.material as THREE.MeshStandardMaterial;
       m.bumpScale = (s === 'floor' ? 0.5 : 0.9) * look.texture;
     }
+    this.setWarmth(this.warmth);
+  }
+  private ceilingBounce = 1;
+  private warmth = 0;
+
+  /** The light's warmth as it is now (Lighting.warmthNow): the panel's glass, its rim, the ceiling's bounce. */
+  setWarmth(w: number) {
+    this.warmth = w;
+    ceilingFor(w, this.ceilingEmissive).multiplyScalar(this.ceilingBounce);
+    (this.panel.material as THREE.MeshStandardMaterial).emissive.copy(panelFor(w));
+    panelFor(w, this.rimEmissive).multiplyScalar(0.3);
     this.setLit(this.panelLit, this.ceilingLit);
   }
   private panelLit = 1;
@@ -120,6 +156,7 @@ export class Room {
     this.ceilingLit = ceiling;
     (this.panel.material as THREE.MeshStandardMaterial).emissiveIntensity = 2.2 * panel;
     (this.frames.ceiling.mesh.material as THREE.MeshStandardMaterial).emissive.copy(this.ceilingEmissive).multiplyScalar(ceiling);
+    this.rim.emissive.copy(this.rimEmissive).multiplyScalar(panel);
   }
 
   /**
@@ -153,8 +190,8 @@ export class Room {
     c.height = 64;
     const g = c.getContext('2d')!;
     const grd = g.createLinearGradient(0, atTop ? 0 : 64, 0, atTop ? 64 : 0);
-    grd.addColorStop(0, 'rgb(150,150,150)');
-    grd.addColorStop(0.25, 'rgb(60,60,60)');
+    grd.addColorStop(0, 'rgb(110,110,110)');
+    grd.addColorStop(0.3, 'rgb(55,55,55)');
     grd.addColorStop(1, 'rgb(0,0,0)');
     g.fillStyle = grd;
     g.fillRect(0, 0, 1, 64);
