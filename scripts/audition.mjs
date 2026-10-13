@@ -109,14 +109,19 @@ for (const [id, e] of Object.entries(musicLedger.entries)) {
     m: null, path, src: OUT ? `audio/${basename(e.file)}` : e.file,
   });
 }
-// New room sounds (scripts/generate-voices.mjs): already in the room (the opening uses them); the artist hasn't heard them.
+// New room sounds (scripts/generate-voices.mjs): already in the room; the artist hasn't heard them.
+const SFX_FOR = {
+  'sfx:switch': 'The light switched on by the door, in the dark, before the chair is lit.',
+  'sfx:graphite': 'Graphite on plaster, while the first line is written in silence.',
+  'sfx:eraser': 'The writing in the air rubbed out as someone comes close (a breath follows it).',
+};
 const sfxLedger = existsSync(join(ROOT, 'scripts/sfx-ledger.json')) ? JSON.parse(readFileSync(join(ROOT, 'scripts/sfx-ledger.json'), 'utf8')) : { entries: {} };
 for (const [file, e] of Object.entries(sfxLedger.entries)) {
   const path = join(ROOT, 'public/voices', file);
   if (!existsSync(path)) continue;
   designTakes.push({
-    id: `sfx-${file.replace('.mp3', '')}`, group: 'sounds', groupLabel: 'new room sounds, in the opening now: not this removes a variant', line: 'Sounds',
-    interpretation: e.key === 'sfx:switch' ? 'The light switched on by the door, in the dark, before the chair is lit.' : 'Graphite on plaster, while the first line is written in silence.',
+    id: `sfx-${file.replace('.mp3', '')}`, group: 'sounds', groupLabel: 'new room sounds, already in the room: not this removes a variant', line: 'Sounds',
+    interpretation: SFX_FOR[e.key] ?? e.key,
     voice: e.key, model: 'sound effects', stability: '—', input: e.text, generation: 2, lab: false, audition: false, design: true, status: 'in the room', review: e.review ?? 'pending',
     m: null, path, src: OUT ? `audio/${basename(file)}` : `../public/voices/${file}`,
   });
