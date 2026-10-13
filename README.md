@@ -29,11 +29,12 @@ npm test             # unit tests (Vitest): emotional engine, selection, schedul
 npm run build && npx vite preview --port 4173 &
 npm run smoke        # browser smoke test (Playwright + Chromium): full visit, screenshots in test-output/
 npm run perf         # startup, frame pacing, shader programs, GPU memory, fixed-state frames (BASE, OUT)
+npm run style        # each look from fixed places and through the opening, beside the reference image (BASE, OUT)
 ```
 
 Playwright is a pinned devDependency (`1.56.1`, Chromium 1194). It downloads no browser on install; point it at one with `PLAYWRIGHT_BROWSERS_PATH` or `CHROMIUM_PATH` (perf).
 
-**Tuning.** Add `?tune` to the URL for a small panel (loaded only then): the room's light (key, room, sky, glow, cone), grain and vignette, the memory's light, a button that calls the memory now, and *copy values*. It changes how things look, never what the Director decides, and stores nothing.
+**Tuning.** Add `?tune` to the URL for a small panel (loaded only then): the room's light (key, room, sky, glow, cone), the look (`original`, `subtle`, `reference`, and each of its values: fill, area, key, cone, glow, warmth, ceiling, exposure, vignette, grain, plaster relief, the chair's contact and shadow softness), the memory's light, a button that calls the memory now, and *copy values*. It changes how things look, never what the Director decides, and stores nothing.
 
 Headphones are recommended. Sound starts only after you press **go in**.
 
@@ -63,22 +64,25 @@ Minimal, but authored. The emptiness is meant to look chosen, not default.
   - off-white, hand-trowelled plaster with broad mottling and faint horizontal passes;
   - a subtly varied matte floor, slightly smoother along the path people walk in, scuffed in arcs around the chair;
   - a ceiling a little cooler than the walls, with the faintest board joints;
-  - soft grey trim: a skirting with a shadow gap above it, and a fine shadow gap where walls meet the ceiling.
-- **Physical history**, at the edge of visibility:
+  - soft grey trim: a skirting, and a soft shadow a few centimetres deep above it and where the walls meet the ceiling (not a ruled line).
+- **Physical history**, faint, but there to be found from a metre or two:
   - writing that was rubbed out (a graphite ghost of "I'm sorry" in the empty space behind the chair);
   - masking-tape residue around paler rectangles where something once hung;
   - pencil height marks with an initial near one corner, and a few days counted in fives low on the wall behind you;
-  - scuffs along the skirting, soft occlusion in every corner;
+  - scuffs along the skirting, graphite dust settled above it under the busiest writing, soft occlusion in every corner;
   - on the floor, a little to one side, the pressed marks of where the chair used to stand.
 - **Light** comes almost entirely from one frosted overhead panel, hung slightly north of the chair.
-  - The floor is brightest around the chair, the walls fall away gently toward the corners, and the ceiling stays dim.
-  - The chair's shadow is soft-edged and stretches toward whoever arrives.
+  - The floor is brightest around the chair. The wall you read is the brightest wall; the side walls, the top corners and the ceiling fall away from it.
+  - The light is cream rather than white. The warmth is in the light alone, never the plaster or the grade, so when the room cools (someone too close) it cools as far as it ever did.
+  - The chair's shadow is soft-edged (a few centimetres of penumbra, the same on a phone) and stretches toward whoever arrives. Under the seat lies the panel's own shade, and its feet press small dark contacts into the floor.
+  - Where this came from, and what was left out (outlines, tonal banding, damp stains, a sepia grade): `docs/reviews/2026-10-illustrated.md`. `?style=original|subtle|reference` compares the light before and after; reference is the room.
   - The shadow-casting source can still drift away from where the panel says it should be.
 - **The chair** is a small hand-made ladder-back (`src/world/Chair.ts`, `src/world/wood.ts`):
   - turned legs that splay slightly, back posts that lean and end in finials;
   - an arched crest rail and slats bent to receive a back, and a dished, slightly trapezoidal seat;
-  - oiled walnut with long calm grain;
-  - wear baked into the wood: paler across the seat's front edge and the middle of the crest rail, where hands and bodies touched it, and darker at the feet.
+  - oiled walnut (no lacquer, no sheen), its figure broad enough to read from across the room; the seat two boards glued side by side, its top worn to amber;
+  - wear baked into the wood: paler across the seat's front edge, the middle of the crest rail, the edges and the turnings' high points, where hands and bodies touched it; darker in the joints and at the feet;
+  - one slat set in not quite level.
 
 ## What the room does
 

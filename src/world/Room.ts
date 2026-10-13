@@ -5,6 +5,7 @@ import { ROOM, surfaceSize } from './layout';
 /** Where the frosted panel hangs: north of the chair, so the chair's shadow falls toward whoever arrives. */
 export const PANEL = { x: 0.1, z: -0.95 };
 import { wallMaps, floorMaps, ceilingMaps, surfaceDetail } from './surfaces';
+import { ceilingFor, panelFor, type Look } from './Style';
 
 export interface SurfaceFrame {
   surface: Surface;
@@ -96,31 +97,71 @@ export class Room {
   }
 
   private ceilingEmissive = new THREE.Color(0x23262a);
+  private ceilingLit = 1;
+
+  /** The look's share of the room: the ceiling's bounce and colour, the panel's glass, the plaster's relief. */
+  setLook(look: Look) {
+    ceilingFor(look.warmth, this.ceilingEmissive).multiplyScalar(look.ceiling);
+    (this.panel.material as THREE.MeshStandardMaterial).emissive.copy(panelFor(look.warmth));
+    for (const s of Object.keys(this.frames) as Surface[]) {
+      const m = this.frames[s].mesh.material as THREE.MeshStandardMaterial;
+      m.bumpScale = (s === 'floor' ? 0.5 : 0.9) * look.texture;
+    }
+    this.setLit(this.panelLit, this.ceilingLit);
+  }
+  private panelLit = 1;
   /**
    * The opening's light: how lit the panel looks (0 dark, 1 as built) and how much of the
    * ceiling's stand-in bounce there is. Only intensities change: no light is added or removed,
    * so no shader recompiles while the room comes up.
    */
   setLit(panel: number, ceiling: number) {
+    this.panelLit = panel;
+    this.ceilingLit = ceiling;
     (this.panel.material as THREE.MeshStandardMaterial).emissiveIntensity = 2.2 * panel;
     (this.frames.ceiling.mesh.material as THREE.MeshStandardMaterial).emissive.copy(this.ceilingEmissive).multiplyScalar(ceiling);
   }
 
-  /** Soft grey trim: a skirting with a small shadow gap above it, and a fine shadow gap at the ceiling. */
+  /**
+   * Soft grey trim: a skirting, and where the wall meets it and the ceiling, a soft shadow a
+   * few centimetres deep rather than a ruled line (a hard 1-px seam is the most computer-drawn
+   * thing in a white room).
+   */
   private addSkirting(group: THREE.Group, w: number) {
     const trim = new THREE.MeshStandardMaterial({ color: 0xcfccc6, roughness: 0.6 });
-    const gap = new THREE.MeshStandardMaterial({ color: 0x8f8c86, roughness: 0.9 });
     const sk = new THREE.Mesh(new THREE.BoxGeometry(w, 0.085, 0.012), trim);
     sk.position.set(0, -ROOM.height / 2 + 0.0425, 0.006);
     sk.receiveShadow = true;
     sk.name = 'skirting';
-    const reveal = new THREE.Mesh(new THREE.PlaneGeometry(w, 0.006), gap);
-    reveal.position.set(0, -ROOM.height / 2 + 0.088, 0.0015);
+    const reveal = new THREE.Mesh(new THREE.PlaneGeometry(w, 0.03), Room.seam(false));
+    reveal.position.set(0, -ROOM.height / 2 + 0.085 + 0.015, 0.0015);
     reveal.name = 'skirting';
-    const top = new THREE.Mesh(new THREE.PlaneGeometry(w, 0.012), gap);
-    top.position.set(0, ROOM.height / 2 - 0.006, 0.0015);
+    const top = new THREE.Mesh(new THREE.PlaneGeometry(w, 0.04), Room.seam(true));
+    top.position.set(0, ROOM.height / 2 - 0.02, 0.0015);
     top.name = 'skirting';
     group.add(sk, reveal, top);
+  }
+
+  /** A shadow that is darkest at one edge (the top, or the bottom) and fades out over its height. */
+  private static seams: Partial<Record<'top' | 'bottom', THREE.MeshStandardMaterial>> = {};
+  private static seam(atTop: boolean): THREE.MeshStandardMaterial {
+    const k = atTop ? 'top' : 'bottom';
+    const cached = Room.seams[k];
+    if (cached) return cached;
+    const c = document.createElement('canvas');
+    c.width = 1;
+    c.height = 64;
+    const g = c.getContext('2d')!;
+    const grd = g.createLinearGradient(0, atTop ? 0 : 64, 0, atTop ? 64 : 0);
+    grd.addColorStop(0, 'rgb(150,150,150)');
+    grd.addColorStop(0.25, 'rgb(60,60,60)');
+    grd.addColorStop(1, 'rgb(0,0,0)');
+    g.fillStyle = grd;
+    g.fillRect(0, 0, 1, 64);
+    const t = new THREE.CanvasTexture(c);
+    const m = new THREE.MeshStandardMaterial({ color: 0x8f8a83, roughness: 0.95, alphaMap: t, transparent: true, depthWrite: false });
+    Room.seams[k] = m;
+    return m;
   }
 
   /** Horizontal half-extents at the current scale. */

@@ -40,6 +40,10 @@ const VIEWS = [
   ['east', [-1.6, 0, 0.3], [3.2, 1.3, 0.3]],
   ['west', [1.6, 0, -0.3], [-3.2, 1.0, -0.3]],
   ['north-writing', [-0.6, 0, -1.4], [-0.6, 1.5, -3.2]],
+  // The same bare patch of wall, once at the centre of the frame and once near its top-left
+  // corner: a look that is light, not a filter, gives it the same value in both.
+  ['inv-centre', [1.0, 0, 0.5], [1.0, 1.6, -3.2]],
+  ['inv-corner', [1.0, 0, 0.5], [2.9, 0.55, -3.2]],
 ];
 /** Named places to measure, projected each frame. */
 const PLACES = {
@@ -48,12 +52,13 @@ const PLACES = {
   backTopRight: [2.9, 2.9, -3.2],
   ceiling: [0, 3.1, -0.2],
   floorPool: [0.5, 0, -0.15],
-  chairShadow: [0.02, 0, 0.32],
+  chairShadow: [0, 0, 0.14],
   panel: [0.1, 3.08, -0.95],
   floorFront: [0, 0, 2.1],
   floorEdge: [-2.6, 0, 1.2],
   sideWall: [-3.2, 1.5, 0.8],
   seat: [0, 0.345, 0.05],
+  invPoint: [1.0, 1.6, -3.2],
 };
 
 const stand = (page, from, to) =>
@@ -157,6 +162,24 @@ for (const profile of PROFILES) {
       await page.waitForTimeout(1000);
       await shot(name);
     }
+    // The room's own range, under this look, from the reference pose: the light cooled as when
+    // the visitor comes close (lightWarmth -0.6), and the room taken back to the chair (a dim).
+    await stand(page, VIEWS[0][1], VIEWS[0][2]);
+    await page.evaluate(() => {
+      const d = window.__hedgehog.director;
+      const f = d.computeEnv.bind(d);
+      d.computeEnv = () => ({ ...f(), lightWarmth: -0.6 });
+    });
+    await page.waitForTimeout(4000);
+    await shot('cool');
+    await page.evaluate(() => {
+      const a = window.__hedgehog;
+      delete a.director.computeEnv;
+      a.lighting.dimToChair(0.35, 40, a.time);
+    });
+    await page.waitForFunction(() => window.__hedgehog.lighting.roomLight < 0.36, null, { timeout: 120000 });
+    await page.waitForTimeout(800);
+    await shot('dim');
     // Switching presets live must compile nothing.
     const switched = await page.evaluate((styles) => {
       const a = window.__hedgehog;

@@ -14,6 +14,12 @@ import type { Surface } from '../content/types';
 // Texel density. Every size below is authored at 200 px/m and scaled by K, so a lower
 // density paints the same room, only softer — and a quarter of the pixels to bake at load.
 let PX_PER_M = 200;
+/**
+ * How legible the room's history is. Its marks were drawn so faint (alpha 0.02–0.12) that no
+ * render showed them; the review (2026-10-illustrated) asked for them to be found from a metre
+ * or two on a phone, the erased "I'm sorry" still a ghost.
+ */
+const MARKS = 1.6;
 let K = 1;
 const DENSITY = { low: 100, medium: 200, high: 200 } as const;
 
@@ -101,12 +107,12 @@ function erasedWriting(g: CanvasRenderingContext2D, text: string, x: number, y: 
   g.translate(x, y);
   g.rotate(r.range(-0.04, 0.04));
   g.filter = `blur(${1.4 * K}px)`;
-  g.globalAlpha = 0.05 * strength;
+  g.globalAlpha = 0.05 * strength * MARKS;
   g.drawImage(tc, 0, 0);
-  g.globalAlpha = 0.025 * strength;
+  g.globalAlpha = 0.025 * strength * MARKS;
   g.drawImage(tc, r.range(2, 6) * K, r.range(-1, 1.5) * K); // smear in the direction of rubbing
   g.filter = `blur(${6 * K}px)`;
-  g.globalAlpha = 0.018 * strength;
+  g.globalAlpha = 0.018 * strength * MARKS;
   g.fillStyle = 'rgb(128,128,134)';
   for (let k = 0; k < 3; k++) g.fillRect(r.range(-6 * K, tc.width * 0.5), tc.height * r.range(0.3, 0.5), tc.width * r.range(0.3, 0.6), tc.height * 0.22);
   g.restore();
@@ -127,7 +133,7 @@ function removedSheet(g: CanvasRenderingContext2D, cx: number, cy: number, w: nu
     g.save();
     g.translate((sx * w) / 2, (sy * h) / 2);
     g.rotate(sx * sy * r.range(0.5, 0.9));
-    g.fillStyle = `rgba(196,176,128,${r.range(0.07, 0.12)})`;
+    g.fillStyle = `rgba(196,176,128,${r.range(0.07, 0.12) * MARKS})`;
     g.fillRect(-13 * K, -4.5 * K, 26 * K, 9 * K);
     g.fillStyle = 'rgba(255,255,255,0.05)';
     g.fillRect(-13 * K, -4.5 * K, 26 * K, 2 * K);
@@ -142,7 +148,7 @@ function heightMarks(g: CanvasRenderingContext2D, x: number, floorY: number, r: 
   g.filter = `blur(${0.6 * K}px)`;
   for (const [h, label] of [[0.82, 'J'], [0.94, ''], [1.03, 'J'], [1.16, '']] as const) {
     const y = floorY - h * PX_PER_M;
-    g.globalAlpha = r.range(0.07, 0.12);
+    g.globalAlpha = r.range(0.07, 0.12) * MARKS;
     g.strokeStyle = 'rgb(60,60,66)';
     g.lineWidth = 1.2 * K;
     g.beginPath();
@@ -164,7 +170,7 @@ function tally(g: CanvasRenderingContext2D, x: number, y: number, groups: number
   g.save();
   g.strokeStyle = 'rgb(66,66,72)';
   g.lineWidth = K;
-  g.globalAlpha = 0.11;
+  g.globalAlpha = 0.11 * MARKS;
   g.filter = `blur(${0.4 * K}px)`;
   for (let k = 0; k < groups; k++) {
     const gx = x + k * 20 * K;
@@ -183,6 +189,18 @@ function tally(g: CanvasRenderingContext2D, x: number, y: number, groups: number
   }
   g.restore();
   g.globalAlpha = 1;
+}
+
+/** Graphite dust settled along the top of the skirting under the busiest writing: years of it. */
+function graphiteDust(g: CanvasRenderingContext2D, x0: number, x1: number, y: number, r: Rng) {
+  g.save();
+  g.filter = `blur(${2 * K}px)`;
+  for (let x = x0; x < x1; x += 6 * K) {
+    g.fillStyle = `rgba(70,70,76,${r.range(0.02, 0.07)})`;
+    g.fillRect(x, y - r.range(4, 14) * K, r.range(6, 18) * K, r.range(4, 14) * K);
+  }
+  g.restore();
+  g.filter = 'none';
 }
 
 /** Scuffs along the skirting: shoes, a chair back, a bag set down. */
@@ -217,6 +235,7 @@ export function wallMaps(surface: Surface, seed: number, wM: number, hM: number)
     erasedWriting(g, "I'm sorry", mx(2.75), my(1.75), 44, r, 1.2);
     erasedWriting(g, 'you', mx(3.35), my(1.35), 36, r, 0.8);
     removedSheet(g, mx(5.2), my(2.15), 0.42 * PX_PER_M, 0.3 * PX_PER_M, r);
+    graphiteDust(g, mx(1.0), mx(3.2), my(0.09), r);
   } else if (surface === 'east') {
     heightMarks(g, mx(0.35), floorY, r);
     removedSheet(g, mx(3.6), my(2.4), 0.3 * PX_PER_M, 0.22 * PX_PER_M, r);
@@ -226,7 +245,7 @@ export function wallMaps(surface: Surface, seed: number, wM: number, hM: number)
     erasedWriting(g, 'it was me', mx(4.2), my(2.55), 30, r, 0.9);
     // A word scribbled out hard, then erased anyway.
     g.save();
-    g.globalAlpha = 0.06;
+    g.globalAlpha = 0.06 * MARKS;
     g.strokeStyle = 'rgb(60,60,66)';
     g.filter = `blur(${K}px)`;
     g.lineWidth = 2 * K;

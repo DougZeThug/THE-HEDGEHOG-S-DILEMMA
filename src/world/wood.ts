@@ -40,18 +40,22 @@ export function woodMaps(seed = 7): { map: THREE.CanvasTexture; rough: THREE.Can
       // Long, calm grain: lines run along U and only drift slowly.
       const yy = y + (board === 1 ? 157 : 0);
       const w = warp.fbm(x / 1400, yy / 260, 3) * 2.6 + warp.fbm(x / 90, yy / 40, 2) * 0.12;
-      const across = yy / 40 + w;
+      // Rings at uneven spacing (fast and slow years), not a regular stripe.
+      const across = (yy + 26 * fig.fbm(x / 700, yy / 70, 2)) / 40 + w;
       const ring = 0.5 + 0.5 * Math.sin(across * Math.PI * 2);
       const late = Math.pow(ring, 2.6); // latewood lines
       const figure = fig.fbm(x / 160, yy / 140, 3);
-      let t = 0.32 + 0.34 * late + 0.35 * (figure - 0.5);
+      // The seat is wide, flat-sawn board: broad figure, quieter latewood (a regular stripe
+      // across it read as corduroy). Turned and bent parts keep the strong rings.
+      let t = inSeat && x < seatW ? 0.3 + 0.16 * late + 0.42 * (figure - 0.5) : 0.32 + 0.34 * late + 0.35 * (figure - 0.5);
       // Pores: short dark dashes along the grain.
       const p = pore.next();
       if (p > 0.992) t += 0.3;
       let shade = 1;
       let rough = 0.5 + 0.14 * late + 0.08 * (figure - 0.5) + (p > 0.992 ? 0.2 : 0);
       if (inSeat && x < seatW) {
-        if (board === 1) shade *= 1.07;
+        // Sat on and handled for years: the seat's top is paler, honey rather than walnut.
+        shade *= board === 1 ? 1.27 : 1.2;
         // The glue line, faint.
         const joint = Math.abs(y - seatH * 0.52);
         if (joint < 1.5) shade *= 0.8;
@@ -60,14 +64,14 @@ export function woodMaps(seed = 7): { map: THREE.CanvasTexture; rough: THREE.Can
         const edge = 1 - Math.min(1, Math.min(ex / 0.12, ey / 0.16));
         shade *= 1 - 0.25 * edge;
         rough += 0.12 * edge;
-        // Spokeshave facets: long, shallow, slightly different in tone, along the grain.
-        shade *= 1 + 0.03 * Math.sin((y / seatH) * Math.PI * 9 + warp.fbm(x / 400, y / 30, 1) * 3);
       }
       t = Math.min(1, Math.max(0, t));
       const a = t < 0.6 ? t / 0.6 : 1;
       const b = t < 0.6 ? 0 : (t - 0.6) / 0.4;
       const i = (y * W + x) * 4;
-      for (let k = 0; k < 3; k++) img.data[i + k] = (light[k] + (dark[k] - light[k]) * a + (deep[k] - dark[k]) * b) * shade;
+      // The seat's top has gone amber (oil and years), the legs stay the darker, redder walnut.
+      const amber = inSeat && x < seatW ? [1, 1.1, 1.12] : [1, 1, 1];
+      for (let k = 0; k < 3; k++) img.data[i + k] = (light[k] + (dark[k] - light[k]) * a + (deep[k] - dark[k]) * b) * shade * amber[k];
       img.data[i + 3] = 255;
       rimg.data[i] = rimg.data[i + 1] = rimg.data[i + 2] = Math.round(Math.min(1, rough) * 255);
       rimg.data[i + 3] = 255;

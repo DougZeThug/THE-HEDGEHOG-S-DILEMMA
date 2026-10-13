@@ -255,8 +255,16 @@ function contactTexture(): THREE.CanvasTexture {
     g.fillStyle = grd;
     g.fillRect(0, 0, N, N);
   };
-  // Under the seat: only a breath of shade (the light reaches in under it).
-  spot(0, 0, 0.3, 0.14);
+  // Under the seat: the frosted panel is almost overhead and casts no shadow of its own (three
+  // can't), so the seat's shade from it is drawn here, the seat's shape, soft-edged. It doesn't
+  // drift, and shouldn't: the panel never moves (the key's shadow, which does, is separate).
+  g.save();
+  g.filter = `blur(${0.05 * ppm}px)`;
+  g.fillStyle = 'rgba(255,255,255,0.42)';
+  const [sx, sy] = at(-0.17, -0.14);
+  g.fillRect(sx, sy, 0.34 * ppm, 0.33 * ppm);
+  g.restore();
+  g.filter = 'none';
   for (const [x, z] of [[-0.17, 0.165], [0.17, 0.165], [-0.158, -0.17], [0.158, -0.17]]) spot(x, z, 0.032, 0.85);
   const t = new THREE.CanvasTexture(c);
   return t;

@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { Room } from './world/Room';
 import { Chair } from './world/Chair';
 import { Lighting, shadowMapSize } from './world/Lighting';
+import { lookFor, parseLook, LOOK_NAMES, type Look, type LookName } from './world/Style';
 import { MemoryLight } from './world/MemoryLight';
 import { WallText, wallClock, type TextItem } from './world/WallText';
 import { CameraRig } from './world/CameraRig';
@@ -76,8 +77,11 @@ export class App {
   private memoryKey: string | null = null;
   /** The piece of writing last touched (the memory's light falls where the visitor touched). */
   private lastTappedKey: string | null = null;
-  /** How dark the chair's contact with the floor is, at full light (the style sets it). */
+  /** How dark the chair's contact with the floor is, at full light (the look sets it). */
   chairContact = 1;
+  /** The room's look (Style.ts): ?style=original|subtle|reference; reference unless asked. */
+  lookName: LookName = 'reference';
+  look: Look = lookFor('reference');
   /** The opening while it plays: its score, when it started (wall clock), what has been done. */
   private opening: { score: Score; start: number; fired: Set<number>; skip?: { at: number; from: Levels } } | null = null;
   /** When the room was handed to the Director (scene time), for hints and the inspector. */
@@ -137,6 +141,7 @@ export class App {
 
     const samples = this.prefs.quality === 'high' ? 4 : this.prefs.quality === 'medium' ? 2 : 0;
     this.post = new Post(this.renderer, this.scene, this.rig.camera, samples);
+    this.setStyle(parseLook(params.get('style')));
     this.applyPrefs();
     this.onResize();
     addEventListener('resize', () => this.onResize());
@@ -166,6 +171,24 @@ export class App {
     enter.textContent = this.visits > 0 ? 'go in again' : 'go in';
     enter.focus();
     this.renderer.setAnimationLoop(() => this.frame());
+  }
+
+  /** Change the room's look (uniforms and light levels only: nothing compiles). */
+  setStyle(name: LookName) {
+    this.lookName = name;
+    this.look = lookFor(name);
+    this.applyLook();
+  }
+
+  /** Push the current look's values to the lights, the room, the grade and the chair. */
+  private applyLook() {
+    const l = this.look;
+    this.lighting.look = l;
+    this.room.setLook(l);
+    this.post.grain = l.grain;
+    this.post.vignette = l.vignette;
+    this.renderer.toneMappingExposure = l.exposure;
+    this.chairContact = l.contact;
   }
 
   private setupRenderer() {
@@ -252,11 +275,22 @@ export class App {
         n('light', 'sky', 0, 1.5, () => sc.hemi, (v) => (sc.hemi = v)),
         n('light', 'glow', 0, 2, () => sc.glow, (v) => (sc.glow = v)),
         n('light', 'cone', 0.5, 1.2, () => sc.cone, (v) => (sc.cone = v)),
-        n('grade', 'grain', 0, 0.08, () => this.post.grain, (v) => (this.post.grain = v)),
-        n('grade', 'vignette', 0, 0.8, () => this.post.vignette, (v) => (this.post.vignette = v)),
+        // The look (Style.ts): the presets below set all of these; a slider then changes one.
+        ...(
+          [
+            ['fill', 0, 1.5], ['area', 0, 4], ['key', 0, 2], ['cone', 0.7, 1.3], ['glow', 0, 1.5], ['warmth', 0, 1.5], ['ceiling', 0, 1.5],
+            ['exposure', 0.8, 1.4], ['vignette', 0, 0.6], ['grain', 0, 0.06], ['texture', 0, 2], ['contact', 0, 1.5], ['shadowSoft', 0.3, 3],
+          ] as [keyof Look, number, number][]
+        ).map(([k, lo, hi]) =>
+          n('look', k, lo, hi, () => this.look[k], (v) => {
+            this.look = { ...this.look, [k]: v };
+            this.applyLook();
+          }),
+        ),
         n('memory', 'light', 0, 0.8, () => this.memoryLight.gain, (v) => (this.memoryLight.gain = v)),
       ],
       [
+        ...LOOK_NAMES.map((name) => ({ label: name, run: () => this.setStyle(name) })),
         {
           label: 'the memory, now',
           run: () => {

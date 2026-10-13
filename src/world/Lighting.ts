@@ -4,6 +4,7 @@ import { ROOM } from './layout';
 import { PANEL } from './Room';
 import type { Environment } from '../state/Director';
 import { approach } from '../core/math';
+import { lookFor, neutralFor, type Look } from './Style';
 
 /** One frosted overhead source does nearly all the work; the fill is only bounce. */
 const AREA = 8;
@@ -15,7 +16,6 @@ const SHADOW_RADIUS = 5;
 export const shadowMapSize = (quality: 'low' | 'medium' | 'high') => (quality === 'low' ? 512 : 1024);
 
 const COOL = new THREE.Color('#dbe6f0');
-const NEUTRAL = new THREE.Color('#fff8ee');
 const WARM = new THREE.Color('#ffdcb4');
 
 /**
@@ -36,6 +36,11 @@ export class Lighting {
   private cur = { intensity: 1, warmth: 0, drift: 0, glow: 0.2, extraWarm: 0, extraCold: 0 };
   private flash: { kind: 'warm' | 'cold'; amount: number; until: number; start: number } | null = null;
   intensityScale = 1;
+  /** The room's look (Style.ts): light levels and colour at rest. */
+  look: Look = lookFor('reference');
+  private neutral = new THREE.Color();
+  private col = new THREE.Color();
+  private white = new THREE.Color(0xffffff);
   /** Opening sequence multiplier. */
   fade = 1;
   /**
@@ -53,7 +58,7 @@ export class Lighting {
 
   constructor(quality: 'low' | 'medium' | 'high') {
     RectAreaLightUniformsLib.init();
-    this.area = new THREE.RectAreaLight(NEUTRAL, AREA, 0.9, 0.9);
+    this.area = new THREE.RectAreaLight(0xfff8ee, AREA, 0.9, 0.9);
     this.area.position.set(PANEL.x, ROOM.height - 0.02, PANEL.z);
     this.area.lookAt(PANEL.x, 0, PANEL.z);
     this.group.add(this.area);
@@ -61,7 +66,7 @@ export class Lighting {
     this.hemi = new THREE.HemisphereLight(0xeef1f4, 0xd8d0c4, HEMI);
     this.group.add(this.hemi);
 
-    this.key = new THREE.SpotLight(NEUTRAL, KEY, 0, 0.82, 1, 2);
+    this.key = new THREE.SpotLight(0xfff8ee, KEY, 0, 0.82, 1, 2);
     this.key.position.copy(this.keyBase);
     this.key.target.position.set(0, 0, 0);
     this.key.castShadow = true;
@@ -160,21 +165,29 @@ export class Lighting {
     c.extraCold = approach(c.extraCold, fc, dt, 1.5);
 
     const w = THREE.MathUtils.clamp(c.warmth + c.extraWarm - c.extraCold, -1, 1);
-    const col = new THREE.Color().copy(NEUTRAL);
+    // At rest the light is the look's colour. As the Director cools it (the visitor close, the
+    // room hardening) the cream goes first: by lightWarmth -0.6 the light is exactly as cool as it
+    // was before the look, so a warmer room has lost none of its range.
+    const col = this.col.copy(neutralFor(this.look.warmth * THREE.MathUtils.clamp(1 + w / 0.6, 0, 1), this.neutral));
     if (w > 0) col.lerp(WARM, w * 0.75);
     else col.lerp(COOL, -w * 0.85);
 
     const k = this.intensityScale * this.fade;
     const I = c.intensity * (1 + c.extraCold * 0.15);
-    this.area.color.copy(col);
     const sc = this.score;
-    this.area.intensity = AREA * I * k * sc.area * mood;
+    // The look's balance belongs to the lit room: while the opening holds the room dark (only
+    // the chair lit), it is the opening's light, unchanged; it arrives as the room does.
+    const L = this.look;
+    const room = THREE.MathUtils.clamp(sc.area, 0, 1);
+    const as = (m: number) => 1 + (m - 1) * room;
+    this.area.color.copy(col);
+    this.area.intensity = AREA * I * k * sc.area * mood * as(L.area);
     this.key.color.copy(col);
-    this.key.intensity = KEY * I * k * (1 + c.extraCold * 0.4) * sc.key;
-    this.key.angle = sc.cone;
-    this.hemi.color.copy(col).lerp(new THREE.Color(0xffffff), 0.4);
-    this.hemi.intensity = HEMI * (0.75 + 0.25 * I) * k * sc.hemi * mood;
-    this.glow.intensity = (0.1 + c.glow * 0.7 + c.extraWarm * 1.2) * k * sc.glow;
+    this.key.intensity = KEY * I * k * (1 + c.extraCold * 0.4) * sc.key * as(L.key);
+    this.key.angle = sc.cone * as(L.cone);
+    this.hemi.color.copy(col).lerp(this.white, 0.4);
+    this.hemi.intensity = HEMI * (0.75 + 0.25 * I) * k * sc.hemi * mood * as(L.fill);
+    this.glow.intensity = (0.1 + c.glow * 0.7 + c.extraWarm * 1.2) * k * sc.glow * as(L.glow);
 
     // The shadow drifts: the key light orbits the chair a little, the visible panel does not.
     const ang = c.drift * (1 + 0.25 * Math.sin(now * 0.05));
@@ -187,17 +200,18 @@ export class Lighting {
     // the chair moved or turned (its blur reads a million texels twenty times on every redraw).
     const sig = this.shadowSig;
     const kp = this.key.position, tg = this.key.target.position;
-    const now4 = [kp.x, kp.y, kp.z, tg.x, tg.z, this.key.angle, chairPos.x, chairPos.z, chairYaw];
+    this.key.shadow.radius = SHADOW_RADIUS * (this.key.shadow.mapSize.x / 512) * this.look.shadowSoft;
+    const now4 = [kp.x, kp.y, kp.z, tg.x, tg.z, this.key.angle, chairPos.x, chairPos.z, chairYaw, this.key.shadow.radius, this.key.shadow.mapSize.x];
     this.shadowDirty = now4.some((v, i) => Math.abs(v - sig[i]) > 1e-4);
     if (this.shadowDirty) for (let i = 0; i < now4.length; i++) sig[i] = now4[i];
   }
 
   /** How much of the room's usual key light falls on the chair now (1 = as the room has it). */
   get keyLevel() {
-    return this.key.intensity / (KEY * 0.85);
+    return this.key.intensity / (KEY * 0.85 * this.look.key);
   }
 
   /** The key light or the chair changed since the shadow map was last drawn. */
   shadowDirty = true;
-  private shadowSig = new Array<number>(9).fill(NaN);
+  private shadowSig = new Array<number>(11).fill(NaN);
 }
