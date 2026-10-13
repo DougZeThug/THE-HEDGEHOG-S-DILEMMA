@@ -35,6 +35,7 @@ Reading deepens a visit a little more slowly when there is less to read. The rea
 
 Later additions, which leave these numbers unchanged:
 - **Writing in the air** (`ruleAir`) counts as writing, is major, and is followed by a 12 s hold.
+- **Drawings** (`ruleDrawings`): one drawing is drawn while its line is looked at (a `draw` cue, counted as writing). It is never drawn during a hold, or within 4 s of other writing.
 - **Light as a motif.** The long held silence and the turn to the last phase carry a `dim`. When the turn comes inside the held silence, it adds no silence of its own: that silence and its dark are the turn.
 
 ## What it is now
