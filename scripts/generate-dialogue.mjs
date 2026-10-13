@@ -88,6 +88,14 @@ if (args.approve || args.reject) {
       console.log(`${id}: back in the room`);
     }
   }
+  // A rejected take leaves the room's ranking too, so the Director never reaches for it.
+  for (const id of list(args.reject) ?? []) {
+    const perf = direction.performances.find((p) => p.id === id);
+    if (perf && !perf.retired) {
+      perf.retired = true;
+      changed = true;
+    }
+  }
   if (changed && !LAB) writeFileSync(DIRECTION, JSON.stringify(direction, null, 2) + '\n');
   await saveLedger(ledger);
   writeManifest();

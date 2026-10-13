@@ -650,7 +650,7 @@ export class Director {
     if (!this.pacing.crowded(now)) options.push(['behind', () => this.respondBehind()], ['sound', () => this.respondSound()]);
     // Sometimes the answer is that nobody speaks: the room hushes, as if about to, and doesn't.
     if (this.phase !== 'arrival' && this.lastRespondKind !== 'withhold' && this.rng.chance(0.25))
-      options.unshift(['withhold', () => (this.queue(0, { type: 'silence', depth: 0.38, seconds: 5 }, 'withhold'), true)]);
+      options.unshift(['withhold', () => (this.queue(0, { type: 'silence', depth: 0.38, seconds: 5 }, 'withhold', { major: true, ttl: 4 }), true)]);
     // Not the same kind of answer twice running.
     const tired = this.pacing.repeats('text', now, 25);
     options.sort((a, b) => Number(a[0] === this.lastRespondKind) - Number(b[0] === this.lastRespondKind) || (tired ? Number(a[0] !== 'sound') - Number(b[0] !== 'sound') : 0));
@@ -1096,7 +1096,7 @@ export class Director {
   private ruleDistantLife() {
     if (this.phase === 'arrival' || this.now < this.nextDistantLife) return;
     // Not while someone is reading: the room's own life doesn't talk over attention.
-    if (this.visitor.gazeId || this.attending() || this.pacing.holding(this.now) || this.pacing.crowded(this.now)) return;
+    if (this.visitor.gazeId || this.attending() || this.pacing.holding(this.now) || this.pacing.crowded(this.now) || !this.scheduler.majorFree(this.now)) return;
     // Distant life is mostly situational now; this is only a fallback for long quiet stretches.
     if (this.situations.claimed('beyond') || this.now - this.situations.lastBeyond < 90 || !this.pacing.intenseFree(this.now)) return;
     this.nextDistantLife = this.now + this.rng.range(50, 90);

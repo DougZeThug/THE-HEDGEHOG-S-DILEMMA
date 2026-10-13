@@ -84,7 +84,8 @@ export class Pacing {
       this.lastIntense = t;
       this.recoverUntil = Math.max(this.recoverUntil, t + (kind === 'voice' ? RECOVERY.voice : RECOVERY.other));
     }
-    if (cue.type === 'silence' && cue.depth >= 0.7) this.holdUntil = Math.max(this.holdUntil, t + cue.seconds);
+    // A deep silence, or the room deliberately not speaking, is held: nothing breaks into it.
+    if (cue.type === 'silence' && (cue.depth >= 0.7 || rule === 'withhold')) this.holdUntil = Math.max(this.holdUntil, t + cue.seconds);
   }
 
   /** How long quiet may last before it reads as waiting. Active visitors are answered sooner. */

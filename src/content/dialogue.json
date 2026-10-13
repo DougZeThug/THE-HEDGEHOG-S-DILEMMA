@@ -157,7 +157,8 @@
       "seed": 1202,
       "file": "dialogue/closer--flat.mp3",
       "model": "eleven_v3",
-      "generation": 1
+      "generation": 1,
+      "retired": true
     },
     {
       "id": "afraid-leave--confessional",
@@ -196,7 +197,8 @@
       "seed": 1302,
       "file": "dialogue/afraid-leave--remembered.mp3",
       "model": "eleven_v3",
-      "generation": 1
+      "generation": 1,
+      "retired": true
     },
     {
       "id": "if-closer",
@@ -216,7 +218,8 @@
       "seed": 1401,
       "file": "dialogue/if-closer.mp3",
       "model": "eleven_v3",
-      "generation": 1
+      "generation": 1,
+      "retired": true
     },
     {
       "id": "why-understand--frustrated",
@@ -316,7 +319,34 @@
       "seed": 1701,
       "file": "dialogue/two-cups.mp3",
       "model": "eleven_v3",
-      "generation": 1
+      "generation": 1,
+      "retired": true
+    },
+    {
+      "generation": 2,
+      "audition": true,
+      "id": "two-cups--whispered",
+      "phraseId": "two-cups",
+      "voice": "intimate",
+      "text": "I still say 'we' by accident.",
+      "input": "[whispering] I still say 'we'… [quietly] by accident.",
+      "interpretation": "Catching herself: a whispered confession, half to herself.",
+      "direction": "Catching herself: a whispered confession, half to herself.",
+      "context": {
+        "solitude": 0.9,
+        "hush": 0.7,
+        "reminiscence": 0.6
+      },
+      "fits": [
+        "whisper",
+        "distant"
+      ],
+      "seed": 7101,
+      "stability": 0.25,
+      "scene": {
+        "before": "At the counter she ordered two coffees out of habit, then had to change it to one. Walking home she said, almost to herself:"
+      },
+      "file": "dialogue/two-cups--whispered.mp3"
     },
     {
       "id": "laugh-breathe",
@@ -358,7 +388,8 @@
       "seed": 1901,
       "file": "dialogue/understood-minute.mp3",
       "model": "eleven_v3",
-      "generation": 1
+      "generation": 1,
+      "retired": true
     },
     {
       "id": "crumbs",
@@ -376,7 +407,8 @@
       "seed": 2001,
       "file": "dialogue/crumbs.mp3",
       "model": "eleven_v3",
-      "generation": 1
+      "generation": 1,
+      "retired": true
     },
     {
       "id": "remember-me",
@@ -397,7 +429,8 @@
       "seed": 2101,
       "file": "dialogue/remember-me.mp3",
       "model": "eleven_v3",
-      "generation": 1
+      "generation": 1,
+      "retired": true
     },
     {
       "id": "glad-came",
@@ -456,7 +489,34 @@
       "seed": 2401,
       "file": "dialogue/not-going.mp3",
       "model": "eleven_v3",
-      "generation": 1
+      "generation": 1,
+      "retired": true
+    },
+    {
+      "generation": 2,
+      "audition": true,
+      "id": "not-going--bedside",
+      "phraseId": "not-going",
+      "voice": "intimate",
+      "text": "I'm not going anywhere.",
+      "input": "[whispering] I'm not going anywhere.",
+      "interpretation": "Whispered at a bedside: a promise she may not be able to keep.",
+      "direction": "Whispered at a bedside: a promise she may not be able to keep.",
+      "context": {
+        "hush": 0.9,
+        "warmth": 0.6,
+        "exposure": 0.4
+      },
+      "fits": [
+        "whisper",
+        "tender"
+      ],
+      "seed": 7103,
+      "stability": 0.25,
+      "scene": {
+        "before": "\"Will you still be here when I wake up?\" he asked, barely awake. She held his hand and whispered:"
+      },
+      "file": "dialogue/not-going--bedside.mp3"
     },
     {
       "id": "this-bit",
@@ -476,7 +536,8 @@
       "seed": 2501,
       "file": "dialogue/this-bit.mp3",
       "model": "eleven_v3",
-      "generation": 1
+      "generation": 1,
+      "retired": true
     },
     {
       "id": "alone-ok",
@@ -559,6 +620,32 @@
       "generation": 1
     },
     {
+      "generation": 2,
+      "audition": true,
+      "id": "laugh--grief",
+      "phraseId": "laugh",
+      "voice": "intimate",
+      "text": "I remember your laugh.",
+      "input": "[whispering, grief] I remember your laugh.",
+      "interpretation": "Whispered grief: the laugh is the thing she is most afraid of forgetting.",
+      "direction": "Whispered grief: the laugh is the thing she is most afraid of forgetting.",
+      "context": {
+        "reminiscence": 1,
+        "solitude": 0.8,
+        "hush": 0.6
+      },
+      "fits": [
+        "whisper",
+        "tender"
+      ],
+      "seed": 7107,
+      "stability": 0.25,
+      "scene": {
+        "before": "At the grave she stood a long time without saying anything. Then, very softly:"
+      },
+      "file": "dialogue/laugh--grief.mp3"
+    },
+    {
       "id": "was-it-me",
       "phraseId": "was-it-me",
       "voice": "young",
@@ -577,6 +664,32 @@
       "file": "dialogue/was-it-me.mp3",
       "model": "eleven_v3",
       "generation": 1
+    },
+    {
+      "generation": 2,
+      "audition": true,
+      "id": "was-it-me--whispered",
+      "phraseId": "was-it-me",
+      "voice": "sarah",
+      "text": "Was it me?",
+      "input": "[whispering, afraid of the answer] Was it me?",
+      "interpretation": "Whispered, afraid of the answer.",
+      "direction": "Whispered, afraid of the answer.",
+      "context": {
+        "exposure": 0.8,
+        "hush": 0.7,
+        "tension": 0.5
+      },
+      "fits": [
+        "whisper",
+        "child"
+      ],
+      "seed": 7108,
+      "stability": 0.25,
+      "scene": {
+        "before": "Her parents had stopped talking when she came into the kitchen. Later, in the dark, she asked her sister:"
+      },
+      "file": "dialogue/was-it-me--whispered.mp3"
     },
     {
       "id": "stay--breaking",
@@ -628,7 +741,8 @@
         "before": "\"It's two days. You're being dramatic about this.\"",
         "after": "\"That's not fair and you know it.\""
       },
-      "levelDb": 2
+      "levelDb": 2,
+      "retired": true
     },
     {
       "id": "stay--asking",
@@ -652,7 +766,8 @@
       "scene": {
         "before": "\"I should go. It's really late.\"",
         "after": "\"...Okay. Ten more minutes.\""
-      }
+      },
+      "retired": true
     },
     {
       "id": "love-go-away--exhausted",
@@ -729,7 +844,8 @@
         "before": "\"So that's it? You're just going to shut me out again?\"",
         "after": "\"Fine.\""
       },
-      "levelDb": 1.5
+      "levelDb": 1.5,
+      "retired": true
     },
     {
       "id": "happy-then--smile",
@@ -752,7 +868,8 @@
       "file": "dialogue/happy-then--smile.mp3",
       "scene": {
         "before": "\"Look at you in this one. How old were you?\""
-      }
+      },
+      "retired": true
     },
     {
       "id": "happy-then--unsure",
@@ -804,6 +921,31 @@
         "before": "He found the photograph in a box he hadn't opened in twenty years. He smiled at it at first. Then the smile went, and he said, very quietly:"
       },
       "levelDb": -2
+    },
+    {
+      "generation": 2,
+      "audition": true,
+      "id": "happy-then--whispered",
+      "phraseId": "happy-then",
+      "voice": "intimate",
+      "text": "I think I was happy then.",
+      "input": "[whispering, close to tears] I think I was happy then.",
+      "interpretation": "Whispered, near tears: realising it only now.",
+      "direction": "Whispered, near tears: realising it only now.",
+      "context": {
+        "reminiscence": 1,
+        "hush": 0.7
+      },
+      "fits": [
+        "whisper",
+        "tender"
+      ],
+      "seed": 7106,
+      "stability": 0.25,
+      "scene": {
+        "before": "She found the old video on her phone by accident: her own laugh, a kitchen she no longer lived in. She watched it twice, then whispered:"
+      },
+      "file": "dialogue/happy-then--whispered.mp3"
     },
     {
       "id": "crumbs--laughing",
@@ -897,7 +1039,8 @@
       "file": "dialogue/sorry-like-that--embarrassed.mp3",
       "scene": {
         "before": "\"Hey. About last night...\""
-      }
+      },
+      "retired": true
     },
     {
       "id": "mean-that--confused",
@@ -1021,7 +1164,33 @@
       "file": "dialogue/good-day--happy.mp3",
       "scene": {
         "before": "\"Remember the beach? You fell asleep in the sun and burnt one side of your face.\""
-      }
+      },
+      "retired": true
+    },
+    {
+      "generation": 2,
+      "audition": true,
+      "id": "good-day--photographs",
+      "phraseId": "good-day",
+      "voice": "bill",
+      "text": "That was a good day.",
+      "input": "[quietly, sad] That was a good day.",
+      "interpretation": "Quiet sadness, looking at a photograph after a funeral.",
+      "direction": "Quiet sadness, looking at a photograph after a funeral.",
+      "context": {
+        "reminiscence": 1,
+        "solitude": 0.7
+      },
+      "fits": [
+        "distant",
+        "tender"
+      ],
+      "seed": 7102,
+      "stability": 0.25,
+      "scene": {
+        "before": "After the funeral everyone had gone home. He sat at the kitchen table with the box of photographs and stopped at one of the two of them at the sea."
+      },
+      "file": "dialogue/good-day--photographs.mp3"
     },
     {
       "id": "stay--breaking-lean",
@@ -1047,8 +1216,168 @@
       "scene": {
         "before": "He already had his coat on. She had told him it was fine, that she understood. It was not fine. At the door she finally said it, and her voice gave way halfway through:",
         "after": "She couldn't look at him."
+      }
+    },
+    {
+      "id": "stay--soft",
+      "phraseId": "stay",
+      "voice": "intimate",
+      "text": "I wanted you to stay.",
+      "input": "[softly] I wanted you to stay.",
+      "interpretation": "A quiet, plain admission, almost to herself.",
+      "direction": "Adopted from the voice lab (lab-stay-a-v4-plain). No scene: said softly, without drama.",
+      "context": {
+        "hush": 0.6,
+        "solitude": 0.5,
+        "warmth": 0.3
       },
-      "audition": true
+      "fits": [
+        "whisper",
+        "tender"
+      ],
+      "seed": 4401,
+      "generation": 2,
+      "file": "dialogue/stay--soft.mp3"
+    },
+    {
+      "id": "stay--tears",
+      "phraseId": "stay",
+      "voice": "intimate",
+      "text": "I wanted you to stay.",
+      "input": "[holding back tears] I wanted you… [voice cracking] to stay.",
+      "interpretation": "Holding back tears; the voice catches on the last words.",
+      "direction": "Adopted from the voice lab (lab-stay-b-v4-directed). Steadier than stay--breaking; the tears are kept in.",
+      "context": {
+        "exposure": 0.5,
+        "tension": 0.4,
+        "solitude": 0.4
+      },
+      "fits": [
+        "tender"
+      ],
+      "seed": 4401,
+      "generation": 2,
+      "file": "dialogue/stay--tears.mp3"
+    },
+    {
+      "id": "stay--tears-loose",
+      "phraseId": "stay",
+      "voice": "intimate",
+      "text": "I wanted you to stay.",
+      "input": "[holding back tears] I wanted you… [voice cracking] to stay.",
+      "interpretation": "The same tears, less held: the voice wavers throughout.",
+      "direction": "Adopted from the voice lab (lab-stay-c-v4-directed-loose). Stability 0.2.",
+      "context": {
+        "exposure": 0.7,
+        "solitude": 0.5,
+        "dissonance": 0.3
+      },
+      "fits": [
+        "tender",
+        "whisper"
+      ],
+      "seed": 4401,
+      "stability": 0.2,
+      "generation": 2,
+      "file": "dialogue/stay--tears-loose.mp3"
+    },
+    {
+      "id": "stay--sarah",
+      "phraseId": "stay",
+      "voice": "sarah",
+      "text": "I wanted you to stay.",
+      "input": "[holding back tears] I wanted you… [voice cracking] to stay.",
+      "interpretation": "Another person saying it: younger, shyer, just as hurt.",
+      "direction": "Adopted from the voice lab (lab-stay-g-v4-scene-sarah). Said to someone about to leave on a trip.",
+      "context": {
+        "exposure": 0.5,
+        "tension": 0.4,
+        "reminiscence": 0.2
+      },
+      "fits": [
+        "tender",
+        "whisper"
+      ],
+      "seed": 4401,
+      "stability": 0.2,
+      "generation": 2,
+      "file": "dialogue/stay--sarah.mp3",
+      "scene": {
+        "before": "\"I'll call you when I get there. ...What? What is it?\"",
+        "after": "\"Hey. Hey, don't. I'm sorry.\""
+      }
+    },
+    {
+      "id": "stay--after-silence",
+      "phraseId": "stay",
+      "voice": "intimate",
+      "text": "I wanted you to stay.",
+      "leadIn": "[quietly, after a long silence] No, it's… you don't have to say anything.",
+      "input": "[voice cracking] I wanted you… [shaky breath] to stay.",
+      "interpretation": "After a long silence: she tells him not to answer, then says it anyway.",
+      "direction": "Adopted from the voice lab (lab-stay-h-v4-leadin). The spoken run-up is cut away.",
+      "context": {
+        "hush": 0.7,
+        "solitude": 0.6,
+        "exposure": 0.4
+      },
+      "fits": [
+        "whisper",
+        "tender"
+      ],
+      "seed": 4401,
+      "stability": 0.2,
+      "generation": 2,
+      "file": "dialogue/stay--after-silence.mp3"
+    },
+    {
+      "generation": 2,
+      "audition": true,
+      "id": "stay--whispered",
+      "phraseId": "stay",
+      "voice": "sarah",
+      "text": "I wanted you to stay.",
+      "input": "[whispering] I wanted you… to stay.",
+      "interpretation": "Whispered after the door has closed, so nobody hears.",
+      "direction": "Whispered after the door has closed, so nobody hears.",
+      "context": {
+        "hush": 1,
+        "solitude": 0.8
+      },
+      "fits": [
+        "whisper"
+      ],
+      "seed": 7104,
+      "stability": 0.25,
+      "scene": {
+        "before": "She waited until the car had gone before she let herself say it. Her forehead against the door, she whispered:"
+      },
+      "file": "dialogue/stay--whispered.mp3"
+    },
+    {
+      "generation": 2,
+      "audition": true,
+      "id": "stay--worn",
+      "phraseId": "stay",
+      "voice": "matilda",
+      "text": "I wanted you to stay.",
+      "input": "[tired, sad] I wanted you to stay.",
+      "interpretation": "Worn out: years later, without blame, only tiredness.",
+      "direction": "Worn out: years later, without blame, only tiredness.",
+      "context": {
+        "reminiscence": 0.8,
+        "solitude": 0.6
+      },
+      "fits": [
+        "distant",
+        "tender"
+      ],
+      "seed": 7105,
+      "stability": 0.25,
+      "scene": {
+        "before": "It was years later. He asked her why she had never said anything at the time. She looked at her hands for a while."
+      },
+      "file": "dialogue/stay--worn.mp3"
     },
     {
       "id": "love-go-away--hurt-lean",
@@ -1073,8 +1402,7 @@
       "scene": {
         "before": "\"So that's it? You're just going to shut me out again?\"",
         "after": "\"Fine.\""
-      },
-      "audition": true
+      }
     },
     {
       "id": "love-go-away--exhausted-lean",
@@ -1100,8 +1428,26 @@
       "scene": {
         "before": "\"Talk to me. Please. I'm not leaving until you talk to me.\"",
         "after": "\"...Okay. I'll be in the kitchen.\""
+      }
+    },
+    {
+      "id": "love-go-away--laughing",
+      "phraseId": "love-go-away",
+      "voice": "intimate",
+      "text": "I love you. Go away.",
+      "input": "[laughing] I love you. Go away.",
+      "interpretation": "Laughing, pushing someone off who is too close and too dear.",
+      "direction": "Adopted from the voice lab (lab-love-a-v4-plain).",
+      "context": {
+        "warmth": 0.8,
+        "relief": 0.5
       },
-      "audition": true
+      "fits": [
+        "tender"
+      ],
+      "seed": 4402,
+      "generation": 2,
+      "file": "dialogue/love-go-away--laughing.mp3"
     },
     {
       "id": "this-bit--distracted",
@@ -1125,8 +1471,7 @@
       "file": "dialogue/this-bit--distracted.mp3",
       "scene": {
         "before": "Her brother stood up to go to bed. She didn't look away from the television; she just patted the sofa beside her and said:"
-      },
-      "audition": true
+      }
     },
     {
       "id": "remember-me--bus-stop",
@@ -1151,8 +1496,7 @@
       "scene": {
         "before": "He had been staring at her across the bus shelter for a full minute before she turned round.",
         "after": "\"Year nine. You stole my bike.\""
-      },
-      "audition": true
+      }
     },
     {
       "id": "if-closer--doorway",
@@ -1224,7 +1568,8 @@
       "file": "dialogue/glad-came--surprised.mp3",
       "scene": {
         "before": "\"I nearly didn't. I sat in the car for twenty minutes.\""
-      }
+      },
+      "retired": true
     },
     {
       "id": "closer--held",

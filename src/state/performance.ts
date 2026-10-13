@@ -33,8 +33,9 @@ for (const p of PERFORMANCES) {
   BY_PHRASE.set(p.phraseId, list);
 }
 
+/** The performances of a phrase that are in the room (not retired, rejected or still being auditioned). */
 export function performancesFor(phraseId: string): readonly Performance[] {
-  return BY_PHRASE.get(phraseId) ?? [];
+  return (BY_PHRASE.get(phraseId) ?? []).filter((p) => !p.retired && !p.audition);
 }
 
 /** How well a performance suits this moment: the field it was directed for, and the manner asked for. */
@@ -54,5 +55,5 @@ export function suitability(p: Performance, field: FieldValues, style?: VoiceSty
 
 /** All recorded performances of a phrase, best first for this moment (deterministic). */
 export function rankPerformances(phraseId: string, field: FieldValues, style?: VoiceStyle): Performance[] {
-  return [...performancesFor(phraseId)].sort((a, b) => suitability(b, field, style) - suitability(a, field, style) || (a.id < b.id ? -1 : 1));
+  return [...(BY_PHRASE.get(phraseId) ?? [])].sort((a, b) => suitability(b, field, style) - suitability(a, field, style) || (a.id < b.id ? -1 : 1));
 }

@@ -27,20 +27,24 @@ describe('voice direction', () => {
     expect(count('stay')).toBeGreaterThanOrEqual(3);
     expect(count('closer')).toBeGreaterThanOrEqual(2);
   });
-  it('directs a range of feeling, not one hushed register', () => {
+  it('directs a range of feeling, and keeps it in the room after listening', () => {
     const fresh = direction.performances.filter((p: any) => p.generation === 2);
     expect(fresh.length).toBeGreaterThanOrEqual(15);
-    // Not everything whispered or sad: at most a third may be whisper-fitted.
-    expect(fresh.filter((p: any) => p.fits.includes('whisper')).length / fresh.length).toBeLessThan(0.34);
-    // Laughter, anger and warmth are all present as directions.
+    // The artist prefers sadder and whispered takes, so there is no cap on them; but laughter,
+    // anger and warmth were all directed, and laughter and warmth survived the listening.
     const inputs = fresh.map((p: any) => p.input.toLowerCase()).join(' ');
     for (const w of ['laugh', 'angry', 'frustrated', 'warm', 'embarrassed', 'confused', 'grief', 'tender']) expect(inputs).toContain(w);
-    // Three clearly different readings of each of the three central lines, in different voices or settings.
+    const live = direction.performances.filter((p: any) => !p.retired && !p.audition);
+    for (const id of ['crumbs--laughing', 'laugh-breathe--joy', 'love-go-away--teasing', 'love-go-away--laughing']) expect(live.map((p: any) => p.id)).toContain(id);
+    // Several clearly different readings of each of the three central lines, in different voices or settings.
     for (const id of ['stay', 'love-go-away', 'happy-then']) {
-      const takes = fresh.filter((p: any) => p.phraseId === id && !p.audition);
-      expect(takes.length).toBe(3);
-      expect(new Set(takes.map((p: any) => p.interpretation)).size).toBe(3);
-      expect(new Set(takes.map((p: any) => `${p.voice}:${JSON.stringify(p.context)}`)).size).toBe(3);
+      const takes = live.filter((p: any) => p.phraseId === id);
+      // "I think I was happy then." lost two readings in the audition; its new ones are waiting to be heard.
+      const min = id === 'happy-then' ? 2 : 3;
+      expect(takes.length, id).toBeGreaterThanOrEqual(min);
+      expect(new Set(takes.map((p: any) => p.interpretation)).size, id).toBe(takes.length);
+      expect(new Set(takes.map((p: any) => `${p.voice}:${JSON.stringify(p.context)}`)).size, id).toBeGreaterThanOrEqual(min);
+      expect(direction.performances.filter((p: any) => p.phraseId === id && !p.retired).length, id).toBeGreaterThanOrEqual(3);
     }
   });
 
@@ -117,7 +121,9 @@ describe('API failure handling', () => {
     const files: string[] = [];
     return { calls, files, fetch, writeFile: async (f: string) => void files.push(f), saveLedger: async () => {}, sleep: async () => {} };
   };
-  const jobsFor = (ids: string[]) => planJobs(direction, emptyLedger(), { only: ids }).jobs;
+  // These tests are about the API, not the audition: plan as if no take had been retired.
+  const unretired = { ...direction, performances: direction.performances.map(({ retired, ...p }: any) => p) };
+  const jobsFor = (ids: string[]) => planJobs(unretired, emptyLedger(), { only: ids }).jobs;
 
   it('retries a rate limit, then bills exactly once', async () => {
     const h = harness([fail(429, 'too_many_requests'), ok()]);
@@ -192,8 +198,10 @@ describe('recordings and manifest', () => {
       if (k.startsWith('phrase:')) expect(PHRASE_BY_ID.has(k.slice(7)), k).toBe(true);
     }
     for (const k of ['vf-laugh-next-room', 'vf-breath', 'style:whisper', 'sfx:door']) expect(manifest[k]?.length, k).toBeGreaterThan(0);
-    // The three directed readings, plus any older take the artist approved back in after listening.
-    for (const f of ['dialogue/stay--breaking.mp3', 'dialogue/stay--abandoned.mp3', 'dialogue/stay--asking.mp3']) expect(manifest['phrase:stay']).toContain(f);
+    // The readings the artist kept, including lab takes adopted after listening.
+    for (const f of ['dialogue/stay--breaking.mp3', 'dialogue/stay--tender.mp3', 'dialogue/stay--after-silence.mp3', 'dialogue/stay--sarah.mp3']) expect(manifest['phrase:stay']).toContain(f);
+    // Every take still waiting to be heard stays out.
+    for (const p of direction.performances) if (p.audition) expect(manifest[`phrase:${p.phraseId}`] ?? []).not.toContain(p.file);
     for (const p of direction.performances) if (ledger.entries[p.id]?.review === 'rejected') expect(manifest[`phrase:${p.phraseId}`] ?? []).not.toContain(p.file);
     expect(buildManifest(manifest, direction, ledger)).toEqual(manifest);
   });
