@@ -1,0 +1,351 @@
+{
+  "$comment": "Authored voice direction for recorded performances. `text` must equal the phrase's authored text exactly (it is the caption). `input` is what the TTS model receives: the same words, with at most a sparing audio tag. `context` weights the EmotionalField values that make this performance the right one; `fits` lists the voice styles the Director may ask for that this performance can stand in for. Generation status and costs live in scripts/dialogue-ledger.json, never here.",
+  "model": "eleven_v3",
+  "outputFormat": "mp3_44100_128",
+  "voices": {
+    "intimate": {
+      "voiceId": "cgSgspJ2msm6clMCkdW9",
+      "library": "Jessica (ElevenLabs default voice)",
+      "identity": "A young adult, gentle, imperfect, slightly hesitant. Speaks as if to one specific person at close range: warmth, uncertainty, guarded affection.",
+      "stability": 0.5
+    },
+    "restrained": {
+      "voiceId": "iP95p4xoKVk53GoZ742B",
+      "library": "Chris (ElevenLabs default voice)",
+      "identity": "A grounded, ordinary adult. Keeps composure; emotion gets through anyway. Never theatrical, never cold for effect.",
+      "stability": 0.5
+    },
+    "warm": {
+      "voiceId": "FGY2WhTYpPnrIDTdsKH5",
+      "library": "Laura (ElevenLabs default voice)",
+      "identity": "Expressive and spontaneous, relaxed, laughs easily. Affectionate familiarity; happy memories told without sentiment.",
+      "stability": 0.5
+    },
+    "distant": {
+      "voiceId": "SAz9YHcvj6GT2YYXdXww",
+      "library": "River (ElevenLabs default voice)",
+      "identity": "Quiet and introspective, as if remembering a conversation from years ago. Emotionally ambiguous rather than sad.",
+      "stability": 0.5
+    },
+    "young": {
+      "voiceId": "bIHbv24MWmeRgasZH58o",
+      "library": "Will (ElevenLabs default voice; a young adult voice, not a child)",
+      "identity": "Youthful vulnerability: uncertainty, curiosity, the fragile feeling of being misunderstood. A synthetic stock voice; it imitates no real person.",
+      "stability": 0.5
+    }
+  },
+  "performances": [
+    {
+      "id": "stay--tender",
+      "phraseId": "stay",
+      "voice": "intimate",
+      "text": "I wanted you to stay.",
+      "input": "[softly] I wanted you to stay.",
+      "direction": "Close and warm, not sad. Finally said out loud, to the one person it was for.",
+      "context": { "warmth": 1, "hush": 0.4 },
+      "fits": ["tender", "whisper"],
+      "seed": 1101,
+      "file": "dialogue/stay--tender.mp3"
+    },
+    {
+      "id": "stay--guarded",
+      "phraseId": "stay",
+      "voice": "restrained",
+      "text": "I wanted you to stay.",
+      "input": "I wanted you to stay.",
+      "direction": "Difficult to admit. Even and held back; the last word lands flatter than intended.",
+      "context": { "exposure": 1, "tension": 0.8 },
+      "fits": ["flat"],
+      "seed": 1102,
+      "file": "dialogue/stay--guarded.mp3"
+    },
+    {
+      "id": "stay--remembered",
+      "phraseId": "stay",
+      "voice": "distant",
+      "text": "I wanted you to stay.",
+      "input": "[thoughtfully] I wanted you to stay.",
+      "direction": "Recalling something said years ago, not saying it now. Neither bitter nor resolved.",
+      "context": { "reminiscence": 1, "solitude": 0.5 },
+      "fits": ["distant", "whisper"],
+      "seed": 1103,
+      "file": "dialogue/stay--remembered.mp3"
+    },
+    {
+      "id": "closer--quiet",
+      "phraseId": "closer",
+      "voice": "intimate",
+      "text": "Please don't come any closer.",
+      "input": "[nervously] Please don't come any closer.",
+      "direction": "Not a threat. A request from someone who wants the opposite and is embarrassed by it.",
+      "context": { "exposure": 0.6, "warmth": 0.5 },
+      "fits": ["whisper", "tender"],
+      "seed": 1201,
+      "file": "dialogue/closer--quiet.mp3"
+    },
+    {
+      "id": "closer--flat",
+      "phraseId": "closer",
+      "voice": "restrained",
+      "text": "Please don't come any closer.",
+      "input": "Please don't come any closer.",
+      "direction": "Level and polite. The politeness is the wall.",
+      "context": { "tension": 1, "exposure": 0.8 },
+      "fits": ["flat"],
+      "seed": 1202,
+      "file": "dialogue/closer--flat.mp3"
+    },
+    {
+      "id": "afraid-leave--confessional",
+      "phraseId": "afraid-leave",
+      "voice": "intimate",
+      "text": "I was afraid you'd leave.",
+      "input": "[softly] I was afraid you'd leave.",
+      "direction": "Quietly confessional. A slight hesitation before 'leave'. No crying, no theatrical sadness: admitting something long concealed.",
+      "context": { "warmth": 0.6, "hush": 0.6 },
+      "fits": ["whisper", "tender"],
+      "seed": 1301,
+      "file": "dialogue/afraid-leave--confessional.mp3"
+    },
+    {
+      "id": "afraid-leave--remembered",
+      "phraseId": "afraid-leave",
+      "voice": "distant",
+      "text": "I was afraid you'd leave.",
+      "input": "I was afraid you'd leave.",
+      "direction": "Remembered rather than felt; almost wry about how afraid they were.",
+      "context": { "reminiscence": 1, "solitude": 0.4 },
+      "fits": ["distant"],
+      "seed": 1302,
+      "file": "dialogue/afraid-leave--remembered.mp3"
+    },
+    {
+      "id": "if-closer",
+      "phraseId": "if-closer",
+      "voice": "young",
+      "text": "If I come closer, will you stay?",
+      "input": "[hesitant] If I come closer, will you stay?",
+      "direction": "A real question, asked carefully, half expecting the wrong answer.",
+      "context": { "exposure": 0.5, "warmth": 0.5 },
+      "fits": ["whisper", "tender"],
+      "seed": 1401,
+      "file": "dialogue/if-closer.mp3"
+    },
+    {
+      "id": "why-understand--frustrated",
+      "phraseId": "why-understand",
+      "voice": "restrained",
+      "text": "Why didn't you understand?",
+      "input": "[frustrated] Why didn't you understand?",
+      "direction": "Frustration under control, not shouting. Tired of having asked.",
+      "context": { "tension": 1, "exposure": 0.4 },
+      "fits": ["flat"],
+      "seed": 1501,
+      "file": "dialogue/why-understand--frustrated.mp3"
+    },
+    {
+      "id": "why-understand--quiet",
+      "phraseId": "why-understand",
+      "voice": "young",
+      "text": "Why didn't you understand?",
+      "input": "[quietly] Why didn't you understand?",
+      "direction": "Not an accusation. Genuinely asking, years too late.",
+      "context": { "reminiscence": 0.6, "hush": 0.6 },
+      "fits": ["whisper", "distant", "tender"],
+      "seed": 1502,
+      "file": "dialogue/why-understand--quiet.mp3"
+    },
+    {
+      "id": "love-go-away--flat",
+      "phraseId": "love-go-away",
+      "voice": "restrained",
+      "text": "I love you. Go away.",
+      "input": "I love you. Go away.",
+      "direction": "Both sentences meant. Tired. No anger on 'go away'.",
+      "context": { "exposure": 1, "tension": 0.5 },
+      "fits": ["flat"],
+      "seed": 1601,
+      "file": "dialogue/love-go-away--flat.mp3"
+    },
+    {
+      "id": "love-go-away--fond",
+      "phraseId": "love-go-away",
+      "voice": "warm",
+      "text": "I love you. Go away.",
+      "input": "[laughs softly] I love you. Go away.",
+      "direction": "Affectionate, half-joking, the way you push someone off the sofa.",
+      "context": { "warmth": 1, "relief": 0.4 },
+      "fits": ["tender"],
+      "seed": 1602,
+      "file": "dialogue/love-go-away--fond.mp3"
+    },
+    {
+      "id": "two-cups",
+      "phraseId": "two-cups",
+      "voice": "distant",
+      "text": "I still say 'we' by accident.",
+      "input": "I still say 'we' by accident.",
+      "direction": "Matter-of-fact, almost amused at oneself; the smallest catch on 'accident'.",
+      "context": { "reminiscence": 1, "solitude": 0.5 },
+      "fits": ["whisper", "distant", "tender"],
+      "seed": 1701,
+      "file": "dialogue/two-cups.mp3"
+    },
+    {
+      "id": "laugh-breathe",
+      "phraseId": "laugh-breathe",
+      "voice": "warm",
+      "text": "You made me laugh so hard I couldn't breathe.",
+      "input": "[laughing] You made me laugh so hard I couldn't breathe.",
+      "direction": "A genuinely happy memory, laughing a little in the telling, not performing it.",
+      "context": { "warmth": 1, "reminiscence": 0.5 },
+      "fits": ["tender", "flat", "whisper"],
+      "seed": 1801,
+      "file": "dialogue/laugh-breathe.mp3"
+    },
+    {
+      "id": "understood-minute",
+      "phraseId": "understood-minute",
+      "voice": "distant",
+      "text": "You understood me once, completely, for about a minute.",
+      "input": "You understood me once, completely, for about a minute.",
+      "direction": "Fond and wry. 'About a minute' is both the joke and the wound.",
+      "context": { "reminiscence": 1, "warmth": 0.4 },
+      "fits": ["tender", "distant", "flat"],
+      "seed": 1901,
+      "file": "dialogue/understood-minute.mp3"
+    },
+    {
+      "id": "crumbs",
+      "phraseId": "crumbs",
+      "voice": "warm",
+      "text": "You've got crumbs on you.",
+      "input": "[amused] You've got crumbs on you.",
+      "direction": "Ordinary, close, teasing; leaning in to brush them off.",
+      "context": { "warmth": 1 },
+      "fits": ["tender"],
+      "seed": 2001,
+      "file": "dialogue/crumbs.mp3"
+    },
+    {
+      "id": "remember-me",
+      "phraseId": "remember-me",
+      "voice": "young",
+      "text": "Do you remember me?",
+      "input": "Do you remember me?",
+      "direction": "Small and hopeful, ready for the answer to be no.",
+      "context": { "solitude": 0.8, "reminiscence": 0.6 },
+      "fits": ["child", "whisper", "distant"],
+      "seed": 2101,
+      "file": "dialogue/remember-me.mp3"
+    },
+    {
+      "id": "glad-came",
+      "phraseId": "glad-came",
+      "voice": "intimate",
+      "text": "I'm glad you came.",
+      "input": "I'm glad you came.",
+      "direction": "Simple. Shy relief. Not a greeting card.",
+      "context": { "warmth": 0.8, "relief": 0.6 },
+      "fits": ["tender"],
+      "seed": 2201,
+      "file": "dialogue/glad-came.mp3"
+    },
+    {
+      "id": "still-here",
+      "phraseId": "still-here",
+      "voice": "distant",
+      "text": "I'm still here.",
+      "input": "[quietly] I'm still here.",
+      "direction": "Not spooky. Reassuring, and a little surprised to be saying it.",
+      "context": { "hush": 1, "solitude": 0.6 },
+      "fits": ["tender", "whisper"],
+      "seed": 2301,
+      "file": "dialogue/still-here.mp3"
+    },
+    {
+      "id": "not-going",
+      "phraseId": "not-going",
+      "voice": "restrained",
+      "text": "I'm not going anywhere.",
+      "input": "I'm not going anywhere.",
+      "direction": "Steady and plain. It could be a promise or it could be resignation.",
+      "context": { "warmth": 0.5, "exposure": 0.5 },
+      "fits": ["tender", "flat"],
+      "seed": 2401,
+      "file": "dialogue/not-going.mp3"
+    },
+    {
+      "id": "this-bit",
+      "phraseId": "this-bit",
+      "voice": "warm",
+      "text": "Don't go yet, this bit's good.",
+      "input": "Don't go yet, this bit's good.",
+      "direction": "Casual, eyes still on the screen, a hand on someone's arm.",
+      "context": { "warmth": 0.8, "relief": 0.4 },
+      "fits": ["tender", "flat"],
+      "seed": 2501,
+      "file": "dialogue/this-bit.mp3"
+    },
+    {
+      "id": "alone-ok",
+      "phraseId": "alone-ok",
+      "voice": "restrained",
+      "text": "There's nothing wrong with being alone.",
+      "input": "There's nothing wrong with being alone.",
+      "direction": "Said to oneself, not preached. Almost indifferent.",
+      "context": { "solitude": 0.8, "relief": 0.8 },
+      "fits": ["tender", "flat"],
+      "seed": 2601,
+      "file": "dialogue/alone-ok.mp3"
+    },
+    {
+      "id": "sorry-like-that",
+      "phraseId": "sorry-like-that",
+      "voice": "young",
+      "text": "I'm sorry I was like that.",
+      "input": "[embarrassed] I'm sorry I was like that.",
+      "direction": "Awkward. A breath of a laugh at oneself before the apology.",
+      "context": { "relief": 0.6, "warmth": 0.4 },
+      "fits": ["tender"],
+      "seed": 2701,
+      "file": "dialogue/sorry-like-that.mp3"
+    },
+    {
+      "id": "happy-then",
+      "phraseId": "happy-then",
+      "voice": "distant",
+      "text": "I think I was happy then.",
+      "input": "I think I was happy then.",
+      "direction": "Surprised by the thought. The 'I think' is real doubt, not modesty.",
+      "context": { "reminiscence": 1, "warmth": 0.3 },
+      "fits": ["tender", "distant"],
+      "seed": 2801,
+      "file": "dialogue/happy-then.mp3"
+    },
+    {
+      "id": "laugh",
+      "phraseId": "laugh",
+      "voice": "intimate",
+      "text": "I remember your laugh.",
+      "input": "I remember your laugh.",
+      "direction": "Unguarded, a small smile in it. Remembering the sound, not the loss.",
+      "context": { "reminiscence": 0.8, "warmth": 0.6 },
+      "fits": ["whisper", "tender"],
+      "seed": 2901,
+      "file": "dialogue/laugh.mp3"
+    },
+    {
+      "id": "was-it-me",
+      "phraseId": "was-it-me",
+      "voice": "young",
+      "text": "Was it me?",
+      "input": "Was it me?",
+      "direction": "Almost under the breath. Asking oneself as much as anyone.",
+      "context": { "exposure": 0.6, "tension": 0.4 },
+      "fits": ["whisper", "flat"],
+      "seed": 3001,
+      "file": "dialogue/was-it-me.mp3"
+    }
+  ]
+}

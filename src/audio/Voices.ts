@@ -1,6 +1,7 @@
 import type { AudioEngine } from './AudioEngine';
 import type { VoiceKind } from '../state/cues';
 import { Rng, hashString } from '../core/rng';
+import { chooseSource, type Source } from './selection';
 
 /**
  * Voices.
@@ -22,7 +23,21 @@ export interface VoicePlacement {
   muffled?: boolean;
   /** No position at all: inside the head, drifting. */
   nowhere?: boolean;
+  /** Handle for cutting the sound off later. */
+  tag?: string;
 }
+
+export interface PlayOptions {
+  /** Recorded performance files for this phrase, best first for this moment. */
+  performances?: string[];
+  /** Semitones above the base for a hummed tune; -100 is a rest. */
+  melody?: number[];
+  /** Never substitute a recording. */
+  synth?: boolean;
+}
+
+/** Seconds per note of a given hummed melody (kept in step with the composer). */
+const HUM_NOTE = 0.62;
 
 type Formants = [number, number, number];
 const VOWELS: Record<string, Formants> = {
@@ -172,6 +187,15 @@ export class Voices {
     const t = c.currentTime;
     const input = c.createGain();
     input.gain.value = gain;
+    if (place.tag) {
+      const list = this.tagged.get(place.tag) ?? [];
+      list.push(input);
+      this.tagged.set(place.tag, list);
+      setTimeout(() => {
+        const l = this.tagged.get(place.tag!);
+        if (l) this.tagged.set(place.tag!, l.filter((n) => n !== input));
+      }, (dur + 6) * 1000);
+    }
     let node: AudioNode = input;
     if (place.muffled) {
       const lp = c.createBiquadFilter();
@@ -228,39 +252,174 @@ export class Voices {
   /**
    * Play a voice event. Returns its approximate duration (seconds) for captions.
    */
-  async play(kind: VoiceKind, text: string | null, place: VoicePlacement, gain: number, assetKey?: string): Promise<number> {
+  async play(kind: VoiceKind, text: string | null, place: VoicePlacement, gain: number, assetKey?: string, opts: PlayOptions = {}): Promise<number> {
     if (this.active >= 4) return 0; // never a crowd
     this.active++; // reserve the slot before anything asynchronous
     let dur = 0;
     try {
-      dur = await this.play_(kind, text, place, gain, assetKey);
+      dur = await this.play_(kind, text, place, gain, opts.synth ? undefined : assetKey, opts);
     } finally {
       setTimeout(() => this.active--, dur * 1000 + 500);
     }
     return dur;
   }
 
+  private tagged = new Map<string, GainNode[]>();
+  /** Where the most recent voice came from (for inspection and tests). */
+  lastSource: Source | null = null;
+
+  /**
+   * A small household sound somewhere: a door closing in another room, a cup set down,
+   * the chair creaking. Recorded if a clip exists (`sfx:<kind>`), otherwise synthesised.
+   */
+  async sound(kind: 'door' | 'chair-creak' | 'cup', place: VoicePlacement, gain: number): Promise<number> {
+    if (this.active >= 4) return 0;
+    this.active++;
+    let dur = 0;
+    try {
+      const g = gain * (0.55 + 0.45 * this.a.intensity);
+      const key = `sfx:${kind}`;
+      if (this.hasAsset(key)) {
+        const files = this.manifest[key];
+        const file = files[this.rng.int(0, files.length - 1)];
+        const buf = await this.loadBuffer(file);
+        if (buf) return (dur = this.playBuffer(buf, place, g * (this.norm.get(file) ?? 1), 0.45));
+      }
+      dur = kind === 'door' ? this.synthDoor(place, g) : kind === 'cup' ? this.synthCup(place, g) : this.synthCreak(place, g);
+      return dur;
+    } finally {
+      setTimeout(() => this.active--, dur * 1000 + 500);
+    }
+  }
+
+  /** A door closing: a soft low thud, then the latch. */
+  private synthDoor(place: VoicePlacement, gain: number): number {
+    const c = this.a.ctx;
+    const t = c.currentTime + 0.05;
+    const out = c.createGain();
+    const thud = c.createOscillator();
+    thud.frequency.setValueAtTime(78, t);
+    thud.frequency.exponentialRampToValueAtTime(48, t + 0.3);
+    const tg = c.createGain();
+    tg.gain.setValueAtTime(0, t);
+    tg.gain.linearRampToValueAtTime(0.9, t + 0.006);
+    tg.gain.exponentialRampToValueAtTime(0.0001, t + 0.45);
+    thud.connect(tg).connect(out);
+    thud.start(t);
+    thud.stop(t + 0.5);
+    const n = this.a.noiseSource();
+    const nl = c.createBiquadFilter();
+    nl.type = 'lowpass';
+    nl.frequency.value = 260;
+    const ng = c.createGain();
+    ng.gain.setValueAtTime(0, t);
+    ng.gain.linearRampToValueAtTime(0.7, t + 0.004);
+    ng.gain.exponentialRampToValueAtTime(0.0001, t + 0.18);
+    n.connect(nl).connect(ng).connect(out);
+    const latch = t + 0.11;
+    const lh = c.createBiquadFilter();
+    lh.type = 'bandpass';
+    lh.frequency.value = 2600;
+    lh.Q.value = 4;
+    const lg = c.createGain();
+    lg.gain.setValueAtTime(0, latch);
+    lg.gain.linearRampToValueAtTime(0.35, latch + 0.002);
+    lg.gain.exponentialRampToValueAtTime(0.0001, latch + 0.03);
+    n.connect(lh).connect(lg).connect(out);
+    n.start(t);
+    n.stop(t + 0.6);
+    const tail = this.chain({ ...place, muffled: place.muffled ?? true }, 0.55, 1.6, gain * 0.9);
+    out.connect(tail);
+    return 1.6;
+  }
+
+  /** A cup set down: a short ceramic ring. */
+  private synthCup(place: VoicePlacement, gain: number): number {
+    const c = this.a.ctx;
+    const t = c.currentTime + 0.05;
+    const out = c.createGain();
+    for (const [f, a, d] of [[2380, 0.4, 0.35], [3710, 0.25, 0.22], [5620, 0.12, 0.12], [920, 0.18, 0.08]] as const) {
+      const o = c.createOscillator();
+      o.frequency.value = f * this.rng.range(0.98, 1.02);
+      const g = c.createGain();
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(a, t + 0.002);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+      o.connect(g).connect(out);
+      o.start(t);
+      o.stop(t + d + 0.05);
+    }
+    const tail = this.chain(place, 0.4, 1.2, gain * 0.35);
+    out.connect(tail);
+    return 1.2;
+  }
+
+  /** Old wood taking weight: a slow, rough creak. */
+  private synthCreak(place: VoicePlacement, gain: number): number {
+    const c = this.a.ctx;
+    const t = c.currentTime + 0.05;
+    const n = this.a.noiseSource();
+    const bp = c.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.Q.value = 14;
+    bp.frequency.setValueAtTime(310, t);
+    bp.frequency.linearRampToValueAtTime(540, t + 0.7);
+    const g = c.createGain();
+    g.gain.value = 0;
+    const flutter = c.createOscillator();
+    flutter.frequency.value = 23;
+    const fg = c.createGain();
+    fg.gain.value = 0.5;
+    flutter.connect(fg).connect(g.gain);
+    const env = c.createGain();
+    env.gain.setValueAtTime(0, t);
+    env.gain.linearRampToValueAtTime(1, t + 0.12);
+    env.gain.linearRampToValueAtTime(0.6, t + 0.55);
+    env.gain.linearRampToValueAtTime(0, t + 0.8);
+    n.connect(bp).connect(g).connect(env);
+    const tail = this.chain(place, 0.2, 1.2, gain * 1.6);
+    env.connect(tail);
+    n.start(t);
+    n.stop(t + 0.9);
+    flutter.start(t);
+    flutter.stop(t + 0.9);
+    return 1.2;
+  }
+
+  /** Cut off every sound carrying this tag, with a short fade (no click). */
+  stop(tag: string, fade: number) {
+    const t = this.a.ctx.currentTime;
+    for (const g of this.tagged.get(tag) ?? []) {
+      g.gain.cancelScheduledValues(t);
+      g.gain.setValueAtTime(g.gain.value, t);
+      g.gain.linearRampToValueAtTime(0, t + Math.max(0.02, fade));
+    }
+    this.tagged.delete(tag);
+  }
+
   stopSpeech() {
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
   }
 
-  private async play_(kind: VoiceKind, text: string | null, place: VoicePlacement, gain: number, assetKey?: string): Promise<number> {
+  private async play_(kind: VoiceKind, text: string | null, place: VoicePlacement, gain: number, assetKey: string | undefined, opts: PlayOptions): Promise<number> {
     const g = gain * (0.55 + 0.45 * this.a.intensity);
-    const nonVerbal = ['laugh', 'murmur', 'breath', 'hum'].includes(kind);
-    if (text && this.speechFallback && 'speechSynthesis' in window && !nonVerbal) {
-      return this.speak(text, kind, g);
-    }
-    // A recording made for this exact moment, or a recorded texture for this manner of speaking.
-    const key = assetKey && this.hasAsset(assetKey) ? assetKey : this.hasAsset(`style:${kind}`) ? `style:${kind}` : null;
-    if (key) {
-      const files = this.manifest[key];
-      const file = files[this.rng.int(0, files.length - 1)];
+    const src = chooseSource({
+      manifest: this.manifest, assetKey, performances: opts.performances, text, kind,
+      speechFallback: this.speechFallback, speechAvailable: 'speechSynthesis' in window, synthOnly: opts.synth,
+      pick: (n) => this.rng.int(0, n - 1),
+    });
+    this.lastSource = src;
+    if (src.kind === 'recording' || src.kind === 'texture') {
+      const file = src.kind === 'recording' ? src.file : this.manifest[src.key][this.rng.int(0, this.manifest[src.key].length - 1)];
       const buf = await this.loadBuffer(file);
       if (buf) {
-        const level = this.norm.get(file) ?? 1;
-        return this.playBuffer(buf, place, g * level, kind === 'flat' ? 0.05 : 0.3);
+        // Intelligible recordings sit a little above the room tone so words aren't masked.
+        const level = (this.norm.get(file) ?? 1) * (src.kind === 'recording' ? 1.35 : 1);
+        // Recorded speech is dry; the room supplies the space. Flat delivery stays closest.
+        return this.playBuffer(buf, place, g * level, kind === 'flat' ? 0.05 : src.kind === 'recording' ? 0.22 : 0.3);
       }
     }
+    if (src.kind === 'speech' && text) return this.speak(text, kind, g);
     switch (kind) {
       case 'breath':
         return this.breath(place, g);
@@ -269,7 +428,7 @@ export class Voices {
       case 'murmur':
         return this.murmur(place, g);
       case 'hum':
-        return this.hum(place, g);
+        return opts.melody?.length ? this.humTune(place, g, opts.melody) : this.hum(place, g);
       default:
         return this.utter(text ?? '...', STYLES[kind] ?? STYLES.whisper, place, g, hashString(text ?? kind));
     }
@@ -540,6 +699,41 @@ export class Voices {
     }
     g.gain.setTargetAtTime(0, t, 0.2);
     const dur = t - t0 + 0.8;
+    const tail = this.chain({ ...place, muffled: place.muffled ?? true }, 0.4, dur, gain * 0.5);
+    o.connect(nasal).connect(lp).connect(g).connect(tail);
+    o.start(t0);
+    o.stop(t + 1);
+    return dur;
+  }
+
+  /** Hum a given tune, one note per HUM_NOTE seconds, legato, with breaths at the rests. */
+  private humTune(place: VoicePlacement, gain: number, melody: number[]): number {
+    const c = this.a.ctx;
+    const base = 205;
+    const o = c.createOscillator();
+    o.type = 'triangle';
+    const g = c.createGain();
+    g.gain.value = 0;
+    const lp = c.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 900;
+    const nasal = c.createBiquadFilter();
+    nasal.type = 'peaking';
+    nasal.frequency.value = 270;
+    nasal.gain.value = 8;
+    const t0 = c.currentTime + 0.1;
+    let t = t0;
+    for (const n of melody) {
+      if (n <= -50) {
+        g.gain.setTargetAtTime(0.0, t, 0.05);
+      } else {
+        o.frequency.setTargetAtTime(base * Math.pow(2, n / 12), t, 0.05);
+        g.gain.setTargetAtTime(0.32 + this.rng.range(-0.05, 0.05), t, 0.06);
+      }
+      t += HUM_NOTE;
+    }
+    g.gain.setTargetAtTime(0, t, 0.25);
+    const dur = t - t0 + 0.6;
     const tail = this.chain({ ...place, muffled: place.muffled ?? true }, 0.4, dur, gain * 0.5);
     o.connect(nasal).connect(lp).connect(g).connect(tail);
     o.start(t0);

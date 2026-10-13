@@ -81,6 +81,8 @@ type Purpose = 'phrase' | 'annotation' | 'recall' | 'recontext' | 'contribution'
 export interface TextItem {
   key: string;
   phrase?: Phrase;
+  /** For writing that repeats a phrase elsewhere: the phrase it repeats. */
+  source?: string;
   purpose: Purpose;
   hand: Hand;
   size: Size;
@@ -135,6 +137,7 @@ export class WallText {
     const { mat, uniforms } = makeTextMaterial(tex, hand, w / h, hashString(key));
     const mesh = new THREE.Mesh(this.geo, mat);
     mesh.scale.set(w, h, 1);
+    mesh.userData.text = text;
     mesh.renderOrder = 2;
     mesh.visible = false;
     mesh.receiveShadow = true;
@@ -186,7 +189,7 @@ export class WallText {
   }
 
   /** Write new text beside a phrase or somewhere on a surface. Returns false if there was no room. */
-  write(o: { key: string; text: string; hand: Hand; size: Size; beside?: string; surface?: Surface; near?: { u: number; v: number }; purpose: Exclude<Purpose, 'phrase'>; ttl: number; now: number }): boolean {
+  write(o: { key: string; text: string; hand: Hand; size: Size; beside?: string; surface?: Surface; near?: { u: number; v: number }; purpose: Exclude<Purpose, 'phrase'>; ttl: number; now: number; source?: string }): boolean {
     if (this.items.has(o.key)) return false;
     const m = measureText(o.text, o.hand, o.size);
     let rect = null as null | { u: number; v: number; w: number; h: number };
@@ -232,6 +235,7 @@ export class WallText {
     if (!rect || !surface) return false;
     const pl = this.layout.add({ surface, ...rect, rot: (((hashString(o.key) % 100) / 100) - 0.5) * 0.06 });
     const it = this.create(o.key, o.text, o.hand, size, pl, o.purpose);
+    it.source = o.source;
     it.expires = o.ttl > 0 ? o.now + o.ttl : 0;
     this.reveal(o.key, o.purpose === 'contribution' ? 5 : 7);
     return true;
@@ -309,6 +313,36 @@ export class WallText {
     ln.mesh.rotation.z = Math.atan2(n.y, n.x);
   }
 
+  /**
+   * Rub out a piece of writing except for one word, which stays where it was written.
+   * The remaining word becomes its own item, `${key}:kept`.
+   */
+  erode(key: string, keep: string, now: number): boolean {
+    const it = this.items.get(key);
+    if (!it || it.vis <= 0 || !keep) return false;
+    const text = (it.mesh.userData.text as string) ?? '';
+    const idx = text.toLowerCase().indexOf(keep);
+    const word = idx >= 0 ? text.slice(idx, idx + keep.length) : keep;
+    const m = measureText(word, it.hand, it.size);
+    const pl = it.placement;
+    const single = pl.h < measureText('Ag', it.hand, it.size).h * 1.5;
+    const frac = idx >= 0 && text.length ? idx / text.length : 0;
+    const left = pl.u - pl.w / 2 + (single ? frac * pl.w : 0);
+    const kept = this.layout.add({ surface: pl.surface, u: Math.min(left + m.w / 2, pl.u + pl.w / 2 - m.w / 2), v: single ? pl.v : pl.v + pl.h / 2 - m.h / 2, w: m.w, h: m.h, rot: pl.rot });
+    const k = this.create(`${key}:kept`, word, it.hand, it.size, kept, it.purpose);
+    k.vis = 0.5;
+    k.target = 1;
+    k.rate = 1 / 6;
+    k.mesh.visible = true;
+    k.expires = it.expires;
+    // The rest is rubbed out, slowly and unevenly.
+    it.target = 0;
+    it.rate = 1 / 9;
+    it.expires = it.expires === 0 ? now : it.expires;
+    if (it.purpose === 'contribution') it.expires = -1;
+    return true;
+  }
+
   removeContributions() {
     for (const it of this.items.values()) if (it.purpose === 'contribution') {
       it.target = 0;
@@ -325,7 +359,7 @@ export class WallText {
     let bestScore = Infinity;
     const to = new THREE.Vector3();
     for (const it of this.items.values()) {
-      if (it.vis < 0.35 || !it.phrase) continue;
+      if (it.vis < 0.35 || !(it.phrase || it.source)) continue;
       to.copy(it.centre).sub(pos);
       const dist = to.length();
       if (dist > 6.5 || dist < 0.2) continue;
@@ -408,6 +442,13 @@ export class WallText {
     mat.dispose();
     this.layout.remove(it.placement);
     this.items.delete(it.key);
+  }
+
+  /** The phrase a piece of writing is (or repeats). */
+  phraseOf(key: string | null): string | null {
+    if (!key) return null;
+    const it = this.items.get(key);
+    return it?.phrase?.id ?? it?.source ?? null;
   }
 
   centreOf(key: string): THREE.Vector3 | null {

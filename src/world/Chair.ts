@@ -1,12 +1,69 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
-import { woodTexture } from './textures';
+import { woodMaps } from './wood';
 
 /**
- * A small turned-wood ladder-back chair — a child's chair, or a dollhouse chair grown
- * just big enough to be real. Seat height 33 cm, top of the back 66 cm: recognisably a
- * chair, too small for the visitor.
+ * A small hand-made ladder-back chair. Seat at 34 cm, finials at 72 cm: a child's chair,
+ * too small for the visitor, made by someone who cared. Turned legs that splay a little,
+ * back posts that lean and end in finials, an arched crest rail bent to fit a back, a
+ * dished seat. Wear is baked into vertex colour: paler where hands and bodies touched it
+ * (the seat's front edge, the middle of the crest rail), darker where it meets the floor.
  */
+
+type Profile = [number, number][]; // [t, radius]
+
+function radiusAt(p: Profile, t: number): number {
+  for (let i = 1; i < p.length; i++) {
+    if (t <= p[i][0]) {
+      const [t0, r0] = p[i - 1], [t1, r1] = p[i];
+      const k = (t - t0) / (t1 - t0);
+      const s = k * k * (3 - 2 * k);
+      return r0 + (r1 - r0) * s;
+    }
+  }
+  return p[p.length - 1][1];
+}
+
+/** A turned part: a tube along a curve whose radius follows a lathe profile. */
+function turned(points: THREE.Vector3[], profile: Profile, segs = 64, radial = 14): THREE.BufferGeometry {
+  const curve = new THREE.CatmullRomCurve3(points, false, 'centripetal');
+  const tube = new THREE.TubeGeometry(curve, segs, 1, radial, false);
+  const pos = tube.attributes.position;
+  const centre = new THREE.Vector3();
+  const v = new THREE.Vector3();
+  for (let i = 0; i <= segs; i++) {
+    const t = i / segs;
+    curve.getPointAt(t, centre);
+    const r = radiusAt(profile, t);
+    for (let j = 0; j <= radial; j++) {
+      const k = i * (radial + 1) + j;
+      v.fromBufferAttribute(pos, k).sub(centre).multiplyScalar(r).add(centre);
+      pos.setXYZ(k, v.x, v.y, v.z);
+    }
+  }
+  tube.computeVertexNormals();
+  const len = curve.getLength();
+  const uv = tube.attributes.uv;
+  for (let k = 0; k < uv.count; k++) uv.setXY(k, uv.getX(k) * len * 2.2, uv.getY(k) * 0.12);
+  return tube;
+}
+
+/** A board bent along its width (z) and, for the crest, arched along its top edge. */
+function bentBoard(w: number, h: number, t: number, bend: number, arch: number): THREE.BufferGeometry {
+  const g = new RoundedBoxGeometry(w, h, t, 3, Math.min(t, h) * 0.45);
+  const pos = g.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i), y = pos.getY(i);
+    const k = 1 - (2 * x / w) ** 2;
+    pos.setZ(i, pos.getZ(i) - bend * k);
+    if (y > 0) pos.setY(i, y + arch * k);
+  }
+  g.computeVertexNormals();
+  const uv = g.attributes.uv;
+  for (let k = 0; k < uv.count; k++) uv.setXY(k, uv.getX(k) * w * 2.2, uv.getY(k) * 0.08 + 0.3);
+  return g;
+}
+
 export class Chair {
   readonly group = new THREE.Group();
   readonly hit: THREE.Mesh;
@@ -15,106 +72,136 @@ export class Chair {
   baseYaw = 0.22;
 
   constructor() {
-    const grain = woodTexture(5);
+    const { map, rough } = woodMaps(7);
     const mat = new THREE.MeshPhysicalMaterial({
-      map: grain,
-      roughness: 0.58,
-      clearcoat: 0.15,
-      clearcoatRoughness: 0.55,
-      sheen: 0.15,
-      sheenRoughness: 0.8,
-      sheenColor: new THREE.Color('#d9b48a'),
+      map,
+      roughnessMap: rough,
+      roughness: 1,
+      metalness: 0,
+      clearcoat: 0.1,
+      clearcoatRoughness: 0.6,
+      sheen: 0.25,
+      sheenRoughness: 0.7,
+      sheenColor: new THREE.Color('#e0bf98'),
+      vertexColors: true,
     });
-    const seatGrain = grain.clone();
-    seatGrain.needsUpdate = true;
-    seatGrain.rotation = Math.PI / 2;
-    seatGrain.center.set(0.5, 0.5);
-    const seatMat = mat.clone();
-    seatMat.map = seatGrain;
-    seatMat.roughness = 0.6; // worn where people sat
 
-    const seatH = 0.33;
-    const seatW = 0.34;
-    const seatD = 0.31;
-    const add = (m: THREE.Mesh) => {
-      m.castShadow = true;
-      m.receiveShadow = true;
-      this.group.add(m);
-      return m;
+    const parts: THREE.BufferGeometry[] = [];
+    const add = (g: THREE.BufferGeometry, m = new THREE.Matrix4()) => {
+      g.applyMatrix4(m);
+      parts.push(g);
     };
 
-    // Seat — a slightly dished board with softened edges.
-    const seat = add(new THREE.Mesh(new RoundedBoxGeometry(seatW, 0.026, seatD, 3, 0.008), seatMat));
-    seat.position.set(0, seatH, 0);
+    // Seat: dished, a little wider at the front, softened edges.
+    const seatTop = 0.345;
+    const seat = new RoundedBoxGeometry(1, 1, 1, 4, 0.12);
+    {
+      const pos = seat.attributes.position;
+      const W0 = 0.33, W1 = 0.37, D = 0.315, T = 0.028;
+      for (let i = 0; i < pos.count; i++) {
+        let x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+        const front = z + 0.5; // 0 at back, 1 at front
+        x *= W0 + (W1 - W0) * front;
+        z *= D;
+        y = y * T;
+        if (y > 0) y -= 0.006 * (1 - (2 * x / W1) ** 2) * (1 - (2 * z / D) ** 2); // dished
+        pos.setXYZ(i, x, y + seatTop - T / 2, z);
+      }
+      seat.computeVertexNormals();
+      const uv = seat.attributes.uv;
+      for (let k = 0; k < uv.count; k++) uv.setXY(k, uv.getX(k) * 0.8, uv.getY(k) * 0.6 + 0.1);
+    }
+    add(seat);
 
-    // Turned legs: lathe profiles with a bead and a taper.
-    const frontProfile = this.turnedProfile(seatH, false);
-    const backProfile = this.turnedProfile(0.66, true);
-    const legGeoF = new THREE.LatheGeometry(frontProfile, 14);
-    const legGeoB = new THREE.LatheGeometry(backProfile, 14);
-    const lx = seatW / 2 - 0.022;
-    const lzF = seatD / 2 - 0.022;
-    const lzB = -seatD / 2 + 0.02;
+    // Front legs: turned, splayed slightly outward and forward.
+    const front: Profile = [[0, 0.0105], [0.12, 0.0135], [0.3, 0.0165], [0.5, 0.0128], [0.6, 0.017], [0.66, 0.0128], [0.92, 0.0145], [1, 0.012]];
     for (const sx of [-1, 1]) {
-      add(new THREE.Mesh(legGeoF, mat)).position.set(sx * lx, 0, lzF);
-      const back = add(new THREE.Mesh(legGeoB, mat));
-      back.position.set(sx * lx, 0, lzB);
-      back.rotation.x = -0.05; // a little rake
+      add(turned([new THREE.Vector3(sx * 0.17, 0.004, 0.165), new THREE.Vector3(sx * 0.161, 0.17, 0.152), new THREE.Vector3(sx * 0.153, 0.334, 0.14)], front));
     }
-
-    // Curved back slats.
-    for (const [i, y] of [0.44, 0.52, 0.6].entries()) {
-      const slat = add(new THREE.Mesh(this.curvedSlat(lx * 2 - 0.012, 0.034 - i * 0.003, 0.011), mat));
-      slat.position.set(0, y, lzB - (y - 0.0) * 0.05 - 0.004);
-    }
-
-    // Stretchers.
-    const stretch = (len: number, r: number) => new THREE.CylinderGeometry(r, r, len, 10);
-    const sideLen = lzF - lzB;
+    // Back legs run up into the back posts, leaning back, ending in finials.
+    const back: Profile = [[0, 0.011], [0.08, 0.0145], [0.2, 0.0158], [0.42, 0.0145], [0.47, 0.0158], [0.52, 0.0136], [0.93, 0.0122], [0.965, 0.0098], [1, 0.011]];
+    const postTop = (sx: number) => new THREE.Vector3(sx * 0.122, 0.705, -0.212);
     for (const sx of [-1, 1]) {
-      const s1 = add(new THREE.Mesh(stretch(sideLen, 0.0065), mat));
-      s1.rotation.x = Math.PI / 2;
-      s1.position.set(sx * lx, 0.1, (lzF + lzB) / 2);
-      const s2 = add(new THREE.Mesh(stretch(sideLen, 0.006), mat));
-      s2.rotation.x = Math.PI / 2;
-      s2.position.set(sx * lx, 0.17, (lzF + lzB) / 2);
+      add(
+        turned(
+          [
+            new THREE.Vector3(sx * 0.158, 0.004, -0.17),
+            new THREE.Vector3(sx * 0.146, 0.334, -0.135),
+            new THREE.Vector3(sx * 0.134, 0.53, -0.162),
+            postTop(sx),
+          ],
+          back,
+          96,
+        ),
+      );
+      const fin = new THREE.SphereGeometry(0.0158, 18, 12);
+      fin.scale(1, 1.25, 1);
+      fin.translate(postTop(sx).x, postTop(sx).y + 0.014, postTop(sx).z - 0.002);
+      add(fin);
     }
-    const front = add(new THREE.Mesh(stretch(lx * 2, 0.0065), mat));
-    front.rotation.z = Math.PI / 2;
-    front.position.set(0, 0.14, lzF);
-    const backS = add(new THREE.Mesh(stretch(lx * 2, 0.006), mat));
-    backS.rotation.z = Math.PI / 2;
-    backS.position.set(0, 0.12, lzB);
+
+    // Back: an arched crest rail and two slats, bent to receive a back, following the lean.
+    const lean = new THREE.Matrix4().makeRotationX(-0.13);
+    const rail = (y: number, z: number, h: number, arch: number, bend: number) => {
+      const g = bentBoard(0.262, h, 0.013, bend, arch);
+      const m = new THREE.Matrix4().makeTranslation(0, y, z).multiply(lean);
+      add(g, m);
+    };
+    rail(0.648, -0.196, 0.056, 0.014, 0.018);
+    rail(0.565, -0.175, 0.034, 0.004, 0.015);
+    rail(0.482, -0.158, 0.03, 0.002, 0.013);
+
+    // Stretchers, slightly bowed, with a bead at the front.
+    const stretch = (a: THREE.Vector3, b: THREE.Vector3, beaded: boolean) => {
+      const mid = a.clone().lerp(b, 0.5);
+      mid.y -= 0.002;
+      const prof: Profile = beaded
+        ? [[0, 0.0062], [0.42, 0.0074], [0.5, 0.0096], [0.58, 0.0074], [1, 0.0062]]
+        : [[0, 0.006], [0.5, 0.0072], [1, 0.006]];
+      add(turned([a, mid, b], prof, 32, 10));
+    };
+    const fl = (sx: number, y: number) => new THREE.Vector3(sx * (0.17 - (y / 0.334) * 0.017), y, 0.165 - (y / 0.334) * 0.025);
+    const bl = (sx: number, y: number) => new THREE.Vector3(sx * (0.158 - (y / 0.334) * 0.012), y, -0.17 + (y / 0.334) * 0.035);
+    stretch(fl(-1, 0.13), fl(1, 0.13), true);
+    stretch(bl(-1, 0.12), bl(1, 0.12), false);
+    for (const sx of [-1, 1]) {
+      stretch(fl(sx, 0.085), bl(sx, 0.085), false);
+      stretch(fl(sx, 0.175), bl(sx, 0.175), false);
+    }
+
+    // Merge and bake wear into vertex colour.
+    const merged = mergeParts(parts);
+    bakeWear(merged, seatTop);
+    const mesh = new THREE.Mesh(merged, mat);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    this.group.add(mesh);
 
     // Invisible proxy for gaze/click.
-    this.hit = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.7, 0.42), new THREE.MeshBasicMaterial({ visible: false }));
-    this.hit.position.y = 0.35;
+    this.hit = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.75, 0.42), new THREE.MeshBasicMaterial({ visible: false }));
+    this.hit.position.y = 0.37;
     this.group.add(this.hit);
 
     this.group.rotation.y = this.baseYaw;
   }
 
-  private turnedProfile(h: number, back: boolean): THREE.Vector2[] {
-    const pts: [number, number][] = back
-      ? [
-          [0.0, 0], [0.012, 0], [0.0135, 0.02], [0.0125, 0.1], [0.016, 0.13], [0.0125, 0.16], [0.0135, 0.3],
-          [0.016, 0.335], [0.0125, 0.37], [0.0115, 0.6], [0.014, 0.625], [0.0105, 0.64], [0.012, 0.652], [0.006, 0.66], [0.0, h],
-        ]
-      : [
-          [0.0, 0], [0.0115, 0], [0.013, 0.02], [0.012, 0.1], [0.0165, 0.14], [0.012, 0.18], [0.0125, 0.28], [0.015, 0.31], [0.013, h - 0.005], [0.0, h],
-        ];
-    return pts.map(([r, y]) => new THREE.Vector2(r, y));
-  }
-
-  private curvedSlat(w: number, h: number, t: number): THREE.BufferGeometry {
-    const g = new THREE.BoxGeometry(w, h, t, 16, 1, 1);
-    const pos = g.attributes.position;
-    for (let i = 0; i < pos.count; i++) {
-      const x = pos.getX(i);
-      pos.setZ(i, pos.getZ(i) - (1 - (2 * x / w) ** 2) * 0.012);
+  /**
+   * Lean toward a world point: turn part of the way to face it (at most ~20°), and if it
+   * already faces it, shift a few centimetres toward it instead.
+   */
+  turnToward(x: number, z: number, amount: number) {
+    const p = this.group.position;
+    const want = Math.atan2(x - p.x, z - p.z);
+    let d = want - this.group.rotation.y;
+    while (d > Math.PI) d -= Math.PI * 2;
+    while (d < -Math.PI) d += Math.PI * 2;
+    const turn = Math.max(-0.35, Math.min(0.35, d * amount));
+    this.group.rotation.y += turn;
+    if (Math.abs(turn) < 0.08) {
+      const len = Math.hypot(x - p.x, z - p.z) || 1;
+      p.x += ((x - p.x) / len) * 0.06 * amount;
+      p.z += ((z - p.z) / len) * 0.06 * amount;
     }
-    g.computeVertexNormals();
-    return g;
   }
 
   nudge(dx: number, dz: number, dyaw: number) {
@@ -122,4 +209,46 @@ export class Chair {
     this.group.position.z += dz;
     this.group.rotation.y += dyaw;
   }
+}
+
+function mergeParts(parts: THREE.BufferGeometry[]): THREE.BufferGeometry {
+  const geos = parts.map((g) => (g.index ? g.toNonIndexed() : g));
+  let n = 0;
+  for (const g of geos) n += g.attributes.position.count;
+  const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3), uv = new Float32Array(n * 2);
+  let o = 0;
+  for (const g of geos) {
+    pos.set(g.attributes.position.array as Float32Array, o * 3);
+    nor.set(g.attributes.normal.array as Float32Array, o * 3);
+    uv.set(g.attributes.uv.array as Float32Array, o * 2);
+    o += g.attributes.position.count;
+  }
+  const out = new THREE.BufferGeometry();
+  out.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  out.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
+  out.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+  return out;
+}
+
+/** Paler where touched, darker where it meets the floor. */
+function bakeWear(g: THREE.BufferGeometry, seatTop: number) {
+  const pos = g.attributes.position;
+  const col = new Float32Array(pos.count * 3);
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+    let k = 1;
+    // Seat: worn pale across the front edge and in the middle where someone sat.
+    if (Math.abs(y - seatTop) < 0.03) {
+      k += 0.16 * Math.exp(-(((z - 0.15) / 0.035) ** 2)) * Math.exp(-((x / 0.17) ** 4));
+      k += 0.08 * Math.exp(-(x * x + (z - 0.02) ** 2) / 0.012);
+    }
+    // Crest rail: where hands pulled the chair out, again and again.
+    if (y > 0.62) k += 0.14 * Math.exp(-((x / 0.07) ** 2));
+    // Finials, rubbed.
+    if (y > 0.7) k += 0.08;
+    // Feet: darker, from the floor.
+    if (y < 0.06) k -= 0.18 * (1 - y / 0.06);
+    col[i * 3] = col[i * 3 + 1] = col[i * 3 + 2] = k;
+  }
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
 }

@@ -106,6 +106,15 @@ export const PHRASES: Phrase[] = [
     surface: 'north', tier: 'contradiction', hand: 'marker', size: 's', voice: 'flat',
     echoes: ['not-so-tight', 'arm-dead'], keywords: ['love', 'go away'],
   }),
+  p('didnt-know-how', "I didn't know how.", { shame: 0.5, uncertainty: 0.6, desire: 0.3, grief: 0.3 }, {
+    surface: 'north', tier: 'annotation', hand: 'pencil',
+  }),
+  p('raining-anyway', 'It was raining anyway.', { relief: 0.4, nostalgia: 0.3, contradiction: 0.3, isolation: 0.2 }, {
+    surface: 'south', tier: 'annotation', hand: 'faint',
+  }),
+  p('didnt-explain', "I didn't explain it.", { shame: 0.5, misunderstanding: 0.5, forgiveness: 0.3 }, {
+    surface: 'west', tier: 'annotation', hand: 'pencil',
+  }),
   p('come-back-dont', "Come back. Don't.", { desire: 0.6, fear: 0.5, contradiction: 0.8 }, {
     surface: 'north', tier: 'annotation', hand: 'pencil', voice: 'whisper', echoes: ['stay'],
   }),
@@ -117,7 +126,7 @@ export const PHRASES: Phrase[] = [
     surface: 'north', hand: 'pen', voice: 'tender', keywords: ['going', 'anywhere', 'stay'],
   }),
   p('arm-dead', "You fell asleep on my shoulder and my arm went dead and I didn't move it.", { affection: 0.8, connection: 0.6, contradiction: 0.4, happiness: 0.3 }, {
-    surface: 'north', tier: 'contradiction', hand: 'pen', keywords: ['asleep', 'shoulder', 'arm'],
+    surface: 'south', tier: 'arrival', hand: 'pencil', size: 's', at: [0.2, 1.78], keywords: ['asleep', 'shoulder', 'arm'],
   }),
   p('this-bit', "Don't go yet, this bit's good.", { connection: 0.7, desire: 0.5, happiness: 0.5 }, {
     surface: 'north', tier: 'familiar', hand: 'pencil', voice: 'tender', keywords: ['go', 'stay', 'film'],
@@ -178,13 +187,13 @@ export const PHRASES: Phrase[] = [
     surface: 'east', hand: 'pen', voice: 'whisper', keywords: ['summer', 'tent', 'camping', 'holiday'],
   }),
   p('laugh-breathe', "You made me laugh so hard I couldn't breathe.", { happiness: 0.9, affection: 0.6, nostalgia: 0.5 }, {
-    surface: 'east', tier: 'familiar', hand: 'crayon', echoes: ['laugh'], keywords: ['laugh', 'funny', 'breathe'],
+    surface: 'west', tier: 'arrival', hand: 'crayon', voice: 'tender', echoes: ['laugh'], keywords: ['laugh', 'funny', 'breathe'],
   }),
   p('cereal', 'We ate cereal for dinner and it was perfect.', { happiness: 0.8, nostalgia: 0.5, relief: 0.3 }, {
     surface: 'east', hand: 'pencil', keywords: ['dinner', 'cereal', 'food', 'perfect'],
   }),
   p('jumper', "I kept your jumper. I don't wear it.", { grief: 0.6, affection: 0.5, nostalgia: 0.5, contradiction: 0.3 }, {
-    surface: 'east', tier: 'familiar', hand: 'pen', keywords: ['kept', 'jumper', 'sweater', 'clothes'],
+    surface: 'north', tier: 'familiar', hand: 'pen', keywords: ['kept', 'jumper', 'sweater', 'clothes'],
   }),
   p('just-listen', 'Everyone was talking and I was so happy to just listen.', { happiness: 0.7, connection: 0.7, isolation: 0.3, relief: 0.4 }, {
     surface: 'east', hand: 'pencil', keywords: ['talking', 'listen', 'friends', 'people'],
@@ -199,7 +208,7 @@ export const PHRASES: Phrase[] = [
     surface: 'east', tier: 'contradiction', hand: 'pencil', voice: 'whisper', echoes: ['still-warm'], keywords: ['we', 'still', 'accident', 'us'],
   }),
   p('understood-minute', 'You understood me once, completely, for about a minute.', { connection: 0.8, happiness: 0.5, nostalgia: 0.5, grief: 0.3 }, {
-    surface: 'east', tier: 'familiar', hand: 'pen', echoes: ['why-understand'], keywords: ['understood', 'understand'],
+    surface: 'east', tier: 'familiar', hand: 'pen', voice: 'tender', echoes: ['why-understand'], keywords: ['understood', 'understand'],
   }),
   p('kitchen-light', 'the light in the kitchen at four in the afternoon', { nostalgia: 0.7, happiness: 0.5, relief: 0.4 }, {
     surface: 'east', hand: 'crayon', keywords: ['light', 'kitchen', 'afternoon'],
@@ -279,7 +288,7 @@ export const PHRASES: Phrase[] = [
     surface: 'west', tier: 'familiar', hand: 'pen', contradicts: ['alone-ok'], keywords: ['birthday', 'party', 'lonely', 'loneliest'],
   }),
   p('meant-some', "I didn't mean it. I meant some of it.", { shame: 0.5, anger: 0.4, contradiction: 0.6, forgiveness: 0.3 }, {
-    surface: 'west', tier: 'contradiction', hand: 'pencil', keywords: ['mean', 'meant'],
+    surface: 'east', tier: 'familiar', hand: 'pencil', keywords: ['mean', 'meant'],
   }),
   p('calm-one', "Everyone thinks I'm the calm one.", { self: 0.6, misunderstanding: 0.6, isolation: 0.4 }, { surface: 'west', hand: 'pencil', keywords: ['calm', 'everyone'] }),
   p('practise', 'I practise conversations in the shower.', { self: 0.5, uncertainty: 0.4, isolation: 0.3, happiness: 0.2 }, {

@@ -27,17 +27,59 @@ export type Cue =
       /** Written beside this phrase (on its surface), or on `surface` if absent. */
       beside?: string;
       surface?: Surface;
+      /** For the floor: write near this point (chair-relative metres). */
+      nearPoint?: { x: number; z: number };
+      /** The phrase these words come from: looking at them is meeting that phrase again. */
+      source?: string;
       purpose: 'annotation' | 'recall' | 'recontext' | 'contribution';
       /** Phrase that gets a faint line struck through it. */
       strike?: string;
       ttl: number;
     }
   | { type: 'link'; a: string; b: string; ttl: number }
-  | { type: 'voice'; kind: VoiceKind; text: string | null; caption: string; position: VoicePosition; gain: number; assetId?: string; phraseId?: string }
-  | { type: 'music'; mood: 'warm' | 'tender' | 'uneasy' | 'sparse' | 'memory'; notes: number; truncate: boolean }
+  | {
+      type: 'voice';
+      kind: VoiceKind;
+      text: string | null;
+      caption: string;
+      position: VoicePosition;
+      gain: number;
+      assetId?: string;
+      phraseId?: string;
+      /** Handle so a later cue can cut this sound off. */
+      tag?: string;
+      /** For humming: the exact tune (semitones above the base), so it can recur elsewhere. */
+      melody?: number[];
+      /** Always synthesise (never substitute a recording), e.g. when the tune must be known. */
+      synth?: boolean;
+      /** The recorded performance chosen for this moment (an id from src/content/dialogue.json). */
+      performance?: string;
+      /** Recorded files for this phrase, best first for this moment. */
+      performances?: string[];
+    }
+  | {
+      type: 'music';
+      mood: 'warm' | 'tender' | 'uneasy' | 'sparse' | 'memory';
+      notes: number;
+      truncate: boolean;
+      /** Play exactly these MIDI notes instead of composing. */
+      melody?: number[];
+      /** Stop after this many notes of the melody. */
+      stopAt?: number;
+    }
   | { type: 'silence'; depth: number; seconds: number }
   | { type: 'chairNudge'; dx: number; dz: number; dyaw: number }
-  | { type: 'flash'; kind: 'warm' | 'cold'; amount: number; seconds: number };
+  /** Turn the chair a fraction of the way toward a point (chair-relative metres). */
+  | { type: 'chairTurn'; x: number; z: number; amount: number }
+  | { type: 'flash'; kind: 'warm' | 'cold'; amount: number; seconds: number }
+  /** A small household sound: a door closing somewhere, a cup set down, the chair creaking. */
+  | { type: 'sound'; kind: 'door' | 'chair-creak' | 'cup'; position: VoicePosition; gain: number }
+  /** Cut off a tagged sound, with a short fade. */
+  | { type: 'stopVoice'; tag: string; fade: number }
+  /** A faint warmth left at a place on the floor (chair-relative metres), fading over `seconds`. */
+  | { type: 'glow'; x: number; z: number; amount: number; seconds: number }
+  /** Rub out a piece of writing except for one word. */
+  | { type: 'erode'; key: string; keep: string };
 
 export interface TimedCue {
   t: number;

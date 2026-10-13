@@ -73,14 +73,24 @@ export class App {
     ]);
 
     this.setupRenderer();
-    this.room = new Room();
+    this.room = new Room(this.prefs.quality);
     this.chair = new Chair();
     this.lighting = new Lighting(this.prefs.quality);
     this.text = new WallText(this.room, 4242);
     this.scene.add(this.room.group, this.chair.group, this.lighting.group);
     this.scene.background = new THREE.Color(0xf3f2ef);
     this.rig = new CameraRig(innerWidth / innerHeight);
-    this.director = new Director({ seed, visits: this.visits + 1 });
+    const forced = params.get('situations')?.split(',').map((s) => s.trim()).filter(Boolean);
+    this.director = new Director({
+      seed,
+      visits: this.visits + 1,
+      situations: forced,
+      // Where each piece of writing is, for situations that relate place to memory.
+      geometry: (id) => {
+        const it = this.text.items.get(id);
+        return it ? { surface: it.placement.surface, x: it.centre.x, y: it.centre.y, z: it.centre.z } : undefined;
+      },
+    });
     for (const [id, st] of this.director.visible) if (st.base) this.text.setShown(id);
 
     const samples = this.prefs.quality === 'high' ? 4 : this.prefs.quality === 'medium' ? 2 : 0;
@@ -107,7 +117,7 @@ export class App {
   private setupRenderer() {
     this.renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
     this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.shadowMap.type = THREE.VSMShadowMap;
     this.renderer.toneMapping = THREE.NeutralToneMapping;
     this.renderer.toneMappingExposure = 1.05;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -181,6 +191,7 @@ export class App {
     // Attention.
     const cam = this.rig.camera;
     this.gazeId = this.text.attention(cam);
+    const gazePhrase = this.text.phraseOf(this.gazeId);
     this.raycaster.setFromCamera(new THREE.Vector2(0, 0), cam);
     this.gazeChair = this.raycaster.intersectObject(this.chair.hit, false).length > 0 && this.rig.distanceToChair() < 6;
 
@@ -190,7 +201,7 @@ export class App {
         z: this.rig.pos.z - this.chair.group.position.z,
         yaw: this.rig.yaw,
         pitch: this.rig.pitch,
-        gazePhraseId: this.gazeId,
+        gazePhraseId: gazePhrase,
         gazeChair: this.gazeChair,
         nearSurface: this.room.nearWall(this.rig.pos.x, this.rig.pos.z),
         kneeling: this.rig.kneeling,
@@ -204,7 +215,7 @@ export class App {
     const scaleTarget = this.prefs.reducedMotion ? 1 + (env.roomScale - 1) * 0.3 : env.roomScale;
     this.room.setScale(this.room.scale + (scaleTarget - this.room.scale) * (1 - Math.exp(-dt / 6)));
     this.lighting.update(dt, env, this.time, this.chair.group.position);
-    this.text.update(dt, this.time, cam, env, this.gazeId, v.gazeId === this.gazeId ? v.gazeFor : 0);
+    this.text.update(dt, this.time, cam, env, this.gazeId, v.gazeId === gazePhrase ? v.gazeFor : 0);
     this.post.update(dt, env, this.time);
 
     if (this.audio) {
@@ -229,8 +240,11 @@ export class App {
         this.text.hide(cue.phraseId, cue.seconds);
         break;
       case 'write': {
-        const near = cue.surface && !cue.beside ? this.viewPointOn(cue.surface) : undefined;
-        const ok = this.text.write({ key: cue.key, text: cue.text, hand: cue.hand, size: cue.size, beside: cue.beside, surface: cue.surface, near, purpose: cue.purpose, ttl: cue.ttl, now: this.time });
+        const c = this.chair.group.position;
+        const near = cue.nearPoint && cue.surface === 'floor'
+          ? { u: c.x + cue.nearPoint.x + ROOM.halfW, v: c.z + cue.nearPoint.z + ROOM.halfD }
+          : cue.surface && !cue.beside ? this.viewPointOn(cue.surface) : undefined;
+        const ok = this.text.write({ key: cue.key, text: cue.text, hand: cue.hand, size: cue.size, beside: cue.beside, surface: cue.surface, near, purpose: cue.purpose, ttl: cue.ttl, now: this.time, source: cue.source });
         if (ok && cue.strike) this.text.strike(cue.strike, this.time, cue.ttl);
         if (!ok) this.director.writeFailed(cue.key);
         break;
@@ -242,7 +256,29 @@ export class App {
         void this.playVoice(cue);
         break;
       case 'music':
-        if (this.music && this.audio) this.music.play(cue.mood, cue.notes, cue.truncate);
+        if (this.music && this.audio) {
+          if (cue.melody?.length) this.music.playMelody(cue.melody, cue.stopAt);
+          else this.music.play(cue.mood, cue.notes, cue.truncate);
+        }
+        break;
+      case 'sound':
+        if (this.voices && this.audio) void this.voices.sound(cue.kind, this.place(cue.position), cue.gain);
+        break;
+      case 'stopVoice':
+        this.voices?.stop(cue.tag, cue.fade);
+        break;
+      case 'glow': {
+        const c = this.chair.group.position;
+        this.lighting.leaveResidue(c.x + cue.x, c.z + cue.z, cue.amount * (this.prefs.intensity === 'gentle' ? 0.6 : 1), cue.seconds, this.time);
+        break;
+      }
+      case 'chairTurn': {
+        const c = this.chair.group.position;
+        this.chair.turnToward(c.x + cue.x, c.z + cue.z, cue.amount);
+        break;
+      }
+      case 'erode':
+        this.text.erode(cue.key, cue.keep, this.time);
         break;
       case 'silence':
         this.audio?.silence(cue.depth * (this.prefs.intensity === 'gentle' ? 0.8 : 1), cue.seconds);
@@ -309,7 +345,9 @@ export class App {
     let dur = 3;
     if (this.voices && this.audio) {
       const assetKey = cue.assetId ?? (cue.phraseId ? `phrase:${cue.phraseId}` : undefined);
-      dur = await this.voices.play(cue.kind, cue.text, this.place(cue.position), cue.gain, assetKey);
+      dur = await this.voices.play(cue.kind, cue.text, { ...this.place(cue.position), tag: cue.tag }, cue.gain, assetKey, {
+        melody: cue.melody, synth: cue.synth, performances: cue.performances,
+      });
     }
     if (dur > 0) this.captions.show(cue.caption, dur, cue.text === null);
   }
@@ -613,7 +651,7 @@ export class App {
     }
     if (this.renderer && this.post) {
       this.onResize();
-      const size = p.quality === 'low' ? 1024 : 2048;
+      const size = p.quality === 'low' ? 512 : p.quality === 'medium' ? 1024 : 2048;
       const sh = this.lighting.key.shadow;
       if (sh.mapSize.x !== size) {
         sh.mapSize.set(size, size);
@@ -753,14 +791,14 @@ export class App {
         z: this.rig.pos.z - this.chair.group.position.z,
         yaw: this.rig.yaw,
         pitch: this.rig.pitch,
-        gazePhraseId: this.text.attention(cam),
+        gazePhraseId: this.text.phraseOf(this.text.attention(cam)),
         gazeChair: false,
         nearSurface: this.room.nearWall(this.rig.pos.x, this.rig.pos.z),
         kneeling: this.rig.kneeling,
       };
       this.time += step;
       for (const c of this.director.tick(step, input, this.room.facing(this.rig.yaw))) this.apply(c.cue);
-      this.text.update(step, this.time, cam, this.director.env, input.gazePhraseId, this.director.visitor.gazeFor);
+      this.text.update(step, this.time, cam, this.director.env, this.text.attention(cam), this.director.visitor.gazeFor);
     }
     this.enteredAt = Math.min(this.enteredAt, this.time - 30);
   }
@@ -774,6 +812,8 @@ export class App {
       `phase ${s.phase}  gaze ${this.gazeId ?? '-'}${this.gazeChair ? ' [chair]' : ''}\n` +
       `visitor ${JSON.stringify(s.visitor)}\nfield ${JSON.stringify(s.field)}\nmotifs ${JSON.stringify(s.memory.strength)} formed ${s.memory.formed.join(',')}\n` +
       `env ${JSON.stringify(Object.fromEntries(Object.entries(this.director.env).map(([k, v]) => [k, +v.toFixed(2)])))}\n` +
+      `situations ${JSON.stringify(s.situations)}\n` +
+      `met again ${s.encounters.join(' ')}\n` +
       `pending\n  ${s.pending.join('\n  ')}\nrecent\n  ${s.recent.join('\n  ')}`;
   }
 }

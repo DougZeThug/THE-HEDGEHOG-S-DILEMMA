@@ -45,8 +45,19 @@ const ASSETS = {
     [`a gentle intimate whisper of a few unintelligible words, ${DRY}`, 3],
     [`a hesitant breathy whisper, a few soft unintelligible words, ${DRY}`, 3],
   ],
+  'sfx:door': [
+    [`a wooden interior door closing gently somewhere down a hallway in a quiet house, soft thud and latch click, distant, ${WALL}`, 2],
+    [`a bedroom door quietly pulled shut in another room, single soft click, far away`, 2],
+  ],
+  'sfx:cup': [
+    [`a ceramic mug set down gently on a wooden kitchen table in the next room, single soft clink`, 1.5],
+    [`a teacup placed on a saucer, one quiet ceramic tap, domestic, slightly distant`, 1.5],
+  ],
+  'sfx:chair-creak': [
+    [`a small old wooden chair creaking once softly as weight shifts, close, quiet room, ${DRY}`, 1.5],
+  ],
   'style:distant': [
-    [`a single voice saying one short sentence in another room, muffled and unintelligible, ${WALL}`, 3],
+    // (A first variant here consistently came back near-silent and was removed.)
     [`someone calling out a few quiet words from down a hallway, unintelligible, distant`, 3],
   ],
 };
@@ -57,7 +68,7 @@ const manifest = existsSync(manifestPath) ? JSON.parse(readFileSync(manifestPath
 for (const [key, variants] of Object.entries(ASSETS)) {
   const files = [];
   for (const [i, [text, duration]] of variants.entries()) {
-    const file = `${key.replace(':', '-')}-${i + 1}.mp3`;
+    const file = `${key.replace(':', '-')}-${i + (key === 'style:distant' ? 2 : 1)}.mp3`;
     const path = join(OUT, file);
     if (existsSync(path) && !force) {
       files.push(file);

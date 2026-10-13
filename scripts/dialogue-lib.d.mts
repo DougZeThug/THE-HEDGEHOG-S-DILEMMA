@@ -1,0 +1,24 @@
+// Types for the offline dialogue tooling (scripts/dialogue-lib.mjs), used by the tests.
+export const API: string;
+export const MODEL_RATES: Record<string, number>;
+export const PILOT: string[];
+export interface Ledger { version: number; spent: { credits: number; sttSeconds: number }; entries: Record<string, any>; runs: any[] }
+export interface Job { perf: any; hash: string; estimate: number }
+export function emptyLedger(): Ledger;
+export function performanceHash(perf: any, direction: any): string;
+export function estimateCredits(perf: any, direction: any): number;
+export function words(s: string): string[];
+export function wordErrorRate(reference: string, hypothesis: string): number;
+export function spokenTags(perf: any, transcript: string): string[];
+export function validateDirection(direction: any, phraseText: (id: string) => string | undefined): string[];
+export function planJobs(direction: any, ledger: Ledger, opts?: { only?: string[]; regenerate?: string[]; pilot?: boolean; fileExists?: (f: string) => boolean }): { jobs: Job[]; skipped: { id: string; reason: string }[] };
+export function applyBudget(jobs: Job[], budget: number): { run: Job[]; queued: Job[]; estimate: number };
+export function mp3Info(buf: Uint8Array | ArrayBuffer): { valid: boolean; frames: number; seconds: number };
+export function classifyFailure(status: number, body: string): { kind: string; code: string; message: string; retry: boolean; stop: boolean };
+export function buildManifest(manifest: Record<string, string[]>, direction: any, ledger: Ledger, fileExists?: (f: string) => boolean): Record<string, string[]>;
+export function runJobs(o: {
+  jobs: Job[]; direction: any; ledger: Ledger; key: string; fetch: (url: string, init?: any) => Promise<any>;
+  writeFile: (f: string, d: Uint8Array) => Promise<void>; saveLedger: (l: Ledger) => Promise<void>;
+  sleep?: (ms: number) => Promise<void>; log?: (s: string) => void; stt?: boolean; now?: () => string; maxRetries?: number;
+}): Promise<{ at: string; credits: number; generated: number; failed: number; queued: number; stopped: string | null }>;
+export function transcribe(o: { fetch: any; key: string; audio: Uint8Array }): Promise<{ ok: boolean; text?: string; code?: string }>;

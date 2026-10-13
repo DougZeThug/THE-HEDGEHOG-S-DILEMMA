@@ -25,6 +25,18 @@ export interface VisitorInput {
   kneeling: boolean;
 }
 
+/** Attention needed before a look counts as meeting a phrase, and the gap that makes the next look a new meeting. */
+export const ENCOUNTER = { settle: 2.5, apart: 25 };
+
+export interface EncounterRecord {
+  count: number;
+  startedAt: number;
+  /** Last moment attention rested on it. */
+  lastSeen: number;
+  /** Inside an encounter right now. */
+  open: boolean;
+}
+
 export const BANDS = {
   near: 1.15,
   /** Must go past this after being near to count as a withdrawal. */
@@ -80,6 +92,10 @@ export class VisitorModel {
   gazeChairFor = 0;
   totalChairGaze = 0;
   gazeTotals = new Map<string, number>();
+  /** Every phrase's history of being met: the same words, encountered again. */
+  encounters = new Map<string, EncounterRecord>();
+  /** Encounters that began on this tick. */
+  encounterStarted: { id: string; count: number }[] = [];
   /** Phrases looked at long enough to have been read (≥ 1.6 s). */
   read = new Set<string>();
   readOrder: string[] = [];
@@ -183,11 +199,33 @@ export class VisitorModel {
         this.readOrder.push(this.gazeId);
       }
     }
+    // Encounters: a settled look is a meeting; a meeting ends when attention leaves.
+    this.encounterStarted = [];
+    for (const [id, e] of this.encounters) if (e.open && id !== this.gazeId) e.open = false;
+    if (this.gazeId) {
+      let e = this.encounters.get(this.gazeId);
+      if (e?.open) e.lastSeen = this.t;
+      else if (this.gazeFor >= ENCOUNTER.settle) {
+        if (!e) this.encounters.set(this.gazeId, (e = { count: 0, startedAt: this.t, lastSeen: this.t, open: false }));
+        if (e.count === 0 || this.t - e.lastSeen - this.gazeFor >= ENCOUNTER.apart) {
+          e.count++;
+          e.startedAt = this.t;
+          this.encounterStarted.push({ id: this.gazeId, count: e.count });
+        }
+        e.open = true;
+        e.lastSeen = this.t;
+      }
+    }
+
     if (inp.gazeChair) {
       this.gazeChairFor += dt;
       this.totalChairGaze += dt;
     } else this.gazeChairFor = 0;
     this.gazeChair = inp.gazeChair;
+  }
+
+  encounterCount(id: string): number {
+    return this.encounters.get(id)?.count ?? 0;
   }
 
   /** Seconds near the chair in the current approach (0 if not near). */
