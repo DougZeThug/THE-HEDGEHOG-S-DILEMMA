@@ -111,14 +111,25 @@ for (const profile of PROFILES) {
     const ctx = await browser.newContext({ ...opts, reducedMotion: process.env.REDUCED ? 'reduce' : 'no-preference' });
     // The opening runs on the wall clock, and software GL is slow: to see a stage at an exact
     // moment, the clock is frozen there (frames keep rendering, nothing advances), then let go.
+    // Once the visitor has entered, time also runs on a virtual clock: a tenth of a second per
+    // frame (the app's own longest step) however long the frame took, so a stage lands on the
+    // same frame on any machine.
     await ctx.addInitScript(() => {
       const real = performance.now.bind(performance);
-      let off = 0, frozen = null;
-      performance.now = () => frozen ?? real() + off;
+      let virt = null, frozen = null, lastTs = -1;
+      performance.now = () => frozen ?? virt ?? real();
+      const raf = window.requestAnimationFrame.bind(window);
+      window.requestAnimationFrame = (cb) =>
+        raf((ts) => {
+          if (virt !== null && frozen === null && ts !== lastTs) virt += 100;
+          lastTs = ts;
+          cb(performance.now());
+        });
+      window.__virtual = () => (virt = real());
       window.__freeze = (ms) => (frozen = ms);
       window.__nowMs = () => performance.now();
       window.__thaw = () => {
-        off = frozen - real();
+        if (virt !== null) virt = frozen;
         frozen = null;
       };
     });
@@ -129,6 +140,7 @@ for (const profile of PROFILES) {
     await page.goto(`${BASE}?seed=7&style=${style}`);
     await page.waitForFunction(() => !document.getElementById('enter').disabled, null, { timeout: 120000 });
     const programs0 = await page.evaluate(() => window.__hedgehog.renderer.info.programs.length);
+    await page.evaluate(() => window.__virtual());
     await page.click('#enter');
     const shot = async (name) => {
       const file = `${profile}-${style}-${name}.png`;
