@@ -25,7 +25,7 @@
             <li>Near the chair, <kbd>Space</kbd> or a click lets you kneel.</li>
             <li><kbd>T</kbd> to leave something of your own on the wall.</li>
             <li><kbd>Esc</kbd> for sound, comfort and quality settings, and to leave.</li>
-            <li>On a touch screen: drag on the left to walk, on the right to look. Tap writing to read it closely; tap the chair to go to it, and again to kneel.</li>
+            <li class="touch-first">On a touch screen: drag on the right to look, on the left to walk, or tap the floor to go there. Tap writing to read it closely; tap the chair to go to it, and again to kneel.</li>
             <li>Without a mouse: <kbd>Tab</kbd> turns you toward the next piece of writing.</li>
           </ul>
         </details>
@@ -41,8 +41,8 @@
     <div id="contribute" class="layer contribute" hidden>
       <form id="contribute-form" autocomplete="off">
         <label for="contribute-input" class="sr-only">Leave something on the wall</label>
-        <input id="contribute-input" maxlength="140" placeholder="leave something here" spellcheck="false" />
-        <p class="contribute-note">A word, a sentence, a memory. <kbd>Enter</kbd> to leave it, <kbd>Esc</kbd> to keep it.</p>
+        <input id="contribute-input" maxlength="140" placeholder="leave something here" spellcheck="false" enterkeyhint="done" />
+        <p class="contribute-note"><span class="for-keys">A word, a sentence, a memory. <kbd>Enter</kbd> to leave it, <kbd>Esc</kbd> to keep it.</span><span class="for-touch">A word, a sentence, a memory. Done to leave it; touch the room to keep it.</span></p>
       </form>
     </div>
 

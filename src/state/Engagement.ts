@@ -21,6 +21,7 @@ export type SignalKind =
   | 'sweep' // looked around the room
   | 'cross' // moved to another part of the room
   | 'pause' // stopped, after moving or looking, and stayed stopped
+  | 'linger' // stayed with the chair (every 15 s near it)
   | 'contribute';
 
 export interface Signal {
@@ -30,11 +31,12 @@ export interface Signal {
   id?: string;
 }
 
+/** Attention to the material (reading, coming back, touching, kneeling, writing) counts for more than moving about. */
 const WEIGHT: Record<SignalKind, number> = {
-  read: 1, return: 2.2, tap: 1.2, 'tap-chair': 1, approach: 2, kneel: 2, sweep: 0.6, cross: 0.8, pause: 1, contribute: 3,
+  read: 1.2, return: 3, tap: 1, 'tap-chair': 0.8, approach: 1.6, kneel: 2.5, sweep: 0.25, cross: 0.35, pause: 1.2, linger: 1.4, contribute: 4,
 };
 /** Depth gained per second just by being there (a still visitor still gets somewhere). */
-const PASSIVE = 0.045;
+const PASSIVE = 0.03;
 
 type Zone = 'chair' | 'north' | 'east' | 'south' | 'west' | 'middle';
 
@@ -54,6 +56,7 @@ export class Engagement {
   private zoneSince = 0;
   private pauseArmed = false;
   private movedAt = 0;
+  private lingered = 0;
 
   /** Signals per second over the last 30 s: how actively the visitor is engaging. */
   activity(now: number): number {
@@ -97,6 +100,11 @@ export class Engagement {
       this.raise('kneel', t);
     }
     if (!v.kneeling) this.kneelNoted = false;
+    if (!v.near) this.lingered = 0;
+    else if (v.nearFor >= 15 * (this.lingered + 1)) {
+      this.lingered++;
+      this.raise('linger', t);
+    }
 
     // Looking around: more than ~130° of turning within 6 s.
     if (this.lastYaw !== null) {

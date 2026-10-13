@@ -1,8 +1,8 @@
 {
   "version": 1,
   "spent": {
-    "credits": 1733,
-    "sttSeconds": 101.98
+    "credits": 2090,
+    "sttSeconds": 132.23000000000002
   },
   "entries": {
     "stay--tender": {
@@ -99,7 +99,10 @@
       "review": "pending",
       "transcript": "Please don't come any closer",
       "wer": 0,
-      "spokenTags": []
+      "spokenTags": [],
+      "edit": "90 ms fade-out: click in the final 10 ms (audio review)",
+      "editedAt": "2026-10-13",
+      "originalSeconds": 1.83
     },
     "closer--flat": {
       "status": "validated",
@@ -445,8 +448,8 @@
       "estimate": 0,
       "cost": 0,
       "requestId": "hgmU9NT4N402iQDUsAtg",
-      "bytes": 71515,
-      "seconds": 4.47,
+      "bytes": 68171,
+      "seconds": 4.26,
       "voice": "jessica",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T00:43:46.036Z",
@@ -459,7 +462,10 @@
       "wer": 0,
       "spokenTags": [],
       "adoptedFrom": "lab-love-b-v4-directed-scene",
-      "labCost": 58
+      "labCost": 58,
+      "edit": "cut at 4.20 s with a 140 ms fade: the model began another vocalisation at 4.36 s and the file ended inside it (audio review)",
+      "editedAt": "2026-10-13",
+      "originalSeconds": 4.47
     },
     "happy-then--smile": {
       "status": "validated",
@@ -509,7 +515,10 @@
       "review": "pending",
       "transcript": "I wanted you to stay",
       "wer": 0,
-      "spokenTags": []
+      "spokenTags": [],
+      "edit": "90 ms fade-out: the file ended mid-phonation (audio review)",
+      "editedAt": "2026-10-13",
+      "originalSeconds": 2.3
     },
     "love-go-away--exhausted": {
       "status": "validated",
@@ -525,7 +534,10 @@
       "review": "pending",
       "transcript": "I love you. Go away",
       "wer": 0,
-      "spokenTags": []
+      "spokenTags": [],
+      "edit": "90 ms fade-out: the file ended inside the breath (audio review)",
+      "editedAt": "2026-10-13",
+      "originalSeconds": 3.5
     },
     "love-go-away--hurt": {
       "status": "validated",
@@ -736,6 +748,175 @@
       ],
       "wer": 0,
       "spokenTags": []
+    },
+    "stay--breaking-lean": {
+      "status": "validated",
+      "hash": "68083473ed0bca55",
+      "estimate": 22,
+      "cost": 22,
+      "requestId": "jMZMo8t6HXe8Utm7INc6",
+      "bytes": 51035,
+      "seconds": 3.19,
+      "voice": "intimate",
+      "model": "eleven_v4",
+      "generatedAt": "2026-10-13T01:28:10.927Z",
+      "review": "pending",
+      "transcript": "I wanted you to stay",
+      "wer": 0,
+      "spokenTags": []
+    },
+    "love-go-away--hurt-lean": {
+      "status": "validated",
+      "hash": "437ac5d7fdef5d11",
+      "estimate": 29,
+      "cost": 29,
+      "requestId": "BXNTxV1GAoWmXqX0IRGC",
+      "bytes": 54796,
+      "seconds": 3.42,
+      "voice": "restrained",
+      "model": "eleven_v4",
+      "generatedAt": "2026-10-13T01:28:12.400Z",
+      "review": "pending",
+      "transcript": "I love you. Go away",
+      "wer": 0,
+      "spokenTags": []
+    },
+    "love-go-away--exhausted-lean": {
+      "status": "validated",
+      "hash": "0914507f1308944c",
+      "estimate": 34,
+      "cost": 34,
+      "requestId": "z9BTqWYSkglNoQV4IGiH",
+      "bytes": 69007,
+      "seconds": 4.31,
+      "voice": "matilda",
+      "model": "eleven_v4",
+      "generatedAt": "2026-10-13T01:28:13.929Z",
+      "review": "pending",
+      "transcript": "I love you. [sighs] Go away",
+      "events": [
+        "[sighs]"
+      ],
+      "wer": 0,
+      "spokenTags": []
+    },
+    "this-bit--distracted": {
+      "status": "validated",
+      "hash": "34c6b8816710b998",
+      "estimate": 30,
+      "cost": 30,
+      "requestId": "r7w2WDi3woCXo9iyZxRk",
+      "bytes": 38078,
+      "seconds": 2.38,
+      "voice": "sarah",
+      "model": "eleven_v4",
+      "generatedAt": "2026-10-13T01:28:15.033Z",
+      "review": "pending",
+      "transcript": "Don't go yet. This bit's good",
+      "wer": 0,
+      "spokenTags": []
+    },
+    "remember-me--bus-stop": {
+      "status": "validated",
+      "hash": "a2a7a7aa66d66320",
+      "estimate": 35,
+      "cost": 35,
+      "requestId": "T4TXXO3DT1vgUnJ98D13",
+      "bytes": 34316,
+      "seconds": 2.14,
+      "voice": "matilda",
+      "model": "eleven_v4",
+      "generatedAt": "2026-10-13T01:28:16.331Z",
+      "review": "pending",
+      "transcript": "[chuckles] Do you remember me?",
+      "events": [
+        "[chuckles]"
+      ],
+      "wer": 0,
+      "spokenTags": []
+    },
+    "if-closer--doorway": {
+      "status": "validated",
+      "hash": "c56c48020cbf9729",
+      "estimate": 32,
+      "cost": 32,
+      "requestId": "yrqlU8Wy5WSu30jwPI68",
+      "bytes": 46019,
+      "seconds": 2.87,
+      "voice": "liam",
+      "model": "eleven_v4",
+      "generatedAt": "2026-10-13T01:28:17.608Z",
+      "review": "pending",
+      "transcript": "If I come closer, will you stay?",
+      "wer": 0,
+      "spokenTags": []
+    },
+    "understood-minute--wry": {
+      "status": "validated",
+      "hash": "8d3e47b0c4d49751",
+      "estimate": 55,
+      "cost": 55,
+      "requestId": "15xfTRE5D89glcwb1SdC",
+      "bytes": 75276,
+      "seconds": 4.7,
+      "voice": "bill",
+      "model": "eleven_v4",
+      "generatedAt": "2026-10-13T01:28:19.056Z",
+      "review": "pending",
+      "transcript": "You understood me once, completely, for about a minute",
+      "wer": 0,
+      "spokenTags": []
+    },
+    "glad-came--surprised": {
+      "status": "validated",
+      "hash": "ac6c81d2cd044e2e",
+      "estimate": 36,
+      "cost": 36,
+      "requestId": "s9N6j5RT7gmmeEAJRToo",
+      "bytes": 30555,
+      "seconds": 1.91,
+      "voice": "matilda",
+      "model": "eleven_v4",
+      "generatedAt": "2026-10-13T01:28:20.163Z",
+      "review": "pending",
+      "transcript": "I'm glad you came",
+      "wer": 0,
+      "spokenTags": []
+    },
+    "closer--held": {
+      "status": "validated",
+      "hash": "b710ba38e8888df5",
+      "estimate": 30,
+      "cost": 30,
+      "requestId": "pqGZESRQ9U4bLFvSCHBP",
+      "bytes": 39332,
+      "seconds": 2.46,
+      "voice": "restrained",
+      "model": "eleven_v4",
+      "generatedAt": "2026-10-13T01:28:21.312Z",
+      "review": "pending",
+      "transcript": "Please don't come any closer",
+      "wer": 0,
+      "spokenTags": []
+    },
+    "afraid-leave--rueful": {
+      "status": "validated",
+      "hash": "cb0ed75b86d1b9b7",
+      "estimate": 54,
+      "cost": 54,
+      "requestId": "XYXiX4taTIt62S7KsLL8",
+      "bytes": 46019,
+      "seconds": 2.87,
+      "voice": "sarah",
+      "model": "eleven_v4",
+      "generatedAt": "2026-10-13T01:28:22.563Z",
+      "review": "pending",
+      "transcript": "[laughs] I was afraid you'd leave",
+      "events": [
+        "[laughs]"
+      ],
+      "wer": 0,
+      "spokenTags": []
     }
   },
   "runs": [
@@ -767,6 +948,14 @@
       "at": "2026-10-13T00:47:31.641Z",
       "credits": 55,
       "generated": 1,
+      "failed": 0,
+      "queued": 0,
+      "stopped": null
+    },
+    {
+      "at": "2026-10-13T01:28:09.997Z",
+      "credits": 357,
+      "generated": 10,
       "failed": 0,
       "queued": 0,
       "stopped": null

@@ -19,13 +19,13 @@ say('# Pacing playtest (engine time, median of ' + SEEDS.length + ' seeds)\n');
 for (const p of PERSONAS) {
   const runs = SEEDS.map((s) => visit(p, 300, s));
   say(`## ${p.label} (${p.device})\n`);
-  say('| window | first response | first anything | voices (recorded) | other sound/music | writing (unseen) | silences | longest gap | overlaps | reads | meetings (returns) | approaches | taps |');
-  say('|---|---|---|---|---|---|---|---|---|---|---|---|---|');
+  say('| window | first response | first anything | per min | voices (recorded) | other sound/music | writing (unseen) | silences | longest gap (seen/heard) | overlaps | reads | meetings (returns) | approaches | taps |');
+  say('|---|---|---|---|---|---|---|---|---|---|---|---|---|---|');
   for (const w of WINDOWS) {
     const s = summarise(runs, w);
     const r = runs[0].recognised[w];
     const fr = (x: number) => (x > w ? '—' : `${x}s`);
-    say(`| ${w}s | ${fr(s.firstResponse)} | ${fr(s.firstAnything)} | ${s.voices} (${s.recordedVoices}) | ${s.otherSounds} | ${s.text} (${s.textUnseen}) | ${s.silences} | ${s.longestGap}s | ${s.overlaps} | ${r.reads} | ${r.meetings} (${r.returns}) | ${r.approaches} | ${r.taps} |`);
+    say(`| ${w}s | ${fr(s.firstResponse)} | ${fr(s.firstAnything)} | ${s.perMinute} | ${s.voices} (${s.recordedVoices}) | ${s.otherSounds} | ${s.text} (${s.textUnseen}) | ${s.silences} | ${s.longestGap}s (${s.longestSeenGap}s) | ${s.overlaps} | ${r.reads} | ${r.meetings} (${r.returns}) | ${r.approaches} | ${r.taps} |`);
   }
   const ph = runs.map((r) => r.phases.map((x) => `${x.phase[0]}@${Math.round(x.t)}`).join(' ')).slice(0, 4);
   say(`\nphases (first 4 seeds): ${ph.join(' · ')}`);

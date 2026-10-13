@@ -10,16 +10,18 @@
  *   … --only=stay--tender,crumbs   … --regenerate=stay--tender   … --no-stt
  *   node scripts/generate-dialogue.mjs --approve=stay--tender --reject=closer--flat   (after listening)
  *   node scripts/generate-dialogue.mjs --manifest-only
+ *   node scripts/generate-dialogue.mjs --adopt=lab-stay-d-v4-scene-prose:stay--breaking   (a lab take identical to a performance)
+ *   … --proposed   also generate takes marked "proposed" (the next batch, written but not yet paid for)
  *
  * Direction:  src/content/dialogue.json   (authored)
  * Ledger:     scripts/dialogue-ledger.json (status, hashes, costs, transcripts, review)
  */
-import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync, copyFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { execFileSync } from 'node:child_process';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { applyBudget, buildManifest, emptyLedger, planJobs, runJobs, validateDirection } from './dialogue-lib.mjs';
+import { applyBudget, buildManifest, emptyLedger, performanceHash, planJobs, runJobs, validateDirection } from './dialogue-lib.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const args = Object.fromEntries(
@@ -79,13 +81,35 @@ if (args.approve || args.reject) {
   writeManifest();
   process.exit(0);
 }
+// Adopt a lab take as a performance: only if the request was identical (same hash), so nothing is paid twice.
+if (args.adopt) {
+  const [labId, perfId] = String(args.adopt).split(':');
+  const lab = JSON.parse(readFileSync(join(ROOT, 'scripts/voice-lab.json'), 'utf8'));
+  const labLedger = JSON.parse(readFileSync(join(ROOT, 'scripts/voice-lab-ledger.json'), 'utf8'));
+  const q = lab.performances.find((x) => x.id === labId), p = direction.performances.find((x) => x.id === perfId);
+  if (!q || !p || !labLedger.entries[labId]) {
+    console.error(`unknown lab take or performance: ${args.adopt}`);
+    process.exit(1);
+  }
+  if (performanceHash(q, lab) !== performanceHash(p, direction)) {
+    console.error(`${labId} and ${perfId} are not the same request (voice, model, input, settings, scene and seed must match)`);
+    process.exit(1);
+  }
+  copyFileSync(join(ROOT, 'audition', q.file), join(VOICES, p.file));
+  const e = labLedger.entries[labId];
+  ledger.entries[perfId] = { ...e, adoptedFrom: labId, cost: 0, estimate: 0, labCost: e.cost };
+  await saveLedger(ledger);
+  writeManifest();
+  console.log(`${perfId}: adopted from ${labId} (no new credits)`);
+  process.exit(0);
+}
 if (args['manifest-only']) {
   writeManifest();
   process.exit(0);
 }
 
 const budget = Number(args.budget ?? 1500);
-const { jobs, skipped } = planJobs(direction, ledger, { only: list(args.only), regenerate: list(args.regenerate) ?? [], pilot: !!args.pilot, fileExists });
+const { jobs, skipped } = planJobs(direction, ledger, { only: list(args.only), regenerate: list(args.regenerate) ?? [], pilot: !!args.pilot, proposed: !!args.proposed, fileExists });
 const { run, queued, estimate } = applyBudget(jobs, budget);
 console.log(`plan: ${jobs.length} to generate (~${jobs.reduce((s, j) => s + j.estimate, 0)} credits), ${skipped.length} skipped; budget ${budget} → running ${run.length} (~${estimate} credits), ${queued.length} left queued`);
 for (const s of skipped) console.log(`  skip ${s.id}: ${s.reason}`);
@@ -103,15 +127,33 @@ if (!key) {
 for (const q of queued) ledger.entries[q.perf.id] = { ...(ledger.entries[q.perf.id] ?? {}), status: ledger.entries[q.perf.id]?.status ?? 'queued', queuedReason: 'budget' };
 
 mkdirSync(join(VOICES, LAB ? 'lab' : 'dialogue'), { recursive: true });
-/** Cut the start off an MP3 without re-encoding the kept part's character (re-encoded at the same rate, no filters). */
+/**
+ * Cut a spoken lead-in off the start of a take: decode to PCM, find the quietest 10 ms in
+ * the 350 ms before the line begins (so the cut never lands inside a breath or a word), cut
+ * there with a 10 ms fade, and encode once. No other processing.
+ */
 const trim = async (audio, from) => {
   const tmp = join(tmpdir(), `hh-trim-${process.pid}-${Date.now()}`);
-  writeFileSync(`${tmp}.in.mp3`, audio);
-  execFileSync('ffmpeg', ['-loglevel', 'error', '-y', '-ss', String(from), '-i', `${tmp}.in.mp3`, '-af', 'afade=t=in:d=0.03', '-b:a', '128k', `${tmp}.out.mp3`]);
-  const out = new Uint8Array(readFileSync(`${tmp}.out.mp3`));
-  rmSync(`${tmp}.in.mp3`);
-  rmSync(`${tmp}.out.mp3`);
-  return out;
+  try {
+    writeFileSync(`${tmp}.in.mp3`, audio);
+    const raw = execFileSync('ffmpeg', ['-loglevel', 'error', '-i', `${tmp}.in.mp3`, '-ac', '1', '-ar', '44100', '-f', 'f32le', '-'], { maxBuffer: 64 << 20 });
+    const x = new Float32Array(raw.buffer, raw.byteOffset, raw.byteLength / 4);
+    const sr = 44100, win = Math.round(sr * 0.01), lineAt = Math.round((from + 0.14) * sr);
+    let best = Math.max(0, lineAt - win), bestE = Infinity;
+    for (let s = Math.max(0, lineAt - Math.round(0.35 * sr)); s + win <= lineAt; s += Math.round(win / 2)) {
+      let e = 0;
+      for (let i = s; i < s + win; i++) e += x[i] * x[i];
+      if (e < bestE) {
+        bestE = e;
+        best = s;
+      }
+    }
+    const cut = (best + win / 2) / sr;
+    execFileSync('ffmpeg', ['-loglevel', 'error', '-y', '-f', 'f32le', '-ar', '44100', '-ac', '1', '-i', '-', '-af', `atrim=start=${cut.toFixed(4)},afade=t=in:d=0.01`, '-b:a', '128k', `${tmp}.out.mp3`], { input: Buffer.from(raw) });
+    return new Uint8Array(readFileSync(`${tmp}.out.mp3`));
+  } finally {
+    for (const f of [`${tmp}.in.mp3`, `${tmp}.out.mp3`]) if (existsSync(f)) rmSync(f);
+  }
 };
 const result = await runJobs({
   jobs: run,

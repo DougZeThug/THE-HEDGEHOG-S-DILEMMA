@@ -36,14 +36,17 @@
   ],
   "phrase:closer": [
     "dialogue/closer--quiet.mp3",
-    "dialogue/closer--flat.mp3"
+    "dialogue/closer--flat.mp3",
+    "dialogue/closer--held.mp3"
   ],
   "phrase:afraid-leave": [
     "dialogue/afraid-leave--confessional.mp3",
-    "dialogue/afraid-leave--remembered.mp3"
+    "dialogue/afraid-leave--remembered.mp3",
+    "dialogue/afraid-leave--rueful.mp3"
   ],
   "phrase:if-closer": [
-    "dialogue/if-closer.mp3"
+    "dialogue/if-closer.mp3",
+    "dialogue/if-closer--doorway.mp3"
   ],
   "phrase:why-understand": [
     "dialogue/why-understand--frustrated.mp3",
@@ -58,7 +61,8 @@
     "dialogue/laugh-breathe--joy.mp3"
   ],
   "phrase:understood-minute": [
-    "dialogue/understood-minute.mp3"
+    "dialogue/understood-minute.mp3",
+    "dialogue/understood-minute--wry.mp3"
   ],
   "phrase:crumbs": [
     "dialogue/crumbs.mp3",
@@ -69,7 +73,8 @@
     "dialogue/remember-me--grief.mp3"
   ],
   "phrase:glad-came": [
-    "dialogue/glad-came.mp3"
+    "dialogue/glad-came.mp3",
+    "dialogue/glad-came--surprised.mp3"
   ],
   "phrase:still-here": [
     "dialogue/still-here.mp3"

@@ -102,7 +102,7 @@ export function validateDirection(direction, phraseText) {
     if (authored === undefined) problems.push(`${p.id}: unknown phrase ${p.phraseId}`);
     else if (authored !== p.text) problems.push(`${p.id}: text differs from the authored phrase`);
     if (words(p.input).join(' ') !== words(p.text).join(' ')) problems.push(`${p.id}: input words differ from the text`);
-    if (p.leadIn && /\w/.test(p.leadIn) && !p.leadIn.trim()) problems.push(`${p.id}: empty lead-in`);
+    if (p.leadIn !== undefined && !/\w/.test(p.leadIn)) problems.push(`${p.id}: empty lead-in`);
     if ((p.input.match(/\[/g) ?? []).length > MAX_TAGS) problems.push(`${p.id}: more than ${MAX_TAGS} audio tags`);
     if (p.scene && !SCENE_MODELS.has(p.model ?? direction.model)) problems.push(`${p.id}: scene context needs a model that accepts it`);
     if (!/^(dialogue|lab)\/[a-z0-9-]+\.mp3$/.test(p.file)) problems.push(`${p.id}: bad file name`);
@@ -115,7 +115,7 @@ export function validateDirection(direction, phraseText) {
  * recordings are never overwritten unless explicitly named for regeneration.
  */
 export function planJobs(direction, ledger, opts = {}) {
-  const { only, regenerate = [], pilot = false, fileExists = () => true } = opts;
+  const { only, regenerate = [], pilot = false, proposed = false, fileExists = () => true } = opts;
   const want = pilot ? PILOT : only;
   const jobs = [], skipped = [];
   for (const perf of direction.performances) {
@@ -123,6 +123,15 @@ export function planJobs(direction, ledger, opts = {}) {
     const entry = ledger.entries[perf.id];
     const hash = performanceHash(perf, direction);
     const forced = regenerate.includes(perf.id);
+    // A proposed take is direction written for the next batch: generated only when asked for.
+    if (perf.proposed && !proposed && !forced && !(only ?? []).includes(perf.id)) {
+      skipped.push({ id: perf.id, reason: 'proposed (use --proposed to generate)' });
+      continue;
+    }
+    if (perf.retired && !forced) {
+      skipped.push({ id: perf.id, reason: 'retired (use --regenerate to replace)' });
+      continue;
+    }
     if (entry?.review === 'approved' && !forced) {
       skipped.push({ id: perf.id, reason: 'approved (use --regenerate to replace)' });
       continue;
@@ -211,7 +220,7 @@ export function buildManifest(manifest, direction, ledger, fileExists = () => tr
     const e = ledger.entries[perf.id];
     if (!e || e.review === 'rejected' || !USABLE.has(e.status) || !fileExists(perf.file)) continue;
     // A retired take stays on disk and in the ledger; it returns only if someone approves it.
-    if (perf.retired && e.review !== 'approved') continue;
+    if ((perf.retired || perf.audition) && e.review !== 'approved') continue;
     (out[`phrase:${perf.phraseId}`] ??= []).push(perf.file);
   }
   return out;
@@ -294,7 +303,16 @@ export async function runJobs({ jobs, direction, ledger, key, fetch, writeFile, 
         continue;
       }
       ledger.spent.sttSeconds += info.seconds;
-      kept = await trim(audio, Math.max(0, at - 0.14));
+      try {
+        kept = await trim(audio, Math.max(0, at - 0.14));
+      } catch (e) {
+        // The take is paid for: keep it and its record, untrimmed, for a person to deal with.
+        await writeFile(perf.file.replace(/\.mp3$/, '.untrimmed.mp3'), audio);
+        ledger.entries[perf.id] = { ...entry, status: 'needs-review', lastError: { kind: 'trim', code: 'trim_failed', message: String(e).slice(0, 160), at: now() } };
+        run.failed++;
+        await saveLedger(ledger);
+        continue;
+      }
       entry.trimmedAt = +at.toFixed(2);
       entry.seconds = mp3Info(kept).seconds;
       entry.bytes = kept.length;
@@ -312,7 +330,7 @@ export async function runJobs({ jobs, direction, ledger, key, fetch, writeFile, 
         entry.wer = +wordErrorRate(perf.text, tr.text).toFixed(2);
         entry.spokenTags = spokenTags(perf, tr.text);
         ledger.spent.sttSeconds += info.seconds;
-        if (entry.wer > 0.25 || entry.spokenTags.length || (entry.extraWords?.length ?? 0) > 1) entry.status = 'needs-review';
+        if (entry.wer > 0.25 || entry.spokenTags.length || (entry.extraWords?.length ?? 0) >= 1) entry.status = 'needs-review';
       } else entry.transcript = `(transcription unavailable: ${tr.code})`;
     }
     ledger.entries[perf.id] = entry;

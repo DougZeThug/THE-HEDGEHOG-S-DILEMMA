@@ -58,6 +58,8 @@ export type Cue =
       performance?: string;
       /** Recorded files for this phrase, best first for this moment. */
       performances?: string[];
+      /** Seconds the room holds its breath before the voice starts (a hush that belongs to the voice, so it never happens without it). */
+      lead?: number;
     }
   | {
       type: 'music';

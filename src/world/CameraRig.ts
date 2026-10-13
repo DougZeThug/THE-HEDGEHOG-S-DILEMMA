@@ -22,6 +22,8 @@ export class CameraRig {
   reducedMotion = false;
   enabled = true;
   sensitivity = 0.0022;
+  /** Vertical field of view for this screen's shape (portrait phones need more, wide screens less). */
+  baseFov = 62;
   private bobT = 0;
   private breathT = 0;
   /** Auto-walk target (attend mode). */
@@ -36,6 +38,12 @@ export class CameraRig {
   constructor(aspect: number) {
     this.camera = new THREE.PerspectiveCamera(62, aspect, 0.03, 40);
     this.camera.rotation.order = 'YXZ';
+  }
+
+  /** Keep roughly 58–95° of horizontal view whatever the screen's shape (a 16:9 screen stays at 62° vertical). */
+  setAspect(aspect: number) {
+    const v = (h: number) => (2 * Math.atan(Math.tan((h * Math.PI) / 360) / aspect) * 180) / Math.PI;
+    this.baseFov = Math.min(88, clamp(62, v(58), v(95)));
   }
 
   look(dx: number, dy: number) {
@@ -161,7 +169,7 @@ export class CameraRig {
     }
     this.camera.position.set(this.pos.x, this.eye + bob + sway, this.pos.z);
     this.camera.rotation.set(this.pitch, this.yaw, 0);
-    const fovTarget = this.kneeling && !this.reducedMotion ? 70 : 62;
+    const fovTarget = this.baseFov + (this.kneeling && !this.reducedMotion ? 8 : 0);
     this.camera.fov = approach(this.camera.fov, fovTarget, dt, 1.5);
     this.camera.updateProjectionMatrix();
   }

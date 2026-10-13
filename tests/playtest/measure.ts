@@ -23,10 +23,16 @@ export interface Development {
   /** Writing appeared on the wall the visitor was facing (or anything audible). */
   seen: boolean;
   label: string;
+  /** For a deliberate held silence: when it ends (the quiet inside it is chosen, not a gap). */
+  holdUntil?: number;
 }
 
-/** Rules that belong to the room's own life rather than answering the visitor. */
-const AMBIENT = /^(opening|drift|distant-life|music|resurface|stray|stray-held|recontext|cull|unstill|phase-|return|chair-nudge|pulse)/;
+/**
+ * Rules that answer something the visitor did. Everything else — the opening, drift,
+ * migration, recontext, music, life next door, situations' own ambience, and the room's
+ * filler when it is waiting (sounds, writing behind you) — is the room's own life.
+ */
+const RESPONSIVE = /^(encounter:|first-approach|near-|long-near|still-|still-voice|withdraw-|kneel|motif-|tap|respond-line|respond-chair|respond-still|voice-attention|rehear|contribution|sit:residue|sit:listening|withhold)/;
 
 const HALF = 3.2;
 
@@ -126,8 +132,9 @@ export function visit(p: Persona, seconds: number, seed: number, dt = 0.1): Visi
       if (!k) continue;
       devs.push({
         t: +(t + dt).toFixed(1), rule: c.rule, kind: k.kind, recorded: k.recorded, label: k.label,
-        responsive: !AMBIENT.test(c.rule),
+        responsive: RESPONSIVE.test(c.rule),
         seen: k.kind !== 'text' || !k.surface || k.surface === facing || k.surface === 'floor' || (k.surface === 'ceiling' && f.pitch > 0.4),
+        holdUntil: (c.rule === 'held-silence' || c.rule === 'still-silence') && c.cue.type === 'silence' ? t + dt + c.cue.seconds : undefined,
       });
     }
     for (const w of WINDOWS) {
@@ -145,8 +152,11 @@ export function visit(p: Persona, seconds: number, seed: number, dt = 0.1): Visi
   return { persona: p.id, seed, devs, interruptions, frames: p.frame, director: d, recognised, phases };
 }
 
-/** Developments that count as something happening (a dip in the room tone alone does not). */
-export const meaningful = (x: Development) => x.kind !== 'silence';
+/** Developments that count as something happening (a dip in the room tone alone does not — unless it is the room deliberately holding back). */
+const DELIBERATE = new Set(['withhold', 'held-silence', 'still-silence']);
+export const meaningful = (x: Development) => x.kind !== 'silence' || DELIBERATE.has(x.rule);
+/** …and that the visitor could actually see or hear. */
+export const perceptible = (x: Development) => meaningful(x) && x.seen;
 
 export interface WindowStats {
   firstResponse: number | null;
@@ -159,6 +169,10 @@ export interface WindowStats {
   silences: number;
   /** Longest stretch with no meaningful development, within the window. */
   longestGap: number;
+  /** Longest stretch with nothing the visitor could see or hear. */
+  longestSeenGap: number;
+  /** Meaningful developments per minute. */
+  perMinute: number;
   /** Two audible events starting within 3 s of each other. */
   overlaps: number;
 }
@@ -166,13 +180,16 @@ export interface WindowStats {
 export function windowStats(r: VisitResult, w: number): WindowStats {
   const devs = r.devs.filter((x) => x.t <= w);
   const m = devs.filter(meaningful);
-  const firstResp = m.find((x) => x.responsive);
-  let gap = 0, last = 0;
-  for (const x of m) {
-    gap = Math.max(gap, x.t - last);
-    last = x.t;
-  }
-  gap = Math.max(gap, w - last);
+  const firstResp = m.find((x) => x.responsive && x.seen);
+  const longest = (xs: Development[]) => {
+    let gap = 0, last = 0;
+    for (const x of xs) {
+      gap = Math.max(gap, x.t - last);
+      last = Math.max(last, x.holdUntil ?? x.t);
+    }
+    return Math.max(gap, w - last);
+  };
+  const gap = longest(m);
   const audible = devs.filter((x) => x.kind === 'voice' || x.kind === 'sound' || x.kind === 'music');
   let overlaps = 0;
   for (let i = 1; i < audible.length; i++) if (audible[i].t - audible[i - 1].t < 3) overlaps++;
@@ -186,6 +203,8 @@ export function windowStats(r: VisitResult, w: number): WindowStats {
     textUnseen: devs.filter((x) => x.kind === 'text' && !x.seen).length,
     silences: devs.filter((x) => x.kind === 'silence').length,
     longestGap: +gap.toFixed(1),
+    longestSeenGap: +longest(devs.filter(perceptible)).toFixed(1),
+    perMinute: +(m.length / (w / 60)).toFixed(1),
     overlaps,
   };
 }
@@ -209,6 +228,8 @@ export function summarise(results: VisitResult[], w: number): WindowStats & { ph
     textUnseen: med((s) => s.textUnseen),
     silences: med((s) => s.silences),
     longestGap: med((s) => s.longestGap),
+    longestSeenGap: med((s) => s.longestSeenGap),
+    perMinute: med((s) => s.perMinute),
     overlaps: med((s) => s.overlaps),
     phaseAt: '',
   };

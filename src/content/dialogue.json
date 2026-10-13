@@ -1,5 +1,5 @@
 {
-  "$comment": "Authored voice direction for recorded performances. `text` must equal the phrase's authored text exactly (it is the caption). `input` is what the TTS model receives: the same words, shaped by delivery tags, ellipses and emphasis — never added words. `scene` is unspoken context (the other person's line before/after, or a line of narration) that shapes how the words are said; it is sent as previous_text/next_text, is never heard, and is not billed. `interpretation` names the reading of the line; `context` weights the EmotionalField values that make this performance the right one; `fits` lists the voice styles it can stand in for. `retired` keeps an older take on disk and in the ledger but out of the room. Generation status, costs and review decisions live in scripts/dialogue-ledger.json, never here.",
+  "$comment": "Authored voice direction for recorded performances. `text` must equal the phrase's authored text exactly (it is the caption). `input` is what the TTS model receives: the same words, shaped by delivery tags, ellipses and emphasis — never added words. `scene` is unspoken context (the other person's line before/after, or a line of narration) that shapes how the words are said; it is sent as previous_text/next_text, is never heard, and is not billed. `interpretation` names the reading of the line; `context` weights the EmotionalField values that make this performance the right one; `fits` lists the voice styles it can stand in for. `retired` keeps an older take on disk and in the ledger but out of the room. Generation status, costs and review decisions live in scripts/dialogue-ledger.json, never here. `levelDb` is the take's level relative to the others (playback only half-normalises recordings, so a whispered take stays quieter than a raised voice). `audition` marks an alternative reading kept for listening: like a retired take, it reaches the room only if someone approves it.",
   "model": "eleven_v4",
   "outputFormat": "mp3_44100_128",
   "voices": {
@@ -604,7 +604,8 @@
       "scene": {
         "before": "He already had his coat on. She had told him it was fine, that she understood. It was not fine. At the door she finally said it, and her voice gave way halfway through:",
         "after": "She couldn't look at him."
-      }
+      },
+      "levelDb": -2
     },
     {
       "id": "stay--abandoned",
@@ -628,7 +629,8 @@
       "scene": {
         "before": "\"It's two days. You're being dramatic about this.\"",
         "after": "\"That's not fair and you know it.\""
-      }
+      },
+      "levelDb": 2
     },
     {
       "id": "stay--asking",
@@ -678,7 +680,8 @@
       "scene": {
         "before": "\"Talk to me. Please. I'm not leaving until you talk to me.\"",
         "after": "\"...Okay. I'll be in the kitchen.\""
-      }
+      },
+      "levelDb": -2
     },
     {
       "id": "love-go-away--teasing",
@@ -727,7 +730,8 @@
       "scene": {
         "before": "\"So that's it? You're just going to shut me out again?\"",
         "after": "\"Fine.\""
-      }
+      },
+      "levelDb": 1.5
     },
     {
       "id": "happy-then--smile",
@@ -775,7 +779,8 @@
       "file": "dialogue/happy-then--unsure.mp3",
       "scene": {
         "before": "\"Were you happy, back then? In that house?\""
-      }
+      },
+      "levelDb": -1
     },
     {
       "id": "happy-then--lost",
@@ -799,7 +804,8 @@
       "file": "dialogue/happy-then--lost.mp3",
       "scene": {
         "before": "He found the photograph in a box he hadn't opened in twenty years. He smiled at it at first. Then the smile went, and he said, very quietly:"
-      }
+      },
+      "levelDb": -2
     },
     {
       "id": "crumbs--laughing",
@@ -822,7 +828,8 @@
       "file": "dialogue/crumbs--laughing.mp3",
       "scene": {
         "before": "\"What? Why are you looking at me like that?\""
-      }
+      },
+      "levelDb": 0.5
     },
     {
       "id": "why-understand--irritated",
@@ -845,7 +852,8 @@
       "file": "dialogue/why-understand--irritated.mp3",
       "scene": {
         "before": "\"I did what you asked. I don't know what else you want from me.\""
-      }
+      },
+      "levelDb": 2
     },
     {
       "id": "this-bit--fond",
@@ -940,7 +948,8 @@
       "file": "dialogue/small-minute--tender.mp3",
       "scene": {
         "before": "She put her head on his shoulder and closed her eyes."
-      }
+      },
+      "levelDb": -4
     },
     {
       "id": "remember-me--grief",
@@ -965,7 +974,8 @@
       "file": "dialogue/remember-me--grief.mp3",
       "scene": {
         "before": "Her mother looked at her for a long time without knowing her. She took her hand anyway."
-      }
+      },
+      "levelDb": -2
     },
     {
       "id": "laugh-breathe--joy",
@@ -989,7 +999,8 @@
       "file": "dialogue/laugh-breathe--joy.mp3",
       "scene": {
         "before": "\"Do you remember the thing with the deckchair?\""
-      }
+      },
+      "levelDb": 1
     },
     {
       "id": "good-day--happy",
@@ -1012,6 +1023,256 @@
       "file": "dialogue/good-day--happy.mp3",
       "scene": {
         "before": "\"Remember the beach? You fell asleep in the sun and burnt one side of your face.\""
+      }
+    },
+    {
+      "id": "stay--breaking-lean",
+      "phraseId": "stay",
+      "voice": "intimate",
+      "text": "I wanted you to stay.",
+      "input": "I wanted you… to stay.",
+      "interpretation": "Nearly breaking, with the scene doing the work instead of tags.",
+      "direction": "Lean alternative to stay--breaking (review: stacked tags risk sounding acted). No tags; the unspoken scene carries it.",
+      "context": {
+        "exposure": 0.6,
+        "solitude": 0.5,
+        "hush": 0.4
+      },
+      "fits": [
+        "tender",
+        "whisper"
+      ],
+      "seed": 6101,
+      "stability": 0.2,
+      "generation": 2,
+      "file": "dialogue/stay--breaking-lean.mp3",
+      "scene": {
+        "before": "He already had his coat on. She had told him it was fine, that she understood. It was not fine. At the door she finally said it, and her voice gave way halfway through:",
+        "after": "She couldn't look at him."
+      },
+      "audition": true
+    },
+    {
+      "id": "love-go-away--hurt-lean",
+      "phraseId": "love-go-away",
+      "voice": "restrained",
+      "text": "I love you. Go away.",
+      "input": "I love you. [breath] Go away.",
+      "interpretation": "Angry with the hurt underneath; one breath between the two halves, nothing else directed.",
+      "direction": "Angry with the hurt underneath; one breath between the two halves, nothing else directed.",
+      "context": {
+        "tension": 1,
+        "exposure": 0.6,
+        "dissonance": 0.4
+      },
+      "fits": [
+        "flat"
+      ],
+      "seed": 6102,
+      "stability": 0.3,
+      "generation": 2,
+      "file": "dialogue/love-go-away--hurt-lean.mp3",
+      "scene": {
+        "before": "\"So that's it? You're just going to shut me out again?\"",
+        "after": "\"Fine.\""
+      },
+      "audition": true
+    },
+    {
+      "id": "love-go-away--exhausted-lean",
+      "phraseId": "love-go-away",
+      "voice": "matilda",
+      "text": "I love you. Go away.",
+      "input": "I love you. [long exhale] Go away.",
+      "interpretation": "Exhausted; only the exhale is directed.",
+      "direction": "Exhausted; only the exhale is directed.",
+      "context": {
+        "tension": 0.6,
+        "hush": 0.5,
+        "exposure": 0.4
+      },
+      "fits": [
+        "whisper",
+        "flat"
+      ],
+      "seed": 6103,
+      "stability": 0.25,
+      "generation": 2,
+      "file": "dialogue/love-go-away--exhausted-lean.mp3",
+      "scene": {
+        "before": "\"Talk to me. Please. I'm not leaving until you talk to me.\"",
+        "after": "\"...Okay. I'll be in the kitchen.\""
+      },
+      "audition": true
+    },
+    {
+      "id": "this-bit--distracted",
+      "phraseId": "this-bit",
+      "voice": "sarah",
+      "text": "Don't go yet, this bit's good.",
+      "input": "Don't go yet, this bit's good.",
+      "interpretation": "Affection without looking: eyes on the screen, a hand patting the sofa.",
+      "direction": "Affection without looking: eyes on the screen, a hand patting the sofa.",
+      "context": {
+        "warmth": 1,
+        "relief": 0.3
+      },
+      "fits": [
+        "tender",
+        "flat"
+      ],
+      "seed": 6104,
+      "stability": 0.3,
+      "generation": 2,
+      "file": "dialogue/this-bit--distracted.mp3",
+      "scene": {
+        "before": "Her brother stood up to go to bed. She didn't look away from the television; she just patted the sofa beside her and said:"
+      },
+      "audition": true
+    },
+    {
+      "id": "remember-me--bus-stop",
+      "phraseId": "remember-me",
+      "voice": "matilda",
+      "text": "Do you remember me?",
+      "input": "[half-laughing] Do you remember me?",
+      "interpretation": "An old school friend at a bus stop, delighted and a little embarrassed.",
+      "direction": "An old school friend at a bus stop, delighted and a little embarrassed.",
+      "context": {
+        "warmth": 0.7,
+        "reminiscence": 0.8
+      },
+      "fits": [
+        "child",
+        "distant"
+      ],
+      "seed": 6105,
+      "stability": 0.3,
+      "generation": 2,
+      "file": "dialogue/remember-me--bus-stop.mp3",
+      "scene": {
+        "before": "He had been staring at her across the bus shelter for a full minute before she turned round.",
+        "after": "\"Year nine. You stole my bike.\""
+      },
+      "audition": true
+    },
+    {
+      "id": "if-closer--doorway",
+      "phraseId": "if-closer",
+      "voice": "liam",
+      "text": "If I come closer, will you stay?",
+      "input": "If I come closer… will you stay?",
+      "interpretation": "Half a joke, half not; he means it more than he wants to.",
+      "direction": "Half a joke, half not; he means it more than he wants to.",
+      "context": {
+        "exposure": 0.5,
+        "warmth": 0.5
+      },
+      "fits": [
+        "whisper",
+        "tender"
+      ],
+      "seed": 6106,
+      "stability": 0.3,
+      "generation": 2,
+      "file": "dialogue/if-closer--doorway.mp3",
+      "scene": {
+        "before": "\"You always do this. You stand in the doorway like you're about to leave.\""
+      }
+    },
+    {
+      "id": "understood-minute--wry",
+      "phraseId": "understood-minute",
+      "voice": "bill",
+      "text": "You understood me once, completely, for about a minute.",
+      "input": "You understood me once, completely… for about a minute.",
+      "interpretation": "Wry and fond, and also true.",
+      "direction": "Wry and fond, and also true.",
+      "context": {
+        "reminiscence": 1,
+        "warmth": 0.4
+      },
+      "fits": [
+        "tender",
+        "distant",
+        "flat"
+      ],
+      "seed": 6107,
+      "stability": 0.3,
+      "generation": 2,
+      "file": "dialogue/understood-minute--wry.mp3",
+      "scene": {
+        "before": "They were old by then. He said it fondly, and she laughed, and it was also true."
+      }
+    },
+    {
+      "id": "glad-came--surprised",
+      "phraseId": "glad-came",
+      "voice": "matilda",
+      "text": "I'm glad you came.",
+      "input": "[warm, surprised] I'm glad you came.",
+      "interpretation": "Glad, and surprised to be.",
+      "direction": "Glad, and surprised to be.",
+      "context": {
+        "warmth": 0.8,
+        "relief": 0.6
+      },
+      "fits": [
+        "tender"
+      ],
+      "seed": 6108,
+      "stability": 0.3,
+      "generation": 2,
+      "file": "dialogue/glad-came--surprised.mp3",
+      "scene": {
+        "before": "\"I nearly didn't. I sat in the car for twenty minutes.\""
+      }
+    },
+    {
+      "id": "closer--held",
+      "phraseId": "closer",
+      "voice": "restrained",
+      "text": "Please don't come any closer.",
+      "input": "Please… don't come any closer.",
+      "interpretation": "Holding still so as not to break; polite, which is worse.",
+      "direction": "Holding still so as not to break; polite, which is worse.",
+      "context": {
+        "tension": 1,
+        "exposure": 0.8
+      },
+      "fits": [
+        "flat"
+      ],
+      "seed": 6109,
+      "stability": 0.3,
+      "generation": 2,
+      "file": "dialogue/closer--held.mp3",
+      "scene": {
+        "before": "\"I just want to talk to you. That's all. I just want to talk.\""
+      }
+    },
+    {
+      "id": "afraid-leave--rueful",
+      "phraseId": "afraid-leave",
+      "voice": "sarah",
+      "text": "I was afraid you'd leave.",
+      "input": "[almost laughing at herself] I was afraid you'd leave.",
+      "interpretation": "Said afterwards, embarrassed at how afraid she had been.",
+      "direction": "Said afterwards, embarrassed at how afraid she had been.",
+      "context": {
+        "warmth": 0.6,
+        "relief": 0.6
+      },
+      "fits": [
+        "tender",
+        "whisper"
+      ],
+      "seed": 6110,
+      "stability": 0.3,
+      "generation": 2,
+      "file": "dialogue/afraid-leave--rueful.mp3",
+      "scene": {
+        "before": "\"You kept going to the window. All night. What was that?\""
       }
     }
   ]

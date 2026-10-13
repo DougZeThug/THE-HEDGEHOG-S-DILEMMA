@@ -23,7 +23,7 @@ describe('voice direction', () => {
       expect(ids.has(id), id).toBe(true);
     expect(ids.size).toBeGreaterThanOrEqual(18);
     expect(ids.size).toBeLessThanOrEqual(24);
-    const count = (id: string) => direction.performances.filter((p: any) => p.phraseId === id && !p.retired).length;
+    const count = (id: string) => direction.performances.filter((p: any) => p.phraseId === id && !p.retired && !p.audition).length;
     expect(count('stay')).toBe(3);
     expect(count('closer')).toBeGreaterThanOrEqual(2);
   });
@@ -37,7 +37,7 @@ describe('voice direction', () => {
     for (const w of ['laugh', 'angry', 'frustrated', 'warm', 'embarrassed', 'confused', 'grief', 'tender']) expect(inputs).toContain(w);
     // Three clearly different readings of each of the three central lines, in different voices or settings.
     for (const id of ['stay', 'love-go-away', 'happy-then']) {
-      const takes = fresh.filter((p: any) => p.phraseId === id);
+      const takes = fresh.filter((p: any) => p.phraseId === id && !p.audition);
       expect(takes.length).toBe(3);
       expect(new Set(takes.map((p: any) => p.interpretation)).size).toBe(3);
       expect(new Set(takes.map((p: any) => `${p.voice}:${JSON.stringify(p.context)}`)).size).toBe(3);
@@ -62,7 +62,7 @@ describe('voice direction', () => {
 describe('generation planning', () => {
   it('never repeats an identical generation, and never overwrites an approved one', () => {
     const l = emptyLedger();
-    const perf = direction.performances[0];
+    const perf = direction.performances.find((p: any) => !p.retired);
     l.entries[perf.id] = { status: 'validated', hash: performanceHash(perf, direction) };
     expect(planJobs(direction, l, { only: [perf.id] }).jobs).toHaveLength(0);
     // A changed direction (different input) is a different request.
@@ -75,6 +75,11 @@ describe('generation planning', () => {
     // A missing file is regenerated.
     l.entries[perf.id].review = 'pending';
     expect(planJobs(direction, l, { only: [perf.id], fileExists: () => false }).jobs).toHaveLength(1);
+  });
+  it('never regenerates a retired take unless asked to', () => {
+    const r = direction.performances.find((p: any) => p.retired);
+    expect(planJobs(direction, emptyLedger(), { only: [r.id] }).jobs).toHaveLength(0);
+    expect(planJobs(direction, emptyLedger(), { only: [r.id], regenerate: [r.id] }).jobs).toHaveLength(1);
   });
   it('the real ledger is fully up to date: re-running would bill nothing', () => {
     const exists = (f: string) => existsSync(join(ROOT, 'public/voices', f));
@@ -126,14 +131,14 @@ describe('API failure handling', () => {
   it('records an invalid voice and carries on with the next line', async () => {
     const h = harness([fail(404, 'voice_not_found'), ok()]);
     const l = emptyLedger();
-    const r = await runJobs({ ...h, jobs: jobsFor(['stay--tender', 'crumbs']), direction, ledger: l, key: 'k' });
-    expect(l.entries['stay--tender']).toMatchObject({ status: 'failed', lastError: { kind: 'invalid-voice' } });
+    const r = await runJobs({ ...h, jobs: jobsFor(['closer--quiet', 'crumbs']), direction, ledger: l, key: 'k' });
+    expect(l.entries['closer--quiet']).toMatchObject({ status: 'failed', lastError: { kind: 'invalid-voice' } });
     expect(r.generated).toBe(1);
   });
   it('stops at a quota or permission failure and leaves the rest queued, unbilled', async () => {
     const h = harness([fail(401, 'quota_exceeded', 'exceeds your quota')]);
     const l = emptyLedger();
-    const r = await runJobs({ ...h, jobs: jobsFor(['stay--tender', 'crumbs', 'glad-came']), direction, ledger: l, key: 'k' });
+    const r = await runJobs({ ...h, jobs: jobsFor(['closer--quiet', 'crumbs', 'glad-came']), direction, ledger: l, key: 'k' });
     expect(r.stopped).toMatch(/quota/);
     expect(h.calls.filter((u) => u.includes('text-to-speech')).length).toBe(1);
     expect(l.entries.crumbs.status).toBe('queued');
@@ -148,11 +153,17 @@ describe('API failure handling', () => {
   });
   it('flags a recording whose words do not match, or that speaks its tag aloud', async () => {
     const h = harness([]);
-    h.fetch = async (url: string) => (url.includes('speech-to-text') ? { ...ok(), json: async () => ({ text: 'Softly. I wanted you to stay.' }) } : ok());
+    h.fetch = async (url: string) => (url.includes('speech-to-text') ? { ...ok(), json: async () => ({ text: "Nervously. Please don't come any closer." }) } : ok());
     const l = emptyLedger();
-    await runJobs({ ...h, jobs: jobsFor(['stay--tender']), direction, ledger: l, key: 'k' });
-    expect(l.entries['stay--tender'].status).toBe('needs-review');
-    expect(l.entries['stay--tender'].spokenTags).toEqual(['softly']);
+    await runJobs({ ...h, jobs: jobsFor(['closer--quiet']), direction, ledger: l, key: 'k' });
+    expect(l.entries['closer--quiet'].status).toBe('needs-review');
+    expect(l.entries['closer--quiet'].spokenTags).toEqual(['nervously']);
+    // A single added word is enough to hold a take back for a person to hear.
+    const h2 = harness([]);
+    h2.fetch = async (url: string) => (url.includes('speech-to-text') ? { ...ok(), json: async () => ({ text: "You've got crumbs on you, love" }) } : ok());
+    const l2 = emptyLedger();
+    await runJobs({ ...h2, jobs: jobsFor(['crumbs']), direction, ledger: l2, key: 'k' });
+    expect(l2.entries.crumbs).toMatchObject({ status: 'needs-review', extraWords: ['love'] });
   });
   it('transcript comparison tolerates punctuation and quotes', () => {
     expect(wordErrorRate("I still say 'we' by accident.", 'I still say "we" by accident')).toBe(0);

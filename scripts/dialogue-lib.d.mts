@@ -15,7 +15,7 @@ export function words(s: string): string[];
 export function wordErrorRate(reference: string, hypothesis: string): number;
 export function spokenTags(perf: any, transcript: string): string[];
 export function validateDirection(direction: any, phraseText: (id: string) => string | undefined): string[];
-export function planJobs(direction: any, ledger: Ledger, opts?: { only?: string[]; regenerate?: string[]; pilot?: boolean; fileExists?: (f: string) => boolean }): { jobs: Job[]; skipped: { id: string; reason: string }[] };
+export function planJobs(direction: any, ledger: Ledger, opts?: { only?: string[]; regenerate?: string[]; pilot?: boolean; proposed?: boolean; fileExists?: (f: string) => boolean }): { jobs: Job[]; skipped: { id: string; reason: string }[] };
 export function applyBudget(jobs: Job[], budget: number): { run: Job[]; queued: Job[]; estimate: number };
 export function mp3Info(buf: Uint8Array | ArrayBuffer): { valid: boolean; frames: number; seconds: number };
 export function classifyFailure(status: number, body: string): { kind: string; code: string; message: string; retry: boolean; stop: boolean };

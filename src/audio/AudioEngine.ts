@@ -1,5 +1,8 @@
 import { Rng } from '../core/rng';
 
+/** Fixed mix level into the limiter: the old volume curve at 0.8, plus the ~6.5 dB the old compressor added as makeup. */
+const MIX = 0.64 * 1.1 * 2.1;
+
 /**
  * AudioEngine — the shared signal chain.
  *
@@ -34,14 +37,18 @@ export class AudioEngine {
     const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     this.ctx = new Ctx({ latencyHint: 'playback' });
     const c = this.ctx;
+    // The listener's volume and mute come after the limiter, so they never change the dynamics.
     this.out = c.createGain();
-    this.out.gain.value = 0.9;
+    this.out.gain.value = 0;
+    // A safety limiter, not a compressor: it should almost never act. (The old settings
+    // squashed everything above -14 dBFS and added ~6.7 dB of makeup; MIX restores that level
+    // as plain gain so the room sounds as loud as before, with its dynamics intact.)
     this.limiter = c.createDynamicsCompressor();
-    this.limiter.threshold.value = -14;
-    this.limiter.knee.value = 6;
-    this.limiter.ratio.value = 16;
-    this.limiter.attack.value = 0.004;
-    this.limiter.release.value = 0.25;
+    this.limiter.threshold.value = -2;
+    this.limiter.knee.value = 0;
+    this.limiter.ratio.value = 20;
+    this.limiter.attack.value = 0.002;
+    this.limiter.release.value = 0.1;
     this.master = c.createGain();
     this.master.gain.value = 0;
     this.analyser = c.createAnalyser();
@@ -102,10 +109,10 @@ export class AudioEngine {
     return this.volume;
   }
 
-  /** Perceptual volume curve. */
+  /** Perceptual volume curve (after the limiter), and the fixed mix level before it. */
   private applyMaster(tau: number) {
-    const g = this.muted ? 0 : Math.pow(this.volume, 2) * 1.1;
-    this.ramp(this.master.gain, g, tau);
+    this.ramp(this.master.gain, MIX, tau);
+    this.ramp(this.out.gain, this.muted ? 0 : Math.pow(this.volume, 2) * 1.1 * 0.9 / (0.64 * 1.1), tau);
   }
 
   ramp(p: AudioParam, v: number, tau: number, at = this.ctx.currentTime) {
@@ -121,13 +128,22 @@ export class AudioEngine {
     this.ramp(this.revLargeGain.gain, 0.5 * a + 0.05, 2);
   }
 
-  /** A deliberate silence: ambience and music fall away, then return. */
-  silence(depth: number, seconds: number) {
+  private duckDepth = 0;
+  private duckUntil = 0;
+
+  /**
+   * A deliberate silence: ambience and music fall away, then return. A shallower silence
+   * never lifts a deeper one already under way. `fall` is how quickly it falls (seconds).
+   */
+  silence(depth: number, seconds: number, fall = 1.4) {
     const t = this.ctx.currentTime;
+    if (t < this.duckUntil && depth < this.duckDepth) return;
+    this.duckDepth = depth;
+    this.duckUntil = t + seconds;
     const p = this.duck.gain;
     p.cancelScheduledValues(t);
     p.setValueAtTime(p.value, t);
-    p.setTargetAtTime(Math.max(0.03, 1 - depth), t, 1.4);
+    p.setTargetAtTime(Math.max(0.03, 1 - depth), t, fall);
     p.setTargetAtTime(1, t + seconds, 3.5);
   }
 

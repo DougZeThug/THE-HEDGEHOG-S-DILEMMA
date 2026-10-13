@@ -58,6 +58,10 @@ export class App {
   private lastDebug = 0;
   private hintShown = false;
   private touchHintShown = false;
+  /** The visitor has touched writing or the chair at least once. */
+  private touched = false;
+  /** The visitor has dragged on the screen (so knows how to move). */
+  private dragged = false;
   private touch = matchMedia('(pointer: coarse)').matches;
   private tabIndex = 0;
   private departTimer = 0;
@@ -128,7 +132,8 @@ export class App {
 
   private pixelRatio() {
     const dpr = devicePixelRatio || 1;
-    return this.prefs.quality === 'low' ? Math.min(dpr, 1) : this.prefs.quality === 'medium' ? Math.min(dpr, 1.5) : Math.min(dpr, 2);
+    // Phones have small, dense screens: writing at ratio 1 is soft, so 'low' still renders at up to 1.5 there.
+    return this.prefs.quality === 'low' ? Math.min(dpr, this.touch ? 1.5 : 1) : this.prefs.quality === 'medium' ? Math.min(dpr, 1.5) : Math.min(dpr, 2);
   }
 
   private onResize() {
@@ -138,6 +143,7 @@ export class App {
     this.renderer.setSize(w, h);
     this.post.setSize(w, h, pr);
     this.rig.camera.aspect = w / h;
+    this.rig.setAspect(w / h);
     this.rig.camera.updateProjectionMatrix();
   }
 
@@ -153,7 +159,8 @@ export class App {
       const session = (navigator as unknown as { audioSession?: { type: string } }).audioSession;
       if (session) session.type = 'playback';
       this.audio = new AudioEngine();
-      await this.audio.resume();
+      // Never let a stuck audio session hold the visitor at the door.
+      void this.audio.resume().catch(() => {});
       this.ambience = new Ambience(this.audio);
       this.ambience.start();
       this.music = new Music(this.audio);
@@ -170,6 +177,20 @@ export class App {
     $('write-btn').hidden = false;
     this.enteredAt = this.time;
     this.renderer.domElement.focus();
+    void this.keepAwake();
+    // A phone's back gesture (an edge swipe, easily made while walking) pauses instead of leaving.
+    history.pushState({ room: 1 }, '');
+  }
+
+  private wakeLock: { release(): Promise<void> } | null = null;
+  /** The room rewards standing still; the screen shouldn't go dark for it. */
+  private async keepAwake() {
+    try {
+      const wl = (navigator as unknown as { wakeLock?: { request(t: 'screen'): Promise<{ release(): Promise<void> }> } }).wakeLock;
+      if (wl && !this.wakeLock) this.wakeLock = await wl.request('screen');
+    } catch {
+      /* refused or unsupported: the screen may sleep */
+    }
   }
 
   // ─────────────────────────────── frame ───────────────────────────────
@@ -187,8 +208,8 @@ export class App {
       const dur = this.prefs.reducedMotion ? 2 : this.touch ? 2.2 : 3;
       this.post.white = 1 - smoothstep(0.15, dur, since);
       if (this.ambience) this.ambience.fade = clamp(since / 2.5);
-      if (!this.hintShown && since > dur + 0.5) this.showHint();
-      if (this.touch && !this.touchHintShown && since > 22 && !this.director.engagement.count('tap') && !this.director.engagement.count('tap-chair')) this.showTouchHint();
+      if (!this.hintShown && since > (this.touch ? 7 : dur + 0.5) && !(this.touch && this.dragged)) this.showHint();
+      if (this.touch && this.mode === 'room' && !this.touchHintShown && since > 22 && !this.touched) this.showTouchHint();
     }
 
     this.rig.enabled = this.mode === 'room';
@@ -253,7 +274,8 @@ export class App {
         const near = cue.nearPoint && cue.surface === 'floor'
           ? { u: c.x + cue.nearPoint.x + ROOM.halfW, v: c.z + cue.nearPoint.z + ROOM.halfD }
           : cue.surface && !cue.beside ? this.viewPointOn(cue.surface) : undefined;
-        const ok = this.text.write({ key: cue.key, text: cue.text, hand: cue.hand, size: cue.size, beside: cue.beside, surface: cue.surface, near, purpose: cue.purpose, ttl: cue.ttl, now: this.time, source: cue.source });
+        const size = this.touch && cue.size === 'xs' && cue.purpose === 'recall' ? 's' : cue.size;
+        const ok = this.text.write({ key: cue.key, text: cue.text, hand: cue.hand, size, beside: cue.beside, surface: cue.surface, near, purpose: cue.purpose, ttl: cue.ttl, now: this.time, source: cue.source });
         if (ok && cue.strike) this.text.strike(cue.strike, this.time, cue.ttl);
         if (!ok) this.director.writeFailed(cue.key);
         break;
@@ -352,6 +374,12 @@ export class App {
 
   private async playVoice(cue: Extract<Cue, { type: 'voice' }>) {
     let dur = 3;
+    if (cue.lead && this.audio) {
+      // Falls fast enough to be felt before the first word (and never lifts a deeper silence).
+      this.audio.silence(0.4 * (this.prefs.intensity === 'gentle' ? 0.8 : 1), cue.lead + 3.5, 0.4);
+      await new Promise((r) => setTimeout(r, cue.lead! * 1000));
+      if (this.mode === 'departed') return;
+    }
     if (this.voices && this.audio) {
       const assetKey = cue.assetId ?? (cue.phraseId ? `phrase:${cue.phraseId}` : undefined);
       dur = await this.voices.play(cue.kind, cue.text, { ...this.place(cue.position), tag: cue.tag }, cue.gain, assetKey, {
@@ -416,6 +444,8 @@ export class App {
 
     addEventListener('keydown', (e) => {
       if (this.mode === 'threshold' || this.mode === 'departed') return;
+      // Held keys repeat: walking keys are tracked as held, everything else acts once.
+      if (e.repeat && !e.code.startsWith('Arrow') && !['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyQ', 'KeyE', 'ShiftLeft', 'ShiftRight'].includes(e.code)) return;
       if (e.code === 'Escape') {
         if (this.mode === 'contribute') this.closeContribute();
         else if (this.mode === 'settings') this.closeSettings();
@@ -502,16 +532,22 @@ export class App {
     // Touch: left half walks (vertical) and turns (horizontal); right half looks; tap goes to things.
     const touches = new Map<number, { side: 'L' | 'R'; x: number; y: number; sx: number; sy: number; t: number }>();
     canvas.addEventListener('pointerdown', (e) => {
+      // Touching the room while writing means: keep it to yourself after all.
+      if (this.mode === 'contribute' && !$<HTMLInputElement>('contribute-input').value.trim()) this.closeContribute();
       if (e.pointerType === 'mouse' || this.mode !== 'room') return;
       canvas.setPointerCapture(e.pointerId);
-      touches.set(e.pointerId, { side: e.clientX < innerWidth / 2 ? 'L' : 'R', x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, t: performance.now() });
+      touches.set(e.pointerId, { side: e.clientX < innerWidth / 2 ? 'L' : 'R', x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, t: e.timeStamp });
     });
     canvas.addEventListener('pointermove', (e) => {
       const t = touches.get(e.pointerId);
       if (!t || this.mode !== 'room') return;
-      if (t.side === 'R') this.rig.look((e.clientX - t.x) * 1.6, (e.clientY - t.y) * 1.6);
+      if (Math.hypot(e.clientX - t.sx, e.clientY - t.sy) > 14) this.dragged = true;
+      // A half-screen swipe turns about 65° on a narrow phone, as on a wide screen.
+      if (t.side === 'R') this.rig.look((e.clientX - t.x) * 1.6 * clamp(640 / innerWidth, 1, 1.8), (e.clientY - t.y) * 1.6);
       else {
-        this.rig.touchMove.set(clamp((e.clientX - t.sx) / 90, -1, 1), clamp(-(e.clientY - t.sy) / 90, -1, 1));
+        // Walking: a thumb pushing up drifts sideways a little; that shouldn't turn the body.
+        const dx = e.clientX - t.sx;
+        this.rig.touchMove.set(clamp((Math.sign(dx) * Math.max(0, Math.abs(dx) - 20)) / 80, -1, 1), clamp(-(e.clientY - t.sy) / 90, -1, 1));
       }
       t.x = e.clientX;
       t.y = e.clientY;
@@ -521,7 +557,7 @@ export class App {
       if (!t) return;
       touches.delete(e.pointerId);
       if (t.side === 'L') this.rig.touchMove.set(0, 0);
-      if (Math.hypot(e.clientX - t.sx, e.clientY - t.sy) < 14 && performance.now() - t.t < 450) this.tapAt(e.clientX, e.clientY);
+      if (e.type === 'pointerup' && this.mode === 'room' && Math.hypot(e.clientX - t.sx, e.clientY - t.sy) < 14 && e.timeStamp - t.t < 450) this.tapAt(e.clientX, e.clientY);
     };
     canvas.addEventListener('pointerup', endTouch);
     canvas.addEventListener('pointercancel', endTouch);
@@ -545,8 +581,19 @@ export class App {
     }, { passive: true });
 
     document.addEventListener('visibilitychange', () => {
-      if (document.hidden) void this.audio?.suspend();
-      else if (this.mode !== 'threshold' && this.mode !== 'departed') void this.audio?.resume();
+      if (document.hidden) {
+        void this.audio?.suspend();
+        this.wakeLock = null; // released by the browser when hidden
+      } else if (this.mode !== 'threshold' && this.mode !== 'departed') {
+        void this.audio?.resume();
+        void this.keepAwake();
+      }
+    });
+    addEventListener('popstate', () => {
+      if (this.mode === 'threshold') return;
+      if (this.mode === 'contribute') this.closeContribute();
+      if (this.mode === 'room') this.openSettings();
+      history.pushState({ room: 1 }, '');
     });
   }
 
@@ -566,6 +613,7 @@ export class App {
     const chairAt = toScreen(this.chair.group.position.clone().setY(0.4));
     const chairHit = this.raycaster.intersectObject(this.chair.hit, false).length > 0 || (chairAt.front && Math.hypot(chairAt.x - x, chairAt.y - y) < 56);
     if (chairHit) {
+      this.touched = true;
       this.director.tapped({ chair: true });
       if (this.rig.distanceToChair() < 1.5) this.rig.setKneel(!this.rig.kneeling);
       else this.rig.attend(this.chair.group.position.clone().setY(0.35), 0.95);
@@ -575,26 +623,43 @@ export class App {
     let best: { it: TextItem; d: number } | null = null;
     const box = new THREE.Box3();
     const corner = new THREE.Vector3();
+    const inView = new THREE.Vector3();
     for (const it of this.text.items.values()) {
-      if (it.vis < 0.4 || !it.mesh.visible) continue;
+      // Only writing that can actually be seen: present, legible from here, in front of the eye.
+      if (it.vis < 0.4 || !it.mesh.visible || it.uniforms.uOpacity.value < 0.15) continue;
+      const c = toScreen(it.centre);
+      if (!c.front || c.x < -pad || c.x > innerWidth + pad || c.y < -pad || c.y > innerHeight + pad) continue;
       box.setFromObject(it.mesh);
       if (box.isEmpty()) continue;
-      let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity, front = false;
+      let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity, behind = false;
       for (let i = 0; i < 8; i++) {
         corner.set(i & 1 ? box.max.x : box.min.x, i & 2 ? box.max.y : box.min.y, i & 4 ? box.max.z : box.min.z);
+        // A corner behind the eye projects to nonsense: such an item is too close to judge by its box.
+        if (inView.copy(corner).applyMatrix4(cam.matrixWorldInverse).z > -cam.near) behind = true;
         const p = toScreen(corner);
-        front ||= p.front;
         x0 = Math.min(x0, p.x); x1 = Math.max(x1, p.x); y0 = Math.min(y0, p.y); y1 = Math.max(y1, p.y);
       }
-      if (!front || x < x0 - pad || x > x1 + pad || y < y0 - pad || y > y1 + pad) continue;
+      if (behind) {
+        x0 = c.x - 60; x1 = c.x + 60; y0 = c.y - 30; y1 = c.y + 30;
+      }
+      if (x < x0 - pad || x > x1 + pad || y < y0 - pad || y > y1 + pad) continue;
       // Facing away (seen from behind the wall) never counts.
       if (it.normal.dot(it.centre.clone().sub(cam.position)) > 0) continue;
-      const c = toScreen(it.centre);
       const d = Math.hypot(c.x - x, c.y - y);
       if (!best || d < best.d) best = { it, d };
     }
-    if (!best) return;
+    if (!best) {
+      // Nothing there to read: go toward where the finger pointed (floor), or up to that wall.
+      const frames = Object.entries(this.room.frames).filter(([s]) => s !== 'ceiling').map(([s, f]) => ({ s, mesh: f.mesh }));
+      const hit = this.raycaster.intersectObjects(frames.map((f) => f.mesh), false)[0];
+      if (hit) {
+        const s = frames.find((f) => f.mesh === hit.object)!.s;
+        this.rig.attend(hit.point.clone(), s === 'floor' ? 0.3 : 1.25);
+      }
+      return;
+    }
     const it = best.it;
+    this.touched = true;
     const pid = this.text.phraseOf(it.key);
     if (pid) this.director.tapped({ phraseId: pid });
     const c = it.centre;
@@ -605,6 +670,12 @@ export class App {
   /** Once, if a touch visitor hasn't touched anything yet: that the words and the chair can be touched. */
   private showTouchHint() {
     this.touchHintShown = true;
+    try {
+      if (localStorage.getItem('hh.touch-hint')) return;
+      localStorage.setItem('hh.touch-hint', '1');
+    } catch {
+      /* not remembered: shown once per visit instead */
+    }
     const h = $('hint');
     h.textContent = 'touch the words, or the chair';
     h.classList.add('on');
@@ -625,8 +696,18 @@ export class App {
 
   private bindUI() {
     $('enter').addEventListener('click', () => void this.enter());
-    $('menu-btn').addEventListener('click', () => (this.mode === 'settings' ? this.closeSettings() : this.openSettings()));
-    $('write-btn').addEventListener('click', () => this.openContribute());
+    $('menu-btn').addEventListener('click', () => {
+      if (this.mode === 'contribute') this.closeContribute();
+      if (this.mode === 'settings') this.closeSettings();
+      else this.openSettings();
+    });
+    $('write-btn').addEventListener('click', () => (this.mode === 'contribute' ? this.closeContribute() : this.openContribute()));
+    // On a phone the keyboard closing is the way out: an empty field just closes.
+    $('contribute-input').addEventListener('blur', () =>
+      setTimeout(() => {
+        if (this.mode === 'contribute' && !$<HTMLInputElement>('contribute-input').value.trim()) this.closeContribute();
+      }, 150),
+    );
     $('resume').addEventListener('click', () => this.closeSettings());
     $('leave').addEventListener('click', () => this.depart());
     $('return').addEventListener('click', () => this.returnToRoom());
@@ -785,6 +866,8 @@ export class App {
     if (this.mode !== 'settings' && this.mode !== 'room') return;
     $('settings').hidden = true;
     this.mode = 'departed';
+    void this.wakeLock?.release().catch(() => {});
+    this.wakeLock = null;
     const line = this.director.departureLine();
     this.director.depart();
     this.post.depart = 1;

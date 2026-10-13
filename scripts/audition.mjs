@@ -37,7 +37,7 @@ const add = (perf, dir, e, opts) => {
     id: perf.id, group: opts.group, groupLabel: opts.groupLabel, line: perf.text, phraseId: perf.phraseId,
     interpretation: perf.interpretation ?? perf.direction, voice: voiceName(dir, perf.voice), model: perf.model ?? dir.model,
     stability: perf.stability ?? dir.voices[perf.voice]?.stability ?? 0.5, input: perf.input, scene: sceneText(perf.scene), leadIn: perf.leadIn,
-    question: perf.question, generation: perf.generation ?? 1, retired: !!perf.retired, lab: !!opts.lab,
+    question: perf.question, generation: perf.generation ?? 1, retired: !!perf.retired, audition: !!perf.audition, lab: !!opts.lab, edit: e.edit,
     status: e.status, review: e.review, transcript: e.transcript, events: e.events, extra: e.extraWords,
     m: analyse(path, words(perf.text).length), path, src: OUT ? `audio/${basename(perf.file)}` : opts.lab ? perf.file : `../public/voices/${perf.file}`,
   });
@@ -49,7 +49,7 @@ phrases.sort((a, b) => (FIRST.includes(a) ? FIRST.indexOf(a) : 99) - (FIRST.incl
 for (const id of phrases) {
   const perfs = direction.performances.filter((p) => p.phraseId === id).sort((a, b) => (b.generation ?? 1) - (a.generation ?? 1) || Number(!!a.retired) - Number(!!b.retired));
   const fresh = perfs.some((p) => p.generation === 2);
-  const label = FIRST.includes(id) ? 'three readings, against the older takes' : fresh ? 'new reading, against the older take' : 'older take, not yet re-directed';
+  const label = FIRST.includes(id) ? 'readings side by side, with leaner alternatives and the older takes' : fresh ? 'new reading, against the older take' : 'older take, not yet re-directed';
   for (const p of perfs) add(p, direction, ledger.entries[p.id], { group: id, groupLabel: label });
 }
 for (const p of lab.performances) add(p, lab, labLedger.entries[p.id], { group: 'lab', groupLabel: 'lab: how the method was chosen', lab: true });

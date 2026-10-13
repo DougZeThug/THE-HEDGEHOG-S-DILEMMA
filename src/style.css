@@ -54,7 +54,7 @@ kbd { font-family: inherit; font-size: 0.85em; border: 1px solid #c9c7c1; border
 
 /* captions: low, quiet, never subtitles-yellow */
 .captions {
-  position: fixed; left: 50%; bottom: 9vh; transform: translateX(-50%);
+  position: fixed; left: 50%; bottom: calc(9vh + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);
   width: min(42rem, calc(100% - 32px)); text-align: center; pointer-events: none; z-index: 5;
   font-style: italic; font-size: clamp(1.05rem, 2.2vw, 1.35rem); color: rgba(38, 40, 46, 0.86);
   text-shadow: 0 0 14px rgba(243, 242, 239, 0.95), 0 0 3px rgba(243, 242, 239, 0.9);
@@ -63,7 +63,7 @@ kbd { font-family: inherit; font-size: 0.85em; border: 1px solid #c9c7c1; border
 .captions .cap.on { opacity: 1; }
 .captions .cap.sound { font-size: 0.85em; color: rgba(70, 74, 82, 0.8); }
 .hint {
-  position: fixed; left: 50%; bottom: 3vh; transform: translateX(-50%); z-index: 5;
+  position: fixed; left: 50%; bottom: calc(3vh + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 5;
   font-size: 0.95rem; color: rgba(60, 62, 68, 0.75); opacity: 0; transition: opacity 2s ease; pointer-events: none;
   text-align: center; width: calc(100% - 32px);
   text-shadow: 0 0 10px rgba(243, 242, 239, 0.95);
@@ -78,8 +78,21 @@ kbd { font-family: inherit; font-size: 0.85em; border: 1px solid #c9c7c1; border
 .corner-btn.away { opacity: 0; }
 .corner-btn:hover, .corner-btn:focus-visible { opacity: 1; }
 @media (pointer: coarse) { .corner-btn, .corner-btn.away { opacity: 0.85; } }
-.corner-left { left: 14px; }
-.corner-right { right: 14px; }
+.corner-btn { bottom: calc(14px + env(safe-area-inset-bottom, 0px)); }
+.corner-left { left: calc(14px + env(safe-area-inset-left, 0px)); }
+.corner-right { right: calc(14px + env(safe-area-inset-right, 0px)); }
+#stage, .corner-btn { -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
+.quiet-button { min-height: 44px; }
+/* On touch screens: touch instructions first, keyboard ones out of the way. */
+.for-touch { display: none; }
+@media (pointer: coarse) {
+  .for-touch { display: inline; }
+  .for-keys { display: none; }
+  .threshold-how ul { display: flex; flex-direction: column; }
+  .threshold-how .touch-first { order: -1; }
+  .hint { bottom: calc(76px + env(safe-area-inset-bottom, 0px)); }
+}
+.hint, .captions { text-shadow: 0 0 6px rgba(243, 242, 239, 0.95), 0 0 14px rgba(243, 242, 239, 0.9); }
 
 /* contribute */
 .contribute { z-index: 10; align-items: flex-end; padding: 0 16px 14vh; pointer-events: none; }

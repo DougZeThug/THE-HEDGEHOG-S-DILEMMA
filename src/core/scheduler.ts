@@ -31,6 +31,8 @@ export class EventScheduler<T> {
   private nextId = 1;
   private lastMajorAt = -Infinity;
   private cooldowns = new Map<string, number>();
+  /** Events that expired (could not fire in time) on the last tick. */
+  expired: T[] = [];
 
   constructor(public majorGap = 7) {}
 
@@ -91,12 +93,16 @@ export class EventScheduler<T> {
   tick(now: number): T[] {
     const out: T[] = [];
     const keep: ScheduledEvent<T>[] = [];
+    this.expired = [];
     // Highest priority majors first among the due ones.
     const due = this.queue.filter((e) => e.at <= now);
     const later = this.queue.filter((e) => e.at > now);
     due.sort((a, b) => b.priority - a.priority || a.at - b.at || a.id - b.id);
     for (const ev of due) {
-      if (ev.expires !== undefined && now > ev.expires) continue;
+      if (ev.expires !== undefined && now > ev.expires) {
+        this.expired.push(ev.payload);
+        continue;
+      }
       if (ev.major) {
         if (!this.majorFree(now)) {
           if (ev.expires === undefined || now <= ev.expires) keep.push(ev);

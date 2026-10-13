@@ -29,10 +29,10 @@ export interface Dev {
   intense: boolean;
 }
 
-/** Seconds of quiet that still feel chosen, by phase (for a visitor who is engaging). */
-const QUIET: Record<Phase, number> = { arrival: 10, familiar: 15, contradiction: 18, transform: 24 };
-/** Seconds of held quiet after something intense. */
-const RECOVERY = 11;
+/** Seconds of quiet that still feel chosen, by phase (for a visitor who is engaging). Later, silence is allowed to last. */
+const QUIET: Record<Phase, number> = { arrival: 10, familiar: 18, contradiction: 26, transform: 36 };
+/** Seconds of held quiet after something intense: longest after a voice. */
+const RECOVERY = { voice: 20, other: 12 };
 
 export function devKind(cue: Cue): DevKind | null {
   switch (cue.type) {
@@ -65,6 +65,9 @@ export class Pacing {
   readonly devs: Dev[] = [];
   lastDev = 0;
   lastIntense = -Infinity;
+  private recoverUntil = -Infinity;
+  /** A deliberate held silence: nothing is to interrupt it. */
+  private holdUntil = -Infinity;
   /** Seconds spent stalled (waiting with nothing happening) so far — for the inspector and tests. */
   stalledSeconds = 0;
 
@@ -75,8 +78,13 @@ export class Pacing {
     const intense = kind === 'voice' || kind === 'music' || (cue.type === 'silence' && cue.depth >= 0.7) || rule.startsWith('sit:');
     this.devs.push({ t, kind, rule, intense });
     if (this.devs.length > 200) this.devs.shift();
-    if (kind !== 'silence') this.lastDev = t;
-    if (intense && kind !== 'silence') this.lastIntense = t;
+    // A dip in the room tone does not end a stall — unless it is the room deliberately not speaking.
+    if (kind !== 'silence' || rule === 'withhold' || rule === 'held-silence') this.lastDev = t;
+    if (intense && kind !== 'silence') {
+      this.lastIntense = t;
+      this.recoverUntil = Math.max(this.recoverUntil, t + (kind === 'voice' ? RECOVERY.voice : RECOVERY.other));
+    }
+    if (cue.type === 'silence' && cue.depth >= 0.7) this.holdUntil = Math.max(this.holdUntil, t + cue.seconds);
   }
 
   /** How long quiet may last before it reads as waiting. Active visitors are answered sooner. */
@@ -87,8 +95,24 @@ export class Pacing {
 
   rhythm(now: number, phase: Phase, activity: number): Rhythm {
     if (now < 6) return 'arrival';
-    if (now - this.lastIntense < RECOVERY) return 'recovery';
+    if (now < this.recoverUntil || now < this.holdUntil) return 'recovery';
+    // Waiting only exists for someone who is doing something. A visitor who has done
+    // nothing for half a minute is not kept waiting: they are in the quiet (and stillness
+    // has its own answers).
+    if (activity <= 0) return 'quiet';
     return now - this.lastDev > this.quietLimit(phase, activity) ? 'stalled' : 'quiet';
+  }
+
+  /** Things that happened in the last minute (not counting dips in the room tone). */
+  density(now: number): number {
+    let n = 0;
+    for (let i = this.devs.length - 1; i >= 0 && now - this.devs[i].t < 60; i--) if (this.devs[i].kind !== 'silence') n++;
+    return n;
+  }
+
+  /** Enough is happening: the room's own life (not its answers) should hold back. */
+  crowded(now: number): boolean {
+    return this.density(now) >= 6;
   }
 
   tick(dt: number, now: number, phase: Phase, activity: number) {
@@ -97,7 +121,12 @@ export class Pacing {
 
   /** Something intense may begin now (not in the middle of recovering from the last). */
   intenseFree(now: number): boolean {
-    return now - this.lastIntense >= RECOVERY;
+    return now >= this.recoverUntil && now >= this.holdUntil;
+  }
+
+  /** Inside a held silence: nothing new should appear or sound. */
+  holding(now: number): boolean {
+    return now < this.holdUntil;
   }
 
   /** The same kind of thing has just happened: prefer something else. */

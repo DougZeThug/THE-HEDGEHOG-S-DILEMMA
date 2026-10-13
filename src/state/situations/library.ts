@@ -50,7 +50,7 @@ export const nextRoom: SituationDef = {
         c.release('beyond');
         return d.memory ? c.go('found') : c.end();
       }
-      if (c.since > 45) {
+      if (c.since > 75) {
         if (d.laughs >= 2) {
           c.release('beyond');
           return c.end();
@@ -148,10 +148,6 @@ export const humming: SituationDef = {
         c.claim('music'); // the tune is owed; the room keeps its music for it
         return c.go('waiting');
       }
-      if (!d.stillLine && h.visitor.deepStillFor > 10 && elapsed > 4 && !h.visible.has('humming')) {
-        d.stillLine = true;
-        h.reveal(c.rule, 'humming', 0, 'still', 8);
-      }
       if (elapsed > total + 1) {
         c.release('beyond');
         c.claim('music');
@@ -226,6 +222,7 @@ export const listening: SituationDef = {
 export const residue: SituationDef = {
   id: 'residue',
   maxLife: 900,
+  gentle: true,
   ready: (h) => h.visitor.kneeling,
   begin(c) {
     c.go('kneeling');
@@ -267,6 +264,7 @@ export const residue: SituationDef = {
 export const erosion: SituationDef = {
   id: 'erosion',
   maxLife: 600,
+  gentle: true,
   ready: (h) => {
     const c = h.lastContribution();
     return !!c && h.now - c.at > 75;

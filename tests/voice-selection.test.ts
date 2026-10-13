@@ -41,8 +41,16 @@ describe('performance follows the emotional field', () => {
     expect(rankPerformances('stay', field({ warmth: 0.9, hush: 0.3 }))[0].id).toBe('stay--asking');
     expect(rankPerformances('stay', field({ tension: 0.8, dissonance: 0.5 }))[0].id).toBe('stay--abandoned');
     expect(rankPerformances('stay', field({ solitude: 0.8, exposure: 0.5, hush: 0.5 }))[0].id).toBe('stay--breaking');
-    // Retired takes are never chosen.
-    expect(rankPerformances('stay', field({ reminiscence: 1 })).map((p) => p.id)).not.toContain('stay--remembered');
+    // Retired takes come last, whatever the room is like (they only play if approved back into the manifest).
+    expect(rankPerformances('stay', field({ reminiscence: 1 })).slice(0, 3).map((p) => p.id).sort()).toEqual(['stay--abandoned', 'stay--asking', 'stay--breaking']);
+  });
+  it('each reading of the three central lines wins in some state of the room', () => {
+    const states = [{ warmth: 0.9 }, { tension: 0.9, dissonance: 0.6 }, { solitude: 0.9, exposure: 0.6 }, { reminiscence: 0.9, solitude: 0.8 }, { warmth: 0.8, relief: 0.6 },
+      { tension: 0.8, exposure: 0.8 }, { hush: 0.9, tension: 0.4 }, { reminiscence: 0.9, warmth: 0.8 }, { dissonance: 0.9, reminiscence: 0.5 }, { reminiscence: 1, solitude: 1 }];
+    for (const id of ['stay', 'love-go-away', 'happy-then']) {
+      const winners = new Set(states.map((s) => rankPerformances(id, field(s))[0].id));
+      expect(winners.size, id).toBe(3);
+    }
   });
   it('the manner the room asks for matters when the field is undecided', () => {
     expect(rankPerformances('closer', field({}), 'flat')[0].id).toBe('closer--flat');

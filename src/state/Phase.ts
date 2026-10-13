@@ -10,13 +10,15 @@ import type { Engagement } from './Engagement';
  * nothing is rushed, and a time fallback so a visitor who simply stands and listens still
  * sees the room change.
  *
- * Rough shape for an engaged visitor: familiar within the first half-minute, contradiction
- * around the first minute, transformation between two and four minutes.
+ * The floors are low on purpose, so that depth decides: a visitor who reads and returns to
+ * lines gets there sooner than one who mostly walks about. Rough shape: familiar within the
+ * first half-minute, contradiction around the first minute (two at most), transformation
+ * between two and four minutes for an engaged visitor; five for one who barely moves.
  */
 export const PHASE_GATES: Record<Exclude<Phase, 'arrival'>, { depth: number; floor: number; fallback: number }> = {
-  familiar: { depth: 3, floor: 10, fallback: 40 },
-  contradiction: { depth: 10, floor: 38, fallback: 110 },
-  transform: { depth: 26, floor: 125, fallback: 230 },
+  familiar: { depth: 3, floor: 8, fallback: 40 },
+  contradiction: { depth: 16, floor: 25, fallback: 120 },
+  transform: { depth: 45, floor: 100, fallback: 300 },
 };
 
 export class PhaseTracker {

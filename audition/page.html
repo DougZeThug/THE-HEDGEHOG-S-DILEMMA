@@ -47,6 +47,7 @@ audio { width: 100%; height: 36px }
 .heard { font-size: 13px; margin: 0 }
 .heard .ev { font: 12px var(--mono); color: var(--walnut) }
 .flag { font: 12px var(--mono); color: var(--drop) }
+body:not(.measures) .meas { display: none }
 .meas { display: flex; flex-wrap: wrap; gap: 4px 12px; font: 12px var(--mono); color: var(--pencil); font-variant-numeric: tabular-nums }
 .meas b { color: var(--graphite); font-weight: 600 }
 .decide { display: flex; flex-wrap: wrap; gap: 6px; align-items: center }
@@ -71,6 +72,7 @@ details > summary { cursor: pointer; font: 600 13px var(--mono); color: var(--pe
     <p class="lede">Every recorded performance in the room, grouped by line, so different readings can be heard side by side. Mark each take <b>keep</b>, <b>not this</b> or <b>unsure</b>. Nothing here has been judged by ear yet.</p>
     <p class="note" id="where">Decisions are saved for Claude to apply to the recording ledger.</p>
     <div class="tally" id="tally"></div>
+    <label class="note"><input type="checkbox" id="show-measures"> show measurements (listen first; numbers can prime the ear)</label>
     <nav id="nav" aria-label="Lines"></nav>
   </header>
   <main id="groups"></main>
@@ -135,7 +137,7 @@ details > summary { cursor: pointer; font: 600 13px var(--mono); color: var(--pe
     c.append(el('p', 'reading', t.interpretation || '(no stated reading)'));
     const who = el('div', 'who');
     who.append(el('span', null, t.voice), el('span', null, t.model.replace('eleven_', '')), el('span', null, 'stability ' + t.stability));
-    who.append(el('span', 'gen', t.lab ? 'lab experiment' : t.retired ? 'older take, out of the room' : t.generation === 2 ? 'new take' : 'older take'));
+    who.append(el('span', 'gen', t.lab ? 'lab experiment' : t.retired ? 'older take, out of the room' : t.audition ? 'alternative, not yet in the room' : t.generation === 2 ? 'new take' : 'older take'));
     c.append(who);
     const au = el('audio'); au.controls = true; au.preload = 'none'; au.src = t.src; audios.set(t.id, au);
     au.addEventListener('play', () => { for (const [id, o] of audios) if (id !== t.id) o.pause(); document.querySelectorAll('.take.playing').forEach((x) => x.classList.remove('playing')); c.classList.add('playing'); });
@@ -148,6 +150,7 @@ details > summary { cursor: pointer; font: 600 13px var(--mono); color: var(--pe
     if (t.events && t.events.length) heard.append(' ', el('span', 'ev', t.events.join(' ')));
     c.append(heard);
     if (t.extra && t.extra.length) c.append(el('p', 'flag', 'added words: ' + t.extra.join(' ')));
+    if (t.edit) c.append(el('p', 'scene', 'Edited: ' + t.edit));
     if (t.m) {
       const m = el('div', 'meas');
       const kv = (k, v) => { const s = el('span'); s.append(k + ' ', el('b', null, v)); m.append(s); };
@@ -209,6 +212,10 @@ details > summary { cursor: pointer; font: 600 13px var(--mono); color: var(--pe
   function decide(id, v) { decisions[id] = { ...(decisions[id] || {}), decision: v }; paint(); write(id); }
   function saveNote(id, note) { decisions[id] = { ...(decisions[id] || {}), note }; write(id); }
 
+  const sm = document.getElementById('show-measures');
+  try { sm.checked = localStorage.getItem('hh-audition-measures') === '1'; } catch {}
+  document.body.classList.toggle('measures', sm.checked);
+  sm.addEventListener('change', () => { document.body.classList.toggle('measures', sm.checked); try { localStorage.setItem('hh-audition-measures', sm.checked ? '1' : '0'); } catch {} });
   paint();
   document.getElementById('copy').addEventListener('click', () => {
     const text = document.getElementById('cmd').textContent;

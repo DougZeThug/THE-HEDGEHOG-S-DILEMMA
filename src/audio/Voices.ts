@@ -2,6 +2,7 @@ import type { AudioEngine } from './AudioEngine';
 import type { VoiceKind } from '../state/cues';
 import { Rng, hashString } from '../core/rng';
 import { chooseSource, type Source } from './selection';
+import dialogue from '../content/dialogue.json';
 
 /**
  * Voices.
@@ -23,6 +24,8 @@ export interface VoicePlacement {
   muffled?: boolean;
   /** No position at all: inside the head, drifting. */
   nowhere?: boolean;
+  /** A recorded performance (gentler muffling, narrower drift). */
+  recording?: boolean;
   /** Handle for cutting the sound off later. */
   tag?: string;
 }
@@ -69,13 +72,21 @@ function measure(buf: AudioBuffer) {
   return { rms: Math.sqrt(sum / Math.max(1, n)) || 1e-6, peak: peak || 1e-6 };
 }
 
-/** Gain to bring a recording to about -24 dBFS RMS without pushing its peak past -3 dBFS. */
-function normaliseGain(buf: AudioBuffer): number {
+/**
+ * Gain to bring a recording toward -24 dBFS RMS without pushing its peak past -3 dBFS.
+ * Performances are only half-corrected: a take whispered "very quietly" should stay quieter
+ * than one where the voice rises, and their authored `levelDb` is applied on top.
+ */
+function normaliseGain(buf: AudioBuffer, partial = false): number {
   const { rms, peak } = measure(buf);
   const target = Math.pow(10, -24 / 20);
   const ceiling = Math.pow(10, -3 / 20);
-  return Math.min(target / rms, ceiling / peak, 16);
+  const full = target / rms;
+  return Math.min(partial ? Math.sqrt(full) : full, ceiling / peak, 16);
 }
+
+/** Authored relative level of each performance file, in dB. */
+const LEVEL_DB = new Map<string, number>((dialogue.performances as { file: string; levelDb?: number }[]).map((p) => [p.file, p.levelDb ?? 0]));
 
 export function syllabify(text: string): Syllable[] {
   const out: Syllable[] = [];
@@ -153,7 +164,7 @@ export class Voices {
         .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(String(r.status)))))
         .then((b) => this.a.ctx.decodeAudioData(b))
         .then((buf) => {
-          this.norm.set(file, normaliseGain(buf));
+          this.norm.set(file, normaliseGain(buf, file.startsWith('dialogue/')) * Math.pow(10, (LEVEL_DB.get(file) ?? 0) / 20));
           return buf;
         })
         .catch(() => null);
@@ -198,23 +209,31 @@ export class Voices {
     }
     let node: AudioNode = input;
     if (place.muffled) {
+      // Through a wall. Recorded performances keep their breath and catches (they live at
+      // 1–3 kHz), so they are muffled more gently and made quieter instead.
       const lp = c.createBiquadFilter();
       lp.type = 'lowpass';
-      lp.frequency.value = 750;
+      lp.frequency.value = place.recording ? 2200 : 750;
       lp.Q.value = 0.4;
       node.connect(lp);
       node = lp;
+      if (place.recording) {
+        const wall = c.createGain();
+        wall.gain.value = 0.42;
+        node.connect(wall);
+        node = wall;
+      }
     }
     let outNode: AudioNode;
     if (place.nowhere || !place.from) {
+      // Drifting, from no particular place — starting anywhere, not always toward the right.
       const sp = c.createStereoPanner();
-      const lfo = c.createOscillator();
-      lfo.frequency.value = 0.07;
-      const lg = c.createGain();
-      lg.gain.value = 0.55;
-      lfo.connect(lg).connect(sp.pan);
-      lfo.start(t);
-      lfo.stop(t + dur + 4);
+      const depth = place.recording ? 0.2 : 0.55;
+      const phase = Math.random() * Math.PI * 2;
+      const len = Math.max(0.5, dur + 4);
+      const curve = new Float32Array(64);
+      for (let i = 0; i < curve.length; i++) curve[i] = depth * Math.sin(phase + 2 * Math.PI * 0.07 * (len * i) / (curve.length - 1));
+      sp.pan.setValueCurveAtTime(curve, t, len);
       node.connect(sp);
       outNode = sp;
     } else {
@@ -438,9 +457,16 @@ export class Voices {
     const c = this.a.ctx;
     const src = c.createBufferSource();
     src.buffer = buf;
-    const input = this.chain({ ...place, muffled: place.muffled }, reverb, buf.duration, gain * 0.9);
-    src.connect(input);
-    src.start();
+    const input = this.chain({ ...place, muffled: place.muffled, recording: true }, reverb, buf.duration, gain * 0.9);
+    // A few milliseconds of fade at each end: no clicks, whatever the file's edges are like.
+    const env = c.createGain();
+    const t = c.currentTime + 0.01;
+    env.gain.setValueAtTime(0, t);
+    env.gain.linearRampToValueAtTime(1, t + 0.005);
+    env.gain.setValueAtTime(1, Math.max(t + 0.006, t + buf.duration - 0.03));
+    env.gain.linearRampToValueAtTime(0, t + buf.duration);
+    src.connect(env).connect(input);
+    src.start(t);
     return buf.duration;
   }
 
