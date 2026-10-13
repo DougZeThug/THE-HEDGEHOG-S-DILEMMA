@@ -26,7 +26,7 @@ export interface Development {
 }
 
 /** Rules that belong to the room's own life rather than answering the visitor. */
-const AMBIENT = /^(drift|distant-life|music|resurface|stray|stray-held|recontext|cull|unstill|phase-|return|chair-nudge|pulse)/;
+const AMBIENT = /^(opening|drift|distant-life|music|resurface|stray|stray-held|recontext|cull|unstill|phase-|return|chair-nudge|pulse)/;
 
 const HALF = 3.2;
 
@@ -61,6 +61,8 @@ function classify(cue: Cue): { kind: Kind; label: string; recorded: boolean; sur
         kind: 'text', label: `write “${cue.text.slice(0, 28)}”`, recorded: false,
         surface: cue.surface ?? (cue.beside ? PHRASE_BY_ID.get(cue.beside)?.surface : undefined),
       };
+    case 'redraw':
+      return { kind: 'text', label: `redraw ${cue.phraseId}`, recorded: false, surface: PHRASE_BY_ID.get(cue.phraseId)?.surface };
     case 'link':
       return { kind: 'text', label: `link ${cue.a}–${cue.b}`, recorded: false, surface: PHRASE_BY_ID.get(cue.a)?.surface };
     case 'erode':

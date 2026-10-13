@@ -101,7 +101,8 @@ export const explorer: Persona = {
     // Crosses the middle (and so passes the chair) once a minute.
     const cross = t % 60 > 40 && t % 60 < 48;
     return {
-      x: cross ? x * 0.3 : x, z: cross ? z * 0.3 : z, yaw: YAW[face], pitch: -0.05, gaze: cross ? null : gaze, gazeChair: cross, kneeling: false,
+      // Head turning as it walks: glancing about, not a tripod.
+      x: cross ? x * 0.3 : x, z: cross ? z * 0.3 : z, yaw: YAW[face] + Math.sin(t * 0.9) * 0.6, pitch: -0.05, gaze: cross ? null : gaze, gazeChair: cross, kneeling: false,
     };
   },
 };

@@ -29,7 +29,7 @@ describe('the walls are not neatly partitioned', () => {
       const { d, cues } = simulate(scripts.wanderer, 700, seed);
       const s = strays(cues).filter((c) => c.rule === 'stray');
       expect(s.length).toBeGreaterThanOrEqual(4);
-      expect(s[0].t).toBeGreaterThanOrEqual(130);
+      expect(s[0].t).toBeGreaterThanOrEqual(45);
       expect(d.strays.size).toBeLessThanOrEqual(7);
       const anchors = new Set<string>();
       for (const c of s) {
@@ -54,8 +54,9 @@ describe('the walls are not neatly partitioned', () => {
 
   it('nothing migrates during arrival, and only a little while settling in', () => {
     const { d, cues } = simulate(scripts.still, 200, 5);
-    if (d.phase === 'familiar') expect(strays(cues).length).toBeLessThanOrEqual(2);
-    expect(strays(cues).every((c) => c.t >= 130)).toBe(true);
+    if (d.phase === 'familiar') expect(strays(cues).length).toBeLessThanOrEqual(1);
+    // Never in the first stretch of a visit: the walls have to be read as they are first.
+    expect(strays(cues).every((c) => c.t >= 45)).toBe(true);
   });
 
   it('late in the visit, the line held longest is written on the empty wall behind', () => {

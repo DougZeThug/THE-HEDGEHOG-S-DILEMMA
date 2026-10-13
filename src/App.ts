@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { Room } from './world/Room';
 import { Chair } from './world/Chair';
 import { Lighting } from './world/Lighting';
-import { WallText } from './world/WallText';
+import { WallText, type TextItem } from './world/WallText';
 import { CameraRig } from './world/CameraRig';
 import { Post } from './world/Post';
 import { FONTS_TO_LOAD } from './world/textures';
@@ -57,6 +57,7 @@ export class App {
   private fps = 60;
   private lastDebug = 0;
   private hintShown = false;
+  private touchHintShown = false;
   private touch = matchMedia('(pointer: coarse)').matches;
   private tabIndex = 0;
   private departTimer = 0;
@@ -148,6 +149,9 @@ export class App {
     this.visits++;
     writeVisits(this.visits);
     try {
+      // iOS: let the room be heard even with the ringer switched to silent.
+      const session = (navigator as unknown as { audioSession?: { type: string } }).audioSession;
+      if (session) session.type = 'playback';
       this.audio = new AudioEngine();
       await this.audio.resume();
       this.ambience = new Ambience(this.audio);
@@ -161,7 +165,7 @@ export class App {
     }
     this.applyPrefs();
     $('threshold').classList.add('leaving');
-    setTimeout(() => ($('threshold').hidden = true), 2500);
+    setTimeout(() => ($('threshold').hidden = true), 1300);
     $('menu-btn').hidden = false;
     $('write-btn').hidden = false;
     this.enteredAt = this.time;
@@ -176,13 +180,15 @@ export class App {
     this.fps = this.fps * 0.95 + (1 / Math.max(dt, 1e-3)) * 0.05;
     const running = this.mode === 'room' || this.mode === 'contribute';
 
-    // Arrival: from white to the room, slowly; the hum before the words.
+    // Arrival: out of the white quickly, so the room is there while the line in front is
+    // still writing itself; the hum comes up with it.
     if (this.mode !== 'threshold') {
       const since = this.time - this.enteredAt;
-      const dur = this.prefs.reducedMotion ? 3.5 : 8;
-      this.post.white = 1 - smoothstep(0.6, dur, since);
-      if (this.ambience) this.ambience.fade = clamp(since / 4);
-      if (!this.hintShown && since > dur + 1) this.showHint();
+      const dur = this.prefs.reducedMotion ? 2 : this.touch ? 2.2 : 3;
+      this.post.white = 1 - smoothstep(0.15, dur, since);
+      if (this.ambience) this.ambience.fade = clamp(since / 2.5);
+      if (!this.hintShown && since > dur + 0.5) this.showHint();
+      if (this.touch && !this.touchHintShown && since > 22 && !this.director.engagement.count('tap') && !this.director.engagement.count('tap-chair')) this.showTouchHint();
     }
 
     this.rig.enabled = this.mode === 'room';
@@ -195,7 +201,7 @@ export class App {
     this.raycaster.setFromCamera(new THREE.Vector2(0, 0), cam);
     this.gazeChair = this.raycaster.intersectObject(this.chair.hit, false).length > 0 && this.rig.distanceToChair() < 6;
 
-    if (running && this.post.white < 0.6) {
+    if (running && this.post.white < 0.92) {
       const input = {
         x: this.rig.pos.x - this.chair.group.position.x,
         z: this.rig.pos.z - this.chair.group.position.z,
@@ -238,6 +244,9 @@ export class App {
         break;
       case 'hide':
         this.text.hide(cue.phraseId, cue.seconds);
+        break;
+      case 'redraw':
+        this.text.redraw(cue.phraseId, cue.seconds * (this.prefs.reducedMotion ? 0.7 : 1));
         break;
       case 'write': {
         const c = this.chair.group.position;
@@ -377,6 +386,8 @@ export class App {
     if (this.gazeId) {
       const c = this.text.centreOf(this.gazeId);
       const it = this.text.items.get(this.gazeId);
+      const pid = this.text.phraseOf(this.gazeId);
+      if (pid) this.director.tapped({ phraseId: pid });
       if (c && it) {
         const s = it.placement.surface;
         if (s === 'floor') this.rig.attend(c, 0.8);
@@ -510,7 +521,7 @@ export class App {
       if (!t) return;
       touches.delete(e.pointerId);
       if (t.side === 'L') this.rig.touchMove.set(0, 0);
-      if (Math.hypot(e.clientX - t.sx, e.clientY - t.sy) < 10 && performance.now() - t.t < 300) this.tapAt(e.clientX, e.clientY);
+      if (Math.hypot(e.clientX - t.sx, e.clientY - t.sy) < 14 && performance.now() - t.t < 450) this.tapAt(e.clientX, e.clientY);
     };
     canvas.addEventListener('pointerup', endTouch);
     canvas.addEventListener('pointercancel', endTouch);
@@ -529,30 +540,75 @@ export class App {
       }
     });
 
+    canvas.addEventListener('touchend', () => {
+      if (this.audio && this.mode === 'room' && this.audio.ctx.state !== 'running') void this.audio.resume();
+    }, { passive: true });
+
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) void this.audio?.suspend();
       else if (this.mode !== 'threshold' && this.mode !== 'departed') void this.audio?.resume();
     });
   }
 
+  /**
+   * A tap is aimed with a finger, not a cursor: writing counts if the tap lands within a
+   * little of its on-screen extent, the chair if it lands near it. Touching writing is
+   * attention (the room is told), and turns and walks the visitor closer to read it.
+   */
   private tapAt(x: number, y: number) {
+    const cam = this.rig.camera;
     const ndc = new THREE.Vector2((x / innerWidth) * 2 - 1, -(y / innerHeight) * 2 + 1);
-    this.raycaster.setFromCamera(ndc, this.rig.camera);
-    if (this.raycaster.intersectObject(this.chair.hit, false).length) {
+    this.raycaster.setFromCamera(ndc, cam);
+    const toScreen = (v: THREE.Vector3) => {
+      const p = v.clone().project(cam);
+      return { x: ((p.x + 1) / 2) * innerWidth, y: ((1 - p.y) / 2) * innerHeight, front: p.z < 1 };
+    };
+    const chairAt = toScreen(this.chair.group.position.clone().setY(0.4));
+    const chairHit = this.raycaster.intersectObject(this.chair.hit, false).length > 0 || (chairAt.front && Math.hypot(chairAt.x - x, chairAt.y - y) < 56);
+    if (chairHit) {
+      this.director.tapped({ chair: true });
       if (this.rig.distanceToChair() < 1.5) this.rig.setKneel(!this.rig.kneeling);
       else this.rig.attend(this.chair.group.position.clone().setY(0.35), 0.95);
       return;
     }
-    const meshes = [...this.text.items.values()].filter((i) => i.vis > 0.4).map((i) => i.mesh);
-    const hit = this.raycaster.intersectObjects(meshes, false)[0];
-    if (hit) {
-      const it = [...this.text.items.values()].find((i) => i.mesh === hit.object);
-      if (it) {
-        const c = it.centre;
-        if (it.placement.surface === 'ceiling') this.rig.faceToward(c);
-        else this.rig.attend(c, it.placement.surface === 'floor' ? 0.8 : 1.25);
+    const pad = 24;
+    let best: { it: TextItem; d: number } | null = null;
+    const box = new THREE.Box3();
+    const corner = new THREE.Vector3();
+    for (const it of this.text.items.values()) {
+      if (it.vis < 0.4 || !it.mesh.visible) continue;
+      box.setFromObject(it.mesh);
+      if (box.isEmpty()) continue;
+      let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity, front = false;
+      for (let i = 0; i < 8; i++) {
+        corner.set(i & 1 ? box.max.x : box.min.x, i & 2 ? box.max.y : box.min.y, i & 4 ? box.max.z : box.min.z);
+        const p = toScreen(corner);
+        front ||= p.front;
+        x0 = Math.min(x0, p.x); x1 = Math.max(x1, p.x); y0 = Math.min(y0, p.y); y1 = Math.max(y1, p.y);
       }
+      if (!front || x < x0 - pad || x > x1 + pad || y < y0 - pad || y > y1 + pad) continue;
+      // Facing away (seen from behind the wall) never counts.
+      if (it.normal.dot(it.centre.clone().sub(cam.position)) > 0) continue;
+      const c = toScreen(it.centre);
+      const d = Math.hypot(c.x - x, c.y - y);
+      if (!best || d < best.d) best = { it, d };
     }
+    if (!best) return;
+    const it = best.it;
+    const pid = this.text.phraseOf(it.key);
+    if (pid) this.director.tapped({ phraseId: pid });
+    const c = it.centre;
+    if (it.placement.surface === 'ceiling') this.rig.faceToward(c);
+    else this.rig.attend(c, it.placement.surface === 'floor' ? 0.8 : 1.25);
+  }
+
+  /** Once, if a touch visitor hasn't touched anything yet: that the words and the chair can be touched. */
+  private showTouchHint() {
+    this.touchHintShown = true;
+    const h = $('hint');
+    h.textContent = 'touch the words, or the chair';
+    h.classList.add('on');
+    setTimeout(() => h.classList.remove('on'), 4500);
   }
 
   // ─────────────────────────────── UI ───────────────────────────────

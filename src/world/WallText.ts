@@ -177,6 +177,16 @@ export class WallText {
     it.mesh.visible = true;
   }
 
+  /** Write a line again: it is gone at once and comes back over `seconds`. */
+  redraw(id: string, seconds: number) {
+    const it = this.items.get(id);
+    if (!it) return;
+    it.vis = 0;
+    it.target = 1;
+    it.rate = 1 / Math.max(0.5, seconds);
+    it.mesh.visible = true;
+  }
+
   hide(id: string, seconds: number) {
     const it = this.items.get(id);
     if (!it) return;

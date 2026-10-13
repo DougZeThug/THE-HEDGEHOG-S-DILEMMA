@@ -44,9 +44,9 @@ Headphones are recommended. Sound starts only after you press **go in**.
 | Kneel by the chair | `Space`, `Enter`, `K`, or click it when close |
 | Leave something on the wall | `T`, or the ✎ button |
 | Pause, settings, leave | `Esc`, or the ··· button |
-| Touch | drag on the left half to walk/turn, the right half to look; tap writing or the chair to go to it |
+| Touch | drag on the left half to walk/turn, the right half to look; tap writing to read it closely, tap the chair to go to it and again to kneel |
 
-Or do nothing. Standing still is a way of being here; the room does not need you to act.
+Or do nothing. Standing still is one way of being here among many; the room answers looking, reading, coming back to a line, touching, crossing the room, and pausing just as much.
 
 For inspection: add `?debug` to the URL for a live overlay of the engine's state, or `?seed=N` to fix the variation seed.
 
@@ -79,13 +79,14 @@ Minimal, but authored. The emptiness is meant to look chosen, not default.
 
 All of this is implemented and running; none of it is shown to the visitor as numbers or goals.
 
-- **Arrival.** The screen opens from white; the light-fitting hum arrives before the words. About 35 pieces of writing are on the walls, composed in authored regions with deliberate emptiness directly behind the chair and on most of the wall behind you, which holds only two lines.
+- **Arrival.** The white clears in about three seconds (a little faster on a phone), and the line in front of you writes itself onto the wall as the room comes up. In the same few seconds, differently from visit to visit, the room has only just been left: a door closes behind you, or the chair settles with a warmth still on its seat, or the hum drops as the line is finished. About 35 pieces of writing are on the walls, composed in authored regions with deliberate emptiness directly behind the chair and on most of the wall behind you, which holds only two lines.
 - **Proximity.** Coming close to the chair is usually met by subtraction: the hum drops away for a few seconds and the light settles. ("It used to fit me." is written small on the floor beside it.) Sometimes there is breath. If you stay, the light warms — or, if you are restless or have retreated before, it hardens and cools instead, and at most twice in a visit a voice speaks: from the chair, or, when closeness has become exposure, an affectionate line spoken flatly from behind you. Settling near the chair turns exposure into company. Stepping away releases what built up as relief; staying far away becomes solitude.
 - **Hesitation.** Approaching and retreating repeatedly forms a motif: "Come back. Don't." is written beside "I wanted you to stay.", a whisper asks "If I come closer, will you stay?", and the chair's shadow begins to drift away from where the light says it should fall. Nothing labels the drift.
-- **Stillness.** Standing still thins the room. Writing that only exists while you are still may surface ("How long have I been standing here?") and dissolves the moment you move; in some visits a whisper drifts in from a far corner toward the chair; eventually the room goes almost silent, and sometimes a few piano notes follow. The timings, and which of these happen, differ from visit to visit.
-- **Attention.** Holding a phrase in view darkens it slightly. The first time you settle on a line, nothing else happens. Meeting it again later can bring a different context each time: an answer written beside it in another hand, an echo revealed elsewhere, a faint pencil line to another phrase, its own words spoken from somewhere unexpected, a sound in another room — or nothing (see *Meeting the same words again*). Some phrases ("Look at me.", "Don't look at me.") are shy: legible only in peripheral vision. Small and faint writing needs you to come close.
+- **Stillness.** Standing still (not reading — reading has its own answers) thins the room. Writing that only exists while you are still may surface ("How long have I been standing here?") and dissolves the moment you move; usually a voice drifts in from a far corner toward the chair; then the room goes almost silent, and sometimes a few piano notes follow. The first answer comes within five to nine seconds; each later stillness is answered a little later, so it never becomes a trick. The timings, and which of these happen, differ from visit to visit.
+- **Attention.** Holding a phrase in view darkens it slightly; touching or clicking it counts as reading it at once, and the room's hum dips a little as you read. The first time you settle on a line, nothing else happens. Looking away for ten seconds and coming back is a new meeting. Meeting it again later can bring a different context each time: an answer written beside it in another hand, an echo revealed elsewhere, a faint pencil line to another phrase, its own words spoken from somewhere unexpected, a sound in another room — or nothing (see *Meeting the same words again*). Some phrases ("Look at me.", "Don't look at me.") are shy: legible only in peripheral vision. Small and faint writing needs you to come close.
 - **Memory.** The visit forms motifs (hesitation, closeness, distance, stillness, warmth, wandering, reading, contributing) that bias what the room offers later. Warm memories you lingered on resurface, in faded cyan, when you are far from everything.
-- **Contradiction and transformation.** The visit opens in phases gated by time *and* engagement (never forced). Later phases admit contradicting writing, re-write phrases you have read beside something that changes them ("There's nothing wrong with being alone." beside "That was a good day."), make the walls recede, and — once, when you aren't looking — move the chair a little. (Only on a later visit does anyone ask who keeps moving it.)
+- **Pacing.** The room keeps its own sense of rhythm (`src/state/Pacing.ts`). It tells chosen quiet (just after something strong, or not yet long) from waiting (you are doing things and nothing has answered for longer than feels deliberate — about ten to twenty seconds, shorter the more actively you engage). When it is waiting, it answers what you are doing: something related appears beside the line you are reading, the chair creaks when you stand at it, writing appears on a wall you have just turned away from, or something is heard in another room — never the same kind of answer twice running. Before a recorded voice the room hushes for a moment, and after one it holds quiet. Every so often, once the visit has settled, someone says a line connected to what you have been reading — usually not that line, but its echo or its contradiction.
+- **Contradiction and transformation.** The visit opens in phases by *depth of engagement* (`src/state/Engagement.ts`, `src/state/Phase.ts`): every kind of attention adds to it, and time adds a little by itself. An engaged visitor reaches contradiction within the first minute and transformation after about two; a visitor who barely moves gets there later (by about two and four minutes). Later phases admit contradicting writing, re-write phrases you have read beside something that changes them ("There's nothing wrong with being alone." beside "That was a good day."), make the walls recede, and — once, when you aren't looking — move the chair a little. (Only on a later visit does anyone ask who keeps moving it.)
 - **Life elsewhere.** Muffled laughter, two people talking in another room, someone humming. These now belong mostly to the authored situations below; the general rules only use them after long quiet stretches.
 - **Your words.** `T` lets you write a word, sentence or memory. It is written on the wall where you are looking, in its own hand. The room does not answer. Often nothing else happens. Sometimes one thing does — the room goes quiet, or its light shifts in an authored (not sentiment-coloured) way — and sometimes, a minute or three later, related writing surfaces elsewhere, a voice beyond a wall says something that rhymes with it, or two phrases are drawn into relation, as if on their own.
 - **Leaving.** "leave the room" in the menu dims everything to near-black, removes the sound, and offers one line about the room, chosen by how the visit went ("The chair, from the door.", "It is still warm where you were."). You can go back in: the room has kept everything, and has changed a little. Return visits on the same device (only a visit count is stored) begin differently.
@@ -140,7 +141,10 @@ src/
                 EmotionalField latent "weather": warmth, exposure, solitude, relief, tension,
                               reminiscence, hush, dissonance — competing needs with inertia
                 Memory        motifs and warm memories (session only)
-                PhaseTracker  arrival → familiar → contradiction → transform
+                Engagement    what the visitor does, as signals (read, return, tap, approach,
+                              kneel, look around, cross the room, pause, write) → depth
+                Pacing        rhythm: recovery / chosen quiet / stalled; repetition
+                PhaseTracker  arrival → familiar → contradiction → transform, by depth
                 PhraseSelector deterministic weighted choice: field affinity, contrast,
                               motif bias, relation boosts, recency
                 Director      the composer: rules that turn all of the above into cues,
@@ -172,7 +176,7 @@ Design rules the code follows:
 - Everything in the ambience and music is synthesised live with the Web Audio API.
 - Positional sound uses HRTF panners: the hum comes from the ceiling panel, ventilation from a high corner, voices from the chair, from a wall, from behind you, from beyond a wall (muffled), or from nowhere (drifting, unpositioned).
 - `public/voices/` holds **recorded textures** (laughter through a wall, breathing, humming, murmured conversation, whispers) generated once, offline, with the ElevenLabs sound-effects API via `scripts/generate-voices.mjs`. They are loudness-normalised at load time. The app makes no network calls to any service at runtime.
-- **Spoken lines** — 20 central phrases have recorded, intelligible performances (26 in all), in `public/voices/dialogue/` (see *Recorded voices* below). The room chooses which performance of a line to use from its emotional field, and plays it from a place in the room. Lines without a recording keep the earlier unintelligible textures; captions carry the words either way.
+- **Spoken lines** — 23 phrases have recorded, intelligible performances (38 in the room, plus 6 retired takes kept for comparison), in `public/voices/dialogue/` (see *Recorded voices* below). The room chooses which performance of a line to use from its emotional field, and plays it from a place in the room. Lines without a recording keep the earlier unintelligible textures; captions carry the words either way.
 - Where a voice comes from, in order: the recorded performance chosen for this moment → another recorded performance of the same phrase → the browser's own speech, only if the visitor turns that setting on → a recorded texture or synthesis. A recording always wins over browser speech (`src/audio/selection.ts`).
 - The optional **browser speech** setting speaks unrecorded lines intelligibly with the system voice. It is off by default and non-spatial.
 - Safety: a limiter before the output, all level changes ramped, at most four voices at once, generous headroom (measured peaks for every voice type and the music were between −18 and −35 dBFS in headless Chromium).
@@ -181,58 +185,58 @@ To regenerate the recorded textures: `ELEVENLABS_API_KEY=sk_... node scripts/gen
 
 ## Recorded voices
 
-The voices are meant to sound like fragments of somebody's life, not a narrator reading the walls. They are generated **offline** with ElevenLabs text-to-speech (`eleven_v3`). The browser never contacts ElevenLabs; it only plays files listed in `public/voices/manifest.json`.
+The voices are meant to sound like fragments of somebody's life, not a narrator reading the walls: people who laugh, bristle, get embarrassed, lose the thread, and break. They are generated **offline** with ElevenLabs text-to-speech. The browser never contacts ElevenLabs; it only plays files listed in `public/voices/manifest.json`.
 
-**Voice palette** (`src/content/dialogue.json`). These are ElevenLabs default voices; Voice Design isn't available on the current plan.
+**Why the first takes were flat, and what changed.** The first batch (`eleven_v3`, October 2026) gave each short line one generic tag ("[softly]"). Measured, those takes are short (1.0–1.4 s), unpaused and narrow in pitch (3–6 semitones): technically valid, emotionally inert. The current takes are *directed*:
+- **Model:** `eleven_v4` (available on this key; probed with three-character requests).
+- **Stability:** 0.2–0.3 rather than 0.5, so delivery is allowed to vary.
+- **Tags placed where the voice should change**, not one at the front: `[holding back tears] I wanted you… [voice cracking] to stay.`, `[giggling] I love you. [laughs, pushing him away] Go AWAY.` Ellipses and capitals shape rhythm and emphasis. The authored words never change: validation rejects any input whose words differ from the line, and speech-to-text flags any added word.
+- **Unspoken scene context.** v4 accepts `previous_text` / `next_text`. Each take carries the other person's line before and after (`"It's two days. You're being dramatic about this."`), or a line of narration (`He found the photograph in a box he hadn't opened in twenty years…`). It shapes how the words are said, is never heard, and was not billed. A short isolated sentence is hard to perform; context gives it somewhere to come from.
 
-| | Voice | Purpose |
-|---|---|---|
-| intimate | Jessica | Young adult, gentle, hesitant; speaks to one person at close range. |
-| restrained | Chris | Ordinary and grounded; composure that emotion gets through anyway. |
-| warm | Laura | Spontaneous, laughs easily; happy memories without sentiment. |
-| distant | River | Remembering a conversation from years ago; ambiguous rather than sad. |
-| young | Will | Youthful vulnerability (a young adult stock voice, not a child). |
+**The lab** (`scripts/voice-lab.json`, `node scripts/generate-dialogue.mjs --lab`, files in `audition/lab/`) varies one thing at a time on the same line and seed: model alone; direction; stability; scene as narration vs as dialogue; another voice; and a spoken lead-in cut away afterwards using Scribe's word timestamps. Its measurements (below) chose the method; only listening can choose the takes.
 
-**Direction.** Each performance names its phrase, voice, the exact authored text (which is the caption), the model input, a written direction, the emotional context it was directed for, and its file.
-- Audio tags are used sparingly: at most one per line, in about half the lines, and never "whispers" by default.
-- "I wanted you to stay." has three performances:
-  - tender (intimate), chosen when warmth dominates;
-  - guarded (restrained), chosen when exposure and tension dominate;
-  - remembered (distant), chosen when reminiscence dominates.
-- Other key lines have two performances each.
-- The Director picks a performance with `rankPerformances` (`src/state/performance.ts`), using the existing EmotionalField and the manner the moment asks for. Speech is no more frequent than before; the recordings only change *how* a line sounds when the room already chose to speak it.
+**Readings.** Three clearly different readings of each of the three central lines, in different voices:
+
+| Line | Readings |
+|---|---|
+| I wanted you to stay. | nearly breaking (Jessica) · frustrated, abandoned (Liam) · affectionate, a quiet request (Sarah) |
+| I love you. Go away. | exhausted, overwhelmed (Matilda) · teasing, laughing (Jessica) · angry, hurt underneath (Chris) |
+| I think I was happy then. | nostalgic, an unexpected smile (Liam) · unsure, trying to remember (Sarah) · aware of what was lost (Bill) |
+
+…and, across other lines: laughing happiness ("You've got crumbs on you."), joy ("You made me laugh so hard I couldn't breathe."), irritation, embarrassment, confusion, tenderness, grief ("Do you remember me?", at a mother's bedside), and plain happiness ("That was a good day."). Earlier takes of the three re-directed lines are *retired*: kept on disk and in the ledger, out of the room unless someone approves them.
+
+**Choosing a reading.** The Director picks a performance with `rankPerformances` (`src/state/performance.ts`) from the existing EmotionalField: warmth → the affectionate request; tension and dissonance → the abandoned one; solitude and exposure → the breaking one. Before a recorded voice the room hushes for a moment.
+
+**Auditioning.** `npm run audition` builds `audition/index.html`: every take grouped by line, side by side (with "play in turn"), each with its reading, voice, model, input, unspoken scene, transcript, detected laughs and sighs, and measurements; mark each *keep / not this / unsure*, then apply the generated command:
+```bash
+npm run audition                      # then open /audition/ from `npx vite` (or any static server at the repo root)
+node scripts/generate-dialogue.mjs --approve=stay--breaking,love-go-away--teasing --reject=happy-then--unsure
+```
+`node scripts/audition.mjs --out=<dir>` writes a self-contained copy (page + audio) to share.
+
+**Measurements** (`scripts/voice-analysis.mjs`): pitch range and movement, pauses, loudness range, voicing (breath, whisper, laughter), ending contour. They show that takes *differ*, not that they convince. Median pitch range went from about 6 semitones (old takes) to about 12 (new), most new takes have one or two pauses, and directed laughter is detected by speech-to-text in every take that asks for it.
 
 **Generation** (`scripts/generate-dialogue.mjs`, logic in `scripts/dialogue-lib.mjs`):
 ```bash
 node scripts/generate-dialogue.mjs --dry-run                       # plan and estimated credits, no key needed
-ELEVENLABS_API_KEY=… node scripts/generate-dialogue.mjs --pilot     # three contrasting lines
 ELEVENLABS_API_KEY=… node scripts/generate-dialogue.mjs --budget=900
-node scripts/generate-dialogue.mjs --approve=stay--tender --reject=closer--flat   # after listening
+ELEVENLABS_API_KEY=… node scripts/generate-dialogue.mjs --lab --budget=700
+node scripts/generate-dialogue.mjs --approve=… --reject=…           # after listening
 ```
-- **Idempotent.** A request is identified by voice, model, input, stability and seed. Identical requests are never repeated.
+- **Idempotent.** A request is identified by voice, model, input, stability, similarity, scene, lead-in and seed (fields absent from older takes leave their hashes unchanged). Identical requests are never repeated; a lab take that matches a performance exactly can be adopted rather than paid for twice.
 - **Protected.** Approved recordings are never overwritten without `--regenerate=<id>`.
 - **Budget.** Jobs beyond `--budget` stay queued.
 - **Failures.** Rate limits are retried with back-off. Invalid voices are recorded and skipped. Quota and permission failures stop the run and leave the remaining jobs queued.
-- **Checks.** Every file is checked to be valid MP3, and transcribed with ElevenLabs speech-to-text. A recording whose words don't match the authored text, or that speaks its tag aloud, is marked `needs-review` and kept out of the manifest.
-- **Ledger.** Status, hashes, estimated and actual credits, request ids, transcripts and review decisions go to `scripts/dialogue-ledger.json`. Generation status lives there rather than in the direction file, so authored direction and machine state stay separate.
+- **Checks.** Every file is checked to be valid MP3 and transcribed (ElevenLabs Scribe, with audio-event tagging). A take whose words don't match, that speaks a tag aloud, or that adds words is marked `needs-review` and kept out of the manifest. (One did: "[quietly, the smile fading]" was spoken aloud; the direction moved into the unspoken scene and the take was regenerated once.)
+- **Ledger.** Status, hashes, credits, request ids, transcripts, detected audio events and review decisions go to `scripts/dialogue-ledger.json` (lab: `scripts/voice-lab-ledger.json`).
 
 **Account capabilities, as tested** (October 2026):
-- Text-to-speech works with ElevenLabs default voices on every model tried (`eleven_v3`, `eleven_multilingual_v2`, `eleven_flash_v2_5`, `eleven_turbo_v2_5`), as do the dialogue and speech-to-text endpoints.
-- Community/library and legacy voices (e.g. Rachel) return `402 paid_plan_required`; Sarah and Callum return `404 voice_not_found`.
-- Voice Design returns `403 feature_not_available` ("only available on a paid plan").
-- The key is restricted: it lacks `user_read`, `voices_read` and `models_read`, so the remaining credit balance and the voice list can't be read through the API.
-  - Costs are tracked from each response's `character-cost` header instead.
-  - Adding `user_read` to the key would let the script check the balance before a batch.
-- The first batch (26 performances, 20 phrases) cost **815 credits**, exactly as estimated. Capability probing used about 64 more.
+- Text-to-speech works with ElevenLabs default voices on `eleven_v4`, `eleven_v3`, `eleven_multilingual_v2`, `eleven_flash_v2_5` and `eleven_turbo_v2_5`, as do speech-to-text and the dialogue endpoint. `eleven_v4` accepts `previous_text`/`next_text`; `eleven_v3` rejects them.
+- Default voices that work: Jessica, Chris, Laura, River, Will, Sarah, Matilda, Alice, Charlie, George, Liam, Callum, Brian, Eric, Bill, Daniel, Roger, Bella, Harry. Library voices (e.g. Aria, Rachel) return `402 paid_plan_required`; Lily returns `404`.
+- Voice Design is unavailable on this plan. The key lacks `user_read`, `voices_read` and `models_read`, so the balance can't be read; costs are tracked from each response's `character-cost` header.
+- Credits: first batch 815. This round: lab 670, main batch 863, one retake 55, availability probes about 70.
 
-**What has and hasn't been checked.**
-- **Technical** (automated):
-  - every file decodes;
-  - durations are 0.9–4.0 s;
-  - each transcript matches the authored words, and no tag was spoken;
-  - levels are normalised at load;
-  - each performance plays from the right place, is chosen for the right context, carries the exact caption, and respects mute.
-- **Artistic:** not yet done. None of the recordings has been auditioned by a person, so their status is `validated`, not `approved`. Listen, then approve or reject with the flags above; rejected takes leave the manifest immediately.
+**What has and hasn't been checked.** Technically, everything above is automated. **Artistically, nothing has been approved by ear**: every take is `validated`, not `approved`. Whether these performances sound like real people is exactly what the audition sheet is for.
 
 ## Accessibility, comfort and privacy
 
@@ -243,7 +247,7 @@ node scripts/generate-dialogue.mjs --approve=stay--tender --reject=closer--flat 
 
 ## What is incomplete or uses fallback content
 
-- **Spoken lines**: 20 phrases have recorded performances that have been technically validated but not auditioned; everything else uses unintelligible textures with captions.
+- **Spoken lines**: 23 phrases have recorded performances that have been technically validated but not auditioned by a person; everything else uses unintelligible textures with captions.
 - **Recorded textures** were generated, not performed; I could check their duration and levels but not audition them. One clip that came back near-silent was discarded.
 - **Visual verification** was done in headless Chromium with software rendering (slow, so behaviour over time was checked with the engine's fast-forward). Real-GPU performance and look on varied hardware still need a human eye.
 - **Speech/microphone input** is intentionally not implemented.

@@ -190,7 +190,7 @@ describe('situation: erosion', () => {
     const erode = v.run(300, { x: 0, z: 2.6, facing: 'south' }, (c) => c.cue.type === 'erode');
     expect(erode).toBeTruthy();
     expect(erode!.cue.type === 'erode' && erode!.cue.keep).toBe('miss');
-    expect(erode!.t).toBeGreaterThan(130);
+    expect(erode!.t).toBeGreaterThan(75);
     v.run(10, { x: 0, z: 2.6, facing: 'south' });
     const kin = v.of('sit:erosion').find((c) => c.cue.type === 'write');
     expect(kin && kin.cue.type === 'write' && kin.cue.beside).toBe('contrib:1:kept');

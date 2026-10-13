@@ -24,7 +24,7 @@ html, body {
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* threshold */
-#threshold { background: var(--paper); z-index: 20; transition: opacity 2.4s ease; padding: 16px; overflow-y: auto; align-items: safe center; }
+#threshold { background: var(--paper); z-index: 20; transition: opacity 1.2s ease; padding: 16px; overflow-y: auto; align-items: safe center; }
 #threshold.leaving { opacity: 0; pointer-events: none; }
 .threshold-inner { max-width: 34rem; text-align: center; margin: auto 0; padding: 12px 0; }
 h1 { font-weight: 500; font-size: clamp(1.6rem, 4vw, 2.4rem); letter-spacing: 0.04em; margin: 0 0 1.4rem; color: #3b3c40; }

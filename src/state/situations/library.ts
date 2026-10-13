@@ -26,7 +26,7 @@ export const nextRoom: SituationDef = {
   id: 'next-room',
   maxLife: 720,
   owns: ['vf-laugh-next-room'],
-  ready: (h, claimed) => h.phase !== 'arrival' && h.now > 60 && !claimed('beyond') && h.visitor.speed < 0.6,
+  ready: (h, claimed) => h.phase !== 'arrival' && h.now > 25 && !claimed('beyond') && h.visitor.speed < 0.6,
   begin(c) {
     if (!c.claim('beyond')) return c.end('abort');
     const wall = c.h.rng.pick(otherWalls([c.h.facing, 'south']).length ? otherWalls([c.h.facing, 'south']) : otherWalls([c.h.facing]));
@@ -56,7 +56,9 @@ export const nextRoom: SituationDef = {
           return c.end();
         }
         d.laughs = 2;
-        d.wall = h.rng.pick(otherWalls([d.wall, h.facing]));
+        // From somewhere else — never the wall the visitor is already standing at.
+        const away = otherWalls([d.wall, h.facing]).filter((w) => h.distToSurface(w) > 1.6);
+        d.wall = h.rng.pick(away.length ? away : otherWalls([d.wall, h.facing]));
         laugh(c, d.wall, 0.3);
         c.go('listening');
       }
@@ -111,7 +113,7 @@ export const humming: SituationDef = {
   id: 'humming',
   maxLife: 600,
   owns: ['vf-hum'],
-  ready: (h, claimed) => h.now > 45 && h.visitor.deepStillFor > 6 && !claimed('beyond'),
+  ready: (h, claimed) => h.now > 20 && h.visitor.deepStillFor > 5 && !claimed('beyond'),
   begin(c) {
     if (!c.claim('beyond')) return c.end('abort');
     const r = c.h.rng;
@@ -180,7 +182,7 @@ export const listening: SituationDef = {
   maxLife: 720,
   owns: ['vf-two-voices'],
   ready: (h, claimed) =>
-    h.now > 90 && h.phase !== 'arrival' && !claimed('beyond') && (h.facing === 'west' || h.distToSurface('west') < 2.2),
+    h.now > 45 && h.phase !== 'arrival' && !claimed('beyond') && (h.facing === 'west' || h.distToSurface('west') < 2.2),
   begin(c) {
     if (!c.claim('beyond')) return c.end('abort');
     for (const [i, t] of [0, 8, 16].entries())
@@ -267,7 +269,7 @@ export const erosion: SituationDef = {
   maxLife: 600,
   ready: (h) => {
     const c = h.lastContribution();
-    return !!c && h.now - c.at > 130;
+    return !!c && h.now - c.at > 75;
   },
   begin(c) {
     const t = c.h.lastContribution()!;

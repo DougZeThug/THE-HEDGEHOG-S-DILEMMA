@@ -18,6 +18,8 @@ export type VoiceKind = VoiceStyle | 'laugh' | 'murmur' | 'breath' | 'hum';
 export type Cue =
   | { type: 'reveal'; phraseId: string; mode: 'emerge' | 'still'; seconds: number }
   | { type: 'hide'; phraseId: string; seconds: number }
+  /** Writing already on the wall is written again in front of the visitor (it fades out at once and comes back). */
+  | { type: 'redraw'; phraseId: string; seconds: number }
   | {
       type: 'write';
       key: string;
