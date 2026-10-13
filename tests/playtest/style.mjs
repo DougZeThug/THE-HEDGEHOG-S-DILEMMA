@@ -187,7 +187,30 @@ for (const profile of PROFILES) {
     });
     await page.waitForTimeout(1500);
     await shot('chair-moved');
+    // The same frame with the shadow forced to redraw: if it differs, the shadow was stale.
+    await page.evaluate(() => window.__hedgehog.lighting.invalidateShadow());
+    await page.waitForTimeout(1500);
+    await shot('chair-moved-redrawn');
     await page.evaluate(() => window.__hedgehog.chair.nudge(-0.12, 0.05, -0.5));
+    // The GL context lost and restored (a phone backgrounding the tab): the room must come back whole.
+    await page.evaluate(() => {
+      const d = window.__hedgehog.director;
+      const f = d.computeEnv.bind(d);
+      d.computeEnv = () => ({ ...f(), shadowDrift: 0 });
+      window.__hedgehog.lighting.cur.drift = 0;
+    });
+    await page.waitForTimeout(1500);
+    await shot('ctx-before');
+    await page.evaluate(async () => {
+      const gl = window.__hedgehog.renderer.getContext();
+      const ext = gl.getExtension('WEBGL_lose_context');
+      ext.loseContext();
+      await new Promise((r) => setTimeout(r, 1500));
+      ext.restoreContext();
+      await new Promise((r) => setTimeout(r, 4000));
+    });
+    await shot('ctx-after');
+    await page.evaluate(() => delete window.__hedgehog.director.computeEnv);
     // The room's own range, under this look, from the reference pose: the light cooled as when
     // the visitor comes close (lightWarmth -0.6), and the room taken back to the chair (a dim).
     await stand(page, VIEWS[0][1], VIEWS[0][2]);

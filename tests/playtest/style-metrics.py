@@ -146,6 +146,19 @@ for (p, s), v in rng.items():
         if pool:
             r[f'{n} pool R/B'] = round(pool['rgb'][0] / max(1, pool['rgb'][2]), 3)
     out['range'][f'{p} {s}'] = r
+# Pairs that must match: a moved chair's frame and the same with the shadow forced to redraw (a
+# stale shadow differs), and the room before and after losing the GL context.
+out['pairs'] = {}
+for f in data['frames']:
+    for a, b in (('chair-moved', 'chair-moved-redrawn'), ('ctx-before', 'ctx-after')):
+        if f.get('name') == a:
+            g = next((x for x in data['frames'] if x.get('name') == b and x['profile'] == f['profile'] and x['style'] == f['style']), None)
+            if g:
+                ia = np.asarray(Image.open(D / f['file']).convert('L')).astype(float)
+                ib = np.asarray(Image.open(D / g['file']).convert('L')).astype(float)
+                out['pairs'][f"{f['profile']} {f['style']} {a}"] = round(float(np.abs(ia - ib).mean()), 2)
+for k, v in out['pairs'].items():
+    print('pair', k, v, '(stale!)' if v > 3 else '')
 for k, v in out['range'].items():
     print('range', k, v)
 for k, v in out['invariance'].items():

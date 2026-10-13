@@ -96,5 +96,12 @@ describe('the room’s look', () => {
       if (l.shadowDirty) redraws++;
     }
     expect(redraws).toBeGreaterThan(10);
+    // Asked to (quality changed, the GL context came back): redrawn though nothing moved.
+    const still = { ...env, shadowDrift: 0 } as Environment;
+    for (let t = 7; t < 30; t += 0.05) l.update(0.05, still, t, chair, 0.3);
+    expect(l.shadowDirty).toBe(false);
+    l.invalidateShadow();
+    l.update(0.05, still, 30, chair, 0.3);
+    expect(l.shadowDirty).toBe(true);
   });
 });

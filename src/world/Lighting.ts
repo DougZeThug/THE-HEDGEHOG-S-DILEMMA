@@ -226,7 +226,7 @@ export class Lighting {
 
   /** How much of the room's usual key light falls on the chair now (1 = as the room has it). */
   get keyLevel() {
-    return this.key.intensity / (KEY * 0.85 * this.look.key);
+    return this.look.key > 0 ? this.key.intensity / (KEY * 0.85 * this.look.key) : 0;
   }
 
   /** The look's warmth as it is now (0 white … 1 cream): the panel's glass and the ceiling follow it. */
@@ -235,6 +235,12 @@ export class Lighting {
   /** How much of the room's usual panel (area) light there is now (1 = as the room has it). */
   get panelLevel() {
     return Math.min(1, this.score.area * this.mood);
+  }
+
+  /** Draw the shadow map again next frame, whatever moved (quality changed, GL context restored). */
+  invalidateShadow() {
+    this.shadowSig.fill(Infinity);
+    this.shadowDirty = true;
   }
 
   /** The key light or the chair changed since the shadow map was last drawn. */

@@ -202,6 +202,12 @@ export class App {
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     $('stage').appendChild(this.renderer.domElement);
     this.renderer.domElement.tabIndex = -1;
+    // A phone may drop the GL context (a backgrounded tab); when it comes back, so must the
+    // chair's shadow, which is otherwise only redrawn when something moves.
+    this.renderer.domElement.addEventListener('webglcontextrestored', () => {
+      this.lighting?.invalidateShadow();
+      this.renderer.shadowMap.needsUpdate = true;
+    });
   }
 
   private pixelRatio() {
@@ -277,20 +283,21 @@ export class App {
         // The look (Style.ts): the presets below set all of these; a slider then changes one.
         ...(
           [
-            ['fill', 0, 1.5], ['area', 0, 4], ['key', 0, 2], ['cone', 0.7, 1.3], ['glow', 0, 1.5], ['warmth', 0, 1.5], ['ceiling', 0, 1.5],
+            ['fill', 0, 1.5], ['area', 0, 4], ['key', 0, 2], ['cone', 0.7, 1.3], ['glow', 0, 1.5], ['warmth', 0, 1.5], ['ceiling', 0, 12],
             ['exposure', 0.8, 1.4], ['vignette', 0, 0.6], ['grain', 0, 0.06], ['texture', 0, 2], ['contact', 0, 1.5], ['shadowSoft', 0.3, 3],
             ['faint', 0.8, 1.6],
           ] as [keyof Look, number, number][]
         ).map(([k, lo, hi]) =>
           n('look', k, lo, hi, () => this.look[k], (v) => {
             this.look = { ...this.look, [k]: v };
+            this.lookName = 'custom' as LookName;
             this.applyLook();
           }),
         ),
         n('memory', 'light', 0, 0.8, () => this.memoryLight.gain, (v) => (this.memoryLight.gain = v)),
       ],
       [
-        ...LOOK_NAMES.map((name) => ({ label: name, run: () => this.setStyle(name) })),
+        ...LOOK_NAMES.map((name) => ({ label: name, run: () => this.setStyle(name), pressed: () => this.lookName === name })),
         {
           label: 'the memory, now',
           run: () => {
@@ -1247,7 +1254,7 @@ export class App {
         sh.mapSize.set(size, size);
         sh.map?.dispose();
         sh.map = null as unknown as THREE.WebGLRenderTarget;
-        this.renderer.shadowMap.needsUpdate = true;
+        this.lighting.invalidateShadow();
       }
       this.post.setSamples(p.quality === 'high' ? 4 : p.quality === 'medium' ? 2 : 0);
     }
