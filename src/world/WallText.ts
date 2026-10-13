@@ -862,12 +862,13 @@ export class WallText {
    * Where a phrase is written now, to lay light across it: the visible piece of writing that is
    * (or repeats) it, its wall's writing group, its centre there, and the wall's height limits.
    */
-  anchorOf(phraseId: string): { key: string; group: THREE.Object3D; x: number; y: number; w: number; h: number; minX: number; maxX: number; minY: number; maxY: number } | null {
+  anchorOf(phraseId: string, preferKey?: string | null): { key: string; group: THREE.Object3D; x: number; y: number; w: number; h: number; minX: number; maxX: number; minY: number; maxY: number } | null {
     let best: TextItem | null = null;
     for (const it of this.items.values()) {
       if (it.vis < 0.5 || it.purpose === 'drawing' || this.phraseOf(it.key) !== phraseId) continue;
       if (it.placement.surface === 'floor' || it.placement.surface === 'ceiling') continue;
-      if (!best || it.key.startsWith('memory:')) best = it;
+      // The copy being looked at (or touched) first; then the one written for the memory.
+      if (!best || it.key === preferKey || (best.key !== preferKey && it.key.startsWith('memory:'))) best = it;
     }
     if (!best) return null;
     const pl = best.placement;

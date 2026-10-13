@@ -130,20 +130,20 @@ export class MemoryLight {
     const r = this.run;
     if (!r) return 0;
     const t = now - r.start;
-    const total = r.attack + r.hold + r.release;
     if (t < 0) return (this.uniforms.uEnv.value = 0);
-    if (t >= total) {
+    const s = (x: number) => x * x * (3 - 2 * x);
+    // Under reduced motion it comes and goes more slowly and does not slide: light, not movement.
+    const attack = this.reducedMotion ? Math.max(r.attack, 4) : r.attack;
+    const end = attack + r.hold + r.release;
+    if (t >= end) {
       this.run = null;
       this.mesh.visible = false;
       this.uniforms.uEnv.value = 0;
       return 0;
     }
-    const s = (x: number) => x * x * (3 - 2 * x);
-    // Under reduced motion it comes and goes more slowly and does not slide: light, not movement.
-    const attack = this.reducedMotion ? Math.max(r.attack, 4) : r.attack;
-    const env = t < attack ? s(Math.min(1, t / attack)) : t < r.attack + r.hold ? 1 : s(Math.max(0, (total - t) / r.release));
+    const env = t < attack ? s(Math.min(1, t / attack)) : t < attack + r.hold ? 1 : s(Math.max(0, (end - t) / r.release));
     this.uniforms.uEnv.value = env * this.strength;
-    this.uniforms.uSlide.value = this.reducedMotion ? 0 : SLIDE * (t / total - 0.5);
+    this.uniforms.uSlide.value = this.reducedMotion ? 0 : SLIDE * (t / end - 0.5);
     return env;
   }
 

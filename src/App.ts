@@ -74,6 +74,8 @@ export class App {
   /** A memory's light on a wall, and the writing it falls across. */
   readonly memoryLight = new MemoryLight();
   private memoryKey: string | null = null;
+  /** The piece of writing last touched (the memory's light falls where the visitor touched). */
+  private lastTappedKey: string | null = null;
   /** The opening while it plays: its score, when it started (wall clock), what has been done. */
   private opening: { score: Score; start: number; fired: Set<number>; skip?: { at: number; from: Levels } } | null = null;
   /** When the room was handed to the Director (scene time), for hints and the inspector. */
@@ -641,7 +643,7 @@ export class App {
         this.text.erode(cue.key, cue.keep, this.time);
         break;
       case 'memory': {
-        const a = this.text.anchorOf(cue.phraseId);
+        const a = this.text.anchorOf(cue.phraseId, this.gazeId ?? this.lastTappedKey);
         if (!a) break;
         this.memoryLight.reducedMotion = this.prefs.reducedMotion;
         this.memoryLight.strength = this.prefs.intensity === 'gentle' ? 0.6 : 1;
@@ -780,6 +782,7 @@ export class App {
       const c = this.text.centreOf(this.gazeId);
       const it = this.text.items.get(this.gazeId);
       const pid = this.text.phraseOf(this.gazeId);
+      this.lastTappedKey = this.gazeId;
       if (pid) this.director.tapped({ phraseId: pid });
       if (c && it) {
         const s = it.placement.surface;
@@ -807,7 +810,8 @@ export class App {
 
   private bindInput() {
     const canvas = this.renderer.domElement;
-    const typing = () => this.mode === 'contribute' || document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'SELECT';
+    const typing = () =>
+      this.mode === 'contribute' || document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'SELECT' || !!(document.activeElement as HTMLElement | null)?.closest?.('#tune');
 
     addEventListener('keydown', (e) => {
       if (this.mode === 'threshold' || this.mode === 'departed') return;
@@ -1057,6 +1061,7 @@ export class App {
     const it = best.it;
     this.touched = true;
     const pid = this.text.phraseOf(it.key);
+    this.lastTappedKey = it.key;
     if (pid) this.director.tapped({ phraseId: pid });
     const c = it.centre;
     if (it.placement.surface === 'ceiling') this.rig.faceToward(c);

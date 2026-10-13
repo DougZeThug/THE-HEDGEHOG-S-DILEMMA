@@ -98,6 +98,7 @@ const gpu = (page) =>
     const gl = r.getContext();
     return {
       programs: r.info.programs?.length ?? null,
+      programKeys: (r.info.programs ?? []).map((p) => p.cacheKey),
       textures: r.info.memory.textures,
       geometries: r.info.memory.geometries,
       calls: a.__lastFrame?.calls ?? null,
@@ -198,8 +199,11 @@ for (const [name, opts] of [
   r.memoryFrames = stats(await framePacing(page, Math.min(4, SAMPLE_S)));
   r.memoryGpu = await gpu(page);
   r.gpuAfter = await gpu(page);
-  // Shaders are compiled before the visitor enters: none should be compiled later.
-  r.programsAddedAfterEntering = (r.gpuAfter.programs ?? 0) - (r.threshold.programs ?? 0);
+  // Shaders are compiled before the visitor enters: none should be compiled later. Programs
+  // by key, not a count (one released and another compiled would cancel out).
+  const before = new Set(r.threshold.programKeys);
+  r.programsAddedAfterEntering = r.gpuAfter.programKeys.filter((k) => !before.has(k)).length;
+  for (const g of [r.threshold, r.gpu, r.memoryGpu, r.gpuAfter]) delete g.programKeys;
   const lt = await page.evaluate(() => window.__longTasks);
   r.longTasks = { count: lt.length, totalMs: lt.reduce((a, [, d]) => a + d, 0), worstMs: lt.reduce((a, [, d]) => Math.max(a, d), 0) };
   result.profiles[name] = r;

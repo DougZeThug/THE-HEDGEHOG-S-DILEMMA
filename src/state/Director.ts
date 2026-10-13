@@ -123,6 +123,12 @@ export class Director {
   /** The memory has been offered (its line written where the visitor looks) / has played. */
   private memoryOffered = false;
   memoryPlayed = false;
+  /** No voices of the room's own until then: the memory's line has just been offered. */
+  private memoryQuietUntil = -Infinity;
+  /** The line was touched (phones): latched until the memory can play. */
+  private memoryTouched = false;
+  /** The end of the pacing hold the memory asked for itself (so it never waits on its own hold). */
+  private memoryHoldTo = -Infinity;
   /** Drawings drawn during this visit (each at most once). */
   readonly drawn = new Set<string>();
   /** Writing in the air happens at most once a visit. */
@@ -271,7 +277,7 @@ export class Director {
 
   /** The visitor is in the middle of meeting a line: its beat is waiting or about to sound. */
   private attending(): boolean {
-    return this.heldBeats.size > 0 || this.scheduler.pending().some((e) => e.payload.rule.startsWith('encounter:') && e.payload.cue.type === 'voice');
+    return this.heldBeats.size > 0 || this.memoryAwaited() || this.scheduler.pending().some((e) => e.payload.rule.startsWith('encounter:') && e.payload.cue.type === 'voice');
   }
 
   private ctx(): SelectContext {
@@ -305,6 +311,9 @@ export class Director {
     extra: { gain?: number; assetId?: string; phraseId?: string; ttl?: number; priority?: number; finish?: boolean } = {},
   ) {
     if (extra.phraseId && !extra.finish && this.withheld().includes(extra.phraseId)) return;
+    // The memory's line has just been written for the visitor to stay with: the room doesn't
+    // talk over it (authored situations and a finished line aside).
+    if (this.now < this.memoryQuietUntil && !extra.finish && !rule.startsWith('sit:')) return;
     // A phrase with recorded performances: choose the one directed for this moment.
     let ranked = extra.phraseId && kind !== 'laugh' && kind !== 'murmur' && kind !== 'breath' && kind !== 'hum' ? rankPerformances(extra.phraseId, this.field.v, kind) : [];
     // Heard before: this time, the reading furthest from the one already heard.
@@ -833,6 +842,8 @@ export class Director {
     }
     if (!t.phraseId || !PHRASE_BY_ID.has(t.phraseId)) return false;
     this.visitor.touch(t.phraseId);
+    // Touching the memory's line asks for its memory, however recently it was touched.
+    if (t.phraseId === Director.MEMORY.phraseId && !this.memoryPlayed && this.visible.has(t.phraseId)) this.memoryTouched = true;
     // Touching the same words again and again, or tapping everything, is not more attention.
     if (this.now - (this.tappedAt.get(t.phraseId) ?? -Infinity) < 9 || this.now - this.lastTapAt < 2) return true;
     this.tappedAt.set(t.phraseId, this.now);
@@ -1052,15 +1063,27 @@ export class Director {
    * the light comes when they stay with it (2.5 s), or touch it. Then the room holds still.
    */
   static readonly MEMORY = { phraseId: 'kitchen-light', attack: 3, hold: 6, release: 4 };
+  /** The visitor is staying with the memory's line (or touched it) and its light is still to come. */
+  private memoryAwaited(): boolean {
+    if (this.memoryPlayed || !this.memoryOffered || !this.visible.has(Director.MEMORY.phraseId)) return false;
+    return this.memoryTouched || this.visitor.gazeId === Director.MEMORY.phraseId;
+  }
+
   private ruleMemory() {
     if (this.memoryPlayed || this.departing) return;
     if (this.now < 150 || (this.phase !== 'contradiction' && this.phase !== 'transform')) return;
     const m = Director.MEMORY;
-    const free = this.scheduler.majorFree(this.now) && !this.pacing.holding(this.now);
+    // Its own hold (below) doesn't keep it waiting.
+    const free = this.scheduler.majorFree(this.now) && (!this.pacing.holding(this.now) || this.pacing.heldUntil <= this.memoryHoldTo);
     if (!this.visible.has(m.phraseId)) {
       if (this.memoryOffered || !free || this.pacing.repeats('text', this.now, 8) || this.withheld().includes(m.phraseId)) return;
       const p = PHRASE_BY_ID.get(m.phraseId)!;
       this.memoryOffered = true;
+      this.memoryQuietUntil = this.now + 15;
+      // The line arrives alone: nothing else is revealed, written or begun with it, so a visitor
+      // who stays with it gets the light, not whatever else happened at the same moment.
+      this.memoryHoldTo = this.now + 2.4;
+      this.pacing.holdFor(this.now, 2.4);
       this.visible.set(p.id, { mode: 'shown', since: this.now, base: true });
       this.memory.surfaced.set(p.id, this.now);
       this.queue(0, {
@@ -1070,12 +1093,17 @@ export class Director {
       return;
     }
     const v = this.visitor;
+    // While they stay with it, nothing else is revealed or written: the room waits with them.
+    if (this.memoryAwaited() && (!this.pacing.holding(this.now) || this.pacing.heldUntil <= this.memoryHoldTo)) {
+      this.memoryHoldTo = this.now + 0.3;
+      this.pacing.holdFor(this.now, 0.3);
+    }
     const looked = v.gazeId === m.phraseId && v.gazeFor >= 2.5;
-    const touched = this.now - (this.tappedAt.get(m.phraseId) ?? -Infinity) < 3;
-    if (!looked && !touched) return;
-    // Never on top of a voice, a dim, a flash or anything strong.
-    if (!free || !this.pacing.intenseFree(this.now) || this.pacing.repeats('light', this.now, 10)) return;
+    if (!looked && !this.memoryTouched) return;
+    // Never on top of a voice (one just heard, or one about to be), a dim, a flash.
+    if (!free || this.pacing.repeats('voice', this.now, 4) || this.pacing.repeats('light', this.now, 10)) return;
     this.memoryPlayed = true;
+    this.memoryQuietUntil = -Infinity;
     this.queue(0, { type: 'memory', phraseId: m.phraseId, attack: m.attack, hold: m.hold, release: m.release }, 'memory', { major: true, ttl: 3 });
     // The light is the answer: nothing else while it is there, and a moment after.
     this.pacing.holdFor(this.now, m.attack + m.hold + m.release + 3);
@@ -1579,6 +1607,14 @@ export class Director {
   private drawAgainAt = 0;
 
   writeFailed(key: string): void {
+    // The memory's line found no room where the visitor was looking: offer it again later.
+    if (key === `memory:${Director.MEMORY.phraseId}`) {
+      const id = Director.MEMORY.phraseId;
+      this.visible.delete(id);
+      this.memory.surfaced.delete(id);
+      this.memoryOffered = false;
+      this.memoryQuietUntil = -Infinity;
+    }
     if (key.startsWith('stray:')) {
       if (this.strays.get(key.slice(6)) === 'south') this.heldMoved = false;
       this.strays.delete(key.slice(6));

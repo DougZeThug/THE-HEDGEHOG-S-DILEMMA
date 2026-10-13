@@ -133,6 +133,10 @@ export class Pacing {
     this.holdUntil = Math.max(this.holdUntil, now + seconds);
   }
 
+  get heldUntil() {
+    return this.holdUntil;
+  }
+
   /** Inside a held silence: nothing new should appear or sound. */
   holding(now: number): boolean {
     return now < this.holdUntil;
