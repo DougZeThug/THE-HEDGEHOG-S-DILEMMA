@@ -1,3 +1,4 @@
+import { DRAWINGS } from '../content/drawings';
 import { Rng } from '../core/rng';
 import { EventScheduler } from '../core/scheduler';
 import { clamp, smoothstep } from '../core/math';
@@ -119,6 +120,8 @@ export class Director {
   private heard = new Map<string, string>();
   private reheard = false;
   private heldSilenceDone = false;
+  /** Drawings drawn during this visit (each at most once). */
+  readonly drawn = new Set<string>();
   /** Writing in the air happens at most once a visit. */
   private airDone = false;
   /** When the long held silence ends (the turn to the last phase doesn't break into it). */
@@ -379,6 +382,7 @@ export class Director {
       if (phaseChanged === 'transform') this.transformAt = this.now;
       if (this.legacy) this.ruleOpening();
       this.ruleAccumulate();
+      this.ruleDrawings();
       this.ruleFinish();
       this.situations.tick(this.host);
       this.ruleDriftReveal();
@@ -1021,6 +1025,23 @@ export class Director {
     const seconds = this.rng.range(30, 42);
     this.heldSilenceUntil = this.now + seconds;
     this.queue(0, { type: 'silence', depth: 0.92, seconds, dim: 0.15, dimSeconds: 16 }, 'held-silence', { major: true, ttl: 10 });
+  }
+
+  /**
+   * The one drawing made while the visitor watches: when they have stayed with its line a few
+   * seconds, the hand draws beside it (two cups, the second never finished). Never while the
+   * room is holding its breath, never on top of other writing appearing.
+   */
+  private ruleDrawings() {
+    const v = this.visitor;
+    for (const d of DRAWINGS) {
+      if (d.when === 'start' || this.drawn.has(d.id)) continue;
+      const { seen, gaze } = d.when;
+      if (!this.visible.has(seen) || v.gazeId !== seen || v.gazeFor < gaze) continue;
+      if (this.pacing.holding(this.now) || this.pacing.repeats('text', this.now, 4)) continue;
+      this.drawn.add(d.id);
+      this.queue(0.4, { type: 'draw', id: d.id }, `draw:${d.id}`);
+    }
   }
 
   /**

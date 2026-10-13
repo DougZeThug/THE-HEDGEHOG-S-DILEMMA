@@ -222,5 +222,10 @@
     "dialogue/thank-staying--armchair-b.mp3",
     "dialogue/thank-staying--two-cups.mp3",
     "dialogue/thank-staying--two-cups-b.mp3"
+  ],
+  "sfx:eraser": [
+    "sfx-eraser-1.mp3",
+    "sfx-eraser-2.mp3",
+    "sfx-eraser-3.mp3"
   ]
 }

@@ -185,13 +185,13 @@ export function bakeStrokes(alpha: Uint8ClampedArray | Uint8Array, W: number, H:
 
   // Ink nobody claimed (outside every box): the time of the nearest claimed ink; then every
   // other pixel too, so filtering never mixes a stroke with "never written".
-  qFill(time, W, H, queue);
+  nearestFill(time, W, H, queue);
   const duration = words.length ? words[words.length - 1][1] : 0;
   return { time, words, duration };
 }
 
 /** Multi-source flood: every unset pixel takes the time of the nearest set one. */
-function qFill(time: Float32Array, W: number, H: number, queue: Int32Array) {
+export function nearestFill(time: Float32Array, W: number, H: number, queue: Int32Array) {
   let qh = 0, qt = 0;
   const N = W * H;
   for (let p = 0; p < N; p++) if (time[p] !== Infinity) queue[qt++] = p;

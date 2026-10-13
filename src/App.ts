@@ -1,3 +1,4 @@
+import { STATIC_DRAWINGS } from './content/drawings';
 import * as THREE from 'three';
 import { Room } from './world/Room';
 import { Chair } from './world/Chair';
@@ -102,6 +103,15 @@ export class App {
     this.lighting = new Lighting(this.prefs.quality);
     this.text = new WallText(this.room, 4242);
     this.scene.add(this.room.group, this.chair.group, this.lighting.group, this.text.air);
+    // Words in the air rubbed out by someone coming close: an eraser where they were, and a breath.
+    this.text.onAirGone = (how, at) => {
+      if (how !== 'approach' || !this.voices || !this.audio) return;
+      const place = { from: [at.x, at.y, at.z] as [number, number, number] };
+      void this.voices.sound('eraser', place, 0.35).then((dur) => {
+        if (dur > 0) this.captions.show('[rubbed out]', Math.max(1.4, dur), true);
+      });
+      setTimeout(() => void this.voices?.playLine('breath', null, place, 0.12, 'vf-breath'), 200);
+    };
     this.scene.background = new THREE.Color(0xf3f2ef);
     this.rig = new CameraRig(innerWidth / innerHeight);
     const forced = params.get('situations')?.split(',').map((s) => s.trim()).filter(Boolean);
@@ -116,6 +126,8 @@ export class App {
       },
     });
     for (const [id, st] of this.director.visible) if (st.base) this.text.setShown(id);
+    // The drawings that were always there: part of the room's history, there when its light comes up.
+    for (const d of STATIC_DRAWINGS) this.text.setShown(d.id);
 
     const samples = this.prefs.quality === 'high' ? 4 : this.prefs.quality === 'medium' ? 2 : 0;
     this.post = new Post(this.renderer, this.scene, this.rig.camera, samples);
@@ -566,6 +578,9 @@ export class App {
       case 'erode':
         this.text.erode(cue.key, cue.keep, this.time);
         break;
+      case 'draw':
+        this.text.draw(cue.id);
+        break;
       case 'air': {
         // Between the chair and the visitor, nearer the chair, facing where they stand.
         const c = this.chair.group.position;
@@ -575,7 +590,7 @@ export class App {
         dir.normalize();
         // To the visitor's left, so the chair stands at the end of the line rather than under its middle.
         const at = new THREE.Vector3(c.x + dir.x * cue.toward - dir.z * cue.aside, cue.height, c.z + dir.z * cue.toward + dir.x * cue.aside);
-        this.text.writeInAir({ key: `air:${cue.phraseId}`, phraseId: cue.phraseId, at, face: p, now: this.time });
+        this.text.writeInAir({ key: `air:${cue.phraseId}`, phraseId: cue.phraseId, at, face: p, light: this.lighting.key.position, now: this.time });
         break;
       }
       case 'silence':
@@ -701,7 +716,7 @@ export class App {
 
   private cyclePhrase(dir: 1 | -1) {
     const cam = this.rig.camera.position;
-    const vis: { centre: THREE.Vector3 }[] = [...this.text.items.values()].filter((i) => i.vis > 0.5 && i.uniforms.uOpacity.value > 0.2 && i.placement.surface !== 'ceiling');
+    const vis: { centre: THREE.Vector3 }[] = [...this.text.items.values()].filter((i) => i.vis > 0.5 && i.purpose !== 'drawing' && i.uniforms.uOpacity.value > 0.2 && i.placement.surface !== 'ceiling');
     const air = this.text.airCentre;
     if (air) vis.push({ centre: air });
     if (!vis.length) return;

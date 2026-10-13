@@ -50,6 +50,7 @@ export function devKind(cue: Cue): DevKind | null {
     case 'link':
     case 'erode':
     case 'air':
+    case 'draw':
       return 'text';
     case 'glow':
     case 'flash':

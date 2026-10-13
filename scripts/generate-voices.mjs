@@ -7,7 +7,7 @@
  * The installation never calls any API at runtime; it only plays the files listed in
  * public/voices/manifest.json and falls back to synthesis for anything missing.
  *
- *   node scripts/generate-voices.mjs --dry-run [--only=sfx:switch,sfx:graphite]
+ *   node scripts/generate-voices.mjs --dry-run [--only=sfx:switch,sfx:graphite,sfx:eraser]
  *   ELEVENLABS_API_KEY=… node scripts/generate-voices.mjs --only=sfx:switch --budget=600 [--force]
  *
  * Costs are recorded in scripts/sfx-ledger.json; the account's balance is checked first.
@@ -73,6 +73,12 @@ const ASSETS = {
     [`an old wall light switch clicked on once in a silent room, a single dry plastic click, close, no reverb, no hum`, 1.0],
     [`one firm click of a household light switch being pressed on, quiet empty room, dry, single click only`, 1.0],
     [`a light switch on a plaster wall flicked on, one soft mechanical click, nothing else, dry`, 1.0],
+  ],
+  // The writing in the air rubbed out as someone comes close: an eraser, not a whoosh.
+  'sfx:eraser': [
+    [`a soft rubber eraser rubbing out pencil on a plaster wall, three or four short quick strokes, close, dry, quiet, nothing else`, 1.5],
+    [`someone quickly erasing a few pencil words with a small eraser on a hard wall, brief rubbing strokes, intimate, dry, no reverb`, 1.5],
+    [`gentle eraser strokes on paper against a wall, a short hurried rub then stop, close and quiet, dry`, 1.5],
   ],
   'sfx:graphite': [
     [`a soft graphite pencil writing slowly on a rough plaster wall, a few words with small pauses between them, close, dry, quiet`, 4],

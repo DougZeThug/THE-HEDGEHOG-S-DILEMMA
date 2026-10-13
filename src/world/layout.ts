@@ -1,3 +1,4 @@
+import type { DrawingDef } from '../content/drawings';
 import type { Phrase, Surface } from '../content/types';
 import { Rng, hashString } from '../core/rng';
 
@@ -224,9 +225,13 @@ export class SurfaceLayout {
   }
 }
 
-/** Lay out every placeable phrase deterministically. Large writing first so it gets the best room. */
-export function layoutPhrases(phrases: readonly Phrase[], measure: Measure, seed: number): Map<string, Placement> {
+/**
+ * Lay out every placeable phrase deterministically. Large writing first so it gets the best
+ * room. `reserve`d places (the drawings already on the walls) are kept clear of writing.
+ */
+export function layoutPhrases(phrases: readonly Phrase[], measure: Measure, seed: number, reserve: readonly Placement[] = []): Map<string, Placement> {
   const layout = new SurfaceLayout(new Rng(seed));
+  for (const r of reserve) layout.add(r);
   const out = new Map<string, Placement>();
   const order = phrases
     .filter((p) => p.tier !== 'annotation')
@@ -238,4 +243,22 @@ export function layoutPhrases(phrases: readonly Phrase[], measure: Measure, seed
 
 export function layoutOf(m: Map<string, Placement>): SurfaceLayout {
   return (m as Map<string, Placement> & { layout: SurfaceLayout }).layout;
+}
+
+/**
+ * Where each drawing goes: its authored spot (reserved before any writing is laid out, so
+ * nothing is ever written over it), or beside a line, wherever there is room once the
+ * writing has its places.
+ */
+export function drawingSpots(defs: readonly DrawingDef[]): Placement[] {
+  return defs.filter((d) => d.at).map((d) => ({ surface: d.surface, u: d.at![0], v: d.at![1], w: d.size[0], h: d.size[1], rot: 0 }));
+}
+
+export function drawingBeside(layout: SurfaceLayout, def: DrawingDef, target: Placement | undefined): Placement | null {
+  if (!target || target.surface !== def.surface) return null;
+  const r = layout.findBeside(target, def.size[0] + 0.03, def.size[1] + 0.03);
+  if (!r) return null;
+  const p: Placement = { surface: def.surface, u: r.u, v: r.v, w: def.size[0], h: def.size[1], rot: 0 };
+  layout.add(p);
+  return p;
 }

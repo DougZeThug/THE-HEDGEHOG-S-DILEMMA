@@ -96,6 +96,8 @@ export type Cue =
    * It goes as they come near.
    */
   | { type: 'air'; phraseId: string; toward: number; aside: number; height: number }
+  /** A drawing drawn on the wall, stroke by stroke (src/content/drawings.ts). */
+  | { type: 'draw'; id: string }
   /** Rub out a piece of writing except for one word. */
   | { type: 'erode'; key: string; keep: string };
 

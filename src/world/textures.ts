@@ -320,6 +320,11 @@ export function textTexture(text: string, hand: Hand, size: Size, key: string, m
       data[o + 3] = alpha[src + xx];
     }
   }
+  return { tex: inkTexture(data, W, H), w: m.w, h: m.h, words: bake.words, duration: bake.duration };
+}
+
+/** Writing's (and drawings') texture: raw bytes, rows bottom-up, red = when the hand gets there, alpha = ink. */
+export function inkTexture(data: Uint8Array, W: number, H: number): THREE.DataTexture {
   const tex = new THREE.DataTexture(data, W, H, THREE.RGBAFormat, THREE.UnsignedByteType);
   // Raw values: red is timing, not colour.
   tex.colorSpace = THREE.NoColorSpace;
@@ -328,7 +333,7 @@ export function textTexture(text: string, hand: Hand, size: Size, key: string, m
   tex.minFilter = THREE.LinearMipmapLinearFilter;
   tex.magFilter = THREE.LinearFilter;
   tex.needsUpdate = true;
-  return { tex, w: m.w, h: m.h, words: bake.words, duration: bake.duration };
+  return tex;
 }
 
 /** A hand-drawn pencil line (for links and strike-throughs), horizontal, unit length. */

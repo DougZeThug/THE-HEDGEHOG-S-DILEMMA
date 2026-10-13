@@ -1,3 +1,5 @@
+import { DRAWINGS } from '../src/content/drawings';
+import { drawingSpots } from '../src/world/layout';
 import { describe, it, expect } from 'vitest';
 import { Director } from '../src/state/Director';
 import type { VisitorInput } from '../src/state/VisitorModel';
@@ -13,7 +15,7 @@ const SZ: Record<string, number> = { xs: 0.13, s: 0.17, m: 0.22, l: 0.31, xl: 0.
 const placements = layoutPhrases(PHRASES, (p) => {
   const w = Math.min(2.6, p.text.length * 0.034 * (SZ[p.size] / 0.17));
   return { w, h: SZ[p.size] };
-}, 4242);
+}, 4242, drawingSpots(DRAWINGS));
 const geometry = (id: string) => {
   const pl = placements.get(id);
   return pl ? { surface: pl.surface, ...layoutToWorld(pl.surface, pl.u, pl.v) } : undefined;

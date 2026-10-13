@@ -1,5 +1,5 @@
 {
-  "spent": 165,
+  "spent": 216,
   "entries": {
     "sfx-switch-1.mp3": {
       "key": "sfx:switch",
@@ -47,6 +47,30 @@
       "duration": 4,
       "cost": 44,
       "at": "2026-10-13T13:15:49.516Z",
+      "review": "pending"
+    },
+    "sfx-eraser-1.mp3": {
+      "key": "sfx:eraser",
+      "text": "a soft rubber eraser rubbing out pencil on a plaster wall, three or four short quick strokes, close, dry, quiet, nothing else",
+      "duration": 1.5,
+      "cost": 17,
+      "at": "2026-10-13T16:39:09.558Z",
+      "review": "pending"
+    },
+    "sfx-eraser-2.mp3": {
+      "key": "sfx:eraser",
+      "text": "someone quickly erasing a few pencil words with a small eraser on a hard wall, brief rubbing strokes, intimate, dry, no reverb",
+      "duration": 1.5,
+      "cost": 17,
+      "at": "2026-10-13T16:39:10.752Z",
+      "review": "pending"
+    },
+    "sfx-eraser-3.mp3": {
+      "key": "sfx:eraser",
+      "text": "gentle eraser strokes on paper against a wall, a short hurried rub then stop, close and quiet, dry",
+      "duration": 1.5,
+      "cost": 17,
+      "at": "2026-10-13T16:39:12.126Z",
       "review": "pending"
     }
   }

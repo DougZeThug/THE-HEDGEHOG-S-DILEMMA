@@ -319,7 +319,7 @@ export class Voices {
    * A small household sound somewhere: a door closing in another room, a cup set down,
    * the chair creaking. Recorded if a clip exists (`sfx:<kind>`), otherwise synthesised.
    */
-  async sound(kind: 'door' | 'chair-creak' | 'cup' | 'switch' | 'graphite', place: VoicePlacement, gain: number): Promise<number> {
+  async sound(kind: 'door' | 'chair-creak' | 'cup' | 'switch' | 'graphite' | 'eraser', place: VoicePlacement, gain: number): Promise<number> {
     if (this.active >= 4) return 0;
     this.active++;
     let dur = 0;
@@ -334,7 +334,7 @@ export class Voices {
       }
       // No recording: a synthetic stand-in where one exists (a pencil has none: silence is better).
       if (kind === 'graphite') return (dur = 0);
-      dur = kind === 'door' ? this.synthDoor(place, g) : kind === 'cup' ? this.synthCup(place, g) : kind === 'switch' ? this.synthClick(place, g) : this.synthCreak(place, g);
+      dur = kind === 'door' ? this.synthDoor(place, g) : kind === 'cup' ? this.synthCup(place, g) : kind === 'switch' ? this.synthClick(place, g) : kind === 'eraser' ? this.synthEraser(place, g) : this.synthCreak(place, g);
       return dur;
     } finally {
       setTimeout(() => this.active--, dur * 1000 + 500);
@@ -380,6 +380,34 @@ export class Voices {
     const tail = this.chain({ ...place, muffled: place.muffled ?? true }, 0.55, 1.6, gain * 0.9);
     out.connect(tail);
     return 1.6;
+  }
+
+  /** An eraser: three short, uneven rubbing strokes of filtered noise, the last one shorter. */
+  private synthEraser(place: VoicePlacement, gain: number): number {
+    const c = this.a.ctx;
+    const t0 = c.currentTime + 0.02;
+    const src = this.a.noiseSource();
+    const bp = c.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.value = 2900;
+    bp.Q.value = 0.9;
+    const lp = c.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 5200;
+    const env = c.createGain();
+    env.gain.setValueAtTime(0, t0);
+    let t = t0;
+    for (const [len, peak] of [[0.16, 0.5], [0.13, 0.42], [0.09, 0.3]]) {
+      env.gain.setValueAtTime(0, t);
+      env.gain.linearRampToValueAtTime(gain * peak, t + len * 0.3);
+      env.gain.linearRampToValueAtTime(gain * peak * 0.6, t + len * 0.8);
+      env.gain.linearRampToValueAtTime(0, t + len);
+      t += len + 0.05 + this.rng.next() * 0.05;
+    }
+    src.connect(bp).connect(lp).connect(env).connect(this.chain(place, 0.15, t - t0 + 0.2, 1));
+    src.start(t0);
+    src.stop(t + 0.05);
+    return t - t0;
   }
 
   /** A cup set down: a short ceramic ring. */

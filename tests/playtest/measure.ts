@@ -1,3 +1,4 @@
+import { DRAWING_BY_ID } from '../../src/content/drawings';
 import { Director } from '../../src/state/Director';
 import { OPENING_WRITTEN, OPENING_SPOKEN, OPENING_UNFINISHED } from '../../src/state/OpeningScore';
 import { PHRASE_BY_ID } from '../../src/content/phrases';
@@ -76,6 +77,8 @@ function classify(cue: Cue): { kind: Kind; label: string; recorded: boolean; sur
       return { kind: 'text', label: 'erode', recorded: false };
     case 'air':
       return { kind: 'text', label: `air ${cue.phraseId}`, recorded: false };
+    case 'draw':
+      return { kind: 'text', label: `draw ${cue.id}`, recorded: false, surface: DRAWING_BY_ID.get(cue.id)?.surface };
     case 'glow':
     case 'flash':
       return { kind: 'light', label: cue.type, recorded: false };
