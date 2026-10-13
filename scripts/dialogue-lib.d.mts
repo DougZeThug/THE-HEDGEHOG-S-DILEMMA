@@ -26,3 +26,8 @@ export function runJobs(o: {
   sleep?: (ms: number) => Promise<void>; log?: (s: string) => void; stt?: boolean; now?: () => string; maxRetries?: number;
 }): Promise<{ at: string; credits: number; generated: number; failed: number; queued: number; stopped: string | null }>;
 export function transcribe(o: { fetch: any; key: string; audio: Uint8Array }): Promise<{ ok: boolean; text?: string; events?: string[]; code?: string }>;
+export type Balance =
+  | { known: true; used: number; limit: number; remaining: number; tier?: string; resetsAt?: string }
+  | { known: false; reason: string };
+export function readBalance(key: string, fetchFn?: (url: string, init?: any) => Promise<any>): Promise<Balance>;
+export function balanceAllows(balance: Balance, estimate: number): { ok: boolean; note: string };

@@ -224,7 +224,9 @@ describe('credentials', () => {
         if (['node_modules', 'dist', '.git', 'test-output'].includes(f)) return [];
         if (statSync(p).isDirectory()) return scan(p);
         if (!/\.(ts|mjs|mts|js|json|md|html|css)$/.test(f)) return [];
-        return /sk_[a-f0-9]{24,}|[a-f0-9]{64}/.test(readFileSync(p, 'utf8')) ? [p] : [];
+        // A library voice's public owner id is a 64-hex identifier shown in the public voice library, not a secret.
+        const text = readFileSync(p, 'utf8').replace(/"publicOwnerId": "[a-f0-9]{64}"/g, '');
+        return /sk_[a-f0-9]{24,}|[a-f0-9]{64}/.test(text) ? [p] : [];
       });
     expect(scan(ROOT)).toEqual([]);
   });

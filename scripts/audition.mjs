@@ -86,6 +86,19 @@ for (const d of designs.designs) {
     });
   }
 }
+for (const v of designs.library ?? []) {
+  const e = designLedger.library?.[v.id];
+  const path = e && join(ROOT, 'audition', e.file);
+  if (!e || !existsSync(path)) continue;
+  designTakes.push({
+    id: v.id, group: 'voices', groupLabel: '', line: 'New voices',
+    interpretation: v.why, voice: `library voice: ${v.name}`, model: e.model, stability: designs.libraryStability, input: e.text,
+    question: `For: ${v.for}`, generation: 2, lab: false, audition: true, design: true, status: e.status, review: 'pending',
+    transcript: e.transcript, m: analyse(path, words(e.text).length), path, src: OUT ? `audio/${basename(e.file)}` : e.file,
+  });
+}
+const nDesigned = designs.designs.length, nLibrary = designTakes.filter((t) => t.id.startsWith('lib-')).length;
+for (const t of designTakes) t.groupLabel = `new voices: ${nDesigned} made to order (three previews each), ${nLibrary} from the ElevenLabs library — keep only a few`;
 // New voices first: the casting decides who reads everything else.
 takes.unshift(...designTakes);
 
