@@ -2,6 +2,37 @@
 
 The artist tested on a phone and spent too long standing around waiting. The room took up to a minute (or, for someone exploring, two) to answer anything, phases opened on fixed timers (40/95, 140/290, 320/520 s), and taps on writing did nothing at all.
 
+## Since the cinematic opening (October 2026)
+
+The first 20–25 s are now an authored score, not the Director:
+- the tap on the black threshold;
+- the title;
+- a sound in the dark and a switch;
+- the chair lit alone;
+- the room coming up nearly empty;
+- "I wanted you to", written and left unfinished;
+- laughter, with its words written as heard;
+- the hand-off.
+
+It is described in the README; the reasoning is in `docs/reviews/2026-10-cinematic-opening.md`. The Director is held during the opening (no rule runs and no time passes for it) and starts at the hand-off, so nothing piles up. The persona harness (`tests/playtest/measure.ts`) now starts every visit at the hand-off, with what the opening left. Gaze rests only on writing that exists: in a nearly empty room a persona can't read a line that hasn't been written.
+
+After the hand-off (engine time, median of 8 seeds; `npx vite-node scripts/playtest.ts`):
+
+| Persona | First thing perceptible | Recorded voices by 90 s (plus the opening's) | Longest perceptible gap, first 90 s | Contradiction / transformation |
+|---|---|---|---|---|
+| Hardly moves | 2.6 s | 3 | 15.6 s | 120 / 300 s |
+| Actively explores | 2.6 s | 1 | 17.7 s | 60 / 156 s |
+| Chair at once | 4 s | 3 | 19.8 s | 57 / 238 s |
+| Reads several | 4 s | 2 | 19 s | 73 / 212 s |
+| Phone, touch | 4 s | 3 | 20.2 s | 50 / 150 s |
+
+The changes that made this hold in a room that starts empty:
+- **The room fills (`ruleAccumulate`).** A line soon after the hand-off, then one every 7–10 s for the first few, then more slowly. It answers turning to a wall and staying with a line.
+- **The unfinished line is finished** by a long look or by coming to the chair (`ruleFinish`). That gives a still visitor a voice where previously they had none.
+- **Two pacing fixes:** sounds in a meeting no longer land on voices, and humming comes from a wall the visitor can walk toward.
+
+Reading deepens a visit a little more slowly when there is less to read. The reader persona reaches contradiction at 73 s, not about 52 s, inside the brief's 30–90 s.
+
 ## What it is now
 
 - **Engagement** (`src/state/Engagement.ts`). What a visitor does becomes signals: reading a line, coming back to one after looking away, touching writing or the chair, approaching, staying with the chair, kneeling, looking around, crossing the room, pausing on purpose, writing. Attending to the writing counts for more than moving about. The visit's *depth* grows from these, and slowly by itself.
