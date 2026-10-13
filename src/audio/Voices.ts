@@ -131,6 +131,13 @@ const STYLES: Record<string, StyleDef> = {
   distant: { syll: 0.19, formantShift: 1, voiced: true, f0: 165, reverb: 0.6, lowpass: 900, gain: 0.9, stressAmt: 0.5, attack: 0.03 },
 };
 
+/** What was played: how long, when it starts on the audio clock, and which recording. */
+export interface Played {
+  duration: number;
+  startAt?: number;
+  file?: string;
+}
+
 export class Voices {
   private manifest: Record<string, string[]> = {};
   private buffers = new Map<string, Promise<AudioBuffer | null>>();
@@ -191,7 +198,9 @@ export class Voices {
   }
 
   /** Preload in stages, so a phone isn't asked to download every take on arrival. */
-  preload() {
+  preload(priority: string[] = []) {
+    // What the opening needs, before anything else.
+    for (const k of priority) for (const f of this.manifest[k] ?? (k.endsWith('.mp3') ? [k] : [])) void this.loadBuffer(f);
     const { first, rest } = preloadStages(this.manifest);
     const later = () => {
       const next = rest.splice(0, 3);
@@ -247,7 +256,9 @@ export class Voices {
       outNode = sp;
     } else {
       const [x, y, z] = place.from;
-      const p = this.a.panner(x, y, z, 0.8, 1.15);
+      // Speech stays intelligible across the room (and on a phone speaker): its place is
+      // carried by direction more than by distance loss.
+      const p = place.recording ? this.a.panner(x, y, z, 2.0, 0.6) : this.a.panner(x, y, z, 0.8, 1.15);
       if (place.to) {
         const [x2, y2, z2] = place.to;
         p.positionX.setValueAtTime(x, t);
@@ -281,15 +292,23 @@ export class Voices {
    * Play a voice event. Returns its approximate duration (seconds) for captions.
    */
   async play(kind: VoiceKind, text: string | null, place: VoicePlacement, gain: number, assetKey?: string, opts: PlayOptions = {}): Promise<number> {
-    if (this.active >= 4) return 0; // never a crowd
+    return (await this.playLine(kind, text, place, gain, assetKey, opts)).duration;
+  }
+
+  /**
+   * Play, and say what was played and when it starts (in the AudioContext's time), so writing
+   * can follow the words. The file may differ from the one asked for (a fallback take).
+   */
+  async playLine(kind: VoiceKind, text: string | null, place: VoicePlacement, gain: number, assetKey?: string, opts: PlayOptions & { priority?: boolean } = {}): Promise<Played> {
+    if (this.active >= 4 && !opts.priority) return { duration: 0 }; // never a crowd
     this.active++; // reserve the slot before anything asynchronous
-    let dur = 0;
+    let out: Played = { duration: 0 };
     try {
-      dur = await this.play_(kind, text, place, gain, opts.synth ? undefined : assetKey, opts);
+      out = await this.play_(kind, text, place, gain, opts.synth ? undefined : assetKey, opts);
     } finally {
-      setTimeout(() => this.active--, dur * 1000 + 500);
+      setTimeout(() => this.active--, out.duration * 1000 + 500);
     }
-    return dur;
+    return out;
   }
 
   private tagged = new Map<string, GainNode[]>();
@@ -300,7 +319,7 @@ export class Voices {
    * A small household sound somewhere: a door closing in another room, a cup set down,
    * the chair creaking. Recorded if a clip exists (`sfx:<kind>`), otherwise synthesised.
    */
-  async sound(kind: 'door' | 'chair-creak' | 'cup', place: VoicePlacement, gain: number): Promise<number> {
+  async sound(kind: 'door' | 'chair-creak' | 'cup' | 'switch' | 'graphite', place: VoicePlacement, gain: number): Promise<number> {
     if (this.active >= 4) return 0;
     this.active++;
     let dur = 0;
@@ -313,7 +332,9 @@ export class Voices {
         const buf = await this.loadBuffer(file);
         if (buf) return (dur = this.playBuffer(buf, place, g * (this.norm.get(file) ?? 1), 0.45));
       }
-      dur = kind === 'door' ? this.synthDoor(place, g) : kind === 'cup' ? this.synthCup(place, g) : this.synthCreak(place, g);
+      // No recording: a synthetic stand-in where one exists (a pencil has none: silence is better).
+      if (kind === 'graphite') return (dur = 0);
+      dur = kind === 'door' ? this.synthDoor(place, g) : kind === 'cup' ? this.synthCup(place, g) : kind === 'switch' ? this.synthClick(place, g) : this.synthCreak(place, g);
       return dur;
     } finally {
       setTimeout(() => this.active--, dur * 1000 + 500);
@@ -362,6 +383,25 @@ export class Voices {
   }
 
   /** A cup set down: a short ceramic ring. */
+  /** A dry click: a few milliseconds of shaped noise. */
+  private synthClick(place: VoicePlacement, gain: number): number {
+    const c = this.a.ctx;
+    const t = c.currentTime + 0.01;
+    const src = this.a.noiseSource();
+    const bp = c.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.value = 2600;
+    bp.Q.value = 1.2;
+    const env = c.createGain();
+    env.gain.setValueAtTime(0, t);
+    env.gain.linearRampToValueAtTime(gain * 0.9, t + 0.002);
+    env.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
+    src.connect(bp).connect(env).connect(this.chain(place, 0.2, 0.3, 1));
+    src.start(t);
+    src.stop(t + 0.08);
+    return 0.1;
+  }
+
   private synthCup(place: VoicePlacement, gain: number): number {
     const c = this.a.ctx;
     const t = c.currentTime + 0.05;
@@ -429,7 +469,7 @@ export class Voices {
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
   }
 
-  private async play_(kind: VoiceKind, text: string | null, place: VoicePlacement, gain: number, assetKey: string | undefined, opts: PlayOptions): Promise<number> {
+  private async play_(kind: VoiceKind, text: string | null, place: VoicePlacement, gain: number, assetKey: string | undefined, opts: PlayOptions): Promise<Played> {
     const g = gain * (0.55 + 0.45 * this.a.intensity);
     const src = chooseSource({
       manifest: this.manifest, assetKey, performances: opts.performances, text, kind,
@@ -444,21 +484,23 @@ export class Voices {
         // Intelligible recordings sit a little above the room tone so words aren't masked.
         const level = (this.norm.get(file) ?? 1) * (src.kind === 'recording' ? 1.35 : 1);
         // Recorded speech is dry; the room supplies the space. Flat delivery stays closest.
-        return this.playBuffer(buf, place, g * level, kind === 'flat' ? 0.05 : src.kind === 'recording' ? 0.22 : 0.3);
+        const startAt = this.a.ctx.currentTime + 0.01;
+        const duration = this.playBuffer(buf, place, g * level, kind === 'flat' ? 0.05 : src.kind === 'recording' ? 0.22 : 0.3);
+        return { duration, startAt, file: src.kind === 'recording' ? file : undefined };
       }
     }
-    if (src.kind === 'speech' && text) return this.speak(text, kind, g);
+    if (src.kind === 'speech' && text) return { duration: this.speak(text, kind, g) };
     switch (kind) {
       case 'breath':
-        return this.breath(place, g);
+        return { duration: this.breath(place, g) };
       case 'laugh':
-        return this.laugh(place, g);
+        return { duration: this.laugh(place, g) };
       case 'murmur':
-        return this.murmur(place, g);
+        return { duration: this.murmur(place, g) };
       case 'hum':
-        return opts.melody?.length ? this.humTune(place, g, opts.melody) : this.hum(place, g);
+        return { duration: opts.melody?.length ? this.humTune(place, g, opts.melody) : this.hum(place, g) };
       default:
-        return this.utter(text ?? '...', STYLES[kind] ?? STYLES.whisper, place, g, hashString(text ?? kind));
+        return { duration: this.utter(text ?? '...', STYLES[kind] ?? STYLES.whisper, place, g, hashString(text ?? kind)) };
     }
   }
 

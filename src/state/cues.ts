@@ -60,6 +60,10 @@ export type Cue =
       performances?: string[];
       /** Seconds the room holds its breath before the voice starts (a hush that belongs to the voice, so it never happens without it). */
       lead?: number;
+      /** The words write themselves onto their place on the wall as they are heard. */
+      write?: boolean;
+      /** The line was left unfinished on the wall: the hand finishes it as the words are heard. */
+      finish?: boolean;
     }
   | {
       type: 'music';

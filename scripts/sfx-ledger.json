@@ -1,0 +1,53 @@
+{
+  "spent": 165,
+  "entries": {
+    "sfx-switch-1.mp3": {
+      "key": "sfx:switch",
+      "text": "an old wall light switch clicked on once in a silent room, a single dry plastic click, close, no reverb, no hum",
+      "duration": 1,
+      "cost": 11,
+      "at": "2026-10-13T13:15:40.471Z",
+      "review": "pending"
+    },
+    "sfx-switch-2.mp3": {
+      "key": "sfx:switch",
+      "text": "one firm click of a household light switch being pressed on, quiet empty room, dry, single click only",
+      "duration": 1,
+      "cost": 11,
+      "at": "2026-10-13T13:15:42.069Z",
+      "review": "pending"
+    },
+    "sfx-switch-3.mp3": {
+      "key": "sfx:switch",
+      "text": "a light switch on a plaster wall flicked on, one soft mechanical click, nothing else, dry",
+      "duration": 1,
+      "cost": 11,
+      "at": "2026-10-13T13:15:45.252Z",
+      "review": "pending"
+    },
+    "sfx-graphite-1.mp3": {
+      "key": "sfx:graphite",
+      "text": "a soft graphite pencil writing slowly on a rough plaster wall, a few words with small pauses between them, close, dry, quiet",
+      "duration": 4,
+      "cost": 44,
+      "at": "2026-10-13T13:15:46.614Z",
+      "review": "pending"
+    },
+    "sfx-graphite-2.mp3": {
+      "key": "sfx:graphite",
+      "text": "pencil lead scratching lightly on a painted wall, someone writing a short line by hand, unhurried, close, dry",
+      "duration": 4,
+      "cost": 44,
+      "at": "2026-10-13T13:15:48.106Z",
+      "review": "pending"
+    },
+    "sfx-graphite-3.mp3": {
+      "key": "sfx:graphite",
+      "text": "slow handwriting with a soft pencil on a hard surface, gentle scratching strokes and pauses, intimate, dry",
+      "duration": 4,
+      "cost": 44,
+      "at": "2026-10-13T13:15:49.516Z",
+      "review": "pending"
+    }
+  }
+}

@@ -5,6 +5,8 @@ export interface Prefs {
   speech: boolean;
   intensity: 'gentle' | 'full';
   reducedMotion: boolean;
+  /** The visitor chose reduced motion themselves (otherwise it follows the system setting, always). */
+  reducedMotionChosen?: boolean;
   quality: 'low' | 'medium' | 'high';
 }
 
@@ -45,7 +47,10 @@ export function loadPrefs(): Prefs {
       captions: typeof p.captions === 'boolean' ? p.captions : d.captions,
       speech: typeof p.speech === 'boolean' ? p.speech : d.speech,
       intensity: p.intensity === 'gentle' || p.intensity === 'full' ? p.intensity : d.intensity,
-      reducedMotion: typeof p.reducedMotion === 'boolean' ? p.reducedMotion : d.reducedMotion,
+      // Only a choice the visitor made overrides the system setting; a default saved along with
+      // some other preference must not freeze it.
+      reducedMotion: p.reducedMotionChosen && typeof p.reducedMotion === 'boolean' ? p.reducedMotion : d.reducedMotion,
+      reducedMotionChosen: !!p.reducedMotionChosen,
       quality: p.quality === 'low' || p.quality === 'medium' || p.quality === 'high' ? p.quality : d.quality,
     };
   } catch {
@@ -66,4 +71,14 @@ export function writeVisits(n: number) {
 }
 export function forgetVisits() {
   safeSet(VISITS, null);
+  safeSet('hh.opening-seen', null);
+}
+
+const OPENING_SEEN = 'hh.opening-seen';
+/** The opening has been seen to its end before (a visit abandoned in the dark doesn't count). */
+export function readOpeningSeen(): boolean {
+  return safeGet(OPENING_SEEN) === '1';
+}
+export function writeOpeningSeen() {
+  safeSet(OPENING_SEEN, '1');
 }

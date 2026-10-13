@@ -21,6 +21,8 @@ export class CameraRig {
   kneeling = false;
   reducedMotion = false;
   enabled = true;
+  /** Walking allowed (looking may be allowed before walking is, during the opening). */
+  walk = true;
   sensitivity = 0.0022;
   /** Vertical field of view for this screen's shape (portrait phones need more, wide screens less). */
   baseFov = 62;
@@ -51,6 +53,14 @@ export class CameraRig {
     this.yaw -= dx * this.sensitivity;
     this.pitch = clamp(this.pitch - dy * this.sensitivity, -1.35, 1.35);
     this.lookGoal = null;
+  }
+
+  /**
+   * The opening's frame: a little downward, so the chair and its shadow are whole on a wide
+   * screen and the chair sits just below centre on a phone held upright.
+   */
+  frameOpening(aspect: number) {
+    this.pitch = aspect < 1 ? -0.24 : -0.15;
   }
 
   /** Walk toward a world point, stopping `stopAt` metres short. */
@@ -93,13 +103,15 @@ export class CameraRig {
     const k = this.keys;
     let fwd = 0, strafe = 0, turn = 0;
     if (this.enabled) {
-      if (k.has('KeyW') || k.has('ArrowUp')) fwd += 1;
-      if (k.has('KeyS') || k.has('ArrowDown')) fwd -= 1;
-      if (k.has('KeyA')) strafe -= 1;
-      if (k.has('KeyD')) strafe += 1;
+      if (this.walk) {
+        if (k.has('KeyW') || k.has('ArrowUp')) fwd += 1;
+        if (k.has('KeyS') || k.has('ArrowDown')) fwd -= 1;
+        if (k.has('KeyA')) strafe -= 1;
+        if (k.has('KeyD')) strafe += 1;
+        fwd += this.touchMove.y;
+      }
       if (k.has('ArrowLeft') || k.has('KeyQ')) turn += 1;
       if (k.has('ArrowRight') || k.has('KeyE')) turn -= 1;
-      fwd += this.touchMove.y;
       turn -= this.touchMove.x * 0.9;
     }
     const slow = k.has('ShiftLeft') || k.has('ShiftRight') ? 0.45 : 1;
@@ -119,7 +131,7 @@ export class CameraRig {
       tx *= speed / mag;
       tz *= speed / mag;
     }
-    if (this.goal && (!this.enabled || this.kneeling)) this.goal = null;
+    if (this.goal && (!this.enabled || !this.walk || this.kneeling)) this.goal = null;
     if (this.goal) {
       const d = new THREE.Vector2(this.goal.x - this.pos.x, this.goal.z - this.pos.z);
       const len = d.length();

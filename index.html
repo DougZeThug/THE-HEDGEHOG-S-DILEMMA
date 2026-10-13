@@ -9,11 +9,11 @@
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23f1efea'/%3E%3Cpath d='M12 13h8v2h-8zM12 15v8M20 15v8M12 13V6M20 13V6M12 8h8M12 10h8' stroke='%238d5d36' stroke-width='1.5' fill='none'/%3E%3C/svg%3E" />
   </head>
   <body>
-    <div id="stage" aria-hidden="true"></div>
+    <div id="stage" role="application" aria-label="The room. Arrow keys or the mouse to look and walk; Tab turns to the next writing; Esc for settings."></div>
 
     <main id="threshold" class="layer">
       <div class="threshold-inner">
-        <h1>the hedgehog’s dilemma</h1>
+        <h1 id="title">The Hedgehog’s Dilemma</h1>
         <p class="threshold-line" id="threshold-line">A white room. A small chair. Some things written on the walls.</p>
         <button id="enter" class="quiet-button" disabled>loading the room…</button>
         <p class="threshold-note">Sound matters here. Headphones, if you have them.<br />Nothing you do or write leaves this browser.</p>
@@ -35,6 +35,7 @@
     <div id="captions" class="captions" aria-live="polite" aria-atomic="true"></div>
     <div id="hint" class="hint" aria-hidden="true"></div>
 
+    <button id="skip" class="skip" type="button" hidden>skip</button>
     <button id="menu-btn" class="corner-btn corner-right" aria-label="Settings and leaving" hidden>···</button>
     <button id="write-btn" class="corner-btn corner-left" aria-label="Leave something on the wall" hidden>✎</button>
 

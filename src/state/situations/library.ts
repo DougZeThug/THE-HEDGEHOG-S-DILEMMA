@@ -125,7 +125,10 @@ export const humming: SituationDef = {
     }
     // Hummed three times through, with a breath between.
     const seq = [...tune, REST, ...tune, REST, REST, ...tune];
-    const wall = r.pick(otherWalls([c.h.facing]));
+    // From a wall the visitor can walk toward (not the one at their back, a step away).
+    const walls = otherWalls([c.h.facing]);
+    const far = walls.filter((w) => c.h.distToSurface(w) > 1.6);
+    const wall = r.pick(far.length ? far : walls);
     Object.assign(c.st.data, { tune, seq, wall, startAt: c.h.now + 0.1, dist0: c.h.distToSurface(wall) });
     c.emit(0, {
       type: 'voice', kind: 'hum', text: null, caption: '(humming)', position: { kind: 'beyond', surface: wall }, gain: 0.42,

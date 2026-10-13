@@ -1,17 +1,20 @@
 import * as THREE from 'three';
 import type { Phrase, Surface, Hand, Size } from '../content/types';
-import { PHRASES } from '../content/phrases';
+import { PHRASES, PHRASE_BY_ID } from '../content/phrases';
 import type { Room } from './Room';
 import { layoutPhrases, layoutOf, surfaceSize, type Placement, type SurfaceLayout } from './layout';
 import { HANDS, measureText, textTexture, pencilLineTexture } from './textures';
+import { wordRanges } from './handwriting';
 import { approach, clamp, smoothstep } from '../core/math';
 import { hashString } from '../core/rng';
 import type { Environment } from '../state/Director';
 
 /**
- * Writing on the walls. Every phrase is a textured plane lying on its surface, lit by
- * the same light as the plaster. Visibility is a dissolve, not a fade: writing arrives
- * and leaves in patches, the way pencil does when it is pressed or rubbed out.
+ * Writing on the walls. Every piece of writing is a textured plane lying on its surface, lit
+ * by the same light as the plaster. New writing is *written*: a hand puts it down stroke by
+ * stroke (the texture carries when each pixel is reached; see textures.ts and strokes.ts),
+ * either at its own pace or following a voice. Rubbing out is a dissolve: writing leaves in
+ * patches, the way pencil does under an eraser.
  */
 
 const VERT_HEAD = /* glsl */ `
@@ -22,7 +25,15 @@ uniform float uSeed;
 uniform float uAspect;
 `;
 
+/**
+ * The hand keeps real time (the same clock the audio plays on), not the scene's clock, which
+ * slows when frames are dropped: writing that follows a voice must not drift from it.
+ */
+export const wallClock = () => performance.now() / 1000;
+
 const FRAG_NOISE = /* glsl */ `
+uniform float uWrite;
+uniform float uFresh;
 uniform float uReveal;
 uniform float uOpacity;
 uniform float uEmphasis;
@@ -37,7 +48,7 @@ float hhNoise(vec2 p){
 float hhFbm(vec2 p){ return 0.6*hhNoise(p) + 0.3*hhNoise(p*2.3) + 0.1*hhNoise(p*5.1); }
 `;
 
-function makeTextMaterial(tex: THREE.Texture, hand: Hand, aspect: number, seed: number) {
+function makeTextMaterial(tex: THREE.Texture, hand: Hand, aspect: number, seed: number, duration: number) {
   const st = HANDS[hand];
   const mat = new THREE.MeshStandardMaterial({
     color: new THREE.Color(st.ink),
@@ -51,6 +62,10 @@ function makeTextMaterial(tex: THREE.Texture, hand: Hand, aspect: number, seed: 
     polygonOffsetUnits: -2,
   });
   const uniforms = {
+    /** How far the hand has got, as a fraction of the whole piece (≥1: all written). */
+    uWrite: { value: 2 },
+    /** How long just-written ink stays heavier, in the same units. */
+    uFresh: { value: 0.5 / Math.max(0.5, duration) },
     uReveal: { value: 0 },
     uOpacity: { value: st.opacity },
     uEmphasis: { value: 0 },
@@ -62,21 +77,46 @@ function makeTextMaterial(tex: THREE.Texture, hand: Hand, aspect: number, seed: 
     shader.vertexShader = VERT_HEAD + shader.vertexShader;
     shader.fragmentShader = FRAG_NOISE + shader.fragmentShader.replace(
       '#include <map_fragment>',
-      /* glsl */ `#include <map_fragment>
+      /* glsl */ `
       {
+        // Alpha is the ink; red is when the hand reaches it.
+        vec4 hhTx = texture2D(map, vMapUv);
+        if (hhTx.a < 0.004) discard;
+        float hhLeft = uWrite - hhTx.r;
+        float hhInk = smoothstep(-0.004, 0.006, hhLeft);
+        if (hhInk <= 0.0) discard;
+        // Just-written ink sits a little heavier for a moment, like a pen pressed down.
+        float hhFreshInk = 1.0 - smoothstep(0.0, uFresh, hhLeft);
+        diffuseColor.a *= hhTx.a * hhInk;
+        diffuseColor.rgb *= 1.0 - 0.25 * hhFreshInk;
+      }
+      // Rubbing out: patches, uneven, like an eraser on plaster (only while it happens).
+      if (uReveal < 0.999) {
         float n = hhFbm(vMapUv * vec2(uAspect * 5.0, 5.0) + uSeed);
         float edge = uReveal * 1.25 - 0.12;
-        float m = smoothstep(edge + 0.02, edge - 0.1, n);
-        diffuseColor.a *= m * uOpacity;
-        diffuseColor.rgb *= 1.0 - 0.45 * uEmphasis;
-      }`,
+        diffuseColor.a *= 1.0 - smoothstep(edge - 0.1, edge + 0.02, n);
+      }
+      diffuseColor.a *= uOpacity;
+      diffuseColor.rgb *= 1.0 - 0.45 * uEmphasis;`,
     );
   };
-  mat.customProgramCacheKey = () => 'hh-text';
+  mat.customProgramCacheKey = () => 'hh-text2';
   return { mat, uniforms };
 }
 
 type Purpose = 'phrase' | 'annotation' | 'recall' | 'recontext' | 'contribution';
+
+/**
+ * How the hand is moving: on its own from `start` (wall-clock seconds), or following a voice
+ * through `segments` ([wall from, wall to, hand from, hand to], in order). It never goes
+ * below `floor` (what is already written stays) or past `cap` (a sentence nobody finished).
+ */
+export interface WritePlan {
+  start: number;
+  segments?: [number, number, number, number][];
+  floor: number;
+  cap: number;
+}
 
 export interface TextItem {
   key: string;
@@ -97,6 +137,49 @@ export interface TextItem {
   expires: number;
   centre: THREE.Vector3;
   normal: THREE.Vector3;
+  /** The hand's own time for each word, and for the whole piece (seconds). */
+  words: [number, number][];
+  duration: number;
+  /** The hand at work, or null once the writing simply exists. */
+  plan: WritePlan | null;
+}
+
+/** Where the hand is (its own seconds) at wall-clock time `now`. */
+export function handAt(plan: WritePlan, now: number): number {
+  let h: number;
+  if (!plan.segments) h = now - plan.start;
+  else {
+    h = plan.floor;
+    for (const [a, b, h0, h1] of plan.segments) {
+      if (now < a) break;
+      h = now >= b ? h1 : h0 + ((now - a) / Math.max(1e-3, b - a)) * (h1 - h0);
+    }
+  }
+  return Math.min(plan.cap, Math.max(plan.floor, h));
+}
+
+/**
+ * A hand following a voice. `speech` is the recording's timing for each character of this
+ * exact text (seconds from the start of the file), `audioStart` when the file starts playing
+ * (wall clock). Each word starts as it is heard; a hand can't write as fast as people speak,
+ * so a long word may run on a little, and the next one waits — pauses in the speech stay
+ * pauses in the writing.
+ */
+export function speechPlan(text: string, words: [number, number][], speech: [number, number][], audioStart: number, speedUp = 1.3): [number, number, number, number][] {
+  const ranges = wordRanges(text);
+  const out: [number, number, number, number][] = [];
+  let free = -Infinity;
+  ranges.forEach(([i0, i1], k) => {
+    const hw = words[k];
+    if (!hw) return;
+    const s = audioStart + (speech[i0]?.[0] ?? 0);
+    const e = audioStart + (speech[i1 - 1]?.[1] ?? 0);
+    const start = Math.max(s, free);
+    const end = start + Math.max(e - s, (hw[1] - hw[0]) / speedUp);
+    out.push([start, end, hw[0], hw[1]]);
+    free = end + 0.04;
+  });
+  return out;
 }
 
 interface LineItem {
@@ -126,15 +209,28 @@ export class WallText {
     this.placements = layoutPhrases(PHRASES, (p) => measureText(p.text, p.hand, p.size), seed);
     this.layout = layoutOf(this.placements);
     this.lineTex = [pencilLineTexture(1), pencilLineTexture(2), pencilLineTexture(3)];
-    for (const p of PHRASES) {
-      const pl = this.placements.get(p.id);
-      if (pl) this.create(p.id, p.text, p.hand, p.size, pl, 'phrase', p);
-    }
+    // Writing is made when it is first needed: the room begins nearly empty, and baking every
+    // phrase up front would cost a phone seconds and tens of megabytes.
+  }
+
+  /** The item for a phrase, made the first time it is asked for. */
+  private ensure(id: string): TextItem | undefined {
+    const have = this.items.get(id);
+    if (have) return have;
+    const p = PHRASE_BY_ID.get(id);
+    const pl = this.placements.get(id);
+    if (!p || !pl) return undefined;
+    return this.create(p.id, p.text, p.hand, p.size, pl, 'phrase', p);
+  }
+
+  /** Make the writing for these phrases now (e.g. while the screen is dark), so writing them later costs nothing. */
+  prepare(ids: string[]) {
+    for (const id of ids) this.ensure(id);
   }
 
   private create(key: string, text: string, hand: Hand, size: Size, pl: Placement, purpose: Purpose, phrase?: Phrase): TextItem {
-    const { tex, w, h } = textTexture(text, hand, size, key);
-    const { mat, uniforms } = makeTextMaterial(tex, hand, w / h, hashString(key));
+    const { tex, w, h, words, duration } = textTexture(text, hand, size, key);
+    const { mat, uniforms } = makeTextMaterial(tex, hand, w / h, hashString(key), duration);
     const mesh = new THREE.Mesh(this.geo, mat);
     mesh.scale.set(w, h, 1);
     mesh.userData.text = text;
@@ -146,6 +242,7 @@ export class WallText {
       key, phrase, purpose, hand, size, placement: pl, mesh, uniforms,
       vis: 0, target: 0, rate: 0.1, shy: 1, emphasis: 0, expires: 0,
       centre: new THREE.Vector3(), normal: new THREE.Vector3(),
+      words, duration, plan: null,
     };
     this.position(item);
     this.items.set(key, item);
@@ -161,30 +258,92 @@ export class WallText {
     this.room.normal(pl.surface, it.normal);
   }
 
-  /** Show without animation (arrival state). */
+  /** Show without animation (already there). */
   setShown(id: string) {
-    const it = this.items.get(id);
+    const it = this.ensure(id);
     if (!it) return;
     it.vis = it.target = 1;
+    it.plan = null;
     it.mesh.visible = true;
   }
 
+  /** Writing that isn't there yet is written by hand; writing already half there comes back in patches. */
   reveal(id: string, seconds: number) {
-    const it = this.items.get(id);
+    const it = this.ensure(id);
     if (!it) return;
+    if (it.vis <= 0.02) {
+      this.writeOn(id);
+      return;
+    }
     it.target = 1;
     it.rate = 1 / Math.max(0.5, seconds);
     it.mesh.visible = true;
   }
 
-  /** Write a line again: it is gone at once and comes back over `seconds`. */
+  /** Write a line again: it is gone at once and the hand writes it anew. */
   redraw(id: string, seconds: number) {
-    const it = this.items.get(id);
-    if (!it) return;
-    it.vis = 0;
-    it.target = 1;
-    it.rate = 1 / Math.max(0.5, seconds);
+    void seconds;
+    this.writeOn(id);
+  }
+
+  /**
+   * A hand writes this. On its own (starting after `delay` seconds), or — with `speech` (the
+   * recording's character timing for this exact text) and `audioStart` (wall-clock time the
+   * recording starts) — following the voice. `upto` stops after that many words: a sentence
+   * nobody finished. Returns the wall-clock time the hand will be done.
+   */
+  writeOn(id: string, o: { delay?: number; speech?: [number, number][]; audioStart?: number; upto?: number; instant?: boolean } = {}): number {
+    const it = this.ensure(id);
+    if (!it) return 0;
+    const text = (it.mesh.userData.text as string) ?? '';
+    const now = wallClock();
+    const cap = o.upto !== undefined && o.upto < it.words.length ? it.words[Math.max(0, o.upto - 1)][1] : it.duration;
+    // Reduced motion: no stroke-by-stroke animation; the writing is simply there, word by word, quickly.
+    const plan: WritePlan = { start: now + (o.delay ?? 0), floor: 0, cap };
+    if (o.speech && o.speech.length === text.length && o.audioStart !== undefined) plan.segments = speechPlan(text, it.words, o.speech, o.audioStart);
+    else if (this.reducedMotion) plan.segments = it.words.map(([a, b], k) => [plan.start + k * 0.15, plan.start + k * 0.15 + 0.01, a, b] as [number, number, number, number]);
+    // Already written (a skipped opening): as far as it goes, at once.
+    if (o.instant) plan.floor = cap;
+    it.plan = plan;
+    it.vis = it.target = 1;
     it.mesh.visible = true;
+    return plan.segments ? plan.segments[plan.segments.length - 1][1] : plan.start + cap;
+  }
+
+  /** Let the hand go on with a sentence it stopped, after `pause` seconds. */
+  finish(id: string, pause = 0.4) {
+    const it = this.items.get(id);
+    if (!it?.plan || it.plan.cap >= it.duration) return;
+    const done = it.plan.cap;
+    it.plan = { start: wallClock() + pause - done, floor: done, cap: it.duration };
+  }
+
+  /** Index (in the text) of the first character the hand hasn't reached, for an unfinished line. */
+  nextWordStart(id: string): number | null {
+    const it = this.items.get(id);
+    if (!it?.plan || it.plan.cap >= it.duration) return null;
+    const k = it.words.findIndex(([, end]) => end > it.plan!.cap + 1e-3);
+    if (k < 0) return null;
+    return wordRanges((it.mesh.userData.text as string) ?? '')[k]?.[0] ?? null;
+  }
+
+  /** Is the hand still writing this? Has it stopped part-way? */
+  writing(id: string): boolean {
+    const it = this.items.get(id);
+    return !!it?.plan && handAt(it.plan, wallClock()) < it.plan.cap;
+  }
+
+  unfinished(id: string): boolean {
+    const it = this.items.get(id);
+    return !!it?.plan && it.plan.cap < it.duration;
+  }
+
+  /** How many characters a hand has written so far (for tests and the inspector). */
+  writtenFraction(id: string): number {
+    const it = this.items.get(id);
+    if (!it || it.vis <= 0) return 0;
+    if (!it.plan) return 1;
+    return Math.min(1, handAt(it.plan, wallClock()) / Math.max(1e-3, it.duration));
   }
 
   hide(id: string, seconds: number) {
@@ -195,16 +354,23 @@ export class WallText {
   }
 
   placementOf(id: string): Placement | undefined {
-    return this.items.get(id)?.placement;
+    return this.items.get(id)?.placement ?? this.placements.get(id);
+  }
+
+  /** Where a phrase is (or would be) written, in world space, without making it. */
+  whereIs(id: string): { surface: Surface; centre: THREE.Vector3 } | undefined {
+    const pl = this.placementOf(id);
+    if (!pl) return undefined;
+    return { surface: pl.surface, centre: this.room.world(pl.surface, pl.u, pl.v, new THREE.Vector3()) };
   }
 
   /** Write new text beside a phrase or somewhere on a surface. Returns false if there was no room. */
-  write(o: { key: string; text: string; hand: Hand; size: Size; beside?: string; surface?: Surface; near?: { u: number; v: number }; purpose: Exclude<Purpose, 'phrase'>; ttl: number; now: number; source?: string }): boolean {
+  write(o: { key: string; text: string; hand: Hand; size: Size; beside?: string; surface?: Surface; near?: { u: number; v: number }; purpose: Exclude<Purpose, 'phrase'>; ttl: number; now: number; source?: string; start?: boolean }): boolean {
     if (this.items.has(o.key)) return false;
     const m = measureText(o.text, o.hand, o.size);
     let rect = null as null | { u: number; v: number; w: number; h: number };
     let surface: Surface | undefined = o.surface;
-    const target = o.beside ? this.items.get(o.beside)?.placement : undefined;
+    const target = o.beside ? this.placementOf(o.beside) : undefined;
     if (target) {
       surface = target.surface;
       rect = this.layout.findBeside(target, m.w, m.h);
@@ -247,7 +413,8 @@ export class WallText {
     const it = this.create(o.key, o.text, o.hand, size, pl, o.purpose);
     it.source = o.source;
     it.expires = o.ttl > 0 ? o.now + o.ttl : 0;
-    this.reveal(o.key, o.purpose === 'contribution' ? 5 : 7);
+    // start: false — made, but written later (by a voice).
+    if (o.start !== false) this.writeOn(o.key);
     return true;
   }
 
@@ -429,6 +596,15 @@ export class WallText {
       const gazed = gazeId === it.key;
       it.emphasis = approach(it.emphasis, gazed ? clamp((gazeFor - 0.8) / 3) * 0.7 : 0, dt, gazed ? 1.2 : 3);
       const base = HANDS[it.hand].opacity;
+      if (it.plan) {
+        const h = handAt(it.plan, wallClock());
+        it.uniforms.uWrite.value = h / Math.max(1e-3, it.duration);
+        // Done: the writing simply exists (an unfinished sentence keeps its plan, to be finished).
+        if (h >= it.duration) {
+          it.plan = null;
+          it.uniforms.uWrite.value = 2;
+        }
+      }
       it.uniforms.uReveal.value = it.vis;
       it.uniforms.uOpacity.value = clamp(base * legible * it.shy * env.textContrast * (1 + it.emphasis * 0.3), 0, 1);
       it.uniforms.uEmphasis.value = it.emphasis;

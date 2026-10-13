@@ -24,8 +24,26 @@ html, body {
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* threshold */
-#threshold { background: var(--paper); z-index: 20; transition: opacity 1.2s ease; padding: 16px; overflow-y: auto; align-items: safe center; }
+/* The threshold is the title card: black, as the work begins (and ends) in the dark. */
+#threshold { background: #0b0b0c; color: #d9d7d2; z-index: 20; transition: opacity 1.2s ease; padding: 16px; overflow-y: auto; align-items: safe center; }
 #threshold.leaving { opacity: 0; pointer-events: none; }
+#threshold h1 { color: #d9d7d2; letter-spacing: 0.06em; font-weight: 500; }
+#threshold .threshold-line, #threshold .threshold-note, #threshold .threshold-how { color: #a7a49d; }
+#threshold .quiet-button { color: #d9d7d2; border-color: rgba(217, 215, 210, 0.45); }
+#threshold kbd { color: #d9d7d2; border-color: rgba(217, 215, 210, 0.35); background: transparent; }
+/* After the tap: only the title stays, on black; the score controls its opacity. */
+#threshold.titling { opacity: 1; background: transparent; pointer-events: none; }
+#threshold.titling .threshold-inner > :not(h1) { opacity: 0; transition: opacity 0.6s ease; }
+#threshold.titling h1 { transition: none; }
+.skip { position: fixed; right: calc(16px + env(safe-area-inset-right, 0px)); bottom: calc(14px + env(safe-area-inset-bottom, 0px)); z-index: 25; min-width: 44px; min-height: 44px; background: transparent; border: 0; color: #a7a49d; font: italic 0.95rem var(--serif); letter-spacing: 0.04em; cursor: pointer; opacity: 0.75; }
+.skip:hover, .skip:focus-visible { opacity: 1; text-decoration: underline; }
+.skip:focus { outline: none; }
+.skip:focus-visible { outline: 1px dotted currentColor; outline-offset: 2px; }
+.dark-room .skip { color: #a7a49d; }
+body:not(.dark-room) .skip { color: #5c5e64; }
+/* Captions while the room is dark: light on dark (the room's captions are dark on white). */
+.dark-room .captions { color: #d9d7d2; text-shadow: 0 0 6px rgba(0, 0, 0, 0.9), 0 0 14px rgba(0, 0, 0, 0.8); }
+.dark-room .captions .cap.sound { color: rgba(217, 215, 210, 0.85); }
 .threshold-inner { max-width: 34rem; text-align: center; margin: auto 0; padding: 12px 0; }
 h1 { font-weight: 500; font-size: clamp(1.6rem, 4vw, 2.4rem); letter-spacing: 0.04em; margin: 0 0 1.4rem; color: #3b3c40; }
 .threshold-line { font-style: italic; font-size: 1.15rem; color: var(--ink-soft); margin: 0 0 2.4rem; }

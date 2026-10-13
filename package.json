@@ -14,7 +14,8 @@
     "smoke": "node tests/smoke.mjs",
     "audition": "node scripts/audition.mjs",
     "playtest": "vite-node scripts/playtest.ts",
-    "playtest:browser": "node tests/playtest/browser.mjs"
+    "playtest:browser": "node tests/playtest/browser.mjs",
+    "opening": "node tests/playtest/opening.mjs"
   },
   "dependencies": {
     "@fontsource/caveat": "^5.1.0",

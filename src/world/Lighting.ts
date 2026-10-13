@@ -34,6 +34,12 @@ export class Lighting {
   intensityScale = 1;
   /** Opening sequence multiplier. */
   fade = 1;
+  /**
+   * The opening score's hold on each light (1 = as the room has it). The key light can start
+   * narrower, so at first only the chair and the floor under it are lit — never narrower than
+   * a fixture's own throw, or it reads as a stage spotlight.
+   */
+  readonly score = { key: 1, area: 1, hemi: 1, glow: 1, cone: 0.82 };
 
   constructor(quality: 'low' | 'medium' | 'high') {
     RectAreaLightUniformsLib.init();
@@ -116,12 +122,14 @@ export class Lighting {
     const k = this.intensityScale * this.fade;
     const I = c.intensity * (1 + c.extraCold * 0.15);
     this.area.color.copy(col);
-    this.area.intensity = AREA * I * k;
+    const sc = this.score;
+    this.area.intensity = AREA * I * k * sc.area;
     this.key.color.copy(col);
-    this.key.intensity = KEY * I * k * (1 + c.extraCold * 0.4);
+    this.key.intensity = KEY * I * k * (1 + c.extraCold * 0.4) * sc.key;
+    this.key.angle = sc.cone;
     this.hemi.color.copy(col).lerp(new THREE.Color(0xffffff), 0.4);
-    this.hemi.intensity = HEMI * (0.75 + 0.25 * I) * k;
-    this.glow.intensity = (0.1 + c.glow * 0.7 + c.extraWarm * 1.2) * k;
+    this.hemi.intensity = HEMI * (0.75 + 0.25 * I) * k * sc.hemi;
+    this.glow.intensity = (0.1 + c.glow * 0.7 + c.extraWarm * 1.2) * k * sc.glow;
 
     // The shadow drifts: the key light orbits the chair a little, the visible panel does not.
     const ang = c.drift * (1 + 0.25 * Math.sin(now * 0.05));

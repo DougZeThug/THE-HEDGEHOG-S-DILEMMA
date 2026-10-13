@@ -1,14 +1,17 @@
 import * as THREE from 'three';
 import { Rng, hashString } from '../core/rng';
 import type { Hand, Size } from '../content/types';
+import { handTiming, wordRanges } from './handwriting';
+import { bakeStrokes, type CharBox } from './strokes';
 
 /** Procedural canvases: plaster, paper, painted floor, wood grain, handwriting. */
 
-function canvas(w: number, h: number): [HTMLCanvasElement, CanvasRenderingContext2D] {
+function canvas(w: number, h: number, readBack = false): [HTMLCanvasElement, CanvasRenderingContext2D] {
   const c = document.createElement('canvas');
   c.width = w;
   c.height = h;
-  return [c, c.getContext('2d')!];
+  // Canvases read back on the CPU stay on the CPU: no GPU readback stall.
+  return [c, c.getContext('2d', readBack ? { willReadFrequently: true } : undefined)!];
 }
 
 let grainCache: HTMLCanvasElement | null = null;
@@ -119,23 +122,42 @@ export function measureText(text: string, hand: Hand, size: Size): { w: number; 
 /**
  * Draw a phrase as it might have been written on a wall: words sit on a slightly
  * wandering baseline; pencil has tooth; pressure varies a little along the line.
- * Returns a white-on-transparent texture (tinted by the material colour).
+ *
+ * The texture's alpha is the ink. Its red channel is *when* the hand reaches each pixel,
+ * as a fraction of the time the whole piece takes to write (stroke order: strokes.ts; pace:
+ * handwriting.ts), so a single uniform lets the shader write it. Built as raw bytes, not a
+ * canvas upload: canvas colour is premultiplied, which would corrupt the timing at the soft
+ * edges of the ink. The ink's colour comes from the material.
  */
-export function textTexture(text: string, hand: Hand, size: Size, key: string, maxTexPx = 2048): { tex: THREE.CanvasTexture; w: number; h: number } {
+export interface TextBake {
+  tex: THREE.DataTexture;
+  w: number;
+  h: number;
+  /** The hand's own time for each word (seconds), including dots and bars added after it. */
+  words: [number, number][];
+  /** Seconds from the first stroke to the last. */
+  duration: number;
+}
+
+export function textTexture(text: string, hand: Hand, size: Size, key: string, maxTexPx = 2048): TextBake {
   const st = HANDS[hand];
   const m = measureText(text, hand, size);
+  const tm = handTiming(text, hand, key);
   let scale = 1;
   const wantW = m.w * PX_PER_M, wantH = m.h * PX_PER_M;
   if (wantW > maxTexPx) scale = maxTexPx / wantW;
   const W = Math.max(8, Math.ceil(wantW * scale));
   const H = Math.max(8, Math.ceil(wantH * scale));
-  const [c, g] = canvas(W, H);
+  const [, g] = canvas(W, H, true);
   const px = SIZE_EM[size] * st.scale * PX_PER_M * scale;
   const lines = wrap(text, st, SIZE_EM[size] * st.scale * PX_PER_M, WRAP[size] * PX_PER_M);
   const r = new Rng(hashString(key));
   g.font = fontString(st, px);
   g.textBaseline = 'alphabetic';
   g.fillStyle = '#fff';
+  const ranges = wordRanges(text);
+  const boxes: CharBox[] = [];
+  let wi = 0;
   let y = px * 1.0;
   for (const line of lines) {
     let x = px * 0.15;
@@ -146,19 +168,28 @@ export function textTexture(text: string, hand: Hand, size: Size, key: string, m
       g.translate(x, y + dy);
       g.rotate((r.next() - 0.5) * st.wobble * 0.6);
       g.globalAlpha = 0.82 + r.next() * 0.18;
+      // Where each letter of this word is, for stroke order.
+      const i0 = ranges[wi]?.[0] ?? 0;
+      let cx = 0;
+      for (let k = 0; k < w.length; k++) {
+        const cw = st.tracking ? g.measureText(w[k]).width + st.tracking * px : g.measureText(w.slice(0, k + 1)).width - cx;
+        boxes.push({ i: i0 + k, x0: x + cx - px * 0.04, x1: x + cx + cw + px * 0.04, yTop: y + dy - px * 1.05, yBottom: y + dy + px * 0.55, base: y + dy, xHeight: px * 0.45, stamp: hand === 'typed' });
+        cx += cw;
+      }
       if (st.tracking) {
-        let cx = 0;
+        let cx2 = 0;
         for (const ch of w) {
-          g.fillText(ch, cx, 0);
-          cx += g.measureText(ch).width + st.tracking * px;
+          g.fillText(ch, cx2, 0);
+          cx2 += g.measureText(ch).width + st.tracking * px;
         }
-        x += cx;
+        x += cx2;
       } else {
         g.fillText(w, 0, 0);
         x += g.measureText(w).width;
       }
       g.restore();
       x += g.measureText(' ').width * (0.9 + r.next() * 0.3) + (st.tracking ? st.tracking * px : 0);
+      wi++;
     }
     y += px * LINE;
   }
@@ -174,12 +205,32 @@ export function textTexture(text: string, hand: Hand, size: Size, key: string, m
     g.globalCompositeOperation = 'source-over';
     g.globalAlpha = 1;
   }
-  const tex = new THREE.CanvasTexture(c);
-  tex.colorSpace = THREE.SRGBColorSpace;
+  const img = g.getImageData(0, 0, W, H).data;
+  const alpha = new Uint8Array(W * H);
+  for (let p = 0; p < W * H; p++) alpha[p] = img[p * 4 + 3];
+  const wordIx = new Int32Array(text.length).fill(0);
+  ranges.forEach(([a, b], k) => wordIx.fill(k, a, b));
+  const bake = bakeStrokes(alpha, W, H, boxes, tm, (i) => wordIx[i]);
+  const dur = Math.max(1e-3, bake.duration);
+  // Rows flipped: a DataTexture's first row is the bottom of the image.
+  const data = new Uint8Array(W * H * 4);
+  for (let yy = 0; yy < H; yy++) {
+    const src = yy * W, dst = (H - 1 - yy) * W;
+    for (let xx = 0; xx < W; xx++) {
+      const o = (dst + xx) * 4;
+      data[o] = Math.round(Math.min(1, Math.max(0, bake.time[src + xx] / dur)) * 255);
+      data[o + 3] = alpha[src + xx];
+    }
+  }
+  const tex = new THREE.DataTexture(data, W, H, THREE.RGBAFormat, THREE.UnsignedByteType);
+  // Raw values: red is timing, not colour.
+  tex.colorSpace = THREE.NoColorSpace;
   tex.anisotropy = 8;
   tex.generateMipmaps = true;
   tex.minFilter = THREE.LinearMipmapLinearFilter;
-  return { tex, w: m.w, h: m.h };
+  tex.magFilter = THREE.LinearFilter;
+  tex.needsUpdate = true;
+  return { tex, w: m.w, h: m.h, words: bake.words, duration: bake.duration };
 }
 
 /** A hand-drawn pencil line (for links and strike-throughs), horizontal, unit length. */

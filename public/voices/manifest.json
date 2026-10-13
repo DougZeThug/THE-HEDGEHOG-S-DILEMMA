@@ -113,5 +113,15 @@
   ],
   "phrase:understood-minute": [
     "dialogue/understood-minute--wry.mp3"
+  ],
+  "sfx:switch": [
+    "sfx-switch-1.mp3",
+    "sfx-switch-2.mp3",
+    "sfx-switch-3.mp3"
+  ],
+  "sfx:graphite": [
+    "sfx-graphite-1.mp3",
+    "sfx-graphite-2.mp3",
+    "sfx-graphite-3.mp3"
   ]
 }

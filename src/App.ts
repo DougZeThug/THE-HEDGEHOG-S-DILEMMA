@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { Room } from './world/Room';
 import { Chair } from './world/Chair';
 import { Lighting } from './world/Lighting';
-import { WallText, type TextItem } from './world/WallText';
+import { WallText, wallClock, type TextItem } from './world/WallText';
 import { CameraRig } from './world/CameraRig';
 import { Post } from './world/Post';
 import { FONTS_TO_LOAD } from './world/textures';
@@ -15,12 +15,14 @@ import { THRESHOLD_LINES } from './content/relations';
 import { AudioEngine } from './audio/AudioEngine';
 import { Ambience } from './audio/Ambience';
 import { Music } from './audio/Music';
-import { Voices, type VoicePlacement } from './audio/Voices';
+import { Voices, type VoicePlacement, type Played } from './audio/Voices';
+import { openingScore, levelsAt, stageAt, ROOM_LEVELS, OPENING_WRITTEN, OPENING_SPOKEN, OPENING_UNFINISHED, type Score, type Levels, type Stage, type ScoreEvent } from './state/OpeningScore';
+import VOICE_TIMINGS from './content/voice-timings.json';
 import { Captions } from './ui/Captions';
-import { loadPrefs, savePrefs, readVisits, writeVisits, forgetVisits, type Prefs } from './ui/prefs';
+import { loadPrefs, savePrefs, readVisits, writeVisits, forgetVisits, readOpeningSeen, writeOpeningSeen, type Prefs } from './ui/prefs';
 import { LocalInterpreter } from './interpret/LocalInterpreter';
 import type { Interpreter } from './interpret/Interpreter';
-import { clamp, smoothstep } from './core/math';
+import { clamp } from './core/math';
 import { hashString } from './core/rng';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -65,6 +67,18 @@ export class App {
   private touch = matchMedia('(pointer: coarse)').matches;
   private tabIndex = 0;
   private departTimer = 0;
+  /** The opening while it plays: its score, when it started (wall clock), what has been done. */
+  private opening: { score: Score; start: number; fired: Set<number>; skip?: { at: number; from: Levels } } | null = null;
+  /** When the room was handed to the Director (scene time), for hints and the inspector. */
+  private handoffAt = Infinity;
+
+  /** For tests and the inspector: where the opening is. */
+  get score() {
+    const o = this.opening;
+    if (!o) return { t: null, stage: (this.handoffAt < Infinity ? 'done' : 'invite') as Stage | 'invite', handoffAt: this.handoffAt };
+    const t = wallClock() - o.start;
+    return { t, stage: stageAt(o.score, t), handoffAt: o.score.handoff, name: o.score.name };
+  }
 
   async boot() {
     const params = new URLSearchParams(location.search);
@@ -92,8 +106,8 @@ export class App {
       situations: forced,
       // Where each piece of writing is, for situations that relate place to memory.
       geometry: (id) => {
-        const it = this.text.items.get(id);
-        return it ? { surface: it.placement.surface, x: it.centre.x, y: it.centre.y, z: it.centre.z } : undefined;
+        const w = this.text.whereIs(id);
+        return w ? { surface: w.surface, x: w.centre.x, y: w.centre.y, z: w.centre.z } : undefined;
       },
     });
     for (const [id, st] of this.director.visible) if (st.base) this.text.setShown(id);
@@ -108,9 +122,13 @@ export class App {
     if (this.debug) this.debugEl.hidden = false;
     (window as unknown as { __hedgehog: unknown }).__hedgehog = this;
 
-    // Warm up: render a frame of the (white-out) room behind the threshold.
-    this.post.white = 1;
+    // Warm up behind the black threshold: compile every shader now (with every light present,
+    // so nothing recompiles when the light comes on), then render one black frame.
+    this.post.black = 1;
+    this.lighting.score.key = this.lighting.score.area = this.lighting.score.hemi = this.lighting.score.glow = 0;
+    this.room.setLit(0, 0);
     this.rig.update(0.016, this.room, this.chair.group.position);
+    this.renderer.compile(this.scene, this.rig.camera);
     this.post.render();
     const enter = $<HTMLButtonElement>('enter');
     enter.disabled = false;
@@ -165,21 +183,205 @@ export class App {
       this.ambience.start();
       this.music = new Music(this.audio);
       this.voices = new Voices(this.audio);
-      void this.voices.loadManifest().then(() => this.voices!.preload());
+      // What the opening needs comes first.
+      void this.voices.loadManifest().then(() => this.voices!.preload(['sfx:switch', 'sfx:chair-creak', 'sfx:graphite', 'dialogue/crumbs--laughing.mp3']));
     } catch (e) {
       console.warn('[hedgehog] audio unavailable; continuing in silence', e);
       this.audio = null;
     }
     this.applyPrefs();
-    $('threshold').classList.add('leaving');
-    setTimeout(() => ($('threshold').hidden = true), 1300);
-    $('menu-btn').hidden = false;
-    $('write-btn').hidden = false;
     this.enteredAt = this.time;
-    this.renderer.domElement.focus();
+    // Focus something a screen reader can name (the canvas lives in an aria-hidden layer).
+    $('skip').hidden = false;
+    $('skip').focus({ preventScroll: true });
     void this.keepAwake();
     // A phone's back gesture (an edge swipe, easily made while walking) pauses instead of leaving.
     history.pushState({ room: 1 }, '');
+    this.beginOpening();
+  }
+
+  // ─────────────────────────────── the opening ───────────────────────────────
+
+  private beginOpening() {
+    const returning = readOpeningSeen();
+    const score = openingScore({ returning, touch: this.touch });
+    this.opening = { score, start: wallClock(), fired: new Set() };
+    this.director.hold();
+    this.rig.frameOpening(innerWidth / innerHeight);
+    this.rig.enabled = false;
+    this.rig.walk = false;
+    if (this.ambience) this.ambience.score.drone = 0;
+    document.body.classList.add('dark-room');
+    // The threshold becomes the title card: everything but the title goes; the score shows it.
+    const th = $('threshold');
+    th.classList.add('titling');
+    $<HTMLElement>('title').style.opacity = returning ? '0' : '1';
+    if (returning) th.hidden = true;
+  }
+
+  /** Apply the opening's levels for this moment, perform what is due, and hand over at the end. */
+  private playOpening() {
+    const o = this.opening!;
+    const t = wallClock() - o.start;
+    let lv = levelsAt(o.score, t);
+    if (o.skip) {
+      // Skipping eases everything to the room as it will be, never a hard cut.
+      const k = Math.min(1, (wallClock() - o.skip.at) / 1.2);
+      const e = k * k * (3 - 2 * k);
+      const mix = {} as Levels;
+      for (const key of Object.keys(ROOM_LEVELS) as (keyof Levels)[]) mix[key] = o.skip.from[key] + (ROOM_LEVELS[key] - o.skip.from[key]) * e;
+      mix.title = o.skip.from.title * (1 - Math.min(1, k * 3));
+      lv = mix;
+      if (k >= 1) return this.finishOpening();
+    }
+    $<HTMLElement>('title').style.opacity = String(lv.title);
+    if (lv.title <= 0.001 && t > 1 && !$('threshold').hidden) $('threshold').hidden = true;
+    this.post.black = lv.black;
+    this.post.scoreDark = lv.dark;
+    const sc = this.lighting.score;
+    sc.key = lv.key;
+    sc.area = lv.area;
+    sc.hemi = lv.hemi;
+    sc.glow = lv.glow;
+    sc.cone = lv.cone;
+    this.room.setLit(lv.panel, lv.ceiling);
+    if (this.ambience) {
+      this.ambience.score.hum = lv.hum;
+      this.ambience.score.vent = lv.vent;
+      this.ambience.score.outside = 0.35 + 0.65 * lv.vent;
+    }
+    this.rig.enabled = lv.look > 0.5;
+    this.rig.walk = lv.walk > 0.5;
+    document.body.classList.toggle('dark-room', lv.area < 0.5);
+    if (o.skip) return;
+    o.score.events.forEach((ev, i) => {
+      if (o.fired.has(i) || t < ev.at) return;
+      o.fired.add(i);
+      this.performOpening(ev);
+    });
+    // Nobody is held: whatever happens, the room is theirs within 40 s.
+    if (t > Math.max(40, o.score.handoff + 5)) this.finishOpening();
+  }
+
+  private performOpening(ev: ScoreEvent, skipping = false) {
+    switch (ev.kind) {
+      case 'prepare':
+        this.text.prepare(ev.phrases);
+        break;
+      case 'sound': {
+        if (skipping || !this.voices || !this.audio) break;
+        const c = this.chair.group.position;
+        const place: VoicePlacement =
+          ev.where === 'chair' ? { from: [c.x, 0.45, c.z] } : ev.where === 'door' ? { from: [0.9, 1.25, ROOM.halfD - 0.1] } : { from: [0, ROOM.height - 0.1, -0.95] };
+        const kind = ev.key.replace('sfx:', '') as 'switch' | 'chair-creak' | 'door' | 'cup' | 'graphite';
+        void this.voices.sound(kind, place, ev.gain).then((dur) => {
+          if (dur > 0 && ev.caption) this.captions.show(ev.caption, Math.max(1.6, dur), true);
+        });
+        break;
+      }
+      case 'write': {
+        const done = this.text.writeOn(ev.phrase, { upto: ev.upto, instant: skipping });
+        if (!skipping && ev.sound && this.voices && this.audio) {
+          const w = this.text.whereIs(ev.phrase);
+          // The pencil is heard while the hand writes and nobody speaks.
+          if (w && done - wallClock() > 0.5) void this.voices.sound('graphite', { from: [w.centre.x, w.centre.y, w.centre.z] }, 0.32);
+        }
+        break;
+      }
+      case 'voice': {
+        if (skipping) break;
+        const st = this.text.placementOf(ev.besideOf);
+        const key = `opening:${ev.phrase}`;
+        const near = st ? { u: st.u + st.w * 0.5 + 0.7, v: st.v - 0.5 } : undefined;
+        const ok = this.text.write({ key, text: ev.text, hand: ev.hand, size: 'l', surface: 'north', near, purpose: 'recall', ttl: 0, now: this.time, source: ev.phrase, start: false });
+        void this.speakAndWrite(ok ? key : null, ev.phrase, ev.text, ev.file);
+        break;
+      }
+      case 'handoff':
+        this.finishOpening();
+        break;
+    }
+  }
+
+  /** A voice from where its words are written, and the words written as they are heard. */
+  private async speakAndWrite(writeKey: string | null, phraseId: string, text: string, file: string) {
+    let played: Played = { duration: 0 };
+    if (this.voices && this.audio) {
+      played = await this.voices.playLine('tender', text, writeKey ? { ...this.place({ kind: 'surface', phraseId: writeKey }) } : this.place({ kind: 'chair' }), 0.9, `phrase:${phraseId}`, {
+        performances: [file], priority: true,
+      });
+    }
+    if (writeKey) this.writeWithVoice(writeKey, played);
+    this.captions.show(text, played.duration > 0 ? played.duration : 3.5, false);
+  }
+
+  /** Write a piece of writing following the recording just played (or at the hand's own pace if there is none). */
+  private writeWithVoice(key: string, played: Played) {
+    const timing = played.file ? (VOICE_TIMINGS as unknown as Record<string, { chars: [number, number][] }>)[played.file] : undefined;
+    if (timing && played.startAt !== undefined && this.audio) {
+      const ctx = this.audio.ctx;
+      const latency = (ctx as AudioContext & { outputLatency?: number }).outputLatency || ctx.baseLatency || 0;
+      this.text.writeOn(key, { speech: timing.chars, audioStart: wallClock() + (played.startAt - ctx.currentTime) + latency });
+    } else this.text.writeOn(key);
+  }
+
+  /** Finish an unfinished line: the hand goes on as the first missing word is heard. */
+  private finishWithVoice(id: string, played: Played) {
+    const timing = played.file ? (VOICE_TIMINGS as unknown as Record<string, { chars: [number, number][] }>)[played.file] : undefined;
+    if (!timing || played.startAt === undefined || !this.audio) return this.text.finish(id, 0.6);
+    const ctx = this.audio.ctx;
+    const latency = (ctx as AudioContext & { outputLatency?: number }).outputLatency || ctx.baseLatency || 0;
+    const audioStart = wallClock() + (played.startAt - ctx.currentTime) + latency;
+    const at = this.text.nextWordStart(id);
+    const heard = at !== null && timing.chars[at] ? audioStart + timing.chars[at][0] : wallClock() + 0.6;
+    this.text.finish(id, Math.max(0, heard - wallClock()));
+  }
+
+  /** Skip (Esc, the Skip button, a hidden tab): what was to be written is written; the light eases up. */
+  skipOpening() {
+    const o = this.opening;
+    if (!o || o.skip) return;
+    const t = wallClock() - o.start;
+    o.score.events.forEach((ev, i) => {
+      if (o.fired.has(i)) return;
+      o.fired.add(i);
+      if (ev.kind === 'prepare' || ev.kind === 'write') this.performOpening(ev, true);
+    });
+    o.skip = { at: wallClock(), from: levelsAt(o.score, t) };
+  }
+
+  /** A tap during the title: the title goes now (it has been read), the rest keeps its time. */
+  private advanceTitle() {
+    const o = this.opening;
+    if (!o) return;
+    const t = wallClock() - o.start;
+    const dark = o.score.stages.find(([st]) => st === 'dark')?.[1] ?? t;
+    // Skip forward to a second before the dark, never backwards, never past the title's own fade.
+    const to = Math.max(t, dark - 1.0);
+    o.start -= to - t;
+  }
+
+  private finishOpening() {
+    if (!this.opening) return;
+    this.opening = null;
+    const sc = this.lighting.score;
+    sc.key = sc.area = sc.hemi = sc.glow = 1;
+    sc.cone = ROOM_LEVELS.cone;
+    this.room.setLit(1, 1);
+    this.post.black = 0;
+    this.post.scoreDark = 0;
+    if (this.ambience) Object.assign(this.ambience.score, { hum: 1, vent: 1, outside: 1, drone: 1 });
+    this.rig.enabled = this.mode === 'room';
+    this.rig.walk = true;
+    document.body.classList.remove('dark-room');
+    $('threshold').hidden = true;
+    $('skip').hidden = true;
+    $('menu-btn').hidden = false;
+    $('write-btn').hidden = false;
+    this.renderer.domElement.focus();
+    this.director.release({ written: OPENING_WRITTEN, spoken: OPENING_SPOKEN, unfinished: OPENING_UNFINISHED.filter((id) => this.text.unfinished(id)) });
+    this.handoffAt = this.time;
+    writeOpeningSeen();
   }
 
   private wakeLock: { release(): Promise<void> } | null = null;
@@ -201,18 +403,20 @@ export class App {
     this.fps = this.fps * 0.95 + (1 / Math.max(dt, 1e-3)) * 0.05;
     const running = this.mode === 'room' || this.mode === 'contribute';
 
-    // Arrival: out of the white quickly, so the room is there while the line in front is
-    // still writing itself; the hum comes up with it.
+    // The opening holds light, image, sound and what the visitor may do; afterwards the room
+    // is the Director's. Hints only once the room is theirs, and only if they haven't found out.
     if (this.mode !== 'threshold') {
-      const since = this.time - this.enteredAt;
-      const dur = this.prefs.reducedMotion ? 2 : this.touch ? 2.2 : 3;
-      this.post.white = 1 - smoothstep(0.15, dur, since);
-      if (this.ambience) this.ambience.fade = clamp(since / 2.5);
-      if (!this.hintShown && since > (this.touch ? 7 : dur + 0.5) && !(this.touch && this.dragged)) this.showHint();
-      if (this.touch && this.mode === 'room' && !this.touchHintShown && since > 22 && !this.touched) this.showTouchHint();
+      if (this.ambience) this.ambience.fade = 1;
+      if (this.opening) this.playOpening();
+      else {
+        const since = this.time - this.handoffAt;
+        if (!this.hintShown && since > 1 && !(this.touch && this.dragged)) this.showHint();
+        if (this.touch && this.mode === 'room' && !this.touchHintShown && since > 12 && !this.touched) this.showTouchHint();
+      }
     }
 
-    this.rig.enabled = this.mode === 'room';
+    if (!this.opening) this.rig.enabled = this.mode === 'room';
+    else if (this.mode !== 'room') this.rig.enabled = false;
     this.rig.update(dt, this.room, this.chair.group.position);
 
     // Attention.
@@ -222,7 +426,7 @@ export class App {
     this.raycaster.setFromCamera(new THREE.Vector2(0, 0), cam);
     this.gazeChair = this.raycaster.intersectObject(this.chair.hit, false).length > 0 && this.rig.distanceToChair() < 6;
 
-    if (running && this.post.white < 0.92) {
+    if (running) {
       const input = {
         x: this.rig.pos.x - this.chair.group.position.x,
         z: this.rig.pos.z - this.chair.group.position.z,
@@ -380,12 +584,18 @@ export class App {
       await new Promise((r) => setTimeout(r, cue.lead! * 1000));
       if (this.mode === 'departed') return;
     }
+    let played: Played = { duration: 0 };
     if (this.voices && this.audio) {
       const assetKey = cue.assetId ?? (cue.phraseId ? `phrase:${cue.phraseId}` : undefined);
-      dur = await this.voices.play(cue.kind, cue.text, { ...this.place(cue.position), tag: cue.tag }, cue.gain, assetKey, {
+      played = await this.voices.playLine(cue.kind, cue.text, { ...this.place(cue.position), tag: cue.tag }, cue.gain, assetKey, {
         melody: cue.melody, synth: cue.synth, performances: cue.performances,
       });
+      dur = played.duration;
     }
+    // What is said can become writing: written where the line belongs as it is heard, or an
+    // unfinished line finished as its missing words are spoken.
+    if (cue.phraseId && cue.write) this.writeWithVoice(cue.phraseId, played);
+    if (cue.phraseId && cue.finish) this.finishWithVoice(cue.phraseId, played);
     if (dur > 0) this.captions.show(cue.caption, dur, cue.text === null);
   }
 
@@ -446,6 +656,17 @@ export class App {
       if (this.mode === 'threshold' || this.mode === 'departed') return;
       // Held keys repeat: walking keys are tracked as held, everything else acts once.
       if (e.repeat && !e.code.startsWith('Arrow') && !['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyQ', 'KeyE', 'ShiftLeft', 'ShiftRight'].includes(e.code)) return;
+      if (e.code === 'Escape' && this.opening) {
+        // During the opening, Esc is the way out of it (settings come afterwards).
+        this.skipOpening();
+        e.preventDefault();
+        return;
+      }
+      if (this.opening && this.opening.score.name === 'first' && stageAt(this.opening.score, wallClock() - this.opening.start) === 'title' && (e.code === 'Enter' || e.code === 'Space')) {
+        this.advanceTitle();
+        e.preventDefault();
+        return;
+      }
       if (e.code === 'Escape') {
         if (this.mode === 'contribute') this.closeContribute();
         else if (this.mode === 'settings') this.closeSettings();
@@ -580,7 +801,16 @@ export class App {
       if (this.audio && this.mode === 'room' && this.audio.ctx.state !== 'running') void this.audio.resume();
     }, { passive: true });
 
+    // The opening and its Skip.
+    $('skip').addEventListener('click', () => this.skipOpening());
+    canvas.addEventListener('pointerdown', () => {
+      const o = this.opening;
+      // (Not the tap that went in: a moment's grace against a double tap.)
+      if (o && wallClock() - o.start > 1.2 && stageAt(o.score, wallClock() - o.start) === 'title') this.advanceTitle();
+    });
     document.addEventListener('visibilitychange', () => {
+      // Away during the opening: on return, the room is simply there.
+      if (document.hidden && this.opening) this.skipOpening();
       if (document.hidden) {
         void this.audio?.suspend();
         this.wakeLock = null; // released by the browser when hidden
@@ -730,7 +960,10 @@ export class App {
     $<HTMLInputElement>('opt-mute').addEventListener('change', (e) => this.setPref('muted', (e.target as HTMLInputElement).checked));
     $<HTMLInputElement>('opt-captions').addEventListener('change', (e) => this.setPref('captions', (e.target as HTMLInputElement).checked));
     $<HTMLInputElement>('opt-speech').addEventListener('change', (e) => this.setPref('speech', (e.target as HTMLInputElement).checked));
-    $<HTMLInputElement>('opt-motion').addEventListener('change', (e) => this.setPref('reducedMotion', (e.target as HTMLInputElement).checked));
+    $<HTMLInputElement>('opt-motion').addEventListener('change', (e) => {
+      this.prefs.reducedMotionChosen = true;
+      this.setPref('reducedMotion', (e.target as HTMLInputElement).checked);
+    });
     $<HTMLSelectElement>('opt-intensity').addEventListener('change', (e) => this.setPref('intensity', (e.target as HTMLSelectElement).value as Prefs['intensity']));
     $<HTMLSelectElement>('opt-quality').addEventListener('change', (e) => this.setPref('quality', (e.target as HTMLSelectElement).value as Prefs['quality']));
 

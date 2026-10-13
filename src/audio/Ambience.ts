@@ -37,6 +37,11 @@ export class Ambience {
   private started = false;
   /** Opening fade multiplier (0 → 1). */
   fade = 0;
+  /**
+   * The opening score's hold on each layer: the fixture's hum rises with its light, the air
+   * comes up with the walls, the outside is faint, and the drone (score, not room) waits.
+   */
+  readonly score = { hum: 1, vent: 1, outside: 1, drone: 1 };
 
   constructor(private a: AudioEngine) {
     const c = a.ctx;
@@ -143,10 +148,11 @@ export class Ambience {
     const a = this.a;
     const f = this.fade;
     const k = 0.6 + 0.4 * a.intensity;
-    a.ramp(this.hum.gain, (0.012 + 0.03 * env.hum) * f, 1.5);
-    a.ramp(this.vent.gain, (0.006 + 0.055 * env.vent) * f, 2);
-    a.ramp(this.outside.gain, (0.02 + 0.14 * env.outside) * f, 3);
-    a.ramp(this.drone.gain, 0.05 * env.drone * f * k, 4);
+    const sc = this.score;
+    a.ramp(this.hum.gain, (0.012 + 0.03 * env.hum) * f * sc.hum, 0.4);
+    a.ramp(this.vent.gain, (0.006 + 0.055 * env.vent) * f * sc.vent, 1);
+    a.ramp(this.outside.gain, (0.02 + 0.14 * env.outside) * f * sc.outside, 3);
+    a.ramp(this.drone.gain, 0.05 * env.drone * f * k * sc.drone, 4);
     a.ramp(this.droneFilter.frequency, 220 + 900 * env.droneBrightness, 4);
     a.setReverb(env.reverb);
 
