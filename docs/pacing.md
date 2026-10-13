@@ -41,7 +41,24 @@ Notes, honestly:
 
 `node tests/playtest/browser.mjs` (iPhone-sized viewport, touch emulation through CDP, real swipes and taps, wall-clock time). Software rendering runs at about 10 fps here, so the engine advances more slowly than the clock and scripted gestures slip; treat timings as upper bounds.
 
-<!-- REALTIME -->
+Wall-clock seconds from tapping "go in" (150 s runs, the same scripts before and after):
+
+| | Before (20ba58b) | After |
+|---|---|---|
+| Room visible (white cleared) | 8.2 s | 3.1–3.8 s |
+| First thing that happens | 18 s (stillness reveal) | 2.5–3.3 s (the line in front writes itself), then a door behind at 5.6–7.3 s |
+| Phone visitor's taps on writing | not recognised | recognised (counted as reading; the room hushes slightly the first time or two) |
+| Phone visitor: first spoken line | 46 s (synthesised texture) | 60 s, recorded; heard again at 143 s in a different reading |
+| Still visitor: first answer to stillness | 18.7 s | 17.7 s |
+| Still visitor: first spoken line | 38 s (unrecorded) | 57 s, recorded |
+| Console errors | 0 | 0 |
+
+Read with care: at ~10 fps the engine advances only about 0.7 s per second of wall time, so every engine event lands later on the clock (the 60 s voice is about 43 s of room time), and the scripted gestures slip. The opening and the faster fade are the clearest real-time gains; voices now arrive after a hush and are followed by a longer held quiet, so in these two runs the first voice came no sooner than before — but it is a recorded performance chosen for that moment rather than a synthesised texture, and the tap-driven and reading-driven paths that brought it earlier in the engine runs depend on what the visitor does. A real phone at 30–60 fps would be closer to the engine figures.
+
+Portrait at the door, after (the field of view now follows the screen's shape, so the whole wall and the opening line fit):
+
+![phone, portrait, after](playtest/img/phone-portrait-after.png)
+
 
 ## Still to validate on real devices
 
