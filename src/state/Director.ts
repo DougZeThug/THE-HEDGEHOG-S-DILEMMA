@@ -65,6 +65,8 @@ export interface DirectorOptions {
 }
 
 const SURFACES: Surface[] = ['north', 'east', 'south', 'west'];
+/** Lines with several directed readings, kept for their own meetings and a second hearing. */
+const KEPT_READINGS = new Set(['stay', 'love-go-away', 'happy-then']);
 
 export class Director {
   readonly visitor = new VisitorModel();
@@ -114,6 +116,9 @@ export class Director {
   private heldSilenceDone = false;
   private attentionVoices = 0;
   private readsUnanswered = 0;
+  private readArmedUntil = -Infinity;
+  private readArmedFor: string | null = null;
+  private longLookAt: string | null = null;
   private lastAttentionVoice = -Infinity;
   private creaks = 0;
   private taps = 0;
@@ -454,7 +459,9 @@ export class Director {
   private ruleStillness(dt: number) {
     const v = this.visitor;
     if (v.stillFor === 0) this.stillClock = 0;
-    else if (v.deepStillFor > 0 && !v.gazeId) this.stillClock += dt;
+    // Reading pauses stillness — but a look that has rested on one line for a while has
+    // become contemplation, and counts.
+    else if (v.deepStillFor > 0 && (!v.gazeId || v.gazeFor > 6)) this.stillClock += dt;
     const s = this.stillClock;
     const k = 1 + 0.5 * Math.min(3, this.stillCycles);
     const [t1, t2, t3, t4] = this.stillAt.map((x) => x * k);
@@ -734,7 +741,7 @@ export class Director {
    * Voices, prompted by what the visitor does — never by the clock. When someone turns away
    * from a line they held for a while, comes back to one, or steps away from the chair,
    * sometimes (not usually) a line connected to it is said: its echo or its contradiction,
-   * from where that writing is, or from beyond a wall. Lines with several recorded readings
+   * from where that writing is, or from beyond a wall. The three central lines, with several readings each,
    * are kept for their own meetings and for a second hearing.
    */
   private ruleVoices() {
@@ -746,14 +753,22 @@ export class Director {
     const ret = this.engagement.fresh.find((x) => x.kind === 'return');
     if (ret?.id) source = ret.id;
     if (!source && v.lastWithdrawAt === now && v.readOrder.length) source = v.readOrder[v.readOrder.length - 1];
-    // Someone reading line after line with nothing answering: the room may speak to it.
+    // Someone reading line after line with nothing answering, or resting on one line a long
+    // time: the room may speak to it. The chance is taken once; if the room is busy at that
+    // moment, it waits a little for room to speak.
     const reads = this.engagement.fresh.filter((x) => x.kind === 'read' || x.kind === 'tap');
     if (reads.length) this.readsUnanswered += reads.length;
+    const longLook = !!v.gazeId && v.gazeFor >= 12 && this.longLookAt !== v.gazeId;
+    if (longLook) this.longLookAt = v.gazeId;
+    if (!source && ((this.readsUnanswered >= 3 && reads.length) || longLook) && now >= this.readArmedUntil) {
+      // Once, early, it always does: the first sign that attention is heard.
+      if (this.attentionVoices === 0 || this.rng.chance(0.4)) this.readArmedUntil = now + 20;
+      this.readArmedFor = (longLook ? v.gazeId : reads[reads.length - 1]?.id) ?? null;
+    }
     let certain = false;
-    if (!source && this.readsUnanswered >= 3 && reads.length) {
-      source = reads[reads.length - 1].id ?? null;
-      // Once, early, it always does: the first sign that reading is heard.
-      certain = this.attentionVoices === 0;
+    if (!source && now < this.readArmedUntil && this.readArmedFor) {
+      source = this.readArmedFor;
+      certain = true;
     }
     this.prevGaze = { id: v.gazeId, held: v.gazeFor };
     if (!source || this.phase === 'arrival') return;
@@ -763,7 +778,7 @@ export class Director {
     const p = PHRASE_BY_ID.get(source);
     if (!p) return;
     const ok = (x: Phrase | undefined): x is Phrase =>
-      !!x && !!x.voice && !ARCS[x.id] && !this.memory.spoken.has(x.id) && performancesFor(x.id).length < 2 && (x.tier !== 'transform' || this.phase === 'transform');
+      !!x && !!x.voice && !ARCS[x.id] && !KEPT_READINGS.has(x.id) && !this.memory.spoken.has(x.id) && (x.tier !== 'transform' || this.phase === 'transform');
     const cands = [...(p.contradicts ?? []), ...(p.echoes ?? [])].map((r) => PHRASE_BY_ID.get(r)).filter(ok);
     // A recorded line is preferred: if nothing related has a recording, something else from
     // the same wall that does; failing that, whatever is related.
@@ -777,6 +792,7 @@ export class Director {
     this.lastAttentionVoice = now;
     this.attentionVoices++;
     this.readsUnanswered = 0;
+    this.readArmedUntil = -Infinity;
     const pos: VoicePosition = this.visible.has(q.id) ? { kind: 'surface', phraseId: q.id } : { kind: 'beyond', surface: q.surface === this.facing ? this.rng.pick(SURFACES.filter((w) => w !== this.facing)) : q.surface };
     this.speakPhrase('voice-attention', q, pos, 0.8, undefined, 0.6);
   }

@@ -24,13 +24,13 @@ The "before" figures were produced by the same harness against the merge-base (2
 
 | Persona | First response | Recorded voices by 90 s | Longest perceptible gap, first 90 s | Per minute (180 s) | Contradiction / transformation |
 |---|---|---|---|---|---|
-| Hardly moves | 12.4 s → 16.2 s | 0 → 1 | 22.4 → 18.9 s | 6.0 → 7.3 | 140 / ≥320 → 120 / 300 s |
-| Actively explores | 124 s → 16.8 s | 0 → 1 | 58 → 21.2 s | 5.7 → 8.0 | 140 / ≥320 → 60 / 127 s |
-| Chair at once | 12.8 s → 10.9 s | 0 → 3 | 25.1 → 19.8 s | 7.7 → 8.0 | 140 / ≥320 → 57 / 238 s |
-| Reads several | 18.1 s → 13.1 s | 0 → 1 | 26 → 19 s | 7.3 → 7.3 | 140 / ≥320 → 52 / 138 s |
-| Phone, touch | 47.9 s → 18.5 s | 0 → 2 | 47.9 → 20.7 s | 5.7 → 8.3 | 140 / ≥320 → 50 / 126 s |
+| Hardly moves | 12.4 s → 16.2 s | 0 → 2 | 22.4 → 21 s | 6.0 → 7.0 | 140 / ≥320 → 120 / 300 s |
+| Actively explores | 124 s → 16.8 s | 0 → 2 | 58 → 20 s | 5.7 → 7.0 | 140 / ≥320 → 60 / 127 s |
+| Chair at once | 12.8 s → 10.9 s | 0 → 2 | 25.1 → 20.5 s | 7.7 → 8.0 | 140 / ≥320 → 57 / 238 s |
+| Reads several | 18.1 s → 13.1 s | 0 → 1 | 26 → 21.2 s | 7.3 → 7.3 | 140 / ≥320 → 52 / 138 s |
+| Phone, touch | 47.9 s → 18.5 s | 0 → 4 | 47.9 → 20.7 s | 5.7 → 8.3 | 140 / ≥320 → 50 / 126 s |
 
-On ten seeds the tests never use (11–20): first response 10–19 s, 1–2 recorded voices by 90 s, longest perceptible gap in the first 90 s ≤ 21 s, 7–8.7 developments a minute.
+On ten seeds the tests never use (11–20): first response 10–19 s, 1–3 recorded voices by 90 s, longest perceptible gap in the first 90 s ≤ 21 s, 7–8.3 developments a minute.
 
 Notes, honestly:
 - The still visitor's first response is slightly *later* (16 s vs 12 s): reading now pauses the stillness ladder rather than feeding it, and the room no longer answers stillness at a fixed early moment. Something still happens in the first seconds for everyone (the opening).

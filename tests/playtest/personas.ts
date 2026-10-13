@@ -60,21 +60,25 @@ function scripted(segs: Seg[]): (t: number) => Frame {
   };
 }
 
-/** 1. Enters and hardly moves: stands at the door, looks at what is in front, turns its head now and then. */
+/**
+ * 1. Enters and hardly moves: stands at the door, looks at what is in front, turns its head
+ * now and then. (In the browser the centre of view from the door rests on a small line low
+ * on the north wall, so attention is rarely on nothing.)
+ */
 export const stillVisitor: Persona = {
   id: 'still',
   label: 'Hardly moves',
   device: 'desktop',
   frame: scripted([
-    { until: 6, face: 'north' },
+    { until: 6, face: 'north', gaze: 'small-minute' },
     { until: 16, face: 'north', gaze: 'stay' },
-    { until: 30, face: 'north', look: 0.02 },
+    { until: 30, face: 'north', look: 0.02, gaze: 'small-minute' },
     { until: 38, face: 'north', gaze: 'closer' },
-    { until: 70, face: 'north' },
+    { until: 70, face: 'north', gaze: 'small-minute' },
     { until: 76, face: 'north', chair: true },
-    { until: 120, face: 'north' },
+    { until: 120, face: 'north', gaze: 'small-minute' },
     { until: 128, face: 'north', gaze: 'stay' },
-    { until: 400, face: 'north' },
+    { until: 400, face: 'north', gaze: 'small-minute' },
   ]),
 };
 

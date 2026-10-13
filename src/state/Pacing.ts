@@ -112,7 +112,7 @@ export class Pacing {
 
   /** Enough is happening: the room's own life (not its answers) should hold back. */
   crowded(now: number): boolean {
-    return this.density(now) >= 6;
+    return this.density(now) >= 5;
   }
 
   tick(dt: number, now: number, phase: Phase, activity: number) {
