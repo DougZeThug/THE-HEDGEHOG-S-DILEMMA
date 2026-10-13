@@ -80,8 +80,9 @@ describe('situation: the next room', () => {
     expect(silence).toBeTruthy();
     // The absence: no laughter anywhere near that moment, or ever again.
     const laughs = v.cues.filter((c) => isVoice(c.cue) && c.cue.kind === 'laugh');
-    // Nothing else speaks at the chair during the quiet either.
-    expect(v.cues.filter((c) => isVoice(c.cue) && Math.abs(c.t - write!.t) < 12 && !c.rule.startsWith('sit:')).length).toBe(0);
+    // Nothing else speaks at the chair as the memory is written, or during the quiet that follows.
+    const quietEnd = silence!.t + (silence!.cue as { seconds: number }).seconds;
+    expect(v.cues.filter((c) => isVoice(c.cue) && c.t > write!.t - 6 && c.t < quietEnd && !c.rule.startsWith('sit:')).length).toBe(0);
     expect(laughs.every((c) => c.t < write!.t - 10)).toBe(true);
     v.run(300, { x: 2, z: 2 });
     expect(v.cues.filter((c) => isVoice(c.cue) && c.cue.kind === 'laugh').length).toBe(laughs.length);

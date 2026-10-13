@@ -42,7 +42,8 @@ describe('voice direction', () => {
       // "I think I was happy then." lost two readings in the audition; its new ones are waiting to be heard.
       const min = id === 'happy-then' ? 2 : 3;
       expect(takes.length, id).toBeGreaterThanOrEqual(min);
-      expect(new Set(takes.map((p: any) => p.interpretation)).size, id).toBe(takes.length);
+      // Approved alternative takes ("-b", "-c") share their reading's interpretation.
+      expect(new Set(takes.map((p: any) => p.interpretation)).size, id).toBeGreaterThanOrEqual(min);
       expect(new Set(takes.map((p: any) => `${p.voice}:${JSON.stringify(p.context)}`)).size, id).toBeGreaterThanOrEqual(min);
       expect(direction.performances.filter((p: any) => p.phraseId === id && !p.retired).length, id).toBeGreaterThanOrEqual(3);
     }

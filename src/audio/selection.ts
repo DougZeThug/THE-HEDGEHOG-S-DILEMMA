@@ -45,10 +45,11 @@ export function chooseSource(q: SourceQuery): Source {
 
 /**
  * What to fetch first on arrival, and what can wait. Every texture and sound, and the first
- * few takes of each phrase, come first; the other takes follow a few at a time while the
- * room is quiet, and any take chosen before then is fetched when it is needed.
+ * take of each phrase, come first (with 37 recorded lines, two each would be about 3.8 MB on a
+ * phone); the other takes follow a few at a time while the room is quiet, and any take chosen
+ * before then is fetched when it is needed.
  */
-export function preloadStages(manifest: Record<string, string[]>, perPhrase = 2): { first: string[]; rest: string[] } {
+export function preloadStages(manifest: Record<string, string[]>, perPhrase = 1): { first: string[]; rest: string[] } {
   const first: string[] = [], rest: string[] = [];
   for (const [key, files] of Object.entries(manifest)) {
     if (!key.startsWith('phrase:')) first.push(...files);

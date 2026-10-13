@@ -312,7 +312,10 @@ export class Director {
         for (const k of keys) d += ((r.context[k] ?? 0) - (first.context[k] ?? 0)) ** 2;
         return d + (r.voice !== first.voice ? 0.5 : 0);
       };
-      ranked = ranked.filter((r) => r.id !== before).sort((a, b) => dist(b) - dist(a)).concat(first ? [first] : []);
+      // Only among the readings in the room: rejected and unheard takes stay last, however different.
+      const out = (r: (typeof ranked)[number]) => !!(r.retired || r.audition);
+      const others = ranked.filter((r) => r.id !== before);
+      ranked = others.filter((r) => !out(r)).sort((a, b) => dist(b) - dist(a)).concat(first ? [first] : [], others.filter(out));
     }
     if (ranked.length && extra.phraseId) this.heard.set(extra.phraseId, ranked[0].id);
     // Sometimes what is said writes itself where it belongs, as it is heard — not always: some

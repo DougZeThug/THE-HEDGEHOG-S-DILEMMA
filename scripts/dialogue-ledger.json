@@ -1041,7 +1041,7 @@
       "voice": "intimate",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:02:30.517Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "I still say \"we\" by accident",
       "wer": 0,
       "spokenTags": []
@@ -1057,7 +1057,7 @@
       "voice": "intimate",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:02:31.738Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "I'm not going anywhere",
       "wer": 0,
       "spokenTags": []
@@ -1073,7 +1073,7 @@
       "voice": "intimate",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:02:33.013Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "I remember your laugh",
       "wer": 0,
       "spokenTags": []
@@ -1089,7 +1089,7 @@
       "voice": "sarah",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:02:34.432Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Was it me?",
       "wer": 0,
       "spokenTags": []
@@ -1105,7 +1105,7 @@
       "voice": "intimate",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:02:35.693Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "I think I was happy then",
       "wer": 0,
       "spokenTags": []
@@ -1121,7 +1121,7 @@
       "voice": "bill",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:02:36.742Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "That was a good day",
       "wer": 0,
       "spokenTags": []
@@ -1137,7 +1137,7 @@
       "voice": "sarah",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:02:37.862Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "I wanted you to stay",
       "wer": 0,
       "spokenTags": []
@@ -1153,7 +1153,7 @@
       "voice": "matilda",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:02:38.928Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "I wanted you to stay",
       "wer": 0,
       "spokenTags": []
@@ -1169,7 +1169,7 @@
       "voice": "distant",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:12:01.159Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Who were you talking to?",
       "wer": 0,
       "spokenTags": []
@@ -1185,7 +1185,7 @@
       "voice": "distant",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:12:56.989Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Who were you talking to?",
       "wer": 0,
       "spokenTags": []
@@ -1201,7 +1201,7 @@
       "voice": "matilda",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:12:03.516Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Who were you talking to?",
       "wer": 0,
       "spokenTags": []
@@ -1217,7 +1217,7 @@
       "voice": "matilda",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:12:04.550Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Who were you talking to?",
       "wer": 0,
       "spokenTags": []
@@ -1233,7 +1233,7 @@
       "voice": "intimate",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:12:06.046Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Are you still there?",
       "wer": 0,
       "spokenTags": []
@@ -1249,7 +1249,7 @@
       "voice": "intimate",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:12:07.336Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Are you still there?",
       "wer": 0,
       "spokenTags": []
@@ -1265,7 +1265,7 @@
       "voice": "bill",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:12:08.264Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Are you still there?",
       "wer": 0,
       "spokenTags": []
@@ -1281,7 +1281,7 @@
       "voice": "bill",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:12:09.504Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Are you still there?",
       "wer": 0,
       "spokenTags": []
@@ -1297,7 +1297,7 @@
       "voice": "warm",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:12:11.017Z",
-      "review": "pending",
+      "review": "rejected",
       "transcript": "Nobody said anything for a long time and it was fine",
       "wer": 0,
       "spokenTags": []
@@ -1313,7 +1313,7 @@
       "voice": "warm",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:12:12.708Z",
-      "review": "pending",
+      "review": "rejected",
       "transcript": "Nobody said anything for a long time and it was fine",
       "wer": 0,
       "spokenTags": []
@@ -1329,7 +1329,7 @@
       "voice": "matilda",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:12:14.264Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Nobody said anything for a long time, and it was fine",
       "wer": 0,
       "spokenTags": []
@@ -1345,7 +1345,7 @@
       "voice": "matilda",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:12:15.773Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Nobody said anything for a long time, and it was fine",
       "wer": 0,
       "spokenTags": []
@@ -1361,7 +1361,7 @@
       "voice": "intimate",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:12:17.165Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Can I sit here for a while?",
       "wer": 0,
       "spokenTags": []
@@ -1377,7 +1377,7 @@
       "voice": "intimate",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:12:18.541Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Can I sit here for a while?",
       "wer": 0,
       "spokenTags": []
@@ -1393,7 +1393,7 @@
       "voice": "young",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:12:19.671Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Can I sit here for a while?",
       "wer": 0,
       "spokenTags": []
@@ -1409,7 +1409,7 @@
       "voice": "young",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:12:20.691Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Can I sit here for a while?",
       "wer": 0,
       "spokenTags": []
@@ -1425,7 +1425,7 @@
       "voice": "matilda",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:12:21.761Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Your tea's gone cold",
       "wer": 0,
       "spokenTags": []
@@ -1441,7 +1441,7 @@
       "voice": "matilda",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:12:22.938Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Your tea's gone cold",
       "wer": 0,
       "spokenTags": []
@@ -1457,7 +1457,7 @@
       "voice": "bill",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:12:24.208Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Your tea's gone cold",
       "wer": 0,
       "spokenTags": []
@@ -1473,7 +1473,7 @@
       "voice": "bill",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:12:25.479Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Your tea's gone cold",
       "wer": 0,
       "spokenTags": []
@@ -1489,7 +1489,7 @@
       "voice": "intimate",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:10:11.031Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "I still say we by accident",
       "wer": 0,
       "spokenTags": []
@@ -1505,7 +1505,7 @@
       "voice": "intimate",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:10:12.492Z",
-      "review": "pending",
+      "review": "rejected",
       "transcript": "I still say \"we\" by accident",
       "wer": 0,
       "spokenTags": []
@@ -1521,7 +1521,7 @@
       "voice": "intimate",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:10:13.814Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "I'm not going anywhere",
       "wer": 0,
       "spokenTags": []
@@ -1537,7 +1537,7 @@
       "voice": "intimate",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:10:15.272Z",
-      "review": "pending",
+      "review": "rejected",
       "transcript": "I'm not going anywhere",
       "wer": 0,
       "spokenTags": []
@@ -1553,7 +1553,7 @@
       "voice": "intimate",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:10:16.533Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "There's nothing wrong with being alone",
       "wer": 0,
       "spokenTags": []
@@ -1569,7 +1569,7 @@
       "voice": "intimate",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:10:17.959Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "There's nothing wrong with being alone",
       "wer": 0,
       "spokenTags": []
@@ -1585,7 +1585,7 @@
       "voice": "bill",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:10:19.230Z",
-      "review": "pending",
+      "review": "rejected",
       "transcript": "There's nothing wrong with being alone",
       "wer": 0,
       "spokenTags": []
@@ -1601,7 +1601,7 @@
       "voice": "bill",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:10:20.331Z",
-      "review": "pending",
+      "review": "rejected",
       "transcript": "There's nothing wrong with being alone",
       "wer": 0,
       "spokenTags": []
@@ -1617,7 +1617,7 @@
       "voice": "intimate",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:10:21.677Z",
-      "review": "pending",
+      "review": "rejected",
       "transcript": "I remember your laugh",
       "wer": 0,
       "spokenTags": []
@@ -1633,7 +1633,7 @@
       "voice": "intimate",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:10:22.991Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "I remember your laugh",
       "wer": 0,
       "spokenTags": []
@@ -1649,7 +1649,7 @@
       "voice": "sarah",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:10:24.149Z",
-      "review": "pending",
+      "review": "rejected",
       "transcript": "Was it me?",
       "wer": 0,
       "spokenTags": []
@@ -1665,7 +1665,7 @@
       "voice": "sarah",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:10:25.348Z",
-      "review": "pending",
+      "review": "rejected",
       "transcript": "Was it me?",
       "wer": 0,
       "spokenTags": []
@@ -1681,7 +1681,7 @@
       "voice": "intimate",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:10:26.524Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "I think I was happy then",
       "wer": 0,
       "spokenTags": []
@@ -1697,7 +1697,7 @@
       "voice": "intimate",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:10:27.861Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "I think I was happy then",
       "wer": 0,
       "spokenTags": []
@@ -1713,7 +1713,7 @@
       "voice": "bill",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:10:29.109Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "I think I was happy then",
       "wer": 0,
       "spokenTags": []
@@ -1729,7 +1729,7 @@
       "voice": "bill",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:10:30.684Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "I think I was happy then. [sighs]",
       "events": [
         "[sighs]"
@@ -1748,7 +1748,7 @@
       "voice": "bill",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:10:31.902Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "That was a good day",
       "wer": 0,
       "spokenTags": []
@@ -1764,7 +1764,7 @@
       "voice": "bill",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:10:33.040Z",
-      "review": "pending",
+      "review": "rejected",
       "transcript": "That was a good day",
       "wer": 0,
       "spokenTags": []
@@ -1780,7 +1780,7 @@
       "voice": "sarah",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:10:34.246Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "I wanted you to stay",
       "wer": 0,
       "spokenTags": []
@@ -1796,7 +1796,7 @@
       "voice": "sarah",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:10:35.399Z",
-      "review": "pending",
+      "review": "rejected",
       "transcript": "I wanted you to stay",
       "wer": 0,
       "spokenTags": []
@@ -1812,7 +1812,7 @@
       "voice": "matilda",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:10:36.900Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "I wanted you to stay",
       "wer": 0,
       "spokenTags": []
@@ -1828,7 +1828,7 @@
       "voice": "matilda",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:10:38.065Z",
-      "review": "pending",
+      "review": "rejected",
       "transcript": "I wanted you to stay",
       "wer": 0,
       "spokenTags": []
@@ -1844,7 +1844,7 @@
       "voice": "intimate",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:10:39.295Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "I wanted you to stay",
       "wer": 0,
       "spokenTags": []
@@ -1860,7 +1860,7 @@
       "voice": "intimate",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:10:40.588Z",
-      "review": "pending",
+      "review": "rejected",
       "transcript": "I wanted you to stay",
       "wer": 0,
       "spokenTags": []
@@ -1876,7 +1876,7 @@
       "voice": "matilda",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:10:42.061Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "I love you. [sighs] Go away",
       "events": [
         "[sighs]"
@@ -1895,7 +1895,7 @@
       "voice": "matilda",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:10:43.693Z",
-      "review": "pending",
+      "review": "rejected",
       "transcript": "I love you. [sighs] Go away",
       "events": [
         "[sighs]"
@@ -1914,7 +1914,7 @@
       "voice": "restrained",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:10:44.877Z",
-      "review": "pending",
+      "review": "rejected",
       "transcript": "I love you. Go away",
       "wer": 0,
       "spokenTags": []
@@ -1930,7 +1930,7 @@
       "voice": "restrained",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:10:46.436Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "I love you. Go away",
       "wer": 0,
       "spokenTags": []
@@ -1946,7 +1946,7 @@
       "voice": "intimate",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:10:47.698Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Maybe I wanted you to",
       "wer": 0,
       "spokenTags": []
@@ -1962,7 +1962,7 @@
       "voice": "intimate",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:10:49.324Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Maybe I wanted you to",
       "wer": 0,
       "spokenTags": []
@@ -1978,7 +1978,7 @@
       "voice": "matilda",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:10:50.652Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Maybe I wanted you to",
       "wer": 0,
       "spokenTags": []
@@ -1994,7 +1994,7 @@
       "voice": "matilda",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:10:52.073Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Maybe I wanted you to",
       "wer": 0,
       "spokenTags": []
@@ -2010,7 +2010,7 @@
       "voice": "restrained",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:11:56.252Z",
-      "review": "pending",
+      "review": "rejected",
       "transcript": "It's easier when you're not here",
       "wer": 0,
       "spokenTags": []
@@ -2026,7 +2026,7 @@
       "voice": "restrained",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:11:57.457Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "It's easier when you're not here.",
       "wer": 0,
       "spokenTags": []
@@ -2042,7 +2042,7 @@
       "voice": "intimate",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:11:58.685Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "It's easier when you're not here",
       "wer": 0,
       "spokenTags": []
@@ -2058,7 +2058,7 @@
       "voice": "intimate",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:11:59.895Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "It's easier when you're not here",
       "wer": 0,
       "spokenTags": []
@@ -2074,7 +2074,7 @@
       "voice": "sarah",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:10:59.968Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "It's too quiet when you're not here",
       "wer": 0,
       "spokenTags": []
@@ -2090,7 +2090,7 @@
       "voice": "sarah",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:11:01.257Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "It's too quiet when you're not here",
       "wer": 0,
       "spokenTags": []
@@ -2106,7 +2106,7 @@
       "voice": "warm",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:11:02.835Z",
-      "review": "pending",
+      "review": "rejected",
       "transcript": "[chuckles] It's too quiet when you're not here",
       "events": [
         "[chuckles]"
@@ -2125,7 +2125,7 @@
       "voice": "warm",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:11:04.245Z",
-      "review": "pending",
+      "review": "rejected",
       "transcript": "It's too quiet when you're not here",
       "wer": 0,
       "spokenTags": []
@@ -2141,7 +2141,7 @@
       "voice": "warm",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:11:05.543Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Hold on, not so tight",
       "wer": 0,
       "spokenTags": []
@@ -2157,7 +2157,7 @@
       "voice": "warm",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:11:07.086Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "[laughs] Hold on. Not so tight",
       "events": [
         "[laughs]"
@@ -2176,7 +2176,7 @@
       "voice": "intimate",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:11:08.404Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Hold on. Not so tight",
       "wer": 0,
       "spokenTags": []
@@ -2192,7 +2192,7 @@
       "voice": "intimate",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:11:09.625Z",
-      "review": "pending",
+      "review": "rejected",
       "transcript": "Hold on. Not so tight",
       "wer": 0,
       "spokenTags": []
@@ -2208,7 +2208,7 @@
       "voice": "intimate",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:11:10.818Z",
-      "review": "pending",
+      "review": "rejected",
       "transcript": "Come back don't",
       "wer": 0,
       "spokenTags": []
@@ -2224,7 +2224,7 @@
       "voice": "intimate",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:11:12.055Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Come back. Don't",
       "wer": 0,
       "spokenTags": []
@@ -2240,7 +2240,7 @@
       "voice": "sarah",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:11:13.267Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Come back. Don't",
       "wer": 0,
       "spokenTags": []
@@ -2256,7 +2256,7 @@
       "voice": "sarah",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:11:14.656Z",
-      "review": "pending",
+      "review": "rejected",
       "transcript": "Come back. Don't",
       "wer": 0,
       "spokenTags": []
@@ -2272,7 +2272,7 @@
       "voice": "bill",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:11:15.832Z",
-      "review": "pending",
+      "review": "rejected",
       "transcript": "I wish you could see this",
       "wer": 0,
       "spokenTags": []
@@ -2288,7 +2288,7 @@
       "voice": "bill",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:11:17.173Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "I wish you could see this",
       "wer": 0,
       "spokenTags": []
@@ -2304,7 +2304,7 @@
       "voice": "intimate",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:11:18.331Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "I wish you could see this",
       "wer": 0,
       "spokenTags": []
@@ -2320,7 +2320,7 @@
       "voice": "intimate",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:11:19.504Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "I wish you could see this",
       "wer": 0,
       "spokenTags": []
@@ -2336,7 +2336,7 @@
       "voice": "warm",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:11:20.916Z",
-      "review": "pending",
+      "review": "rejected",
       "transcript": "[laughs] Whose idea was the tent?",
       "events": [
         "[laughs]"
@@ -2355,7 +2355,7 @@
       "voice": "warm",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:11:22.387Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "[laughs] Whose idea was the tent?",
       "events": [
         "[laughs]"
@@ -2390,7 +2390,7 @@
       "voice": "distant",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:11:24.767Z",
-      "review": "pending",
+      "review": "rejected",
       "transcript": "Whose idea was the tent?",
       "wer": 0,
       "spokenTags": []
@@ -2406,7 +2406,7 @@
       "voice": "young",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:11:25.794Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "I didn't know what to say",
       "wer": 0,
       "spokenTags": []
@@ -2422,7 +2422,7 @@
       "voice": "young",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:11:27.011Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "I didn't know what to say.",
       "wer": 0,
       "spokenTags": []
@@ -2438,7 +2438,7 @@
       "voice": "sarah",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:11:28.528Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "I didn't know what to say",
       "wer": 0,
       "spokenTags": []
@@ -2454,7 +2454,7 @@
       "voice": "sarah",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:11:29.754Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "I didn't know what to say",
       "wer": 0,
       "spokenTags": []
@@ -2470,7 +2470,7 @@
       "voice": "sarah",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:11:31.114Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Are you angry with me?",
       "wer": 0,
       "spokenTags": []
@@ -2486,7 +2486,7 @@
       "voice": "sarah",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:11:32.338Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Are you angry with me?",
       "wer": 0,
       "spokenTags": []
@@ -2502,7 +2502,7 @@
       "voice": "young",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:11:33.327Z",
-      "review": "pending",
+      "review": "rejected",
       "transcript": "Are you angry with me?",
       "wer": 0,
       "spokenTags": []
@@ -2518,7 +2518,7 @@
       "voice": "young",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T12:11:34.537Z",
-      "review": "pending",
+      "review": "rejected",
       "transcript": "Are you angry with me?",
       "wer": 0,
       "spokenTags": []

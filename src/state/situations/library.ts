@@ -37,7 +37,7 @@ export const nextRoom: SituationDef = {
   },
   step(c) {
     const { h, st } = c;
-    const d = st.data as { wall: Surface; laughs: number; memory?: string; dist0?: number };
+    const d = st.data as { wall: Surface; laughs: number; memory?: string; dist0?: number; keeping?: boolean };
     if (st.stage === 'listening') {
       if (h.distToSurface(d.wall) < 1.3) {
         const m = memoryOn(h, d.wall);
@@ -66,8 +66,24 @@ export const nextRoom: SituationDef = {
     }
     if (st.stage === 'found') {
       const v = h.visitor;
-      if (c.since < 100 || !v.near || v.nearFor < 6 || v.speed > 0.15) return;
-      if (!c.claim('chair-voice')) return;
+      if (c.since < 100) return;
+      // The memory is owed at the chair: from the moment they head for it (within 2 m), the chair
+      // and the walls are kept for it, so nothing else speaks as they come and settle. Let go if
+      // they walk away again.
+      if (v.distance > (d.keeping ? 2.4 : 2.0)) {
+        if (d.keeping) {
+          c.release('chair-voice');
+          c.release('beyond');
+          d.keeping = false;
+        }
+        return;
+      }
+      if (!d.keeping) {
+        if (!c.claim('chair-voice')) return;
+        c.claim('beyond');
+        d.keeping = true;
+      }
+      if (!v.near || v.nearFor < 6 || v.speed > 0.15) return;
       const m = PHRASE_BY_ID.get(d.memory!)!;
       // The same memory, small, on the floor by the chair. Where the laughter was: nothing.
       const len = Math.hypot(v.x, v.z) || 1;

@@ -8,7 +8,7 @@ const manifest = JSON.parse(readFileSync(join(ROOT, 'public/voices/manifest.json
 const bytes = (files: string[]) => files.reduce((n, f) => n + statSync(join(ROOT, 'public/voices', f)).size, 0);
 
 describe('loading on a phone', () => {
-  it('fetches every sound, and only a couple of takes of each line, on arrival', () => {
+  it('fetches every sound, and one take of each line, on arrival', () => {
     const { first, rest } = preloadStages(manifest);
     expect(new Set([...first, ...rest]).size).toBe(Object.values(manifest).flat().length);
     for (const [k, files] of Object.entries(manifest)) if (!k.startsWith('phrase:')) for (const f of files) expect(first).toContain(f);

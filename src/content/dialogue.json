@@ -324,7 +324,6 @@
     },
     {
       "generation": 2,
-      "audition": true,
       "id": "two-cups--whispered",
       "phraseId": "two-cups",
       "voice": "intimate",
@@ -372,8 +371,7 @@
         "before": "At the counter she ordered two coffees out of habit, then had to change it to one. Walking home she said, almost to herself:"
       },
       "file": "dialogue/two-cups--whispered-b.mp3",
-      "variantOf": "two-cups--whispered",
-      "audition": true
+      "variantOf": "two-cups--whispered"
     },
     {
       "generation": 2,
@@ -400,7 +398,8 @@
       },
       "file": "dialogue/two-cups--whispered-c.mp3",
       "variantOf": "two-cups--whispered",
-      "audition": true
+      "audition": true,
+      "retired": true
     },
     {
       "id": "laugh-breathe",
@@ -548,7 +547,6 @@
     },
     {
       "generation": 2,
-      "audition": true,
       "id": "not-going--bedside",
       "phraseId": "not-going",
       "voice": "intimate",
@@ -596,8 +594,7 @@
         "before": "\"Will you still be here when I wake up?\" he asked, barely awake. She held his hand and whispered:"
       },
       "file": "dialogue/not-going--bedside-b.mp3",
-      "variantOf": "not-going--bedside",
-      "audition": true
+      "variantOf": "not-going--bedside"
     },
     {
       "generation": 2,
@@ -624,7 +621,8 @@
       },
       "file": "dialogue/not-going--bedside-c.mp3",
       "variantOf": "not-going--bedside",
-      "audition": true
+      "audition": true,
+      "retired": true
     },
     {
       "id": "this-bit",
@@ -686,7 +684,6 @@
       ],
       "stability": 0.25,
       "generation": 2,
-      "audition": true,
       "scene": {
         "before": "It was her birthday. Nobody had called yet. She set one place at the table."
       },
@@ -712,7 +709,6 @@
       ],
       "stability": 0.25,
       "generation": 2,
-      "audition": true,
       "scene": {
         "before": "It was her birthday. Nobody had called yet. She set one place at the table."
       },
@@ -744,7 +740,8 @@
         "before": "His grandson asked whether he got lonely in the house since grandma died. He thought about it honestly."
       },
       "seed": 81290,
-      "file": "dialogue/alone-ok--peace.mp3"
+      "file": "dialogue/alone-ok--peace.mp3",
+      "retired": true
     },
     {
       "id": "alone-ok--peace-b",
@@ -771,7 +768,8 @@
       },
       "seed": 81291,
       "variantOf": "alone-ok--peace",
-      "file": "dialogue/alone-ok--peace-b.mp3"
+      "file": "dialogue/alone-ok--peace-b.mp3",
+      "retired": true
     },
     {
       "id": "sorry-like-that",
@@ -835,7 +833,6 @@
     },
     {
       "generation": 2,
-      "audition": true,
       "id": "laugh--grief",
       "phraseId": "laugh",
       "voice": "intimate",
@@ -884,7 +881,8 @@
       },
       "file": "dialogue/laugh--grief-b.mp3",
       "variantOf": "laugh--grief",
-      "audition": true
+      "audition": true,
+      "retired": true
     },
     {
       "generation": 2,
@@ -910,8 +908,7 @@
         "before": "At the grave she stood a long time without saying anything. Then, very softly:"
       },
       "file": "dialogue/laugh--grief-c.mp3",
-      "variantOf": "laugh--grief",
-      "audition": true
+      "variantOf": "laugh--grief"
     },
     {
       "id": "was-it-me",
@@ -935,7 +932,6 @@
     },
     {
       "generation": 2,
-      "audition": true,
       "id": "was-it-me--whispered",
       "phraseId": "was-it-me",
       "voice": "sarah",
@@ -984,7 +980,8 @@
       },
       "file": "dialogue/was-it-me--whispered-b.mp3",
       "variantOf": "was-it-me--whispered",
-      "audition": true
+      "audition": true,
+      "retired": true
     },
     {
       "generation": 2,
@@ -1011,7 +1008,8 @@
       },
       "file": "dialogue/was-it-me--whispered-c.mp3",
       "variantOf": "was-it-me--whispered",
-      "audition": true
+      "audition": true,
+      "retired": true
     },
     {
       "id": "stay--breaking",
@@ -1246,7 +1244,6 @@
     },
     {
       "generation": 2,
-      "audition": true,
       "id": "happy-then--whispered",
       "phraseId": "happy-then",
       "voice": "intimate",
@@ -1292,8 +1289,7 @@
         "before": "She found the old video on her phone by accident: her own laugh, a kitchen she no longer lived in. She watched it twice, then whispered:"
       },
       "file": "dialogue/happy-then--whispered-b.mp3",
-      "variantOf": "happy-then--whispered",
-      "audition": true
+      "variantOf": "happy-then--whispered"
     },
     {
       "generation": 2,
@@ -1318,8 +1314,7 @@
         "before": "She found the old video on her phone by accident: her own laugh, a kitchen she no longer lived in. She watched it twice, then whispered:"
       },
       "file": "dialogue/happy-then--whispered-c.mp3",
-      "variantOf": "happy-then--whispered",
-      "audition": true
+      "variantOf": "happy-then--whispered"
     },
     {
       "id": "happy-then--lost-b",
@@ -1344,8 +1339,7 @@
       "scene": {
         "before": "He found the photograph in a box he hadn't opened in twenty years. He smiled at it at first. Then the smile went, and he said, very quietly:"
       },
-      "variantOf": "happy-then--lost",
-      "audition": true
+      "variantOf": "happy-then--lost"
     },
     {
       "id": "happy-then--lost-c",
@@ -1370,8 +1364,7 @@
       "scene": {
         "before": "He found the photograph in a box he hadn't opened in twenty years. He smiled at it at first. Then the smile went, and he said, very quietly:"
       },
-      "variantOf": "happy-then--lost",
-      "audition": true
+      "variantOf": "happy-then--lost"
     },
     {
       "id": "crumbs--laughing",
@@ -1595,7 +1588,6 @@
     },
     {
       "generation": 2,
-      "audition": true,
       "id": "good-day--photographs",
       "phraseId": "good-day",
       "voice": "bill",
@@ -1641,8 +1633,7 @@
         "before": "After the funeral everyone had gone home. He sat at the kitchen table with the box of photographs and stopped at one of the two of them at the sea."
       },
       "file": "dialogue/good-day--photographs-b.mp3",
-      "variantOf": "good-day--photographs",
-      "audition": true
+      "variantOf": "good-day--photographs"
     },
     {
       "generation": 2,
@@ -1668,7 +1659,8 @@
       },
       "file": "dialogue/good-day--photographs-c.mp3",
       "variantOf": "good-day--photographs",
-      "audition": true
+      "audition": true,
+      "retired": true
     },
     {
       "id": "stay--breaking-lean",
@@ -1810,7 +1802,6 @@
     },
     {
       "generation": 2,
-      "audition": true,
       "id": "stay--whispered",
       "phraseId": "stay",
       "voice": "sarah",
@@ -1834,7 +1825,6 @@
     },
     {
       "generation": 2,
-      "audition": true,
       "id": "stay--worn",
       "phraseId": "stay",
       "voice": "matilda",
@@ -1879,8 +1869,7 @@
         "before": "She waited until the car had gone before she let herself say it. Her forehead against the door, she whispered:"
       },
       "file": "dialogue/stay--whispered-b.mp3",
-      "variantOf": "stay--whispered",
-      "audition": true
+      "variantOf": "stay--whispered"
     },
     {
       "generation": 2,
@@ -1905,7 +1894,8 @@
       },
       "file": "dialogue/stay--whispered-c.mp3",
       "variantOf": "stay--whispered",
-      "audition": true
+      "audition": true,
+      "retired": true
     },
     {
       "generation": 2,
@@ -1930,8 +1920,7 @@
         "before": "It was years later. He asked her why she had never said anything at the time. She looked at her hands for a while."
       },
       "file": "dialogue/stay--worn-b.mp3",
-      "variantOf": "stay--worn",
-      "audition": true
+      "variantOf": "stay--worn"
     },
     {
       "generation": 2,
@@ -1957,7 +1946,8 @@
       },
       "file": "dialogue/stay--worn-c.mp3",
       "variantOf": "stay--worn",
-      "audition": true
+      "audition": true,
+      "retired": true
     },
     {
       "id": "stay--breaking-b",
@@ -1984,8 +1974,7 @@
         "before": "He already had his coat on. She had told him it was fine, that she understood. It was not fine. At the door she finally said it, and her voice gave way halfway through:",
         "after": "She couldn't look at him."
       },
-      "variantOf": "stay--breaking",
-      "audition": true
+      "variantOf": "stay--breaking"
     },
     {
       "id": "stay--breaking-c",
@@ -2013,7 +2002,8 @@
         "after": "She couldn't look at him."
       },
       "variantOf": "stay--breaking",
-      "audition": true
+      "audition": true,
+      "retired": true
     },
     {
       "id": "love-go-away--hurt-lean",
@@ -2110,8 +2100,7 @@
         "before": "\"Talk to me. Please. I'm not leaving until you talk to me.\"",
         "after": "\"...Okay. I'll be in the kitchen.\""
       },
-      "variantOf": "love-go-away--exhausted-lean",
-      "audition": true
+      "variantOf": "love-go-away--exhausted-lean"
     },
     {
       "id": "love-go-away--exhausted-lean-c",
@@ -2139,7 +2128,8 @@
         "after": "\"...Okay. I'll be in the kitchen.\""
       },
       "variantOf": "love-go-away--exhausted-lean",
-      "audition": true
+      "audition": true,
+      "retired": true
     },
     {
       "id": "love-go-away--hurt-lean-b",
@@ -2166,7 +2156,8 @@
         "after": "\"Fine.\""
       },
       "variantOf": "love-go-away--hurt-lean",
-      "audition": true
+      "audition": true,
+      "retired": true
     },
     {
       "id": "love-go-away--hurt-lean-c",
@@ -2192,8 +2183,7 @@
         "before": "\"So that's it? You're just going to shut me out again?\"",
         "after": "\"Fine.\""
       },
-      "variantOf": "love-go-away--hurt-lean",
-      "audition": true
+      "variantOf": "love-go-away--hurt-lean"
     },
     {
       "id": "this-bit--distracted",
@@ -2382,7 +2372,6 @@
       ],
       "stability": 0.25,
       "generation": 2,
-      "audition": true,
       "scene": {
         "before": "\"You always think I'm going to leave.\" She didn't answer for a long time. Then, so quietly he almost missed it:"
       },
@@ -2407,7 +2396,6 @@
       ],
       "stability": 0.25,
       "generation": 2,
-      "audition": true,
       "scene": {
         "before": "\"You always think I'm going to leave.\" She didn't answer for a long time. Then, so quietly he almost missed it:"
       },
@@ -2434,7 +2422,6 @@
       ],
       "stability": 0.25,
       "generation": 2,
-      "audition": true,
       "scene": {
         "before": "Years later, over coffee, he said he had always thought she was afraid he would leave. She turned her cup round slowly."
       },
@@ -2460,7 +2447,6 @@
       ],
       "stability": 0.25,
       "generation": 2,
-      "audition": true,
       "scene": {
         "before": "Years later, over coffee, he said he had always thought she was afraid he would leave. She turned her cup round slowly."
       },
@@ -2491,7 +2477,8 @@
         "after": "He put the phone down without answering."
       },
       "seed": 81070,
-      "file": "dialogue/easier-without--guarded.mp3"
+      "file": "dialogue/easier-without--guarded.mp3",
+      "retired": true
     },
     {
       "id": "easier-without--guarded-b",
@@ -2510,7 +2497,6 @@
       ],
       "stability": 0.25,
       "generation": 2,
-      "audition": true,
       "scene": {
         "before": "\"Do you even want me to come this weekend?\"",
         "after": "He put the phone down without answering."
@@ -2538,7 +2524,6 @@
       ],
       "stability": 0.25,
       "generation": 2,
-      "audition": true,
       "scene": {
         "before": "Her sister asked how she was coping on her own. She said it the way you say something you have practised:",
         "after": "Her sister didn't say anything."
@@ -2565,7 +2550,6 @@
       ],
       "stability": 0.25,
       "generation": 2,
-      "audition": true,
       "scene": {
         "before": "Her sister asked how she was coping on her own. She said it the way you say something you have practised:",
         "after": "Her sister didn't say anything."
@@ -2591,7 +2575,6 @@
       ],
       "stability": 0.25,
       "generation": 2,
-      "audition": true,
       "scene": {
         "before": "She called after midnight, knowing he would not pick up, and left a message:"
       },
@@ -2615,7 +2598,6 @@
       ],
       "stability": 0.25,
       "generation": 2,
-      "audition": true,
       "scene": {
         "before": "She called after midnight, knowing he would not pick up, and left a message:"
       },
@@ -2645,7 +2627,8 @@
         "before": "\"Admit it. You miss me.\" \"I don't miss you.\" A pause."
       },
       "seed": 81050,
-      "file": "dialogue/too-quiet--admitting.mp3"
+      "file": "dialogue/too-quiet--admitting.mp3",
+      "retired": true
     },
     {
       "id": "too-quiet--admitting-b",
@@ -2670,7 +2653,8 @@
       },
       "seed": 81051,
       "variantOf": "too-quiet--admitting",
-      "file": "dialogue/too-quiet--admitting-b.mp3"
+      "file": "dialogue/too-quiet--admitting-b.mp3",
+      "retired": true
     },
     {
       "id": "not-so-tight--laughing",
@@ -2689,7 +2673,6 @@
       ],
       "stability": 0.25,
       "generation": 2,
-      "audition": true,
       "scene": {
         "before": "He met her at the airport and hugged her so hard her feet left the ground."
       },
@@ -2713,7 +2696,6 @@
       ],
       "stability": 0.25,
       "generation": 2,
-      "audition": true,
       "scene": {
         "before": "He met her at the airport and hugged her so hard her feet left the ground."
       },
@@ -2740,7 +2722,6 @@
       ],
       "stability": 0.25,
       "generation": 2,
-      "audition": true,
       "scene": {
         "before": "In the hospital he held her hand as if she might slip away. She winced, and smiled at him:"
       },
@@ -2772,7 +2753,8 @@
       },
       "seed": 81071,
       "variantOf": "not-so-tight--afraid",
-      "file": "dialogue/not-so-tight--afraid-b.mp3"
+      "file": "dialogue/not-so-tight--afraid-b.mp3",
+      "retired": true
     },
     {
       "id": "come-back-dont--window",
@@ -2797,7 +2779,8 @@
         "before": "She watched him from the window until he reached the corner. He hesitated there, as if he might turn round."
       },
       "seed": 81080,
-      "file": "dialogue/come-back-dont--window.mp3"
+      "file": "dialogue/come-back-dont--window.mp3",
+      "retired": true
     },
     {
       "id": "come-back-dont--window-b",
@@ -2817,7 +2800,6 @@
       ],
       "stability": 0.25,
       "generation": 2,
-      "audition": true,
       "scene": {
         "before": "She watched him from the window until he reached the corner. He hesitated there, as if he might turn round."
       },
@@ -2843,7 +2825,6 @@
       ],
       "stability": 0.25,
       "generation": 2,
-      "audition": true,
       "scene": {
         "before": "He had stopped halfway down the stairs. \"Do you want me to come back up?\""
       },
@@ -2874,7 +2855,8 @@
       },
       "seed": 81091,
       "variantOf": "come-back-dont--stairs",
-      "file": "dialogue/come-back-dont--stairs-b.mp3"
+      "file": "dialogue/come-back-dont--stairs-b.mp3",
+      "retired": true
     },
     {
       "id": "wish-see--wedding",
@@ -2900,7 +2882,8 @@
         "before": "At his granddaughter's wedding he stood at the back, his wife's photograph in his jacket pocket."
       },
       "seed": 81100,
-      "file": "dialogue/wish-see--wedding.mp3"
+      "file": "dialogue/wish-see--wedding.mp3",
+      "retired": true
     },
     {
       "id": "wish-see--wedding-b",
@@ -2921,7 +2904,6 @@
       ],
       "stability": 0.25,
       "generation": 2,
-      "audition": true,
       "scene": {
         "before": "At his granddaughter's wedding he stood at the back, his wife's photograph in his jacket pocket."
       },
@@ -2947,7 +2929,6 @@
       ],
       "stability": 0.25,
       "generation": 2,
-      "audition": true,
       "scene": {
         "before": "The snow had started in the night. She stood at the window alone, the house quiet behind her."
       },
@@ -2972,7 +2953,6 @@
       ],
       "stability": 0.25,
       "generation": 2,
-      "audition": true,
       "scene": {
         "before": "The snow had started in the night. She stood at the window alone, the house quiet behind her."
       },
@@ -3003,7 +2983,8 @@
         "before": "Rain hammered the canvas. Everything they owned was wet. They were lying in a puddle, and she started to laugh."
       },
       "seed": 81120,
-      "file": "dialogue/summer--rain.mp3"
+      "file": "dialogue/summer--rain.mp3",
+      "retired": true
     },
     {
       "id": "summer--rain-b",
@@ -3023,7 +3004,6 @@
       ],
       "stability": 0.25,
       "generation": 2,
-      "audition": true,
       "scene": {
         "before": "Rain hammered the canvas. Everything they owned was wet. They were lying in a puddle, and she started to laugh."
       },
@@ -3080,7 +3060,8 @@
       },
       "seed": 81131,
       "variantOf": "summer--loft",
-      "file": "dialogue/summer--loft-b.mp3"
+      "file": "dialogue/summer--loft-b.mp3",
+      "retired": true
     },
     {
       "id": "didnt-know-say--ashamed",
@@ -3101,7 +3082,6 @@
       ],
       "stability": 0.25,
       "generation": 2,
-      "audition": true,
       "scene": {
         "before": "\"You just stood there. At the funeral. You didn't say anything to me.\""
       },
@@ -3127,7 +3107,6 @@
       ],
       "stability": 0.25,
       "generation": 2,
-      "audition": true,
       "scene": {
         "before": "\"You just stood there. At the funeral. You didn't say anything to me.\""
       },
@@ -3154,7 +3133,6 @@
       ],
       "stability": 0.25,
       "generation": 2,
-      "audition": true,
       "scene": {
         "before": "She found him on the back step where he had been since the phone call. She sat down next to him. After a long time:"
       },
@@ -3180,7 +3158,6 @@
       ],
       "stability": 0.25,
       "generation": 2,
-      "audition": true,
       "scene": {
         "before": "She found him on the back step where he had been since the phone call. She sat down next to him. After a long time:"
       },
@@ -3206,7 +3183,6 @@
       ],
       "stability": 0.25,
       "generation": 2,
-      "audition": true,
       "scene": {
         "before": "The car was silent all the way home. From the back seat, very quietly:"
       },
@@ -3231,7 +3207,6 @@
       ],
       "stability": 0.25,
       "generation": 2,
-      "audition": true,
       "scene": {
         "before": "The car was silent all the way home. From the back seat, very quietly:"
       },
@@ -3263,7 +3238,8 @@
         "before": "They lay back to back in the dark, neither of them asleep."
       },
       "seed": 81170,
-      "file": "dialogue/angry-with-me--dark.mp3"
+      "file": "dialogue/angry-with-me--dark.mp3",
+      "retired": true
     },
     {
       "id": "angry-with-me--dark-b",
@@ -3290,7 +3266,8 @@
       },
       "seed": 81171,
       "variantOf": "angry-with-me--dark",
-      "file": "dialogue/angry-with-me--dark-b.mp3"
+      "file": "dialogue/angry-with-me--dark-b.mp3",
+      "retired": true
     },
     {
       "id": "who-talking--empty-kitchen",
@@ -3309,7 +3286,6 @@
       ],
       "stability": 0.25,
       "generation": 2,
-      "audition": true,
       "scene": {
         "before": "She came downstairs and the kitchen was empty. She was sure she had heard his voice."
       },
@@ -3333,7 +3309,6 @@
       ],
       "stability": 0.25,
       "generation": 2,
-      "audition": true,
       "scene": {
         "before": "She came downstairs and the kitchen was empty. She was sure she had heard his voice."
       },
@@ -3360,7 +3335,6 @@
       ],
       "stability": 0.25,
       "generation": 2,
-      "audition": true,
       "scene": {
         "before": "Her father was sitting by the window, smiling at the empty chair across from him."
       },
@@ -3386,7 +3360,6 @@
       ],
       "stability": 0.25,
       "generation": 2,
-      "audition": true,
       "scene": {
         "before": "Her father was sitting by the window, smiling at the empty chair across from him."
       },
@@ -3412,7 +3385,6 @@
       ],
       "stability": 0.25,
       "generation": 2,
-      "audition": true,
       "scene": {
         "before": "The line went silent for so long she thought it had dropped."
       },
@@ -3437,7 +3409,6 @@
       ],
       "stability": 0.25,
       "generation": 2,
-      "audition": true,
       "scene": {
         "before": "The line went silent for so long she thought it had dropped."
       },
@@ -3464,7 +3435,6 @@
       ],
       "stability": 0.25,
       "generation": 2,
-      "audition": true,
       "scene": {
         "before": "The nurse had said she could probably still hear him. The old man leaned closer to the bed."
       },
@@ -3490,7 +3460,6 @@
       ],
       "stability": 0.25,
       "generation": 2,
-      "audition": true,
       "scene": {
         "before": "The nurse had said she could probably still hear him. The old man leaned closer to the bed."
       },
@@ -3521,7 +3490,8 @@
         "before": "She was telling a friend about the last evening on the porch with her mother."
       },
       "seed": 81220,
-      "file": "dialogue/dont-have-say--porch.mp3"
+      "file": "dialogue/dont-have-say--porch.mp3",
+      "retired": true
     },
     {
       "id": "dont-have-say--porch-b",
@@ -3547,7 +3517,8 @@
       },
       "seed": 81221,
       "variantOf": "dont-have-say--porch",
-      "file": "dialogue/dont-have-say--porch-b.mp3"
+      "file": "dialogue/dont-have-say--porch-b.mp3",
+      "retired": true
     },
     {
       "id": "dont-have-say--after",
@@ -3568,7 +3539,6 @@
       ],
       "stability": 0.25,
       "generation": 2,
-      "audition": true,
       "scene": {
         "before": "After the funeral, someone asked what she remembered about their last visit."
       },
@@ -3594,7 +3564,6 @@
       ],
       "stability": 0.25,
       "generation": 2,
-      "audition": true,
       "scene": {
         "before": "After the funeral, someone asked what she remembered about their last visit."
       },
@@ -3620,7 +3589,6 @@
       ],
       "stability": 0.25,
       "generation": 2,
-      "audition": true,
       "scene": {
         "before": "She came into his room at three in the morning, not crying any more, just tired."
       },
@@ -3645,7 +3613,6 @@
       ],
       "stability": 0.25,
       "generation": 2,
-      "audition": true,
       "scene": {
         "before": "She came into his room at three in the morning, not crying any more, just tired."
       },
@@ -3671,7 +3638,6 @@
       ],
       "stability": 0.25,
       "generation": 2,
-      "audition": true,
       "scene": {
         "before": "Everyone else at the party was dancing. He found her on the stairs."
       },
@@ -3696,7 +3662,6 @@
       ],
       "stability": 0.25,
       "generation": 2,
-      "audition": true,
       "scene": {
         "before": "Everyone else at the party was dancing. He found her on the stairs."
       },
@@ -3721,7 +3686,6 @@
       ],
       "stability": 0.25,
       "generation": 2,
-      "audition": true,
       "scene": {
         "before": "He had fallen asleep in the armchair while she talked. She did not wake him straight away."
       },
@@ -3745,7 +3709,6 @@
       ],
       "stability": 0.25,
       "generation": 2,
-      "audition": true,
       "scene": {
         "before": "He had fallen asleep in the armchair while she talked. She did not wake him straight away."
       },
@@ -3771,7 +3734,6 @@
       ],
       "stability": 0.25,
       "generation": 2,
-      "audition": true,
       "scene": {
         "before": "He made two cups out of habit, and sat with them both until the second one went cold."
       },
@@ -3796,7 +3758,6 @@
       ],
       "stability": 0.25,
       "generation": 2,
-      "audition": true,
       "scene": {
         "before": "He made two cups out of habit, and sat with them both until the second one went cold."
       },

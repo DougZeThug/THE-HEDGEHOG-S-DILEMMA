@@ -37,10 +37,12 @@ describe('where a voice comes from', () => {
 });
 
 describe('performance follows the emotional field', () => {
-  it('"I wanted you to stay": warm → tender, hushed → soft, alone and exposed → a breaking reading', () => {
+  it('"I wanted you to stay": warm → tender, hushed → soft or whispered, alone and exposed → breaking or whispered', () => {
     expect(rankPerformances('stay', field({ warmth: 0.9, hush: 0.3 }))[0].id).toBe('stay--tender');
-    expect(rankPerformances('stay', field({ hush: 0.9, tension: 0.4 }))[0].id).toBe('stay--soft');
-    expect(['stay--breaking', 'stay--after-silence', 'stay--breaking-lean']).toContain(rankPerformances('stay', field({ solitude: 0.8, exposure: 0.5, hush: 0.5 }))[0].id);
+    // Hushed: a soft or whispered reading (the artist kept several whispered takes).
+    expect(['stay--soft', 'stay--whispered', 'stay--whispered-b']).toContain(rankPerformances('stay', field({ hush: 0.9, tension: 0.4 }))[0].id);
+    // Alone and exposed: a breaking or whispered reading (the artist prefers sadder and whispered takes).
+    expect(['stay--breaking', 'stay--breaking-b', 'stay--after-silence', 'stay--breaking-lean', 'stay--whispered', 'stay--whispered-b']).toContain(rankPerformances('stay', field({ solitude: 0.8, exposure: 0.5, hush: 0.5 }))[0].id);
     // Rejected and not-yet-heard takes come last, whatever the room is like.
     const ranked = rankPerformances('stay', field({ tension: 0.8, dissonance: 0.5 }));
     const firstOut = ranked.findIndex((p) => p.retired || p.audition);
