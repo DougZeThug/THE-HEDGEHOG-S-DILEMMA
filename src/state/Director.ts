@@ -120,6 +120,9 @@ export class Director {
   private heard = new Map<string, string>();
   private reheard = false;
   private heldSilenceDone = false;
+  /** The memory has been offered (its line written where the visitor looks) / has played. */
+  private memoryOffered = false;
+  memoryPlayed = false;
   /** Drawings drawn during this visit (each at most once). */
   readonly drawn = new Set<string>();
   /** Writing in the air happens at most once a visit. */
@@ -381,6 +384,7 @@ export class Director {
       if (phaseChanged) this.onPhase(phaseChanged);
       if (phaseChanged === 'transform') this.transformAt = this.now;
       if (this.legacy) this.ruleOpening();
+      this.ruleMemory();
       this.ruleAccumulate();
       this.ruleDrawings();
       this.ruleFinish();
@@ -684,7 +688,8 @@ export class Director {
   }
 
   /** Writing the room starts with, ordinary things first; the rest comes by selection. */
-  static readonly FIRST_WRITTEN = ['cereal', 'sandwich', 'good-day', 'kitchen-light', 'summer', 'laugh-breathe', 'home', 'rain-carpark'];
+  // ("the light in the kitchen at four in the afternoon" is kept back: it is the memory, late.)
+  static readonly FIRST_WRITTEN = ['cereal', 'sandwich', 'good-day', 'summer', 'laugh-breathe', 'home', 'rain-carpark'];
 
   /**
    * The room fills: the walls start almost bare and gather writing through the visit — a few
@@ -696,7 +701,9 @@ export class Director {
     // Someone staying with a line is answered sooner: something it echoes or contradicts is
     // written near it — reading makes more to read.
     const v = this.visitor;
-    const reading = v.gazeId && v.gazeFor > 2.5 ? PHRASE_BY_ID.get(v.gazeId) : undefined;
+    // (Not the memory's line before its memory: that look is the memory's to answer.)
+    const memoryLine = v.gazeId === Director.MEMORY.phraseId && !this.memoryPlayed;
+    const reading = v.gazeId && v.gazeFor > 2.5 && !memoryLine ? PHRASE_BY_ID.get(v.gazeId) : undefined;
     const answerRead = !!reading && this.now - this.lastAccumulateAt > 5 && this.accumulated < 14;
     if (this.now < this.nextAccumulate && !answerRead) return;
     // Someone settled at the chair is with the chair: the walls can wait.
@@ -1035,6 +1042,43 @@ export class Director {
     const seconds = this.rng.range(30, 42);
     this.heldSilenceUntil = this.now + seconds;
     this.queue(0, { type: 'silence', depth: 0.92, seconds, dim: 0.15, dimSeconds: 16 }, 'held-silence', { major: true, ttl: 10 });
+  }
+
+  /**
+   * One memory a visit intrudes on the room as light: "the light in the kitchen at four in the
+   * afternoon", read, and for a few seconds that light falls across the wall where the words
+   * are. Late (from 150 s, once the room has begun to contradict itself), so it is not spent on
+   * arrival. If the line isn't on a wall yet, it is written first where the visitor is looking;
+   * the light comes when they stay with it (2.5 s), or touch it. Then the room holds still.
+   */
+  static readonly MEMORY = { phraseId: 'kitchen-light', attack: 3, hold: 6, release: 4 };
+  private ruleMemory() {
+    if (this.memoryPlayed || this.departing) return;
+    if (this.now < 150 || (this.phase !== 'contradiction' && this.phase !== 'transform')) return;
+    const m = Director.MEMORY;
+    const free = this.scheduler.majorFree(this.now) && !this.pacing.holding(this.now);
+    if (!this.visible.has(m.phraseId)) {
+      if (this.memoryOffered || !free || this.pacing.repeats('text', this.now, 8) || this.withheld().includes(m.phraseId)) return;
+      const p = PHRASE_BY_ID.get(m.phraseId)!;
+      this.memoryOffered = true;
+      this.visible.set(p.id, { mode: 'shown', since: this.now, base: true });
+      this.memory.surfaced.set(p.id, this.now);
+      this.queue(0, {
+        type: 'write', key: `memory:${p.id}`, text: p.text, hand: p.hand === 'typed' ? 'pencil' : p.hand, size: 's',
+        surface: this.facing, purpose: 'recall', ttl: 0, source: p.id,
+      }, 'memory-offer');
+      return;
+    }
+    const v = this.visitor;
+    const looked = v.gazeId === m.phraseId && v.gazeFor >= 2.5;
+    const touched = this.now - (this.tappedAt.get(m.phraseId) ?? -Infinity) < 3;
+    if (!looked && !touched) return;
+    // Never on top of a voice, a dim, a flash or anything strong.
+    if (!free || !this.pacing.intenseFree(this.now) || this.pacing.repeats('light', this.now, 10)) return;
+    this.memoryPlayed = true;
+    this.queue(0, { type: 'memory', phraseId: m.phraseId, attack: m.attack, hold: m.hold, release: m.release }, 'memory', { major: true, ttl: 3 });
+    // The light is the answer: nothing else while it is there, and a moment after.
+    this.pacing.holdFor(this.now, m.attack + m.hold + m.release + 3);
   }
 
   /**

@@ -54,6 +54,7 @@ export function devKind(cue: Cue): DevKind | null {
       return 'text';
     case 'glow':
     case 'flash':
+    case 'memory':
       return 'light';
     case 'chairTurn':
     case 'chairNudge':

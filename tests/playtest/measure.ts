@@ -82,6 +82,8 @@ function classify(cue: Cue): { kind: Kind; label: string; recorded: boolean; sur
     case 'glow':
     case 'flash':
       return { kind: 'light', label: cue.type, recorded: false };
+    case 'memory':
+      return { kind: 'light', label: `memory ${cue.phraseId}`, recorded: false, surface: PHRASE_BY_ID.get(cue.phraseId)?.surface };
     case 'chairTurn':
     case 'chairNudge':
       return { kind: 'chair', label: cue.type, recorded: false };
