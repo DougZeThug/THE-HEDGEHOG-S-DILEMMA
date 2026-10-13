@@ -151,7 +151,7 @@ for (const profile of PROFILES) {
     if (process.env.OPENING !== '0') {
       // The opening's stages (the score's own times; a phone's score is shorter): first light,
       // the chair alone, the room arriving, the first stroke.
-      const times = profile === 'phone' ? [6.2, 8.1, 11.0, 12.0] : [7.2, 9.5, 12.9, 14.1];
+      const times = profile.startsWith('phone') ? [6.2, 8.1, 11.0, 12.0] : [7.2, 9.5, 12.9, 14.1];
       for (const [i, name] of ['open-first-light', 'open-chair-alone', 'open-room-arrives', 'open-first-stroke'].entries()) {
         const t = times[i];
         await page.waitForFunction((t) => (window.__hedgehog.score?.t ?? 0) >= t - 0.45, t, { timeout: 120000, polling: 50 });
@@ -174,6 +174,9 @@ for (const profile of PROFILES) {
     }
     await page.waitForFunction(() => window.__hedgehog.score.stage === 'done', null, { timeout: 120000 });
     await page.waitForTimeout(1500);
+    // The hand-off, still seen from where the opening put the visitor (low and centred, as the
+    // artist's reference is framed: they haven't taken a step yet).
+    if (process.env.OPENING !== '0') await shot('open-handoff');
     for (const [name, from, to] of VIEWS) {
       await stand(page, from, to);
       await page.waitForTimeout(1000);

@@ -7,6 +7,29 @@ export const PANEL = { x: 0.1, z: -0.95 };
 import { wallMaps, floorMaps, ceilingMaps, surfaceDetail } from './surfaces';
 import { ceilingFor, panelFor, type Look } from './Style';
 
+const SKIRT = 0.1;
+const WELL_M = 1.3;
+
+/** The well's reveal as an alpha map: a square ring from the panel's rim outward, fading. */
+function wellTexture(): THREE.DataTexture {
+  const N = 128, d = new Uint8Array(N * N * 4);
+  const inner = 0.48 / (WELL_M / 2), outer = 1;
+  for (let j = 0; j < N; j++)
+    for (let i = 0; i < N; i++) {
+      const x = Math.abs((i + 0.5) / N * 2 - 1), y = Math.abs((j + 0.5) / N * 2 - 1);
+      const r = Math.max(x, y);
+      const t = r < inner ? 0 : Math.max(0, 1 - (r - inner) / (outer - inner));
+      const a = Math.round(255 * 0.9 * t * t);
+      const k = (j * N + i) * 4;
+      d[k] = d[k + 1] = d[k + 2] = a;
+      d[k + 3] = 255;
+    }
+  const t = new THREE.DataTexture(d, N, N);
+  t.magFilter = t.minFilter = THREE.LinearFilter;
+  t.needsUpdate = true;
+  return t;
+}
+
 /** The ceiling's bounce, as a map: 1 at the panel's rim, falling steeply toward the walls. */
 function ceilingGlow(wM: number, dM: number): THREE.CanvasTexture {
   const ppm = 40;
@@ -115,12 +138,22 @@ export class Room {
     );
     this.rim = rim.material as THREE.MeshStandardMaterial;
     rim.position.set(PANEL.x, H - 0.008, PANEL.z);
-    this.group.add(rim, this.panel);
+    // The light well's reveal: the glass sits back in the ceiling, and the splayed sides of its
+    // opening catch the light, brightest at the glass and fading into the ceiling (the artist's
+    // reference shows the source as a lit opening, not a fitting).
+    this.well = new THREE.Mesh(
+      new THREE.PlaneGeometry(WELL_M, WELL_M),
+      new THREE.MeshBasicMaterial({ color: 0xffffff, alphaMap: wellTexture(), transparent: true, depthWrite: false, opacity: 1 }),
+    );
+    this.well.rotation.x = Math.PI / 2;
+    this.well.position.set(PANEL.x, H - 0.003, PANEL.z);
+    this.group.add(rim, this.panel, this.well);
 
     this.setScale(1);
   }
 
   private rim: THREE.MeshStandardMaterial;
+  private well: THREE.Mesh;
   private rimEmissive = new THREE.Color(0xffffff);
   private ceilingEmissive = new THREE.Color(0x23262a);
   private ceilingLit = 1;
@@ -143,6 +176,7 @@ export class Room {
     ceilingFor(w, this.ceilingEmissive).multiplyScalar(this.ceilingBounce);
     (this.panel.material as THREE.MeshStandardMaterial).emissive.copy(panelFor(w));
     panelFor(w, this.rimEmissive).multiplyScalar(0.3);
+    (this.well.material as THREE.MeshBasicMaterial).color.copy(panelFor(w)).multiplyScalar(0.5);
     this.setLit(this.panelLit, this.ceilingLit);
   }
   private panelLit = 1;
@@ -157,6 +191,7 @@ export class Room {
     (this.panel.material as THREE.MeshStandardMaterial).emissiveIntensity = 2.2 * panel;
     (this.frames.ceiling.mesh.material as THREE.MeshStandardMaterial).emissive.copy(this.ceilingEmissive).multiplyScalar(ceiling);
     this.rim.emissive.copy(this.rimEmissive).multiplyScalar(panel);
+    (this.well.material as THREE.MeshBasicMaterial).opacity = Math.min(1, panel);
   }
 
   /**
@@ -165,13 +200,14 @@ export class Room {
    * thing in a white room).
    */
   private addSkirting(group: THREE.Group, w: number) {
-    const trim = new THREE.MeshStandardMaterial({ color: 0xcfccc6, roughness: 0.6 });
-    const sk = new THREE.Mesh(new THREE.BoxGeometry(w, 0.085, 0.012), trim);
-    sk.position.set(0, -ROOM.height / 2 + 0.0425, 0.006);
+    // A painted grey board, darker than the wall, so the room's base line reads.
+    const trim = new THREE.MeshStandardMaterial({ color: 0x9e988f, roughness: 0.6 });
+    const sk = new THREE.Mesh(new THREE.BoxGeometry(w, SKIRT, 0.014), trim);
+    sk.position.set(0, -ROOM.height / 2 + SKIRT / 2, 0.007);
     sk.receiveShadow = true;
     sk.name = 'skirting';
     const reveal = new THREE.Mesh(new THREE.PlaneGeometry(w, 0.03), Room.seam(false));
-    reveal.position.set(0, -ROOM.height / 2 + 0.085 + 0.015, 0.0015);
+    reveal.position.set(0, -ROOM.height / 2 + SKIRT + 0.015, 0.0015);
     reveal.name = 'skirting';
     const top = new THREE.Mesh(new THREE.PlaneGeometry(w, 0.04), Room.seam(true));
     top.position.set(0, ROOM.height / 2 - 0.02, 0.0015);

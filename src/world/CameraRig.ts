@@ -4,6 +4,14 @@ import type { Room } from './Room';
 
 const EYE = 1.58;
 const KNEEL_EYE = 0.6;
+/**
+ * The opening's eye: lower, as if sitting on the floor of the room, level with the chair's
+ * world (the artist's reference is framed from about here). The visitor stands up when they
+ * first walk.
+ */
+const OPENING_EYE = 1.1;
+/** Where the opening is seen from: centred on the chair, about two and a half metres back. */
+export const OPENING_POS = { x: 0, z: 2.45, yaw: 0 };
 
 /**
  * First-person body: slow, weighted walking; a view that settles. Supports mouse
@@ -18,6 +26,8 @@ export class CameraRig {
   private vel = new THREE.Vector2();
   private yawVel = 0;
   private eye = EYE;
+  /** Until the visitor first walks, the eye rests here (the opening's), then rises to standing. */
+  private restEye = EYE;
   kneeling = false;
   reducedMotion = false;
   enabled = true;
@@ -60,7 +70,13 @@ export class CameraRig {
    * screen and the chair sits just below centre on a phone held upright.
    */
   frameOpening(aspect: number) {
-    this.pitch = aspect < 1 ? -0.3 : -0.15;
+    this.pos.set(OPENING_POS.x, 0, OPENING_POS.z);
+    this.yaw = OPENING_POS.yaw;
+    // Low and centred, the chair large and the room a box around it; under reduced motion the
+    // visitor starts standing (no rise of the view later).
+    this.restEye = this.eye = this.reducedMotion ? EYE : OPENING_EYE;
+    const low = !this.reducedMotion;
+    this.pitch = aspect < 1 ? (low ? -0.12 : -0.3) : low ? -0.02 : -0.15;
   }
 
   /** Walk toward a world point, stopping `stopAt` metres short. */
@@ -167,8 +183,12 @@ export class CameraRig {
       this.pos.z = chairPos.z + (cz / cd) * minD;
     }
 
-    const targetEye = this.kneeling ? KNEEL_EYE : EYE;
-    this.eye = approach(this.eye, targetEye, dt, this.kneeling ? 0.9 : 0.7);
+    // The first step (or being walked toward something) stands the visitor up, slowly, as a
+    // body does; looking around doesn't. Once up, they stay up.
+    if (this.walk && (fwd || strafe || this.goal)) this.restEye = EYE;
+    const targetEye = this.kneeling ? KNEEL_EYE : this.restEye;
+    const rising = !this.kneeling && targetEye - this.eye > 0.1;
+    this.eye = approach(this.eye, targetEye, dt, this.kneeling ? 0.9 : rising ? 1.3 : 0.7);
 
     // A body, not a tripod: footfall bob when walking, breath when standing.
     const moving = Math.hypot(this.vel.x, this.vel.y);
@@ -181,7 +201,9 @@ export class CameraRig {
     }
     this.camera.position.set(this.pos.x, this.eye + bob + sway, this.pos.z);
     this.camera.rotation.set(this.pitch, this.yaw, 0);
-    const fovTarget = this.baseFov + (this.kneeling && !this.reducedMotion ? 8 : 0);
+    // Seen from the opening's low place, a little wider: the box whole, its light at the top.
+    const seated = this.restEye < EYE - 0.1 && !this.kneeling;
+    const fovTarget = this.baseFov + (this.kneeling && !this.reducedMotion ? 8 : 0) + (seated ? 6 : 0);
     this.camera.fov = approach(this.camera.fov, fovTarget, dt, 1.5);
     this.camera.updateProjectionMatrix();
   }

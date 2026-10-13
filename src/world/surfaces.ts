@@ -50,12 +50,13 @@ function toTex(c: HTMLCanvasElement, srgb: boolean): THREE.CanvasTexture {
 }
 
 /** Hand-trowelled plaster: broad mottling, faint directional passes, fine tooth. Writes colour and bump. */
-function plaster(W: number, H: number, seed: number, tone: [number, number, number], scale: { mottle: number; trowel: number; grain: number }) {
+function plaster(W: number, H: number, seed: number, tone: [number, number, number], scale: { mottle: number; trowel: number; grain: number; blotch?: number }) {
   const [c, g] = canvas(W, H);
   const [bc, bg] = canvas(W, H);
   const img = g.createImageData(W, H);
   const bimg = bg.createImageData(W, H);
-  const n1 = makeNoise(seed), n2 = makeNoise(seed + 1), n3 = makeNoise(seed + 2);
+  const n1 = makeNoise(seed), n2 = makeNoise(seed + 1), n3 = makeNoise(seed + 2), n4 = makeNoise(seed + 4);
+  const blotch = scale.blotch ?? 0;
   const r = new Rng(seed + 3);
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
@@ -63,7 +64,15 @@ function plaster(W: number, H: number, seed: number, tone: [number, number, numb
       const tr = n2.fbm(x / (140 * K), y / (34 * K), 3) - 0.5; // trowel passes, mostly horizontal
       const warm = n3.fbm(x / (500 * K), y / (500 * K), 2) - 0.5;
       const fine = r.next() - 0.5;
-      const d = m * scale.mottle + tr * scale.trowel + fine * scale.grain;
+      // Cloudy patches a hand's breadth to an arm's across, and here and there a darker cloud:
+      // plaster that has been patched, painted over and lived beside, never quite even.
+      let cloud = 0;
+      if (blotch) {
+        const b = n4.fbm(x / (110 * K), y / (110 * K), 4) - 0.5;
+        const dark = Math.max(0, n4.fbm(x / (330 * K) + 17, y / (330 * K) + 5, 3) - 0.56);
+        cloud = b * blotch - dark * blotch * 4;
+      }
+      const d = m * scale.mottle + tr * scale.trowel + fine * scale.grain + cloud;
       const i = (y * W + x) * 4;
       img.data[i] = tone[0] + d + warm * 3;
       img.data[i + 1] = tone[1] + d + warm * 1.2;
@@ -204,6 +213,43 @@ function graphiteDust(g: CanvasRenderingContext2D, x0: number, x1: number, y: nu
   }
 }
 
+/**
+ * Graphite on the plaster that isn't writing: the side of a hand dragged under a line, a
+ * thumb wiped clean, a palm leant on, and paler halos where something was rubbed out. Only
+ * ever where hands reach (0.5–2.1 m).
+ */
+function graphiteSmudges(g: CanvasRenderingContext2D, W: number, H: number, r: Rng, n: number) {
+  const soft = (x: number, y: number, rx: number, ry: number, rot: number, rgba: string) => {
+    g.save();
+    g.translate(x, y);
+    g.rotate(rot);
+    g.scale(1, ry / rx);
+    const grd = g.createRadialGradient(0, 0, 0, 0, 0, rx);
+    grd.addColorStop(0, rgba);
+    grd.addColorStop(1, rgba.replace(/[\d.]+\)$/, '0)'));
+    g.fillStyle = grd;
+    g.fillRect(-rx, -rx, rx * 2, rx * 2);
+    g.restore();
+  };
+  for (let i = 0; i < n; i++) {
+    const x = r.range(0.2, W / PX_PER_M - 0.2) * PX_PER_M, y = H - r.range(0.5, 2.1) * PX_PER_M;
+    const kind = r.next();
+    if (kind < 0.45) {
+      // A drag: long, low, a little slanted.
+      soft(x, y, r.range(10, 26) * K, r.range(1.5, 4) * K, r.range(-0.25, 0.1), `rgba(72,72,78,${r.range(0.04, 0.09)})`);
+    } else if (kind < 0.75) {
+      // A thumb or fingertip.
+      soft(x, y, r.range(2.5, 5) * K, r.range(2, 4) * K, r.range(0, 3), `rgba(70,70,76,${r.range(0.05, 0.1)})`);
+    } else if (kind < 0.9) {
+      // An eraser's halo: cleaner than the wall round it.
+      soft(x, y, r.range(12, 24) * K, r.range(5, 10) * K, r.range(-0.2, 0.2), `rgba(255,255,250,${r.range(0.05, 0.09)})`);
+    } else {
+      // A palm, leant on.
+      soft(x, y, r.range(8, 12) * K, r.range(10, 14) * K, r.range(-0.3, 0.3), `rgba(80,78,76,${r.range(0.025, 0.05)})`);
+    }
+  }
+}
+
 /** Scuffs along the skirting: shoes, a chair back, a bag set down. */
 function baseScuffs(g: CanvasRenderingContext2D, W: number, H: number, r: Rng, n: number) {
   for (let i = 0; i < n; i++) {
@@ -224,7 +270,7 @@ export function wallMaps(surface: Surface, seed: number, wM: number, hM: number)
     west: [234, 232, 228],
     south: [236, 234, 229],
   };
-  const { c, g, bc } = plaster(W, H, seed, tone[surface] ?? [236, 234, 228], { mottle: 7, trowel: 4.5, grain: 3 });
+  const { c, g, bc } = plaster(W, H, seed, tone[surface] ?? [236, 234, 228], { mottle: 15, trowel: 5, grain: 4, blotch: 21 });
   const r = new Rng(seed + 11);
   const floorY = H;
   const mx = (u: number) => u * PX_PER_M;
@@ -237,7 +283,7 @@ export function wallMaps(surface: Surface, seed: number, wM: number, hM: number)
     erasedWriting(g, 'you', mx(3.35), my(1.35), 36, r, 1.1);
     erasedWriting(g, "I'm sorry", mx(4.4), my(1.0), 44, r, 0.9);
     removedSheet(g, mx(5.2), my(2.15), 0.42 * PX_PER_M, 0.3 * PX_PER_M, r);
-    graphiteDust(g, mx(1.0), mx(3.2), my(0.09), r);
+    graphiteDust(g, mx(1.0), mx(3.2), my(0.115), r);
   } else if (surface === 'east') {
     heightMarks(g, mx(0.35), floorY, r);
     removedSheet(g, mx(3.6), my(2.4), 0.3 * PX_PER_M, 0.22 * PX_PER_M, r);
@@ -266,6 +312,7 @@ export function wallMaps(surface: Surface, seed: number, wM: number, hM: number)
   }
 
   baseScuffs(g, W, H, r, 22);
+  graphiteSmudges(g, W, H, r, 26);
   corners(g, W, H, { bottom: 0.55, top: 0.45, left: 0.45, right: 0.45 });
   const map = toTex(c, true);
   const bump = toTex(bc, false);
@@ -279,7 +326,9 @@ export function wallMaps(surface: Surface, seed: number, wM: number, hM: number)
  */
 export function floorMaps(seed: number, wM: number, dM: number): SurfaceMaps {
   const W = Math.round(wM * PX_PER_M), H = Math.round(dM * PX_PER_M);
-  const { c, g, bc } = plaster(W, H, seed, [221, 217, 209], { mottle: 9, trowel: 2, grain: 4 });
+  // Sealed concrete, a shade darker than the walls: cloudy, flecked, with a soft sheen where
+  // the light falls (so the pool reads as light on a surface, not a paler floor).
+  const { c, g, bc } = plaster(W, H, seed, [192, 186, 176], { mottle: 18, trowel: 2, grain: 7, blotch: 20 });
   const r = new Rng(seed + 5);
   const n = makeNoise(seed + 9);
   const cx = W / 2, cy = H / 2;
@@ -293,7 +342,7 @@ export function floorMaps(seed: number, wM: number, dM: number): SurfaceMaps {
       const across = Math.exp(-(((x - cx) / (0.55 * PX_PER_M)) ** 2));
       const path = along * across * (0.6 + 0.4 * n.fbm(x / (60 * K), y / (60 * K), 2));
       const ring = Math.exp(-(((Math.hypot(x - cx, y - cy) - 0.42 * PX_PER_M) / (0.22 * PX_PER_M)) ** 2));
-      const rough = 0.9 - 0.16 * path - 0.1 * ring + (n.fbm(x / (30 * K), y / (30 * K), 2) - 0.5) * 0.06;
+      const rough = 0.74 - 0.12 * path - 0.08 * ring + (n.fbm(x / (30 * K), y / (30 * K), 2) - 0.5) * 0.1;
       const i = (y * W + x) * 4;
       rimg.data[i] = rimg.data[i + 1] = rimg.data[i + 2] = Math.round(rough * 255);
       rimg.data[i + 3] = 255;

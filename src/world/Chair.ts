@@ -3,57 +3,32 @@ import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeom
 import { woodMaps, SEAT_V0 } from './wood';
 
 /**
- * A small hand-made ladder-back chair. Seat at 34 cm, finials at 72 cm: a child's chair,
- * too small for the visitor, made by someone who cared. Turned legs that splay a little,
- * back posts that lean and end in finials, an arched crest rail bent to fit a back, a
- * dished seat. Wear is baked into vertex colour: paler where hands and bodies touched it
- * (the seat's front edge, the middle of the crest rail), darker where it meets the floor.
+ * A small hand-made ladder-back chair. Seat at 34 cm, posts to 72 cm: a child's chair, too
+ * small for the visitor, made by someone who cared. Square legs eased at the edges, back posts
+ * raked back, a top rail and two slats, square stretchers, a seat of two boards. Wear is baked
+ * into vertex colour: paler where hands and bodies touched it (the seat's front edge, the top
+ * rail, every arris), darker in the joints and where it meets the floor.
  */
 
-type Profile = [number, number][]; // [t, radius]
-
-function radiusAt(p: Profile, t: number): number {
-  for (let i = 1; i < p.length; i++) {
-    if (t <= p[i][0]) {
-      const [t0, r0] = p[i - 1], [t1, r1] = p[i];
-      const k = (t - t0) / (t1 - t0);
-      const s = k * k * (3 - 2 * k);
-      return r0 + (r1 - r0) * s;
-    }
+/**
+ * A square bar from a to b (its length along the grain), eased at the arrises, tapering to
+ * `taper` of its width at a (the foot).
+ */
+function squareBar(a: THREE.Vector3, b: THREE.Vector3, w: number, taper: number): THREE.BufferGeometry {
+  const len = a.distanceTo(b);
+  const g = new RoundedBoxGeometry(w, len, w, 2, 0.0035);
+  const pos = g.attributes.position, uv = g.attributes.uv;
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+    const t = y / len + 0.5;
+    const k = taper + (1 - taper) * t;
+    pos.setXYZ(i, x * k, y, z * k);
+    uv.setXY(i, t * len * 2.2, (Math.atan2(z, x) / (2 * Math.PI) + 0.5) * 0.12);
   }
-  return p[p.length - 1][1];
-}
-
-/** A turned part: a tube along a curve whose radius follows a lathe profile. */
-function turned(points: THREE.Vector3[], profile: Profile, segs = 64, radial = 14): THREE.BufferGeometry {
-  const curve = new THREE.CatmullRomCurve3(points, false, 'centripetal');
-  const tube = new THREE.TubeGeometry(curve, segs, 1, radial, false);
-  const pos = tube.attributes.position;
-  const centre = new THREE.Vector3();
-  const v = new THREE.Vector3();
-  for (let i = 0; i <= segs; i++) {
-    const t = i / segs;
-    curve.getPointAt(t, centre);
-    const r = radiusAt(profile, t);
-    for (let j = 0; j <= radial; j++) {
-      const k = i * (radial + 1) + j;
-      v.fromBufferAttribute(pos, k).sub(centre).multiplyScalar(r).add(centre);
-      pos.setXYZ(k, v.x, v.y, v.z);
-    }
-  }
-  tube.computeVertexNormals();
-  // Wear on the turning's high points (beads, the swell of a leg): where hands and shoes catch.
-  const wear = new Float32Array(pos.count);
-  for (let i = 0; i <= segs; i++) {
-    const t = i / segs, d = 0.04;
-    const bulge = radiusAt(profile, t) - (radiusAt(profile, Math.max(0, t - d)) + radiusAt(profile, Math.min(1, t + d))) / 2;
-    for (let j = 0; j <= radial; j++) wear[i * (radial + 1) + j] = Math.max(0, Math.min(1, bulge / 0.0012));
-  }
-  tube.setAttribute('wear', new THREE.BufferAttribute(wear, 1));
-  const len = curve.getLength();
-  const uv = tube.attributes.uv;
-  for (let k = 0; k < uv.count; k++) uv.setXY(k, uv.getX(k) * len * 2.2, uv.getY(k) * 0.12);
-  return tube;
+  edgeWear(g);
+  const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize());
+  g.applyMatrix4(new THREE.Matrix4().compose(a.clone().add(b).multiplyScalar(0.5), q, new THREE.Vector3(1, 1, 1)));
+  return g;
 }
 
 /** A board bent along its width (z) and, for the crest, arched along its top edge. */
@@ -123,66 +98,35 @@ export class Chair {
     }
     add(seat);
 
-    // Front legs: turned, splayed slightly outward and forward.
-    const front: Profile = [[0, 0.0105], [0.12, 0.0135], [0.3, 0.0165], [0.5, 0.0128], [0.6, 0.017], [0.66, 0.0128], [0.92, 0.0145], [1, 0.012]];
+    // Square legs, eased at the arrises, a little slimmer at the foot. The front pair stands
+    // straight; the back pair runs on up into the posts, raked back.
+    const W = 0.03;
+    const postX = (y: number) => 0.152 - 0.012 * (y / 0.72);
+    const postZ = (y: number) => -0.165 - 0.05 * (y / 0.72);
     for (const sx of [-1, 1]) {
-      add(turned([new THREE.Vector3(sx * 0.17, 0.004, 0.165), new THREE.Vector3(sx * 0.161, 0.17, 0.152), new THREE.Vector3(sx * 0.153, 0.334, 0.14)], front));
-    }
-    // Back legs run up into the back posts, leaning back, ending in finials.
-    const back: Profile = [[0, 0.011], [0.08, 0.0145], [0.2, 0.0158], [0.42, 0.0145], [0.47, 0.0158], [0.52, 0.0136], [0.93, 0.0122], [0.965, 0.0098], [1, 0.011]];
-    const postTop = (sx: number) => new THREE.Vector3(sx * 0.122, 0.705, -0.212);
-    for (const sx of [-1, 1]) {
-      add(
-        turned(
-          [
-            new THREE.Vector3(sx * 0.158, 0.004, -0.17),
-            new THREE.Vector3(sx * 0.146, 0.334, -0.135),
-            new THREE.Vector3(sx * 0.134, 0.53, -0.162),
-            postTop(sx),
-          ],
-          back,
-          96,
-        ),
-      );
-      const fin = new THREE.SphereGeometry(0.0158, 18, 12);
-      fin.scale(1, 1.25, 1);
-      fin.translate(postTop(sx).x, postTop(sx).y + 0.014, postTop(sx).z - 0.002);
-      // Turned wood like the posts (a sphere's own UVs would reach into the seat's part of the texture).
-      const fuv = fin.attributes.uv;
-      for (let k = 0; k < fuv.count; k++) fuv.setXY(k, fuv.getX(k) * 0.3, fuv.getY(k) * 0.12);
-      fin.setAttribute('wear', new THREE.BufferAttribute(new Float32Array(fin.attributes.position.count).fill(0.25), 1));
-      add(fin);
+      add(squareBar(new THREE.Vector3(sx * 0.162, 0.004, 0.152), new THREE.Vector3(sx * 0.16, 0.334, 0.142), W, 0.88));
+      add(squareBar(new THREE.Vector3(sx * postX(0), 0.004, postZ(0)), new THREE.Vector3(sx * postX(0.72), 0.72, postZ(0.72)), W, 0.9));
     }
 
-    // Back: an arched crest rail and two slats, bent to receive a back, following the lean.
-    const lean = new THREE.Matrix4().makeRotationX(-0.13);
-    const rail = (y: number, z: number, h: number, arch: number, bend: number, tilt = 0) => {
-      const g = bentBoard(0.262, h, 0.013, bend, arch);
-      const m = new THREE.Matrix4().makeTranslation(0, y, z).multiply(lean).multiply(new THREE.Matrix4().makeRotationZ(tilt));
+    // Back: a wider top rail and two slats, tenoned into the posts, following their rake.
+    const lean = new THREE.Matrix4().makeRotationX(-Math.atan(0.05 / 0.716));
+    const rail = (y: number, h: number, tilt = 0) => {
+      const g = bentBoard(2 * postX(y) + 0.01, h, 0.014, 0.006, 0);
+      const m = new THREE.Matrix4().makeTranslation(0, y, postZ(y) + 0.002).multiply(lean).multiply(new THREE.Matrix4().makeRotationZ(tilt));
       add(g, m);
     };
-    rail(0.648, -0.196, 0.056, 0.014, 0.018);
+    rail(0.665, 0.052);
     // Made by hand: the middle slat went in not quite level.
-    rail(0.565, -0.175, 0.034, 0.004, 0.015, 0.03);
-    rail(0.482, -0.158, 0.03, 0.002, 0.013);
+    rail(0.575, 0.034, 0.03);
+    rail(0.485, 0.034);
 
-    // Stretchers, slightly bowed, with a bead at the front.
-    const stretch = (a: THREE.Vector3, b: THREE.Vector3, beaded: boolean) => {
-      const mid = a.clone().lerp(b, 0.5);
-      mid.y -= 0.002;
-      const prof: Profile = beaded
-        ? [[0, 0.0062], [0.42, 0.0074], [0.5, 0.0096], [0.58, 0.0074], [1, 0.0062]]
-        : [[0, 0.006], [0.5, 0.0072], [1, 0.006]];
-      add(turned([a, mid, b], prof, 32, 10));
-    };
-    const fl = (sx: number, y: number) => new THREE.Vector3(sx * (0.17 - (y / 0.334) * 0.017), y, 0.165 - (y / 0.334) * 0.025);
-    const bl = (sx: number, y: number) => new THREE.Vector3(sx * (0.158 - (y / 0.334) * 0.012), y, -0.17 + (y / 0.334) * 0.035);
-    stretch(fl(-1, 0.13), fl(1, 0.13), true);
-    stretch(bl(-1, 0.12), bl(1, 0.12), false);
-    for (const sx of [-1, 1]) {
-      stretch(fl(sx, 0.085), bl(sx, 0.085), false);
-      stretch(fl(sx, 0.175), bl(sx, 0.175), false);
-    }
+    // Stretchers: square too, low at the sides, a little higher across the front and back.
+    const S = 0.018;
+    const legAt = (sx: number, front: boolean, y: number) =>
+      front ? new THREE.Vector3(sx * (0.162 - 0.002 * (y / 0.33)), y, 0.152 - 0.01 * (y / 0.33)) : new THREE.Vector3(sx * postX(y), y, postZ(y));
+    add(squareBar(legAt(-1, true, 0.14), legAt(1, true, 0.14), S, 1));
+    add(squareBar(legAt(-1, false, 0.14), legAt(1, false, 0.14), S, 1));
+    for (const sx of [-1, 1]) add(squareBar(legAt(sx, true, 0.09), legAt(sx, false, 0.09), S, 1));
 
     // Merge and bake wear into vertex colour.
     const merged = mergeParts(parts);
@@ -256,7 +200,7 @@ const CONTACT_M = 0.7;
 function contactTextures(): { feet: THREE.DataTexture; seat: THREE.DataTexture } {
   const N = 128, m = CONTACT_M / N;
   const feet = new Uint8Array(N * N * 4), seat = new Uint8Array(N * N * 4);
-  const legs = [[-0.17, 0.165], [0.17, 0.165], [-0.158, -0.17], [0.158, -0.17]];
+  const legs = [[-0.162, 0.152], [0.162, 0.152], [-0.152, -0.165], [0.152, -0.165]];
   const sm = (a: number, b: number, x: number) => {
     const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
     return t * t * (3 - 2 * t);
@@ -324,7 +268,7 @@ function bakeWear(g: THREE.BufferGeometry, seatTop: number) {
     let k = 1 + 0.2 * edge.getX(i);
     // Joints: old finish and dust gather where the stretchers go in and under the seat.
     if (Math.abs(x) > 0.12 && y < seatTop - 0.02) {
-      for (const yj of [0.085, 0.12, 0.13, 0.175]) k -= 0.1 * Math.exp(-(((y - yj) / 0.012) ** 2));
+      for (const yj of [0.09, 0.14]) k -= 0.1 * Math.exp(-(((y - yj) / 0.012) ** 2));
       k -= 0.12 * Math.exp(-(((y - (seatTop - 0.035)) / 0.015) ** 2));
     }
     // Seat: worn pale across the front edge and in the middle where someone sat.
