@@ -34,6 +34,8 @@ export interface ContributionTrace {
 /** What a situation may see and do. Implemented by the Director. */
 export interface SituationHost {
   readonly now: number;
+  /** A meeting with a line is under way (its beat is pending): nothing new should start over it. */
+  attending?(): boolean;
   readonly visitor: VisitorModel;
   readonly memory: Memory;
   readonly field: FieldValues;
@@ -80,6 +82,8 @@ export interface SituationDef {
   id: string;
   /** Upper bound on how long it may stay open (seconds). */
   maxLife: number;
+  /** Quiet enough to begin at any moment (it claims nothing and makes no sound when it starts). */
+  gentle?: boolean;
   /** Fragments that belong to this situation: the generic rules stop using them. */
   owns?: string[];
   ready(h: SituationHost, claimed: (ch: Channel) => boolean): boolean;
@@ -159,7 +163,10 @@ export class SituationRunner {
     }
     for (const [ch, id] of this.claims) if (ch === 'beyond' && id) this.lastBeyond = h.now;
     if (this.active.length >= this.maxActive || h.now - this.lastStart < this.startGap) return;
+    // Nothing loud begins while the visitor is in the middle of meeting a line, or over something else.
+    const busy = h.attending?.() ?? false;
     for (const def of this.pending) {
+      if (busy && !def.gentle) continue;
       if (!def.ready(h, (ch) => this.claimed(ch))) continue;
       this.pending.splice(this.pending.indexOf(def), 1);
       const a: Active = { def, st: { stage: 'begin', startedAt: h.now, stageAt: h.now, data: {} } };

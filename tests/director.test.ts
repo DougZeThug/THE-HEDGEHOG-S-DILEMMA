@@ -85,7 +85,8 @@ describe('Director', () => {
 
   it('spaces major events', () => {
     const { cues } = simulate(scripts.hesitant, 400);
-    const majors = cues.filter((c) => c.cue.type === 'voice' || c.cue.type === 'music' || c.cue.type === 'silence').map((c) => c.t);
+    // The hush just before a recorded voice is part of that voice's gesture, not an event of its own.
+    const majors = cues.filter((c) => (c.cue.type === 'voice' || c.cue.type === 'music' || c.cue.type === 'silence') && !c.rule.startsWith('hush:')).map((c) => c.t);
     for (let i = 1; i < majors.length; i++) expect(majors[i] - majors[i - 1]).toBeGreaterThanOrEqual(6.9);
   });
 

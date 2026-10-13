@@ -15,7 +15,8 @@ const GradeShader = {
     tDiffuse: { value: null as THREE.Texture | null },
     uSaturation: { value: 1 },
     uDarkness: { value: 0 },
-    uWhite: { value: 1 },
+    uWhite: { value: 0 },
+    uBlack: { value: 1 },
     uVignette: { value: 0.32 },
     uGrain: { value: 0.035 },
     uTime: { value: 0 },
@@ -27,7 +28,7 @@ const GradeShader = {
   `,
   fragmentShader: /* glsl */ `
     uniform sampler2D tDiffuse;
-    uniform float uSaturation, uDarkness, uWhite, uVignette, uGrain, uTime;
+    uniform float uSaturation, uDarkness, uWhite, uBlack, uVignette, uGrain, uTime;
     uniform vec2 uRes;
     varying vec2 vUv;
     float h(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
@@ -41,8 +42,10 @@ const GradeShader = {
       c.rgb *= mix(1.0, v, uVignette + uDarkness * 0.6);
       c.rgb *= 1.0 - uDarkness * 0.92;
       float g = h(vUv * uRes + fract(uTime) * 91.7) - 0.5;
-      c.rgb += g * uGrain * (0.6 + 0.4 * (1.0 - l));
+      // Grain belongs to light: none on black (it would read as static on a title card).
+      c.rgb += g * uGrain * (0.6 + 0.4 * (1.0 - l)) * smoothstep(0.0, 0.08, l);
       c.rgb = mix(c.rgb, vec3(0.955, 0.952, 0.945), uWhite);
+      c.rgb = mix(c.rgb, vec3(0.043, 0.043, 0.047), uBlack);
       gl_FragColor = c;
     }
   `,
@@ -52,8 +55,12 @@ export class Post {
   readonly composer: EffectComposer;
   private grade: ShaderPass;
   private cur = { sat: 1, dark: 0 };
-  /** 1 = full white (arrival), 0 = the room. */
-  white = 1;
+  /** 1 = full white, 0 = the room. */
+  white = 0;
+  /** 1 = the black of the title card (the opening), 0 = the room. */
+  black = 1;
+  /** Extra darkening the opening holds while the room is still dim (0..1). */
+  scoreDark = 0;
   /** Extra darkness for departure (0..1). */
   depart = 0;
   reducedMotion = false;
@@ -87,12 +94,13 @@ export class Post {
   update(dt: number, env: Environment, time: number) {
     this.cur.sat = approach(this.cur.sat, env.saturation, dt, 3);
     // Gentle mode keeps the darkest extremes in reserve.
-    const darkTarget = Math.max(env.darkness * (0.55 + 0.45 * this.intensityScale), this.depart);
+    const darkTarget = Math.max(env.darkness * (0.55 + 0.45 * this.intensityScale), this.depart, this.scoreDark);
     this.cur.dark = approach(this.cur.dark, darkTarget, dt, this.depart > 0 ? 2.5 : 4);
     const u = this.grade.uniforms;
     u.uSaturation.value = this.cur.sat;
     u.uDarkness.value = this.cur.dark;
     u.uWhite.value = this.white;
+    u.uBlack.value = this.black;
     u.uTime.value = this.reducedMotion ? 0.5 : time * 0.25;
     u.uGrain.value = this.reducedMotion ? 0.02 : 0.032;
   }

@@ -1,0 +1,131 @@
+{
+  "$comment": "Bespoke voices made with ElevenLabs Voice Design, for auditioning. Previews go to audition/design/; a voice is saved to the account (one of 30 slots) only after the artist keeps it: node scripts/design-voices.mjs --save=<preview>:<voice key>. Synthetic voices, described by character; none imitates a real person.",
+  "model": "eleven_ttv_v3",
+  "text": "I kept the cups where they were. I know it is silly. I still say we, sometimes, by accident, and then the kitchen goes very quiet.",
+  "designs": [
+    {
+      "id": "older-woman",
+      "description": "A woman in her late sixties, worn and tender, a soft slightly hoarse voice, speaking quietly and slowly, close to the listener, as if after a long day.",
+      "for": "stay (worn), remember-me, good-day, glad-came"
+    },
+    {
+      "id": "tired-man",
+      "description": "A man in his fifties, tired and gentle, a low quiet voice with a little roughness, speaking slowly and close, as if he has not slept. Restrained, never theatrical.",
+      "for": "happy-then, closer, understood-minute, alone-ok"
+    },
+    {
+      "id": "whisperer",
+      "description": "A young woman whispering very close to the microphone, breathy and intimate, soft and slightly trembling, as if someone is asleep in the next room.",
+      "for": "the whispered readings: not-going, two-cups, was-it-me, laugh, stay"
+    },
+    {
+      "id": "small-voice",
+      "description": "A young adult with a light, small, uncertain voice, soft and hesitant and shy, speaking quietly, as if afraid of taking up space.",
+      "for": "the lines written in a child's hand: small-minute, angry-with-me, remember-me (an adult voice, not a child)"
+    }
+  ],
+  "libraryModel": "eleven_v4",
+  "libraryStability": 0.3,
+  "library": [
+    {
+      "id": "lib-maria-moody",
+      "voiceId": "wGcFBfKz5yUQqhqr0mVy",
+      "publicOwnerId": "38ce59162eff3a60d0f238a254659263b013e077722cc3c4b152a249ee9ce83a",
+      "name": "Maria Moody",
+      "why": "An octogenarian: patience in the pauses, restraint.",
+      "for": "stay (worn), remember-me, good-day, who-talking"
+    },
+    {
+      "id": "lib-julie",
+      "voiceId": "g12yXXabMWeFoLMzxPrF",
+      "publicOwnerId": "bf6e42a20a691e123db74ee577f6b579d9beebb6d60a9c8898390ba9de72ca4a",
+      "name": "Julie",
+      "why": "A calm, reflective, intimate older woman.",
+      "for": "dont-have-say, maybe-wanted, thank-staying"
+    },
+    {
+      "id": "lib-lisa",
+      "voiceId": "p2Wol3C7j3rHbfOrbL18",
+      "publicOwnerId": "1c07ef5740387faa0fd1f7e624ce51055c0b270674ab3da0f0e22c2882bce3c4",
+      "name": "Lisa",
+      "why": "An older woman telling heartfelt memories.",
+      "for": "happy-then, good-day, summer"
+    },
+    {
+      "id": "lib-katie",
+      "voiceId": "jdrqQ2ZMWENd1cuRByWG",
+      "publicOwnerId": "5debb531ccc5926efc3d317b275f0546d238426c76b211bad810bb0a5bafd5f2",
+      "name": "Katie",
+      "why": "An older woman whispering.",
+      "for": "the whispered readings, from an older voice"
+    },
+    {
+      "id": "lib-rick",
+      "voiceId": "wcATjh8zBDfepqUbl99V",
+      "publicOwnerId": "47f0732151fbf971f8759d7fa8a10821f89f16d0c720f553223f0297b4917acc",
+      "name": "Rick",
+      "why": "A tired, raspy, close older man.",
+      "for": "easier-without, alone-ok, still-there"
+    },
+    {
+      "id": "lib-alder",
+      "voiceId": "nTMUXLFSfbWmdKKy7nDC",
+      "publicOwnerId": "20fba41d288ee835b5e24d946dd0a7ca1015cf9a951cbf710d8532529656ffaf",
+      "name": "Alder",
+      "why": "A seasoned old man with a gentle rasp, slow.",
+      "for": "wish-see, thank-staying, happy-then"
+    },
+    {
+      "id": "lib-grandfather-joe",
+      "voiceId": "0lp4RIz96WD1RUtvEu3Q",
+      "publicOwnerId": "34c483aaa9f266050bb548d8a3495b18c266f138401947fae23df13770cb6f7b",
+      "name": "Grandfather Joe",
+      "why": "A conversational older British man.",
+      "for": "good-day, summer, who-talking"
+    },
+    {
+      "id": "lib-lyan",
+      "voiceId": "3YXAuwCx7wB8kSkKCqsu",
+      "publicOwnerId": "0a2b6902206ee5c247450ff82caa110406aedfb7173a54281db01ffe36abe033",
+      "name": "Lyan",
+      "why": "Quiet, vulnerable and intimate; whispery.",
+      "for": "stay, not-going, come-back-dont, two-cups"
+    },
+    {
+      "id": "lib-blondie",
+      "voiceId": "NNlPuk2Pv2RnraA6G8yp",
+      "publicOwnerId": "5e60f6fb817d5de4c3ccd5f43e5f287af504cd8061af6efc2160b4fa6ea1c369",
+      "name": "Blondie",
+      "why": "A breathy British whisper.",
+      "for": "too-quiet, sit-awhile, was-it-me"
+    },
+    {
+      "id": "lib-julian",
+      "voiceId": "Myap7vX7L9ipoJVdyOVZ",
+      "publicOwnerId": "d1dacc97df22ce4cf6cb1593a69c988bdcdbb0f1285d64ab97e2a7644b4e7206",
+      "name": "Julian",
+      "why": "A male whisper with a gentle rasp.",
+      "for": "the whispered readings, from a man"
+    },
+    {
+      "id": "lib-kavya",
+      "voiceId": "bA58y3FqVI6b6gTNh0oT",
+      "publicOwnerId": "7398804d9eaf2f463899a907587c33a390591775784f87857b6d0e1e4e3e66f6",
+      "name": "Kavya",
+      "why": "Childlike, quietly immersive. A performed or designed voice of unstated age, not a real child.",
+      "for": "the lines in a child's hand: angry-with-me, small-minute, remember-me",
+      "text": "Are you angry with me? I didn't mean it. Let me be small for a minute.",
+      "childlike": true
+    },
+    {
+      "id": "lib-omar",
+      "voiceId": "S7IsvAvEoDfui6GSZK3A",
+      "publicOwnerId": "7398804d9eaf2f463899a907587c33a390591775784f87857b6d0e1e4e3e66f6",
+      "name": "Omar J",
+      "why": "Very young, gentle and sincere. A performed or designed voice of unstated age, not a real child.",
+      "for": "the lines in a child's hand: angry-with-me, small-minute, remember-me",
+      "text": "Are you angry with me? I didn't mean it. Let me be small for a minute.",
+      "childlike": true
+    }
+  ]
+}

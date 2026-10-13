@@ -95,6 +95,17 @@ export class Room {
     this.setScale(1);
   }
 
+  private ceilingEmissive = new THREE.Color(0x23262a);
+  /**
+   * The opening's light: how lit the panel looks (0 dark, 1 as built) and how much of the
+   * ceiling's stand-in bounce there is. Only intensities change: no light is added or removed,
+   * so no shader recompiles while the room comes up.
+   */
+  setLit(panel: number, ceiling: number) {
+    (this.panel.material as THREE.MeshStandardMaterial).emissiveIntensity = 2.2 * panel;
+    (this.frames.ceiling.mesh.material as THREE.MeshStandardMaterial).emissive.copy(this.ceilingEmissive).multiplyScalar(ceiling);
+  }
+
   /** Soft grey trim: a skirting with a small shadow gap above it, and a fine shadow gap at the ceiling. */
   private addSkirting(group: THREE.Group, w: number) {
     const trim = new THREE.MeshStandardMaterial({ color: 0xcfccc6, roughness: 0.6 });

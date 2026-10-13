@@ -1,7 +1,8 @@
 import type { AudioEngine } from './AudioEngine';
 import type { VoiceKind } from '../state/cues';
 import { Rng, hashString } from '../core/rng';
-import { chooseSource, type Source } from './selection';
+import { chooseSource, preloadStages, type Source } from './selection';
+import dialogue from '../content/dialogue.json';
 
 /**
  * Voices.
@@ -23,6 +24,8 @@ export interface VoicePlacement {
   muffled?: boolean;
   /** No position at all: inside the head, drifting. */
   nowhere?: boolean;
+  /** A recorded performance (gentler muffling, narrower drift). */
+  recording?: boolean;
   /** Handle for cutting the sound off later. */
   tag?: string;
 }
@@ -69,13 +72,21 @@ function measure(buf: AudioBuffer) {
   return { rms: Math.sqrt(sum / Math.max(1, n)) || 1e-6, peak: peak || 1e-6 };
 }
 
-/** Gain to bring a recording to about -24 dBFS RMS without pushing its peak past -3 dBFS. */
-function normaliseGain(buf: AudioBuffer): number {
+/**
+ * Gain to bring a recording toward -24 dBFS RMS without pushing its peak past -3 dBFS.
+ * Performances are only half-corrected: a take whispered "very quietly" should stay quieter
+ * than one where the voice rises, and their authored `levelDb` is applied on top.
+ */
+function normaliseGain(buf: AudioBuffer, partial = false): number {
   const { rms, peak } = measure(buf);
   const target = Math.pow(10, -24 / 20);
   const ceiling = Math.pow(10, -3 / 20);
-  return Math.min(target / rms, ceiling / peak, 16);
+  const full = target / rms;
+  return Math.min(partial ? Math.sqrt(full) : full, ceiling / peak, 16);
 }
+
+/** Authored relative level of each performance file, in dB. */
+const LEVEL_DB = new Map<string, number>((dialogue.performances as { file: string; levelDb?: number }[]).map((p) => [p.file, p.levelDb ?? 0]));
 
 export function syllabify(text: string): Syllable[] {
   const out: Syllable[] = [];
@@ -109,6 +120,9 @@ interface StyleDef {
   attack: number;
 }
 
+/** Run when the browser has a moment (or soon, where there is no idle callback). */
+const idle = (f: () => void) => ('requestIdleCallback' in window ? window.requestIdleCallback(() => f(), { timeout: 4000 }) : setTimeout(f, 500));
+
 const STYLES: Record<string, StyleDef> = {
   whisper: { syll: 0.2, formantShift: 1, voiced: false, reverb: 0.35, lowpass: 5200, gain: 1, stressAmt: 0.35, attack: 0.03 },
   tender: { syll: 0.25, formantShift: 0.92, voiced: false, reverb: 0.22, lowpass: 3200, gain: 1.05, stressAmt: 0.45, attack: 0.05 },
@@ -116,6 +130,13 @@ const STYLES: Record<string, StyleDef> = {
   child: { syll: 0.17, formantShift: 1.2, voiced: false, reverb: 0.3, lowpass: 6000, gain: 0.9, stressAmt: 0.4, attack: 0.025 },
   distant: { syll: 0.19, formantShift: 1, voiced: true, f0: 165, reverb: 0.6, lowpass: 900, gain: 0.9, stressAmt: 0.5, attack: 0.03 },
 };
+
+/** What was played: how long, when it starts on the audio clock, and which recording. */
+export interface Played {
+  duration: number;
+  startAt?: number;
+  file?: string;
+}
 
 export class Voices {
   private manifest: Record<string, string[]> = {};
@@ -153,7 +174,7 @@ export class Voices {
         .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(String(r.status)))))
         .then((b) => this.a.ctx.decodeAudioData(b))
         .then((buf) => {
-          this.norm.set(file, normaliseGain(buf));
+          this.norm.set(file, normaliseGain(buf, file.startsWith('dialogue/')) * Math.pow(10, (LEVEL_DB.get(file) ?? 0) / 20));
           return buf;
         })
         .catch(() => null);
@@ -176,9 +197,17 @@ export class Voices {
     return out;
   }
 
-  /** Preload all recorded assets in the background. */
-  preload() {
-    for (const files of Object.values(this.manifest)) for (const f of files) void this.loadBuffer(f);
+  /** Preload in stages, so a phone isn't asked to download every take on arrival. */
+  preload(priority: string[] = []) {
+    // What the opening needs, before anything else.
+    for (const k of priority) for (const f of this.manifest[k] ?? (k.endsWith('.mp3') ? [k] : [])) void this.loadBuffer(f);
+    const { first, rest } = preloadStages(this.manifest);
+    const later = () => {
+      const next = rest.splice(0, 3);
+      if (!next.length) return;
+      void Promise.all(next.map((f) => this.loadBuffer(f))).then(() => idle(later));
+    };
+    void Promise.all(first.map((f) => this.loadBuffer(f))).then(() => idle(later));
   }
 
   /** Build the spatial tail: [input] → (muffle) → panner/stereo → bus (+ reverb send). Returns input node. */
@@ -198,28 +227,38 @@ export class Voices {
     }
     let node: AudioNode = input;
     if (place.muffled) {
+      // Through a wall. Recorded performances keep their breath and catches (they live at
+      // 1–3 kHz), so they are muffled more gently and made quieter instead.
       const lp = c.createBiquadFilter();
       lp.type = 'lowpass';
-      lp.frequency.value = 750;
+      lp.frequency.value = place.recording ? 2200 : 750;
       lp.Q.value = 0.4;
       node.connect(lp);
       node = lp;
+      if (place.recording) {
+        const wall = c.createGain();
+        wall.gain.value = 0.42;
+        node.connect(wall);
+        node = wall;
+      }
     }
     let outNode: AudioNode;
     if (place.nowhere || !place.from) {
+      // Drifting, from no particular place — starting anywhere, not always toward the right.
       const sp = c.createStereoPanner();
-      const lfo = c.createOscillator();
-      lfo.frequency.value = 0.07;
-      const lg = c.createGain();
-      lg.gain.value = 0.55;
-      lfo.connect(lg).connect(sp.pan);
-      lfo.start(t);
-      lfo.stop(t + dur + 4);
+      const depth = place.recording ? 0.2 : 0.55;
+      const phase = Math.random() * Math.PI * 2;
+      const len = Math.max(0.5, dur + 4);
+      const curve = new Float32Array(64);
+      for (let i = 0; i < curve.length; i++) curve[i] = depth * Math.sin(phase + 2 * Math.PI * 0.07 * (len * i) / (curve.length - 1));
+      sp.pan.setValueCurveAtTime(curve, t, len);
       node.connect(sp);
       outNode = sp;
     } else {
       const [x, y, z] = place.from;
-      const p = this.a.panner(x, y, z, 0.8, 1.15);
+      // Speech stays intelligible across the room (and on a phone speaker): its place is
+      // carried by direction more than by distance loss.
+      const p = place.recording ? this.a.panner(x, y, z, 2.0, 0.6) : this.a.panner(x, y, z, 0.8, 1.15);
       if (place.to) {
         const [x2, y2, z2] = place.to;
         p.positionX.setValueAtTime(x, t);
@@ -253,15 +292,23 @@ export class Voices {
    * Play a voice event. Returns its approximate duration (seconds) for captions.
    */
   async play(kind: VoiceKind, text: string | null, place: VoicePlacement, gain: number, assetKey?: string, opts: PlayOptions = {}): Promise<number> {
-    if (this.active >= 4) return 0; // never a crowd
+    return (await this.playLine(kind, text, place, gain, assetKey, opts)).duration;
+  }
+
+  /**
+   * Play, and say what was played and when it starts (in the AudioContext's time), so writing
+   * can follow the words. The file may differ from the one asked for (a fallback take).
+   */
+  async playLine(kind: VoiceKind, text: string | null, place: VoicePlacement, gain: number, assetKey?: string, opts: PlayOptions & { priority?: boolean } = {}): Promise<Played> {
+    if (this.active >= 4 && !opts.priority) return { duration: 0 }; // never a crowd
     this.active++; // reserve the slot before anything asynchronous
-    let dur = 0;
+    let out: Played = { duration: 0 };
     try {
-      dur = await this.play_(kind, text, place, gain, opts.synth ? undefined : assetKey, opts);
+      out = await this.play_(kind, text, place, gain, opts.synth ? undefined : assetKey, opts);
     } finally {
-      setTimeout(() => this.active--, dur * 1000 + 500);
+      setTimeout(() => this.active--, out.duration * 1000 + 500);
     }
-    return dur;
+    return out;
   }
 
   private tagged = new Map<string, GainNode[]>();
@@ -272,7 +319,7 @@ export class Voices {
    * A small household sound somewhere: a door closing in another room, a cup set down,
    * the chair creaking. Recorded if a clip exists (`sfx:<kind>`), otherwise synthesised.
    */
-  async sound(kind: 'door' | 'chair-creak' | 'cup', place: VoicePlacement, gain: number): Promise<number> {
+  async sound(kind: 'door' | 'chair-creak' | 'cup' | 'switch' | 'graphite' | 'eraser', place: VoicePlacement, gain: number): Promise<number> {
     if (this.active >= 4) return 0;
     this.active++;
     let dur = 0;
@@ -285,7 +332,9 @@ export class Voices {
         const buf = await this.loadBuffer(file);
         if (buf) return (dur = this.playBuffer(buf, place, g * (this.norm.get(file) ?? 1), 0.45));
       }
-      dur = kind === 'door' ? this.synthDoor(place, g) : kind === 'cup' ? this.synthCup(place, g) : this.synthCreak(place, g);
+      // No recording: a synthetic stand-in where one exists (a pencil has none: silence is better).
+      if (kind === 'graphite') return (dur = 0);
+      dur = kind === 'door' ? this.synthDoor(place, g) : kind === 'cup' ? this.synthCup(place, g) : kind === 'switch' ? this.synthClick(place, g) : kind === 'eraser' ? this.synthEraser(place, g) : this.synthCreak(place, g);
       return dur;
     } finally {
       setTimeout(() => this.active--, dur * 1000 + 500);
@@ -333,7 +382,54 @@ export class Voices {
     return 1.6;
   }
 
+  /** An eraser: three short, uneven rubbing strokes of filtered noise, the last one shorter. */
+  private synthEraser(place: VoicePlacement, gain: number): number {
+    const c = this.a.ctx;
+    const t0 = c.currentTime + 0.02;
+    const src = this.a.noiseSource();
+    const bp = c.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.value = 2900;
+    bp.Q.value = 0.9;
+    const lp = c.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 5200;
+    const env = c.createGain();
+    env.gain.setValueAtTime(0, t0);
+    let t = t0;
+    for (const [len, peak] of [[0.16, 0.5], [0.13, 0.42], [0.09, 0.3]]) {
+      env.gain.setValueAtTime(0, t);
+      env.gain.linearRampToValueAtTime(gain * peak, t + len * 0.3);
+      env.gain.linearRampToValueAtTime(gain * peak * 0.6, t + len * 0.8);
+      env.gain.linearRampToValueAtTime(0, t + len);
+      t += len + 0.05 + this.rng.next() * 0.05;
+    }
+    src.connect(bp).connect(lp).connect(env).connect(this.chain(place, 0.15, t - t0 + 0.2, 1));
+    src.start(t0);
+    src.stop(t + 0.05);
+    return t - t0;
+  }
+
   /** A cup set down: a short ceramic ring. */
+  /** A dry click: a few milliseconds of shaped noise. */
+  private synthClick(place: VoicePlacement, gain: number): number {
+    const c = this.a.ctx;
+    const t = c.currentTime + 0.01;
+    const src = this.a.noiseSource();
+    const bp = c.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.value = 2600;
+    bp.Q.value = 1.2;
+    const env = c.createGain();
+    env.gain.setValueAtTime(0, t);
+    env.gain.linearRampToValueAtTime(gain * 0.9, t + 0.002);
+    env.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
+    src.connect(bp).connect(env).connect(this.chain(place, 0.2, 0.3, 1));
+    src.start(t);
+    src.stop(t + 0.08);
+    return 0.1;
+  }
+
   private synthCup(place: VoicePlacement, gain: number): number {
     const c = this.a.ctx;
     const t = c.currentTime + 0.05;
@@ -401,7 +497,7 @@ export class Voices {
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
   }
 
-  private async play_(kind: VoiceKind, text: string | null, place: VoicePlacement, gain: number, assetKey: string | undefined, opts: PlayOptions): Promise<number> {
+  private async play_(kind: VoiceKind, text: string | null, place: VoicePlacement, gain: number, assetKey: string | undefined, opts: PlayOptions): Promise<Played> {
     const g = gain * (0.55 + 0.45 * this.a.intensity);
     const src = chooseSource({
       manifest: this.manifest, assetKey, performances: opts.performances, text, kind,
@@ -416,21 +512,23 @@ export class Voices {
         // Intelligible recordings sit a little above the room tone so words aren't masked.
         const level = (this.norm.get(file) ?? 1) * (src.kind === 'recording' ? 1.35 : 1);
         // Recorded speech is dry; the room supplies the space. Flat delivery stays closest.
-        return this.playBuffer(buf, place, g * level, kind === 'flat' ? 0.05 : src.kind === 'recording' ? 0.22 : 0.3);
+        const startAt = this.a.ctx.currentTime + 0.01;
+        const duration = this.playBuffer(buf, place, g * level, kind === 'flat' ? 0.05 : src.kind === 'recording' ? 0.22 : 0.3);
+        return { duration, startAt, file: src.kind === 'recording' ? file : undefined };
       }
     }
-    if (src.kind === 'speech' && text) return this.speak(text, kind, g);
+    if (src.kind === 'speech' && text) return { duration: this.speak(text, kind, g) };
     switch (kind) {
       case 'breath':
-        return this.breath(place, g);
+        return { duration: this.breath(place, g) };
       case 'laugh':
-        return this.laugh(place, g);
+        return { duration: this.laugh(place, g) };
       case 'murmur':
-        return this.murmur(place, g);
+        return { duration: this.murmur(place, g) };
       case 'hum':
-        return opts.melody?.length ? this.humTune(place, g, opts.melody) : this.hum(place, g);
+        return { duration: opts.melody?.length ? this.humTune(place, g, opts.melody) : this.hum(place, g) };
       default:
-        return this.utter(text ?? '...', STYLES[kind] ?? STYLES.whisper, place, g, hashString(text ?? kind));
+        return { duration: this.utter(text ?? '...', STYLES[kind] ?? STYLES.whisper, place, g, hashString(text ?? kind)) };
     }
   }
 
@@ -438,9 +536,16 @@ export class Voices {
     const c = this.a.ctx;
     const src = c.createBufferSource();
     src.buffer = buf;
-    const input = this.chain({ ...place, muffled: place.muffled }, reverb, buf.duration, gain * 0.9);
-    src.connect(input);
-    src.start();
+    const input = this.chain({ ...place, muffled: place.muffled, recording: true }, reverb, buf.duration, gain * 0.9);
+    // A few milliseconds of fade at each end: no clicks, whatever the file's edges are like.
+    const env = c.createGain();
+    const t = c.currentTime + 0.01;
+    env.gain.setValueAtTime(0, t);
+    env.gain.linearRampToValueAtTime(1, t + 0.005);
+    env.gain.setValueAtTime(1, Math.max(t + 0.006, t + buf.duration - 0.03));
+    env.gain.linearRampToValueAtTime(0, t + buf.duration);
+    src.connect(env).connect(input);
+    src.start(t);
     return buf.duration;
   }
 

@@ -12,6 +12,8 @@ class Visit {
   constructor(seed = 3, situations: string[] = ['residue']) {
     // A quiet repertoire so situations don't interleave with what is being tested.
     this.d = new Director({ seed, situations });
+    // After the opening: its line is on the wall (finished here, so encounters with it run as written).
+    this.d.release({ written: ['stay'] });
   }
   run(seconds: number, inp: Partial<VisitorInput> = {}) {
     const base: VisitorInput = { x: 0, z: 2.4, yaw: 0, pitch: 0, gazePhraseId: null, gazeChair: false, nearSurface: null, kneeling: false };
@@ -131,12 +133,13 @@ describe('encounters: the same words, met again', () => {
     const starts = [...new Set(v.cues.filter((c) => c.rule.startsWith('encounter:')).map((c) => c.rule))].map(
       (r) => v.cues.find((c) => c.rule === r)!.t,
     );
-    for (let i = 1; i < starts.length; i++) expect(starts[i] - starts[i - 1]).toBeGreaterThanOrEqual(9);
+    // Beats are 8 s apart; a beat that waited plays 1.2 s sooner after it is released.
+    for (let i = 1; i < starts.length; i++) expect(starts[i] - starts[i - 1]).toBeGreaterThanOrEqual(6.5);
     expect(beats.length).toBeGreaterThan(0);
-    // The skipped beat is still owed.
+    // The crowded beat is never lost: it waits while the visitor keeps looking, or is owed to the next meeting.
     v.away(30);
-    const later = own(v.look('stay', 8), 'stay');
-    expect(later.some((c) => c.cue.type === 'write')).toBe(true);
+    v.look('stay', 8);
+    expect(own(v.cues, 'stay').filter((c) => c.cue.type === 'write')).toHaveLength(1);
   });
 
   it('a door does not sound while a situation is using the space beyond the walls', () => {

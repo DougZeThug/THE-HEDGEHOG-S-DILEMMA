@@ -1,3 +1,5 @@
+import { DRAWINGS } from '../src/content/drawings';
+import { drawingSpots } from '../src/world/layout';
 import { describe, it, expect } from 'vitest';
 import { Director } from '../src/state/Director';
 import type { VisitorInput } from '../src/state/VisitorModel';
@@ -13,7 +15,7 @@ const SZ: Record<string, number> = { xs: 0.13, s: 0.17, m: 0.22, l: 0.31, xl: 0.
 const placements = layoutPhrases(PHRASES, (p) => {
   const w = Math.min(2.6, p.text.length * 0.034 * (SZ[p.size] / 0.17));
   return { w, h: SZ[p.size] };
-}, 4242);
+}, 4242, drawingSpots(DRAWINGS));
 const geometry = (id: string) => {
   const pl = placements.get(id);
   return pl ? { surface: pl.surface, ...layoutToWorld(pl.surface, pl.u, pl.v) } : undefined;
@@ -80,8 +82,9 @@ describe('situation: the next room', () => {
     expect(silence).toBeTruthy();
     // The absence: no laughter anywhere near that moment, or ever again.
     const laughs = v.cues.filter((c) => isVoice(c.cue) && c.cue.kind === 'laugh');
-    // Nothing else speaks at the chair during the quiet either.
-    expect(v.cues.filter((c) => isVoice(c.cue) && Math.abs(c.t - write!.t) < 12 && !c.rule.startsWith('sit:')).length).toBe(0);
+    // Nothing else speaks at the chair as the memory is written, or during the quiet that follows.
+    const quietEnd = silence!.t + (silence!.cue as { seconds: number }).seconds;
+    expect(v.cues.filter((c) => isVoice(c.cue) && c.t > write!.t - 6 && c.t < quietEnd && !c.rule.startsWith('sit:')).length).toBe(0);
     expect(laughs.every((c) => c.t < write!.t - 10)).toBe(true);
     v.run(300, { x: 2, z: 2 });
     expect(v.cues.filter((c) => isVoice(c.cue) && c.cue.kind === 'laugh').length).toBe(laughs.length);
@@ -190,7 +193,7 @@ describe('situation: erosion', () => {
     const erode = v.run(300, { x: 0, z: 2.6, facing: 'south' }, (c) => c.cue.type === 'erode');
     expect(erode).toBeTruthy();
     expect(erode!.cue.type === 'erode' && erode!.cue.keep).toBe('miss');
-    expect(erode!.t).toBeGreaterThan(130);
+    expect(erode!.t).toBeGreaterThan(75);
     v.run(10, { x: 0, z: 2.6, facing: 'south' });
     const kin = v.of('sit:erosion').find((c) => c.cue.type === 'write');
     expect(kin && kin.cue.type === 'write' && kin.cue.beside).toBe('contrib:1:kept');

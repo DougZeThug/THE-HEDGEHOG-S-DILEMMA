@@ -42,7 +42,7 @@ export const ARCS: Record<string, Arc> = {
   ],
   closer: [
     alone,
-    [{ gestures: [{ breath: 'behind' }], delay: 2 }],
+    [{ gestures: [{ silence: 0.5, seconds: 6 }], delay: 2 }],
     [{ gestures: [{ annotate: 'come-back-dont', hand: 'faint' }], when: { motif: 'hesitation' } }, { gestures: [] }],
   ],
   'alone-ok': [
@@ -64,7 +64,7 @@ export const ARCS: Record<string, Arc> = {
   'why-understand': [
     alone,
     [{ gestures: [{ annotate: 'didnt-explain', hand: 'pencil' }], delay: 2 }],
-    [{ gestures: [{ voice: 'flat', from: 'behind', gain: 0.5 }], delay: 1 }],
+    [{ gestures: [{ voice: 'flat', from: 'surface', gain: 0.5 }], delay: 1 }],
   ],
   'need-no-one': [
     alone,
@@ -92,7 +92,7 @@ export const ARCS: Record<string, Arc> = {
   'im-fine': [
     alone,
     alone,
-    [{ gestures: [{ breath: 'behind' }], delay: 2 }],
+    [{ gestures: [{ sound: 'cup', gain: 0.35 }], delay: 2 }],
   ],
   'look-at-me': [
     alone,

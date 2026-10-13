@@ -34,44 +34,61 @@
   "sfx:chair-creak": [
     "sfx-chair-creak-1.mp3"
   ],
+  "sfx:switch": [
+    "sfx-switch-1.mp3",
+    "sfx-switch-2.mp3",
+    "sfx-switch-3.mp3"
+  ],
+  "sfx:graphite": [
+    "sfx-graphite-1.mp3",
+    "sfx-graphite-2.mp3",
+    "sfx-graphite-3.mp3"
+  ],
   "phrase:stay": [
     "dialogue/stay--tender.mp3",
-    "dialogue/stay--guarded.mp3",
-    "dialogue/stay--remembered.mp3"
+    "dialogue/stay--breaking.mp3",
+    "dialogue/stay--breaking-lean.mp3",
+    "dialogue/stay--soft.mp3",
+    "dialogue/stay--tears.mp3",
+    "dialogue/stay--tears-loose.mp3",
+    "dialogue/stay--sarah.mp3",
+    "dialogue/stay--after-silence.mp3",
+    "dialogue/stay--whispered.mp3",
+    "dialogue/stay--worn.mp3",
+    "dialogue/stay--whispered-b.mp3",
+    "dialogue/stay--worn-b.mp3",
+    "dialogue/stay--breaking-b.mp3"
   ],
   "phrase:closer": [
     "dialogue/closer--quiet.mp3",
-    "dialogue/closer--flat.mp3"
+    "dialogue/closer--held.mp3"
   ],
   "phrase:afraid-leave": [
     "dialogue/afraid-leave--confessional.mp3",
-    "dialogue/afraid-leave--remembered.mp3"
-  ],
-  "phrase:if-closer": [
-    "dialogue/if-closer.mp3"
+    "dialogue/afraid-leave--rueful.mp3"
   ],
   "phrase:why-understand": [
     "dialogue/why-understand--frustrated.mp3",
-    "dialogue/why-understand--quiet.mp3"
+    "dialogue/why-understand--quiet.mp3",
+    "dialogue/why-understand--irritated.mp3"
   ],
   "phrase:love-go-away": [
-    "dialogue/love-go-away--flat.mp3",
-    "dialogue/love-go-away--fond.mp3"
+    "dialogue/love-go-away--fond.mp3",
+    "dialogue/love-go-away--exhausted.mp3",
+    "dialogue/love-go-away--teasing.mp3",
+    "dialogue/love-go-away--hurt-lean.mp3",
+    "dialogue/love-go-away--exhausted-lean.mp3",
+    "dialogue/love-go-away--laughing.mp3",
+    "dialogue/love-go-away--exhausted-lean-b.mp3",
+    "dialogue/love-go-away--hurt-lean-c.mp3"
   ],
   "phrase:two-cups": [
-    "dialogue/two-cups.mp3"
+    "dialogue/two-cups--whispered.mp3",
+    "dialogue/two-cups--whispered-b.mp3"
   ],
   "phrase:laugh-breathe": [
-    "dialogue/laugh-breathe.mp3"
-  ],
-  "phrase:understood-minute": [
-    "dialogue/understood-minute.mp3"
-  ],
-  "phrase:crumbs": [
-    "dialogue/crumbs.mp3"
-  ],
-  "phrase:remember-me": [
-    "dialogue/remember-me.mp3"
+    "dialogue/laugh-breathe.mp3",
+    "dialogue/laugh-breathe--joy.mp3"
   ],
   "phrase:glad-came": [
     "dialogue/glad-came.mp3"
@@ -80,24 +97,135 @@
     "dialogue/still-here.mp3"
   ],
   "phrase:not-going": [
-    "dialogue/not-going.mp3"
-  ],
-  "phrase:this-bit": [
-    "dialogue/this-bit.mp3"
+    "dialogue/not-going--bedside.mp3",
+    "dialogue/not-going--bedside-b.mp3"
   ],
   "phrase:alone-ok": [
-    "dialogue/alone-ok.mp3"
+    "dialogue/alone-ok.mp3",
+    "dialogue/alone-ok--convincing.mp3",
+    "dialogue/alone-ok--convincing-b.mp3"
   ],
   "phrase:sorry-like-that": [
     "dialogue/sorry-like-that.mp3"
   ],
-  "phrase:happy-then": [
-    "dialogue/happy-then.mp3"
-  ],
   "phrase:laugh": [
-    "dialogue/laugh.mp3"
+    "dialogue/laugh.mp3",
+    "dialogue/laugh--grief.mp3",
+    "dialogue/laugh--grief-c.mp3"
   ],
   "phrase:was-it-me": [
-    "dialogue/was-it-me.mp3"
+    "dialogue/was-it-me.mp3",
+    "dialogue/was-it-me--whispered.mp3"
+  ],
+  "phrase:happy-then": [
+    "dialogue/happy-then--unsure.mp3",
+    "dialogue/happy-then--lost.mp3",
+    "dialogue/happy-then--whispered.mp3",
+    "dialogue/happy-then--whispered-b.mp3",
+    "dialogue/happy-then--whispered-c.mp3",
+    "dialogue/happy-then--lost-b.mp3",
+    "dialogue/happy-then--lost-c.mp3"
+  ],
+  "phrase:crumbs": [
+    "dialogue/crumbs--laughing.mp3"
+  ],
+  "phrase:this-bit": [
+    "dialogue/this-bit--fond.mp3",
+    "dialogue/this-bit--distracted.mp3"
+  ],
+  "phrase:mean-that": [
+    "dialogue/mean-that--confused.mp3"
+  ],
+  "phrase:small-minute": [
+    "dialogue/small-minute--tender.mp3"
+  ],
+  "phrase:remember-me": [
+    "dialogue/remember-me--grief.mp3",
+    "dialogue/remember-me--bus-stop.mp3"
+  ],
+  "phrase:good-day": [
+    "dialogue/good-day--photographs.mp3",
+    "dialogue/good-day--photographs-b.mp3"
+  ],
+  "phrase:if-closer": [
+    "dialogue/if-closer--doorway.mp3"
+  ],
+  "phrase:understood-minute": [
+    "dialogue/understood-minute--wry.mp3"
+  ],
+  "phrase:maybe-wanted": [
+    "dialogue/maybe-wanted--ashamed.mp3",
+    "dialogue/maybe-wanted--ashamed-b.mp3",
+    "dialogue/maybe-wanted--years-later.mp3",
+    "dialogue/maybe-wanted--years-later-b.mp3"
+  ],
+  "phrase:easier-without": [
+    "dialogue/easier-without--guarded-b.mp3",
+    "dialogue/easier-without--practised.mp3",
+    "dialogue/easier-without--practised-b.mp3"
+  ],
+  "phrase:too-quiet": [
+    "dialogue/too-quiet--voicemail.mp3",
+    "dialogue/too-quiet--voicemail-b.mp3"
+  ],
+  "phrase:not-so-tight": [
+    "dialogue/not-so-tight--laughing.mp3",
+    "dialogue/not-so-tight--laughing-b.mp3",
+    "dialogue/not-so-tight--afraid.mp3"
+  ],
+  "phrase:come-back-dont": [
+    "dialogue/come-back-dont--window-b.mp3",
+    "dialogue/come-back-dont--stairs.mp3"
+  ],
+  "phrase:wish-see": [
+    "dialogue/wish-see--wedding-b.mp3",
+    "dialogue/wish-see--snow.mp3",
+    "dialogue/wish-see--snow-b.mp3"
+  ],
+  "phrase:summer": [
+    "dialogue/summer--rain-b.mp3"
+  ],
+  "phrase:didnt-know-say": [
+    "dialogue/didnt-know-say--ashamed.mp3",
+    "dialogue/didnt-know-say--ashamed-b.mp3",
+    "dialogue/didnt-know-say--back-step.mp3",
+    "dialogue/didnt-know-say--back-step-b.mp3"
+  ],
+  "phrase:angry-with-me": [
+    "dialogue/angry-with-me--back-seat.mp3",
+    "dialogue/angry-with-me--back-seat-b.mp3"
+  ],
+  "phrase:who-talking": [
+    "dialogue/who-talking--empty-kitchen.mp3",
+    "dialogue/who-talking--empty-kitchen-b.mp3",
+    "dialogue/who-talking--father.mp3",
+    "dialogue/who-talking--father-b.mp3"
+  ],
+  "phrase:still-there": [
+    "dialogue/still-there--phone.mp3",
+    "dialogue/still-there--phone-b.mp3",
+    "dialogue/still-there--bedside.mp3",
+    "dialogue/still-there--bedside-b.mp3"
+  ],
+  "phrase:dont-have-say": [
+    "dialogue/dont-have-say--after.mp3",
+    "dialogue/dont-have-say--after-b.mp3"
+  ],
+  "phrase:sit-awhile": [
+    "dialogue/sit-awhile--three-am.mp3",
+    "dialogue/sit-awhile--three-am-b.mp3",
+    "dialogue/sit-awhile--stairs.mp3",
+    "dialogue/sit-awhile--stairs-b.mp3"
+  ],
+  "phrase:thank-staying": [
+    "dialogue/thank-staying--armchair.mp3",
+    "dialogue/thank-staying--armchair-b.mp3",
+    "dialogue/thank-staying--two-cups.mp3",
+    "dialogue/thank-staying--two-cups-b.mp3"
+  ],
+  "sfx:eraser": [
+    "sfx-eraser-1.mp3",
+    "sfx-eraser-2.mp3",
+    "sfx-eraser-3.mp3"
   ]
 }

@@ -55,7 +55,8 @@ function p(id: string, text: string, dims: DimVector, o: Opts): Phrase {
 export const PHRASES: Phrase[] = [
   // ───────────────────────── NORTH · the dilemma ─────────────────────────
   p('stay', 'I wanted you to stay.', { desire: 0.8, affection: 0.6, grief: 0.4 }, {
-    surface: 'north', hand: 'marker', size: 'xl', at: [0.25, 1.8], voice: 'tender',
+    // Pen, not marker: the first writing in the room is a hesitant hand, not an assertive one.
+    surface: 'north', hand: 'pen', size: 'xl', at: [0.25, 1.8], voice: 'tender',
     contradicts: ['closer', 'need-no-one'], echoes: ['w-stay', 'if-closer'], keywords: ['stay', 'want', 'leave', 'wanted'],
   }),
   p('closer', "Please don't come any closer.", { fear: 0.8, desire: 0.3, isolation: 0.5, contradiction: 0.4 }, {

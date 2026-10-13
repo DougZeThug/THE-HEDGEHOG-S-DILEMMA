@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { PHRASES } from '../src/content/phrases';
-import { layoutPhrases, overlaps, surfaceSize, RESERVED, SurfaceLayout } from '../src/world/layout';
+import { layoutPhrases, overlaps, surfaceSize, RESERVED, SurfaceLayout, drawingSpots } from '../src/world/layout';
+import { DRAWINGS } from '../src/content/drawings';
 import { Rng } from '../src/core/rng';
 
 // Approximate text metrics (the browser uses real font measurement).
@@ -11,7 +12,7 @@ const measure = (p: (typeof PHRASES)[number]) => {
 };
 
 describe('wall layout', () => {
-  const m = layoutPhrases(PHRASES, measure, 4242);
+  const m = layoutPhrases(PHRASES, measure, 4242, drawingSpots(DRAWINGS));
   it('places every placeable phrase inside its surface', () => {
     for (const p of PHRASES) {
       if (p.tier === 'annotation') continue;
@@ -39,7 +40,7 @@ describe('wall layout', () => {
     }
   });
   it('is deterministic', () => {
-    const m2 = layoutPhrases(PHRASES, measure, 4242);
+    const m2 = layoutPhrases(PHRASES, measure, 4242, drawingSpots(DRAWINGS));
     for (const [id, pl] of m) expect(m2.get(id)).toEqual(pl);
   });
   it('finds a place beside a phrase for annotations', () => {

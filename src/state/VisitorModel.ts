@@ -25,8 +25,12 @@ export interface VisitorInput {
   kneeling: boolean;
 }
 
-/** Attention needed before a look counts as meeting a phrase, and the gap that makes the next look a new meeting. */
-export const ENCOUNTER = { settle: 2.5, apart: 25 };
+/**
+ * Attention needed before a look counts as meeting a phrase, and the gap that makes the
+ * next look a new meeting. Looking away and coming back is itself meaningful, so the gap
+ * is short; touching the words is a meeting at once.
+ */
+export const ENCOUNTER = { settle: 1.8, apart: 10 };
 
 export interface EncounterRecord {
   count: number;
@@ -96,6 +100,8 @@ export class VisitorModel {
   encounters = new Map<string, EncounterRecord>();
   /** Encounters that began on this tick. */
   encounterStarted: { id: string; count: number }[] = [];
+  /** A phrase touched (tapped / clicked) since the last update. */
+  private touched: string | null = null;
   /** Phrases looked at long enough to have been read (≥ 1.6 s). */
   read = new Set<string>();
   readOrder: string[] = [];
@@ -200,7 +206,20 @@ export class VisitorModel {
       }
     }
     // Encounters: a settled look is a meeting; a meeting ends when attention leaves.
+    // Touching the words settles attention on them at once.
     this.encounterStarted = [];
+    if (this.touched) {
+      if (this.gazeId !== this.touched) {
+        this.gazeId = this.touched;
+        this.gazeFor = 0;
+      }
+      this.gazeFor = Math.max(this.gazeFor, ENCOUNTER.settle);
+      if (!this.read.has(this.touched)) {
+        this.read.add(this.touched);
+        this.readOrder.push(this.touched);
+      }
+      this.touched = null;
+    }
     for (const [id, e] of this.encounters) if (e.open && id !== this.gazeId) e.open = false;
     if (this.gazeId) {
       let e = this.encounters.get(this.gazeId);
@@ -222,6 +241,11 @@ export class VisitorModel {
       this.totalChairGaze += dt;
     } else this.gazeChairFor = 0;
     this.gazeChair = inp.gazeChair;
+  }
+
+  /** The visitor touched these words: treat it as deliberate, settled attention. */
+  touch(id: string): void {
+    this.touched = id;
   }
 
   encounterCount(id: string): number {

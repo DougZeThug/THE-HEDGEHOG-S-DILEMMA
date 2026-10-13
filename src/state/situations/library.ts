@@ -26,7 +26,7 @@ export const nextRoom: SituationDef = {
   id: 'next-room',
   maxLife: 720,
   owns: ['vf-laugh-next-room'],
-  ready: (h, claimed) => h.phase !== 'arrival' && h.now > 60 && !claimed('beyond') && h.visitor.speed < 0.6,
+  ready: (h, claimed) => h.phase !== 'arrival' && h.now > 25 && !claimed('beyond') && h.visitor.speed < 0.6,
   begin(c) {
     if (!c.claim('beyond')) return c.end('abort');
     const wall = c.h.rng.pick(otherWalls([c.h.facing, 'south']).length ? otherWalls([c.h.facing, 'south']) : otherWalls([c.h.facing]));
@@ -37,7 +37,7 @@ export const nextRoom: SituationDef = {
   },
   step(c) {
     const { h, st } = c;
-    const d = st.data as { wall: Surface; laughs: number; memory?: string; dist0?: number };
+    const d = st.data as { wall: Surface; laughs: number; memory?: string; dist0?: number; keeping?: boolean };
     if (st.stage === 'listening') {
       if (h.distToSurface(d.wall) < 1.3) {
         const m = memoryOn(h, d.wall);
@@ -50,13 +50,15 @@ export const nextRoom: SituationDef = {
         c.release('beyond');
         return d.memory ? c.go('found') : c.end();
       }
-      if (c.since > 45) {
+      if (c.since > 75) {
         if (d.laughs >= 2) {
           c.release('beyond');
           return c.end();
         }
         d.laughs = 2;
-        d.wall = h.rng.pick(otherWalls([d.wall, h.facing]));
+        // From somewhere else — never the wall the visitor is already standing at.
+        const away = otherWalls([d.wall, h.facing]).filter((w) => h.distToSurface(w) > 1.6);
+        d.wall = h.rng.pick(away.length ? away : otherWalls([d.wall, h.facing]));
         laugh(c, d.wall, 0.3);
         c.go('listening');
       }
@@ -64,8 +66,24 @@ export const nextRoom: SituationDef = {
     }
     if (st.stage === 'found') {
       const v = h.visitor;
-      if (c.since < 100 || !v.near || v.nearFor < 6 || v.speed > 0.15) return;
-      if (!c.claim('chair-voice')) return;
+      if (c.since < 100) return;
+      // The memory is owed at the chair: from the moment they head for it (within 2 m), the chair
+      // and the walls are kept for it, so nothing else speaks as they come and settle. Let go if
+      // they walk away again.
+      if (v.distance > (d.keeping ? 2.4 : 2.0)) {
+        if (d.keeping) {
+          c.release('chair-voice');
+          c.release('beyond');
+          d.keeping = false;
+        }
+        return;
+      }
+      if (!d.keeping) {
+        if (!c.claim('chair-voice')) return;
+        c.claim('beyond');
+        d.keeping = true;
+      }
+      if (!v.near || v.nearFor < 6 || v.speed > 0.15) return;
       const m = PHRASE_BY_ID.get(d.memory!)!;
       // The same memory, small, on the floor by the chair. Where the laughter was: nothing.
       const len = Math.hypot(v.x, v.z) || 1;
@@ -111,7 +129,7 @@ export const humming: SituationDef = {
   id: 'humming',
   maxLife: 600,
   owns: ['vf-hum'],
-  ready: (h, claimed) => h.now > 45 && h.visitor.deepStillFor > 6 && !claimed('beyond'),
+  ready: (h, claimed) => h.now > 20 && h.visitor.deepStillFor > 5 && !claimed('beyond'),
   begin(c) {
     if (!c.claim('beyond')) return c.end('abort');
     const r = c.h.rng;
@@ -123,7 +141,10 @@ export const humming: SituationDef = {
     }
     // Hummed three times through, with a breath between.
     const seq = [...tune, REST, ...tune, REST, REST, ...tune];
-    const wall = r.pick(otherWalls([c.h.facing]));
+    // From a wall the visitor can walk toward (not the one at their back, a step away).
+    const walls = otherWalls([c.h.facing]);
+    const far = walls.filter((w) => c.h.distToSurface(w) > 1.6);
+    const wall = r.pick(far.length ? far : walls);
     Object.assign(c.st.data, { tune, seq, wall, startAt: c.h.now + 0.1, dist0: c.h.distToSurface(wall) });
     c.emit(0, {
       type: 'voice', kind: 'hum', text: null, caption: '(humming)', position: { kind: 'beyond', surface: wall }, gain: 0.42,
@@ -145,10 +166,6 @@ export const humming: SituationDef = {
         c.release('beyond');
         c.claim('music'); // the tune is owed; the room keeps its music for it
         return c.go('waiting');
-      }
-      if (!d.stillLine && h.visitor.deepStillFor > 10 && elapsed > 4 && !h.visible.has('humming')) {
-        d.stillLine = true;
-        h.reveal(c.rule, 'humming', 0, 'still', 8);
       }
       if (elapsed > total + 1) {
         c.release('beyond');
@@ -180,7 +197,7 @@ export const listening: SituationDef = {
   maxLife: 720,
   owns: ['vf-two-voices'],
   ready: (h, claimed) =>
-    h.now > 90 && h.phase !== 'arrival' && !claimed('beyond') && (h.facing === 'west' || h.distToSurface('west') < 2.2),
+    h.now > 45 && h.phase !== 'arrival' && !claimed('beyond') && (h.facing === 'west' || h.distToSurface('west') < 2.2),
   begin(c) {
     if (!c.claim('beyond')) return c.end('abort');
     for (const [i, t] of [0, 8, 16].entries())
@@ -224,6 +241,7 @@ export const listening: SituationDef = {
 export const residue: SituationDef = {
   id: 'residue',
   maxLife: 900,
+  gentle: true,
   ready: (h) => h.visitor.kneeling,
   begin(c) {
     c.go('kneeling');
@@ -265,9 +283,10 @@ export const residue: SituationDef = {
 export const erosion: SituationDef = {
   id: 'erosion',
   maxLife: 600,
+  gentle: true,
   ready: (h) => {
     const c = h.lastContribution();
-    return !!c && h.now - c.at > 130;
+    return !!c && h.now - c.at > 75;
   },
   begin(c) {
     const t = c.h.lastContribution()!;

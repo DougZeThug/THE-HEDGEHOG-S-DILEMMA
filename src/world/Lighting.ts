@@ -34,6 +34,18 @@ export class Lighting {
   intensityScale = 1;
   /** Opening sequence multiplier. */
   fade = 1;
+  /**
+   * The opening score's hold on each light (1 = as the room has it). The key light can start
+   * narrower, so at first only the chair and the floor under it are lit — never narrower than
+   * a fixture's own throw, or it reads as a stage spotlight.
+   */
+  readonly score = { key: 1, area: 1, hemi: 1, glow: 1, cone: 0.82 };
+  /**
+   * Light as a motif later in the visit: the room's own light (panel and sky) goes down until
+   * only the chair is lit, as it was at the start, then comes back. The key light is untouched.
+   */
+  private dimming: { from: number; to: number; start: number; seconds: number } | null = null;
+  private mood = 1;
 
   constructor(quality: 'low' | 'medium' | 'high') {
     RectAreaLightUniformsLib.init();
@@ -73,6 +85,23 @@ export class Lighting {
     this.flash = { kind, amount, until: now + seconds, start: now };
   }
 
+  /** Take the room back to the chair alone (area and sky to `to`) for `seconds`, then return. */
+  dimToChair(to: number, seconds: number, now: number) {
+    // From wherever the light is now: a second dim during a first never lifts the room first.
+    this.dimming = { from: this.mood, to: Math.min(to, this.mood), start: now, seconds };
+  }
+
+  /** Back to the room's own light at once (returning after leaving). */
+  cancelDim() {
+    this.dimming = null;
+    this.mood = 1;
+  }
+
+  /** The room's light, apart from the key, as a fraction of itself (for tests and the inspector). */
+  get roomLight() {
+    return this.mood;
+  }
+
   /** Leave a faint warmth at a floor point (world x, z) that fades over `seconds`. */
   leaveResidue(x: number, z: number, amount: number, seconds: number, now: number) {
     this.residue.position.set(x, 0.22, z);
@@ -88,6 +117,20 @@ export class Lighting {
       this.residue.intensity = f.amount * 1.1 * e * this.intensityScale * this.fade;
       if (t >= 1) this.residueFade = null;
     }
+    let mood = 1;
+    if (this.dimming) {
+      const d = this.dimming;
+      const t = now - d.start;
+      if (t >= d.seconds) this.dimming = null;
+      else {
+        // Down over 3 s, held, back over 4 s: slow enough to read as the room, not a fault.
+        const s = (x: number) => x * x * (3 - 2 * x);
+        const down = s(Math.min(1, t / 3)), up = s(Math.max(0, Math.min(1, (d.seconds - t) / 4)));
+        const level = d.from + (d.to - d.from) * down;
+        mood = 1 - (1 - level) * up;
+      }
+    }
+    this.mood = mood;
     const c = this.cur;
     c.intensity = approach(c.intensity, env.lightIntensity, dt, 3);
     c.warmth = approach(c.warmth, env.lightWarmth, dt, 4);
@@ -116,12 +159,14 @@ export class Lighting {
     const k = this.intensityScale * this.fade;
     const I = c.intensity * (1 + c.extraCold * 0.15);
     this.area.color.copy(col);
-    this.area.intensity = AREA * I * k;
+    const sc = this.score;
+    this.area.intensity = AREA * I * k * sc.area * mood;
     this.key.color.copy(col);
-    this.key.intensity = KEY * I * k * (1 + c.extraCold * 0.4);
+    this.key.intensity = KEY * I * k * (1 + c.extraCold * 0.4) * sc.key;
+    this.key.angle = sc.cone;
     this.hemi.color.copy(col).lerp(new THREE.Color(0xffffff), 0.4);
-    this.hemi.intensity = HEMI * (0.75 + 0.25 * I) * k;
-    this.glow.intensity = (0.1 + c.glow * 0.7 + c.extraWarm * 1.2) * k;
+    this.hemi.intensity = HEMI * (0.75 + 0.25 * I) * k * sc.hemi * mood;
+    this.glow.intensity = (0.1 + c.glow * 0.7 + c.extraWarm * 1.2) * k * sc.glow;
 
     // The shadow drifts: the key light orbits the chair a little, the visible panel does not.
     const ang = c.drift * (1 + 0.25 * Math.sin(now * 0.05));

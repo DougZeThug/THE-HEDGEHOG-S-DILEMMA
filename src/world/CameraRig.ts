@@ -21,7 +21,11 @@ export class CameraRig {
   kneeling = false;
   reducedMotion = false;
   enabled = true;
+  /** Walking allowed (looking may be allowed before walking is, during the opening). */
+  walk = true;
   sensitivity = 0.0022;
+  /** Vertical field of view for this screen's shape (portrait phones need more, wide screens less). */
+  baseFov = 62;
   private bobT = 0;
   private breathT = 0;
   /** Auto-walk target (attend mode). */
@@ -38,11 +42,25 @@ export class CameraRig {
     this.camera.rotation.order = 'YXZ';
   }
 
+  /** Keep roughly 58–95° of horizontal view whatever the screen's shape (a 16:9 screen stays at 62° vertical). */
+  setAspect(aspect: number) {
+    const v = (h: number) => (2 * Math.atan(Math.tan((h * Math.PI) / 360) / aspect) * 180) / Math.PI;
+    this.baseFov = Math.min(88, clamp(62, v(58), v(95)));
+  }
+
   look(dx: number, dy: number) {
     if (!this.enabled) return;
     this.yaw -= dx * this.sensitivity;
     this.pitch = clamp(this.pitch - dy * this.sensitivity, -1.35, 1.35);
     this.lookGoal = null;
+  }
+
+  /**
+   * The opening's frame: a little downward, so the chair and its shadow are whole on a wide
+   * screen and the chair sits just below centre on a phone held upright.
+   */
+  frameOpening(aspect: number) {
+    this.pitch = aspect < 1 ? -0.3 : -0.15;
   }
 
   /** Walk toward a world point, stopping `stopAt` metres short. */
@@ -85,13 +103,15 @@ export class CameraRig {
     const k = this.keys;
     let fwd = 0, strafe = 0, turn = 0;
     if (this.enabled) {
-      if (k.has('KeyW') || k.has('ArrowUp')) fwd += 1;
-      if (k.has('KeyS') || k.has('ArrowDown')) fwd -= 1;
-      if (k.has('KeyA')) strafe -= 1;
-      if (k.has('KeyD')) strafe += 1;
+      if (this.walk) {
+        if (k.has('KeyW') || k.has('ArrowUp')) fwd += 1;
+        if (k.has('KeyS') || k.has('ArrowDown')) fwd -= 1;
+        if (k.has('KeyA')) strafe -= 1;
+        if (k.has('KeyD')) strafe += 1;
+        fwd += this.touchMove.y;
+      }
       if (k.has('ArrowLeft') || k.has('KeyQ')) turn += 1;
       if (k.has('ArrowRight') || k.has('KeyE')) turn -= 1;
-      fwd += this.touchMove.y;
       turn -= this.touchMove.x * 0.9;
     }
     const slow = k.has('ShiftLeft') || k.has('ShiftRight') ? 0.45 : 1;
@@ -111,7 +131,7 @@ export class CameraRig {
       tx *= speed / mag;
       tz *= speed / mag;
     }
-    if (this.goal && (!this.enabled || this.kneeling)) this.goal = null;
+    if (this.goal && (!this.enabled || !this.walk || this.kneeling)) this.goal = null;
     if (this.goal) {
       const d = new THREE.Vector2(this.goal.x - this.pos.x, this.goal.z - this.pos.z);
       const len = d.length();
@@ -161,7 +181,7 @@ export class CameraRig {
     }
     this.camera.position.set(this.pos.x, this.eye + bob + sway, this.pos.z);
     this.camera.rotation.set(this.pitch, this.yaw, 0);
-    const fovTarget = this.kneeling && !this.reducedMotion ? 70 : 62;
+    const fovTarget = this.baseFov + (this.kneeling && !this.reducedMotion ? 8 : 0);
     this.camera.fov = approach(this.camera.fov, fovTarget, dt, 1.5);
     this.camera.updateProjectionMatrix();
   }
