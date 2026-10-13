@@ -369,3 +369,34 @@ export function lineStart(heard, text) {
   }
   return null;
 }
+
+/**
+ * The account's real balance, read before a batch (needs the key's `user_read` permission).
+ * Returns { known: true, remaining, limit, used, resetsAt } or { known: false, reason }.
+ * A batch whose estimate is more than what remains must not run.
+ */
+export async function readBalance(key, fetchFn = fetch) {
+  try {
+    const res = await fetchFn(`${API}/v1/user/subscription`, { headers: { 'xi-api-key': key } });
+    if (!res.ok) {
+      let code = String(res.status);
+      try {
+        const body = JSON.parse(await res.text());
+        code = body?.detail?.status ?? body?.detail?.code ?? code;
+      } catch {}
+      return { known: false, reason: code === 'missing_permissions' ? 'the key lacks the user_read permission' : `the balance could not be read (${code})` };
+    }
+    const s = await res.json();
+    const used = s.character_count ?? 0, limit = s.character_limit ?? 0;
+    return { known: true, used, limit, remaining: Math.max(0, limit - used), tier: s.tier, resetsAt: s.next_character_count_reset_unix ? new Date(s.next_character_count_reset_unix * 1000).toISOString() : undefined };
+  } catch (e) {
+    return { known: false, reason: `the balance could not be read (${e?.message ?? e})` };
+  }
+}
+
+/** Whether a batch may run against the balance: refuses one the account cannot cover. */
+export function balanceAllows(balance, estimate) {
+  if (!balance.known) return { ok: true, note: `${balance.reason}; relying on the ledger and --budget` };
+  if (estimate > balance.remaining) return { ok: false, note: `estimate ~${estimate} is more than the ${balance.remaining} credits left this period` };
+  return { ok: true, note: `${balance.remaining} of ${balance.limit} credits left this period${balance.resetsAt ? ` (resets ${balance.resetsAt.slice(0, 10)})` : ''}; this batch ~${estimate}` };
+}

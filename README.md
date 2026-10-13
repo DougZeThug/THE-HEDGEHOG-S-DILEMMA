@@ -252,7 +252,7 @@ node scripts/generate-dialogue.mjs --approve=… --reject=…           # after 
 **Account capabilities, as tested** (October 2026):
 - Text-to-speech works with ElevenLabs default voices on `eleven_v4`, `eleven_v3`, `eleven_multilingual_v2`, `eleven_flash_v2_5` and `eleven_turbo_v2_5`, as do speech-to-text and the dialogue endpoint. `eleven_v4` accepts `previous_text`/`next_text`; `eleven_v3` rejects them.
 - Default voices that work: Jessica, Chris, Laura, River, Will, Sarah, Matilda, Alice, Charlie, George, Liam, Callum, Brian, Eric, Bill, Daniel, Roger, Bella, Harry. Library voices (e.g. Aria, Rachel) return `402 paid_plan_required`; Lily returns `404`.
-- The key lacks `user_read`, `voices_read` and `models_read`, so the balance can't be read; costs are tracked from each response's `character-cost` header. Adding `user_read` to the key would let a script check the real balance before each batch.
+- The key lacks `user_read`, `voices_read` and `models_read`, so the balance can't be read; costs are tracked from each response's `character-cost` header. Both generation scripts now read the real balance before every batch and refuse one the account can't cover; until the key has `user_read`, they say so and fall back to the ledger and `--budget`.
 - Credits: first batch 815. Second round: lab 670, main batch 863, one retake 55, alternatives and re-directions 357, availability probes about 70 — about 2,015 in all.
 
 **After the Creator plan** (121k credits a month, 30 custom voice slots, Voice Design):

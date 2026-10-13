@@ -14,6 +14,7 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { balanceAllows, readBalance } from './dialogue-lib.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const API = 'https://api.elevenlabs.io';
@@ -80,6 +81,12 @@ if (!key) {
   process.exit(1);
 }
 
+const balance = balanceAllows(await readBalance(key), planned);
+console.log(`balance: ${balance.note}`);
+if (!balance.ok) {
+  console.error('Not enough credits left for these previews. Nothing was designed.');
+  process.exit(1);
+}
 mkdirSync(OUT, { recursive: true });
 for (const d of run) {
   const res = await fetch(`${API}/v1/text-to-voice/design?output_format=mp3_44100_128`, {

@@ -21,7 +21,7 @@ import { tmpdir } from 'node:os';
 import { execFileSync } from 'node:child_process';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { applyBudget, buildManifest, emptyLedger, performanceHash, planJobs, runJobs, validateDirection } from './dialogue-lib.mjs';
+import { applyBudget, balanceAllows, readBalance, buildManifest, emptyLedger, performanceHash, planJobs, runJobs, validateDirection } from './dialogue-lib.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const args = Object.fromEntries(
@@ -142,6 +142,13 @@ if (args['dry-run']) {
 const key = process.env.ELEVENLABS_API_KEY;
 if (!key) {
   console.error('Set ELEVENLABS_API_KEY (environment only; never commit it). Nothing was generated.');
+  process.exit(1);
+}
+// The real balance, checked before anything is spent. Never buys credits or changes the plan.
+const balance = balanceAllows(await readBalance(key), estimate);
+console.log(`balance: ${balance.note}`);
+if (!balance.ok) {
+  console.error('Not enough credits left for this batch. Nothing was generated (lower --budget, or wait for the reset).');
   process.exit(1);
 }
 for (const q of queued) ledger.entries[q.perf.id] = { ...(ledger.entries[q.perf.id] ?? {}), status: ledger.entries[q.perf.id]?.status ?? 'queued', queuedReason: 'budget' };
