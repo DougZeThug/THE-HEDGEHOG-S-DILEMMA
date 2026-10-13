@@ -87,7 +87,7 @@ All of this is implemented and running; none of it is shown to the visitor as nu
   - **The room.** It comes up nearly empty: plaster with old erased marks, and small writing on the floor by the chair. You can walk from here.
   - **A hand writes.** "I wanted you to", in pen, in silence, then stops. The stop is held for two seconds.
   - **Laughter.** It comes from the wall to the right of the chair, and "You've got crumbs on you." writes itself there as it is heard, pausing through the laugh. Its caption follows the writing rather than giving it away.
-  - **Hand-off.** Once the voice and its writing are done, at about 23 s on a phone and 26 s on a wider screen, the room is yours. Nothing of the room's own life starts before then, nothing is owed afterwards, and nothing answers the unfinished line until you do.
+  - **Hand-off.** Once the voice and its writing are done, at about 23 s on a phone and 24 s on a wider screen, the room is yours. Nothing of the room's own life starts before then, nothing is owed afterwards, and nothing answers the unfinished line until you do.
 
   Returning visitors skip the title and are in the room in about 9 s. A tap advances the title; **Skip**, Esc or a hidden tab ends the opening at once, easing the light up rather than cutting. Why this and not another opening is recorded in `docs/reviews/2026-10-cinematic-opening.md`.
 - **Accumulation.** The room fills over the visit:
