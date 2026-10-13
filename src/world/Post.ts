@@ -8,7 +8,10 @@ import type { Environment } from '../state/Director';
 
 /**
  * One quiet grading pass: saturation, a vignette that deepens at extremes, film grain,
- * near-black when the room needs it, and the white-out of arrival.
+ * near-black when the room needs it, and the white-out of arrival. It runs after OutputPass,
+ * in display space (tone-mapped, sRGB), where its thresholds were tuned: luma rather than
+ * luminance, which is what grain and vignette want. (Folding OutputPass into this pass would
+ * save one full-screen pass; deferred until it can be measured on a real phone.)
  */
 const GradeShader = {
   uniforms: {
@@ -46,6 +49,12 @@ const GradeShader = {
       c.rgb += g * uGrain * (0.6 + 0.4 * (1.0 - l)) * smoothstep(0.0, 0.08, l);
       c.rgb = mix(c.rgb, vec3(0.955, 0.952, 0.945), uWhite);
       c.rgb = mix(c.rgb, vec3(0.043, 0.043, 0.047), uBlack);
+      // A still, triangular dither of one step: the dark frames (the title, the dims, leaving)
+      // have no grain to hide banding in their gradients. Interleaved gradient noise (no sin()
+      // hash, which shows structure on some mobile GPUs at large coordinates).
+      float ign1 = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));
+      float ign2 = fract(52.9829189 * fract(dot(gl_FragCoord.xy + 17.0, vec2(0.06711056, 0.00583715))));
+      c.rgb += (ign1 + ign2 - 1.0) * (1.0 / 255.0);
       gl_FragColor = c;
     }
   `,
@@ -65,6 +74,9 @@ export class Post {
   depart = 0;
   reducedMotion = false;
   intensityScale = 1;
+  /** Film grain and vignette strengths (the ?tune panel changes them live). */
+  grain = 0.032;
+  vignette = 0.32;
 
   constructor(renderer: THREE.WebGLRenderer, scene: THREE.Scene, camera: THREE.Camera, samples: number) {
     const size = renderer.getSize(new THREE.Vector2());
@@ -102,7 +114,8 @@ export class Post {
     u.uWhite.value = this.white;
     u.uBlack.value = this.black;
     u.uTime.value = this.reducedMotion ? 0.5 : time * 0.25;
-    u.uGrain.value = this.reducedMotion ? 0.02 : 0.032;
+    u.uGrain.value = this.reducedMotion ? this.grain * 0.625 : this.grain;
+    u.uVignette.value = this.vignette;
   }
 
   render() {

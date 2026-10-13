@@ -54,6 +54,7 @@ export function devKind(cue: Cue): DevKind | null {
       return 'text';
     case 'glow':
     case 'flash':
+    case 'memory':
       return 'light';
     case 'chairTurn':
     case 'chairNudge':
@@ -130,6 +131,10 @@ export class Pacing {
   /** Hold the room for `seconds` (after something that must be left alone to land). */
   holdFor(now: number, seconds: number) {
     this.holdUntil = Math.max(this.holdUntil, now + seconds);
+  }
+
+  get heldUntil() {
+    return this.holdUntil;
   }
 
   /** Inside a held silence: nothing new should appear or sound. */

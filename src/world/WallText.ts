@@ -156,6 +156,8 @@ export interface TextItem {
   plan: WritePlan | null;
   /** A fraction of the hand's usual strength (drawings are fainter than writing). */
   strength?: number;
+  /** Washed out by light falling across it (0–1): a memory's sun on the wall. */
+  wash?: number;
 }
 
 /** Where the hand is (its own seconds) at wall-clock time `now`. */
@@ -821,7 +823,7 @@ export class WallText {
       }
       const gazed = gazeId === it.key;
       it.emphasis = approach(it.emphasis, gazed ? clamp((gazeFor - 0.8) / 3) * 0.7 : 0, dt, gazed ? 1.2 : 3);
-      const base = HANDS[it.hand].opacity * (it.strength ?? 1);
+      const base = HANDS[it.hand].opacity * (it.strength ?? 1) * (1 - (it.wash ?? 0));
       if (it.plan) {
         const h = handAt(it.plan, wallClock());
         it.uniforms.uWrite.value = h / Math.max(1e-3, it.duration);
@@ -854,6 +856,33 @@ export class WallText {
     mat.dispose();
     this.layout.remove(it.placement);
     this.items.delete(it.key);
+  }
+
+  /**
+   * Where a phrase is written now, to lay light across it: the visible piece of writing that is
+   * (or repeats) it, its wall's writing group, its centre there, and the wall's height limits.
+   */
+  anchorOf(phraseId: string, preferKey?: string | null): { key: string; group: THREE.Object3D; x: number; y: number; w: number; h: number; minX: number; maxX: number; minY: number; maxY: number } | null {
+    let best: TextItem | null = null;
+    for (const it of this.items.values()) {
+      if (it.vis < 0.5 || it.purpose === 'drawing' || this.phraseOf(it.key) !== phraseId) continue;
+      if (it.placement.surface === 'floor' || it.placement.surface === 'ceiling') continue;
+      // The copy being looked at (or touched) first; then the one written for the memory.
+      if (!best || it.key === preferKey || (best.key !== preferKey && it.key.startsWith('memory:'))) best = it;
+    }
+    if (!best) return null;
+    const pl = best.placement;
+    const l = this.room.local(pl.surface, pl.u, pl.v);
+    const size = surfaceSize(pl.surface);
+    const half = size.h / 2, halfW = (size.w / 2) * this.room.scale;
+    // Inside the corners, above the skirting and its shadow gap, below the cornice.
+    return { key: best.key, group: this.room.frames[pl.surface].writing, x: l.x, y: l.y, w: pl.w, h: pl.h, minX: -halfW + 0.1, maxX: halfW - 0.1, minY: -half + 0.1, maxY: half - 0.1 };
+  }
+
+  /** Light washing a piece of writing out (0–1). */
+  wash(key: string, amount: number) {
+    const it = this.items.get(key);
+    if (it) it.wash = amount;
   }
 
   /** The phrase a piece of writing is (or repeats). */

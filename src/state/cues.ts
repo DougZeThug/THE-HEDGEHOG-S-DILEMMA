@@ -96,6 +96,11 @@ export type Cue =
    * It goes as they come near.
    */
   | { type: 'air'; phraseId: string; toward: number; aside: number; height: number }
+  /**
+   * A memory intruding on the room as light: late-afternoon window light falls across the wall
+   * where a line is written, rises over `attack` seconds, holds, and leaves over `release`.
+   */
+  | { type: 'memory'; phraseId: string; attack: number; hold: number; release: number }
   /** A drawing drawn on the wall, stroke by stroke (src/content/drawings.ts). */
   | { type: 'draw'; id: string }
   /** Rub out a piece of writing except for one word. */

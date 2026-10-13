@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { Room } from './world/Room';
 import { Chair } from './world/Chair';
 import { Lighting } from './world/Lighting';
+import { MemoryLight } from './world/MemoryLight';
 import { WallText, wallClock, type TextItem } from './world/WallText';
 import { CameraRig } from './world/CameraRig';
 import { Post } from './world/Post';
@@ -70,6 +71,11 @@ export class App {
   private departTimer = 0;
   /** Leaving plays the opening backwards: the room's light goes, then the chair's, then black (wall-clock time it began). */
   private leaving: number | null = null;
+  /** A memory's light on a wall, and the writing it falls across. */
+  readonly memoryLight = new MemoryLight();
+  private memoryKey: string | null = null;
+  /** The piece of writing last touched (the memory's light falls where the visitor touched). */
+  private lastTappedKey: string | null = null;
   /** The opening while it plays: its score, when it started (wall clock), what has been done. */
   private opening: { score: Score; start: number; fired: Set<number>; skip?: { at: number; from: Levels } } | null = null;
   /** When the room was handed to the Director (scene time), for hints and the inspector. */
@@ -135,6 +141,8 @@ export class App {
     this.bindInput();
     this.bindUI();
     if (this.debug) this.debugEl.hidden = false;
+    // The artist's panel: only with ?tune, loaded only then.
+    if (params.has('tune')) void import('./ui/Tune').then(({ mountTune }) => this.mountTune(mountTune));
     (window as unknown as { __hedgehog: unknown }).__hedgehog = this;
 
     // Warm up behind the black threshold: compile every shader now (with every light present,
@@ -143,7 +151,13 @@ export class App {
     this.lighting.score.key = this.lighting.score.area = this.lighting.score.hemi = this.lighting.score.glow = 0;
     this.room.setLit(0, 0);
     this.rig.update(0.016, this.room, this.chair.group.position);
+    // Compiled for the target the scene is really drawn into (the composer's, linear, before
+    // tone mapping), not the screen: three keys programs on the bound target. The memory's light
+    // is in the scene, unseen, so it is compiled here too.
+    this.room.frames.north.writing.add(this.memoryLight.mesh);
+    this.renderer.setRenderTarget(this.post.composer.readBuffer);
     this.renderer.compile(this.scene, this.rig.camera);
+    this.renderer.setRenderTarget(null);
     this.post.render();
     const enter = $<HTMLButtonElement>('enter');
     enter.disabled = false;
@@ -223,6 +237,33 @@ export class App {
    * comes up. Baked one at a time while the screen is still black after the tap, not while
    * the page loads.
    */
+  private mountTune(mount: typeof import('./ui/Tune').mountTune) {
+    const sc = this.lighting.score;
+    const n = (group: string, label: string, min: number, max: number, get: () => number, set: (v: number) => void) => ({ group, label, min, max, step: (max - min) / 100, get, set });
+    mount(
+      [
+        n('light', 'key', 0, 1.5, () => sc.key, (v) => (sc.key = v)),
+        n('light', 'room', 0, 1.5, () => sc.area, (v) => (sc.area = v)),
+        n('light', 'sky', 0, 1.5, () => sc.hemi, (v) => (sc.hemi = v)),
+        n('light', 'glow', 0, 2, () => sc.glow, (v) => (sc.glow = v)),
+        n('light', 'cone', 0.5, 1.2, () => sc.cone, (v) => (sc.cone = v)),
+        n('grade', 'grain', 0, 0.08, () => this.post.grain, (v) => (this.post.grain = v)),
+        n('grade', 'vignette', 0, 0.8, () => this.post.vignette, (v) => (this.post.vignette = v)),
+        n('memory', 'light', 0, 0.8, () => this.memoryLight.gain, (v) => (this.memoryLight.gain = v)),
+      ],
+      [
+        {
+          label: 'the memory, now',
+          run: () => {
+            const m = Director.MEMORY;
+            if (!this.text.anchorOf(m.phraseId)) this.text.setShown(m.phraseId);
+            this.apply({ type: 'memory', phraseId: m.phraseId, attack: m.attack, hold: m.hold, release: m.release });
+          },
+        },
+      ],
+    );
+  }
+
   private bakeOldDrawings() {
     const idle = (f: () => void) => ((window as { requestIdleCallback?: (f: () => void, o?: { timeout: number }) => void }).requestIdleCallback ?? ((g: () => void) => setTimeout(g, 30)))(f, { timeout: 400 });
     const pending = STATIC_DRAWINGS.filter((d) => !this.text.items.has(d.id));
@@ -526,6 +567,12 @@ export class App {
     const scaleTarget = this.prefs.reducedMotion ? 1 + (env.roomScale - 1) * 0.3 : env.roomScale;
     this.room.setScale(this.room.scale + (scaleTarget - this.room.scale) * (1 - Math.exp(-dt / 6)));
     this.lighting.update(dt, env, this.time, this.chair.group.position);
+    if (this.memoryKey) {
+      // The light washes the words out a little (to about half their strength), then gives them back.
+      const m = this.memoryLight.update(this.time);
+      this.text.wash(this.memoryKey, 0.35 * m);
+      if (!this.memoryLight.active) this.memoryKey = null;
+    }
     this.text.update(dt, this.time, cam, env, this.gazeId, v.gazeId === gazePhrase ? v.gazeFor : 0);
     this.post.update(dt, env, this.time);
 
@@ -595,6 +642,20 @@ export class App {
       case 'erode':
         this.text.erode(cue.key, cue.keep, this.time);
         break;
+      case 'memory': {
+        const a = this.text.anchorOf(cue.phraseId, this.gazeId ?? this.lastTappedKey);
+        if (!a) break;
+        this.memoryLight.reducedMotion = this.prefs.reducedMotion;
+        this.memoryLight.strength = this.prefs.intensity === 'gentle' ? 0.6 : 1;
+        // The room hushes first; 0.8 s later the light arrives; the present comes back only after it has gone.
+        const lead = 0.8, total = cue.attack + cue.hold + cue.release;
+        this.memoryLight.start(a.group, a.x, a.y, a.w, a.h, a.minX, a.maxX, a.maxY, cue, this.time, lead);
+        this.memoryKey = a.key;
+        this.audio?.silence(0.55, lead + total, 1.4, 2.5);
+        // And the room's own light gives way a little: the memory is brighter than the present.
+        this.lighting.dimToChair(0.93, lead + total, this.time);
+        break;
+      }
       case 'draw':
         if (!this.text.draw(cue.id)) this.director.drawFailed(cue.id);
         break;
@@ -721,6 +782,7 @@ export class App {
       const c = this.text.centreOf(this.gazeId);
       const it = this.text.items.get(this.gazeId);
       const pid = this.text.phraseOf(this.gazeId);
+      this.lastTappedKey = this.gazeId;
       if (pid) this.director.tapped({ phraseId: pid });
       if (c && it) {
         const s = it.placement.surface;
@@ -748,7 +810,8 @@ export class App {
 
   private bindInput() {
     const canvas = this.renderer.domElement;
-    const typing = () => this.mode === 'contribute' || document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'SELECT';
+    const typing = () =>
+      this.mode === 'contribute' || document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'SELECT' || !!(document.activeElement as HTMLElement | null)?.closest?.('#tune');
 
     addEventListener('keydown', (e) => {
       if (this.mode === 'threshold' || this.mode === 'departed') return;
@@ -998,6 +1061,7 @@ export class App {
     const it = best.it;
     this.touched = true;
     const pid = this.text.phraseOf(it.key);
+    this.lastTappedKey = it.key;
     if (pid) this.director.tapped({ phraseId: pid });
     const c = it.centre;
     if (it.placement.surface === 'ceiling') this.rig.faceToward(c);
