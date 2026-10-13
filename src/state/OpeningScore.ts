@@ -49,7 +49,7 @@ export type ScoreEvent =
   /** A hand writes a phrase, silently; `upto` words, then stops. */
   | { at: number; kind: 'write'; phrase: string; upto?: number; sound?: string }
   /** A voice, and its words written as they are heard, at `place` beside an existing phrase. */
-  | { at: number; kind: 'voice'; phrase: string; file: string; text: string; hand: 'crayon' | 'pencil' | 'pen'; besideOf: string }
+  | { at: number; kind: 'voice'; phrase: string; file: string; text: string; hand: 'crayon' | 'pencil' | 'pen'; besideOf: string; afterStop?: number }
   | { at: number; kind: 'handoff' };
 
 export interface Score {
@@ -90,7 +90,7 @@ export function stageAt(s: Score, t: number): Stage {
 }
 
 /** The levels the room has once the opening is over. */
-export const ROOM_LEVELS: Levels = { title: 0, black: 0, key: 1, area: 1, hemi: 1, glow: 1, cone: 0.82, panel: 1, ceiling: 1, dark: 0, hum: 1, vent: 1, look: 1, walk: 1 };
+export const ROOM_LEVELS: Levels = { title: 0, black: 0, key: 0.85, area: 1, hemi: 1, glow: 1, cone: 1.0, panel: 1, ceiling: 1, dark: 0, hum: 1, vent: 1, look: 1, walk: 1 };
 
 /**
  * The score for this visit. A first visit has the title; a phone's title is a second
@@ -106,12 +106,12 @@ export function openingScore(o: { returning: boolean; touch: boolean }): Score {
       keys: {
         title: [[0, 0]],
         black: [[0, 1], [T + 0.4, 1], [T + 0.5, 0]],
-        key: [[T + 0.4, 0], [T + 2.4, 0.6], [T + 4.4, 1]],
+        key: [[T + 0.4, 0], [T + 2.4, 0.45], [T + 4.4, ROOM_LEVELS.key]],
         area: [[T + 2.4, 0], [T + 4.4, 1]],
-        hemi: [[T + 0.4, 0.06], [T + 2.4, 0.1], [T + 4.4, 1]],
+        hemi: [[T + 0.4, 0.07], [T + 2.4, 0.1], [T + 4.4, 1]],
         glow: [[T + 1.2, 0], [T + 2.4, 0.5], [T + 4.4, 1]],
-        cone: [[T + 2.4, 0.55], [T + 4.4, 0.82]],
-        panel: [[T + 0.4, 0], [T + 1.0, 0.3], [T + 4.4, 1]],
+        cone: [[T + 2.4, 0.7], [T + 4.4, ROOM_LEVELS.cone]],
+        panel: [[T + 0.4, 0], [T + 2.4, 0.12], [T + 4.4, 1]],
         ceiling: [[T + 2.4, 0], [T + 4.4, 1]],
         dark: [[T + 0.4, 0.3], [T + 4.4, 0]],
         hum: [[T + 0.4, 0], [T + 2.4, 0.6], [T + 4.4, 1]],
@@ -136,19 +136,21 @@ export function openingScore(o: { returning: boolean; touch: boolean }): Score {
   const at = (x: number) => T + x * k;
   return {
     name: 'first',
-    stages: [['title', 0], ['dark', T], ['chair', at(1.2)], ['room', at(5.4)], ['writing', at(9.8)], ['voice', at(14.2)], ['handoff', at(18.8)], ['done', at(18.9)]],
+    stages: [['title', 0], ['dark', T], ['chair', at(1.2)], ['room', at(5.4)], ['writing', at(8.6)], ['voice', at(13.0)], ['handoff', at(17.6)], ['done', at(17.7)]],
     keys: {
       title: [[0.3, 0], [1.3, 1], [1.3 + hold, 1], [T, 0]],
       black: [[0, 1], [at(1.2), 1], [at(1.3), 0]],
       // The chair, alone: a narrow-ish throw from the panel, the panel itself just glowing.
-      key: [[at(1.2), 0], [at(1.9), 0.05], [at(5.4), 0.6], [at(9.4), 1]],
+      key: [[at(1.2), 0], [at(1.9), 0.05], [at(5.4), 0.45], [at(9.4), ROOM_LEVELS.key]],
       area: [[at(5.4), 0], [at(9.4), 1]],
       // Never quite nothing: the walls are barely there, so it is a room, not a stage.
-      hemi: [[at(1.2), 0.05], [at(5.4), 0.1], [at(9.4), 1]],
+      hemi: [[at(1.2), 0.07], [at(5.4), 0.1], [at(9.4), 1]],
       glow: [[at(2.6), 0], [at(5.0), 0.5], [at(9.4), 1]],
-      cone: [[at(5.4), 0.55], [at(9.4), 0.82]],
-      // The fixture warming: a first glow, a small falter, then steady.
-      panel: [[at(1.2), 0], [at(1.6), 0.18], [at(1.9), 0.1], [at(2.6), 0.3], [at(9.4), 1]],
+      // Wide from the first light: a fixture's throw, not a spotlight's disc.
+      cone: [[at(5.4), 0.7], [at(9.4), ROOM_LEVELS.cone]],
+      // The fixture comes up quietly and stays below the chair until the room arrives: it is
+      // the source, not the subject.
+      panel: [[at(1.2), 0], [at(2.6), 0.08], [at(5.4), 0.12], [at(9.4), 1]],
       ceiling: [[at(5.4), 0], [at(9.4), 1]],
       dark: [[at(1.2), 0.35], [at(5.4), 0.2], [at(9.4), 0]],
       hum: [[at(1.2), 0], [at(2.6), 0.35], [at(5.4), 0.6], [at(9.4), 1]],
@@ -160,13 +162,15 @@ export function openingScore(o: { returning: boolean; touch: boolean }): Score {
       // In the dark, while the title holds: the first lines are made ready.
       { at: 0.4, kind: 'prepare', phrases: ['stay'] },
       // Someone has just got up from the chair; then the switch by the door.
-      { at: at(0.1), kind: 'sound', key: 'sfx:chair-creak', where: 'chair', gain: 0.22, caption: '[a chair, someone getting up]' },
+      { at: at(0.1), kind: 'sound', key: 'sfx:chair-creak', where: 'chair', gain: 0.22, caption: '[a chair creaks]' },
       { at: at(1.0), kind: 'sound', key: 'sfx:switch', where: 'door', gain: 0.55, caption: '[a switch]' },
-      { at: at(9.8), kind: 'write', phrase: 'stay', upto: 4, sound: 'sfx:graphite' },
-      { at: at(14.2), kind: 'voice', phrase: 'crumbs', file: 'dialogue/crumbs--laughing.mp3', text: "You've got crumbs on you.", hand: 'crayon', besideOf: 'stay' },
-      { at: at(18.8), kind: 'handoff' },
+      { at: at(8.6), kind: 'write', phrase: 'stay', upto: 4, sound: 'sfx:graphite' },
+      // The laugh comes after the hand has stopped and the stop has been held (the App waits for
+      // the hand: this is the earliest it may come).
+      { at: at(13.0), kind: 'voice', phrase: 'crumbs', file: 'dialogue/crumbs--laughing.mp3', text: "You've got crumbs on you.", hand: 'crayon', besideOf: 'stay', afterStop: 2.0 },
+      { at: at(17.6), kind: 'handoff' },
     ],
-    handoff: at(18.8),
+    handoff: at(17.6),
   };
 }
 

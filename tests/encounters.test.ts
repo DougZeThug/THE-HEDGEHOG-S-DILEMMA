@@ -12,6 +12,8 @@ class Visit {
   constructor(seed = 3, situations: string[] = ['residue']) {
     // A quiet repertoire so situations don't interleave with what is being tested.
     this.d = new Director({ seed, situations });
+    // After the opening: its line is on the wall (finished here, so encounters with it run as written).
+    this.d.release({ written: ['stay'] });
   }
   run(seconds: number, inp: Partial<VisitorInput> = {}) {
     const base: VisitorInput = { x: 0, z: 2.4, yaw: 0, pitch: 0, gazePhraseId: null, gazeChair: false, nearSurface: null, kneeling: false };

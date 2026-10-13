@@ -77,7 +77,10 @@ export class App {
     const o = this.opening;
     if (!o) return { t: null, stage: (this.handoffAt < Infinity ? 'done' : 'invite') as Stage | 'invite', handoffAt: this.handoffAt };
     const t = wallClock() - o.start;
-    return { t, stage: stageAt(o.score, t), handoffAt: o.score.handoff, name: o.score.name };
+    // The hand-off waits for the voice: until it has happened, the opening is still in its last stage.
+    let stage: Stage = stageAt(o.score, t);
+    if (stage === 'handoff' || stage === 'done') stage = 'voice';
+    return { t, stage, handoffAt: o.score.handoff, name: o.score.name };
   }
 
   async boot() {
@@ -258,6 +261,8 @@ export class App {
     o.score.events.forEach((ev, i) => {
       if (o.fired.has(i) || t < ev.at) return;
       if (ev.kind === 'handoff' && wallClock() < this.voiceUntil) return;
+      // The laugh only after the hand has stopped and the stop has been held.
+      if (ev.kind === 'voice' && ev.afterStop !== undefined && wallClock() < this.writeDoneAt + ev.afterStop) return;
       o.fired.add(i);
       this.performOpening(ev);
     });
@@ -288,6 +293,7 @@ export class App {
       }
       case 'write': {
         const done = this.text.writeOn(ev.phrase, { upto: ev.upto, instant: skipping });
+        this.writeDoneAt = done;
         if (!skipping && ev.sound && this.voices && this.audio) {
           const w = this.text.whereIs(ev.phrase);
           // The pencil is heard while the hand writes and nobody speaks.
@@ -313,14 +319,19 @@ export class App {
 
   /** Until when the opening's voice (and its writing) is still going, wall clock. */
   private voiceUntil = 0;
+  /** When the opening's first hand stops (wall clock). */
+  private writeDoneAt = 0;
 
   /** The writing a voice will write in the opening: made once, in advance. */
   private prepareVoiceLine(ev: Extract<ScoreEvent, { kind: 'voice' }>): string | null {
     const key = `opening:${ev.phrase}`;
     if (this.text.items.has(key)) return key;
-    const st = this.text.placementOf(ev.besideOf);
-    const near = st ? { u: st.u + st.w * 0.5 + 0.7, v: st.v - 0.5 } : undefined;
-    for (const size of ['l', 'm', 's'] as const) {
+    void ev.besideOf;
+    // To the right of the chair at about eye height, well below the cornice: in frame from the
+    // door on a phone held upright (the wall's u runs west to east from its west end).
+    const c = this.chair.group.position;
+    const near = { u: c.x + ROOM.halfW + 1.0, v: 1.35 };
+    for (const size of ['m', 's'] as const) {
       if (this.text.write({ key, text: ev.text, hand: ev.hand, size, surface: 'north', near, purpose: 'recall', ttl: 0, now: this.time, source: ev.phrase, start: false })) return key;
     }
     return null;
@@ -329,13 +340,18 @@ export class App {
   /** A voice from where its words are written, and the words written as they are heard. */
   private async speakAndWrite(writeKey: string | null, phraseId: string, text: string, file: string) {
     let played: Played = { duration: 0 };
+    // The room draws breath just before the laugh.
+    this.audio?.silence(0.3, 2.6, 0.3);
     if (this.voices && this.audio) {
       played = await this.voices.playLine('tender', text, writeKey ? { ...this.place({ kind: 'surface', phraseId: writeKey }) } : this.place({ kind: 'chair' }), 0.9, `phrase:${phraseId}`, {
         performances: [file], priority: true,
       });
     }
     const writtenBy = writeKey ? this.writeWithVoice(writeKey, played) : 0;
-    this.captions.show(text, played.duration > 0 ? played.duration : 3.5, false);
+    // When the words are being written in view, the wall is their caption; the caption follows
+    // once the hand has finished, rather than giving the line away first.
+    if (writeKey) setTimeout(() => this.captions.show(text, 3, false), Math.max(0, writtenBy - wallClock()) * 1000);
+    else this.captions.show(text, played.duration > 0 ? played.duration : 3.5, false);
     // Wait for the voice to end and the hand to finish, then a breath.
     const voiceEnd = wallClock() + Math.max(0, played.duration) ;
     await new Promise((r) => setTimeout(r, Math.max(0, Math.max(voiceEnd, writtenBy) - wallClock()) * 1000));
@@ -392,7 +408,8 @@ export class App {
     if (!this.opening) return;
     this.opening = null;
     const sc = this.lighting.score;
-    sc.key = sc.area = sc.hemi = sc.glow = 1;
+    sc.area = sc.hemi = sc.glow = 1;
+    sc.key = ROOM_LEVELS.key;
     sc.cone = ROOM_LEVELS.cone;
     this.room.setLit(1, 1);
     this.post.black = 0;
@@ -437,7 +454,7 @@ export class App {
       if (this.opening) this.playOpening();
       else {
         const since = this.time - this.handoffAt;
-        if (!this.hintShown && since > 1 && !(this.touch && this.dragged)) this.showHint();
+        if (!this.hintShown && since > 4 && !(this.touch && this.dragged)) this.showHint();
         if (this.touch && this.mode === 'room' && !this.touchHintShown && since > 12 && !this.touched) this.showTouchHint();
       }
     }

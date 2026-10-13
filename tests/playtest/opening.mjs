@@ -95,7 +95,7 @@ const state = (page) => page.evaluate(() => {
   check(during.some((s) => /crumbs/.test(s.caption)), 'the voice is captioned');
   check(during.every((s) => s.log === 0), 'nothing of the Director before the hand-off');
   check(during.filter((s) => s.t > 1).every((s) => s.ctx === 'running'), 'audio runs after the tap (no autoplay override)');
-  check(handoff.planned < 25 && Date.now() - t0 < 45000, `the room is the visitor's by ~25 s (score hand-off ${handoff.planned.toFixed(1)} s)`);
+  check(handoff.t < 26 && handoff.crumbs > 0.95, `the room is the visitor's by ~25 s, once the voice's line is written (${handoff.t.toFixed(1)} s)`);
   // Touch after the transition.
   const cdp = await ctx.newCDPSession(page);
   const drag = async (x0, y0, x1, y1) => {

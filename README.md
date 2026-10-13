@@ -82,19 +82,19 @@ All of this is implemented and running; none of it is shown to the visitor as nu
 - **The opening.** One authored score (`src/state/OpeningScore.ts`), first visit:
   - **0 s.** You tap the black threshold, which is also the title card; that tap lets the room be heard.
   - **0.3–5 s.** "The Hedgehog's Dilemma" holds on black and fades.
-  - **In the dark.** A chair settles, as if someone has just got up, then a switch clicks by the door.
-  - **The chair.** A light finds it alone. Not a spotlight: the panel is visibly its source and the walls are barely there. You can look around from here.
+  - **In the dark.** A chair creaks, then a switch clicks by the door.
+  - **The chair.** A wide, soft throw of light finds it alone, and the walls are barely there. The fixture stays dim, the source rather than the subject. You can look around from here.
   - **The room.** It comes up nearly empty: plaster with old erased marks, and small writing on the floor by the chair. You can walk from here.
-  - **A hand writes.** "I wanted you to", in silence, then stops.
-  - **Laughter.** It comes from the wall to the right of the chair, and "You've got crumbs on you." writes itself there as it is heard, pausing through the laugh.
-  - **Hand-off.** At about 21 s on a phone, 24 s on a wider screen, the room is yours. Nothing of the room's own life starts before then, and nothing is owed afterwards.
+  - **A hand writes.** "I wanted you to", in pen, in silence, then stops. The stop is held for two seconds.
+  - **Laughter.** It comes from the wall to the right of the chair, and "You've got crumbs on you." writes itself there as it is heard, pausing through the laugh. Its caption follows the writing rather than giving it away.
+  - **Hand-off.** Once the voice and its writing are done, at about 23 s on a phone and 26 s on a wider screen, the room is yours. Nothing of the room's own life starts before then, nothing is owed afterwards, and nothing answers the unfinished line until you do.
 
   Returning visitors skip the title and are in the room in about 9 s. A tap advances the title; **Skip**, Esc or a hidden tab ends the opening at once, easing the light up rather than cutting. Why this and not another opening is recorded in `docs/reviews/2026-10-cinematic-opening.md`.
 - **Accumulation.** The room fills over the visit:
-  - **A few lines soon after the hand-off.** Ordinary ones first (cereal for dinner, half a sandwich), usually on the wall you've just turned to.
+  - **A few lines soon after the hand-off.** Ordinary ones first (cereal for dinner, half a sandwich), written on the wall you face, wherever they first belonged.
   - **Then more slowly.** Lines held in view are answered by a related line written near them: something they echo or contradict.
   - **Some spoken lines write themselves**, about one in three, onto their place on the wall as they are heard. Most leave nothing.
-  - **The unfinished line is finished** when someone stays with it, either by looking at it for a while or by coming to the chair. A voice says the whole sentence, and the hand writes "stay." as the word is heard.
+  - **The unfinished line is finished** when someone stays with it: a long look at it, or being still at the chair, facing it, for a while. A voice from the line says the whole sentence, the hand writes "stay." as the word is heard, and the room is quiet for a while afterwards. Until then, nothing answers it.
 - **Handwriting.** New writing is written, not faded in:
   - **Stroke order.** Each piece is baked once, when it is first needed, with the moment the hand reaches each pixel. Within each letter, the ink is followed from where a pen would touch down; dots and crossbars come after the word (`src/world/strokes.ts`).
   - **Pace.** The hand writes at the pace of its implement (`handwriting.ts`), pausing at commas and stops and now and then before a word.

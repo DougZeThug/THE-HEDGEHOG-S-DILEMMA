@@ -69,3 +69,41 @@ The first full review with the seven specialist agents (`.claude/agents/`, proto
 - A second opening voice.
 - A door at 27 s.
 - Per-speaker handwriting: one hand, varied by implement.
+
+## After implementation: QA and the artistic evaluation
+
+These are workflow steps 5 and 6. `qa-accessibility` tested the build; `cinematic-director` and `creative-director` evaluated the finished opening on real-time phone frames.
+
+**QA found and verified, all fixed:**
+- **The voiced line was baked in the frame its voice started.** On slow hardware that delayed the voice past the fixed hand-off. The line is now made in the dark, and the hand-off waits for the voice and its writing (the watchdog still ends the opening by 40 s).
+- **Skip was unreadable once the room was lit** (about 1.5:1). It now has dark ink on a soft backdrop.
+- **Esc inside settings during the opening** skipped the opening and left focus outside the dialog.
+- **Reduced motion never reached the handwriting.**
+- **Keys acted in the dark.**
+- **A focus ring sat in the frame on phones.**
+
+**The artistic evaluation found the meaning thrown away. Fixed:**
+- **The stop was never held.** The laugh began while the hand was still writing "to". Now the writing starts earlier, and the laugh waits until 2 s after the hand has actually stopped. The room draws breath just before it.
+- **The room answered the unfinished line at once,** with "I'm not going anywhere.", a faint "stay", and "alone". While "I wanted you to" is unfinished, nothing answers it: no echoes, nothing that contradicts it, no other lines about going or staying. The first three ordinary lines are written on the wall the visitor faces ("We ate cereal for dinner and it was perfect.").
+- **Chair-first read as a stage spotlight, and the fixture upstaged the chair.**
+  - The cone is wide from the first light (0.7).
+  - The panel stays dim (≤ 0.12) until the room arrives.
+  - There is no "falter" (it was flicker by another name).
+  - In the lit room the pool dissolves (cone 1.0, key × 0.85).
+- **The spoken line was written under the cornice and cropped on a phone.** It now has a fixed place to the right of the chair at eye height, in frame.
+- **Finishing the line rewarded arriving, not staying, and was talked over.** Coming to the chair is no longer enough: the visitor has to be still there for a while, facing the line. The voice comes from the line itself, and the room then holds 15 s of quiet.
+- **Subtitles gave the line away before the wall wrote it.** The caption now follows the writing.
+- **Hints came under the spoken line.** They now wait.
+- **"[a chair, someone getting up]" explained too much.** It is now "[a chair creaks]".
+- **The first writing was in the most assertive hand.** "I wanted you to" is now in pen, not marker. The crayon is grainier.
+
+**Also fixed along the way:**
+- The answer to reading picked withheld lines.
+- Gestures answering a visitor's words were lost when the room wrote the same line first. Contributions now have their own random stream.
+- Accumulation pauses while someone is settled at the chair.
+
+**Not done; for the artist or a later round:**
+- A rounder, waxier crayon letterform.
+- The portrait pitch is −0.30, as suggested. The ceiling still takes about a sixth of the frame.
+- Dashed artefacts at the room's junctions in software-rendered frames. They are probably SwiftShader's soft shadows; check on a device.
+- Whether a 2 s held stop and a 23 s phone opening feel right. That needs a person, on a phone, with sound.

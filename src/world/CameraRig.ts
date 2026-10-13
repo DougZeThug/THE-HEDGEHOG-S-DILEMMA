@@ -60,7 +60,7 @@ export class CameraRig {
    * screen and the chair sits just below centre on a phone held upright.
    */
   frameOpening(aspect: number) {
-    this.pitch = aspect < 1 ? -0.24 : -0.15;
+    this.pitch = aspect < 1 ? -0.3 : -0.15;
   }
 
   /** Walk toward a world point, stopping `stopAt` metres short. */

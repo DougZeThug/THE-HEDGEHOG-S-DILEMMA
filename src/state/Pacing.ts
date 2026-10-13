@@ -125,6 +125,11 @@ export class Pacing {
     return now >= this.recoverUntil && now >= this.holdUntil;
   }
 
+  /** Hold the room for `seconds` (after something that must be left alone to land). */
+  holdFor(now: number, seconds: number) {
+    this.holdUntil = Math.max(this.holdUntil, now + seconds);
+  }
+
   /** Inside a held silence: nothing new should appear or sound. */
   holding(now: number): boolean {
     return now < this.holdUntil;

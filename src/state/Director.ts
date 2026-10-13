@@ -141,6 +141,7 @@ export class Director {
   private nextDistantLife = 45;
   private openingDone = false;
   private readonly legacy: boolean;
+  private readonly seed: number;
   /** While the authored opening plays, the room's own rules wait and its clock doesn't run. */
   held = false;
   private nextAccumulate = 4;
@@ -155,6 +156,7 @@ export class Director {
 
   constructor(opts: DirectorOptions) {
     this.rng = new Rng(opts.seed);
+    this.seed = opts.seed;
     this.visits = opts.visits ?? 1;
     // Stillness is one way in among many: it is answered soon, but not always the same way.
     const t1 = this.rng.range(5, 9);
@@ -292,6 +294,7 @@ export class Director {
     position: VoicePosition,
     extra: { gain?: number; assetId?: string; phraseId?: string; ttl?: number; priority?: number; finish?: boolean } = {},
   ) {
+    if (extra.phraseId && !extra.finish && this.withheld().includes(extra.phraseId)) return;
     // A phrase with recorded performances: choose the one directed for this moment.
     let ranked = extra.phraseId && kind !== 'laugh' && kind !== 'murmur' && kind !== 'breath' && kind !== 'hum' ? rankPerformances(extra.phraseId, this.field.v, kind) : [];
     // Heard before: this time, the reading furthest from the one already heard.
@@ -429,6 +432,7 @@ export class Director {
       if (cue.position.kind === 'beyond' && this.situations.claimed('beyond')) return false;
     }
     if (cue.type === 'music' && !rule.startsWith('sit:') && this.situations.claimed('music')) return false;
+    if (cue.type === 'reveal' && this.withheld().includes(cue.phraseId)) return false;
     if (cue.type === 'reveal') {
       const cur = this.visible.get(cue.phraseId);
       if (cur && cur.mode === 'shown') return false;
@@ -465,7 +469,25 @@ export class Director {
   static readonly RESERVED = new Set(['thank-staying', 'moving-chair', 'glad-came', 'dont-have-say']);
 
   private hiddenExcluding(): Set<string> {
-    return new Set([...this.visible.keys(), ...Director.RESERVED]);
+    return new Set([...this.visible.keys(), ...Director.RESERVED, ...this.withheld()]);
+  }
+
+  /** Lines about leaving and staying, kept back while "I wanted you to" is unfinished. */
+  static readonly ANSWERS_TO_STAY = ['w-stay', 'closer', 'need-no-one', 'if-closer', 'not-going', 'still-here', 'far-enough', 'afraid-leave', 'come-back-dont', 'maybe-wanted', 'w-away', 'w-almost'];
+
+  /**
+   * While a line is left unfinished, nothing answers it: not its echoes, not what contradicts
+   * it, not other lines about going or staying. The visitor finishes it, or nobody does.
+   */
+  private withheld(): string[] {
+    if (!this.unfinished.size) return [];
+    const out = new Set<string>();
+    for (const id of this.unfinished) {
+      const p = PHRASE_BY_ID.get(id);
+      for (const r of [...(p?.echoes ?? []), ...(p?.contradicts ?? [])]) out.add(r);
+      if (id === 'stay') for (const r of Director.ANSWERS_TO_STAY) out.add(r);
+    }
+    return [...out];
   }
 
   /** The walls slowly offer more writing as the visit goes on. */
@@ -652,6 +674,8 @@ export class Director {
     const reading = v.gazeId && v.gazeFor > 2.5 ? PHRASE_BY_ID.get(v.gazeId) : undefined;
     const answerRead = !!reading && this.now - this.lastAccumulateAt > 5 && this.accumulated < 14;
     if (this.now < this.nextAccumulate && !answerRead) return;
+    // Someone settled at the chair is with the chair: the walls can wait.
+    if (!answerRead && v.near && v.stillFor > 3) return;
     if (this.pacing.holding(this.now) || this.pacing.repeats('text', this.now, 6)) return;
     // The first comes regardless (something to read); after that the room's own filling
     // waits while enough is happening.
@@ -659,11 +683,13 @@ export class Director {
     // Never on top of something that has only just happened.
     if (this.accumulated >= 1 && this.pacing.sinceDev(this.now) < 2.5) return;
     const n = this.accumulated;
-    this.nextAccumulate = this.now + (n < 5 ? this.rng.range(7, 10) : n < 12 ? this.rng.range(14, 22) : this.rng.range(26, 40));
+    this.nextAccumulate = this.now + (n < 5 ? this.rng.range(8, 12) : n < 12 ? this.rng.range(14, 22) : this.rng.range(26, 40));
     // Turning to a wall is answered: the hand writes there, where the visitor has just looked.
     const turned = this.now - this.facingSince < 4 && this.now > 4;
     const facing = turned || this.rng.chance(0.7);
-    const pool = PHRASES.filter((p) => p.tier === 'arrival' && !this.visible.has(p.id) && p.surface !== 'floor' && p.surface !== 'ceiling');
+    // Not a line something else has already promised to bring (a reveal waiting its time).
+    const free = (id: string) => !this.visible.has(id) && !this.scheduler.hasPending(`reveal:${id}`);
+    const pool = PHRASES.filter((p) => p.tier === 'arrival' && free(p.id) && p.surface !== 'floor' && p.surface !== 'ceiling');
     if (!pool.length) return;
     const onWall = (id: string) => pool.some((p) => p.id === id && (!facing || p.surface === this.facing));
     let id: string | undefined;
@@ -671,13 +697,31 @@ export class Director {
     if (answerRead && reading) {
       const related = [...(reading.contradicts ?? []), ...(reading.echoes ?? [])]
         .map((r) => PHRASE_BY_ID.get(r))
-        .find((p) => p && !this.visible.has(p.id) && !Director.RESERVED.has(p.id) && p.surface !== 'floor' && p.surface !== 'ceiling' && !['transform', 'annotation', 'still', 'near'].includes(p.tier ?? 'arrival'));
+        .find((p) => p && free(p.id) && !Director.RESERVED.has(p.id) && !this.withheld().includes(p.id) && p.surface !== 'floor' && p.surface !== 'ceiling' && !['transform', 'annotation', 'still', 'near'].includes(p.tier ?? 'arrival'));
       if (related) {
         id = related.id;
         rule = 'accumulate-read';
       }
     }
     if (!id) id = Director.FIRST_WRITTEN.find(onWall);
+    // The first few ordinary lines are written where the visitor is looking, whatever wall
+    // they were first written on: the room is filling in front of them.
+    if (!id && n < 3) {
+      const moved = Director.FIRST_WRITTEN.map((x) => PHRASE_BY_ID.get(x)).find((p) => p && free(p.id) && !this.moved.has(p.id));
+      if (moved && moved.surface !== this.facing && this.facing !== 'floor' && this.facing !== 'ceiling') {
+        this.accumulated++;
+        this.lastAccumulateAt = this.now;
+        this.moved.add(moved.id);
+        this.accumulating.add(moved.id);
+        this.visible.set(moved.id, { mode: 'shown', since: this.now, base: true });
+        this.memory.surfaced.set(moved.id, this.now);
+        this.queue(0, {
+          type: 'write', key: `moved:${moved.id}`, text: moved.text, hand: moved.hand === 'typed' ? 'pencil' : moved.hand, size: 's',
+          surface: this.facing, purpose: 'recall', ttl: 0, source: moved.id,
+        }, rule);
+        return;
+      }
+    }
     if (!id) {
       const there = facing ? pool.filter((p) => p.surface === this.facing) : pool;
       const from = there.length ? there : pool;
@@ -690,6 +734,8 @@ export class Director {
     this.accumulating.add(id);
   }
   private accumulating = new Set<string>();
+  /** Ordinary lines written on another wall than their own. */
+  private moved = new Set<string>();
   /** Lines the opening left unfinished on the wall. */
   private unfinished = new Set<string>();
 
@@ -701,15 +747,19 @@ export class Director {
     if (!this.unfinished.size || this.now < 12) return;
     const v = this.visitor;
     for (const id of this.unfinished) {
-      const looked = v.gazeId === id && v.gazeFor > 6;
-      const close = v.near && v.nearFor > 2;
-      if (!looked && !close) continue;
-      if (!this.scheduler.majorFree(this.now) || !this.pacing.intenseFree(this.now) || this.pacing.holding(this.now)) return;
       const p = PHRASE_BY_ID.get(id);
       if (!p) continue;
+      // Earned by staying, not by arriving: a long look, or stillness at the chair — and only
+      // while the line is in view, so the sentence is seen being finished.
+      const looked = v.gazeId === id && v.gazeFor > 6;
+      const stayed = v.near && v.nearFor > 8 && v.stillFor > 5 && this.facing === p.surface;
+      if (!looked && !stayed) continue;
+      if (!this.scheduler.majorFree(this.now) || !this.pacing.intenseFree(this.now) || this.pacing.holding(this.now)) return;
       this.unfinished.delete(id);
-      this.voice(looked ? 'finish-look' : 'finish-chair', 0, p.voice ?? 'tender', p.text, p.text, looked ? { kind: 'surface', phraseId: id } : { kind: 'chair' }, { phraseId: id, finish: true, ttl: 20, priority: 2 });
+      this.voice(looked ? 'finish-look' : 'finish-chair', 0, p.voice ?? 'tender', p.text, p.text, { kind: 'surface', phraseId: id }, { phraseId: id, finish: true, ttl: 20, priority: 2 });
       this.memory.spoken.set(id, this.now);
+      // Then nothing for a while: the sentence is left to stand.
+      this.pacing.holdFor(this.now, 15);
       return;
     }
   }
@@ -1347,9 +1397,12 @@ export class Director {
     // happens, often nothing, and anything related surfaces much later, as if by itself.
     this.queue(0.5, { type: 'write', key, text, hand: 'visitor', size: text.length > 60 ? 'xs' : 's', surface: this.facing, purpose: 'contribution', ttl: 0 }, 'contribution');
     const options = it.gestures.filter((g) => g !== 'writeOnWall' && g !== 'music');
-    if (!options.length || this.rng.chance(0.4)) return;
-    const g = this.rng.pick(options);
-    const later = this.rng.range(60, 180);
+    // Its own stream of chance, so what a visitor's words bring doesn't shift whenever some
+    // unrelated rule of the room is added or changed.
+    const r = new Rng(hashString(`contribution:${this.seed}:${this.contributionCount}`));
+    if (!options.length || r.chance(0.4)) return;
+    const g = r.pick(options);
+    const later = r.range(60, 180);
     switch (g) {
       case 'quiet':
         this.queue(1, { type: 'silence', depth: 0.45 + 0.25 * it.intensity, seconds: 10 }, 'contribution-quiet', { major: true, ttl: 6 });
