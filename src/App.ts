@@ -108,7 +108,7 @@ export class App {
       if (how !== 'approach' || !this.voices || !this.audio) return;
       const place = { from: [at.x, at.y, at.z] as [number, number, number] };
       void this.voices.sound('eraser', place, 0.35).then((dur) => {
-        if (dur > 0) this.captions.show('[rubbed out]', Math.max(1.4, dur), true);
+        if (dur > 0 && !this.captions.speaking) this.captions.show('[rubbed out]', Math.max(1.4, dur), true);
       });
       setTimeout(() => void this.voices?.playLine('breath', null, place, 0.12, 'vf-breath'), 200);
     };
@@ -126,8 +126,6 @@ export class App {
       },
     });
     for (const [id, st] of this.director.visible) if (st.base) this.text.setShown(id);
-    // The drawings that were always there: part of the room's history, there when its light comes up.
-    for (const d of STATIC_DRAWINGS) this.text.setShown(d.id);
 
     const samples = this.prefs.quality === 'high' ? 4 : this.prefs.quality === 'medium' ? 2 : 0;
     this.post = new Post(this.renderer, this.scene, this.rig.camera, samples);
@@ -220,7 +218,25 @@ export class App {
 
   // ─────────────────────────────── the opening ───────────────────────────────
 
+  /**
+   * The drawings that were always there: part of the room's history, there when its light
+   * comes up. Baked one at a time while the screen is still black after the tap, not while
+   * the page loads.
+   */
+  private bakeOldDrawings() {
+    const idle = (f: () => void) => ((window as { requestIdleCallback?: (f: () => void, o?: { timeout: number }) => void }).requestIdleCallback ?? ((g: () => void) => setTimeout(g, 30)))(f, { timeout: 400 });
+    const pending = STATIC_DRAWINGS.filter((d) => !this.text.items.has(d.id));
+    const next = () => {
+      const d = pending.shift();
+      if (!d) return;
+      this.text.setShown(d.id);
+      idle(next);
+    };
+    idle(next);
+  }
+
   private beginOpening() {
+    this.bakeOldDrawings();
     const returning = readOpeningSeen();
     const score = openingScore({ returning, touch: this.touch });
     this.opening = { score, start: wallClock(), fired: new Set() };
@@ -580,7 +596,7 @@ export class App {
         this.text.erode(cue.key, cue.keep, this.time);
         break;
       case 'draw':
-        this.text.draw(cue.id);
+        if (!this.text.draw(cue.id)) this.director.drawFailed(cue.id);
         break;
       case 'air': {
         // Between the chair and the visitor, nearer the chair, facing where they stand.
@@ -946,6 +962,8 @@ export class App {
     for (const it of this.text.items.values()) {
       // Only writing that can actually be seen: present, legible from here, in front of the eye.
       if (it.vis < 0.4 || !it.mesh.visible || it.uniforms.uOpacity.value < 0.15) continue;
+      // Drawings are found by looking, not things to touch: a tap goes to the writing.
+      if (it.purpose === 'drawing') continue;
       const c = toScreen(it.centre);
       if (!c.front || c.x < -pad || c.x > innerWidth + pad || c.y < -pad || c.y > innerHeight + pad) continue;
       box.setFromObject(it.mesh);

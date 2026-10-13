@@ -298,9 +298,11 @@ export class WallText {
     return item;
   }
 
-  /** A drawing drawn while someone watches: stroke by stroke, the hand's own pace. */
-  draw(id: string): number {
-    return this.writeOn(id);
+  /** A drawing drawn while someone watches: stroke by stroke, the hand's own pace. False if there was no room for it. */
+  draw(id: string): boolean {
+    if (!this.ensure(id)) return false;
+    this.writeOn(id);
+    return true;
   }
 
   private create(key: string, text: string, hand: Hand, size: Size, pl: Placement, purpose: Purpose, phrase?: Phrase): TextItem {
@@ -568,7 +570,8 @@ export class WallText {
       const s = a.shadow.uniforms;
       s.uWrite.value = a.uniforms.uWrite.value;
       s.uReveal.value = a.vis;
-      s.uOpacity.value = 0.22 * this.airShadowLight;
+      // Words that can't be seen from here (edge-on, from behind) cast nothing either.
+      s.uOpacity.value = 0.22 * this.airShadowLight * facing;
     }
     if (a.vis <= 0 && a.target <= 0) {
       a.mesh.removeFromParent();

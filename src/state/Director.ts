@@ -1034,6 +1034,7 @@ export class Director {
    */
   private ruleDrawings() {
     const v = this.visitor;
+    if (this.now < this.drawAgainAt) return;
     for (const d of DRAWINGS) {
       if (d.when === 'start' || this.drawn.has(d.id)) continue;
       const { seen, gaze } = d.when;
@@ -1513,6 +1514,16 @@ export class Director {
   }
 
   /** The world could not find room for a piece of writing: let its relation be tried again later. */
+  /** A drawing found no room on its wall: it may be tried again later, once. */
+  drawFailed(id: string): void {
+    if (this.drawRetried.has(id)) return;
+    this.drawRetried.add(id);
+    this.drawn.delete(id);
+    this.drawAgainAt = this.now + 60;
+  }
+  private drawRetried = new Set<string>();
+  private drawAgainAt = 0;
+
   writeFailed(key: string): void {
     if (key.startsWith('stray:')) {
       if (this.strays.get(key.slice(6)) === 'south') this.heldMoved = false;

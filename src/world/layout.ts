@@ -251,7 +251,8 @@ export function layoutOf(m: Map<string, Placement>): SurfaceLayout {
  * writing has its places.
  */
 export function drawingSpots(defs: readonly DrawingDef[]): Placement[] {
-  return defs.filter((d) => d.at).map((d) => ({ surface: d.surface, u: d.at![0], v: d.at![1], w: d.size[0], h: d.size[1], rot: 0 }));
+  // With a margin: a line can run a centimetre or so past where it was meant to stop.
+  return defs.filter((d) => d.at).map((d) => ({ surface: d.surface, u: d.at![0], v: d.at![1], w: d.size[0] + 0.03, h: d.size[1] + 0.03, rot: 0 }));
 }
 
 export function drawingBeside(layout: SurfaceLayout, def: DrawingDef, target: Placement | undefined): Placement | null {

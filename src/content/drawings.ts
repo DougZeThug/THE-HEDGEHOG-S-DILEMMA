@@ -60,7 +60,7 @@ export const DRAWINGS: readonly DrawingDef[] = [
   // An eye in the margin, its iris rubbed away: nothing looking out of it.
   { id: 'ghost-eye', shape: 'eye', style: 'ghost', hand: 'child', strength: 0.65, surface: 'west', size: [0.09, 0.05], at: [1.55, 0.38], when: 'start', rubbed: 0.2 },
   // Someone getting a biro to work, low down: a spiral, a scribble.
-  { id: 'pen-test', shape: 'pen-test', style: 'firm', hand: 'pen', strength: 0.55, surface: 'south', size: [0.12, 0.06], at: [4.6, 0.36], when: 'start' },
+  { id: 'pen-test', shape: 'pen-test', style: 'firm', hand: 'pen', strength: 0.5, surface: 'south', size: [0.12, 0.06], at: [4.6, 0.36], when: 'start' },
   // A door, slightly open, drawn twice over.
   { id: 'ghost-door', shape: 'door', style: 'ghost', hand: 'faint', strength: 0.6, surface: 'south', size: [0.17, 0.3], at: [0.82, 1.12], when: 'start', rubbed: 0.3 },
   // The only one drawn while the visitor watches: two cups, and the second never finished.

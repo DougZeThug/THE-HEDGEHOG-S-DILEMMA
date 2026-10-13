@@ -9,6 +9,11 @@ export class Captions {
     if (!v) this.clear();
   }
   constructor(private el: HTMLElement) {}
+  private wordsUntil = 0;
+  /** A caption of words (not a sound) is on screen: a sound's caption must not replace it. */
+  get speaking() {
+    return performance.now() < this.wordsUntil;
+  }
 
   show(text: string, seconds: number, sound = false) {
     if (!this.enabled || !text) return;
@@ -22,6 +27,7 @@ export class Captions {
     this.el.appendChild(s);
     requestAnimationFrame(() => s.classList.add('on'));
     const hold = Math.max(2.5, seconds + 1.2) * 1000;
+    this.wordsUntil = sound ? (this.speaking ? this.wordsUntil : 0) : performance.now() + hold;
     setTimeout(() => {
       s.classList.remove('on');
       setTimeout(() => s.remove(), 1600);

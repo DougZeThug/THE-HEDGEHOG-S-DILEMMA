@@ -48,8 +48,6 @@ describe('the drawings: few, small, mostly already there', () => {
       const size = surfaceSize(s.surface);
       expect(s.u - s.w / 2).toBeGreaterThan(0.05);
       expect(s.u + s.w / 2).toBeLessThan(size.w - 0.05);
-      // Above the skirting (8.5 cm and its shadow gap).
-      expect(s.v - s.h / 2).toBeGreaterThan(0.095);
       for (const r of RESERVED[s.surface] ?? []) expect(overlaps(s, r, 0)).toBe(false);
       for (const p of PHRASES) {
         const pl = m.get(p.id);
@@ -58,12 +56,24 @@ describe('the drawings: few, small, mostly already there', () => {
         expect(overlaps(pl, s, 0), `${p.id} over a drawing`).toBe(false);
       }
     }
+    // The drawn box above the skirting (8.5 cm and its shadow gap).
+    for (const d of DRAWINGS) if (d.at) expect(d.at[1] - d.size[1] / 2, d.id).toBeGreaterThan(0.095);
     // Apart from each other: no little gallery.
     for (const a of spots) for (const b of spots) if (a !== b && a.surface === b.surface) expect(Math.hypot(a.u - b.u, a.v - b.v)).toBeGreaterThan(0.4);
-    // The drawing that sits beside a line finds room there.
+    // The drawing that sits beside a line finds room there, clear of all the writing.
     const cups = DRAWING_BY_ID.get('cups')!;
     const p = drawingBeside(layoutOf(m), cups, m.get(cups.beside!));
     expect(p).toBeTruthy();
+    for (const q of PHRASES) {
+      const pl = m.get(q.id);
+      if (pl && pl.surface === p!.surface) expect(overlaps(pl, p!, 0), q.id).toBe(false);
+    }
+    // And when there is none (the wall filled with notes), it says so rather than overlapping.
+    const full = layoutPhrases(PHRASES, measure, 4242, drawingSpots(DRAWINGS));
+    const L = layoutOf(full);
+    const t = full.get(cups.beside!)!;
+    for (let du = -1.5; du <= 1.5; du += 0.1) for (let dv = -1; dv <= 1; dv += 0.1) L.add({ surface: t.surface, u: t.u + du, v: t.v + dv, w: 0.1, h: 0.1, rot: 0 });
+    expect(drawingBeside(L, cups, t)).toBeNull();
   });
 });
 
@@ -112,6 +122,21 @@ describe('the cups are drawn while their line is looked at', () => {
     expect(draws.length).toBe(1);
     expect(draws[0].cue).toEqual({ type: 'draw', id: 'cups' });
   });
+  it('if it found no room, it is tried once more a minute later, then never', () => {
+    const d = new Director({ seed: 7 });
+    d.release({ written: ['stay', 'two-cups'], spoken: ['crumbs'] });
+    const look = () => ({ ...still, gazePhraseId: 'two-cups' });
+    const first = run(d, 20, look).filter((c) => c.cue.type === 'draw');
+    expect(first.length).toBe(1);
+    d.drawFailed('cups');
+    const soon = run(d, 50, look).filter((c) => c.cue.type === 'draw');
+    expect(soon.length).toBe(0);
+    const later = run(d, 40, look).filter((c) => c.cue.type === 'draw');
+    expect(later.length).toBe(1);
+    d.drawFailed('cups');
+    expect(run(d, 120, look).filter((c) => c.cue.type === 'draw').length).toBe(0);
+  });
+
   it('not while held', () => {
     const d = new Director({ seed: 7 });
     d.hold();

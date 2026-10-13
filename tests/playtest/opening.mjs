@@ -54,6 +54,7 @@ const state = (page) => page.evaluate(() => {
     key: a.lighting.score.key, area: a.lighting.score.area,
     stay: a.text.writtenFraction('stay'), crumbs: a.text.writtenFraction('opening:crumbs'),
     visible: items.filter((i) => i.vis > 0.5 && i.purpose === 'phrase' && i.placement.surface !== 'floor').length,
+    drawings: items.filter((i) => i.vis > 0.5 && i.purpose === 'drawing').map((i) => [i.placement.surface, +i.uniforms.uOpacity.value.toFixed(2)]),
     ctx: a.audio?.ctx.state ?? null, log: a.director.log.length, caption: document.getElementById('captions').textContent.trim(),
   };
 });
@@ -87,6 +88,9 @@ const state = (page) => page.evaluate(() => {
   const chairAlone = during.filter((s) => s.key > 0.2 && s.area < 0.05 && s.black < 0.01);
   check(chairAlone.length >= 2 && during.findIndex((s) => s.key > 0.2) < during.findIndex((s) => s.area > 0.3), `the chair is lit before the walls (${chairAlone.length} samples of the chair alone)`);
   check(during.filter((s) => s.area > 0.5 && s.stage === 'room').every((s) => s.visible <= 1), 'the room comes up nearly empty');
+  // The drawings that were always there: faint, few, and none on the wall the visit opens on.
+  const drawn = handoff.drawings;
+  check(drawn.length <= 7 && drawn.every(([surface, op]) => surface !== 'north' && op <= 0.45), `the old drawings are faint and off the opening wall (${drawn.length})`);
   const stay = [...new Set(during.map((s) => +s.stay.toFixed(2)))].filter((x) => x > 0 && x < 0.78);
   check(stay.length >= 3, `the first line is written over time (${stay.length} partial states seen)`);
   check(Math.max(...during.map((s) => s.stay)) < 0.95, 'and left unfinished');
