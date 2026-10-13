@@ -62,3 +62,70 @@ The floor already matched. The wall the writing lives on was too *dark*, and too
 - the room's range: a dim's drop and the cooled pool's colour under each look;
 - the opening frozen at its exact stages;
 - no shader compiled by switching looks.
+
+## After implementation: the evaluations
+
+QA, the creative director, the technical artist and the cinematic director evaluated the first build (build1). Their findings were fixed in 32e47ca and c94d450, and checked again in later captures (build2, final).
+
+**QA and accessibility.**
+- **[P0] The chair's shadow map was drawn once at warm-up and never again.** The redraw-on-change signature started as `NaN`, and `NaN` never compares as changed. So turns, nudges, drift and the opening's cone all left a stale shadow, with the chair turned out of it.
+  - Fixed with per-field tolerances: 3 mm, 0.003 rad.
+  - A unit test now fails on the old code.
+  - In the browser the shadow follows the opening, nudges, turns, drift, quality changes, and leaving and returning.
+- **[P1] After a WebGL context loss and restore the shadow stayed empty** until something moved. It is now redrawn on `webglcontextrestored` and on quality changes, through `Lighting.invalidateShadow()`.
+- **[P2] The tune panel:**
+  - the ceiling slider's range was below the looks' values;
+  - slider names repeated across groups (now fieldsets);
+  - the preset buttons didn't say which was pressed (now `aria-pressed`);
+  - a key of 0 made the contact NaN.
+- **[P2] `perf.mjs` compared one arbitrary frame.** It now reports a still frame and a shadow-redraw frame from a fixed pose.
+- **Passed:**
+  - programs compiled at the threshold, none later, none by switching looks or moving any slider;
+  - smoke and opening (hand-off 23.4 s);
+  - no errors;
+  - reduced motion;
+  - legibility per hand on a phone: no item down more than 15% in Weber. The crayon "crumbs" line is 0.236 → 0.231, with ΔE unchanged.
+
+**Creative director.**
+- **Verdict.** The room now has the reference's hierarchy without looking filtered. It still reads as this room: the toy-scale chair, the crayon "crumbs", the noughts and crosses, the tally, the height ticks.
+- **Fixed:**
+  - **The flat grey ceiling**, the most generic "office" element left. It now has a bounce map strongest round the panel, and the panel's rim is lit.
+  - **The erased "I'm sorry" sat in the brightest spot of the brightest wall,** straight behind the chair, legible as the room arrived and before the first stroke. It moved off to the side; behind the chair now only "you" is rubbed out.
+  - **Too many confessions among the erasures.** The west wall's became a shopping list.
+  - **The chair's frame was too dark** (legs at luma 31 against the reference's 50). The hand that made it disappeared, so the frame was lightened.
+  - **Faint writing lost contrast on the brighter wall.** It is strengthened 1.2× with the room's light.
+  - **The dim was shallower** (see the cinematic director's finding).
+  - **The graphite dust read as grime.** It is now warm and fainter.
+- **Kept, on their advice:**
+  - The cooling swing is now larger than before: pool R/B falls 0.13, against 0.07.
+  - The plaster stays clean: a white card, not the reference's stains.
+
+**Technical artist.**
+- **The P0 shadow above** (found independently).
+- **Fixed:**
+  - **A pine seat on near-black legs.** The palette is lighter and less saturated, and the seat quieter.
+  - **The finials sampled the seat's part of the texture** and glowed as two orange beads. Their UVs are remapped.
+  - The seam gradient's darkest row left a 2-px line at the ceiling. Softer stops.
+  - The contact drawn before floor writing. It now draws after, in a near-neutral colour.
+  - `ctx.filter` blur may not exist on iOS. The contacts and dust are now baked per pixel.
+  - Per-frame allocations in `Lighting.update` removed.
+- **Checked:**
+  - no banding (HalfFloat target plus the dither);
+  - seams don't sort against writing;
+  - cost: +2 draws (the contacts and the seat shade) and +3 programs; the shadow pass is now skipped on still frames.
+  - The shadow is a legless slab because the key is almost overhead, not because of blur. Leg shadows like the reference's would need a different key position: the cinematic director's call, not taken here.
+
+**Cinematic director.**
+- **Verdict.** The lit room has the reference's light structure:
+  - the back wall's profile is within ±10 luma of the reference at every sample;
+  - the main phrase reads harder ("stay" Weber 0.538 → 0.544, phone 0.393 → 0.431);
+  - the first stroke reads much harder (0.139 → 0.232).
+- **Fixed:**
+  - **The chair-alone image had gone sepia**, with the same brightness but cream light. The look's warmth and balance now come and go with the room's own light: the opening's level × the Director's dim. The first image is white light on a dark room again, and the colour arc runs white → cream as the room arrives → cool when the visitor comes close.
+  - **The dim's lowest point no longer matched the chair alone.** It left a mid-grey wall and a brown smudge above the chair. The look's balance and exposure now recede with the dim.
+  - **The panel's glass and the ceiling stayed warm when the light cooled.** They now follow the light.
+  - **The room's arrival had become an accelerating ramp.** It keeps the opening's curve again.
+  - **Harness:** the opening captures were late on desktop; the cooled state was unsettled; the dim was tested at 0.35 instead of the Director's 0.15. Fixed: a virtual clock, settled values, the real depth.
+- **Advised against, and not done:**
+  - adding vignette to darken the floor's front corners;
+  - pushing warmth past the light toward the reference's sepia.
