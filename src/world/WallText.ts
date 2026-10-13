@@ -373,23 +373,23 @@ export class WallText {
   /**
    * Write a phrase in the air at `at` (world), facing `face`, by the same hand as on the walls
    * but fainter, on no surface at all. It holds its orientation (it is not a sign that turns to
-   * follow you), and goes, rubbed out of the air, when the visitor comes within `goesAt` metres
-   * or after `ttl` seconds. One at a time.
+   * follow you) and is legible only from about where it was written to: turn its edge to you and
+   * it is gone, and from behind there is nothing. It goes, rubbed out of the air, when the
+   * visitor comes within `goesAt` metres of it, or after `ttl` seconds. One at a time.
    */
   writeInAir(o: { key: string; phraseId: string; at: THREE.Vector3; face: THREE.Vector3; goesAt?: number; ttl?: number; now: number }): boolean {
     const p = PHRASE_BY_ID.get(o.phraseId);
     if (!p || this.airItem) return false;
-    const { tex, w, h, duration } = textTexture(p.text, p.hand, p.size, o.key);
+    // In short lines, a narrow block that can stand beside the chair rather than across it.
+    const { tex, w, h, duration } = textTexture(p.text, p.hand, p.size, o.key, 2048, 0.85);
     const { mat, uniforms } = makeTextMaterial(tex, p.hand, w / h, hashString(o.key), duration);
-    mat.side = THREE.DoubleSide;
     mat.polygonOffset = false;
     const mesh = new THREE.Mesh(this.geo, mat);
-    // A little smaller than on a wall: it is nearer, and should not read as a sign.
-    mesh.scale.set(w * 0.8, h * 0.8, 1);
+    mesh.scale.set(w, h, 1);
     mesh.position.copy(o.at);
     mesh.lookAt(o.face.x, o.at.y, o.face.z);
     mesh.renderOrder = 3;
-    mesh.userData = { text: p.text, goesAt: o.goesAt ?? 1.5, expires: o.now + (o.ttl ?? 45) };
+    mesh.userData = { text: p.text, goesAt: o.goesAt ?? 1.0, expires: o.now + (o.ttl ?? 45), y: o.at.y, born: o.now, normal: new THREE.Vector2(o.face.x - o.at.x, o.face.z - o.at.z).normalize() };
     this.air.add(mesh);
     const now = wallClock();
     const plan: WritePlan = { start: now + 0.6, floor: 0, cap: duration };
@@ -412,9 +412,15 @@ export class WallText {
     const d = Math.hypot(pos.x - a.centre.x, pos.z - a.centre.z);
     if (a.target > 0 && (d < a.mesh.userData.goesAt || now > a.mesh.userData.expires)) {
       a.target = 0;
-      // Coming close rubs it out quickly; left alone, it thins away slowly.
-      a.rate = d < a.mesh.userData.goesAt ? 1 / 2.2 : 1 / 10;
+      // Coming close rubs it out quickly, before anyone could walk through it; left alone, it thins away slowly.
+      a.rate = d < a.mesh.userData.goesAt ? 1 / 1.3 : 1 / 10;
     }
+    // Barely drifting (1.5 cm over seven seconds): held up by nothing.
+    a.mesh.position.y = a.mesh.userData.y + 0.0075 * Math.sin(((now - a.mesh.userData.born) / 7) * Math.PI * 2);
+    // Full within 35° of where it faces, gone by 65°.
+    const { x: nx, y: nz } = a.mesh.userData.normal as THREE.Vector2;
+    const cos = d > 1e-3 ? (nx * (pos.x - a.centre.x) + nz * (pos.z - a.centre.z)) / d : 1;
+    const facing = smoothstep(Math.cos((65 * Math.PI) / 180), Math.cos((35 * Math.PI) / 180), cos);
     a.vis = a.target > a.vis ? Math.min(a.target, a.vis + a.rate * dt) : Math.max(a.target, a.vis - a.rate * dt);
     if (a.plan) {
       const h = handAt(a.plan, wallClock());
@@ -425,7 +431,7 @@ export class WallText {
       }
     }
     a.uniforms.uReveal.value = a.vis;
-    a.uniforms.uOpacity.value = clamp(a.opacity * env.textContrast, 0, 1);
+    a.uniforms.uOpacity.value = clamp(a.opacity * env.textContrast * facing, 0, 1);
     if (a.vis <= 0 && a.target <= 0) {
       a.mesh.removeFromParent();
       const mat = a.mesh.material as THREE.MeshStandardMaterial;

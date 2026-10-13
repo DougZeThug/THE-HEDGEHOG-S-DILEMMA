@@ -143,14 +143,17 @@ function wrap(text: string, st: HandStyle, px: number, maxPx: number): string[] 
 const PX_PER_M = 700;
 const LINE = 1.18;
 
-export function measureText(text: string, hand: Hand, size: Size): { w: number; h: number } {
+/** `wrapM` overrides the size's usual line length (metres). */
+export function measureText(text: string, hand: Hand, size: Size, wrapM = WRAP[size]): { w: number; h: number } {
   const st = HANDS[hand];
   const px = SIZE_EM[size] * st.scale * PX_PER_M;
-  const lines = wrap(text, st, px, WRAP[size] * PX_PER_M);
+  const lines = wrap(text, st, px, wrapM * PX_PER_M);
   const g = mctx();
   g.font = fontString(st, px);
   let max = 0;
-  for (const l of lines) max = Math.max(max, g.measureText(l).width + l.length * st.tracking * px);
+  // Drawn spaces run up to 1.2× and the last glyph can overhang its advance: room for both.
+  const space = g.measureText(' ').width;
+  for (const l of lines) max = Math.max(max, g.measureText(l).width + l.length * st.tracking * px + px * 0.12 + 0.3 * space * (l.split(' ').length - 1));
   return { w: (max + px * 0.3) / PX_PER_M, h: (lines.length * px * LINE + px * 0.35) / PX_PER_M };
 }
 
@@ -174,9 +177,9 @@ export interface TextBake {
   duration: number;
 }
 
-export function textTexture(text: string, hand: Hand, size: Size, key: string, maxTexPx = 2048): TextBake {
+export function textTexture(text: string, hand: Hand, size: Size, key: string, maxTexPx = 2048, wrapM = WRAP[size]): TextBake {
   const st = HANDS[hand];
-  const m = measureText(text, hand, size);
+  const m = measureText(text, hand, size, wrapM);
   const tm = handTiming(text, hand, key);
   let scale = 1;
   const wantW = m.w * PX_PER_M, wantH = m.h * PX_PER_M;
@@ -185,24 +188,28 @@ export function textTexture(text: string, hand: Hand, size: Size, key: string, m
   const H = Math.max(8, Math.ceil(wantH * scale));
   const [, g] = canvas(W, H, true);
   const px = SIZE_EM[size] * st.scale * PX_PER_M * scale;
-  const lines = wrap(text, st, SIZE_EM[size] * st.scale * PX_PER_M, WRAP[size] * PX_PER_M);
+  const lines = wrap(text, st, SIZE_EM[size] * st.scale * PX_PER_M, wrapM * PX_PER_M);
   const r = new Rng(hashString(key));
   g.font = fontString(st, px);
   g.textBaseline = 'alphabetic';
   g.fillStyle = '#fff';
   g.strokeStyle = '#fff';
   g.lineJoin = g.lineCap = 'round';
-  // Wax: the letter itself, then two fainter offset passes with a round, blunt edge.
+  // Wax: the letter, then two faint passes a little off it (the stick never lands twice in
+  // the same place). Where each was drawn is kept, to rough up its edges afterwards.
+  const drawn: { s: string; x: number; y: number; m: DOMMatrix }[] = [];
+  // The off passes leave flecks, not a second outline: they are filled through the tooth.
+  const flecks = st.waxy ? g.createPattern(grainCanvas(), 'repeat')! : null;
   const ink = (s: string, x: number, y: number) => {
     g.fillText(s, x, y);
-    if (!st.waxy) return;
+    if (!flecks) return;
+    drawn.push({ s, x, y, m: g.getTransform() });
     const a = g.globalAlpha;
-    g.lineWidth = px * 0.018;
-    g.strokeText(s, x, y);
-    g.globalAlpha = a * 0.4;
-    g.lineWidth = px * 0.012;
-    g.strokeText(s, x + px * 0.014, y - px * 0.01);
-    g.strokeText(s, x - px * 0.01, y + px * 0.012);
+    g.fillStyle = flecks;
+    g.globalAlpha = a * 0.7;
+    g.fillText(s, x + px * 0.025, y - px * 0.012);
+    g.fillText(s, x - px * 0.02, y + px * 0.02);
+    g.fillStyle = '#fff';
     g.globalAlpha = a;
   };
   const ranges = wordRanges(text);
@@ -243,6 +250,9 @@ export function textTexture(text: string, hand: Hand, size: Size, key: string, m
     }
     y += px * LINE;
   }
+  // Stroke order is worked out from the ink as written, before tooth and wax break letters into
+  // pieces that would otherwise be written after the word, like dots.
+  const pre = g.getImageData(0, 0, W, H).data;
   if (st.grain > 0) {
     g.globalCompositeOperation = 'destination-out';
     g.globalAlpha = st.grain;
@@ -253,25 +263,48 @@ export function textTexture(text: string, hand: Hand, size: Size, key: string, m
     g.fillRect(-256, -256, W + 512, H + 512);
     g.restore();
     if (st.waxy) {
-      // The wax's skips, at a slight slant (the stick held at an angle), larger than the tooth.
+      const wax = g.createPattern(waxCanvas(), 'repeat')!;
+      // Ragged edges: the wax breaks up along the outline, not only inside the letters.
+      g.globalAlpha = 0.9;
+      g.strokeStyle = wax;
+      g.lineWidth = px * 0.05;
+      g.save();
+      for (const d of drawn) {
+        g.setTransform(d.m);
+        g.strokeText(d.s, d.x, d.y);
+      }
+      g.restore();
+      // The skips, at a slight slant (the stick held at an angle), coarser than the tooth.
       g.globalAlpha = 0.8;
-      g.fillStyle = g.createPattern(waxCanvas(), 'repeat')!;
+      g.fillStyle = wax;
       g.save();
       g.rotate(r.range(-0.12, 0.05));
-      g.scale(Math.max(0.6, px / 70), Math.max(0.6, px / 70));
+      const k = Math.min(1.6, Math.max(0.6, px / 70));
+      g.scale(k, k);
       g.translate(r.range(0, 256), r.range(0, 256));
       g.fillRect(-512, -512, W * 2 + 1024, H * 2 + 1024);
       g.restore();
+      // Pressure that comes and goes along the line (about every 0.6 em): this survives distance.
+      const grad = g.createLinearGradient(0, 0, W, 0);
+      const n = Math.max(2, Math.ceil(W / (px * 0.6)));
+      for (let i = 0; i <= n; i++) grad.addColorStop(i / n, `rgba(0,0,0,${r.range(0, 0.3).toFixed(3)})`);
+      g.globalAlpha = 1;
+      g.fillStyle = grad;
+      g.fillRect(0, 0, W, H);
     }
     g.globalCompositeOperation = 'source-over';
     g.globalAlpha = 1;
   }
   const img = g.getImageData(0, 0, W, H).data;
   const alpha = new Uint8Array(W * H);
-  for (let p = 0; p < W * H; p++) alpha[p] = img[p * 4 + 3];
+  const whole = new Uint8Array(W * H);
+  for (let p = 0; p < W * H; p++) {
+    alpha[p] = img[p * 4 + 3];
+    whole[p] = pre[p * 4 + 3];
+  }
   const wordIx = new Int32Array(text.length).fill(0);
   ranges.forEach(([a, b], k) => wordIx.fill(k, a, b));
-  const bake = bakeStrokes(alpha, W, H, boxes, tm, (i) => wordIx[i]);
+  const bake = bakeStrokes(whole, W, H, boxes, tm, (i) => wordIx[i]);
   const dur = Math.max(1e-3, bake.duration);
   // Rows flipped: a DataTexture's first row is the bottom of the image.
   const data = new Uint8Array(W * H * 4);

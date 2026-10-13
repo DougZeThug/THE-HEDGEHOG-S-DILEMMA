@@ -456,9 +456,10 @@ export class App {
       if (this.leaving !== null) this.playLeaving();
       else if (this.opening) this.playOpening();
       else {
-        // The room's light, when the Director takes it back to the chair alone: the panel stays faintly lit.
+        // The room's light, when the Director takes it back to the chair alone: the fixture goes
+        // down with it (a blazing panel over a darkening room reads as a brownout), never out.
         const m = this.lighting.roomLight;
-        this.room.setLit(0.3 + 0.7 * m, m);
+        this.room.setLit(0.08 + 0.92 * m ** 1.5, m);
         const since = this.time - this.handoffAt;
         if (!this.hintShown && since > 4 && !(this.touch && this.dragged)) this.showHint();
         if (this.touch && this.mode === 'room' && !this.touchHintShown && since > 12 && !this.touched) this.showTouchHint();
@@ -572,13 +573,14 @@ export class App {
         const dir = new THREE.Vector3(p.x - c.x, 0, p.z - c.z);
         if (dir.lengthSq() < 1e-4) break;
         dir.normalize();
-        const at = new THREE.Vector3(c.x + dir.x * cue.toward, cue.height, c.z + dir.z * cue.toward);
+        // To the visitor's left, so the chair stands at the end of the line rather than under its middle.
+        const at = new THREE.Vector3(c.x + dir.x * cue.toward - dir.z * cue.aside, cue.height, c.z + dir.z * cue.toward + dir.x * cue.aside);
         this.text.writeInAir({ key: `air:${cue.phraseId}`, phraseId: cue.phraseId, at, face: p, now: this.time });
         break;
       }
       case 'silence':
         this.audio?.silence(cue.depth * (this.prefs.intensity === 'gentle' ? 0.8 : 1), cue.seconds);
-        if (cue.dim !== undefined) this.lighting.dimToChair(this.prefs.intensity === 'gentle' ? Math.max(cue.dim, 0.5) : cue.dim, Math.min(cue.seconds, 11), this.time);
+        if (cue.dim !== undefined) this.lighting.dimToChair(this.prefs.intensity === 'gentle' ? Math.max(cue.dim, 0.5) : cue.dim, Math.min(cue.seconds, cue.dimSeconds ?? 11), this.time);
         break;
       case 'chairNudge':
         this.chair.nudge(cue.dx, cue.dz, cue.dyaw);
@@ -1175,7 +1177,8 @@ export class App {
     this.director.depart();
     this.leaving = wallClock();
     this.voices?.stopSpeech();
-    if (this.audio) this.audio.silence(0.97, 9999);
+    // The hum goes on a little after the visitor has gone.
+    if (this.audio) this.audio.silence(0.97, 9999, 3);
     this.captions.clear();
     $('menu-btn').hidden = true;
     $('write-btn').hidden = true;
@@ -1191,13 +1194,14 @@ export class App {
         $('return').focus();
         void this.audio?.suspend();
       }, 6000);
-    }, this.prefs.reducedMotion ? 1500 : 4000);
+    }, this.prefs.reducedMotion ? 1500 : 4600);
   }
 
   /**
    * The opening in reverse, before the departure overlay: the room's light and the sky go
-   * first, leaving the chair lit alone; then the chair's light; then black. Quicker under
-   * reduced motion, where the overlay comes sooner.
+   * first, leaving the chair lit alone, held; then the view goes to black with the chair's light
+   * still on ("The light stays on."): it is the visitor who leaves. Quicker under reduced
+   * motion, where the overlay comes sooner.
    */
   private playLeaving() {
     const k = this.prefs.reducedMotion ? 0.35 : 1;
@@ -1208,14 +1212,11 @@ export class App {
       return x * x * (3 - 2 * x);
     };
     const room = 1 - ease(0, 1.8);
-    const chair = 1 - ease(2.0, 3.4);
     const sc = this.lighting.score;
     sc.area = sc.hemi = room;
-    sc.glow = chair;
-    sc.key = ROOM_LEVELS.key * chair;
     sc.cone = ROOM_LEVELS.cone - 0.3 * ease(0, 1.8);
-    this.room.setLit((0.12 + 0.88 * room) * chair, room);
-    this.post.depart = t > 3.0 ? 1 : 0;
+    this.room.setLit(0.12 + 0.88 * room, room);
+    this.post.depart = t > 3.6 ? 1 : 0;
   }
 
   returnToRoom() {

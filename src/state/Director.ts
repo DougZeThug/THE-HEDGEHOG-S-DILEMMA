@@ -1010,26 +1010,29 @@ export class Director {
     if (this.heldSilenceDone || this.now < 120 || (this.phase !== 'contradiction' && this.phase !== 'transform')) return;
     if (this.pacing.sinceDev(this.now) < 8 || !this.scheduler.majorFree(this.now) || this.attending() || this.visitor.speed > 0.5) return;
     this.heldSilenceDone = true;
-    this.queue(0, { type: 'silence', depth: 0.92, seconds: this.rng.range(30, 42), dim: 0.25 }, 'held-silence', { major: true, ttl: 10 });
+    this.queue(0, { type: 'silence', depth: 0.92, seconds: this.rng.range(30, 42), dim: 0.15, dimSeconds: 16 }, 'held-silence', { major: true, ttl: 10 });
   }
 
   /**
-   * Writing in the air, once a visit: when the visitor keeps their distance from the chair and
-   * looks at it, "Please don't come any closer." is written in the air beside it, at the height
-   * of someone sitting there. It goes as they come near: the request and its undoing in one
-   * gesture. Never while "stay" is unfinished (it would answer it); never in the first minute.
+   * Writing in the air, once a visit: when the visitor has been close to the chair and stepped
+   * back from it (or has kept away from it a long time) and looks at it, "Please don't come any
+   * closer." is written in the air in front of it. It goes as they come near: the request and
+   * its undoing in one gesture. Never while "stay" is unfinished (it would answer it), never
+   * in the first minute, and not when the same words are already on the wall.
    */
   private ruleAir() {
     if (this.airDone || this.now < 60) return;
     const v = this.visitor;
     if (v.distance < 2.4 || v.gazeChairFor < 2.5 || v.speed > 0.3) return;
-    if (this.withheld().includes('closer')) return;
+    // An answer to stepping back, not to standing by the door.
+    if (!v.approaches.length && this.now < 150) return;
+    if (this.visible.has('closer') || this.withheld().includes('closer')) return;
     // A rare gesture, so not held back by the room being busy, only by it being busy right now:
     // nothing for a few seconds before it and nothing about to happen.
     if (!this.scheduler.majorFree(this.now) || this.pacing.holding(this.now) || this.pacing.sinceDev(this.now) < 6) return;
     if (this.scheduler.pending().some((e) => e.at - this.now < 6 && devKind(e.payload.cue) && devKind(e.payload.cue) !== 'silence')) return;
     this.airDone = true;
-    this.queue(0, { type: 'air', phraseId: 'closer', toward: 0.6, height: 0.95 }, 'air', { major: true, ttl: 4 });
+    this.queue(0, { type: 'air', phraseId: 'closer', toward: 0.6, aside: 0.45, height: 0.8 }, 'air', { major: true, ttl: 4 });
     // Then let it be read, and let them decide whether to come closer.
     this.pacing.holdFor(this.now, 12);
   }
@@ -1374,7 +1377,7 @@ export class Director {
       if (!this.visible.has('afraid-leave')) this.reveal('afraid-leave', 0, 'phase-contradiction', 'emerge', 6);
     }
     if (p === 'transform') {
-      this.queue(2, { type: 'silence', depth: 0.7, seconds: 14, dim: 0.25 }, 'phase-transform', { major: true, ttl: 30 });
+      this.queue(2, { type: 'silence', depth: 0.7, seconds: 14, dim: 0.15, dimSeconds: 11 }, 'phase-transform', { major: true, ttl: 30 });
       const late = this.selector.select(this.ctx(), { tiers: ['transform'], exclude: this.hiddenExcluding() });
       if (late) this.reveal(late.id, 10, 'phase-transform', 'emerge', 14);
     }

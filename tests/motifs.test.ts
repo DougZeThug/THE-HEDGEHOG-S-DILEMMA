@@ -15,15 +15,27 @@ const run = (d: Director, seconds: number, input: (t: number) => VisitorInput) =
 };
 
 describe('writing in the air', () => {
-  it('happens once a visit, after the first minute, to someone keeping their distance and looking at the chair', () => {
+  it('answers stepping back from the chair, once a visit, after the first minute', () => {
     for (const seed of [3, 11, 27]) {
       const d = new Director({ seed });
       d.release({ written: ['stay'], spoken: ['crumbs'] });
-      const cues = run(d, 240, () => apart);
+      // At the chair for half a minute, then back to the door, looking at it.
+      const cues = run(d, 240, (t) => (t < 30 ? { ...apart, z: 0.9, gazeChair: false } : t < 33 ? { ...apart, z: 0.9 + ((t - 30) / 3) * 1.7 } : apart));
       const air = cues.filter((c) => c.cue.type === 'air');
       expect(air.length, `seed ${seed}`).toBe(1);
       expect(air[0].t).toBeGreaterThanOrEqual(60);
+      expect(air[0].t).toBeLessThan(150);
       expect(air[0].cue).toMatchObject({ phraseId: 'closer' });
+    }
+  });
+
+  it('for someone who never came near, only after a long time keeping away', () => {
+    for (const seed of [3, 11]) {
+      const d = new Director({ seed });
+      d.release({ written: ['stay'], spoken: ['crumbs'] });
+      const air = run(d, 300, () => apart).filter((c) => c.cue.type === 'air');
+      expect(air.length).toBeLessThanOrEqual(1);
+      for (const a of air) expect(a.t).toBeGreaterThanOrEqual(150);
     }
   });
 
@@ -72,7 +84,7 @@ describe('light as a motif', () => {
     const cues = run(d, 900, (t) => ({ ...apart, z: 1.2 + Math.abs(Math.sin(t * 0.05)) * 1.4, gazeChair: t % 40 < 25, yaw: Math.sin(t * 0.1) }));
     expect(cues.some((c) => c.rule === 'held-silence')).toBe(true);
     for (const c of cues) {
-      if ((c.rule === 'held-silence' || c.rule === 'phase-transform') && c.cue.type === 'silence') expect(c.cue.dim).toBe(0.25);
+      if ((c.rule === 'held-silence' || c.rule === 'phase-transform') && c.cue.type === 'silence') expect(c.cue.dim).toBe(0.15);
       if (c.cue.type === 'silence' && c.cue.dim !== undefined) expect(['held-silence', 'phase-transform']).toContain(c.rule);
     }
   });
