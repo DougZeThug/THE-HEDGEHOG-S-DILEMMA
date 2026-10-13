@@ -48,19 +48,28 @@ const arc = (cx: number, cy: number, rx: number, ry: number, a0: number, a1: num
     return [cx + Math.cos(a) * rx, cy + Math.sin(a) * ry];
   });
 
-/** Keep only what lies left of x = edge, splitting strokes where they cross it. */
-function clipRight(strokes: P[][], edge: number): P[][] {
+/** Keep only what lies outside a region, cutting strokes cleanly where they cross its edge. */
+function clipOut(strokes: P[][], inside: (p: P) => boolean): P[][] {
+  const edge = (a: P, b: P): P => {
+    // Where the segment from a (outside) to b (inside) crosses the edge.
+    let lo = 0, hi = 1;
+    for (let k = 0; k < 14; k++) {
+      const m = (lo + hi) / 2;
+      if (inside([a[0] + (b[0] - a[0]) * m, a[1] + (b[1] - a[1]) * m])) hi = m;
+      else lo = m;
+    }
+    return [a[0] + (b[0] - a[0]) * lo, a[1] + (b[1] - a[1]) * lo];
+  };
   const out: P[][] = [];
   for (const s of strokes) {
     let cur: P[] = [];
     for (let i = 0; i < s.length; i++) {
-      const p = s[i];
-      if (p[0] <= edge) {
-        if (!cur.length && i > 0 && s[i - 1][0] > edge) cur.push(cross(s[i - 1], p, edge));
-        cur.push(p);
+      if (!inside(s[i])) {
+        if (!cur.length && i > 0) cur.push(edge(s[i], s[i - 1]));
+        cur.push(s[i]);
       } else if (cur.length) {
-        cur.push(cross(s[i - 1], p, edge));
-        out.push(cur);
+        cur.push(edge(s[i - 1], s[i]));
+        if (cur.length > 1) out.push(cur);
         cur = [];
       }
     }
@@ -68,7 +77,6 @@ function clipRight(strokes: P[][], edge: number): P[][] {
   }
   return out;
 }
-const cross = (a: P, b: P, x: number): P => [x, a[1] + ((b[1] - a[1]) * (x - a[0])) / (b[0] - a[0])];
 
 /** The strokes of a drawing, in the order drawn (metres, y down). */
 export function shapeStrokes(shape: Shape, w: number, h: number, r: Rng): P[][] {
@@ -108,48 +116,44 @@ export function shapeStrokes(shape: Shape, w: number, h: number, r: Rng): P[][] 
       X(cell(0, 1));
       return out;
     }
-    case 'cat': {
-      // Sitting, seen from behind: a head, two ears, a body, a tail curled round.
-      const hx = w * 0.42, hy = h * 0.27, hr = h * 0.16;
-      return [
-        arc(hx, hy, hr * 1.05, hr, Math.PI * 0.85, Math.PI * 2.2, 18),
-        [[hx - hr * 0.9, hy - hr * 0.35], [hx - hr * 0.75, hy - hr * 1.5], [hx - hr * 0.25, hy - hr * 0.9]],
-        [[hx + hr * 0.3, hy - hr * 0.9], [hx + hr * 0.8, hy - hr * 1.5], [hx + hr * 0.95, hy - hr * 0.3]],
-        [[hx - hr * 0.8, hy + hr * 0.7], ...arc(hx, h * 0.68, w * 0.27, h * 0.29, Math.PI * 1.15, Math.PI * 1.9 + Math.PI * 1.05, 22).slice(2)],
-        arc(w * 0.73, h * 0.8, w * 0.18, h * 0.12, Math.PI * 0.5, -Math.PI * 0.4, 14),
-      ];
-    }
-    case 'sheet-doodle': {
-      // Loops and a zigzag that ran on across a sheet of paper, cut where the paper's edge was.
-      const loops: P[] = [];
-      for (let i = 0; i <= 60; i++) {
-        const t = i / 60;
-        loops.push([w * (-0.05 + t * 1.5) + Math.cos(t * 26) * w * 0.1, h * 0.3 + Math.sin(t * 26) * h * 0.16]);
+    case 'pen-test': {
+      // Someone getting a biro to work: a tight spiral, then a scribble back and forth.
+      const spiral: P[] = [];
+      for (let k = 0; k <= 70; k++) {
+        const a = (k / 70) * Math.PI * 8, rr = h * 0.06 + (h * 0.36 * k) / 70;
+        spiral.push([w * 0.22 + Math.cos(a) * rr, h * 0.5 + Math.sin(a) * rr * 0.9]);
       }
       const zig: P[] = [];
-      for (let i = 0; i <= 14; i++) zig.push([w * (0.1 + i * 0.1), h * (i % 2 ? 0.62 : 0.84) + j(0.004)]);
-      const star: P[] = [0, 2, 4, 1, 3, 0].map((k) => {
-        const a = -Math.PI / 2 + (k * Math.PI * 2) / 5;
-        return [w * 0.98 + Math.cos(a) * h * 0.13, h * 0.5 + Math.sin(a) * h * 0.13] as P;
-      });
-      return clipRight([loops, zig, star], w);
+      for (let k = 0; k <= 11; k++) zig.push([w * (0.46 + k * 0.045) + j(0.002), h * (k % 2 ? 0.2 : 0.78) + j(0.004)]);
+      return [spiral, zig];
+    }
+    case 'sheet-doodle': {
+      // Doodles that ran on across a sheet of paper, cut dead along two of its edges where the
+      // paper was: the sheet's corner sits at the box's top right, from (0.6 w, 0) to (w, 0.55 h).
+      const inside = (p: P) => p[0] >= w * 0.6 && p[1] <= h * 0.55;
+      const loops: P[] = [];
+      for (let i = 0; i <= 70; i++) {
+        const t = i / 70;
+        loops.push([w * (0.02 + t * 0.95) + Math.cos(t * 30) * w * 0.045, h * 0.26 + Math.sin(t * 30) * h * 0.12]);
+      }
+      const coil: P[] = [];
+      for (let i = 0; i <= 50; i++) {
+        const t = i / 50;
+        coil.push([w * 0.78 + Math.sin(t * 22) * w * 0.05, h * (0.98 - t * 0.9) + Math.cos(t * 22) * h * 0.03]);
+      }
+      const zig: P[] = [];
+      for (let i = 0; i <= 9; i++) zig.push([w * (0.04 + i * 0.055), h * (i % 2 ? 0.66 : 0.82) + j(0.003)]);
+      return clipOut([loops, coil, zig], inside);
     }
     case 'chair': {
-      // Drawn round once, at its own size, from the front and a little above: the back's two
-      // uprights and three rails, the seat with its depth, front legs, back legs, a low rail.
-      const bl = w * 0.16, br = w * 0.84, fl = w * 0.06, fr = w * 0.94, sb = h * 0.5, sf = h * 0.6;
+      // Drawn round once, side on, at its own size: only its outer edge, and gaps where the
+      // pencil couldn't get between the legs. It stops short of the skirting.
       return [
-        line([bl, h * 0.02], [bl + j(0.004), sb], 10),
-        line([br, h * 0.03], [br + j(0.004), sb], 10),
-        line([bl, h * 0.1], [br, h * 0.1 + j(0.004)], 8),
-        line([bl, h * 0.21], [br, h * 0.21], 8),
-        line([bl, h * 0.32], [br, h * 0.32 + j(0.004)], 8),
-        [[bl, sb], [br, sb], [fr, sf], [fl, sf], [bl, sb]],
-        line([fl, sf], [fl + w * 0.02, h * 0.98], 8),
-        line([fr, sf], [fr - w * 0.02, h * 0.98], 8),
-        line([bl + w * 0.02, sb], [bl + w * 0.04, h * 0.9], 8),
-        line([br - w * 0.02, sb], [br - w * 0.04, h * 0.9], 8),
-        line([fl + w * 0.02, h * 0.84], [fr - w * 0.02, h * 0.84], 8),
+        [[w * 0.2, h * 0.97], [w * 0.14, h * 0.5], [w * 0.1, h * 0.03], [w * 0.2, h * 0.0], [w * 0.24, h * 0.06], [w * 0.28, h * 0.48]],
+        [[w * 0.28, h * 0.48], [w * 0.95, h * 0.5], [w * 0.96, h * 0.57], [w * 0.9, h * 0.57], [w * 0.89, h * 0.97]],
+        line([w * 0.84, h * 0.6], [w * 0.84, h * 0.72], 4),
+        line([w * 0.33, h * 0.57], [w * 0.55, h * 0.57], 6),
+        line([w * 0.27, h * 0.6], [w * 0.27, h * 0.75], 4),
       ];
     }
     case 'door': {
@@ -164,19 +168,19 @@ export function shapeStrokes(shape: Shape, w: number, h: number, r: Rng): P[][] 
       return [
         arc(cx, cy + h * 0.45, w * 0.48, h * 0.78, Math.PI * 1.15, Math.PI * 1.85, 16),
         arc(cx, cy - h * 0.45, w * 0.46, h * 0.7, Math.PI * 0.17, Math.PI * 0.83, 16),
-        arc(cx, cy, h * 0.17, h * 0.17, 0, Math.PI * 2, 12),
         ...[-0.3, -0.1, 0.1, 0.3].map((k) => line([cx + w * k, cy - h * 0.38], [cx + w * k * 1.3, cy - h * 0.62], 2)),
       ];
     }
     case 'two-cups': {
-      // Two cups side by side; the second never finished: no handle, no bottom.
+      // Two cups side by side; the second never finished: no handle, no bottom, one side short.
       const cup = (x: number, done: boolean): P[][] => {
         const cw = w * 0.34, top = h * 0.2, bot = h * 0.92;
         const s: P[][] = [
           arc(x + cw / 2, top, cw / 2, h * 0.07, Math.PI, Math.PI * 3, 18),
           line([x, top], [x + cw * 0.08, bot], 6),
         ];
-        if (!done) return s;
+        // The second: a rim, one side, and the other side stopping two-thirds of the way down.
+        if (!done) return [...s, line([x + cw, top], [x + cw * 0.95, top + (bot - top) * 0.62], 5)];
         s.push(arc(x + cw / 2, bot - h * 0.02, cw * 0.43, h * 0.05, Math.PI * 0.05, Math.PI * 0.95, 10));
         s.push(line([x + cw, top], [x + cw * 0.92, bot], 6));
         s.push(arc(x + cw * 1.02, h * 0.5, w * 0.08, h * 0.17, -Math.PI * 0.45, Math.PI * 0.45, 10));
@@ -299,6 +303,8 @@ export function bakeDrawing(def: DrawingDef): DrawingBake {
   // The wall's tooth, and an eraser's patches.
   const toothSeed = seed % 9973, rubSeed = (seed >> 3) % 7919;
   const rub = def.rubbed ?? 0;
+  // One sideways swipe of an eraser, from a to b (fractions of the box), as wide as `width`.
+  const sw = def.swipe ? { ax: pad + def.swipe.from[0] * wM * k, ay: pad + def.swipe.from[1] * hM * k, bx: pad + def.swipe.to[0] * wM * k, by: pad + def.swipe.to[1] * hM * k, half: (def.swipe.width * Math.min(wM, hM) * k) / 2 } : null;
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
       const p = y * W + x;
@@ -309,6 +315,15 @@ export function bakeDrawing(def: DrawingDef): DrawingBake {
         // Rubbed in patches, in the direction an eraser goes: mostly gone where the noise is low.
         const n = valueNoise(x, y * 1.8, 9 * (k / 700) + 4, rubSeed) * 0.7 + valueNoise(x, y, 3, rubSeed + 1) * 0.3;
         a *= 0.15 + 0.85 * smooth(rub - 0.12, rub + 0.12, n);
+      }
+      if (sw) {
+        const vx = sw.bx - sw.ax, vy = sw.by - sw.ay;
+        const t = Math.max(0, Math.min(1, ((x - sw.ax) * vx + (y - sw.ay) * vy) / (vx * vx + vy * vy)));
+        const d = Math.hypot(x - (sw.ax + vx * t), y - (sw.ay + vy * t));
+        // Ragged at its edges, and lighter where the eraser lifted at the end.
+        const edgeN = (valueNoise(x, y, 5, rubSeed + 2) - 0.5) * sw.half * 0.6;
+        const gone = smooth(sw.half + edgeN, sw.half * 0.55 + edgeN, d) * (0.6 + 0.4 * smooth(1, 0.7, t));
+        a *= 1 - 0.85 * gone;
       }
       alpha[p] = a;
     }

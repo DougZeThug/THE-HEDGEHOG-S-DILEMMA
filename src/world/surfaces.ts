@@ -119,7 +119,8 @@ function removedSheet(g: CanvasRenderingContext2D, cx: number, cy: number, w: nu
   g.save();
   g.translate(cx, cy);
   g.rotate(r.range(-0.02, 0.02));
-  g.fillStyle = 'rgba(255,255,252,0.05)';
+  // Cleaner than the wall round it: the paper kept the grime off.
+  g.fillStyle = 'rgba(255,255,252,0.09)';
   g.fillRect(-w / 2, -h / 2, w, h);
   for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
     if (r.chance(0.15)) continue; // one corner was never taped

@@ -466,8 +466,8 @@ export class WallText {
     for (let i = 0; i < n.length; i += 3) (n[i] = 0), (n[i + 1] = 1), (n[i + 2] = 0);
     const { mat, uniforms } = makeTextMaterial(tex, hand, aspect, hashString(key), duration);
     mat.color.set(0x000000);
-    // About 1.5 cm of blur on the floor: near the chair's own soft shadow.
-    uniforms.uLod.value = 3.5;
+    // Soft enough that no letter can be read: grey under the words, not a mirror of them.
+    uniforms.uLod.value = 5;
     const mesh = new THREE.Mesh(geo, mat);
     mesh.renderOrder = 2;
     mesh.frustumCulled = false;
@@ -552,7 +552,7 @@ export class WallText {
       const s = a.shadow.uniforms;
       s.uWrite.value = a.uniforms.uWrite.value;
       s.uReveal.value = a.vis;
-      s.uOpacity.value = 0.22;
+      s.uOpacity.value = 0.14;
     }
     if (a.vis <= 0 && a.target <= 0) {
       a.mesh.removeFromParent();
