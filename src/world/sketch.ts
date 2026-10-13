@@ -36,7 +36,7 @@ const STYLE: Record<DrawingStyle, StyleSpec> = {
   child: { width: 0.0042, wobble: 0.005, pxPerM: 700, speed: 0.07, pause: [0.25, 0.5], tooth: 0.35, smudge: 0.05, soft: 0.8 },
   firm: { width: 0.0026, wobble: 0.0025, pxPerM: 700, speed: 0.12, pause: [0.15, 0.3], tooth: 0.3, smudge: 0.04, soft: 0.6 },
   // Old and rubbed: soft, so it sits in the plaster like the room's other erased marks.
-  ghost: { width: 0.005, wobble: 0.003, pxPerM: 300, speed: 0.1, pause: [0.2, 0.4], tooth: 0.5, smudge: 0.1, soft: 2.2 },
+  ghost: { width: 0.005, wobble: 0.003, pxPerM: 300, speed: 0.1, pause: [0.2, 0.4], tooth: 0.5, smudge: 0, soft: 2.2 },
 };
 
 // ───────────────────────────── shapes ─────────────────────────────
@@ -48,35 +48,8 @@ const arc = (cx: number, cy: number, rx: number, ry: number, a0: number, a1: num
     return [cx + Math.cos(a) * rx, cy + Math.sin(a) * ry];
   });
 
-/** Keep only what lies outside a region, cutting strokes cleanly where they cross its edge. */
-function clipOut(strokes: P[][], inside: (p: P) => boolean): P[][] {
-  const edge = (a: P, b: P): P => {
-    // Where the segment from a (outside) to b (inside) crosses the edge.
-    let lo = 0, hi = 1;
-    for (let k = 0; k < 14; k++) {
-      const m = (lo + hi) / 2;
-      if (inside([a[0] + (b[0] - a[0]) * m, a[1] + (b[1] - a[1]) * m])) hi = m;
-      else lo = m;
-    }
-    return [a[0] + (b[0] - a[0]) * lo, a[1] + (b[1] - a[1]) * lo];
-  };
-  const out: P[][] = [];
-  for (const s of strokes) {
-    let cur: P[] = [];
-    for (let i = 0; i < s.length; i++) {
-      if (!inside(s[i])) {
-        if (!cur.length && i > 0) cur.push(edge(s[i], s[i - 1]));
-        cur.push(s[i]);
-      } else if (cur.length) {
-        cur.push(edge(s[i - 1], s[i]));
-        if (cur.length > 1) out.push(cur);
-        cur = [];
-      }
-    }
-    if (cur.length > 1) out.push(cur);
-  }
-  return out;
-}
+/** Where the removed sheet was, in the sheet doodle's box (fractions): the lines stop dead at its edges. */
+const SHEET_CUT = { x0: 0.6, y1: 0.55 };
 
 /** The strokes of a drawing, in the order drawn (metres, y down). */
 export function shapeStrokes(shape: Shape, w: number, h: number, r: Rng): P[][] {
@@ -130,7 +103,6 @@ export function shapeStrokes(shape: Shape, w: number, h: number, r: Rng): P[][] 
     case 'sheet-doodle': {
       // Doodles that ran on across a sheet of paper, cut dead along two of its edges where the
       // paper was: the sheet's corner sits at the box's top right, from (0.6 w, 0) to (w, 0.55 h).
-      const inside = (p: P) => p[0] >= w * 0.6 && p[1] <= h * 0.55;
       const loops: P[] = [];
       for (let i = 0; i <= 70; i++) {
         const t = i / 70;
@@ -143,7 +115,8 @@ export function shapeStrokes(shape: Shape, w: number, h: number, r: Rng): P[][] 
       }
       const zig: P[] = [];
       for (let i = 0; i <= 9; i++) zig.push([w * (0.04 + i * 0.055), h * (i % 2 ? 0.66 : 0.82) + j(0.003)]);
-      return clipOut([loops, coil, zig], inside);
+      // (Cut in pixels after baking, so each line stops dead at the edge: SHEET_CUT.)
+      return [loops, coil, zig];
     }
     case 'chair': {
       // Drawn round once, side on, at its own size: only its outer edge, and gaps where the
@@ -292,13 +265,27 @@ export function bakeDrawing(def: DrawingDef): DrawingBake {
       const hw = (st.width * k * (0.75 + 0.35 * p)) / 2;
       stamp(px, py, hw, 0.35 + 0.6 * p, start + u * dur, st.soft);
       // A smudge beside the line, where a hand or a sleeve went over it.
-      if (st.smudge > 0) stamp(px + 1.5, py + 1, hw + 3, st.smudge, start + u * dur, 2);
+      // Every fourth step, where the line was pressed, dragged a little along its own direction.
+      if (st.smudge > 0 && q % 4 === 0 && press(at * 40) > 0.6) {
+        const nx = s[i][0] - s[i - 1][0], ny = s[i][1] - s[i - 1][1], nl = Math.hypot(nx, ny) || 1;
+        stamp(px + (nx / nl) * 1.5, py + (ny / nl) * 1.5, hw + 2.5, st.smudge, start + u * dur, 2);
+      }
     }
     t = start + dur;
     words.push([start, t]);
     t += r.range(st.pause[0], st.pause[1]);
   }
   const duration = Math.max(1e-3, words.length ? words[words.length - 1][1] : 0);
+
+  if (def.shape === 'sheet-doodle') {
+    const cx = pad + SHEET_CUT.x0 * wM * k, cy = pad + SHEET_CUT.y1 * hM * k;
+    for (let y = 0; y < H; y++)
+      for (let x = 0; x < W; x++) {
+        // Inside the sheet's corner (right of cx, above cy): nothing; a 0.7 px edge.
+        const din = Math.min(x + 0.5 - cx, cy - (y + 0.5));
+        if (din > -0.7) alpha[y * W + x] *= smooth(0.7, -0.7, din);
+      }
+  }
 
   // The wall's tooth, and an eraser's patches.
   const toothSeed = seed % 9973, rubSeed = (seed >> 3) % 7919;

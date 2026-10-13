@@ -472,6 +472,7 @@ export class App {
         // down with it (a blazing panel over a darkening room reads as a brownout), never out.
         const m = this.lighting.roomLight;
         this.room.setLit(0.08 + 0.92 * m ** 1.5, m);
+        this.text.airShadowLight = this.lighting.score.key / ROOM_LEVELS.key;
         const since = this.time - this.handoffAt;
         if (!this.hintShown && since > 4 && !(this.touch && this.dragged)) this.showHint();
         if (this.touch && this.mode === 'room' && !this.touchHintShown && since > 12 && !this.touched) this.showTouchHint();

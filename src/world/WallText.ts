@@ -35,6 +35,7 @@ export const wallClock = () => performance.now() / 1000;
 
 const FRAG_NOISE = /* glsl */ `
 uniform float uLod;
+uniform float uThin;
 uniform float uWrite;
 uniform float uFresh;
 uniform float uReveal;
@@ -76,6 +77,8 @@ function makeTextMaterial(tex: THREE.Texture, hand: Hand, aspect: number, seed: 
     uAspect: { value: aspect },
     /** A fixed mip level for a shadow of the writing; -1 (the usual sampling) everywhere else. */
     uLod: { value: -1 },
+    /** Drawings only: how much fine lines are held as they get small (0 for writing). */
+    uThin: { value: 0 },
   };
   mat.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, uniforms);
@@ -86,7 +89,10 @@ function makeTextMaterial(tex: THREE.Texture, hand: Hand, aspect: number, seed: 
       {
         // Alpha is the ink; red is when the hand reaches it.
         // A fixed, softer level for a shadow (uLod ≥ 0), so it doesn't sharpen as you come close.
-        vec4 hhTx = uLod >= 0.0 ? textureLod(map, vMapUv, uLod) : texture2D(map, vMapUv);
+        // (The top of the words is further from the floor: its shadow is softer.)
+        vec4 hhTx = uLod >= 0.0 ? textureLod(map, vMapUv, uLod + vMapUv.y) : texture2D(map, vMapUv);
+        // Drawings' fine lines would mip away on a phone: hold their ink as they get small.
+        if (uThin > 0.0) hhTx.a = min(1.0, hhTx.a * (1.0 + uThin * clamp(log2(fwidth(vMapUv.x) * float(textureSize(map, 0).x)), 0.0, 2.0)));
         if (hhTx.a < 0.004) discard;
         float hhLeft = uWrite - hhTx.r;
         float hhInk = smoothstep(-0.004, 0.006, hhLeft);
@@ -219,6 +225,8 @@ export class WallText {
     duration: number; plan: WritePlan | null; vis: number; target: number; rate: number; opacity: number; centre: THREE.Vector3;
     shadow: { mesh: THREE.Mesh; uniforms: ReturnType<typeof makeTextMaterial>['uniforms']; light: THREE.Vector3; local: Float32Array } | null;
   } | null = null;
+  /** The key light's strength relative to the room's usual (the shadow follows it). */
+  airShadowLight = 1;
   /** Told once when the writing in the air goes: rubbed out by someone coming close, or simply fading. */
   onAirGone: ((how: 'approach' | 'faded', at: THREE.Vector3) => void) | null = null;
 
@@ -239,6 +247,13 @@ export class WallText {
     if (have) return have;
     const dd = DRAWING_BY_ID.get(id);
     if (dd) return this.createDrawing(dd);
+    // A drawing made beside this line later: bake it now, when the browser is idle, not in the
+    // frame it is drawn.
+    for (const d of DRAWINGS) {
+      if (d.when === 'start' || d.when.seen !== id) continue;
+      const idle = (globalThis as { requestIdleCallback?: (f: () => void) => void }).requestIdleCallback ?? ((f: () => void) => setTimeout(f, 200));
+      idle(() => void this.ensure(d.id));
+    }
     const p = PHRASE_BY_ID.get(id);
     const pl = this.placements.get(id);
     if (!p || !pl) return undefined;
@@ -264,6 +279,7 @@ export class WallText {
     const [w, h] = bakedSize(def, bake);
     const tex = inkTexture(bake.data, bake.W, bake.H);
     const { mat, uniforms } = makeTextMaterial(tex, def.hand, w / h, hashString(def.id), bake.duration);
+    uniforms.uThin.value = def.style === 'ghost' ? 0 : 0.5;
     const mesh = new THREE.Mesh(this.geo, mat);
     mesh.scale.set(w, h, 1);
     mesh.userData.text = '';
@@ -272,7 +288,7 @@ export class WallText {
     mesh.receiveShadow = true;
     this.room.frames[pl.surface].writing.add(mesh);
     const item: TextItem = {
-      key: def.id, purpose: 'drawing', hand: def.hand, size: 's', placement: { ...pl, rot: (hashString(def.id) % 7 - 3) * 0.012 }, mesh, uniforms,
+      key: def.id, purpose: 'drawing', hand: def.hand, size: 's', placement: { ...pl, rot: def.upright ? 0 : ((hashString(def.id) % 7) - 3) * 0.012 }, mesh, uniforms,
       vis: 0, target: 0, rate: 0.1, shy: 1, emphasis: 0, expires: 0,
       centre: new THREE.Vector3(), normal: new THREE.Vector3(),
       words: bake.words, duration: bake.duration, plan: null, strength: def.strength,
@@ -467,7 +483,7 @@ export class WallText {
     const { mat, uniforms } = makeTextMaterial(tex, hand, aspect, hashString(key), duration);
     mat.color.set(0x000000);
     // Soft enough that no letter can be read: grey under the words, not a mirror of them.
-    uniforms.uLod.value = 5;
+    uniforms.uLod.value = 4;
     const mesh = new THREE.Mesh(geo, mat);
     mesh.renderOrder = 2;
     mesh.frustumCulled = false;
@@ -552,7 +568,7 @@ export class WallText {
       const s = a.shadow.uniforms;
       s.uWrite.value = a.uniforms.uWrite.value;
       s.uReveal.value = a.vis;
-      s.uOpacity.value = 0.14;
+      s.uOpacity.value = 0.22 * this.airShadowLight;
     }
     if (a.vis <= 0 && a.target <= 0) {
       a.mesh.removeFromParent();

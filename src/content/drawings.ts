@@ -39,6 +39,8 @@ export interface DrawingDef {
   when: 'start' | { seen: string; gaze: number };
   /** Rubbed: a fraction of the marks gone (0–1), in patches. */
   rubbed?: number;
+  /** Square to the wall (it lines up with something there: the skirting, a sheet's edge). */
+  upright?: boolean;
   /** One stroke of an eraser across it, from and to (fractions of the box), its width a fraction of the box. */
   swipe?: { from: [number, number]; to: [number, number]; width: number };
 }
@@ -49,12 +51,12 @@ export const DRAWINGS: readonly DrawingDef[] = [
   { id: 'sun-height', shape: 'sun', style: 'child', hand: 'child', strength: 0.8, surface: 'east', size: [0.13, 0.13], at: [0.66, 0.92], when: 'start', swipe: { from: [1.05, 0.05], to: [-0.1, 0.95], width: 0.38 } },
   // Doodles that once ran on to a sheet of paper pinned here, cut dead along two of its edges
   // (the sheet's own pale rectangle is in the plaster, src/world/surfaces.ts: east, centre 3.6, 2.4).
-  { id: 'sheet-doodle', shape: 'sheet-doodle', style: 'doodle', hand: 'pencil', strength: 0.65, surface: 'east', size: [0.3, 0.26], at: [3.42, 2.303], when: 'start' },
+  { id: 'sheet-doodle', shape: 'sheet-doodle', style: 'doodle', hand: 'pencil', strength: 0.65, surface: 'east', size: [0.3, 0.26], at: [3.42, 2.303], when: 'start', upright: true },
   // A game of noughts and crosses nobody finished.
   { id: 'noughts', shape: 'noughts', style: 'doodle', hand: 'pencil', strength: 0.7, surface: 'west', size: [0.15, 0.15], at: [3.7, 0.74], when: 'start' },
   // Someone drew round the chair once, side on, at its own size, when it stood against this
   // wall. Mostly rubbed out; just made out from where the chair stands now.
-  { id: 'ghost-chair', shape: 'chair', style: 'ghost', hand: 'faint', strength: 0.7, surface: 'west', size: [0.42, 0.82], at: [0.62, 0.515], when: 'start', rubbed: 0.35 },
+  { id: 'ghost-chair', shape: 'chair', style: 'ghost', hand: 'faint', strength: 0.7, surface: 'west', size: [0.42, 0.82], at: [0.62, 0.515], when: 'start', rubbed: 0.35, upright: true },
   // An eye in the margin, its iris rubbed away: nothing looking out of it.
   { id: 'ghost-eye', shape: 'eye', style: 'ghost', hand: 'child', strength: 0.65, surface: 'west', size: [0.09, 0.05], at: [1.55, 0.38], when: 'start', rubbed: 0.2 },
   // Someone getting a biro to work, low down: a spiral, a scribble.
