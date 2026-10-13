@@ -34,6 +34,12 @@
   "sfx:chair-creak": [
     "sfx-chair-creak-1.mp3"
   ],
+  "phrase:stay": [
+    "dialogue/stay--tender.mp3",
+    "dialogue/stay--breaking.mp3",
+    "dialogue/stay--abandoned.mp3",
+    "dialogue/stay--asking.mp3"
+  ],
   "phrase:closer": [
     "dialogue/closer--quiet.mp3",
     "dialogue/closer--flat.mp3",
@@ -44,17 +50,16 @@
     "dialogue/afraid-leave--remembered.mp3",
     "dialogue/afraid-leave--rueful.mp3"
   ],
-  "phrase:if-closer": [
-    "dialogue/if-closer.mp3",
-    "dialogue/if-closer--doorway.mp3"
-  ],
   "phrase:why-understand": [
     "dialogue/why-understand--frustrated.mp3",
     "dialogue/why-understand--quiet.mp3",
     "dialogue/why-understand--irritated.mp3"
   ],
-  "phrase:two-cups": [
-    "dialogue/two-cups.mp3"
+  "phrase:love-go-away": [
+    "dialogue/love-go-away--fond.mp3",
+    "dialogue/love-go-away--exhausted.mp3",
+    "dialogue/love-go-away--teasing.mp3",
+    "dialogue/love-go-away--hurt.mp3"
   ],
   "phrase:laugh-breathe": [
     "dialogue/laugh-breathe.mp3",
@@ -99,16 +104,6 @@
   "phrase:was-it-me": [
     "dialogue/was-it-me.mp3"
   ],
-  "phrase:stay": [
-    "dialogue/stay--breaking.mp3",
-    "dialogue/stay--abandoned.mp3",
-    "dialogue/stay--asking.mp3"
-  ],
-  "phrase:love-go-away": [
-    "dialogue/love-go-away--exhausted.mp3",
-    "dialogue/love-go-away--teasing.mp3",
-    "dialogue/love-go-away--hurt.mp3"
-  ],
   "phrase:happy-then": [
     "dialogue/happy-then--smile.mp3",
     "dialogue/happy-then--unsure.mp3",
@@ -122,5 +117,8 @@
   ],
   "phrase:good-day": [
     "dialogue/good-day--happy.mp3"
+  ],
+  "phrase:if-closer": [
+    "dialogue/if-closer--doorway.mp3"
   ]
 }

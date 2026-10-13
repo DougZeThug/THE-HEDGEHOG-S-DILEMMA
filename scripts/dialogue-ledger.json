@@ -16,7 +16,7 @@
       "voice": "intimate",
       "model": "eleven_v3",
       "generatedAt": "2026-10-12T23:33:09.366Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "I wanted you to stay",
       "wer": 0,
       "spokenTags": []
@@ -32,7 +32,7 @@
       "voice": "restrained",
       "model": "eleven_v3",
       "generatedAt": "2026-10-12T23:33:10.487Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Why didn't you understand?",
       "wer": 0,
       "spokenTags": []
@@ -64,7 +64,7 @@
       "voice": "restrained",
       "model": "eleven_v3",
       "generatedAt": "2026-10-12T23:34:52.017Z",
-      "review": "pending",
+      "review": "rejected",
       "transcript": "I wanted you to stay",
       "wer": 0,
       "spokenTags": []
@@ -96,7 +96,7 @@
       "voice": "intimate",
       "model": "eleven_v3",
       "generatedAt": "2026-10-12T23:34:54.503Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Please don't come any closer",
       "wer": 0,
       "spokenTags": [],
@@ -131,7 +131,7 @@
       "voice": "intimate",
       "model": "eleven_v3",
       "generatedAt": "2026-10-12T23:34:56.687Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "I was afraid you'd leave",
       "wer": 0,
       "spokenTags": []
@@ -163,7 +163,7 @@
       "voice": "young",
       "model": "eleven_v3",
       "generatedAt": "2026-10-12T23:34:59.309Z",
-      "review": "pending",
+      "review": "rejected",
       "transcript": "If I come closer, will you stay?",
       "wer": 0,
       "spokenTags": []
@@ -179,7 +179,7 @@
       "voice": "young",
       "model": "eleven_v3",
       "generatedAt": "2026-10-12T23:35:00.382Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Why didn't you understand?",
       "wer": 0,
       "spokenTags": []
@@ -211,7 +211,7 @@
       "voice": "warm",
       "model": "eleven_v3",
       "generatedAt": "2026-10-12T23:35:02.656Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "I love you. Go away",
       "wer": 0,
       "spokenTags": []
@@ -227,7 +227,7 @@
       "voice": "distant",
       "model": "eleven_v3",
       "generatedAt": "2026-10-12T23:35:03.936Z",
-      "review": "pending",
+      "review": "rejected",
       "transcript": "I still say \"we\" by accident",
       "wer": 0,
       "spokenTags": []
@@ -371,7 +371,7 @@
       "voice": "young",
       "model": "eleven_v3",
       "generatedAt": "2026-10-12T23:35:14.268Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "I'm sorry I was like that",
       "wer": 0,
       "spokenTags": []
@@ -435,7 +435,7 @@
       "voice": "jessica",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T00:43:35.477Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "I wanted you to stay",
       "wer": 0,
       "spokenTags": [],
@@ -453,7 +453,7 @@
       "voice": "jessica",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T00:43:46.036Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "[chuckles] I love you. [chuckles] Go away",
       "events": [
         "[chuckles]",
@@ -566,7 +566,7 @@
       "voice": "sarah",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T00:47:05.666Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "I think I was happy then",
       "wer": 0,
       "spokenTags": []
@@ -582,7 +582,7 @@
       "voice": "bill",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T00:47:32.727Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "I think I was happy then. [sighs]",
       "events": [
         "[sighs]"
@@ -601,7 +601,7 @@
       "voice": "intimate",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T00:47:09.054Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "[laughs] You've got crumbs on you",
       "events": [
         "[laughs]"
@@ -636,7 +636,7 @@
       "voice": "sarah",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T00:47:11.886Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Don't go yet. This bit's good",
       "wer": 0,
       "spokenTags": []
@@ -690,7 +690,7 @@
       "voice": "intimate",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T00:47:16.608Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Let me be small for a minute",
       "wer": 0,
       "spokenTags": []
@@ -706,7 +706,7 @@
       "voice": "matilda",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T00:47:17.560Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Do you remember me?",
       "wer": 0,
       "spokenTags": []
@@ -722,7 +722,7 @@
       "voice": "liam",
       "model": "eleven_v4",
       "generatedAt": "2026-10-13T00:47:19.347Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "[laughs] You made me laugh so hard I couldn't breathe",
       "events": [
         "[laughs]"

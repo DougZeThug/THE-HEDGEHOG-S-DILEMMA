@@ -77,6 +77,18 @@ for (const [flag, value] of [['approve', 'approved'], ['reject', 'rejected']]) {
   }
 }
 if (args.approve || args.reject) {
+  // An approved older or alternative take returns to the room as a full candidate, not a last resort.
+  let changed = false;
+  for (const id of list(args.approve) ?? []) {
+    const perf = direction.performances.find((p) => p.id === id);
+    if (perf && (perf.retired || perf.audition)) {
+      delete perf.retired;
+      delete perf.audition;
+      changed = true;
+      console.log(`${id}: back in the room`);
+    }
+  }
+  if (changed && !LAB) writeFileSync(DIRECTION, JSON.stringify(direction, null, 2) + '\n');
   await saveLedger(ledger);
   writeManifest();
   process.exit(0);

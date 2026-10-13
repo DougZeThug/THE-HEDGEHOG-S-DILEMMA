@@ -38,7 +38,8 @@ describe('where a voice comes from', () => {
 
 describe('performance follows the emotional field', () => {
   it('"I wanted you to stay": warm → asking, tense and jarring → abandoned, alone and exposed → breaking', () => {
-    expect(rankPerformances('stay', field({ warmth: 0.9, hush: 0.3 }))[0].id).toBe('stay--asking');
+    // Warm: the affectionate request — or the tender take the artist approved back in.
+    expect(['stay--asking', 'stay--tender']).toContain(rankPerformances('stay', field({ warmth: 0.9, hush: 0.3 }))[0].id);
     expect(rankPerformances('stay', field({ tension: 0.8, dissonance: 0.5 }))[0].id).toBe('stay--abandoned');
     expect(rankPerformances('stay', field({ solitude: 0.8, exposure: 0.5, hush: 0.5 }))[0].id).toBe('stay--breaking');
     // Retired takes come last, whatever the room is like (they only play if approved back into the manifest).
@@ -49,7 +50,7 @@ describe('performance follows the emotional field', () => {
       { tension: 0.8, exposure: 0.8 }, { hush: 0.9, tension: 0.4 }, { reminiscence: 0.9, warmth: 0.8 }, { dissonance: 0.9, reminiscence: 0.5 }, { reminiscence: 1, solitude: 1 }];
     for (const id of ['stay', 'love-go-away', 'happy-then']) {
       const winners = new Set(states.map((s) => rankPerformances(id, field(s))[0].id));
-      expect(winners.size, id).toBe(3);
+      expect(winners.size, id).toBeGreaterThanOrEqual(3);
     }
   });
   it('the manner the room asks for matters when the field is undecided', () => {

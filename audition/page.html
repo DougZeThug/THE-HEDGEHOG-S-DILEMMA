@@ -56,7 +56,10 @@ body:not(.measures) .meas { display: none }
 .decide button[aria-pressed="true"][data-v="reject"] { background: var(--drop); border-color: var(--drop); color: var(--sheet) }
 .decide button[aria-pressed="true"][data-v="unsure"] { background: var(--unsure); border-color: var(--unsure); color: var(--sheet) }
 .decide input { flex: 1 1 140px; min-width: 0; font: 13px var(--text); padding: 6px 8px; border: 1px solid var(--rule); border-radius: 4px; background: var(--plaster); color: var(--graphite) }
-.state { font: 11px var(--mono); color: var(--pencil) }
+.state { font: 11px var(--mono); color: var(--pencil); display: flex; flex-wrap: wrap; gap: 4px 10px; justify-content: space-between }
+.saved { color: var(--keep) }
+.saved.local { color: var(--unsure) }
+.saved.err { color: var(--drop) }
 button.small { font: 600 12px var(--mono); padding: 5px 10px; border-radius: 4px; border: 1px solid var(--rule); background: var(--sheet); color: var(--graphite); cursor: pointer }
 .cmd { display: grid; gap: 8px; background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; padding: 14px }
 .cmd pre { margin: 0; font: 12px/1.5 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere }
@@ -70,7 +73,7 @@ details > summary { cursor: pointer; font: 600 13px var(--mono); color: var(--pe
   <header>
     <h1>The Hedgehog's Dilemma · voice auditions</h1>
     <p class="lede">Every recorded performance in the room, grouped by line, so different readings can be heard side by side. Mark each take <b>keep</b>, <b>not this</b> or <b>unsure</b>. Nothing here has been judged by ear yet.</p>
-    <p class="note" id="where">Decisions are saved for Claude to apply to the recording ledger.</p>
+    <p class="note" id="where">Your choices save as you make them; there is nothing to submit. Tell Claude when you've finished (or part-way) and they will be applied.</p>
     <div class="tally" id="tally"></div>
     <label class="note"><input type="checkbox" id="show-measures"> show measurements (listen first; numbers can prime the ear)</label>
     <nav id="nav" aria-label="Lines"></nav>
@@ -168,7 +171,10 @@ details > summary { cursor: pointer; font: 600 13px var(--mono); color: var(--pe
     let timer = 0;
     note.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(() => saveNote(t.id, note.value), 800); });
     d.append(note);
-    c.append(d, el('div', 'state', t.id + ' · ledger: ' + t.status + (t.review && t.review !== 'pending' ? ' / ' + t.review : '')));
+    const st = el('div', 'state');
+    const sv = el('span', 'saved'); sv.id = 'saved-' + t.id;
+    st.append(el('span', null, t.id + ' · ledger: ' + t.status + (t.review && t.review !== 'pending' ? ' / ' + t.review : '')), sv);
+    c.append(d, st);
     return c;
   }
 
@@ -190,7 +196,7 @@ details > summary { cursor: pointer; font: 600 13px var(--mono); color: var(--pe
     const count = (v) => vals.filter((x) => x === v).length;
     const tally = document.getElementById('tally');
     tally.replaceChildren();
-    for (const [k, v] of [['takes', takes.length], ['keep', count('approve')], ['not this', count('reject')], ['unsure', count('unsure')], ['unheard', takes.length - vals.filter(Boolean).length]]) {
+    for (const [k, v] of [['takes', takes.length], ['keep', count('approve')], ['not this', count('reject')], ['unsure', count('unsure')], ['unheard', takes.length - vals.filter(Boolean).length], ...(db ? [['saved for Claude', stored.size]] : [])]) {
       const s = el('span'); s.append(el('b', null, String(v)), ' ' + k); tally.append(s);
     }
     const ids = (v) => takes.filter((t) => !t.lab && decisions[t.id]?.decision === v).map((t) => t.id);
@@ -200,14 +206,36 @@ details > summary { cursor: pointer; font: 600 13px var(--mono); color: var(--pe
       : '(mark some takes first)';
   }
 
+  const stored = new Set();
+  function mark(id, text, cls) {
+    const s = document.getElementById('saved-' + id);
+    if (!s) return;
+    s.textContent = text;
+    s.className = 'saved' + (cls ? ' ' + cls : '');
+  }
   async function write(id) {
     try { localStorage.setItem(LS, JSON.stringify(decisions)); } catch {}
-    if (!db) return;
+    if (!db) {
+      mark(id, 'saved in this browser only', 'local');
+      return;
+    }
     const v = decisions[id];
+    mark(id, 'saving…');
     try {
-      if (!v || (!v.decision && !v.note)) await db.collection('reviews').doc(id).delete();
-      else await db.collection('reviews').doc(id).set({ decision: v.decision ?? null, note: v.note ?? '', at: new Date().toISOString() });
-    } catch (e) { document.getElementById('where').textContent = 'Could not save to the shared sheet (' + (e && e.code || 'error') + '). Decisions are kept in this browser; use the command below.'; }
+      if (!v || (!v.decision && !v.note)) {
+        await db.collection('reviews').doc(id).delete();
+        stored.delete(id);
+        mark(id, 'cleared ✓');
+      } else {
+        await db.collection('reviews').doc(id).set({ decision: v.decision ?? null, note: v.note ?? '', at: new Date().toISOString() });
+        stored.add(id);
+        mark(id, 'saved ✓');
+      }
+      paint();
+    } catch (e) {
+      mark(id, 'not saved (' + ((e && e.code) || 'error') + ')', 'err');
+      document.getElementById('where').textContent = 'Could not save to the shared sheet (' + ((e && e.code) || 'error') + '). Decisions are kept in this browser; use the command below.';
+    }
   }
   function decide(id, v) { decisions[id] = { ...(decisions[id] || {}), decision: v }; paint(); write(id); }
   function saveNote(id, note) { decisions[id] = { ...(decisions[id] || {}), note }; write(id); }
@@ -230,7 +258,14 @@ details > summary { cursor: pointer; font: 600 13px var(--mono); color: var(--pe
     db = await window.claude.use('db');
     if (!db) { document.getElementById('where').textContent = 'Decisions are kept in this browser only. Use the command at the bottom to apply them.'; return; }
     db.collection('reviews').onSnapshot((snap) => {
-      for (const d of snap.docs) { const x = d.data(); if (x && byId.has(d.id)) decisions[d.id] = { decision: x.decision ?? null, note: x.note ?? '' }; }
+      stored.clear();
+      for (const d of snap.docs) {
+        const x = d.data();
+        if (!x || !byId.has(d.id)) continue;
+        decisions[d.id] = { decision: x.decision ?? null, note: x.note ?? '' };
+        stored.add(d.id);
+        mark(d.id, 'saved ✓');
+      }
       paint();
     }, () => {});
   })();

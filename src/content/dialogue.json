@@ -77,8 +77,7 @@
       "seed": 1101,
       "file": "dialogue/stay--tender.mp3",
       "model": "eleven_v3",
-      "generation": 1,
-      "retired": true
+      "generation": 1
     },
     {
       "id": "stay--guarded",
@@ -296,8 +295,7 @@
       "seed": 1602,
       "file": "dialogue/love-go-away--fond.mp3",
       "model": "eleven_v3",
-      "generation": 1,
-      "retired": true
+      "generation": 1
     },
     {
       "id": "two-cups",

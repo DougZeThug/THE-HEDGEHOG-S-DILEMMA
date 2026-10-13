@@ -24,7 +24,7 @@ describe('voice direction', () => {
     expect(ids.size).toBeGreaterThanOrEqual(18);
     expect(ids.size).toBeLessThanOrEqual(24);
     const count = (id: string) => direction.performances.filter((p: any) => p.phraseId === id && !p.retired && !p.audition).length;
-    expect(count('stay')).toBe(3);
+    expect(count('stay')).toBeGreaterThanOrEqual(3);
     expect(count('closer')).toBeGreaterThanOrEqual(2);
   });
   it('directs a range of feeling, not one hushed register', () => {
@@ -192,7 +192,9 @@ describe('recordings and manifest', () => {
       if (k.startsWith('phrase:')) expect(PHRASE_BY_ID.has(k.slice(7)), k).toBe(true);
     }
     for (const k of ['vf-laugh-next-room', 'vf-breath', 'style:whisper', 'sfx:door']) expect(manifest[k]?.length, k).toBeGreaterThan(0);
-    expect(manifest['phrase:stay']).toEqual(['dialogue/stay--breaking.mp3', 'dialogue/stay--abandoned.mp3', 'dialogue/stay--asking.mp3']);
+    // The three directed readings, plus any older take the artist approved back in after listening.
+    for (const f of ['dialogue/stay--breaking.mp3', 'dialogue/stay--abandoned.mp3', 'dialogue/stay--asking.mp3']) expect(manifest['phrase:stay']).toContain(f);
+    for (const p of direction.performances) if (ledger.entries[p.id]?.review === 'rejected') expect(manifest[`phrase:${p.phraseId}`] ?? []).not.toContain(p.file);
     expect(buildManifest(manifest, direction, ledger)).toEqual(manifest);
   });
   it('rejected or doubtful recordings never reach the manifest', () => {
