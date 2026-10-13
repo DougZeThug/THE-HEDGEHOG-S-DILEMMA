@@ -1258,7 +1258,9 @@ export class App {
   returnToRoom() {
     if (this.mode !== 'departed') return;
     void this.audio?.resume();
-    this.audio?.silence(0, 0.1);
+    this.audio?.lift();
+    // The screen was let go when they left; keep it awake again.
+    void this.keepAwake();
     this.mode = 'room';
     this.director.returnAfterDeparture();
     // Back in from the dark, slowly: the overlay fades while the room lightens beneath it.

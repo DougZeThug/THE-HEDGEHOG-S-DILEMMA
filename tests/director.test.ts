@@ -126,3 +126,26 @@ describe('Director', () => {
     expect(cues.some((c) => c.rule === 'return')).toBe(true);
   });
 });
+
+describe('a voice that was to write its line, and was never heard', () => {
+  it('leaves the line unwritten in the room’s account, free to appear later', () => {
+    // Find a seed where the voice takes the "write as heard" path (about one in three).
+    for (let seed = 1; seed < 60; seed++) {
+      const d = new Director({ seed });
+      d.release({ written: ['stay'], spoken: [] });
+      const dd = d as unknown as {
+        voice: (rule: string, delay: number, kind: string, text: string, caption: string, pos: { kind: 'chair' }, extra: { phraseId: string }) => void;
+        lost: (cue: unknown, rule: string) => void;
+        scheduler: { pending(): { payload: { cue: { type: string; write?: boolean; phraseId?: string }; rule: string } }[] };
+      };
+      dd.voice('test', 5, 'tender', 'I think I was happy then.', 'I think I was happy then.', { kind: 'chair' }, { phraseId: 'happy-then' });
+      const queued = dd.scheduler.pending().find((e) => e.payload.cue.type === 'voice' && e.payload.cue.phraseId === 'happy-then');
+      if (!queued?.payload.cue.write) continue;
+      expect(d.visible.has('happy-then')).toBe(true);
+      dd.lost(queued.payload.cue, queued.payload.rule);
+      expect(d.visible.has('happy-then')).toBe(false);
+      return;
+    }
+    throw new Error('no seed took the write-as-heard path');
+  });
+});
