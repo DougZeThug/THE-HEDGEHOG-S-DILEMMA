@@ -862,7 +862,7 @@ export class WallText {
    * Where a phrase is written now, to lay light across it: the visible piece of writing that is
    * (or repeats) it, its wall's writing group, its centre there, and the wall's height limits.
    */
-  anchorOf(phraseId: string): { key: string; group: THREE.Object3D; x: number; y: number; minY: number; maxY: number } | null {
+  anchorOf(phraseId: string): { key: string; group: THREE.Object3D; x: number; y: number; w: number; h: number; minX: number; maxX: number; minY: number; maxY: number } | null {
     let best: TextItem | null = null;
     for (const it of this.items.values()) {
       if (it.vis < 0.5 || it.purpose === 'drawing' || this.phraseOf(it.key) !== phraseId) continue;
@@ -872,9 +872,10 @@ export class WallText {
     if (!best) return null;
     const pl = best.placement;
     const l = this.room.local(pl.surface, pl.u, pl.v);
-    const half = surfaceSize(pl.surface).h / 2;
-    // Above the skirting and its shadow gap, below the cornice.
-    return { key: best.key, group: this.room.frames[pl.surface].writing, x: l.x, y: l.y, minY: -half + 0.1, maxY: half - 0.1 };
+    const size = surfaceSize(pl.surface);
+    const half = size.h / 2, halfW = (size.w / 2) * this.room.scale;
+    // Inside the corners, above the skirting and its shadow gap, below the cornice.
+    return { key: best.key, group: this.room.frames[pl.surface].writing, x: l.x, y: l.y, w: pl.w, h: pl.h, minX: -halfW + 0.1, maxX: halfW - 0.1, minY: -half + 0.1, maxY: half - 0.1 };
   }
 
   /** Light washing a piece of writing out (0–1). */

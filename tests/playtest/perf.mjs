@@ -33,6 +33,8 @@ const browser = await chromium.launch({
 const stats = (xs) => {
   const s = [...xs].sort((a, b) => a - b);
   const q = (p) => s[Math.min(s.length - 1, Math.floor(p * s.length))];
+  // Too few frames to say anything (one very long frame under software GL): marked, not reported as data.
+  if (s.length < 10) return { n: s.length, invalid: true, max: s.length ? +s[s.length - 1].toFixed(1) : null };
   return { n: s.length, p50: +q(0.5).toFixed(1), p95: +q(0.95).toFixed(1), p99: +q(0.99).toFixed(1), max: +s[s.length - 1].toFixed(1), over50: s.filter((x) => x > 50).length };
 };
 
@@ -86,6 +88,12 @@ const gpu = (page) =>
         render();
         a.__lastFrame = { calls: r.info.render.calls, triangles: r.info.render.triangles };
       };
+    }
+    // The composer's targets too: two RGBA16F colour buffers, and MSAA storage when sampling.
+    const comp = a.post.composer;
+    for (const rt of [comp.renderTarget1, comp.renderTarget2]) {
+      const px = rt.width * rt.height;
+      texBytes += px * 8 * Math.max(1, rt.samples || 0);
     }
     const gl = r.getContext();
     return {
@@ -174,13 +182,28 @@ for (const [name, opts] of [
     await page.waitForTimeout(900);
     await page.screenshot({ path: `${OUT}/${name}-${state}.png`, timeout: 120000 });
   }
+  // The memory of light, playing: frames and draw calls while it is on the wall.
+  await page.evaluate(() => {
+    const a = window.__hedgehog;
+    a.text.setShown('kitchen-light');
+    const w = a.text.whereIs('kitchen-light');
+    const n = { east: [-1, 0], west: [1, 0], north: [0, 1], south: [0, -1] }[w.surface];
+    a.rig.cancelAttend();
+    a.rig.pos.set(w.centre.x + n[0] * 2.2, 0, w.centre.z + n[1] * 2.2);
+    a.rig.yaw = Math.atan2(-(w.centre.x - a.rig.pos.x), -(w.centre.z - a.rig.pos.z));
+    a.rig.pitch = -0.1;
+    a.apply({ type: 'memory', phraseId: 'kitchen-light', attack: 3, hold: 6, release: 4 });
+  });
+  await page.waitForFunction(() => window.__hedgehog.memoryLight.mesh.material.uniforms.uEnv.value > 0.95, null, { timeout: 120000 });
+  r.memoryFrames = stats(await framePacing(page, Math.min(4, SAMPLE_S)));
+  r.memoryGpu = await gpu(page);
   r.gpuAfter = await gpu(page);
   // Shaders are compiled before the visitor enters: none should be compiled later.
   r.programsAddedAfterEntering = (r.gpuAfter.programs ?? 0) - (r.threshold.programs ?? 0);
   const lt = await page.evaluate(() => window.__longTasks);
   r.longTasks = { count: lt.length, totalMs: lt.reduce((a, [, d]) => a + d, 0), worstMs: lt.reduce((a, [, d]) => Math.max(a, d), 0) };
   result.profiles[name] = r;
-  console.log(name, JSON.stringify({ readyMs: r.readyMs, enterToScoreMs: r.enterToScoreMs, handoffWallMs: r.handoffWallMs, programsAdded: r.programsAddedAfterEntering, longTasks: r.longTasks, room: r.roomFrames, gpu: { ...r.gpuAfter, renderer: undefined }, errors: errors.length }));
+  console.log(name, JSON.stringify({ readyMs: r.readyMs, enterToScoreMs: r.enterToScoreMs, handoffWallMs: r.handoffWallMs, programsAtThreshold: r.threshold.programs, programsAdded: r.programsAddedAfterEntering, longTasks: r.longTasks, room: r.roomFrames, memory: r.memoryFrames, memoryCalls: r.memoryGpu.calls, gpu: { ...r.gpuAfter, renderer: undefined }, errors: errors.length }));
   await ctx.close();
 }
 await browser.close();

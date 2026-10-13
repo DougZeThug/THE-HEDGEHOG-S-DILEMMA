@@ -135,7 +135,7 @@ export class AudioEngine {
    * A deliberate silence: ambience and music fall away, then return. A shallower silence
    * never lifts a deeper one already under way. `fall` is how quickly it falls (seconds).
    */
-  silence(depth: number, seconds: number, fall = 1.4) {
+  silence(depth: number, seconds: number, fall = 1.4, rise = 3.5) {
     const t = this.ctx.currentTime;
     if (t < this.duckUntil && depth < this.duckDepth) return;
     this.duckDepth = depth;
@@ -144,7 +144,7 @@ export class AudioEngine {
     p.cancelScheduledValues(t);
     p.setValueAtTime(p.value, t);
     p.setTargetAtTime(Math.max(0.03, 1 - depth), t, fall);
-    p.setTargetAtTime(1, t + seconds, 3.5);
+    p.setTargetAtTime(1, t + seconds, rise);
   }
 
   /**

@@ -49,9 +49,12 @@ const GradeShader = {
       c.rgb += g * uGrain * (0.6 + 0.4 * (1.0 - l)) * smoothstep(0.0, 0.08, l);
       c.rgb = mix(c.rgb, vec3(0.955, 0.952, 0.945), uWhite);
       c.rgb = mix(c.rgb, vec3(0.043, 0.043, 0.047), uBlack);
-      // A still, triangular dither of half a step: the dark frames (the title, the dims, leaving)
-      // have no grain to hide banding in their gradients.
-      c.rgb += (h(vUv * uRes + 0.17) + h(vUv * uRes + 3.71) - 1.0) * (0.5 / 255.0);
+      // A still, triangular dither of one step: the dark frames (the title, the dims, leaving)
+      // have no grain to hide banding in their gradients. Interleaved gradient noise (no sin()
+      // hash, which shows structure on some mobile GPUs at large coordinates).
+      float ign1 = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));
+      float ign2 = fract(52.9829189 * fract(dot(gl_FragCoord.xy + 17.0, vec2(0.06711056, 0.00583715))));
+      c.rgb += (ign1 + ign2 - 1.0) * (1.0 / 255.0);
       gl_FragColor = c;
     }
   `,

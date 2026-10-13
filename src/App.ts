@@ -149,13 +149,14 @@ export class App {
     this.lighting.score.key = this.lighting.score.area = this.lighting.score.hemi = this.lighting.score.glow = 0;
     this.room.setLit(0, 0);
     this.rig.update(0.016, this.room, this.chair.group.position);
-    // (The memory's light is in the scene, so its shader is compiled here too: drawn once, at
-    // no strength, in this black frame, so the variant for the scene's own target is built now.)
+    // Compiled for the target the scene is really drawn into (the composer's, linear, before
+    // tone mapping), not the screen: three keys programs on the bound target. The memory's light
+    // is in the scene, unseen, so it is compiled here too.
     this.room.frames.north.writing.add(this.memoryLight.mesh);
-    this.memoryLight.mesh.visible = true;
+    this.renderer.setRenderTarget(this.post.composer.readBuffer);
     this.renderer.compile(this.scene, this.rig.camera);
+    this.renderer.setRenderTarget(null);
     this.post.render();
-    this.memoryLight.mesh.visible = false;
     const enter = $<HTMLButtonElement>('enter');
     enter.disabled = false;
     enter.textContent = this.visits > 0 ? 'go in again' : 'go in';
@@ -567,7 +568,7 @@ export class App {
     if (this.memoryKey) {
       // The light washes the words out a little (to about half their strength), then gives them back.
       const m = this.memoryLight.update(this.time);
-      this.text.wash(this.memoryKey, 0.45 * m);
+      this.text.wash(this.memoryKey, 0.35 * m);
       if (!this.memoryLight.active) this.memoryKey = null;
     }
     this.text.update(dt, this.time, cam, env, this.gazeId, v.gazeId === gazePhrase ? v.gazeFor : 0);
@@ -644,10 +645,13 @@ export class App {
         if (!a) break;
         this.memoryLight.reducedMotion = this.prefs.reducedMotion;
         this.memoryLight.strength = this.prefs.intensity === 'gentle' ? 0.6 : 1;
-        this.memoryLight.start(a.group, a.x, a.y, a.minY, a.maxY, cue, this.time);
+        // The room hushes first; 0.8 s later the light arrives; the present comes back only after it has gone.
+        const lead = 0.8, total = cue.attack + cue.hold + cue.release;
+        this.memoryLight.start(a.group, a.x, a.y, a.w, a.h, a.minX, a.maxX, a.maxY, cue, this.time, lead);
         this.memoryKey = a.key;
-        // The room goes a little quieter while the light is there.
-        this.audio?.silence(0.3, cue.attack + cue.hold);
+        this.audio?.silence(0.55, lead + total, 1.4, 2.5);
+        // And the room's own light gives way a little: the memory is brighter than the present.
+        this.lighting.dimToChair(0.93, lead + total, this.time);
         break;
       }
       case 'draw':
