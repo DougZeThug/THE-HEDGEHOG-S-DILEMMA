@@ -33,6 +33,10 @@ The changes that made this hold in a room that starts empty:
 
 Reading deepens a visit a little more slowly when there is less to read. The reader persona reaches contradiction at 73 s, not about 52 s, inside the brief's 30–90 s.
 
+Later additions, which leave these numbers unchanged:
+- **Writing in the air** (`ruleAir`) counts as writing, is major, and is followed by a 12 s hold.
+- **Light as a motif.** The long held silence and the turn to the last phase carry a `dim`. When the turn comes inside the held silence, it adds no silence of its own: that silence and its dark are the turn.
+
 ## What it is now
 
 - **Engagement** (`src/state/Engagement.ts`). What a visitor does becomes signals: reading a line, coming back to one after looking away, touching writing or the chair, approaching, staying with the chair, kneeling, looking around, crossing the room, pausing on purpose, writing. Attending to the writing counts for more than moving about. The visit's *depth* grows from these, and slowly by itself.

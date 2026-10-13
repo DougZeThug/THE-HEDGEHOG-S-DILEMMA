@@ -25,7 +25,7 @@ describe('writing in the air', () => {
       expect(air.length, `seed ${seed}`).toBe(1);
       expect(air[0].t).toBeGreaterThanOrEqual(60);
       expect(air[0].t).toBeLessThan(150);
-      expect(air[0].cue).toMatchObject({ phraseId: 'closer' });
+      expect(Director.AIR_LINES).toContain((air[0].cue as { phraseId: string }).phraseId);
     }
   });
 
@@ -34,8 +34,8 @@ describe('writing in the air', () => {
       const d = new Director({ seed });
       d.release({ written: ['stay'], spoken: ['crumbs'] });
       const air = run(d, 300, () => apart).filter((c) => c.cue.type === 'air');
-      expect(air.length).toBeLessThanOrEqual(1);
-      for (const a of air) expect(a.t).toBeGreaterThanOrEqual(150);
+      expect(air.length).toBe(1);
+      expect(air[0].t).toBeGreaterThanOrEqual(150);
     }
   });
 
@@ -77,12 +77,31 @@ describe('light as a motif', () => {
     expect(turns).toBeLessThanOrEqual(1);
   });
 
+  it('a second dim during a first never lifts the room first', () => {
+    const l = new Lighting('low');
+    const chair = new THREE.Vector3();
+    l.dimToChair(0.15, 11, 0);
+    let prev = 1, jump = 0;
+    for (let t = 0; t <= 30; t += 1 / 60) {
+      if (Math.abs(t - 6) < 1 / 120) l.dimToChair(0.15, 16, t);
+      l.update(1 / 60, env, t, chair);
+      jump = Math.max(jump, Math.abs(l.roomLight - prev));
+      prev = l.roomLight;
+    }
+    expect(jump).toBeLessThan(0.05);
+    expect(prev).toBe(1);
+  });
+
   it('the long held silence and the turn to the last phase take the light back to the chair', () => {
     // Every silence that dims comes from one of those two moments, and every such moment dims.
     const d = new Director({ seed: 5 });
     d.release({ written: ['stay'], spoken: ['crumbs'] });
     const cues = run(d, 900, (t) => ({ ...apart, z: 1.2 + Math.abs(Math.sin(t * 0.05)) * 1.4, gazeChair: t % 40 < 25, yaw: Math.sin(t * 0.1) }));
     expect(cues.some((c) => c.rule === 'held-silence')).toBe(true);
+    // The two never overlap: within the held silence, the turn needs no silence of its own.
+    const held = cues.find((c) => c.rule === 'held-silence')!;
+    const until = held.t + (held.cue as { seconds: number }).seconds;
+    for (const c of cues) if (c.rule === 'phase-transform' && c.cue.type === 'silence') expect(c.t < held.t || c.t >= until).toBe(true);
     for (const c of cues) {
       if ((c.rule === 'held-silence' || c.rule === 'phase-transform') && c.cue.type === 'silence') expect(c.cue.dim).toBe(0.15);
       if (c.cue.type === 'silence' && c.cue.dim !== undefined) expect(['held-silence', 'phase-transform']).toContain(c.rule);

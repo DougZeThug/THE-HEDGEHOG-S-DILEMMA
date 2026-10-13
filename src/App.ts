@@ -701,7 +701,9 @@ export class App {
 
   private cyclePhrase(dir: 1 | -1) {
     const cam = this.rig.camera.position;
-    const vis = [...this.text.items.values()].filter((i) => i.vis > 0.5 && i.uniforms.uOpacity.value > 0.2 && i.placement.surface !== 'ceiling');
+    const vis: { centre: THREE.Vector3 }[] = [...this.text.items.values()].filter((i) => i.vis > 0.5 && i.uniforms.uOpacity.value > 0.2 && i.placement.surface !== 'ceiling');
+    const air = this.text.airCentre;
+    if (air) vis.push({ centre: air });
     if (!vis.length) return;
     vis.sort((a, b) => {
       const aa = Math.atan2(-(a.centre.x - cam.x), -(a.centre.z - cam.z));
@@ -1227,6 +1229,7 @@ export class App {
     this.director.returnAfterDeparture();
     // Back in from the dark, slowly: the overlay fades while the room lightens beneath it.
     this.leaving = null;
+    this.lighting.cancelDim();
     this.post.depart = 0;
     Object.assign(this.lighting.score, { area: 1, hemi: 1, glow: 1, key: ROOM_LEVELS.key, cone: ROOM_LEVELS.cone });
     this.room.setLit(1, 1);

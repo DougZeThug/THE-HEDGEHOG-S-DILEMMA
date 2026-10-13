@@ -389,7 +389,7 @@ export class WallText {
     mesh.position.copy(o.at);
     mesh.lookAt(o.face.x, o.at.y, o.face.z);
     mesh.renderOrder = 3;
-    mesh.userData = { text: p.text, goesAt: o.goesAt ?? 1.0, expires: o.now + (o.ttl ?? 45), y: o.at.y, born: o.now, normal: new THREE.Vector2(o.face.x - o.at.x, o.face.z - o.at.z).normalize() };
+    mesh.userData = { text: p.text, goesAt: o.goesAt ?? 1.4, expires: o.now + (o.ttl ?? 45), y: o.at.y, born: o.now, normal: new THREE.Vector2(o.face.x - o.at.x, o.face.z - o.at.z).normalize() };
     this.air.add(mesh);
     const now = wallClock();
     const plan: WritePlan = { start: now + 0.6, floor: 0, cap: duration };
@@ -397,6 +397,12 @@ export class WallText {
     uniforms.uWrite.value = 0;
     this.airItem = { key: o.key, mesh, uniforms, duration, plan, vis: 1, target: 1, rate: 1, opacity: HANDS[p.hand].opacity * 0.75, centre: o.at.clone() };
     return true;
+  }
+
+  /** Where the writing in the air is, while it is there (for keyboard navigation). */
+  get airCentre(): THREE.Vector3 | null {
+    const a = this.airItem;
+    return a && a.target > 0 ? a.centre.clone() : null;
   }
 
   /** The writing in the air, if any, and how much of it is there (for tests and the inspector). */
@@ -413,7 +419,7 @@ export class WallText {
     if (a.target > 0 && (d < a.mesh.userData.goesAt || now > a.mesh.userData.expires)) {
       a.target = 0;
       // Coming close rubs it out quickly, before anyone could walk through it; left alone, it thins away slowly.
-      a.rate = d < a.mesh.userData.goesAt ? 1 / 1.3 : 1 / 10;
+      a.rate = d < a.mesh.userData.goesAt ? 1 / 0.9 : 1 / 10;
     }
     // Barely drifting (1.5 cm over seven seconds): held up by nothing.
     a.mesh.position.y = a.mesh.userData.y + 0.0075 * Math.sin(((now - a.mesh.userData.born) / 7) * Math.PI * 2);

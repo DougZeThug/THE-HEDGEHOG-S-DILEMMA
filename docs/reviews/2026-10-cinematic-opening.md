@@ -103,7 +103,42 @@ These are workflow steps 5 and 6. `qa-accessibility` tested the build; `cinemati
 - Accumulation pauses while someone is settled at the chair.
 
 **Not done; for the artist or a later round:**
-- A rounder, waxier crayon letterform.
 - The portrait pitch is −0.30, as suggested. The ceiling still takes about a sixth of the frame.
 - Dashed artefacts at the room's junctions in software-rendered frames. They are probably SwiftShader's soft shadows; check on a device.
 - Whether a 2 s held stop and a 23 s phone opening feel right. That needs a person, on a phone, with sound.
+
+## Second round: writing in the air, the waxy crayon, light later in the visit
+
+The three items left over from the P2 list, built and then evaluated by `cinematic-director`, `technical-artist` and `qa-accessibility` (evidence in `test-output/review/motifs*/`).
+
+**As first built:**
+- "Please don't come any closer." was written in the air, 0.6 m in front of the chair.
+- The held silence and the turn to the last phase dimmed the room's light.
+- Leaving played the opening backwards.
+- The crayon got offset passes and wax skips.
+
+**What the reviewers found, and what was done:**
+
+| Finding | Who | Decision |
+|---|---|---|
+| The air writing read as writing on the wall (its baseline on the skirting) and was written across the chair's back, where the ink vanished against the wood. | Cinematic, Technical Artist | **Fixed.** Cinematic proposed 0.80 m (over the floor); the Technical Artist proposed 1.15 m (above the chair). Both were rendered. 1.15 m put it back on the wall; at 0.80 m it crossed the chair. The answer was neither: 0.80 m in three short lines, 0.55 m to the visitor's left. It stands beside the chair over the lit floor and fits a phone frame. |
+| Standing at the door was enough to trigger it, at about a minute on every seed. | Cinematic | **Fixed.** It answers stepping back from the chair (≥ 2.1 m after having been near), or only after 150 s for someone who never came near. |
+| The first step erased it before any parallax could show it was in the air; then QA found you could walk through it half-visible. | Cinematic, QA | **Fixed.** Rub-out at 1.4 m from the text, over 0.9 s. |
+| Mirror writing from behind, a scratch edge-on, and a new shader program mid-visit. | Cinematic, Technical Artist | **Fixed.** Front side only (the same program as the walls), full within 35° of where it faces and gone by 65°. |
+| A duplicate of a line already on the north wall. | Cinematic | **Fixed, differently.** Skipping it whenever "closer" was on a wall made it all but never happen. Instead it uses the first of "Please don't come any closer.", "far enough to miss you", "Come back. Don't." that is not on a wall. |
+| Too small to read on a phone. | Technical Artist | **Fixed.** Full size (was 0.8). |
+| The fixture stayed blazing white while the room darkened: a brownout, not a motif. | Cinematic, Technical Artist | **Fixed.** The panel goes down with the room (0.08 + 0.92·m^1.5) to 15%. For the held silence it lasts 16 s; for the turn, 11 s. |
+| A second dim during a first snapped the room to full light in one frame (explorer: held silence at 124 s, turn at 131 s, every seed). | QA | **Fixed.** A dim starts from wherever the light is. A turn inside the held silence adds no silence of its own. Tested. |
+| Returning after leaving kept a dim in progress. | QA | **Fixed** (`cancelDim`). |
+| Leaving put the chair's light out, then said "The light stays on." | Cinematic | **Fixed.** The chair is held alone, then the view goes to black with its light still on. The overlay comes at 4.6 s, and the hum lingers (3 s fall). |
+| The wax read as bold marker; its offset passes were sub-pixel; then its flecks made a pale halo. | Cinematic, Technical Artist | **Fixed.** No extra full stroke. Fleck-filled offset passes at ±0.025 em, ragged edges, coarser skips, pressure along the line. |
+| The wax lowered the voiced line's contrast (mean ink 0.64 → 0.48). | QA | **Fixed.** Lighter skips and pressure, crayon opacity 0.82 → 0.9. The 75th-percentile ink is within 2% of the old crayon. |
+| The opening's hand-off slipped from 23.5 s to 26 s. | QA | **Fixed (23.4–23.5 s).** Cause: wax flecks were counted as "dots" written after each word. Stroke order is now worked out from the letters alone (before flecks, tooth and wax), and everything else takes the nearest letter's time. This also stops grain breaking letters into after-the-word pieces in every hand. |
+| The last glyph of some lines was cropped at the right edge (24 of 119 phrases, before this change). | Technical Artist | **Fixed.** `measureText` leaves room for wider drawn spaces and overhang. |
+| Tab didn't reach the air writing. | QA | **Fixed.** |
+
+**Still open:**
+- **How rarely the air writing happens.** The scripted personas almost never trigger it, because they never look at the chair from a distance. In the app, chair gaze is the centre of view meeting the chair, which a person at the door usually does. This needs a person.
+- **A floor shadow of the air writing** (Cinematic and Technical Artist, medium effort). Not done.
+- **A breath or eraser sound on the rub-out** (for the sound designer).
+- **How the dim, the drift and the rub-out feel at 60 fps on a real phone.**

@@ -44,7 +44,7 @@ export class Lighting {
    * Light as a motif later in the visit: the room's own light (panel and sky) goes down until
    * only the chair is lit, as it was at the start, then comes back. The key light is untouched.
    */
-  private dimming: { to: number; start: number; seconds: number } | null = null;
+  private dimming: { from: number; to: number; start: number; seconds: number } | null = null;
   private mood = 1;
 
   constructor(quality: 'low' | 'medium' | 'high') {
@@ -87,7 +87,14 @@ export class Lighting {
 
   /** Take the room back to the chair alone (area and sky to `to`) for `seconds`, then return. */
   dimToChair(to: number, seconds: number, now: number) {
-    this.dimming = { to, start: now, seconds };
+    // From wherever the light is now: a second dim during a first never lifts the room first.
+    this.dimming = { from: this.mood, to: Math.min(to, this.mood), start: now, seconds };
+  }
+
+  /** Back to the room's own light at once (returning after leaving). */
+  cancelDim() {
+    this.dimming = null;
+    this.mood = 1;
   }
 
   /** The room's light, apart from the key, as a fraction of itself (for tests and the inspector). */
@@ -117,9 +124,10 @@ export class Lighting {
       if (t >= d.seconds) this.dimming = null;
       else {
         // Down over 3 s, held, back over 4 s: slow enough to read as the room, not a fault.
-        const down = Math.min(1, t / 3), up = Math.min(1, (d.seconds - t) / 4);
-        const e = Math.min(down, up);
-        mood = 1 - (1 - d.to) * e * e * (3 - 2 * e);
+        const s = (x: number) => x * x * (3 - 2 * x);
+        const down = s(Math.min(1, t / 3)), up = s(Math.max(0, Math.min(1, (d.seconds - t) / 4)));
+        const level = d.from + (d.to - d.from) * down;
+        mood = 1 - (1 - level) * up;
       }
     }
     this.mood = mood;

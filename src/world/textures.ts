@@ -91,7 +91,7 @@ export const HANDS: Record<Hand, HandStyle> = {
   marker: { font: 'Caveat', weight: 700, scale: 1.15, ink: '#18181a', opacity: 0.9, grain: 0.06, wobble: 0.03, tracking: 0 },
   typed: { font: 'Cormorant Garamond', weight: 600, scale: 1.0, ink: '#26272a', opacity: 0.86, grain: 0.04, wobble: 0, tracking: 0.12 },
   child: { font: 'Nothing You Could Do', weight: 400, scale: 1.0, ink: '#404046', opacity: 0.78, grain: 0.35, wobble: 0.09, tracking: 0.02 },
-  crayon: { font: 'Caveat', weight: 600, scale: 1.2, ink: '#a9702f', opacity: 0.82, grain: 0.34, wobble: 0.04, tracking: 0, waxy: true },
+  crayon: { font: 'Caveat', weight: 600, scale: 1.2, ink: '#a9702f', opacity: 0.9, grain: 0.34, wobble: 0.04, tracking: 0, waxy: true },
   cyan: { font: 'Reenie Beanie', weight: 400, scale: 1.45, ink: '#4f8794', opacity: 0.7, grain: 0.45, wobble: 0.05, tracking: 0 },
   visitor: { font: 'Caveat', weight: 400, scale: 1.2, ink: '#2b2e35', opacity: 0.84, grain: 0.18, wobble: 0.04, tracking: 0 },
 };
@@ -197,20 +197,10 @@ export function textTexture(text: string, hand: Hand, size: Size, key: string, m
   g.lineJoin = g.lineCap = 'round';
   // Wax: the letter, then two faint passes a little off it (the stick never lands twice in
   // the same place). Where each was drawn is kept, to rough up its edges afterwards.
-  const drawn: { s: string; x: number; y: number; m: DOMMatrix }[] = [];
-  // The off passes leave flecks, not a second outline: they are filled through the tooth.
-  const flecks = st.waxy ? g.createPattern(grainCanvas(), 'repeat')! : null;
+  const drawn: { s: string; x: number; y: number; m: DOMMatrix; a: number }[] = [];
   const ink = (s: string, x: number, y: number) => {
     g.fillText(s, x, y);
-    if (!flecks) return;
-    drawn.push({ s, x, y, m: g.getTransform() });
-    const a = g.globalAlpha;
-    g.fillStyle = flecks;
-    g.globalAlpha = a * 0.7;
-    g.fillText(s, x + px * 0.025, y - px * 0.012);
-    g.fillText(s, x - px * 0.02, y + px * 0.02);
-    g.fillStyle = '#fff';
-    g.globalAlpha = a;
+    if (st.waxy) drawn.push({ s, x, y, m: g.getTransform(), a: g.globalAlpha });
   };
   const ranges = wordRanges(text);
   const boxes: CharBox[] = [];
@@ -250,9 +240,23 @@ export function textTexture(text: string, hand: Hand, size: Size, key: string, m
     }
     y += px * LINE;
   }
-  // Stroke order is worked out from the ink as written, before tooth and wax break letters into
-  // pieces that would otherwise be written after the word, like dots.
+  // Stroke order is worked out from the letters as written, before tooth and wax break them into
+  // pieces (and flecks) that would otherwise be written after the word, like dots. Anything
+  // added afterwards takes the time of the nearest letter.
   const pre = g.getImageData(0, 0, W, H).data;
+  if (drawn.length) {
+    // The off passes leave flecks, not a second outline: they are filled through the tooth.
+    g.fillStyle = g.createPattern(grainCanvas(), 'repeat')!;
+    g.save();
+    for (const d of drawn) {
+      g.setTransform(d.m);
+      g.globalAlpha = d.a * 0.7;
+      g.fillText(d.s, d.x + px * 0.025, d.y - px * 0.012);
+      g.fillText(d.s, d.x - px * 0.02, d.y + px * 0.02);
+    }
+    g.restore();
+    g.globalAlpha = 1;
+  }
   if (st.grain > 0) {
     g.globalCompositeOperation = 'destination-out';
     g.globalAlpha = st.grain;
@@ -275,7 +279,7 @@ export function textTexture(text: string, hand: Hand, size: Size, key: string, m
       }
       g.restore();
       // The skips, at a slight slant (the stick held at an angle), coarser than the tooth.
-      g.globalAlpha = 0.8;
+      g.globalAlpha = 0.6;
       g.fillStyle = wax;
       g.save();
       g.rotate(r.range(-0.12, 0.05));
@@ -287,7 +291,7 @@ export function textTexture(text: string, hand: Hand, size: Size, key: string, m
       // Pressure that comes and goes along the line (about every 0.6 em): this survives distance.
       const grad = g.createLinearGradient(0, 0, W, 0);
       const n = Math.max(2, Math.ceil(W / (px * 0.6)));
-      for (let i = 0; i <= n; i++) grad.addColorStop(i / n, `rgba(0,0,0,${r.range(0, 0.3).toFixed(3)})`);
+      for (let i = 0; i <= n; i++) grad.addColorStop(i / n, `rgba(0,0,0,${r.range(0, 0.15).toFixed(3)})`);
       g.globalAlpha = 1;
       g.fillStyle = grad;
       g.fillRect(0, 0, W, H);
