@@ -8,3 +8,7 @@ test-output
 .env.*
 !.env.example
 *.key
+
+# Generated listening index (node scripts/audition.mjs)
+audition/index.html
+*.untrimmed.mp3

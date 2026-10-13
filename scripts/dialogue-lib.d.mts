@@ -2,6 +2,10 @@
 export const API: string;
 export const MODEL_RATES: Record<string, number>;
 export const PILOT: string[];
+export const SCENE_MODELS: Set<string>;
+export const MAX_TAGS: number;
+export function lineStart(heard: { text: string; start: number }[], text: string): number | null;
+export function extraWords(text: string, transcript: string): string[];
 export interface Ledger { version: number; spent: { credits: number; sttSeconds: number }; entries: Record<string, any>; runs: any[] }
 export interface Job { perf: any; hash: string; estimate: number }
 export function emptyLedger(): Ledger;
@@ -18,7 +22,7 @@ export function classifyFailure(status: number, body: string): { kind: string; c
 export function buildManifest(manifest: Record<string, string[]>, direction: any, ledger: Ledger, fileExists?: (f: string) => boolean): Record<string, string[]>;
 export function runJobs(o: {
   jobs: Job[]; direction: any; ledger: Ledger; key: string; fetch: (url: string, init?: any) => Promise<any>;
-  writeFile: (f: string, d: Uint8Array) => Promise<void>; saveLedger: (l: Ledger) => Promise<void>;
+  writeFile: (f: string, d: Uint8Array) => Promise<void>; trim?: (audio: Uint8Array, fromSeconds: number) => Promise<Uint8Array>; saveLedger: (l: Ledger) => Promise<void>;
   sleep?: (ms: number) => Promise<void>; log?: (s: string) => void; stt?: boolean; now?: () => string; maxRetries?: number;
 }): Promise<{ at: string; credits: number; generated: number; failed: number; queued: number; stopped: string | null }>;
-export function transcribe(o: { fetch: any; key: string; audio: Uint8Array }): Promise<{ ok: boolean; text?: string; code?: string }>;
+export function transcribe(o: { fetch: any; key: string; audio: Uint8Array }): Promise<{ ok: boolean; text?: string; events?: string[]; code?: string }>;

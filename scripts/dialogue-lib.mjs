@@ -8,7 +8,13 @@ import { createHash } from 'node:crypto';
 export const API = 'https://api.elevenlabs.io';
 
 /** Credits per input character, by model (ElevenLabs pricing; tags count as characters). */
-export const MODEL_RATES = { eleven_v3: 1, eleven_multilingual_v2: 1, eleven_flash_v2_5: 0.5, eleven_turbo_v2_5: 0.5 };
+export const MODEL_RATES = { eleven_v4: 1, eleven_v3: 1, eleven_multilingual_v2: 1, eleven_flash_v2_5: 0.5, eleven_turbo_v2_5: 0.5 };
+
+/** Models that accept unspoken scene context (previous_text / next_text). Context is not billed. */
+export const SCENE_MODELS = new Set(['eleven_v4', 'eleven_multilingual_v2']);
+
+/** Most delivery tags a directed input may carry. Tags shape the performance; they are never words of the line. */
+export const MAX_TAGS = 4;
 
 /** Three sharply different first takes. */
 export const PILOT = ['stay--tender', 'crumbs', 'why-understand--frustrated'];
@@ -24,14 +30,18 @@ export function emptyLedger() {
 export function performanceHash(perf, direction) {
   const v = direction.voices[perf.voice];
   return createHash('sha256')
-    .update(JSON.stringify({ voiceId: v?.voiceId, model: perf.model ?? direction.model, input: perf.input, stability: perf.stability ?? v?.stability, seed: perf.seed, format: direction.outputFormat }))
+    // Fields absent from older takes are left out of the JSON, so their hashes are unchanged.
+    .update(JSON.stringify({
+      voiceId: v?.voiceId, model: perf.model ?? direction.model, input: perf.input, stability: perf.stability ?? v?.stability, seed: perf.seed, format: direction.outputFormat,
+      similarity: perf.similarity, before: perf.scene?.before, after: perf.scene?.after, leadIn: perf.leadIn,
+    }))
     .digest('hex')
     .slice(0, 16);
 }
 
 export function estimateCredits(perf, direction) {
   const rate = MODEL_RATES[perf.model ?? direction.model] ?? 1;
-  return Math.ceil(perf.input.length * rate);
+  return Math.ceil(((perf.leadIn ? perf.leadIn.length + 1 : 0) + perf.input.length) * rate);
 }
 
 /** Words of a line, normalised for comparison (case, punctuation, quotes, bracketed tags). */
@@ -54,6 +64,19 @@ export function wordErrorRate(reference, hypothesis) {
   for (let i = 1; i <= r.length; i++)
     for (let j = 1; j <= h.length; j++) d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (r[i - 1] === h[j - 1] ? 0 : 1));
   return r.length ? d[r.length][h.length] / r.length : 0;
+}
+
+/** Words heard that the authored line does not contain (ignoring audio events). */
+export function extraWords(text, transcript) {
+  const want = words(text);
+  const left = [...want];
+  const extra = [];
+  for (const w of words(transcript)) {
+    const i = left.indexOf(w);
+    if (i >= 0) left.splice(i, 1);
+    else extra.push(w);
+  }
+  return extra;
 }
 
 /** Tag words that were spoken aloud (present in the transcript but not in the authored text). */
@@ -79,8 +102,10 @@ export function validateDirection(direction, phraseText) {
     if (authored === undefined) problems.push(`${p.id}: unknown phrase ${p.phraseId}`);
     else if (authored !== p.text) problems.push(`${p.id}: text differs from the authored phrase`);
     if (words(p.input).join(' ') !== words(p.text).join(' ')) problems.push(`${p.id}: input words differ from the text`);
-    if ((p.input.match(/\[/g) ?? []).length > 1) problems.push(`${p.id}: more than one audio tag`);
-    if (!/^dialogue\/[a-z0-9-]+\.mp3$/.test(p.file)) problems.push(`${p.id}: bad file name`);
+    if (p.leadIn && /\w/.test(p.leadIn) && !p.leadIn.trim()) problems.push(`${p.id}: empty lead-in`);
+    if ((p.input.match(/\[/g) ?? []).length > MAX_TAGS) problems.push(`${p.id}: more than ${MAX_TAGS} audio tags`);
+    if (p.scene && !SCENE_MODELS.has(p.model ?? direction.model)) problems.push(`${p.id}: scene context needs a model that accepts it`);
+    if (!/^(dialogue|lab)\/[a-z0-9-]+\.mp3$/.test(p.file)) problems.push(`${p.id}: bad file name`);
   }
   return problems;
 }
@@ -185,6 +210,8 @@ export function buildManifest(manifest, direction, ledger, fileExists = () => tr
   for (const perf of direction.performances) {
     const e = ledger.entries[perf.id];
     if (!e || e.review === 'rejected' || !USABLE.has(e.status) || !fileExists(perf.file)) continue;
+    // A retired take stays on disk and in the ledger; it returns only if someone approves it.
+    if (perf.retired && e.review !== 'approved') continue;
     (out[`phrase:${perf.phraseId}`] ??= []).push(perf.file);
   }
   return out;
@@ -194,7 +221,7 @@ export function buildManifest(manifest, direction, ledger, fileExists = () => tr
  * Run generation jobs one at a time. Every outcome is written to the ledger as it
  * happens, so an interrupted run loses nothing and never pays twice.
  */
-export async function runJobs({ jobs, direction, ledger, key, fetch, writeFile, saveLedger, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), log = () => {}, stt = true, now = () => new Date().toISOString(), maxRetries = 3 }) {
+export async function runJobs({ jobs, direction, ledger, key, fetch, writeFile, saveLedger, trim, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), log = () => {}, stt = true, now = () => new Date().toISOString(), maxRetries = 3 }) {
   const run = { at: now(), credits: 0, generated: 0, failed: 0, queued: 0, stopped: null };
   for (let n = 0; n < jobs.length; n++) {
     const { perf, hash, estimate } = jobs[n];
@@ -205,7 +232,12 @@ export async function runJobs({ jobs, direction, ledger, key, fetch, writeFile, 
     }
     const v = direction.voices[perf.voice];
     const model = perf.model ?? direction.model;
-    const body = { text: perf.input, model_id: model, voice_settings: { stability: perf.stability ?? v.stability }, seed: perf.seed };
+    // A lead-in gives a short line somewhere to come from; it is cut away before the file is kept.
+    const body = { text: perf.leadIn ? `${perf.leadIn} ${perf.input}` : perf.input, model_id: model, voice_settings: { stability: perf.stability ?? v.stability }, seed: perf.seed };
+    if (perf.similarity !== undefined) body.voice_settings.similarity_boost = perf.similarity;
+    // The scene around the line: shapes how it is said, is never spoken, and is not billed.
+    if (perf.scene?.before) body.previous_text = perf.scene.before;
+    if (perf.scene?.after) body.next_text = perf.scene.after;
     let res, attempt = 0;
     for (;;) {
       res = await fetch(`${API}/v1/text-to-speech/${v.voiceId}?output_format=${direction.outputFormat}`, {
@@ -249,16 +281,38 @@ export async function runJobs({ jobs, direction, ledger, key, fetch, writeFile, 
       await saveLedger(ledger);
       continue;
     }
-    await writeFile(perf.file, audio);
+    let kept = audio;
+    if (perf.leadIn) {
+      // Find where the authored words begin, and keep only them.
+      const tr0 = await transcribe({ fetch, key, audio });
+      const at = tr0.ok ? lineStart(tr0.words, perf.text) : null;
+      if (at === null || !trim) {
+        ledger.entries[perf.id] = { ...entry, status: 'needs-review', lastError: { kind: 'lead-in', code: 'not_found', message: tr0.ok ? `heard: ${tr0.text}` : tr0.code, at: now() } };
+        await writeFile(perf.file.replace(/\.mp3$/, '.untrimmed.mp3'), audio);
+        run.failed++;
+        await saveLedger(ledger);
+        continue;
+      }
+      ledger.spent.sttSeconds += info.seconds;
+      kept = await trim(audio, Math.max(0, at - 0.14));
+      entry.trimmedAt = +at.toFixed(2);
+      entry.seconds = mp3Info(kept).seconds;
+      entry.bytes = kept.length;
+    }
+    await writeFile(perf.file, kept);
     entry.status = 'validated';
     if (stt) {
-      const tr = await transcribe({ fetch, key, audio });
+      const tr = await transcribe({ fetch, key, audio: kept });
       if (tr.ok) {
         entry.transcript = tr.text;
+        if (tr.events.length) entry.events = tr.events;
+        // Words the performance added (a context line spoken aloud, a stammer): never acceptable.
+        const extra = extraWords(perf.text, tr.text);
+        if (extra.length) entry.extraWords = extra;
         entry.wer = +wordErrorRate(perf.text, tr.text).toFixed(2);
         entry.spokenTags = spokenTags(perf, tr.text);
         ledger.spent.sttSeconds += info.seconds;
-        if (entry.wer > 0.25 || entry.spokenTags.length) entry.status = 'needs-review';
+        if (entry.wer > 0.25 || entry.spokenTags.length || (entry.extraWords?.length ?? 0) > 1) entry.status = 'needs-review';
       } else entry.transcript = `(transcription unavailable: ${tr.code})`;
     }
     ledger.entries[perf.id] = entry;
@@ -276,10 +330,24 @@ export async function transcribe({ fetch, key, audio }) {
   const fd = new FormData();
   fd.append('model_id', 'scribe_v1');
   fd.append('language_code', 'eng');
-  fd.append('tag_audio_events', 'false');
+  // Audio events (laughter, sighs, breaths) are tagged, so a directed laugh can be checked for.
+  fd.append('tag_audio_events', 'true');
   fd.append('file', new Blob([audio], { type: 'audio/mpeg' }), 'line.mp3');
   const r = await fetch(`${API}/v1/speech-to-text`, { method: 'POST', headers: { 'xi-api-key': key }, body: fd });
   if (!r.ok) return { ok: false, code: classifyFailure(r.status, await r.text()).code };
   const j = await r.json();
-  return { ok: true, text: String(j.text ?? '').trim() };
+  const all = j.words ?? [];
+  const events = all.filter((w) => w.type === 'audio_event').map((w) => w.text);
+  const spoken = all.filter((w) => w.type === 'word').map((w) => ({ text: w.text, start: w.start, end: w.end }));
+  return { ok: true, text: String(j.text ?? '').trim(), events, words: spoken };
+}
+
+/** Time the authored line begins in a transcript (its first words, last occurrence), or null. */
+export function lineStart(heard, text) {
+  const want = words(text).slice(0, 3);
+  const got = heard.map((w) => ({ w: words(w.text)[0], start: w.start })).filter((x) => x.w);
+  for (let i = got.length - want.length; i >= 0; i--) {
+    if (want.every((w, k) => got[i + k]?.w === w)) return got[i].start;
+  }
+  return null;
 }

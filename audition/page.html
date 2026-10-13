@@ -1,0 +1,231 @@
+<title>Hedgehog Audition Sheet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@500&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a cue sheet. Each authored line is a row heading in the room's own hand; its takes sit side by side beneath it. */
+:root {
+  --plaster: #f0efec; --sheet: #fbfaf8; --graphite: #2d2f33; --pencil: #6b6e74; --rule: #d9d7d2;
+  --walnut: #7a4a2b; --keep: #2f6b45; --drop: #a33a2c; --unsure: #8a6d1d; --chip: #e7e5e0;
+  --hand: "Caveat", "Segoe Print", "Bradley Hand", cursive;
+  --text: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --plaster: #17181a; --sheet: #202124; --graphite: #e6e4df; --pencil: #a3a5aa; --rule: #34363a;
+  --walnut: #d39a6d; --keep: #7cc495; --drop: #f08a7b; --unsure: #d9b75e; --chip: #2c2e31; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --plaster: #17181a; --sheet: #202124; --graphite: #e6e4df; --pencil: #a3a5aa; --rule: #34363a;
+  --walnut: #d39a6d; --keep: #7cc495; --drop: #f08a7b; --unsure: #d9b75e; --chip: #2c2e31; color-scheme: dark }
+* { box-sizing: border-box }
+body { background: var(--plaster); color: var(--graphite); font: 15px/1.5 var(--text); }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: 16px; padding-block: 28px 64px; display: grid; gap: 28px }
+header { display: grid; gap: 10px; max-width: 70ch }
+h1 { font: 600 13px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--walnut); margin: 0 }
+.lede { font-size: 17px; margin: 0; text-wrap: pretty }
+.note { color: var(--pencil); margin: 0; font-size: 14px }
+.tally { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; font: 13px var(--mono); color: var(--pencil); font-variant-numeric: tabular-nums }
+.tally b { color: var(--graphite) }
+nav { display: flex; flex-wrap: wrap; gap: 6px }
+@media (max-width: 700px) { nav { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 6px; margin-inline: -16px; padding-inline: 16px } nav a { flex: none; white-space: nowrap } }
+nav a { font: 13px var(--mono); color: var(--graphite); text-decoration: none; padding: 4px 10px; border: 1px solid var(--rule); border-radius: 99px; background: var(--sheet) }
+nav a:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid var(--walnut); outline-offset: 2px }
+section.group { display: grid; gap: 12px; padding-top: 14px; border-top: 1px solid var(--rule) }
+.ghead { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px }
+.line { font: 500 clamp(30px, 6vw, 44px)/1.05 var(--hand); margin: 0; text-wrap: balance }
+.gmeta { font: 12px var(--mono); color: var(--pencil); text-transform: uppercase; letter-spacing: .08em }
+.playall { margin-left: auto }
+.takes { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr)); gap: 12px }
+.take { background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; padding: 14px; display: grid; gap: 9px; align-content: start; min-width: 0 }
+.take.playing { border-color: var(--walnut) }
+.take.retired { opacity: .78 }
+.reading { font-weight: 700; margin: 0; text-wrap: pretty }
+.who { font: 12px var(--mono); color: var(--pencil); display: flex; flex-wrap: wrap; gap: 4px 10px }
+.who .gen { color: var(--walnut) }
+audio { width: 100%; height: 36px }
+.input { font: 13px/1.45 var(--mono); background: var(--chip); border-radius: 4px; padding: 6px 8px; overflow-wrap: anywhere }
+.scene { font-size: 13px; color: var(--pencil); font-style: italic; margin: 0; overflow-wrap: anywhere }
+.heard { font-size: 13px; margin: 0 }
+.heard .ev { font: 12px var(--mono); color: var(--walnut) }
+.flag { font: 12px var(--mono); color: var(--drop) }
+.meas { display: flex; flex-wrap: wrap; gap: 4px 12px; font: 12px var(--mono); color: var(--pencil); font-variant-numeric: tabular-nums }
+.meas b { color: var(--graphite); font-weight: 600 }
+.decide { display: flex; flex-wrap: wrap; gap: 6px; align-items: center }
+.decide button { font: 600 13px var(--text); padding: 6px 12px; border-radius: 99px; border: 1px solid var(--rule); background: transparent; color: var(--graphite); cursor: pointer }
+.decide button[aria-pressed="true"][data-v="approve"] { background: var(--keep); border-color: var(--keep); color: var(--sheet) }
+.decide button[aria-pressed="true"][data-v="reject"] { background: var(--drop); border-color: var(--drop); color: var(--sheet) }
+.decide button[aria-pressed="true"][data-v="unsure"] { background: var(--unsure); border-color: var(--unsure); color: var(--sheet) }
+.decide input { flex: 1 1 140px; min-width: 0; font: 13px var(--text); padding: 6px 8px; border: 1px solid var(--rule); border-radius: 4px; background: var(--plaster); color: var(--graphite) }
+.state { font: 11px var(--mono); color: var(--pencil) }
+button.small { font: 600 12px var(--mono); padding: 5px 10px; border-radius: 4px; border: 1px solid var(--rule); background: var(--sheet); color: var(--graphite); cursor: pointer }
+.cmd { display: grid; gap: 8px; background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; padding: 14px }
+.cmd pre { margin: 0; font: 12px/1.5 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere }
+details > summary { cursor: pointer; font: 600 13px var(--mono); color: var(--pencil) }
+.legend { display: grid; gap: 4px; font-size: 13px; color: var(--pencil); max-width: 75ch }
+.legend b { font-family: var(--mono); font-weight: 600; color: var(--graphite) }
+@media (prefers-reduced-motion: no-preference) { .take { transition: border-color .2s } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>The Hedgehog's Dilemma · voice auditions</h1>
+    <p class="lede">Every recorded performance in the room, grouped by line, so different readings can be heard side by side. Mark each take <b>keep</b>, <b>not this</b> or <b>unsure</b>. Nothing here has been judged by ear yet.</p>
+    <p class="note" id="where">Decisions are saved for Claude to apply to the recording ledger.</p>
+    <div class="tally" id="tally"></div>
+    <nav id="nav" aria-label="Lines"></nav>
+  </header>
+  <main id="groups"></main>
+  <div class="cmd">
+    <strong>Apply these decisions</strong>
+    <p class="note">Claude can read the decisions saved here. To apply them yourself, run this in the repository:</p>
+    <pre id="cmd"></pre>
+    <div><button class="small" id="copy" type="button">Copy command</button> <span class="state" id="copied"></span></div>
+  </div>
+  <details>
+    <summary>What the measurements mean</summary>
+    <div class="legend">
+      <p>They show whether takes differ, not whether they are convincing. Only listening can decide that.</p>
+      <p><b>range</b> pitch range between the 10th and 90th percentile, in semitones. The older takes sit near 3–6.</p>
+      <p><b>pause</b> silence inside the line, in seconds.</p>
+      <p><b>voiced</b> share of speech with a clear pitch. Low values mean breath, whisper, laughter or a cracking voice.</p>
+      <p><b>dyn</b> loudness range across the line, in dB.</p>
+      <p><b>ends</b> pitch at the end compared with the middle, in semitones. Positive rises, negative falls.</p>
+      <p><b>heard</b> what speech-to-text transcribed, including detected laughs or sighs. A take that adds words to the authored line is flagged.</p>
+    </div>
+  </details>
+</div>
+
+<script id="data" type="application/json">/*DATA*/</script>
+<script>
+(() => {
+  const DATA = JSON.parse(document.getElementById('data').textContent);
+  const takes = DATA.takes;
+  const byId = new Map(takes.map((t) => [t.id, t]));
+  const decisions = {}; // id -> {decision, note}
+  let db = null;
+  const LS = 'hh-audition-v1';
+  try { Object.assign(decisions, JSON.parse(localStorage.getItem(LS) || '{}')); } catch {}
+
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+  const groups = [];
+  for (const t of takes) {
+    let g = groups.find((x) => x.key === t.group);
+    if (!g) groups.push((g = { key: t.group, line: t.line, label: t.groupLabel, takes: [] }));
+    g.takes.push(t);
+  }
+
+  const nav = document.getElementById('nav');
+  const main = document.getElementById('groups');
+  const audios = new Map();
+  for (const g of groups) {
+    const a = el('a', null, g.line.length > 28 ? g.line.slice(0, 26) + '…' : g.line);
+    a.href = '#' + g.key; nav.append(a);
+    const s = el('section', 'group'); s.id = g.key;
+    const head = el('div', 'ghead');
+    head.append(el('p', 'line', g.line), el('span', 'gmeta', g.label));
+    const pa = el('button', 'small playall', 'Play in turn'); pa.type = 'button';
+    pa.addEventListener('click', () => playInTurn(g));
+    head.append(pa);
+    const grid = el('div', 'takes');
+    for (const t of g.takes) grid.append(card(t));
+    s.append(head, grid); main.append(s);
+  }
+
+  function card(t) {
+    const c = el('article', 'take' + (t.retired ? ' retired' : '')); c.id = 'take-' + t.id;
+    c.append(el('p', 'reading', t.interpretation || '(no stated reading)'));
+    const who = el('div', 'who');
+    who.append(el('span', null, t.voice), el('span', null, t.model.replace('eleven_', '')), el('span', null, 'stability ' + t.stability));
+    who.append(el('span', 'gen', t.lab ? 'lab experiment' : t.retired ? 'older take, out of the room' : t.generation === 2 ? 'new take' : 'older take'));
+    c.append(who);
+    const au = el('audio'); au.controls = true; au.preload = 'none'; au.src = t.src; audios.set(t.id, au);
+    au.addEventListener('play', () => { for (const [id, o] of audios) if (id !== t.id) o.pause(); document.querySelectorAll('.take.playing').forEach((x) => x.classList.remove('playing')); c.classList.add('playing'); });
+    c.append(au);
+    c.append(el('div', 'input', t.input));
+    if (t.leadIn) c.append(el('p', 'scene', 'Spoken lead-in, cut away: ' + t.leadIn));
+    if (t.scene) c.append(el('p', 'scene', 'Unspoken scene: ' + t.scene));
+    if (t.question) c.append(el('p', 'scene', 'Tests: ' + t.question));
+    const heard = el('p', 'heard', 'heard: “' + (t.transcript || '—') + '”');
+    if (t.events && t.events.length) heard.append(' ', el('span', 'ev', t.events.join(' ')));
+    c.append(heard);
+    if (t.extra && t.extra.length) c.append(el('p', 'flag', 'added words: ' + t.extra.join(' ')));
+    if (t.m) {
+      const m = el('div', 'meas');
+      const kv = (k, v) => { const s = el('span'); s.append(k + ' ', el('b', null, v)); m.append(s); };
+      kv('len', t.m.seconds + 's'); kv('range', t.m.pitchRange + 'st'); kv('pause', t.m.pauseSeconds + 's');
+      kv('voiced', Math.round(t.m.voicing * 100) + '%'); kv('dyn', t.m.dynamics + 'dB'); kv('ends', (t.m.ending > 0 ? '+' : '') + t.m.ending);
+      c.append(m);
+    }
+    const d = el('div', 'decide');
+    for (const [v, label] of [['approve', 'Keep'], ['reject', 'Not this'], ['unsure', 'Unsure']]) {
+      const b = el('button', null, label); b.type = 'button'; b.dataset.v = v; b.dataset.id = t.id;
+      b.addEventListener('click', () => decide(t.id, decisions[t.id]?.decision === v ? null : v));
+      d.append(b);
+    }
+    const note = el('input'); note.id = 'note-' + t.id; note.placeholder = 'note (optional)'; note.setAttribute('aria-label', 'Note on ' + t.id);
+    let timer = 0;
+    note.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(() => saveNote(t.id, note.value), 800); });
+    d.append(note);
+    c.append(d, el('div', 'state', t.id + ' · ledger: ' + t.status + (t.review && t.review !== 'pending' ? ' / ' + t.review : '')));
+    return c;
+  }
+
+  function playInTurn(g) {
+    const list = g.takes.map((t) => audios.get(t.id));
+    let i = 0;
+    const next = () => { if (i >= list.length) return; const a = list[i++]; a.currentTime = 0; a.play().catch(() => {}); a.addEventListener('ended', () => setTimeout(next, 900), { once: true }); };
+    next();
+  }
+
+  function paint() {
+    for (const t of takes) {
+      const dec = decisions[t.id]?.decision ?? null;
+      document.querySelectorAll(`#take-${CSS.escape(t.id)} .decide button`).forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === dec)));
+      const n = document.getElementById('note-' + t.id);
+      if (n && document.activeElement !== n) n.value = decisions[t.id]?.note ?? '';
+    }
+    const vals = Object.values(decisions).map((x) => x.decision);
+    const count = (v) => vals.filter((x) => x === v).length;
+    const tally = document.getElementById('tally');
+    tally.replaceChildren();
+    for (const [k, v] of [['takes', takes.length], ['keep', count('approve')], ['not this', count('reject')], ['unsure', count('unsure')], ['unheard', takes.length - vals.filter(Boolean).length]]) {
+      const s = el('span'); s.append(el('b', null, String(v)), ' ' + k); tally.append(s);
+    }
+    const ids = (v) => takes.filter((t) => !t.lab && decisions[t.id]?.decision === v).map((t) => t.id);
+    const a = ids('approve'), r = ids('reject');
+    document.getElementById('cmd').textContent = a.length || r.length
+      ? `node scripts/generate-dialogue.mjs${a.length ? ' --approve=' + a.join(',') : ''}${r.length ? ' --reject=' + r.join(',') : ''}`
+      : '(mark some takes first)';
+  }
+
+  async function write(id) {
+    try { localStorage.setItem(LS, JSON.stringify(decisions)); } catch {}
+    if (!db) return;
+    const v = decisions[id];
+    try {
+      if (!v || (!v.decision && !v.note)) await db.collection('reviews').doc(id).delete();
+      else await db.collection('reviews').doc(id).set({ decision: v.decision ?? null, note: v.note ?? '', at: new Date().toISOString() });
+    } catch (e) { document.getElementById('where').textContent = 'Could not save to the shared sheet (' + (e && e.code || 'error') + '). Decisions are kept in this browser; use the command below.'; }
+  }
+  function decide(id, v) { decisions[id] = { ...(decisions[id] || {}), decision: v }; paint(); write(id); }
+  function saveNote(id, note) { decisions[id] = { ...(decisions[id] || {}), note }; write(id); }
+
+  paint();
+  document.getElementById('copy').addEventListener('click', () => {
+    const text = document.getElementById('cmd').textContent;
+    navigator.clipboard.writeText(text).then(() => (document.getElementById('copied').textContent = 'Copied'), () => {
+      const r = document.createRange(); r.selectNodeContents(document.getElementById('cmd')); const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+      document.getElementById('copied').textContent = 'Selected: copy it with your keyboard';
+    });
+  });
+
+  (async () => {
+    if (!window.claude || !window.claude.use) { document.getElementById('where').textContent = 'Opened locally: decisions are kept in this browser. Use the command at the bottom to apply them.'; return; }
+    db = await window.claude.use('db');
+    if (!db) { document.getElementById('where').textContent = 'Decisions are kept in this browser only. Use the command at the bottom to apply them.'; return; }
+    db.collection('reviews').onSnapshot((snap) => {
+      for (const d of snap.docs) { const x = d.data(); if (x && byId.has(d.id)) decisions[d.id] = { decision: x.decision ?? null, note: x.note ?? '' }; }
+      paint();
+    }, () => {});
+  })();
+})();
+</script>

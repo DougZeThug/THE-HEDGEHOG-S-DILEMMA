@@ -11,7 +11,10 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "smoke": "node tests/smoke.mjs"
+    "smoke": "node tests/smoke.mjs",
+    "audition": "node scripts/audition.mjs",
+    "playtest": "vite-node scripts/playtest.ts",
+    "playtest:browser": "node tests/playtest/browser.mjs"
   },
   "dependencies": {
     "@fontsource/caveat": "^5.1.0",

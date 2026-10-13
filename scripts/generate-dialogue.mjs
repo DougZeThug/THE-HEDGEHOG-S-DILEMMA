@@ -14,23 +14,26 @@
  * Direction:  src/content/dialogue.json   (authored)
  * Ledger:     scripts/dialogue-ledger.json (status, hashes, costs, transcripts, review)
  */
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { execFileSync } from 'node:child_process';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { applyBudget, buildManifest, emptyLedger, planJobs, runJobs, validateDirection } from './dialogue-lib.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const DIRECTION = join(ROOT, 'src/content/dialogue.json');
-const LEDGER = join(ROOT, 'scripts/dialogue-ledger.json');
-const VOICES = join(ROOT, 'public/voices');
-const MANIFEST = join(VOICES, 'manifest.json');
-
 const args = Object.fromEntries(
   process.argv.slice(2).map((a) => {
     const [k, v] = a.replace(/^--/, '').split('=');
     return [k, v ?? true];
   }),
 );
+// --lab: experiments for auditioning (scripts/voice-lab.json → audition/lab/), never shipped.
+const LAB = !!args.lab;
+const DIRECTION = join(ROOT, LAB ? 'scripts/voice-lab.json' : 'src/content/dialogue.json');
+const LEDGER = join(ROOT, LAB ? 'scripts/voice-lab-ledger.json' : 'scripts/dialogue-ledger.json');
+const VOICES = join(ROOT, LAB ? 'audition' : 'public/voices');
+const MANIFEST = join(ROOT, 'public/voices/manifest.json');
 const list = (v) => (typeof v === 'string' ? v.split(',').map((s) => s.trim()).filter(Boolean) : undefined);
 
 const direction = JSON.parse(readFileSync(DIRECTION, 'utf8'));
@@ -52,6 +55,7 @@ if (problems.length) {
 }
 
 function writeManifest() {
+  if (LAB) return;
   const manifest = existsSync(MANIFEST) ? JSON.parse(readFileSync(MANIFEST, 'utf8')) : {};
   const next = buildManifest(manifest, direction, ledger, fileExists);
   writeFileSync(MANIFEST, JSON.stringify(next, null, 2) + '\n');
@@ -98,7 +102,17 @@ if (!key) {
 }
 for (const q of queued) ledger.entries[q.perf.id] = { ...(ledger.entries[q.perf.id] ?? {}), status: ledger.entries[q.perf.id]?.status ?? 'queued', queuedReason: 'budget' };
 
-mkdirSync(join(VOICES, 'dialogue'), { recursive: true });
+mkdirSync(join(VOICES, LAB ? 'lab' : 'dialogue'), { recursive: true });
+/** Cut the start off an MP3 without re-encoding the kept part's character (re-encoded at the same rate, no filters). */
+const trim = async (audio, from) => {
+  const tmp = join(tmpdir(), `hh-trim-${process.pid}-${Date.now()}`);
+  writeFileSync(`${tmp}.in.mp3`, audio);
+  execFileSync('ffmpeg', ['-loglevel', 'error', '-y', '-ss', String(from), '-i', `${tmp}.in.mp3`, '-af', 'afade=t=in:d=0.03', '-b:a', '128k', `${tmp}.out.mp3`]);
+  const out = new Uint8Array(readFileSync(`${tmp}.out.mp3`));
+  rmSync(`${tmp}.in.mp3`);
+  rmSync(`${tmp}.out.mp3`);
+  return out;
+};
 const result = await runJobs({
   jobs: run,
   direction,
@@ -106,6 +120,7 @@ const result = await runJobs({
   key,
   fetch,
   writeFile: async (f, data) => writeFileSync(join(VOICES, f), data),
+  trim,
   saveLedger,
   log: (s) => console.log(s),
   stt: !args['no-stt'],

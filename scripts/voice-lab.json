@@ -1,0 +1,76 @@
+{
+  "$comment": "Voice lab: controlled experiments for auditioning, never shipped. Each take changes one thing against its neighbour (model, direction, stability, scene context, voice, lead-in) on the same line and seed. Files go to audition/lab/; costs to scripts/voice-lab-ledger.json.",
+  "model": "eleven_v4",
+  "outputFormat": "mp3_44100_128",
+  "voices": {
+    "jessica": { "voiceId": "cgSgspJ2msm6clMCkdW9", "library": "Jessica (default voice)", "stability": 0.5 },
+    "sarah": { "voiceId": "EXAVITQu4vr4xnSDxMaL", "library": "Sarah (default voice)", "stability": 0.5 },
+    "liam": { "voiceId": "TX3LPaxmHKxFdv7VOQHJ", "library": "Liam (default voice)", "stability": 0.5 }
+  },
+  "performances": [
+    {
+      "id": "lab-stay-a-v4-plain", "phraseId": "stay", "voice": "jessica", "text": "I wanted you to stay.",
+      "input": "[softly] I wanted you to stay.", "seed": 4401, "file": "lab/lab-stay-a-v4-plain.mp3",
+      "question": "Model alone: identical input to the shipped v3 take stay--tender."
+    },
+    {
+      "id": "lab-stay-b-v4-directed", "phraseId": "stay", "voice": "jessica", "text": "I wanted you to stay.",
+      "input": "[holding back tears] I wanted you… [voice cracking] to stay.", "seed": 4401, "file": "lab/lab-stay-b-v4-directed.mp3",
+      "question": "Direction: specific tags placed where the voice should change, and a broken rhythm."
+    },
+    {
+      "id": "lab-stay-c-v4-directed-loose", "phraseId": "stay", "voice": "jessica", "text": "I wanted you to stay.",
+      "input": "[holding back tears] I wanted you… [voice cracking] to stay.", "stability": 0.2, "seed": 4401, "file": "lab/lab-stay-c-v4-directed-loose.mp3",
+      "question": "Stability 0.2 against 0.5, same direction."
+    },
+    {
+      "id": "lab-stay-d-v4-scene-prose", "phraseId": "stay", "voice": "jessica", "text": "I wanted you to stay.",
+      "input": "[holding back tears] I wanted you… [voice cracking] to stay.", "stability": 0.2, "seed": 4401, "file": "lab/lab-stay-d-v4-scene-prose.mp3",
+      "scene": {
+        "before": "He already had his coat on. She had told him it was fine, that she understood. It was not fine. At the door she finally said it, and her voice gave way halfway through:",
+        "after": "She couldn't look at him."
+      },
+      "question": "Unspoken scene context, as narration."
+    },
+    {
+      "id": "lab-stay-e-v4-scene-dialogue", "phraseId": "stay", "voice": "jessica", "text": "I wanted you to stay.",
+      "input": "[holding back tears] I wanted you… [voice cracking] to stay.", "stability": 0.2, "seed": 4401, "file": "lab/lab-stay-e-v4-scene-dialogue.mp3",
+      "scene": { "before": "\"I'll call you when I get there. ...What? What is it?\"", "after": "\"Hey. Hey, don't. I'm sorry.\"" },
+      "question": "Unspoken scene context, as the other person's lines."
+    },
+    {
+      "id": "lab-stay-f-v3-directed", "phraseId": "stay", "voice": "jessica", "text": "I wanted you to stay.",
+      "input": "[holding back tears] I wanted you… [voice cracking] to stay.", "model": "eleven_v3", "stability": 0, "seed": 4401, "file": "lab/lab-stay-f-v3-directed.mp3",
+      "question": "The same direction on v3 (Creative), for comparison."
+    },
+    {
+      "id": "lab-stay-g-v4-scene-sarah", "phraseId": "stay", "voice": "sarah", "text": "I wanted you to stay.",
+      "input": "[holding back tears] I wanted you… [voice cracking] to stay.", "stability": 0.2, "seed": 4401, "file": "lab/lab-stay-g-v4-scene-sarah.mp3",
+      "scene": { "before": "\"I'll call you when I get there. ...What? What is it?\"", "after": "\"Hey. Hey, don't. I'm sorry.\"" },
+      "question": "Another voice, same direction and scene."
+    },
+    {
+      "id": "lab-stay-h-v4-leadin", "phraseId": "stay", "voice": "jessica", "text": "I wanted you to stay.",
+      "leadIn": "[quietly, after a long silence] No, it's… you don't have to say anything.",
+      "input": "[voice cracking] I wanted you… [shaky breath] to stay.", "stability": 0.2, "seed": 4401, "file": "lab/lab-stay-h-v4-leadin.mp3",
+      "question": "A spoken lead-in, cut away afterwards: does a run-up help a short line?"
+    },
+    {
+      "id": "lab-love-a-v4-plain", "phraseId": "love-go-away", "voice": "jessica", "text": "I love you. Go away.",
+      "input": "[laughing] I love you. Go away.", "seed": 4402, "file": "lab/lab-love-a-v4-plain.mp3",
+      "question": "Laughter, one tag."
+    },
+    {
+      "id": "lab-love-b-v4-directed-scene", "phraseId": "love-go-away", "voice": "jessica", "text": "I love you. Go away.",
+      "input": "[giggling] I love you. [laughs, pushing him away] Go AWAY.", "stability": 0.2, "seed": 4402, "file": "lab/lab-love-b-v4-directed-scene.mp3",
+      "scene": { "before": "\"Say it. Go on. Say it back. I'm not moving till you say it.\"", "after": "\"Make me.\"" },
+      "question": "Laughter placed inside the line, with the other person's teasing as context."
+    },
+    {
+      "id": "lab-happy-a-v4-liam", "phraseId": "happy-then", "voice": "liam", "text": "I think I was happy then.",
+      "input": "[surprised, a smile breaking through] I think I was happy then.", "stability": 0.2, "seed": 4403, "file": "lab/lab-happy-a-v4-liam.mp3",
+      "scene": { "before": "\"Look at you in this one. How old were you?\"" },
+      "question": "A male default voice, warmth rather than sadness."
+    }
+  ]
+}

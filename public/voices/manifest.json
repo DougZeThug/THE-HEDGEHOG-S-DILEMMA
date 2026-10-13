@@ -34,11 +34,6 @@
   "sfx:chair-creak": [
     "sfx-chair-creak-1.mp3"
   ],
-  "phrase:stay": [
-    "dialogue/stay--tender.mp3",
-    "dialogue/stay--guarded.mp3",
-    "dialogue/stay--remembered.mp3"
-  ],
   "phrase:closer": [
     "dialogue/closer--quiet.mp3",
     "dialogue/closer--flat.mp3"
@@ -52,26 +47,26 @@
   ],
   "phrase:why-understand": [
     "dialogue/why-understand--frustrated.mp3",
-    "dialogue/why-understand--quiet.mp3"
-  ],
-  "phrase:love-go-away": [
-    "dialogue/love-go-away--flat.mp3",
-    "dialogue/love-go-away--fond.mp3"
+    "dialogue/why-understand--quiet.mp3",
+    "dialogue/why-understand--irritated.mp3"
   ],
   "phrase:two-cups": [
     "dialogue/two-cups.mp3"
   ],
   "phrase:laugh-breathe": [
-    "dialogue/laugh-breathe.mp3"
+    "dialogue/laugh-breathe.mp3",
+    "dialogue/laugh-breathe--joy.mp3"
   ],
   "phrase:understood-minute": [
     "dialogue/understood-minute.mp3"
   ],
   "phrase:crumbs": [
-    "dialogue/crumbs.mp3"
+    "dialogue/crumbs.mp3",
+    "dialogue/crumbs--laughing.mp3"
   ],
   "phrase:remember-me": [
-    "dialogue/remember-me.mp3"
+    "dialogue/remember-me.mp3",
+    "dialogue/remember-me--grief.mp3"
   ],
   "phrase:glad-came": [
     "dialogue/glad-came.mp3"
@@ -83,21 +78,44 @@
     "dialogue/not-going.mp3"
   ],
   "phrase:this-bit": [
-    "dialogue/this-bit.mp3"
+    "dialogue/this-bit.mp3",
+    "dialogue/this-bit--fond.mp3"
   ],
   "phrase:alone-ok": [
     "dialogue/alone-ok.mp3"
   ],
   "phrase:sorry-like-that": [
-    "dialogue/sorry-like-that.mp3"
-  ],
-  "phrase:happy-then": [
-    "dialogue/happy-then.mp3"
+    "dialogue/sorry-like-that.mp3",
+    "dialogue/sorry-like-that--embarrassed.mp3"
   ],
   "phrase:laugh": [
     "dialogue/laugh.mp3"
   ],
   "phrase:was-it-me": [
     "dialogue/was-it-me.mp3"
+  ],
+  "phrase:stay": [
+    "dialogue/stay--breaking.mp3",
+    "dialogue/stay--abandoned.mp3",
+    "dialogue/stay--asking.mp3"
+  ],
+  "phrase:love-go-away": [
+    "dialogue/love-go-away--exhausted.mp3",
+    "dialogue/love-go-away--teasing.mp3",
+    "dialogue/love-go-away--hurt.mp3"
+  ],
+  "phrase:happy-then": [
+    "dialogue/happy-then--smile.mp3",
+    "dialogue/happy-then--unsure.mp3",
+    "dialogue/happy-then--lost.mp3"
+  ],
+  "phrase:mean-that": [
+    "dialogue/mean-that--confused.mp3"
+  ],
+  "phrase:small-minute": [
+    "dialogue/small-minute--tender.mp3"
+  ],
+  "phrase:good-day": [
+    "dialogue/good-day--happy.mp3"
   ]
 }

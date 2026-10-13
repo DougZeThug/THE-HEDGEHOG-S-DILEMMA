@@ -23,14 +23,36 @@ describe('voice direction', () => {
       expect(ids.has(id), id).toBe(true);
     expect(ids.size).toBeGreaterThanOrEqual(18);
     expect(ids.size).toBeLessThanOrEqual(24);
-    const count = (id: string) => direction.performances.filter((p: any) => p.phraseId === id).length;
+    const count = (id: string) => direction.performances.filter((p: any) => p.phraseId === id && !p.retired).length;
     expect(count('stay')).toBe(3);
     expect(count('closer')).toBeGreaterThanOrEqual(2);
   });
-  it('uses tags sparingly and never whispers everything', () => {
-    const tagged = direction.performances.filter((p: any) => p.input.includes('['));
-    expect(tagged.length / direction.performances.length).toBeLessThan(0.6);
-    expect(direction.performances.filter((p: any) => /whisper/i.test(p.input)).length).toBe(0);
+  it('directs a range of feeling, not one hushed register', () => {
+    const fresh = direction.performances.filter((p: any) => p.generation === 2);
+    expect(fresh.length).toBeGreaterThanOrEqual(15);
+    // Not everything whispered or sad: at most a third may be whisper-fitted.
+    expect(fresh.filter((p: any) => p.fits.includes('whisper')).length / fresh.length).toBeLessThan(0.34);
+    // Laughter, anger and warmth are all present as directions.
+    const inputs = fresh.map((p: any) => p.input.toLowerCase()).join(' ');
+    for (const w of ['laugh', 'angry', 'frustrated', 'warm', 'embarrassed', 'confused', 'grief', 'tender']) expect(inputs).toContain(w);
+    // Three clearly different readings of each of the three central lines, in different voices or settings.
+    for (const id of ['stay', 'love-go-away', 'happy-then']) {
+      const takes = fresh.filter((p: any) => p.phraseId === id);
+      expect(takes.length).toBe(3);
+      expect(new Set(takes.map((p: any) => p.interpretation)).size).toBe(3);
+      expect(new Set(takes.map((p: any) => `${p.voice}:${JSON.stringify(p.context)}`)).size).toBe(3);
+    }
+  });
+
+  it('keeps retired takes out of the room but not out of the ledger', () => {
+    const retired = direction.performances.filter((p: any) => p.retired);
+    expect(retired.length).toBeGreaterThan(0);
+    const l = emptyLedger();
+    for (const p of direction.performances) l.entries[p.id] = { status: 'validated', hash: performanceHash(p, direction) };
+    const m = buildManifest({}, direction, l);
+    for (const p of retired) expect(m[`phrase:${p.phraseId}`] ?? []).not.toContain(p.file);
+    l.entries[retired[0].id].review = 'approved';
+    expect(buildManifest({}, direction, l)[`phrase:${retired[0].phraseId}`]).toContain(retired[0].file);
   });
   it('every voiced phrase can actually be spoken by the room', () => {
     for (const p of direction.performances) expect(PHRASE_BY_ID.get(p.phraseId)?.voice, p.phraseId).toBeTruthy();
@@ -159,15 +181,16 @@ describe('recordings and manifest', () => {
       if (k.startsWith('phrase:')) expect(PHRASE_BY_ID.has(k.slice(7)), k).toBe(true);
     }
     for (const k of ['vf-laugh-next-room', 'vf-breath', 'style:whisper', 'sfx:door']) expect(manifest[k]?.length, k).toBeGreaterThan(0);
-    expect(manifest['phrase:stay']).toEqual(['dialogue/stay--tender.mp3', 'dialogue/stay--guarded.mp3', 'dialogue/stay--remembered.mp3']);
+    expect(manifest['phrase:stay']).toEqual(['dialogue/stay--breaking.mp3', 'dialogue/stay--abandoned.mp3', 'dialogue/stay--asking.mp3']);
     expect(buildManifest(manifest, direction, ledger)).toEqual(manifest);
   });
   it('rejected or doubtful recordings never reach the manifest', () => {
     const l = JSON.parse(JSON.stringify(ledger));
-    l.entries['stay--tender'].review = 'rejected';
+    l.entries['stay--breaking'].review = 'rejected';
     l.entries['crumbs'].status = 'needs-review';
+    l.entries['crumbs--laughing'].status = 'needs-review';
     const m = buildManifest(manifest, direction, l);
-    expect(m['phrase:stay']).not.toContain('dialogue/stay--tender.mp3');
+    expect(m['phrase:stay']).not.toContain('dialogue/stay--breaking.mp3');
     expect(m['phrase:crumbs']).toBeUndefined();
   });
 });

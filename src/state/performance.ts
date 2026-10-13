@@ -17,9 +17,12 @@ export interface Performance {
   context: Partial<Record<FieldKey, number>>;
   fits: string[];
   file: string;
+  interpretation?: string;
+  /** Kept on disk and in the ledger, but no longer played. */
+  retired?: boolean;
 }
 
-export const PERFORMANCES: readonly Performance[] = dialogue.performances as Performance[];
+export const PERFORMANCES: readonly Performance[] = (dialogue.performances as Performance[]).filter((p) => !p.retired);
 const BY_PHRASE = new Map<string, Performance[]>();
 for (const p of PERFORMANCES) {
   const list = BY_PHRASE.get(p.phraseId) ?? [];
