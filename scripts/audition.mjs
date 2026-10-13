@@ -37,7 +37,7 @@ const add = (perf, dir, e, opts) => {
     id: perf.id, group: opts.group, groupLabel: opts.groupLabel, line: perf.text, phraseId: perf.phraseId,
     interpretation: perf.interpretation ?? perf.direction, voice: voiceName(dir, perf.voice), model: perf.model ?? dir.model,
     stability: perf.stability ?? dir.voices[perf.voice]?.stability ?? 0.5, input: perf.input, scene: sceneText(perf.scene), leadIn: perf.leadIn,
-    question: perf.question, generation: perf.generation ?? 1, retired: !!perf.retired, audition: !!perf.audition, lab: !!opts.lab, edit: e.edit,
+    question: perf.question, variantOf: perf.variantOf, generation: perf.generation ?? 1, retired: !!perf.retired, audition: !!perf.audition, lab: !!opts.lab, edit: e.edit,
     status: e.status, review: e.review, transcript: e.transcript, events: e.events, extra: e.extraWords,
     m: analyse(path, words(perf.text).length), path, src: OUT ? `audio/${basename(perf.file)}` : opts.lab ? perf.file : `../public/voices/${perf.file}`,
   });
@@ -47,7 +47,10 @@ const phrases = [...new Set(direction.performances.map((p) => p.phraseId))];
 phrases.sort((a, b) => (FIRST.includes(a) ? FIRST.indexOf(a) : 99) - (FIRST.includes(b) ? FIRST.indexOf(b) : 99) ||
   Number(direction.performances.some((p) => p.phraseId === b && p.generation === 2)) - Number(direction.performances.some((p) => p.phraseId === a && p.generation === 2)));
 for (const id of phrases) {
-  const perfs = direction.performances.filter((p) => p.phraseId === id).sort((a, b) => (b.generation ?? 1) - (a.generation ?? 1) || Number(!!a.retired) - Number(!!b.retired));
+  const all = direction.performances.filter((p) => p.phraseId === id);
+  const ordered = all.filter((p) => !p.variantOf).sort((a, b) => (b.generation ?? 1) - (a.generation ?? 1) || Number(!!a.retired) - Number(!!b.retired));
+  // Other seeds of the same direction sit right after it: pick the best of them.
+  const perfs = ordered.flatMap((p) => [p, ...all.filter((v) => v.variantOf === p.id)]);
   const fresh = perfs.some((p) => p.generation === 2);
   const label = FIRST.includes(id) ? 'readings side by side, with leaner alternatives and the older takes' : fresh ? 'new reading, against the older take' : 'older take, not yet re-directed';
   for (const p of perfs) add(p, direction, ledger.entries[p.id], { group: id, groupLabel: label });
@@ -66,6 +69,25 @@ if (existsSync(spoken)) {
   });
 }
 for (const t of takes) if (t.group === 'lab') t.line = 'Lab experiments';
+
+// Voices made with Voice Design: previews only, saved to the account if the artist keeps one.
+const designs = existsSync(join(ROOT, 'scripts/voice-designs.json')) ? JSON.parse(readFileSync(join(ROOT, 'scripts/voice-designs.json'), 'utf8')) : { designs: [] };
+const designLedger = existsSync(join(ROOT, 'scripts/voice-design-ledger.json')) ? JSON.parse(readFileSync(join(ROOT, 'scripts/voice-design-ledger.json'), 'utf8')) : { entries: {} };
+const designTakes = [];
+for (const d of designs.designs) {
+  for (const p of designLedger.entries[d.id]?.previews ?? []) {
+    const path = join(ROOT, 'audition', p.file);
+    if (!existsSync(path)) continue;
+    designTakes.push({
+      id: p.id, group: 'voices', groupLabel: 'new voices, made to order (three previews each; keep at most one of each)', line: 'New voices',
+      interpretation: d.description, voice: `${d.id} · preview ${p.id.split('-').pop()}`, model: designs.model, stability: '—', input: designLedger.entries[d.id].text,
+      question: `For: ${d.for}`, generation: 2, lab: false, audition: true, design: true, status: 'preview', review: 'pending',
+      m: analyse(path, words(designLedger.entries[d.id].text).length), path, src: OUT ? `audio/${basename(p.file)}` : p.file,
+    });
+  }
+}
+// New voices first: the casting decides who reads everything else.
+takes.unshift(...designTakes);
 
 const tpl = readFileSync(join(ROOT, 'audition/page.html'), 'utf8');
 const data = JSON.stringify({ built: new Date().toISOString(), takes: takes.map(({ path, ...t }) => t) }).replace(/</g, '\\u003c');

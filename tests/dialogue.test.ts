@@ -22,7 +22,7 @@ describe('voice direction', () => {
     for (const id of ['stay', 'closer', 'afraid-leave', 'if-closer', 'why-understand', 'love-go-away', 'two-cups', 'laugh-breathe', 'understood-minute', 'crumbs', 'remember-me', 'glad-came'])
       expect(ids.has(id), id).toBe(true);
     expect(ids.size).toBeGreaterThanOrEqual(18);
-    expect(ids.size).toBeLessThanOrEqual(24);
+    expect(ids.size).toBeLessThanOrEqual(40);
     const count = (id: string) => direction.performances.filter((p: any) => p.phraseId === id && !p.retired && !p.audition).length;
     expect(count('stay')).toBeGreaterThanOrEqual(3);
     expect(count('closer')).toBeGreaterThanOrEqual(2);
@@ -235,5 +235,19 @@ describe('credentials', () => {
         return statSync(p).isDirectory() ? scan(p) : /api\.elevenlabs\.io|xi-api-key/i.test(readFileSync(p, 'utf8')) ? [p] : [];
       });
     expect(scan(join(ROOT, 'src'))).toEqual([]);
+  });
+});
+
+describe('the whole spoken corpus is cast', () => {
+  it('every voiced phrase has at least one take, kept or waiting to be heard', async () => {
+    const { PHRASES } = await import('../src/content/phrases');
+    const cast = new Set(direction.performances.filter((p: any) => !p.retired).map((p: any) => p.phraseId));
+    for (const p of PHRASES) if (p.voice) expect(cast.has(p.id), p.id).toBe(true);
+  });
+  it('other seeds point at a direction that exists, and never enter the room unheard', () => {
+    for (const p of direction.performances.filter((x: any) => x.variantOf)) {
+      expect(direction.performances.some((x: any) => x.id === p.variantOf), p.id).toBe(true);
+      if (ledger.entries[p.id]?.review !== 'approved') expect(p.audition, p.id).toBe(true);
+    }
   });
 });

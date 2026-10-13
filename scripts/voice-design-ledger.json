@@ -1,0 +1,112 @@
+{
+  "spent": {
+    "estimate": 520
+  },
+  "entries": {
+    "older-woman": {
+      "at": "2026-10-13T12:07:59.457Z",
+      "model": "eleven_ttv_v3",
+      "text": "I kept the cups where they were. I know it is silly. I still say we, sometimes, by accident, and then the kitchen goes very quiet.",
+      "estimate": 130,
+      "previews": [
+        {
+          "id": "older-woman-1",
+          "file": "design/older-woman-1.mp3",
+          "generatedVoiceId": "QKmhS5y0JX00jlEYZdtS",
+          "duration": 15
+        },
+        {
+          "id": "older-woman-2",
+          "file": "design/older-woman-2.mp3",
+          "generatedVoiceId": "fpU8yTs54f2kk5I96Hdk",
+          "duration": 13.72
+        },
+        {
+          "id": "older-woman-3",
+          "file": "design/older-woman-3.mp3",
+          "generatedVoiceId": "0c1Vc67C8L7YJ6mPiPoN",
+          "duration": 16.85
+        }
+      ]
+    },
+    "tired-man": {
+      "at": "2026-10-13T12:08:06.653Z",
+      "model": "eleven_ttv_v3",
+      "text": "I kept the cups where they were. I know it is silly. I still say we, sometimes, by accident, and then the kitchen goes very quiet.",
+      "estimate": 130,
+      "previews": [
+        {
+          "id": "tired-man-1",
+          "file": "design/tired-man-1.mp3",
+          "generatedVoiceId": "oMwZdgtlAvhnEmwTyPxA",
+          "duration": 15.96
+        },
+        {
+          "id": "tired-man-2",
+          "file": "design/tired-man-2.mp3",
+          "generatedVoiceId": "WLQkrEfjFqibQjfEWhvH",
+          "duration": 14.21
+        },
+        {
+          "id": "tired-man-3",
+          "file": "design/tired-man-3.mp3",
+          "generatedVoiceId": "qBGA7rndedHrt5w0amDN",
+          "duration": 16.2
+        }
+      ]
+    },
+    "whisperer": {
+      "at": "2026-10-13T12:08:13.374Z",
+      "model": "eleven_ttv_v3",
+      "text": "I kept the cups where they were. I know it is silly. I still say we, sometimes, by accident, and then the kitchen goes very quiet.",
+      "estimate": 130,
+      "previews": [
+        {
+          "id": "whisperer-1",
+          "file": "design/whisperer-1.mp3",
+          "generatedVoiceId": "1a9fEZpPsF69AYkz535c",
+          "duration": 11.73
+        },
+        {
+          "id": "whisperer-2",
+          "file": "design/whisperer-2.mp3",
+          "generatedVoiceId": "C1nRDnYjz76csuZP1VwW",
+          "duration": 13.25
+        },
+        {
+          "id": "whisperer-3",
+          "file": "design/whisperer-3.mp3",
+          "generatedVoiceId": "Utvm8Uo1jx0Nqsb8ew8p",
+          "duration": 11.39
+        }
+      ]
+    },
+    "small-voice": {
+      "at": "2026-10-13T12:08:20.482Z",
+      "model": "eleven_ttv_v3",
+      "text": "I kept the cups where they were. I know it is silly. I still say we, sometimes, by accident, and then the kitchen goes very quiet.",
+      "estimate": 130,
+      "previews": [
+        {
+          "id": "small-voice-1",
+          "file": "design/small-voice-1.mp3",
+          "generatedVoiceId": "AKwm7X6KQdtIeyGeqsPu",
+          "duration": 12.83
+        },
+        {
+          "id": "small-voice-2",
+          "file": "design/small-voice-2.mp3",
+          "generatedVoiceId": "Fy4ESpnnn9G30nzVFVVM",
+          "duration": 11.55
+        },
+        {
+          "id": "small-voice-3",
+          "file": "design/small-voice-3.mp3",
+          "generatedVoiceId": "U4Y22GH9PMdeJaWbMCea",
+          "duration": 13.4
+        }
+      ]
+    }
+  },
+  "saved": {}
+}

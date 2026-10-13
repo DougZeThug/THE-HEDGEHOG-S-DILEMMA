@@ -239,6 +239,7 @@ node scripts/generate-dialogue.mjs --approve=stay--breaking,love-go-away--teasin
 node scripts/generate-dialogue.mjs --dry-run                       # plan and estimated credits, no key needed
 ELEVENLABS_API_KEY=… node scripts/generate-dialogue.mjs --budget=900
 ELEVENLABS_API_KEY=… node scripts/generate-dialogue.mjs --lab --budget=700
+ELEVENLABS_API_KEY=… node scripts/design-voices.mjs --budget=400    # bespoke voice previews (Voice Design)
 node scripts/generate-dialogue.mjs --approve=… --reject=…           # after listening
 ```
 - **Idempotent.** A request is identified by voice, model, input, stability, similarity, scene, lead-in and seed (fields absent from older takes leave their hashes unchanged). Identical requests are never repeated; a lab take that matches a performance exactly can be adopted rather than paid for twice.
@@ -251,10 +252,19 @@ node scripts/generate-dialogue.mjs --approve=… --reject=…           # after 
 **Account capabilities, as tested** (October 2026):
 - Text-to-speech works with ElevenLabs default voices on `eleven_v4`, `eleven_v3`, `eleven_multilingual_v2`, `eleven_flash_v2_5` and `eleven_turbo_v2_5`, as do speech-to-text and the dialogue endpoint. `eleven_v4` accepts `previous_text`/`next_text`; `eleven_v3` rejects them.
 - Default voices that work: Jessica, Chris, Laura, River, Will, Sarah, Matilda, Alice, Charlie, George, Liam, Callum, Brian, Eric, Bill, Daniel, Roger, Bella, Harry. Library voices (e.g. Aria, Rachel) return `402 paid_plan_required`; Lily returns `404`.
-- Voice Design is unavailable on this plan. The key lacks `user_read`, `voices_read` and `models_read`, so the balance can't be read; costs are tracked from each response's `character-cost` header.
-- Credits: first batch 815. This round: lab 670, main batch 863, one retake 55, alternatives and re-directions 357, availability probes about 70 — about 2,015 in all.
+- The key lacks `user_read`, `voices_read` and `models_read`, so the balance can't be read; costs are tracked from each response's `character-cost` header. Adding `user_read` to the key would let a script check the real balance before each batch.
+- Credits: first batch 815. Second round: lab 670, main batch 863, one retake 55, alternatives and re-directions 357, availability probes about 70 — about 2,015 in all.
 
-**What has and hasn't been checked.** Technically, everything above is automated. **Artistically, nothing has been approved by ear**: every take is `validated`, not `approved`. Whether these performances sound like real people is exactly what the audition sheet is for.
+**After the Creator plan** (121k credits a month, 30 custom voice slots, Voice Design):
+- *Voice Design works* (`scripts/design-voices.mjs`, `scripts/voice-designs.json`, previews in `audition/design/`): four bespoke voices described by character (an older worn woman, a tired man, a close whisperer, a small shy young-adult voice), three previews each. Nothing is saved to the account until the artist keeps a preview (`--save=<preview>:<key>`), and saving uses a slot, not credits. Voice Design reports no cost; the ledger estimates one credit per character of preview text (about 520). The key still can't read library voices (`voices_read`).
+- *Several seeds per reading*: the earlier measurements showed the seed matters more than stability, so the gap takes and the saddest kept readings have two more seeds each (`variantOf`), grouped on the sheet to pick the best.
+- *The whole spoken corpus*: the 14 voiced phrases that had no recording, plus `alone-ok`, have two readings each (mostly whispered or sad, as the artist prefers, with a warm reading where the line allows), each in two seeds — all audition-only until kept.
+- *Bitrate* stays at 128 kbps: 192 kbps makes every file half as large again for nothing a phone speaker can show. *Loading* is staged: every sound and the first two takes of each line on arrival (tested ≤ 3 MB), the rest a few at a time when the browser is idle; a take chosen earlier is fetched when needed.
+- Round-2 credits: about 1,836 for 89 generations (84 candidate takes; five retakes of lines that repeated or misspoke) plus about 520 (estimated) for voice previews, against a cap of 8,000. No top-ups, overage or plan changes.
+
+**Audition decisions.** The artist's choices on the shared sheet are applied with `--approve`/`--reject`; rejecting now also retires a take from the Director's ranking (`retired`), and approving brings an alternative or retired take back. The first full round kept 29 takes, rejected 20, and adopted six kept lab takes at no cost; eight sadder or whispered takes were then directed for the lines left without a recording.
+
+**What has and hasn't been checked.** Technically, everything above is automated. **Artistically, only what the artist marked *keep* has been approved by ear**; every other take is a candidate, however well it validates. Whether a performance sounds like a real person is exactly what the audition sheet is for.
 
 ## Accessibility, comfort and privacy
 
@@ -265,7 +275,7 @@ node scripts/generate-dialogue.mjs --approve=… --reject=…           # after 
 
 ## What is incomplete or uses fallback content
 
-- **Spoken lines**: 23 phrases have recorded performances that have been technically validated but not auditioned by a person; everything else uses unintelligible textures with captions.
+- **Spoken lines**: 20 phrases have recordings the artist kept; every voiced phrase now has candidate takes waiting on the audition sheet. Lines without a kept take use unintelligible textures with captions.
 - **Recorded textures** were generated, not performed; I could check their duration and levels but not audition them. One clip that came back near-silent was discarded.
 - **Visual verification** was done in headless Chromium with software rendering (slow, so behaviour over time was checked with the engine's fast-forward). Real-GPU performance and look on varied hardware still need a human eye.
 - **Speech/microphone input** is intentionally not implemented.

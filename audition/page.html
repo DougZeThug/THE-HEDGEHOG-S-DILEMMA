@@ -38,6 +38,7 @@ section.group { display: grid; gap: 12px; padding-top: 14px; border-top: 1px sol
 .take { background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; padding: 14px; display: grid; gap: 9px; align-content: start; min-width: 0 }
 .take.playing { border-color: var(--walnut) }
 .take.retired { opacity: .78 }
+.take.done, section.group.done, nav a.done { display: none }
 .reading { font-weight: 700; margin: 0; text-wrap: pretty }
 .who { font: 12px var(--mono); color: var(--pencil); display: flex; flex-wrap: wrap; gap: 4px 10px }
 .who .gen { color: var(--walnut) }
@@ -72,9 +73,10 @@ details > summary { cursor: pointer; font: 600 13px var(--mono); color: var(--pe
 <div class="wrap">
   <header>
     <h1>The Hedgehog's Dilemma · voice auditions</h1>
-    <p class="lede">Every recorded performance in the room, grouped by line, so different readings can be heard side by side. Mark each take <b>keep</b>, <b>not this</b> or <b>unsure</b>. Nothing here has been judged by ear yet.</p>
+    <p class="lede">Every recorded performance in the room, grouped by line, so different readings can be heard side by side. Mark each take <b>keep</b>, <b>not this</b> or <b>unsure</b>. Takes you have already decided are hidden (untick the box below to see them). New this round: four <b>voices made to order</b> at the top, every line that had no recording, and other seeds of the saddest readings, side by side so you can pick the best.</p>
     <p class="note" id="where">Your choices save as you make them; there is nothing to submit. Tell Claude when you've finished (or part-way) and they will be applied.</p>
     <div class="tally" id="tally"></div>
+    <label class="note"><input type="checkbox" id="only-todo" checked> show only takes still waiting for a decision</label>
     <label class="note"><input type="checkbox" id="show-measures"> show measurements (listen first; numbers can prime the ear)</label>
     <nav id="nav" aria-label="Lines"></nav>
   </header>
@@ -140,7 +142,7 @@ details > summary { cursor: pointer; font: 600 13px var(--mono); color: var(--pe
     c.append(el('p', 'reading', t.interpretation || '(no stated reading)'));
     const who = el('div', 'who');
     who.append(el('span', null, t.voice), el('span', null, t.model.replace('eleven_', '')), el('span', null, 'stability ' + t.stability));
-    who.append(el('span', 'gen', t.lab ? 'lab experiment' : t.retired ? 'older take, out of the room' : t.audition ? 'alternative, not yet in the room' : t.generation === 2 ? 'new take' : 'older take'));
+    who.append(el('span', 'gen', t.design ? 'voice preview, not saved' : t.lab ? 'lab experiment' : t.retired ? 'out of the room' : t.variantOf ? 'another seed of ' + t.variantOf + ', not yet in the room' : t.audition ? 'alternative, not yet in the room' : t.generation === 2 ? 'new take' : 'older take'));
     c.append(who);
     const au = el('audio'); au.controls = true; au.preload = 'none'; au.src = t.src; audios.set(t.id, au);
     au.addEventListener('play', () => { for (const [id, o] of audios) if (id !== t.id) o.pause(); document.querySelectorAll('.take.playing').forEach((x) => x.classList.remove('playing')); c.classList.add('playing'); });
@@ -199,7 +201,7 @@ details > summary { cursor: pointer; font: 600 13px var(--mono); color: var(--pe
     for (const [k, v] of [['takes', takes.length], ['keep', count('approve')], ['not this', count('reject')], ['unsure', count('unsure')], ['unheard', takes.length - vals.filter(Boolean).length], ...(db ? [['saved for Claude', stored.size]] : [])]) {
       const s = el('span'); s.append(el('b', null, String(v)), ' ' + k); tally.append(s);
     }
-    const ids = (v) => takes.filter((t) => !t.lab && decisions[t.id]?.decision === v).map((t) => t.id);
+    const ids = (v) => takes.filter((t) => !t.lab && !t.design && decisions[t.id]?.decision === v).map((t) => t.id);
     const a = ids('approve'), r = ids('reject');
     document.getElementById('cmd').textContent = a.length || r.length
       ? `node scripts/generate-dialogue.mjs${a.length ? ' --approve=' + a.join(',') : ''}${r.length ? ' --reject=' + r.join(',') : ''}`
@@ -240,6 +242,24 @@ details > summary { cursor: pointer; font: 600 13px var(--mono); color: var(--pe
   function decide(id, v) { decisions[id] = { ...(decisions[id] || {}), decision: v }; paint(); write(id); }
   function saveNote(id, note) { decisions[id] = { ...(decisions[id] || {}), note }; write(id); }
 
+  // Hide what has been decided, but only when asked (on load and on toggling), never under the
+  // listener's hand as they click.
+  const todo = document.getElementById('only-todo');
+  function filter() {
+    for (const g of groups) {
+      let left = 0;
+      for (const t of g.takes) {
+        const done = todo.checked && !!decisions[t.id]?.decision;
+        document.getElementById('take-' + t.id).classList.toggle('done', done);
+        if (!done) left++;
+      }
+      document.getElementById(g.key).classList.toggle('done', !left);
+      nav.querySelector(`a[href="#${CSS.escape(g.key)}"]`)?.classList.toggle('done', !left);
+    }
+  }
+  todo.addEventListener('change', filter);
+  let filtered = false;
+
   const sm = document.getElementById('show-measures');
   try { sm.checked = localStorage.getItem('hh-audition-measures') === '1'; } catch {}
   document.body.classList.toggle('measures', sm.checked);
@@ -254,6 +274,7 @@ details > summary { cursor: pointer; font: 600 13px var(--mono); color: var(--pe
   });
 
   (async () => {
+    filter();
     if (!window.claude || !window.claude.use) { document.getElementById('where').textContent = 'Opened locally: decisions are kept in this browser. Use the command at the bottom to apply them.'; return; }
     db = await window.claude.use('db');
     if (!db) { document.getElementById('where').textContent = 'Decisions are kept in this browser only. Use the command at the bottom to apply them.'; return; }
@@ -267,6 +288,7 @@ details > summary { cursor: pointer; font: 600 13px var(--mono); color: var(--pe
         mark(d.id, 'saved ✓');
       }
       paint();
+      if (!filtered) { filtered = true; filter(); }
     }, () => {});
   })();
 })();

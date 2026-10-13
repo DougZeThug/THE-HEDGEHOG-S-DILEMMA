@@ -42,3 +42,20 @@ export function chooseSource(q: SourceQuery): Source {
   if (q.manifest[`style:${q.kind}`]?.length) return { kind: 'texture', key: `style:${q.kind}` };
   return { kind: 'synth' };
 }
+
+/**
+ * What to fetch first on arrival, and what can wait. Every texture and sound, and the first
+ * few takes of each phrase, come first; the other takes follow a few at a time while the
+ * room is quiet, and any take chosen before then is fetched when it is needed.
+ */
+export function preloadStages(manifest: Record<string, string[]>, perPhrase = 2): { first: string[]; rest: string[] } {
+  const first: string[] = [], rest: string[] = [];
+  for (const [key, files] of Object.entries(manifest)) {
+    if (!key.startsWith('phrase:')) first.push(...files);
+    else {
+      first.push(...files.slice(0, perPhrase));
+      rest.push(...files.slice(perPhrase));
+    }
+  }
+  return { first, rest };
+}

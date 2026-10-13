@@ -1,0 +1,27 @@
+{
+  "$comment": "Bespoke voices made with ElevenLabs Voice Design, for auditioning. Previews go to audition/design/; a voice is saved to the account (one of 30 slots) only after the artist keeps it: node scripts/design-voices.mjs --save=<preview>:<voice key>. Synthetic voices, described by character; none imitates a real person.",
+  "model": "eleven_ttv_v3",
+  "text": "I kept the cups where they were. I know it is silly. I still say we, sometimes, by accident, and then the kitchen goes very quiet.",
+  "designs": [
+    {
+      "id": "older-woman",
+      "description": "A woman in her late sixties, worn and tender, a soft slightly hoarse voice, speaking quietly and slowly, close to the listener, as if after a long day.",
+      "for": "stay (worn), remember-me, good-day, glad-came"
+    },
+    {
+      "id": "tired-man",
+      "description": "A man in his fifties, tired and gentle, a low quiet voice with a little roughness, speaking slowly and close, as if he has not slept. Restrained, never theatrical.",
+      "for": "happy-then, closer, understood-minute, alone-ok"
+    },
+    {
+      "id": "whisperer",
+      "description": "A young woman whispering very close to the microphone, breathy and intimate, soft and slightly trembling, as if someone is asleep in the next room.",
+      "for": "the whispered readings: not-going, two-cups, was-it-me, laugh, stay"
+    },
+    {
+      "id": "small-voice",
+      "description": "A young adult with a light, small, uncertain voice, soft and hesitant and shy, speaking quietly, as if afraid of taking up space.",
+      "for": "the lines written in a child's hand: small-minute, angry-with-me, remember-me (an adult voice, not a child)"
+    }
+  ]
+}
