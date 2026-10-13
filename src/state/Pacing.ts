@@ -49,6 +49,7 @@ export function devKind(cue: Cue): DevKind | null {
     case 'write':
     case 'link':
     case 'erode':
+    case 'air':
       return 'text';
     case 'glow':
     case 'flash':

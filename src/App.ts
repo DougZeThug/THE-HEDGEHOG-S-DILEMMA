@@ -67,6 +67,8 @@ export class App {
   private touch = matchMedia('(pointer: coarse)').matches;
   private tabIndex = 0;
   private departTimer = 0;
+  /** Leaving plays the opening backwards: the room's light goes, then the chair's, then black (wall-clock time it began). */
+  private leaving: number | null = null;
   /** The opening while it plays: its score, when it started (wall clock), what has been done. */
   private opening: { score: Score; start: number; fired: Set<number>; skip?: { at: number; from: Levels } } | null = null;
   /** When the room was handed to the Director (scene time), for hints and the inspector. */
@@ -99,7 +101,7 @@ export class App {
     this.chair = new Chair();
     this.lighting = new Lighting(this.prefs.quality);
     this.text = new WallText(this.room, 4242);
-    this.scene.add(this.room.group, this.chair.group, this.lighting.group);
+    this.scene.add(this.room.group, this.chair.group, this.lighting.group, this.text.air);
     this.scene.background = new THREE.Color(0xf3f2ef);
     this.rig = new CameraRig(innerWidth / innerHeight);
     const forced = params.get('situations')?.split(',').map((s) => s.trim()).filter(Boolean);
@@ -451,8 +453,12 @@ export class App {
     // is the Director's. Hints only once the room is theirs, and only if they haven't found out.
     if (this.mode !== 'threshold') {
       if (this.ambience) this.ambience.fade = 1;
-      if (this.opening) this.playOpening();
+      if (this.leaving !== null) this.playLeaving();
+      else if (this.opening) this.playOpening();
       else {
+        // The room's light, when the Director takes it back to the chair alone: the panel stays faintly lit.
+        const m = this.lighting.roomLight;
+        this.room.setLit(0.3 + 0.7 * m, m);
         const since = this.time - this.handoffAt;
         if (!this.hintShown && since > 4 && !(this.touch && this.dragged)) this.showHint();
         if (this.touch && this.mode === 'room' && !this.touchHintShown && since > 12 && !this.touched) this.showTouchHint();
@@ -559,8 +565,20 @@ export class App {
       case 'erode':
         this.text.erode(cue.key, cue.keep, this.time);
         break;
+      case 'air': {
+        // Between the chair and the visitor, nearer the chair, facing where they stand.
+        const c = this.chair.group.position;
+        const p = this.rig.camera.getWorldPosition(new THREE.Vector3());
+        const dir = new THREE.Vector3(p.x - c.x, 0, p.z - c.z);
+        if (dir.lengthSq() < 1e-4) break;
+        dir.normalize();
+        const at = new THREE.Vector3(c.x + dir.x * cue.toward, cue.height, c.z + dir.z * cue.toward);
+        this.text.writeInAir({ key: `air:${cue.phraseId}`, phraseId: cue.phraseId, at, face: p, now: this.time });
+        break;
+      }
       case 'silence':
         this.audio?.silence(cue.depth * (this.prefs.intensity === 'gentle' ? 0.8 : 1), cue.seconds);
+        if (cue.dim !== undefined) this.lighting.dimToChair(this.prefs.intensity === 'gentle' ? Math.max(cue.dim, 0.5) : cue.dim, Math.min(cue.seconds, 11), this.time);
         break;
       case 'chairNudge':
         this.chair.nudge(cue.dx, cue.dz, cue.dyaw);
@@ -1155,7 +1173,7 @@ export class App {
     this.wakeLock = null;
     const line = this.director.departureLine();
     this.director.depart();
-    this.post.depart = 1;
+    this.leaving = wallClock();
     this.voices?.stopSpeech();
     if (this.audio) this.audio.silence(0.97, 9999);
     this.captions.clear();
@@ -1176,6 +1194,30 @@ export class App {
     }, this.prefs.reducedMotion ? 1500 : 4000);
   }
 
+  /**
+   * The opening in reverse, before the departure overlay: the room's light and the sky go
+   * first, leaving the chair lit alone; then the chair's light; then black. Quicker under
+   * reduced motion, where the overlay comes sooner.
+   */
+  private playLeaving() {
+    const k = this.prefs.reducedMotion ? 0.35 : 1;
+    // Wall clock, like the opening, so the overlay (on a timer) never arrives before the dark.
+    const t = (wallClock() - (this.leaving ?? wallClock())) / k;
+    const ease = (a: number, b: number) => {
+      const x = Math.min(1, Math.max(0, (t - a) / (b - a)));
+      return x * x * (3 - 2 * x);
+    };
+    const room = 1 - ease(0, 1.8);
+    const chair = 1 - ease(2.0, 3.4);
+    const sc = this.lighting.score;
+    sc.area = sc.hemi = room;
+    sc.glow = chair;
+    sc.key = ROOM_LEVELS.key * chair;
+    sc.cone = ROOM_LEVELS.cone - 0.3 * ease(0, 1.8);
+    this.room.setLit((0.12 + 0.88 * room) * chair, room);
+    this.post.depart = t > 3.0 ? 1 : 0;
+  }
+
   returnToRoom() {
     if (this.mode !== 'departed') return;
     void this.audio?.resume();
@@ -1183,7 +1225,10 @@ export class App {
     this.mode = 'room';
     this.director.returnAfterDeparture();
     // Back in from the dark, slowly: the overlay fades while the room lightens beneath it.
+    this.leaving = null;
     this.post.depart = 0;
+    Object.assign(this.lighting.score, { area: 1, hemi: 1, glow: 1, key: ROOM_LEVELS.key, cone: ROOM_LEVELS.cone });
+    this.room.setLit(1, 1);
     this.rig.pos.set(0.15, 0, 2.55);
     this.rig.yaw = 0.06;
     this.rig.pitch = -0.06;

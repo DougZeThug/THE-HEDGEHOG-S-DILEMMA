@@ -204,6 +204,12 @@ export class WallText {
   private lineTex: THREE.CanvasTexture[];
   private geo = new THREE.PlaneGeometry(1, 1);
   reducedMotion = false;
+  /** Writing in the air (add to the scene): at most one piece, which goes when approached. */
+  readonly air = new THREE.Group();
+  private airItem: {
+    key: string; mesh: THREE.Mesh; uniforms: ReturnType<typeof makeTextMaterial>['uniforms'];
+    duration: number; plan: WritePlan | null; vis: number; target: number; rate: number; opacity: number; centre: THREE.Vector3;
+  } | null = null;
 
   constructor(private room: Room, seed: number) {
     this.placements = layoutPhrases(PHRASES, (p) => measureText(p.text, p.hand, p.size), seed);
@@ -362,6 +368,71 @@ export class WallText {
     const pl = this.placementOf(id);
     if (!pl) return undefined;
     return { surface: pl.surface, centre: this.room.world(pl.surface, pl.u, pl.v, new THREE.Vector3()) };
+  }
+
+  /**
+   * Write a phrase in the air at `at` (world), facing `face`, by the same hand as on the walls
+   * but fainter, on no surface at all. It holds its orientation (it is not a sign that turns to
+   * follow you), and goes, rubbed out of the air, when the visitor comes within `goesAt` metres
+   * or after `ttl` seconds. One at a time.
+   */
+  writeInAir(o: { key: string; phraseId: string; at: THREE.Vector3; face: THREE.Vector3; goesAt?: number; ttl?: number; now: number }): boolean {
+    const p = PHRASE_BY_ID.get(o.phraseId);
+    if (!p || this.airItem) return false;
+    const { tex, w, h, duration } = textTexture(p.text, p.hand, p.size, o.key);
+    const { mat, uniforms } = makeTextMaterial(tex, p.hand, w / h, hashString(o.key), duration);
+    mat.side = THREE.DoubleSide;
+    mat.polygonOffset = false;
+    const mesh = new THREE.Mesh(this.geo, mat);
+    // A little smaller than on a wall: it is nearer, and should not read as a sign.
+    mesh.scale.set(w * 0.8, h * 0.8, 1);
+    mesh.position.copy(o.at);
+    mesh.lookAt(o.face.x, o.at.y, o.face.z);
+    mesh.renderOrder = 3;
+    mesh.userData = { text: p.text, goesAt: o.goesAt ?? 1.5, expires: o.now + (o.ttl ?? 45) };
+    this.air.add(mesh);
+    const now = wallClock();
+    const plan: WritePlan = { start: now + 0.6, floor: 0, cap: duration };
+    if (this.reducedMotion) plan.floor = duration;
+    uniforms.uWrite.value = 0;
+    this.airItem = { key: o.key, mesh, uniforms, duration, plan, vis: 1, target: 1, rate: 1, opacity: HANDS[p.hand].opacity * 0.75, centre: o.at.clone() };
+    return true;
+  }
+
+  /** The writing in the air, if any, and how much of it is there (for tests and the inspector). */
+  get airState(): { key: string; written: number; vis: number } | null {
+    const a = this.airItem;
+    if (!a) return null;
+    return { key: a.key, written: a.plan ? Math.min(1, handAt(a.plan, wallClock()) / a.duration) : 1, vis: a.vis };
+  }
+
+  private updateAir(dt: number, now: number, pos: THREE.Vector3, env: Environment) {
+    const a = this.airItem;
+    if (!a) return;
+    const d = Math.hypot(pos.x - a.centre.x, pos.z - a.centre.z);
+    if (a.target > 0 && (d < a.mesh.userData.goesAt || now > a.mesh.userData.expires)) {
+      a.target = 0;
+      // Coming close rubs it out quickly; left alone, it thins away slowly.
+      a.rate = d < a.mesh.userData.goesAt ? 1 / 2.2 : 1 / 10;
+    }
+    a.vis = a.target > a.vis ? Math.min(a.target, a.vis + a.rate * dt) : Math.max(a.target, a.vis - a.rate * dt);
+    if (a.plan) {
+      const h = handAt(a.plan, wallClock());
+      a.uniforms.uWrite.value = h / Math.max(1e-3, a.duration);
+      if (h >= a.duration) {
+        a.plan = null;
+        a.uniforms.uWrite.value = 2;
+      }
+    }
+    a.uniforms.uReveal.value = a.vis;
+    a.uniforms.uOpacity.value = clamp(a.opacity * env.textContrast, 0, 1);
+    if (a.vis <= 0 && a.target <= 0) {
+      a.mesh.removeFromParent();
+      const mat = a.mesh.material as THREE.MeshStandardMaterial;
+      mat.map?.dispose();
+      mat.dispose();
+      this.airItem = null;
+    }
   }
 
   /** Write new text beside a phrase or somewhere on a surface. Returns false if there was no room. */
@@ -565,6 +636,7 @@ export class WallText {
     const pos = cam.getWorldPosition(new THREE.Vector3());
     const fwd = cam.getWorldDirection(new THREE.Vector3());
     const to = new THREE.Vector3();
+    this.updateAir(dt, now, pos, env);
     for (const it of [...this.items.values()]) {
       if (it.expires && now > it.expires && it.target > 0) {
         it.target = 0;

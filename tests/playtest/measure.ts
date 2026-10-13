@@ -74,6 +74,8 @@ function classify(cue: Cue): { kind: Kind; label: string; recorded: boolean; sur
       return { kind: 'text', label: `link ${cue.a}–${cue.b}`, recorded: false, surface: PHRASE_BY_ID.get(cue.a)?.surface };
     case 'erode':
       return { kind: 'text', label: 'erode', recorded: false };
+    case 'air':
+      return { kind: 'text', label: `air ${cue.phraseId}`, recorded: false };
     case 'glow':
     case 'flash':
       return { kind: 'light', label: cue.type, recorded: false };

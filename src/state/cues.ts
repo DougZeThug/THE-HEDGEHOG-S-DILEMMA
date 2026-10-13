@@ -75,7 +75,11 @@ export type Cue =
       /** Stop after this many notes of the melody. */
       stopAt?: number;
     }
-  | { type: 'silence'; depth: number; seconds: number }
+  /**
+   * The room goes quiet. With `dim`, its light also goes back to the chair alone for the first
+   * ten seconds or so (the room's own light and the sky down to `dim`), as at the start of the visit.
+   */
+  | { type: 'silence'; depth: number; seconds: number; dim?: number }
   | { type: 'chairNudge'; dx: number; dz: number; dyaw: number }
   /** Turn the chair a fraction of the way toward a point (chair-relative metres). */
   | { type: 'chairTurn'; x: number; z: number; amount: number }
@@ -86,6 +90,11 @@ export type Cue =
   | { type: 'stopVoice'; tag: string; fade: number }
   /** A faint warmth left at a place on the floor (chair-relative metres), fading over `seconds`. */
   | { type: 'glow'; x: number; z: number; amount: number; seconds: number }
+  /**
+   * Write a phrase in the air between the chair and the visitor, `toward` metres from the
+   * chair at `height` above the floor, facing them. It goes as they come near.
+   */
+  | { type: 'air'; phraseId: string; toward: number; height: number }
   /** Rub out a piece of writing except for one word. */
   | { type: 'erode'; key: string; keep: string };
 

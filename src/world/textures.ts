@@ -32,6 +32,36 @@ export function grainCanvas(): HTMLCanvasElement {
   return c;
 }
 
+let waxCache: HTMLCanvasElement | null = null;
+/**
+ * Where a crayon's wax skips: short streaks along the stroke direction, where the stick rode
+ * over the high points of the plaster, and a few larger bare patches. Coarser than pencil tooth.
+ */
+export function waxCanvas(): HTMLCanvasElement {
+  if (waxCache) return waxCache;
+  const [c, g] = canvas(256, 256);
+  const r = new Rng(311);
+  g.strokeStyle = '#000';
+  g.lineCap = 'round';
+  for (let i = 0; i < 900; i++) {
+    const x = r.range(0, 256), y = r.range(0, 256), len = r.range(2, 9), a = r.range(-0.5, 0.2);
+    g.globalAlpha = r.range(0.25, 0.9);
+    g.lineWidth = r.range(0.6, 1.8);
+    g.beginPath();
+    g.moveTo(x, y);
+    g.lineTo(x + Math.cos(a) * len, y + Math.sin(a) * len);
+    g.stroke();
+  }
+  for (let i = 0; i < 40; i++) {
+    g.globalAlpha = r.range(0.15, 0.45);
+    g.beginPath();
+    g.ellipse(r.range(0, 256), r.range(0, 256), r.range(2, 6), r.range(1, 3), r.range(-0.4, 0.2), 0, Math.PI * 2);
+    g.fill();
+  }
+  waxCache = c;
+  return c;
+}
+
 // ─────────────────────────────── handwriting ───────────────────────────────
 
 export interface HandStyle {
@@ -47,6 +77,11 @@ export interface HandStyle {
   wobble: number;
   tracking: number;
   italic?: boolean;
+  /**
+   * Wax rather than ink: each letter is laid down in a few slightly offset, round-ended passes
+   * (blunt, thick, uneven edges), and the wax skips over the plaster's tooth in short streaks.
+   */
+  waxy?: boolean;
 }
 
 export const HANDS: Record<Hand, HandStyle> = {
@@ -56,7 +91,7 @@ export const HANDS: Record<Hand, HandStyle> = {
   marker: { font: 'Caveat', weight: 700, scale: 1.15, ink: '#18181a', opacity: 0.9, grain: 0.06, wobble: 0.03, tracking: 0 },
   typed: { font: 'Cormorant Garamond', weight: 600, scale: 1.0, ink: '#26272a', opacity: 0.86, grain: 0.04, wobble: 0, tracking: 0.12 },
   child: { font: 'Nothing You Could Do', weight: 400, scale: 1.0, ink: '#404046', opacity: 0.78, grain: 0.35, wobble: 0.09, tracking: 0.02 },
-  crayon: { font: 'Caveat', weight: 600, scale: 1.2, ink: '#a9702f', opacity: 0.82, grain: 0.56, wobble: 0.04, tracking: 0 },
+  crayon: { font: 'Caveat', weight: 600, scale: 1.2, ink: '#a9702f', opacity: 0.82, grain: 0.34, wobble: 0.04, tracking: 0, waxy: true },
   cyan: { font: 'Reenie Beanie', weight: 400, scale: 1.45, ink: '#4f8794', opacity: 0.7, grain: 0.45, wobble: 0.05, tracking: 0 },
   visitor: { font: 'Caveat', weight: 400, scale: 1.2, ink: '#2b2e35', opacity: 0.84, grain: 0.18, wobble: 0.04, tracking: 0 },
 };
@@ -155,6 +190,21 @@ export function textTexture(text: string, hand: Hand, size: Size, key: string, m
   g.font = fontString(st, px);
   g.textBaseline = 'alphabetic';
   g.fillStyle = '#fff';
+  g.strokeStyle = '#fff';
+  g.lineJoin = g.lineCap = 'round';
+  // Wax: the letter itself, then two fainter offset passes with a round, blunt edge.
+  const ink = (s: string, x: number, y: number) => {
+    g.fillText(s, x, y);
+    if (!st.waxy) return;
+    const a = g.globalAlpha;
+    g.lineWidth = px * 0.018;
+    g.strokeText(s, x, y);
+    g.globalAlpha = a * 0.4;
+    g.lineWidth = px * 0.012;
+    g.strokeText(s, x + px * 0.014, y - px * 0.01);
+    g.strokeText(s, x - px * 0.01, y + px * 0.012);
+    g.globalAlpha = a;
+  };
   const ranges = wordRanges(text);
   const boxes: CharBox[] = [];
   let wi = 0;
@@ -179,12 +229,12 @@ export function textTexture(text: string, hand: Hand, size: Size, key: string, m
       if (st.tracking) {
         let cx2 = 0;
         for (const ch of w) {
-          g.fillText(ch, cx2, 0);
+          ink(ch, cx2, 0);
           cx2 += g.measureText(ch).width + st.tracking * px;
         }
         x += cx2;
       } else {
-        g.fillText(w, 0, 0);
+        ink(w, 0, 0);
         x += g.measureText(w).width;
       }
       g.restore();
@@ -202,6 +252,17 @@ export function textTexture(text: string, hand: Hand, size: Size, key: string, m
     g.translate(r.range(0, 256), r.range(0, 256));
     g.fillRect(-256, -256, W + 512, H + 512);
     g.restore();
+    if (st.waxy) {
+      // The wax's skips, at a slight slant (the stick held at an angle), larger than the tooth.
+      g.globalAlpha = 0.8;
+      g.fillStyle = g.createPattern(waxCanvas(), 'repeat')!;
+      g.save();
+      g.rotate(r.range(-0.12, 0.05));
+      g.scale(Math.max(0.6, px / 70), Math.max(0.6, px / 70));
+      g.translate(r.range(0, 256), r.range(0, 256));
+      g.fillRect(-512, -512, W * 2 + 1024, H * 2 + 1024);
+      g.restore();
+    }
     g.globalCompositeOperation = 'source-over';
     g.globalAlpha = 1;
   }

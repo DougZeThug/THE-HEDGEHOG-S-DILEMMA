@@ -40,6 +40,12 @@ export class Lighting {
    * a fixture's own throw, or it reads as a stage spotlight.
    */
   readonly score = { key: 1, area: 1, hemi: 1, glow: 1, cone: 0.82 };
+  /**
+   * Light as a motif later in the visit: the room's own light (panel and sky) goes down until
+   * only the chair is lit, as it was at the start, then comes back. The key light is untouched.
+   */
+  private dimming: { to: number; start: number; seconds: number } | null = null;
+  private mood = 1;
 
   constructor(quality: 'low' | 'medium' | 'high') {
     RectAreaLightUniformsLib.init();
@@ -79,6 +85,16 @@ export class Lighting {
     this.flash = { kind, amount, until: now + seconds, start: now };
   }
 
+  /** Take the room back to the chair alone (area and sky to `to`) for `seconds`, then return. */
+  dimToChair(to: number, seconds: number, now: number) {
+    this.dimming = { to, start: now, seconds };
+  }
+
+  /** The room's light, apart from the key, as a fraction of itself (for tests and the inspector). */
+  get roomLight() {
+    return this.mood;
+  }
+
   /** Leave a faint warmth at a floor point (world x, z) that fades over `seconds`. */
   leaveResidue(x: number, z: number, amount: number, seconds: number, now: number) {
     this.residue.position.set(x, 0.22, z);
@@ -94,6 +110,19 @@ export class Lighting {
       this.residue.intensity = f.amount * 1.1 * e * this.intensityScale * this.fade;
       if (t >= 1) this.residueFade = null;
     }
+    let mood = 1;
+    if (this.dimming) {
+      const d = this.dimming;
+      const t = now - d.start;
+      if (t >= d.seconds) this.dimming = null;
+      else {
+        // Down over 3 s, held, back over 4 s: slow enough to read as the room, not a fault.
+        const down = Math.min(1, t / 3), up = Math.min(1, (d.seconds - t) / 4);
+        const e = Math.min(down, up);
+        mood = 1 - (1 - d.to) * e * e * (3 - 2 * e);
+      }
+    }
+    this.mood = mood;
     const c = this.cur;
     c.intensity = approach(c.intensity, env.lightIntensity, dt, 3);
     c.warmth = approach(c.warmth, env.lightWarmth, dt, 4);
@@ -123,12 +152,12 @@ export class Lighting {
     const I = c.intensity * (1 + c.extraCold * 0.15);
     this.area.color.copy(col);
     const sc = this.score;
-    this.area.intensity = AREA * I * k * sc.area;
+    this.area.intensity = AREA * I * k * sc.area * mood;
     this.key.color.copy(col);
     this.key.intensity = KEY * I * k * (1 + c.extraCold * 0.4) * sc.key;
     this.key.angle = sc.cone;
     this.hemi.color.copy(col).lerp(new THREE.Color(0xffffff), 0.4);
-    this.hemi.intensity = HEMI * (0.75 + 0.25 * I) * k * sc.hemi;
+    this.hemi.intensity = HEMI * (0.75 + 0.25 * I) * k * sc.hemi * mood;
     this.glow.intensity = (0.1 + c.glow * 0.7 + c.extraWarm * 1.2) * k * sc.glow;
 
     // The shadow drifts: the key light orbits the chair a little, the visible panel does not.

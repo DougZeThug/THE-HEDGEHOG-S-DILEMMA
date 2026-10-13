@@ -119,6 +119,8 @@ export class Director {
   private heard = new Map<string, string>();
   private reheard = false;
   private heldSilenceDone = false;
+  /** Writing in the air happens at most once a visit. */
+  private airDone = false;
   private attentionVoices = 0;
   private readsUnanswered = 0;
   private readArmedUntil = -Infinity;
@@ -389,6 +391,7 @@ export class Director {
       this.ruleVoices();
       this.ruleRehear();
       this.ruleHeldSilence();
+      this.ruleAir();
       this.ruleRespond();
     }
     this.pacing.tick(dt, this.now, this.phase, this.engagement.activity(this.now));
@@ -1007,7 +1010,28 @@ export class Director {
     if (this.heldSilenceDone || this.now < 120 || (this.phase !== 'contradiction' && this.phase !== 'transform')) return;
     if (this.pacing.sinceDev(this.now) < 8 || !this.scheduler.majorFree(this.now) || this.attending() || this.visitor.speed > 0.5) return;
     this.heldSilenceDone = true;
-    this.queue(0, { type: 'silence', depth: 0.92, seconds: this.rng.range(30, 42) }, 'held-silence', { major: true, ttl: 10 });
+    this.queue(0, { type: 'silence', depth: 0.92, seconds: this.rng.range(30, 42), dim: 0.25 }, 'held-silence', { major: true, ttl: 10 });
+  }
+
+  /**
+   * Writing in the air, once a visit: when the visitor keeps their distance from the chair and
+   * looks at it, "Please don't come any closer." is written in the air beside it, at the height
+   * of someone sitting there. It goes as they come near: the request and its undoing in one
+   * gesture. Never while "stay" is unfinished (it would answer it); never in the first minute.
+   */
+  private ruleAir() {
+    if (this.airDone || this.now < 60) return;
+    const v = this.visitor;
+    if (v.distance < 2.4 || v.gazeChairFor < 2.5 || v.speed > 0.3) return;
+    if (this.withheld().includes('closer')) return;
+    // A rare gesture, so not held back by the room being busy, only by it being busy right now:
+    // nothing for a few seconds before it and nothing about to happen.
+    if (!this.scheduler.majorFree(this.now) || this.pacing.holding(this.now) || this.pacing.sinceDev(this.now) < 6) return;
+    if (this.scheduler.pending().some((e) => e.at - this.now < 6 && devKind(e.payload.cue) && devKind(e.payload.cue) !== 'silence')) return;
+    this.airDone = true;
+    this.queue(0, { type: 'air', phraseId: 'closer', toward: 0.6, height: 0.95 }, 'air', { major: true, ttl: 4 });
+    // Then let it be read, and let them decide whether to come closer.
+    this.pacing.holdFor(this.now, 12);
   }
 
   /** Stepping back. */
@@ -1350,7 +1374,7 @@ export class Director {
       if (!this.visible.has('afraid-leave')) this.reveal('afraid-leave', 0, 'phase-contradiction', 'emerge', 6);
     }
     if (p === 'transform') {
-      this.queue(2, { type: 'silence', depth: 0.7, seconds: 14 }, 'phase-transform', { major: true, ttl: 30 });
+      this.queue(2, { type: 'silence', depth: 0.7, seconds: 14, dim: 0.25 }, 'phase-transform', { major: true, ttl: 30 });
       const late = this.selector.select(this.ctx(), { tiers: ['transform'], exclude: this.hiddenExcluding() });
       if (late) this.reveal(late.id, 10, 'phase-transform', 'emerge', 14);
     }
