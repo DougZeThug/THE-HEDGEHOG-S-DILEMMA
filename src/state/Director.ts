@@ -429,6 +429,16 @@ export class Director {
   /** A voice that was decided on but never sounded: undo what it was counted for. */
   private lost(cue: Cue, rule: string) {
     if (cue.type !== 'voice' || !cue.phraseId) return;
+    // A voice that was to write its line as it was heard: the line was marked as there when the
+    // voice was queued. Unheard, it was never written, so it isn't there.
+    if (cue.write) {
+      const st = this.visible.get(cue.phraseId);
+      if (st?.base && this.accumulating.has(cue.phraseId)) {
+        this.visible.delete(cue.phraseId);
+        this.accumulating.delete(cue.phraseId);
+        this.memory.surfaced.delete(cue.phraseId);
+      }
+    }
     if (this.memory.spoken.get(cue.phraseId) !== undefined) this.memory.spoken.delete(cue.phraseId);
     this.heard.delete(cue.phraseId);
     const m = /^encounter:([^:]+):(\d+)$/.exec(rule);

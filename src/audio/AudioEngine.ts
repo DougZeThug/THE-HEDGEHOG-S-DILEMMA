@@ -147,6 +147,20 @@ export class AudioEngine {
     p.setTargetAtTime(1, t + seconds, 3.5);
   }
 
+  /**
+   * End any silence at once, however deep (coming back into the room after leaving): the
+   * one way past the rule that a shallower silence never lifts a deeper one.
+   */
+  lift(seconds = 0.1) {
+    const t = this.ctx.currentTime;
+    this.duckDepth = 0;
+    this.duckUntil = 0;
+    const p = this.duck.gain;
+    p.cancelScheduledValues(t);
+    p.setValueAtTime(p.value, t);
+    p.setTargetAtTime(1, t, Math.max(0.01, seconds));
+  }
+
   /** Stereo decaying noise with a few early reflections. */
   impulse(seconds: number, decay: number, seed: number): AudioBuffer {
     const c = this.ctx;
