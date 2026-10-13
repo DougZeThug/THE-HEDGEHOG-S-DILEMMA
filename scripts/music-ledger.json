@@ -1,0 +1,25 @@
+{
+  "spent": 660,
+  "entries": {
+    "piano-warm": {
+      "file": "music/piano-warm.mp3",
+      "prompt": "An old upright piano heard through a wall from the next room of a quiet house. Someone plays a simple warm melody for themselves, unhurried, a little out of tune, with small hesitations and a held note at the end. Solo piano only, instrumental, no drums, no strings, no reverb wash, intimate and domestic, recorded from the next room.",
+      "seconds": 24,
+      "for": "Warmth late in a visit, through the wall where the laughter lives (the next-room situation).",
+      "cost": 330,
+      "at": "2026-10-13T13:39:27.405Z",
+      "review": "pending",
+      "costNote": "measured: account balance fell 660 for both fragments together; the API returned no cost header"
+    },
+    "piano-unresolved": {
+      "file": "music/piano-unresolved.mp3",
+      "prompt": "An upright piano in another room. A sparse, uncertain phrase in a major key that keeps not resolving, long pauses between notes, quiet, slightly dissonant on the last chord, then it simply stops mid-phrase. Solo piano only, instrumental, no drums, no strings, muffled as if heard through a closed door.",
+      "seconds": 24,
+      "for": "Contradiction: a phrase that starts warmly and does not resolve, then stops.",
+      "cost": 330,
+      "at": "2026-10-13T13:39:36.664Z",
+      "review": "pending",
+      "costNote": "measured: account balance fell 660 for both fragments together; the API returned no cost header"
+    }
+  }
+}

@@ -97,8 +97,32 @@ for (const v of designs.library ?? []) {
     transcript: e.transcript, m: analyse(path, words(e.text).length), path, src: OUT ? `audio/${basename(e.file)}` : e.file,
   });
 }
+// Music pilots (scripts/generate-music.mjs): a piano in the next room; for listening only.
+const musicLedger = existsSync(join(ROOT, 'scripts/music-ledger.json')) ? JSON.parse(readFileSync(join(ROOT, 'scripts/music-ledger.json'), 'utf8')) : { entries: {} };
+for (const [id, e] of Object.entries(musicLedger.entries)) {
+  const path = join(ROOT, 'audition', e.file);
+  if (!existsSync(path)) continue;
+  designTakes.push({
+    id: `music-${id}`, group: 'music', groupLabel: 'music pilots: a piano heard through the wall (never in the opening, never under a voice) — keep or not', line: 'Music (pilot)',
+    interpretation: e.for, voice: 'ElevenLabs Music, instrumental', model: 'music', stability: '—', input: e.prompt,
+    generation: 2, lab: false, audition: true, design: true, status: 'preview', review: e.review ?? 'pending',
+    m: null, path, src: OUT ? `audio/${basename(e.file)}` : e.file,
+  });
+}
+// New room sounds (scripts/generate-voices.mjs): already in the room (the opening uses them); the artist hasn't heard them.
+const sfxLedger = existsSync(join(ROOT, 'scripts/sfx-ledger.json')) ? JSON.parse(readFileSync(join(ROOT, 'scripts/sfx-ledger.json'), 'utf8')) : { entries: {} };
+for (const [file, e] of Object.entries(sfxLedger.entries)) {
+  const path = join(ROOT, 'public/voices', file);
+  if (!existsSync(path)) continue;
+  designTakes.push({
+    id: `sfx-${file.replace('.mp3', '')}`, group: 'sounds', groupLabel: 'new room sounds, in the opening now: not this removes a variant', line: 'Sounds',
+    interpretation: e.key === 'sfx:switch' ? 'The light switched on by the door, in the dark, before the chair is lit.' : 'Graphite on plaster, while the first line is written in silence.',
+    voice: e.key, model: 'sound effects', stability: '—', input: e.text, generation: 2, lab: false, audition: false, design: true, status: 'in the room', review: e.review ?? 'pending',
+    m: null, path, src: OUT ? `audio/${basename(file)}` : `../public/voices/${file}`,
+  });
+}
 const nDesigned = designs.designs.length, nLibrary = designTakes.filter((t) => t.id.startsWith('lib-')).length;
-for (const t of designTakes) t.groupLabel = `new voices: ${nDesigned} made to order (three previews each), ${nLibrary} from the ElevenLabs library — keep only a few`;
+for (const t of designTakes) if (t.group === 'voices') t.groupLabel = `new voices: ${nDesigned} made to order (three previews each), ${nLibrary} from the ElevenLabs library — keep only a few`;
 // New voices first: the casting decides who reads everything else.
 takes.unshift(...designTakes);
 
