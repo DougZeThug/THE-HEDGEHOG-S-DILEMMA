@@ -24,11 +24,13 @@ REF = {
     'backTopLeft': (300, 175),
     'backTopRight': (1150, 175),
     'ceiling': (250, 70),
-    'floorPool': (640, 880),
+    'floorPool': (840, 840),
     'floorFront': (720, 1050),
     'floorEdge': (120, 900),
     'sideWall': (130, 500),
     'seat': (730, 745),
+    'chairShadow': (650, 875),
+    'panel': (720, 45),
 }
 
 
@@ -52,6 +54,10 @@ def ratios(p):
         for k in ('backTopLeft', 'backTopRight', 'ceiling', 'sideWall', 'floorPool', 'floorFront', 'floorEdge'):
             if g(k):
                 out[f'{k}/backWall'] = round(g(k) / wall, 3)
+    if g('floorPool') and g('chairShadow'):
+        out['chairShadow/floorPool'] = round(g('chairShadow') / g('floorPool'), 3)
+    if g('floorPool') and g('panel'):
+        out['panel/floorPool'] = round(g('panel') / g('floorPool'), 3)
     if g('floorPool') and g('floorFront'):
         out['floorFront/floorPool'] = round(g('floorFront') / g('floorPool'), 3)
     rgb = p.get('backWall', {}).get('rgb')

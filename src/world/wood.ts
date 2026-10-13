@@ -3,10 +3,17 @@ import { makeNoise } from './noise';
 import { Rng } from '../core/rng';
 
 /**
- * Wood for a small hand-made chair: oiled cherry/walnut tones, long grain that wanders,
- * the occasional ring figure, open pores. The grain runs along the texture's U axis, so
- * parts are UV-mapped with their length along U.
+ * Wood for a small hand-made chair: oiled walnut, long grain that wanders, the occasional
+ * ring figure, open pores. The grain runs along the texture's U axis, so parts are UV-mapped
+ * with their length along U.
+ *
+ * The figure is broad enough to survive at room distance (a chair 3 m away is a few hundred
+ * pixels tall; fine grain mips away to a flat colour). The top half of the texture (v 0.5–1)
+ * is the seat's own: two boards glued side by side, one a shade lighter, the joint a faint
+ * line, the edges darker where hands and years have not polished them.
  */
+export const SEAT_V0 = 0.5;
+
 export function woodMaps(seed = 7): { map: THREE.CanvasTexture; rough: THREE.CanvasTexture } {
   const W = 1024, H = 512;
   const c = document.createElement('canvas');
@@ -20,28 +27,49 @@ export function woodMaps(seed = 7): { map: THREE.CanvasTexture; rough: THREE.Can
   const img = g.createImageData(W, H);
   const rimg = rg.createImageData(W, H);
   const warp = makeNoise(seed), fig = makeNoise(seed + 1), pore = new Rng(seed + 2);
-  const light = [138, 102, 74], dark = [98, 68, 46], deep = [66, 45, 31];
+  const light = [128, 84, 48], dark = [86, 52, 28], deep = [50, 30, 16];
+  // The seat occupies canvas rows 0..seatH (v from 1 down to SEAT_V0; the canvas is flipped).
+  const seatH = Math.round(H * (1 - SEAT_V0));
+  const seatW = Math.round(W * 0.8);
   for (let y = 0; y < H; y++) {
+    const inSeat = y < seatH;
+    // The seat: two boards, the joint across the middle of its depth; the back board's grain
+    // starts elsewhere in the log and is a shade lighter.
+    const board = inSeat ? (y < seatH * 0.52 ? 0 : 1) : -1;
     for (let x = 0; x < W; x++) {
-      // Distance across the grain, wandering slowly along it.
       // Long, calm grain: lines run along U and only drift slowly.
-      const w = warp.fbm(x / 1400, y / 260, 3) * 2.6 + warp.fbm(x / 90, y / 40, 2) * 0.12;
-      const across = y / 15 + w;
+      const yy = y + (board === 1 ? 157 : 0);
+      const w = warp.fbm(x / 1400, yy / 260, 3) * 2.6 + warp.fbm(x / 90, yy / 40, 2) * 0.12;
+      const across = yy / 40 + w;
       const ring = 0.5 + 0.5 * Math.sin(across * Math.PI * 2);
-      const late = Math.pow(ring, 3.2); // dense latewood lines
-      const figure = fig.fbm(x / 160, y / 140, 3);
-      let t = 0.3 + 0.32 * late + 0.22 * (figure - 0.5);
+      const late = Math.pow(ring, 2.6); // latewood lines
+      const figure = fig.fbm(x / 160, yy / 140, 3);
+      let t = 0.32 + 0.34 * late + 0.35 * (figure - 0.5);
       // Pores: short dark dashes along the grain.
       const p = pore.next();
-      if (p > 0.992) t += 0.35;
+      if (p > 0.992) t += 0.3;
+      let shade = 1;
+      let rough = 0.5 + 0.14 * late + 0.08 * (figure - 0.5) + (p > 0.992 ? 0.2 : 0);
+      if (inSeat && x < seatW) {
+        if (board === 1) shade *= 1.07;
+        // The glue line, faint.
+        const joint = Math.abs(y - seatH * 0.52);
+        if (joint < 1.5) shade *= 0.8;
+        // Edges darker and rougher: dust and old finish where nobody sits or holds.
+        const ex = Math.min(x, seatW - x) / seatW, ey = Math.min(y, seatH - y) / seatH;
+        const edge = 1 - Math.min(1, Math.min(ex / 0.12, ey / 0.16));
+        shade *= 1 - 0.25 * edge;
+        rough += 0.12 * edge;
+        // Spokeshave facets: long, shallow, slightly different in tone, along the grain.
+        shade *= 1 + 0.03 * Math.sin((y / seatH) * Math.PI * 9 + warp.fbm(x / 400, y / 30, 1) * 3);
+      }
       t = Math.min(1, Math.max(0, t));
       const a = t < 0.6 ? t / 0.6 : 1;
       const b = t < 0.6 ? 0 : (t - 0.6) / 0.4;
       const i = (y * W + x) * 4;
-      for (let k = 0; k < 3; k++) img.data[i + k] = light[k] + (dark[k] - light[k]) * a + (deep[k] - dark[k]) * b;
+      for (let k = 0; k < 3; k++) img.data[i + k] = (light[k] + (dark[k] - light[k]) * a + (deep[k] - dark[k]) * b) * shade;
       img.data[i + 3] = 255;
-      const rough = 0.48 + 0.14 * late + 0.08 * (figure - 0.5) + (p > 0.992 ? 0.2 : 0);
-      rimg.data[i] = rimg.data[i + 1] = rimg.data[i + 2] = Math.round(rough * 255);
+      rimg.data[i] = rimg.data[i + 1] = rimg.data[i + 2] = Math.round(Math.min(1, rough) * 255);
       rimg.data[i + 3] = 255;
     }
   }

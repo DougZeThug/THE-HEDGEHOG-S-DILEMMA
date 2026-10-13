@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
-import { woodMaps } from './wood';
+import { woodMaps, SEAT_V0 } from './wood';
 
 /**
  * A small hand-made ladder-back chair. Seat at 34 cm, finials at 72 cm: a child's chair,
@@ -42,6 +42,14 @@ function turned(points: THREE.Vector3[], profile: Profile, segs = 64, radial = 1
     }
   }
   tube.computeVertexNormals();
+  // Wear on the turning's high points (beads, the swell of a leg): where hands and shoes catch.
+  const wear = new Float32Array(pos.count);
+  for (let i = 0; i <= segs; i++) {
+    const t = i / segs, d = 0.04;
+    const bulge = radiusAt(profile, t) - (radiusAt(profile, Math.max(0, t - d)) + radiusAt(profile, Math.min(1, t + d))) / 2;
+    for (let j = 0; j <= radial; j++) wear[i * (radial + 1) + j] = Math.max(0, Math.min(1, bulge / 0.0012));
+  }
+  tube.setAttribute('wear', new THREE.BufferAttribute(wear, 1));
   const len = curve.getLength();
   const uv = tube.attributes.uv;
   for (let k = 0; k < uv.count; k++) uv.setXY(k, uv.getX(k) * len * 2.2, uv.getY(k) * 0.12);
@@ -59,6 +67,7 @@ function bentBoard(w: number, h: number, t: number, bend: number, arch: number):
     if (y > 0) pos.setY(i, y + arch * k);
   }
   g.computeVertexNormals();
+  edgeWear(g);
   const uv = g.attributes.uv;
   for (let k = 0; k < uv.count; k++) uv.setXY(k, uv.getX(k) * w * 2.2, uv.getY(k) * 0.08 + 0.3);
   return g;
@@ -67,22 +76,20 @@ function bentBoard(w: number, h: number, t: number, bend: number, arch: number):
 export class Chair {
   readonly group = new THREE.Group();
   readonly hit: THREE.Mesh;
+  /** Its contact with the floor (opacity set each frame with the light that falls on it). */
+  readonly contact: THREE.Mesh;
   /** Where the chair is meant to be; the nudge moves it away from here. */
   readonly home = new THREE.Vector3(0, 0, 0);
   baseYaw = 0.22;
 
   constructor() {
     const { map, rough } = woodMaps(7);
-    const mat = new THREE.MeshPhysicalMaterial({
+    // Oiled, not lacquered: no clearcoat, and no sheen (a cloth lobe; it made the seat velvet).
+    const mat = new THREE.MeshStandardMaterial({
       map,
       roughnessMap: rough,
       roughness: 1,
       metalness: 0,
-      clearcoat: 0.1,
-      clearcoatRoughness: 0.6,
-      sheen: 0.25,
-      sheenRoughness: 0.7,
-      sheenColor: new THREE.Color('#e0bf98'),
       vertexColors: true,
     });
 
@@ -108,8 +115,10 @@ export class Chair {
         pos.setXYZ(i, x, y + seatTop - T / 2, z);
       }
       seat.computeVertexNormals();
+      edgeWear(seat);
       const uv = seat.attributes.uv;
-      for (let k = 0; k < uv.count; k++) uv.setXY(k, uv.getX(k) * 0.8, uv.getY(k) * 0.6 + 0.1);
+      // The seat has its own part of the wood: two boards, darker at the edges (wood.ts).
+      for (let k = 0; k < uv.count; k++) uv.setXY(k, uv.getX(k) * 0.8, SEAT_V0 + uv.getY(k) * (1 - SEAT_V0));
     }
     add(seat);
 
@@ -137,18 +146,20 @@ export class Chair {
       const fin = new THREE.SphereGeometry(0.0158, 18, 12);
       fin.scale(1, 1.25, 1);
       fin.translate(postTop(sx).x, postTop(sx).y + 0.014, postTop(sx).z - 0.002);
+      fin.setAttribute('wear', new THREE.BufferAttribute(new Float32Array(fin.attributes.position.count).fill(0.6), 1));
       add(fin);
     }
 
     // Back: an arched crest rail and two slats, bent to receive a back, following the lean.
     const lean = new THREE.Matrix4().makeRotationX(-0.13);
-    const rail = (y: number, z: number, h: number, arch: number, bend: number) => {
+    const rail = (y: number, z: number, h: number, arch: number, bend: number, tilt = 0) => {
       const g = bentBoard(0.262, h, 0.013, bend, arch);
-      const m = new THREE.Matrix4().makeTranslation(0, y, z).multiply(lean);
+      const m = new THREE.Matrix4().makeTranslation(0, y, z).multiply(lean).multiply(new THREE.Matrix4().makeRotationZ(tilt));
       add(g, m);
     };
     rail(0.648, -0.196, 0.056, 0.014, 0.018);
-    rail(0.565, -0.175, 0.034, 0.004, 0.015);
+    // Made by hand: the middle slat went in not quite level.
+    rail(0.565, -0.175, 0.034, 0.004, 0.015, 0.012);
     rail(0.482, -0.158, 0.03, 0.002, 0.013);
 
     // Stretchers, slightly bowed, with a bead at the front.
@@ -176,6 +187,19 @@ export class Chair {
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     this.group.add(mesh);
+
+    // Where it touches the floor: four small dark contacts under the feet and the faintest
+    // shade under the seat. The soft shadow from the light can't make these (the frosted panel
+    // casts none, and lights the floor under the chair): without them the chair floats.
+    this.contact = new THREE.Mesh(
+      new THREE.PlaneGeometry(CONTACT_M, CONTACT_M),
+      new THREE.MeshBasicMaterial({ color: 0x2a2018, alphaMap: contactTexture(), transparent: true, opacity: 0, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }),
+    );
+    this.contact.rotation.x = -Math.PI / 2;
+    this.contact.position.y = 0.0015;
+    this.contact.renderOrder = 1;
+    this.contact.name = 'chair-contact';
+    this.group.add(this.contact);
 
     // Invisible proxy for gaze/click.
     this.hit = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.75, 0.42), new THREE.MeshBasicMaterial({ visible: false }));
@@ -211,32 +235,75 @@ export class Chair {
   }
 }
 
+const CONTACT_M = 0.7;
+
+/** The contacts, as an alpha map in the chair's own floor plan (canvas rows run front-ward). */
+function contactTexture(): THREE.CanvasTexture {
+  const N = 128, ppm = N / CONTACT_M;
+  const c = document.createElement('canvas');
+  c.width = c.height = N;
+  const g = c.getContext('2d')!;
+  g.fillStyle = '#000';
+  g.fillRect(0, 0, N, N);
+  const at = (x: number, z: number) => [N / 2 + x * ppm, N / 2 + z * ppm] as const;
+  const spot = (x: number, z: number, r: number, a: number) => {
+    const [px, py] = at(x, z);
+    const grd = g.createRadialGradient(px, py, 0, px, py, r * ppm);
+    grd.addColorStop(0, `rgba(255,255,255,${a})`);
+    grd.addColorStop(0.45, `rgba(255,255,255,${a * 0.45})`);
+    grd.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = grd;
+    g.fillRect(0, 0, N, N);
+  };
+  // Under the seat: only a breath of shade (the light reaches in under it).
+  spot(0, 0, 0.3, 0.14);
+  for (const [x, z] of [[-0.17, 0.165], [0.17, 0.165], [-0.158, -0.17], [0.158, -0.17]]) spot(x, z, 0.032, 0.85);
+  const t = new THREE.CanvasTexture(c);
+  return t;
+}
+
+/** Arrises (the rounded edges of a board) wear first: worn where the normal leaves the faces. */
+function edgeWear(g: THREE.BufferGeometry) {
+  const n = g.attributes.normal;
+  const wear = new Float32Array(n.count);
+  for (let i = 0; i < n.count; i++) wear[i] = Math.min(1, (1 - Math.max(Math.abs(n.getX(i)), Math.abs(n.getY(i)), Math.abs(n.getZ(i)))) * 3);
+  g.setAttribute('wear', new THREE.BufferAttribute(wear, 1));
+}
+
 function mergeParts(parts: THREE.BufferGeometry[]): THREE.BufferGeometry {
   const geos = parts.map((g) => (g.index ? g.toNonIndexed() : g));
   let n = 0;
   for (const g of geos) n += g.attributes.position.count;
-  const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3), uv = new Float32Array(n * 2);
+  const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3), uv = new Float32Array(n * 2), wear = new Float32Array(n);
   let o = 0;
   for (const g of geos) {
     pos.set(g.attributes.position.array as Float32Array, o * 3);
     nor.set(g.attributes.normal.array as Float32Array, o * 3);
     uv.set(g.attributes.uv.array as Float32Array, o * 2);
+    if (g.attributes.wear) wear.set(g.attributes.wear.array as Float32Array, o);
     o += g.attributes.position.count;
   }
   const out = new THREE.BufferGeometry();
   out.setAttribute('position', new THREE.BufferAttribute(pos, 3));
   out.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
   out.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+  out.setAttribute('wear', new THREE.BufferAttribute(wear, 1));
   return out;
 }
 
-/** Paler where touched, darker where it meets the floor. */
+/** Paler where touched and on the edges, darker in the joints and where it meets the floor. */
 function bakeWear(g: THREE.BufferGeometry, seatTop: number) {
   const pos = g.attributes.position;
+  const edge = g.attributes.wear;
   const col = new Float32Array(pos.count * 3);
   for (let i = 0; i < pos.count; i++) {
     const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
-    let k = 1;
+    let k = 1 + 0.2 * edge.getX(i);
+    // Joints: old finish and dust gather where the stretchers go in and under the seat.
+    if (Math.abs(x) > 0.12 && y < seatTop - 0.02) {
+      for (const yj of [0.085, 0.12, 0.13, 0.175]) k -= 0.1 * Math.exp(-(((y - yj) / 0.012) ** 2));
+      k -= 0.12 * Math.exp(-(((y - (seatTop - 0.035)) / 0.015) ** 2));
+    }
     // Seat: worn pale across the front edge and in the middle where someone sat.
     if (Math.abs(y - seatTop) < 0.03) {
       k += 0.16 * Math.exp(-(((z - 0.15) / 0.035) ** 2)) * Math.exp(-((x / 0.17) ** 4));

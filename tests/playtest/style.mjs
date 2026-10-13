@@ -47,7 +47,9 @@ const PLACES = {
   backTopLeft: [-2.9, 2.9, -3.2],
   backTopRight: [2.9, 2.9, -3.2],
   ceiling: [0, 3.1, -0.2],
-  floorPool: [0.25, 0, 0.45],
+  floorPool: [0.5, 0, -0.15],
+  chairShadow: [0.02, 0, 0.32],
+  panel: [0.1, 3.08, -0.95],
   floorFront: [0, 0, 2.1],
   floorEdge: [-2.6, 0, 1.2],
   sideWall: [-3.2, 1.5, 0.8],
@@ -101,6 +103,19 @@ for (const profile of PROFILES) {
   const opts = profile === 'phone' ? { ...devices['iPhone 13'], deviceScaleFactor: 1 } : { viewport: { width: 1280, height: 800 } };
   for (const style of STYLES) {
     const ctx = await browser.newContext({ ...opts, reducedMotion: process.env.REDUCED ? 'reduce' : 'no-preference' });
+    // The opening runs on the wall clock, and software GL is slow: to see a stage at an exact
+    // moment, the clock is frozen there (frames keep rendering, nothing advances), then let go.
+    await ctx.addInitScript(() => {
+      const real = performance.now.bind(performance);
+      let off = 0, frozen = null;
+      performance.now = () => frozen ?? real() + off;
+      window.__freeze = (ms) => (frozen = ms);
+      window.__nowMs = () => performance.now();
+      window.__thaw = () => {
+        off = frozen - real();
+        frozen = null;
+      };
+    });
     const page = await ctx.newPage();
     const errors = [];
     page.on('pageerror', (e) => errors.push(String(e)));
@@ -116,10 +131,20 @@ for (const profile of PROFILES) {
       result.frames.push({ profile, style, name, file, ...m });
     };
     if (process.env.OPENING !== '0') {
-      // The opening on its own clock: black, the chair alone, the room arriving, the hand-off.
-      for (const [name, t] of [['open-3s', 3], ['open-7s', 7], ['open-11s', 11]]) {
-        await page.waitForFunction((t) => (window.__hedgehog.score.t ?? 0) >= t, t, { timeout: 120000 });
+      // The opening's stages (the score's own times; a phone's score is shorter): first light,
+      // the chair alone, the room arriving, the first stroke.
+      const times = profile === 'phone' ? [6.2, 8.1, 11.0, 12.0] : [7.2, 9.5, 12.9, 14.1];
+      for (const [i, name] of ['open-first-light', 'open-chair-alone', 'open-room-arrives', 'open-first-stroke'].entries()) {
+        const t = times[i];
+        await page.waitForFunction((t) => (window.__hedgehog.score?.t ?? 0) >= t - 0.45, t, { timeout: 120000, polling: 50 });
+        await page.evaluate((t) => {
+          const cur = window.__hedgehog.score.t;
+          const now = window.__nowMs();
+          window.__freeze(cur < t ? now + (t - cur) * 1000 : now);
+        }, t);
+        await page.waitForTimeout(2500);
         await shot(name);
+        await page.evaluate(() => window.__thaw());
       }
     } else {
       await page.waitForFunction(() => (window.__hedgehog.score.t ?? 0) > 2, null, { timeout: 60000 });

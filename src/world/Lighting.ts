@@ -10,6 +10,10 @@ const AREA = 8;
 const KEY = 44;
 const HEMI = 1.15;
 
+/** VSM blur radius, in texels of a 512 map (the radius scales with the map, so the penumbra doesn't). */
+const SHADOW_RADIUS = 5;
+export const shadowMapSize = (quality: 'low' | 'medium' | 'high') => (quality === 'low' ? 512 : 1024);
+
 const COOL = new THREE.Color('#dbe6f0');
 const NEUTRAL = new THREE.Color('#fff8ee');
 const WARM = new THREE.Color('#ffdcb4');
@@ -61,13 +65,17 @@ export class Lighting {
     this.key.position.copy(this.keyBase);
     this.key.target.position.set(0, 0, 0);
     this.key.castShadow = true;
-    // The shadow is deliberately soft (blurred), so a modest map loses nothing visible.
-    const size = quality === 'low' ? 512 : quality === 'medium' ? 1024 : 2048;
+    const size = shadowMapSize(quality);
     this.key.shadow.mapSize.set(size, size);
-    // Soft, frosted-source shadow (VSM blur), so the chair's shadow has a real penumbra.
+    // Only the chair casts a shadow, so the shadow's camera looks at the middle of the cone,
+    // not all of it (a 115° frustum spent most of the map on bare floor): its texels shrink
+    // from about 18 mm to 5 mm on a phone, and the chair's shadow keeps its seat and legs.
+    this.key.shadow.focus = 0.4;
+    // Soft, frosted-source shadow (VSM blur): a penumbra of a few centimetres at the floor,
+    // the same on every device (the blur is in texels, so it scales with the map).
     this.key.shadow.bias = -0.0006;
     this.key.shadow.normalBias = 0.01;
-    this.key.shadow.radius = 9;
+    this.key.shadow.radius = SHADOW_RADIUS * (size / 512);
     this.key.shadow.blurSamples = 20;
     this.key.shadow.camera.near = 0.5;
     this.key.shadow.camera.far = 8;
@@ -108,7 +116,7 @@ export class Lighting {
     this.residueFade = { amount, start: now, seconds };
   }
 
-  update(dt: number, env: Environment, now: number, chairPos: THREE.Vector3) {
+  update(dt: number, env: Environment, now: number, chairPos: THREE.Vector3, chairYaw = 0) {
     if (this.residueFade) {
       const f = this.residueFade;
       const t = (now - f.start) / f.seconds;
@@ -175,5 +183,21 @@ export class Lighting {
     this.key.position.copy(chairPos).setY(0).add(rel);
     this.key.target.position.copy(chairPos);
     this.glow.position.set(chairPos.x, 0.55, chairPos.z + 0.25);
+    // The shadow map is redrawn only when what it shows changes: the light moved or widened, or
+    // the chair moved or turned (its blur reads a million texels twenty times on every redraw).
+    const sig = this.shadowSig;
+    const kp = this.key.position, tg = this.key.target.position;
+    const now4 = [kp.x, kp.y, kp.z, tg.x, tg.z, this.key.angle, chairPos.x, chairPos.z, chairYaw];
+    this.shadowDirty = now4.some((v, i) => Math.abs(v - sig[i]) > 1e-4);
+    if (this.shadowDirty) for (let i = 0; i < now4.length; i++) sig[i] = now4[i];
   }
+
+  /** How much of the room's usual key light falls on the chair now (1 = as the room has it). */
+  get keyLevel() {
+    return this.key.intensity / (KEY * 0.85);
+  }
+
+  /** The key light or the chair changed since the shadow map was last drawn. */
+  shadowDirty = true;
+  private shadowSig = new Array<number>(9).fill(NaN);
 }

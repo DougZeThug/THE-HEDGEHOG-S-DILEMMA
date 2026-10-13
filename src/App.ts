@@ -2,7 +2,7 @@ import { STATIC_DRAWINGS } from './content/drawings';
 import * as THREE from 'three';
 import { Room } from './world/Room';
 import { Chair } from './world/Chair';
-import { Lighting } from './world/Lighting';
+import { Lighting, shadowMapSize } from './world/Lighting';
 import { MemoryLight } from './world/MemoryLight';
 import { WallText, wallClock, type TextItem } from './world/WallText';
 import { CameraRig } from './world/CameraRig';
@@ -76,6 +76,8 @@ export class App {
   private memoryKey: string | null = null;
   /** The piece of writing last touched (the memory's light falls where the visitor touched). */
   private lastTappedKey: string | null = null;
+  /** How dark the chair's contact with the floor is, at full light (the style sets it). */
+  chairContact = 1;
   /** The opening while it plays: its score, when it started (wall clock), what has been done. */
   private opening: { score: Score; start: number; fired: Set<number>; skip?: { at: number; from: Levels } } | null = null;
   /** When the room was handed to the Director (scene time), for hints and the inspector. */
@@ -170,6 +172,9 @@ export class App {
     this.renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.VSMShadowMap;
+    // Redrawn when the light or the chair moves (Lighting.shadowDirty), not every frame.
+    this.renderer.shadowMap.autoUpdate = false;
+    this.renderer.shadowMap.needsUpdate = true;
     this.renderer.toneMapping = THREE.NeutralToneMapping;
     this.renderer.toneMappingExposure = 1.05;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -566,7 +571,10 @@ export class App {
     const v = this.director.visitor;
     const scaleTarget = this.prefs.reducedMotion ? 1 + (env.roomScale - 1) * 0.3 : env.roomScale;
     this.room.setScale(this.room.scale + (scaleTarget - this.room.scale) * (1 - Math.exp(-dt / 6)));
-    this.lighting.update(dt, env, this.time, this.chair.group.position);
+    this.lighting.update(dt, env, this.time, this.chair.group.position, this.chair.group.rotation.y);
+    if (this.lighting.shadowDirty) this.renderer.shadowMap.needsUpdate = true;
+    // The chair's contact with the floor is there as the light on it is: none in the dark.
+    (this.chair.contact.material as THREE.MeshBasicMaterial).opacity = this.chairContact * Math.min(1, this.lighting.keyLevel);
     if (this.memoryKey) {
       // The light washes the words out a little (to about half their strength), then gives them back.
       const m = this.memoryLight.update(this.time);
@@ -1193,12 +1201,13 @@ export class App {
     }
     if (this.renderer && this.post) {
       this.onResize();
-      const size = p.quality === 'low' ? 512 : p.quality === 'medium' ? 1024 : 2048;
+      const size = shadowMapSize(p.quality);
       const sh = this.lighting.key.shadow;
       if (sh.mapSize.x !== size) {
         sh.mapSize.set(size, size);
         sh.map?.dispose();
         sh.map = null as unknown as THREE.WebGLRenderTarget;
+        this.renderer.shadowMap.needsUpdate = true;
       }
       this.post.setSamples(p.quality === 'high' ? 4 : p.quality === 'medium' ? 2 : 0);
     }
