@@ -1,5 +1,5 @@
 {
-  "spent": 1045,
+  "spent": 1403,
   "entries": {
     "piano-warm": {
       "file": "music/piano-warm.mp3",
@@ -31,6 +31,16 @@
       "review": "approved",
       "costSource": "balance difference (4545 \u2192 4930 used)",
       "reviewedAt": "2026-10-14"
+    },
+    "memory-bedroom": {
+      "file": "public/music/memory-bedroom.mp3",
+      "prompt": "Someone downstairs playing an upright piano for themselves on a bright morning: an easy, contented little tune in a major key, walking tempo, simple, a couple of small slips carried on through. Starts straight away with the tune, no intro, no ending. Solo piano, instrumental, close home recording, dry.",
+      "seconds": 26,
+      "for": "Memory: \"I was happiest when nobody needed anything from me.\" Someone downstairs playing for themselves, from 8 s until the memory has gone (the engine puts it below, through the floor).",
+      "cost": 358,
+      "at": "2026-10-14T19:54:27.214Z",
+      "review": "pending",
+      "costSource": "balance difference (4930 \u2192 5521 used, less the 233 credits of SFX reported by their own headers in the same window)"
     }
   }
 }

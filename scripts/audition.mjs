@@ -122,6 +122,10 @@ const SFX_FOR = {
   'mem:kitchen-air': 'Cereal memory: the air of the sunny kitchen, looped under the scene (it came back very quiet and is lifted about 28 dB).',
   'mem:spoon-bowl': 'Cereal memory: spoons in two bowls as the scene forms; a spoon put down as it goes.',
   'mem:laugh': 'Cereal memory: two people laughing at the table (a take the next-room situation never uses).',
+  'mem:footsteps': 'Door memory: someone walking along the landing (passing), or coming to the door and stopping (approach).',
+  'mem:floorboard': 'Door memory: a floorboard before anything is drawn; the house settling; someone shifting their weight outside.',
+  'mem:bird': 'Bedroom memory: a bird outside the window (two takes, two moments).',
+  'mem:curtain-breeze': 'Bedroom memory: the curtain stirring as it breathes.',
 };
 const sfxLedger = existsSync(join(ROOT, 'scripts/sfx-ledger.json')) ? JSON.parse(readFileSync(join(ROOT, 'scripts/sfx-ledger.json'), 'utf8')) : { entries: {} };
 for (const [file, e] of Object.entries(sfxLedger.entries)) {

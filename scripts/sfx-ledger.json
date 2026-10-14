@@ -1,5 +1,5 @@
 {
-  "spent": 475,
+  "spent": 708,
   "entries": {
     "sfx-switch-1.mp3": {
       "key": "sfx:switch",
@@ -107,6 +107,62 @@
       "at": "2026-10-14T17:58:17.146Z",
       "review": "approved",
       "reviewedAt": "2026-10-14"
+    },
+    "mem-footsteps-1.mp3": {
+      "key": "mem:footsteps",
+      "text": "an adult walking slowly along an old wooden upstairs landing in socks, about five unhurried footsteps roughly a second apart, a small creak under two of them, then the steps stop and stay stopped, recorded close and clearly audible, every step the same loudness, no voices, no breathing, no door, dry, intimate, close, natural home recording, no music, no reverb tail",
+      "duration": 5,
+      "cost": 55,
+      "at": "2026-10-14T19:54:04.182Z",
+      "review": "pending"
+    },
+    "mem-footsteps-2.mp3": {
+      "key": "mem:footsteps",
+      "text": "slow careful footsteps on old bare wooden hallway floorboards, someone in socks, five steps about a second apart, then stopping, one small creak as the weight settles on the last step, then stillness, recorded close and clearly audible at an even level, no voices, no breathing, no door, dry, intimate, close, natural home recording, no music, no reverb tail",
+      "duration": 5,
+      "cost": 55,
+      "at": "2026-10-14T19:54:06.004Z",
+      "review": "pending"
+    },
+    "mem-floorboard-1.mp3": {
+      "key": "mem:floorboard",
+      "text": "a single old wooden floorboard creaking once as someone standing still shifts their weight, one slow low creak, then silence, recorded close and clearly audible, no footsteps, no voices, dry, intimate, close, natural home recording, no music, no reverb tail",
+      "duration": 1.5,
+      "cost": 17,
+      "at": "2026-10-14T19:54:07.742Z",
+      "review": "pending"
+    },
+    "mem-floorboard-2.mp3": {
+      "key": "mem:floorboard",
+      "text": "one short dry tick and creak of an old wooden floor settling on its own in a still house, nobody walking, recorded close and clearly audible, no voices, dry, intimate, close, natural home recording, no music, no reverb tail",
+      "duration": 1.5,
+      "cost": 17,
+      "at": "2026-10-14T19:54:09.238Z",
+      "review": "pending"
+    },
+    "mem-bird-1.mp3": {
+      "key": "mem:bird",
+      "text": "a single small songbird singing one short bright phrase, then silence, recorded close with a directional microphone, clearly audible, no other birds, no wind, no traffic, no reverb, no music",
+      "duration": 2.5,
+      "cost": 28,
+      "at": "2026-10-14T19:54:11.053Z",
+      "review": "pending"
+    },
+    "mem-bird-2.mp3": {
+      "key": "mem:bird",
+      "text": "two short sparrow chirps with a pause between them, then silence, recorded close with a directional microphone, clearly audible, no other birds, no wind, no traffic, no reverb, no music",
+      "duration": 2.5,
+      "cost": 28,
+      "at": "2026-10-14T19:54:12.685Z",
+      "review": "pending"
+    },
+    "mem-curtain-breeze-1.mp3": {
+      "key": "mem:curtain-breeze",
+      "text": "a light cotton curtain lifting once and falling back, a gentle cloth rustle that rises over about a second and settles over two, the hem brushing a wooden sill, recorded close and clearly audible, no wind noise, no rumble, no whoosh, no birds, dry, intimate, close, natural home recording, no music, no reverb tail",
+      "duration": 3,
+      "cost": 33,
+      "at": "2026-10-14T19:54:14.419Z",
+      "review": "pending"
     }
   }
 }

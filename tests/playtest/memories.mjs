@@ -18,21 +18,17 @@ try {
   ({ chromium, devices } = require(`${execSync('npm root -g').toString().trim()}/playwright`));
 }
 const BASE = process.env.BASE ?? 'http://localhost:4173/';
-const OUT = process.env.OUT ?? 'test-output/review/memories/run';
+const OUT = process.env.OUT ?? `test-output/review/memories/${process.env.MEMORY ?? 'cereal'}`;
 const PROFILES = (process.env.PROFILES ?? 'desktop,phone').split(',');
 const MEMORY = process.env.MEMORY ?? 'cereal';
-const VARIANT = process.env.VARIANT ?? 'first';
-// Stages: [name, sequence position or null for the untouched wall].
-const STAGES = [
-  ['0-untouched', null],
-  ['1-first-drawing', 1.8],
-  ['2-developing', 3.8],
-  ['3-active', 9],
-  ['4-active-late', 20],
-  ['5-dissolving', 24.5],
-  ['6-drawing-alone', 26.2],
-  ['7-residue', 29],
-];
+const VARIANT = process.env.VARIANT ?? { cereal: 'first', bedroom: 'morning', door: 'passing' }[MEMORY];
+const PHRASE = { cereal: 'cereal', bedroom: 'happiest-unneeded', door: 'door-open' }[MEMORY];
+// Stages: [name, sequence position or null for the untouched wall], per memory.
+const STAGES = {
+  cereal: [['0-untouched', null], ['1-first-drawing', 1.8], ['2-developing', 3.8], ['3-active', 9], ['4-active-late', 20], ['5-dissolving', 24.5], ['6-drawing-alone', 26.2], ['7-residue', 29]],
+  bedroom: [['0-untouched', null], ['1-first-drawing', 2], ['2-developing', 4.5], ['3-active', 12], ['4-active-late', 24], ['5-dissolving', 28.5], ['6-drawing-alone', 30.6], ['7-residue', 33]],
+  door: [['0-untouched', null], ['1-first-drawing', 1.6], ['2-developing', 3.4], ['3-active', 6.5], ['4-shadow', 8.3], ['5-stillness', 13], ['6-dissolving', 17.5], ['7-drawing-alone', 19]],
+}[MEMORY];
 mkdirSync(OUT, { recursive: true });
 
 const browser = await chromium.launch({
@@ -72,7 +68,7 @@ for (const profile of PROFILES) {
     a.rig.yaw = Math.atan2(-dx, -dz);
     a.rig.pitch = Math.atan2(dy, Math.hypot(dx, dz));
     return { key: an.key, surface: it.placement.surface, centre: [c.x, c.y, c.z] };
-  }, MEMORY === 'cereal' ? 'cereal' : MEMORY);
+  }, PHRASE);
   await page.waitForTimeout(2500);
   const textures0 = await page.evaluate(() => window.__hedgehog.renderer.info.memory.textures);
   const shots = [];
@@ -81,12 +77,12 @@ for (const profile of PROFILES) {
       await page.screenshot({ path: `${OUT}/${profile}-${name}.png` });
       shots.push(name);
       // Now it begins.
-      const ok = await page.evaluate(([m, v]) => window.__hedgehog.playMemory(m, 'cereal', v), [MEMORY, VARIANT]);
+      const ok = await page.evaluate(([m, v, p]) => window.__hedgehog.playMemory(m, p, v), [MEMORY, VARIANT, PHRASE]);
       if (!ok) throw new Error('memory did not start');
       continue;
     }
     const st = await page.evaluate((p) => window.__hedgehog.heldAt(p), pos);
-    await page.waitForTimeout(pos > 24 ? 3000 : 1200);
+    await page.waitForTimeout(name.includes('residue') || name.includes('alone') ? 3000 : 1200);
     await page.screenshot({ path: `${OUT}/${profile}-${name}.png` });
     shots.push(`${name} (${st.state} @ ${st.position})`);
   }
@@ -100,7 +96,7 @@ for (const profile of PROFILES) {
   const after = await page.evaluate(() => ({ textures: window.__hedgehog.renderer.info.memory.textures, living: !!window.__hedgehog.living }));
   // Again, start to finish: what a memory leaves behind must not grow (the window's own noise and
   // blank textures are uploaded once, the first time it is drawn).
-  await page.evaluate(([m, v]) => window.__hedgehog.playMemory(m, 'cereal', v), [MEMORY, VARIANT]);
+  await page.evaluate(([m, v, p]) => window.__hedgehog.playMemory(m, p, v), [MEMORY, VARIANT, PHRASE]);
   await page.evaluate(() => window.__hedgehog.heldAt(12));
   await page.waitForTimeout(800);
   await page.evaluate(() => {

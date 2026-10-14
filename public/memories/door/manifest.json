@@ -1,0 +1,62 @@
+{
+  "size": [
+    0.9,
+    0.6
+  ],
+  "band": 0.17,
+  "pane": null,
+  "variants": {
+    "passing": [
+      {
+        "name": "room",
+        "kind": "pigment",
+        "file": "passing/room",
+        "source": "code-painted stand-in"
+      },
+      {
+        "name": "door",
+        "kind": "pigment",
+        "file": "passing/door",
+        "source": "code-painted stand-in"
+      },
+      {
+        "name": "pencil",
+        "kind": "sketch",
+        "file": "passing/pencil",
+        "source": "code-painted stand-in"
+      },
+      {
+        "name": "strip",
+        "kind": "light",
+        "file": "passing/strip",
+        "source": "code-painted stand-in"
+      }
+    ],
+    "approach": [
+      {
+        "name": "room",
+        "kind": "pigment",
+        "file": "passing/room",
+        "source": "code-painted stand-in"
+      },
+      {
+        "name": "door",
+        "kind": "pigment",
+        "file": "passing/door",
+        "source": "code-painted stand-in"
+      },
+      {
+        "name": "pencil",
+        "kind": "sketch",
+        "file": "passing/pencil",
+        "source": "code-painted stand-in"
+      },
+      {
+        "name": "strip",
+        "kind": "light",
+        "file": "passing/strip",
+        "source": "code-painted stand-in"
+      }
+    ]
+  }
+}

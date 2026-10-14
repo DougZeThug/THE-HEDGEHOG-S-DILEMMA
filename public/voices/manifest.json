@@ -237,5 +237,20 @@
   ],
   "mem:laugh": [
     "mem-laugh-1.mp3"
+  ],
+  "mem:footsteps": [
+    "mem-footsteps-1.mp3",
+    "mem-footsteps-2.mp3"
+  ],
+  "mem:floorboard": [
+    "mem-floorboard-1.mp3",
+    "mem-floorboard-2.mp3"
+  ],
+  "mem:bird": [
+    "mem-bird-1.mp3",
+    "mem-bird-2.mp3"
+  ],
+  "mem:curtain-breeze": [
+    "mem-curtain-breeze-1.mp3"
   ]
 }

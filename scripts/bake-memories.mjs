@@ -20,7 +20,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const args = Object.fromEntries(process.argv.slice(2).map((a) => a.replace(/^--/, '').split('=')));
 const only = args.only ? args.only.split(',') : null;
-const VARIANTS = { cereal: ['first', 'later'] };
+const VARIANTS = { cereal: ['first', 'later'], bedroom: ['morning', 'dusk'], door: ['passing', 'approach'] };
 const SIZES = { '': 1200, '@low': 768 };
 
 const bundle = await build({ entryPoints: [join(ROOT, 'src/memory/paint/index.ts')], bundle: true, write: false, format: 'iife', globalName: 'Painters', target: 'es2020' });

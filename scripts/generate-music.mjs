@@ -59,12 +59,13 @@ FRAGMENTS.push(
   },
   {
     id: 'memory-bedroom',
-    seconds: 24,
+    seconds: 26,
     memory: true,
-    deferred: true,
-    for: 'Memory: "I was happiest when nobody needed anything from me." Not generated until the kitchen radio has been heard; then to the bedroom\'s measured length.',
-    prompt: 'Draft, for the sound designer: to be written after the kitchen radio has been heard.',
+    for: 'Memory: "I was happiest when nobody needed anything from me." Someone downstairs playing for themselves, from 8 s until the memory has gone (the engine puts it below, through the floor).',
+    // The sound designer's prompt (approach review): someone else, content, needing nothing.
+    prompt: 'Someone downstairs playing an upright piano for themselves on a bright morning: an easy, contented little tune in a major key, walking tempo, simple, a couple of small slips carried on through. Starts straight away with the tune, no intro, no ending. Solo piano, instrumental, close home recording, dry.',
   },
+
 );
 
 const ledger = existsSync(LEDGER) ? JSON.parse(readFileSync(LEDGER, 'utf8')) : { spent: 0, entries: {} };

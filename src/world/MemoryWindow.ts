@@ -287,7 +287,10 @@ export class MemoryWindow {
     // above them, or higher if they wrap onto more lines than the band holds.
     const scale = w / (this.u.uNominal.value as THREE.Vector2).x;
     const top = Math.max(a.y + a.h / 2 + 0.03, a.y - a.h / 2 + this.band * scale);
-    let cy = top - h / 2 + v('window.offsetY', 0);
+    // A line written low on the wall has no room below it: the painting goes above the words
+    // instead, its foot just over them, like a picture over its caption.
+    const below = top - h >= a.minY;
+    let cy = (below ? top - h / 2 : a.y + a.h / 2 + 0.02 + h / 2) + v('window.offsetY', 0);
     cx = THREE.MathUtils.clamp(cx, a.minX + w / 2, a.maxX - w / 2);
     cy = THREE.MathUtils.clamp(cy, a.minY + h / 2, a.maxY - h / 2);
     this.mesh.position.set(cx, cy, 0.004);
