@@ -93,9 +93,11 @@ describe('compose: one writer per field', () => {
     const env = { emerge: 0.5, dissolve: 0.25, exit: 1, 'sway:curtain.x': 0.02 };
     const f = compose(base, env, FULL);
     expect(f['layer:bowl.opacity']).toBeCloseTo(0.8 * 0.5, 6);
-    expect(f['window.reveal']).toBeCloseTo(0.75, 6);
+    expect(f['window.reveal']).toBeCloseTo(1 - 0.25 / 0.7, 6);
     expect(f['window.sketch']).toBe(1); // still there while the colour goes
-    expect(compose(base, { ...env, dissolve: 0.75 }, FULL)['window.sketch']).toBeCloseTo(0.5, 6);
+    const late = compose(base, { ...env, dissolve: 0.7 }, FULL);
+    expect(late['window.reveal']).toBe(0); // the colour has gone with the light…
+    expect(late['window.sketch']).toBeCloseTo(1 - 0.05 / 0.35, 6); // …and the drawing stands alone
     expect(f['layer:curtain.x']).toBeCloseTo(0.12, 6);
     expect(f['light.intensity']).toBeCloseTo(1, 6);
     const r = compose(base, env, weightsFor(true, true));
@@ -189,6 +191,17 @@ describe('cue dispatch: every event once, never on a seek', () => {
     for (let p = 0.5; p <= 6; p += 0.05) for (const x of d.advance(p)) again.push(x.marker.label);
     expect(again).toEqual(['a', 'b', 'c']);
   });
+  it('a stall while playing: one-shots it passed stay unheard, a bed or music it passed starts part-way in', () => {
+    const d = new CueDispatch([{ label: 'bed:air', position: 1 }, { label: 'music:radio', position: 5.5 }, { label: 'sfx:spoon', position: 5.6 }], 0.3);
+    const got: string[] = [];
+    for (let p = 0; p < 5; p += 1 / 30) for (const x of d.advance(p)) got.push(x.marker.label);
+    const jump = d.advance(5.9); // a 0.9 s frame
+    expect(jump.map((x) => x.marker.label)).toEqual(['music:radio']);
+    expect(jump[0].late).toBeCloseTo(0.4, 6);
+    for (let p = 5.92; p < 8; p += 1 / 30) for (const x of d.advance(p)) got.push(x.marker.label);
+    expect(got).toEqual(['bed:air']); // the spoon is never played late; the radio not twice
+  });
+
   it('never past the hold: an event beyond where the scene holds waits for the release', () => {
     const d = new CueDispatch([{ label: 'late', position: 10.1 }], 0.3);
     for (let p = 9; p <= 10; p += 0.05) expect(d.advance(p, 10)).toEqual([]);

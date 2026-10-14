@@ -94,7 +94,7 @@ export class MemoryAudio implements AudioSink {
 
   play(due: Due[]): void {
     if (this.disposed || !this.running) return;
-    for (const d of due) this.start(d.marker, this.now + d.delay, 0);
+    for (const d of due) this.start(d.marker, this.now + d.delay, d.late ?? 0, d.late ? 0.3 : undefined);
   }
 
   /** Start one marker's cue at context time `at`, `into` seconds into its own timeline. */
@@ -177,7 +177,8 @@ export class MemoryAudio implements AudioSink {
     src.onended = () => this.drop(live);
     this.live.add(live);
     src.start(at, from);
-    if (cue.caption && into === 0) this.host.caption?.(cue.caption, Number.isFinite(dur) ? Math.min(dur, 6) : 6);
+    // A caption says what began, briefly (a bed or music isn't captioned for its whole length).
+    if (cue.caption && into === 0) this.host.caption?.(cue.caption, kind === 'sfx' ? Math.min(dur, 4) : 2.5);
   }
 
   private drop(l: Live): void {
@@ -226,7 +227,8 @@ export class MemoryAudio implements AudioSink {
         continue; // a clink already ringing rings on
       }
       const own = l.cue.fadeOut ?? fade;
-      this.fadeOut(l, mode === 'natural' ? own : Math.min(own, fade));
+      // Interrupted, music recedes just after the picture (a bed goes with it).
+      this.fadeOut(l, mode === 'natural' ? own : Math.min(own, l.kind === 'music' ? fade + 1.5 : fade));
     }
   }
 

@@ -7,7 +7,8 @@ import { SCENE_MEMORIES, SCENE_BY_PHRASE, type SceneMemory } from '../content/me
  *
  * - **Armed** by reading the line (a long enough look) or touching it, at any time: a phone
  *   visitor's tap is never lost because it came early.
- * - **Begins** on a later look (or a touch) once it is eligible: past its earliest time, the room
+ * - **Begins** when the visitor comes back to the line: a look of a second after their eyes have
+ *   been elsewhere for 2 s or more (approach, withdraw, approach), or a touch, once it is eligible: past its earliest time, the room
  *   free (no voice just heard, no held breath), nothing else playing, not cooling down, and not
  *   in a visit where the kitchen-light memory has played (the two are one kitchen).
  * - **One at a time**, each scene **once a visit**, and a cooldown after each (longer if it ran to
@@ -37,6 +38,9 @@ export interface SceneStart {
 
 interface Track {
   armed: boolean;
+  /** Seconds the gaze has been off the line since it was armed, and whether it has really left. */
+  away: number;
+  left: boolean;
   played: boolean;
   unseen: number;
   notBefore: number;
@@ -47,10 +51,11 @@ export class MemoryDirector {
   private pendingTap: string | null = null;
   active: { id: string; since: number } | null = null;
   private cooldownUntil = -Infinity;
+  private last: number | null = null;
 
   /** `counts`: how many times each memory has been seen on earlier visits (persisted). */
   constructor(private counts: Record<string, number> = {}) {
-    for (const m of SCENE_MEMORIES) this.tracks.set(m.id, { armed: false, played: false, unseen: 0, notBefore: m.earliest });
+    for (const m of SCENE_MEMORIES) this.tracks.set(m.id, { armed: false, away: 0, left: false, played: false, unseen: 0, notBefore: m.earliest });
   }
 
   /** A touch on writing: arms its memory, and asks for it now if it is eligible. */
@@ -60,6 +65,8 @@ export class MemoryDirector {
     const t = this.tracks.get(m.id)!;
     if (t.played) return;
     t.armed = true;
+    // A touch is intent: coming back to the line later begins it without looking away first.
+    t.left = true;
     this.pendingTap = phraseId;
   }
 
@@ -79,14 +86,22 @@ export class MemoryDirector {
     const tap = this.pendingTap;
     this.pendingTap = null;
     if (s.departing || this.active) return null;
+    const dt = this.last === null ? 0 : Math.max(0, s.now - this.last);
+    this.last = s.now;
     for (const m of SCENE_MEMORIES) {
       const t = this.tracks.get(m.id)!;
       if (t.played || !s.visible(m.phraseId)) continue;
       const looking = s.gazeId === m.phraseId;
-      if (looking && s.gazeFor >= m.arm) t.armed = true;
+      if (looking && s.gazeFor >= m.arm && !t.armed) {
+        t.armed = true;
+        t.away = 0;
+        t.left = false;
+      }
       if (!t.armed) continue;
+      if (looking) t.away = 0;
+      else if ((t.away += dt) >= 2) t.left = true;
       if (s.now < t.notBefore || s.now < this.cooldownUntil || !s.free || s.otherMemory) continue;
-      const asked = tap === m.phraseId || (looking && s.gazeFor >= m.commit);
+      const asked = tap === m.phraseId || (t.left && looking && s.gazeFor >= m.commit);
       if (!asked) continue;
       return this.begin(m, s.now);
     }
@@ -109,6 +124,7 @@ export class MemoryDirector {
     const t = this.tracks.get(id);
     if (!t) return;
     t.played = false;
+    t.left = true; // it was asked for: the next look may begin it
     t.notBefore = Math.max(t.notBefore, now + 2);
   }
 
@@ -126,6 +142,7 @@ export class MemoryDirector {
       t.unseen++;
       t.played = false;
       t.armed = false;
+      t.left = false;
       t.notBefore = now + 30;
       this.cooldownUntil = now + 30;
       return false;

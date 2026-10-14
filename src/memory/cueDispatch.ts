@@ -15,7 +15,12 @@ export interface Due {
   marker: Marker;
   /** Seconds from now (sequence time) at which it should sound; ≥ 0. */
   delay: number;
+  /** Already this far into it (a stall passed its start): start it part-way in. */
+  late?: number;
 }
+
+/** What is state rather than an event: a bed or music still owed after a stall jumped past it. */
+const LASTING = /^(bed|music):/;
 
 export class CueDispatch {
   private fired = new Set<string>();
@@ -34,9 +39,21 @@ export class CueDispatch {
   advance(pos: number, limit = Infinity, maxStep = 0.5): Due[] {
     const prev = this.last;
     this.last = pos;
-    if (prev !== null && (pos < prev - 1e-6 || pos - prev > maxStep)) {
+    if (prev !== null && pos < prev - 1e-6) {
       this.seek(pos);
       return [];
+    }
+    if (prev !== null && pos - prev > maxStep) {
+      // A stall (a slow frame) jumped forward while playing: one-shots it passed stay unheard,
+      // but a bed or the music it passed is still owed, started part-way in.
+      const owed: Due[] = [];
+      for (const m of this.markers) {
+        const id = this.id(m);
+        if (!this.fired.has(id) && m.position >= prev && m.position < pos && LASTING.test(m.label)) owed.push({ marker: m, delay: 0, late: pos - m.position });
+      }
+      this.seek(pos);
+      for (const d of owed) this.fired.add(this.id(d.marker));
+      return owed;
     }
     const to = Math.min(pos + this.lookahead, limit);
     const out: Due[] = [];

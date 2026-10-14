@@ -63,7 +63,7 @@ export function leaveTimeline(env: Values, o: Reduced & { mode: 'natural' | 'int
   const tl = gsap.timeline({ paused: true });
   const slow = o.reduced ? 1.6 : 1;
   tl.addLabel('leave', 0);
-  if (o.mode === 'natural') tl.to(env, { dissolve: 1, duration: o.dissolve * slow, ease: 'sine.in' }, 'leave');
+  if (o.mode === 'natural') tl.to(env, { dissolve: 1, duration: o.dissolve * slow, ease: 'sine.inOut' }, 'leave');
   else tl.to(env, { exit: 0, dissolve: 0.6, duration: o.exit * slow, ease: 'sine.inOut' }, 'leave');
   if (o.residue) {
     const r = o.residue;

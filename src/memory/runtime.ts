@@ -16,8 +16,19 @@ import type { WindowLayer, LayerKind } from '../world/MemoryWindow';
  */
 export { MEMORIES };
 
+export interface Pane {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  transom: number;
+  mullion: number;
+}
+
 interface ArtManifest {
   size: [number, number];
+  band?: number | null;
+  pane?: Pane | null;
   variants: Record<string, { name: string; kind: LayerKind; file: string; source: string }[]>;
 }
 
@@ -33,13 +44,29 @@ export interface Prepared {
   def: MemoryDef;
   variant: string;
   size: [number, number];
+  /** The band at the painting's top kept for the words. */
+  band: number;
+  /** The painted sun's pane, if the memory's light can stay in the room. */
+  pane: Pane | null;
   layers: WindowLayer[];
   audio: MemoryAudio | null;
   dispose(): void;
 }
 
+/** Fetched bytes, kept so a memory armed earlier starts without a network wait. */
+const fetched = new Map<string, Promise<Blob>>();
+function fetchBlob(url: string): Promise<Blob> {
+  let p = fetched.get(url);
+  if (!p) {
+    p = fetch(url).then((r) => (r.ok ? r.blob() : Promise.reject(new Error(`${url}: ${r.status}`))));
+    p.catch(() => fetched.delete(url));
+    fetched.set(url, p);
+  }
+  return p;
+}
+
 async function loadLayer(url: string): Promise<{ texture: THREE.Texture; bitmap: ImageBitmap }> {
-  const blob = await (await fetch(url)).blob();
+  const blob = await fetchBlob(url);
   // ImageBitmaps ignore the texture's flipY and premultiply flags: ask for both when decoding.
   // Premultiplied, so transparent edges never filter to a dark fringe.
   const bitmap = await createImageBitmap(blob, { imageOrientation: 'flipY', premultiplyAlpha: 'premultiply', colorSpaceConversion: 'none' });
@@ -53,33 +80,76 @@ async function loadLayer(url: string): Promise<{ texture: THREE.Texture; bitmap:
   return { texture, bitmap };
 }
 
-/** Fetch and decode a memory's art and sounds, uploading one texture a frame. */
+async function manifestOf(base: string, art: string): Promise<ArtManifest> {
+  return JSON.parse(await (await fetchBlob(`${base}${art}/manifest.json`)).text()) as ArtManifest;
+}
+
+/**
+ * Fetch a memory's art ahead (when its line is armed), so beginning it waits on nothing but
+ * decoding. Sounds are fetched by the voices' own loader when the memory is prepared.
+ */
+export async function prefetch(id: string, variant: string, host: Pick<RuntimeHost, 'quality' | 'base'>): Promise<void> {
+  const def = MEMORIES[id];
+  if (!def) return;
+  const v = def.variants.includes(variant) ? variant : def.variants[0];
+  const base = host.base ?? './memories/';
+  const suffix = host.quality === 'low' ? '@low' : '';
+  try {
+    const manifest = await manifestOf(base, def.art);
+    await Promise.all(manifest.variants[v].map((l) => fetchBlob(`${base}${def.art}/${l.file}${suffix}.webp`)));
+  } catch {
+    /* it will be fetched again when it is needed */
+  }
+}
+
+/** Fetch and decode a memory's art and sounds (in parallel), uploading one texture a frame. */
 export async function prepare(id: string, variant: string, host: RuntimeHost): Promise<Prepared> {
   const def = MEMORIES[id];
   if (!def) throw new Error(`No memory "${id}"`);
   const v = def.variants.includes(variant) ? variant : def.variants[0];
   const base = host.base ?? './memories/';
-  const manifest = (await (await fetch(`${base}${def.art}/manifest.json`)).json()) as ArtManifest;
+  const manifest = await manifestOf(base, def.art);
   const suffix = host.quality === 'low' ? '@low' : '';
-  const loaded: { texture: THREE.Texture; bitmap: ImageBitmap; name: string; kind: LayerKind }[] = [];
-  for (const l of manifest.variants[v]) {
-    const { texture, bitmap } = await loadLayer(`${base}${def.art}/${l.file}${suffix}.webp`);
-    // Upload now, one a frame, so the first frame the memory is drawn doesn't stall.
-    host.renderer.initTexture(texture);
-    await new Promise((r) => requestAnimationFrame(r));
-    loaded.push({ texture, bitmap, name: l.name, kind: l.kind });
-  }
   let audio: MemoryAudio | null = null;
   if (host.audio) {
     const sid = sheetId(def.id, v);
     const src = sheetSource(sid, memorySchema(def.layers), { sections: def.sections, markers: def.markers });
     audio = new MemoryAudio(host.audio, def.cues(v), src.markers, id.length * 7 + v.length);
-    await audio.prepare();
+  }
+  const settled = await Promise.allSettled(manifest.variants[v].map((l) => loadLayer(`${base}${def.art}/${l.file}${suffix}.webp`)));
+  const loaded: { texture: THREE.Texture; bitmap: ImageBitmap; name: string; kind: LayerKind }[] = [];
+  settled.forEach((r, i) => {
+    if (r.status === 'fulfilled') loaded.push({ ...r.value, name: manifest.variants[v][i].name, kind: manifest.variants[v][i].kind });
+  });
+  const letGo = () => {
+    for (const l of loaded) {
+      l.texture.dispose();
+      l.bitmap.close();
+    }
+    audio?.dispose(0);
+  };
+  const failed = settled.find((r) => r.status === 'rejected') as PromiseRejectedResult | undefined;
+  if (failed) {
+    letGo();
+    throw failed.reason;
+  }
+  try {
+    await audio?.prepare();
+    // Upload one a frame, so the first frame the memory is drawn doesn't stall.
+    for (const l of loaded) {
+      host.renderer.initTexture(l.texture);
+      await new Promise((r) => requestAnimationFrame(r));
+    }
+  } catch (e) {
+    letGo();
+    throw e;
   }
   return {
     def,
     variant: v,
     size: manifest.size,
+    band: manifest.band ?? 0.17,
+    pane: manifest.pane ?? null,
     layers: loaded.map((l) => ({ name: l.name, kind: l.kind, texture: l.texture })),
     audio,
     dispose() {
@@ -113,7 +183,6 @@ export class LivingMemory {
       entrance: Math.min(2, timeline.sections.active * 0.4),
       sways: def.sways,
       exit: def.exit,
-      residue: def.residue,
       maxHold: def.maxHold,
       tail: def.tail,
       onState: o.onState,

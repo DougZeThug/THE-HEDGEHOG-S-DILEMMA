@@ -210,7 +210,7 @@ describe('memory audio: scheduled on the audio clock, never twice, nothing left 
     audio.release('interrupt', 1.2);
     const now = ctx.currentTime;
     expect(bed.stopAt).toBeCloseTo(now + 1.2 + 0.02, 6);
-    expect(music.stopAt).toBeCloseTo(now + 1.2 + 0.02, 6);
+    expect(music.stopAt).toBeCloseTo(now + 1.2 + 1.5 + 0.02, 6); // the radio recedes just after the picture
     expect(steps.stopAt).toBeCloseTo(now + 0.32, 6);
     expect(spoon.stopAt).toBeNull();
     // Nothing that stays (beds, music) starts after letting go.

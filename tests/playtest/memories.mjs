@@ -25,12 +25,13 @@ const VARIANT = process.env.VARIANT ?? 'first';
 // Stages: [name, sequence position or null for the untouched wall].
 const STAGES = [
   ['0-untouched', null],
-  ['1-first-drawing', 1.6],
+  ['1-first-drawing', 1.8],
   ['2-developing', 3.8],
   ['3-active', 9],
   ['4-active-late', 20],
-  ['5-dissolving', 24],
-  ['6-residue', 27.5],
+  ['5-dissolving', 24.5],
+  ['6-drawing-alone', 26.2],
+  ['7-residue', 29],
 ];
 mkdirSync(OUT, { recursive: true });
 
@@ -85,7 +86,7 @@ for (const profile of PROFILES) {
       continue;
     }
     const st = await page.evaluate((p) => window.__hedgehog.heldAt(p), pos);
-    await page.waitForTimeout(pos > 27 ? 3500 : 1200);
+    await page.waitForTimeout(pos > 24 ? 3000 : 1200);
     await page.screenshot({ path: `${OUT}/${profile}-${name}.png` });
     shots.push(`${name} (${st.state} @ ${st.position})`);
   }

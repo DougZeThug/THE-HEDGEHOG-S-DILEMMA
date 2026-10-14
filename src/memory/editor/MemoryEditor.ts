@@ -10,6 +10,7 @@ import type { TheatreState } from '../seed';
  * Theatre Studio, in the real room, over the real memory: pick a memory and a variant, start it
  * where the visitor would see it, then select, scrub, adjust and keyframe in Studio. The memory
  * follows Studio's playhead (held exactly there, nothing sounding: scrubbing never plays a cue).
+ * Sections and sound markers are read when a memory starts: after moving one, press Start again.
  * "Save to repo" writes src/memory/theatre-state.json through the dev server, which is what
  * production plays; commit it. "Download" is the fallback (put the file in the same place).
  * See docs/memories.md.
@@ -17,6 +18,8 @@ import type { TheatreState } from '../seed';
 export interface EditorHost {
   playMemory(id: string, phraseId: string, variant: string): Promise<boolean>;
   heldAt(position: number | null): unknown;
+  followPlayhead(position: number): void;
+  memoryWindow: { stylize: number };
   frameMemory(phraseId: string): void;
   endLivingMemory(why: 'complete' | 'interrupt' | 'depart'): void;
   /** Ticks Theatre's driver from the App frame (Studio's UI and playback). */
@@ -69,7 +72,7 @@ export function openEditor(app: EditorHost): void {
     // Follow Studio's playhead: select the sheet, and the memory is held wherever it is.
     const sheet = theatreProject().sheet(sheetId(id, v));
     unfollow?.();
-    unfollow = onChange(sheet.sequence.pointer.position, (p) => app.heldAt(p), driver);
+    unfollow = onChange(sheet.sequence.pointer.position, (p) => app.followPlayhead(p), driver);
     studio.setSelection([sheet]);
     (window as unknown as { __memorySheet: unknown }).__memorySheet = sheet; // for the editor's own tests
     app.heldAt(sheet.sequence.position);
@@ -103,6 +106,7 @@ export function openEditor(app: EditorHost): void {
       app.heldAt(null);
       app.endLivingMemory('interrupt');
     }),
+    btn('Stylized / as baked', () => (app.memoryWindow.stylize = app.memoryWindow.stylize > 0.5 ? 0 : 1)),
     btn('Save to repo', () => void save()),
     btn('Download', download),
     status,

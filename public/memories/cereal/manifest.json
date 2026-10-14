@@ -3,14 +3,18 @@
     0.9,
     0.6
   ],
+  "band": 0.17,
+  "pane": {
+    "x": 0.02,
+    "y": 0.1,
+    "w": 0.34,
+    "h": 0.26,
+    "shear": 0.55,
+    "transom": 0.05,
+    "mullion": 0.03
+  },
   "variants": {
     "first": [
-      {
-        "name": "wall",
-        "kind": "pigment",
-        "file": "first/wall",
-        "source": "code-painted stand-in"
-      },
       {
         "name": "curtain",
         "kind": "pigment",
@@ -44,21 +48,15 @@
     ],
     "later": [
       {
-        "name": "wall",
-        "kind": "pigment",
-        "file": "later/wall",
-        "source": "code-painted stand-in"
-      },
-      {
         "name": "curtain",
         "kind": "pigment",
-        "file": "later/curtain",
+        "file": "first/curtain",
         "source": "code-painted stand-in"
       },
       {
         "name": "table",
         "kind": "pigment",
-        "file": "later/table",
+        "file": "first/table",
         "source": "code-painted stand-in"
       },
       {

@@ -2,7 +2,7 @@ import { lifeTimeline, leaveTimeline, type Sway } from './behaviours';
 import { compose, type Weights } from './compose';
 import { seek } from './gsapClock';
 import { CueDispatch, type Due } from './cueDispatch';
-import type { Lifecycle, Marker, MemoryFrame, ReleaseReason, TimelineSource, Values } from './types';
+import type { Lifecycle, Marker, MemoryFrame, ReleaseReason, Sections, TimelineSource, Values } from './types';
 
 /**
  * The one owner of a playing memory: its lifecycle and its local time. The App steps it once a
@@ -86,6 +86,10 @@ export class MemoryPlaybackController {
   }
   get frame(): MemoryFrame | null {
     return this.last;
+  }
+
+  get sections(): Sections {
+    return this.o.timeline.sections;
   }
 
   private get s() {
@@ -227,6 +231,18 @@ export class MemoryPlaybackController {
     const frame: MemoryFrame = { state: this._state, t: this._t, position: p, base, env, final: compose(base, env, this.o.weights) };
     this.last = frame;
     return frame;
+  }
+
+  /**
+   * Recompute the frame where the sequence is, without moving it or touching sound (the editor:
+   * an edit in Studio shows at once on a held memory).
+   */
+  refresh(): MemoryFrame | null {
+    if (!this.last) return null;
+    const base = this.o.timeline.at(this.pos);
+    const env = { ...this.env };
+    this.last = { ...this.last, base, env, final: compose(base, env, this.o.weights) };
+    return this.last;
   }
 
   private complete(): void {

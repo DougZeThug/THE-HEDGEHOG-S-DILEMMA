@@ -77,16 +77,35 @@ export function graphite(s: Sheet, pts: Pt[], o: { weight?: number; alpha?: numb
   // pencil's, so the underdrawing still reads at that distance (the room's writing is the same).
   const w = ((o.weight ?? 0.9) * 2.2 / 1000) * s.ppm;
   const passes = o.passes ?? 2;
+  // A hand, not a ruler: long lines are drawn as runs of about 4 cm with a slow wobble, the
+  // pressure changing from run to run, and a little overshoot where the line starts and ends.
+  const runs: Pt[] = [];
+  const src = o.close ? [...pts, pts[0]] : pts;
+  for (let i = 0; i < src.length - 1; i++) {
+    const [x1, y1] = src[i], [x2, y2] = src[i + 1];
+    const n = Math.max(1, Math.ceil(Math.hypot(x2 - x1, y2 - y1) / 0.04));
+    for (let k = 0; k < n; k++) runs.push([x1 + ((x2 - x1) * k) / n, y1 + ((y2 - y1) * k) / n]);
+  }
+  runs.push(src[src.length - 1]);
+  if (!o.close && runs.length > 1) {
+    const ext = (a: Pt, b: Pt): Pt => {
+      const dx = a[0] - b[0], dy = a[1] - b[1], d = Math.hypot(dx, dy) || 1;
+      const e = s.r.range(0.002, 0.008);
+      return [a[0] + (dx / d) * e, a[1] + (dy / d) * e];
+    };
+    runs.unshift(ext(runs[0], runs[1]));
+    runs.push(ext(runs[runs.length - 1], runs[runs.length - 2]));
+  }
   for (let p = 0; p < passes; p++) {
-    const pts2 = o.close ? [...pts, pts[0]] : pts;
-    // Broken into short runs so the pressure varies along the line.
-    for (let i = 0; i < pts2.length - 1; i++) {
+    const phase = s.r.range(0, 6.28), amp = 0.0018 * (p + 1);
+    const wob = (i: number): Pt => [Math.sin(phase + i * 0.7) * amp, Math.cos(phase * 1.3 + i * 0.55) * amp];
+    for (let i = 0; i < runs.length - 1; i++) {
       if (s.r.next() < 0.06) continue; // the lead lifts
       c.strokeStyle = `rgba(52, 52, 58, ${Math.min(1, (o.alpha ?? 0.75) * 1.15) * s.r.range(0.6, 1)})`;
       c.lineWidth = w * s.r.range(0.7, 1.25);
-      const j = 0.0012 * (p + 1);
-      const [x1, y1] = px(s, [pts2[i][0] + s.r.range(-j, j), pts2[i][1] + s.r.range(-j, j)]);
-      const [x2, y2] = px(s, [pts2[i + 1][0] + s.r.range(-j, j), pts2[i + 1][1] + s.r.range(-j, j)]);
+      const a = wob(i), b = wob(i + 1);
+      const [x1, y1] = px(s, [runs[i][0] + a[0], runs[i][1] + a[1]]);
+      const [x2, y2] = px(s, [runs[i + 1][0] + b[0], runs[i + 1][1] + b[1]]);
       c.beginPath();
       c.moveTo(x1, y1);
       c.lineTo(x2, y2);

@@ -45,7 +45,7 @@ const FRAG = /* glsl */ `
   uniform vec2 uSize;              // metres
   uniform vec2 uNominal;           // the painting's own size (m), in which its light is authored
   uniform float uPlaster;          // the lit plaster's mean, linear (what pigment is relative to)
-  uniform float uReveal, uSketch, uResidue, uPresence, uStylize;
+  uniform float uReveal, uSketch, uPresence, uStylize;
   uniform vec3 uLight;             // the memory's light colour × intensity, linear
   uniform vec4 uPool;              // light pool: centre (m), radius (m), softness (m)
   uniform vec4 uReserve;           // the words: centre (m), half size (m)
@@ -54,9 +54,11 @@ const FRAG = /* glsl */ `
 
   vec3 toLinear(vec3 c) { return mix(c / 12.92, pow((c + 0.055) / 1.055, vec3(2.4)), step(0.04045, c)); }
 
-  void layer(int i, vec4 c, inout vec3 col, inout float cov, inout vec3 light, inout float sketch) {
+  void layer(int i, vec4 c, inout vec3 col, inout float cov, inout vec3 light, inout vec4 lead) {
     float o = uOpacity[i];
-    if (uKind[i] > 1.5) { sketch = max(sketch, c.a * o); col = c.rgb * o + col * (1.0 - c.a * o); cov = c.a * o + cov * (1.0 - c.a * o); }
+    // The graphite is kept apart (premultiplied), so the colour it lies over (not yet revealed)
+    // never tints it; it is laid over the colour at the end, revealed by its own mask.
+    if (uKind[i] > 1.5) lead = c * o + lead * (1.0 - c.a * o);
     else if (uKind[i] > 0.5) light += c.rgb * o;
     else { col = c.rgb * o + col * (1.0 - c.a * o); cov = c.a * o + cov * (1.0 - c.a * o); }
   }
@@ -77,31 +79,32 @@ const FRAG = /* glsl */ `
     vec2 e = min(vUv, 1.0 - vUv) * uSize;
     float edge = smoothstep(0.0, 0.06 + 0.05 * n, min(e.x, e.y));
 
-    vec3 col = vec3(0.0); float cov = 0.0; vec3 light = vec3(0.0); float sketch = 0.0;
-    if (uCount > 0) layer(0, texture2D(uL0, vUv + uShift[0]), col, cov, light, sketch);
-    if (uCount > 1) layer(1, texture2D(uL1, vUv + uShift[1]), col, cov, light, sketch);
-    if (uCount > 2) layer(2, texture2D(uL2, vUv + uShift[2]), col, cov, light, sketch);
-    if (uCount > 3) layer(3, texture2D(uL3, vUv + uShift[3]), col, cov, light, sketch);
-    if (uCount > 4) layer(4, texture2D(uL4, vUv + uShift[4]), col, cov, light, sketch);
-    if (uCount > 5) layer(5, texture2D(uL5, vUv + uShift[5]), col, cov, light, sketch);
+    vec3 col = vec3(0.0); float cov = 0.0; vec3 light = vec3(0.0); vec4 lead = vec4(0.0);
+    if (uCount > 0) layer(0, texture2D(uL0, vUv + uShift[0]), col, cov, light, lead);
+    if (uCount > 1) layer(1, texture2D(uL1, vUv + uShift[1]), col, cov, light, lead);
+    if (uCount > 2) layer(2, texture2D(uL2, vUv + uShift[2]), col, cov, light, lead);
+    if (uCount > 3) layer(3, texture2D(uL3, vUv + uShift[3]), col, cov, light, lead);
+    if (uCount > 4) layer(4, texture2D(uL4, vUv + uShift[4]), col, cov, light, lead);
+    if (uCount > 5) layer(5, texture2D(uL5, vUv + uShift[5]), col, cov, light, lead);
 
     // Unstylized (the editor's comparison): the layers as baked, with no mask, noise or reserve.
     float mask = mix(1.0, colourMask, uStylize);
     float smask = mix(1.0, sketchMask, uStylize);
-    // Graphite is found by the light first; colour follows.
-    float pigCov = (cov - sketch) * mask + sketch * smask;
-    pigCov = clamp(pigCov, 0.0, 1.0) * edge * uPresence;
+    // Graphite is found by the light first; colour follows. Lead over colour, premultiplied.
+    float cA = cov * mask, lA = lead.a * smask;
+    vec3 premul = lead.rgb * smask + col * mask * (1.0 - lA);
+    cov = lA + cA * (1.0 - lA);
+    col = premul;
+    float pigCov = clamp(cov, 0.0, 1.0) * edge * uPresence;
 
     // Bare plaster round the words, feathered over 2–3 cm with a rough edge.
     vec2 r = abs(m - uReserve.xy) - uReserve.zw;
     float rd = max(r.x, r.y) + (n2 - 0.5) * 0.02;
-    float reserve = 1.0 - smoothstep(-0.005, 0.025, rd);
-    pigCov *= 1.0 - mix(0.0, 0.45, reserve * uStylize);
+    float reserve = 1.0 - smoothstep(-0.005, 0.03, rd);
+    pigCov *= 1.0 - mix(0.0, 0.85, reserve * uStylize);
 
     vec3 pigment = toLinear(col / max(cov, 1e-3));
     vec3 lit = toLinear(min(light, vec3(1.0))) * uLight * mask * edge * uPresence;
-    // What stays: a faint warmth where the light was, after the image has gone.
-    lit += uLight * uResidue * colourMask * edge * 0.35;
 
     // dst × (cover × pigment / plaster + (1 − cover)) + dst × light (see the blend below).
     gl_FragColor = vec4(pigCov * pigment / uPlaster + lit, 1.0 - pigCov);
@@ -160,11 +163,16 @@ export class MemoryWindow {
   private readonly dummy: THREE.DataTexture;
   private readonly u: Record<string, THREE.IUniform>;
   private layers: WindowLayer[] = [];
-  /** The painting's proportions (width / height). */
+  /** The painting's proportions (width / height), and the band at its top kept for the words. */
   private aspect = 1.5;
+  private band = 0.17;
+  /** Where the painting is on its wall now (group metres), and its scale from painting metres. */
+  private at = { cx: 0, cy: 0, scale: 1 };
   private eye = new THREE.Vector3();
   private eyeReady = false;
   private readonly tmp = new THREE.Vector3();
+  private kelvinAt = -1;
+  private readonly kelvinRgb = new THREE.Vector3();
   private placed: { group: THREE.Object3D; x: number; y: number; w: number; h: number; minX: number; maxX: number; minY: number; maxY: number } | null = null;
 
   constructor() {
@@ -188,7 +196,6 @@ export class MemoryWindow {
       uPlaster: { value: 0.84 },
       uReveal: { value: 0 },
       uSketch: { value: 0 },
-      uResidue: { value: 0 },
       uPresence: { value: 0 },
       uStylize: { value: 1 },
       uLight: { value: new THREE.Vector3() },
@@ -220,8 +227,13 @@ export class MemoryWindow {
   }
 
   /** The textures a memory brings, in slot order (back to front). Fewer than six is fine. */
-  setLayers(layers: WindowLayer[], size: [number, number] = [0.9, 0.6]): void {
+  /**
+   * `size`: the painting's own size (m); `band`: how much of its top (painting metres) is kept
+   * for the words, which are written across it on bare plaster.
+   */
+  setLayers(layers: WindowLayer[], size: [number, number] = [0.9, 0.6], band = 0.17): void {
     this.layers = layers.slice(0, SLOTS);
+    this.band = band;
     this.aspect = size[0] / size[1];
     (this.u.uNominal.value as THREE.Vector2).set(size[0], size[1]);
     const keys = ['uL0', 'uL1', 'uL2', 'uL3', 'uL4', 'uL5'];
@@ -239,7 +251,6 @@ export class MemoryWindow {
     this.setLayers([]);
     this.u.uPresence.value = 0;
     this.u.uLight.value.set(0, 0, 0);
-    this.u.uResidue.value = 0;
   }
 
   get layerNames(): string[] {
@@ -249,6 +260,7 @@ export class MemoryWindow {
   /** Put the window on the wall where its line is written (a WallText anchor). */
   place(a: { group: THREE.Object3D; x: number; y: number; w: number; h: number; minX: number; maxX: number; minY: number; maxY: number }, seed: number): void {
     this.placed = a;
+    this.mesh.visible = true;
     if (this.mesh.parent !== a.group) a.group.add(this.mesh);
     this.u.uSeed.value = (seed % 997) / 997;
     this.eyeReady = false;
@@ -271,19 +283,30 @@ export class MemoryWindow {
     const w = THREE.MathUtils.clamp(a.w * 0.95, 0.8, 1.3) * v('window.scale', 1);
     const h = w / this.aspect;
     let cx = a.x + v('window.offsetX', 0);
-    let cy = a.y + a.h / 2 + 0.05 - h / 2 + v('window.offsetY', 0);
+    // The words sit in the band at the painting's top (never down in the scene): its top is just
+    // above them, or higher if they wrap onto more lines than the band holds.
+    const scale = w / (this.u.uNominal.value as THREE.Vector2).x;
+    const top = Math.max(a.y + a.h / 2 + 0.03, a.y - a.h / 2 + this.band * scale);
+    let cy = top - h / 2 + v('window.offsetY', 0);
     cx = THREE.MathUtils.clamp(cx, a.minX + w / 2, a.maxX - w / 2);
     cy = THREE.MathUtils.clamp(cy, a.minY + h / 2, a.maxY - h / 2);
     this.mesh.position.set(cx, cy, 0.004);
+    this.at.cx = cx;
+    this.at.cy = cy;
+    this.at.scale = scale;
     this.mesh.scale.set(w, h, 1);
     this.u.uSize.value.set(w, h);
     this.u.uReserve.value.set(a.x - cx, a.y - cy, a.w / 2 + 0.02, a.h / 2 + 0.015);
     this.u.uReveal.value = v('window.reveal', 0) * 1.25;
     this.u.uSketch.value = v('window.sketch', 0) * 1.25;
     this.u.uPresence.value = v('window.presence', 1);
-    this.u.uResidue.value = v('window.residue', 0);
     this.u.uPool.value.set(v('light.x', 0), v('light.y', 0), v('light.radius', 0.45), v('light.soft', 0.12));
-    this.u.uLight.value.copy(kelvin(v('light.warmth', 3000))).multiplyScalar(v('light.intensity', 0));
+    const k = Math.round(v('light.warmth', 3000) / 25) * 25;
+    if (k !== this.kelvinAt) {
+      this.kelvinAt = k;
+      this.kelvinRgb.copy(kelvin(k));
+    }
+    this.u.uLight.value.copy(this.kelvinRgb).multiplyScalar(v('light.intensity', 0));
 
     // Parallax from a smoothed, un-bobbed eye, in the window's own frame: millimetres to two
     // centimetres, soft-clamped, fading out at grazing angles.
@@ -294,7 +317,7 @@ export class MemoryWindow {
     const local = this.mesh.worldToLocal(this.tmp.copy(this.eye));
     // worldToLocal includes the mesh's scale; undo it to get metres.
     const lx = local.x * w, ly = local.y * h, lz = Math.max(0.3, local.z);
-    const grazing = THREE.MathUtils.smoothstep(Math.atan2(Math.hypot(lx, ly), lz), 1.05, 0.7);
+    const grazing = 1 - THREE.MathUtils.smoothstep(Math.atan2(Math.hypot(lx, ly), lz), 0.7, 1.05);
     const amount = v('window.parallax', 1) * grazing;
     const opac = this.u.uOpacity.value as number[];
     const shift = this.u.uShift.value as THREE.Vector2[];
@@ -319,10 +342,20 @@ export class MemoryWindow {
   set stylize(s: number) {
     this.u.uStylize.value = s;
   }
+  get stylize(): number {
+    return this.u.uStylize.value as number;
+  }
 
   /** The memory has ended: neutral again, off the wall's group. */
+  /** A point of the painting (its own metres, from its centre) on its wall (the group's metres). */
+  toWall(x: number, y: number): { x: number; y: number; scale: number } {
+    return { x: this.at.cx + x * this.at.scale, y: this.at.cy + y * this.at.scale, scale: this.at.scale };
+  }
+
   release(): void {
     this.clearLayers();
     this.placed = null;
+    // Not drawn at all between memories (it was drawn neutral once at boot, to compile).
+    this.mesh.visible = false;
   }
 }

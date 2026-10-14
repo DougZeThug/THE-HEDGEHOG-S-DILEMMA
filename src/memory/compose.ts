@@ -7,12 +7,11 @@ import type { Values } from './types';
  * this function composes them deterministically into what is drawn and heard.
  *
  *   opacity   = base × emerge × exit × presence
- *   reveal    = base × (1 − dissolve)                     (the light recedes, taking the colour)
- *   sketch    = base × (1 − dissolve in its second half)  (the graphite is the last to sink)
+ *   reveal    = base × (1 − dissolve / 0.7)               (the light recedes, taking the colour)
+ *   sketch    = base × (1 − (dissolve − 0.65) / 0.35)     (the drawing stands alone, then sinks)
  *   offsets   = base + envelope offset × motion           (motion 0 under reduced motion)
  *   parallax  = base × parallaxWeight                     (0.25 under reduced motion)
  *   light     = base × emerge × exit × presence
- *   residue   = base × residue envelope
  */
 export interface Weights {
   /** Overall presence: 1, or 0.6 under gentle intensity. */
@@ -56,9 +55,6 @@ export function compose(base: Values, env: Values, w: Weights): Values {
       case 'parallax':
         out[k] = v * w.parallax;
         break;
-      case 'residue':
-        out[k] = clamp01(v * env1(env, 'residue', 0));
-        break;
       case 'x':
       case 'y':
       case 'rot':
@@ -70,7 +66,8 @@ export function compose(base: Values, env: Values, w: Weights): Values {
     }
   }
   // The window's reveal is authored (the mask's growth); the dissolve takes it back.
-  if ('window.reveal' in base) out['window.reveal'] = clamp01(base['window.reveal'] * (1 - dissolve));
-  if ('window.sketch' in base) out['window.sketch'] = clamp01(base['window.sketch'] * (1 - clamp01(dissolve * 2 - 1)));
+  // The arrival in reverse: the colour goes with the light, leaving the drawing alone a moment.
+  if ('window.reveal' in base) out['window.reveal'] = clamp01(base['window.reveal'] * (1 - clamp01(dissolve / 0.7)));
+  if ('window.sketch' in base) out['window.sketch'] = clamp01(base['window.sketch'] * (1 - clamp01((dissolve - 0.65) / 0.35)));
   return out;
 }

@@ -1,4 +1,4 @@
-import { crayon, ellipse, graphite, sheet, sunPane, tooth, wash, type Pt, type Sheet } from './brush';
+import { crayon, ellipse, graphite, sheet, sunPane, tooth, type Pt, type Sheet } from './brush';
 
 /**
  * "We ate cereal for dinner and it was perfect."
@@ -16,9 +16,10 @@ import { crayon, ellipse, graphite, sheet, sunPane, tooth, wash, type Pt, type S
  * Window 0.9 × 0.6 m; metres from its centre, y up. Code-painted stand-in, replaceable.
  */
 export const SIZE: [number, number] = [0.9, 0.6];
-export const LAYERS = ['wall', 'curtain', 'table', 'things', 'pencil', 'sun'] as const;
+/** The top of the painting kept for the words (they are written across bare plaster there). */
+export const BAND = 0.17;
+export const LAYERS = ['curtain', 'table', 'things', 'pencil', 'sun'] as const;
 export const KINDS: Record<(typeof LAYERS)[number], 'pigment' | 'light' | 'sketch'> = {
-  wall: 'pigment',
   curtain: 'pigment',
   table: 'pigment',
   things: 'pigment',
@@ -28,33 +29,43 @@ export const KINDS: Record<(typeof LAYERS)[number], 'pigment' | 'light' | 'sketc
 
 const OCHRE: [number, number, number] = [196, 146, 78];
 const BLUE: [number, number, number] = [104, 132, 162];
-const RED: [number, number, number] = [178, 86, 66];
+const RED: [number, number, number] = [168, 104, 88];
 
-// The table: its far edge and near edge, cut by the frame.
+// The table: its far and near edges, stopping short of the picture's sides, raggedly (a
+// child's colouring doesn't reach the edge of the page).
 const TABLE: Pt[] = [
-  [-0.45, -0.07],
-  [0.45, -0.05],
-  [0.45, -0.3],
-  [-0.45, -0.3],
+  [-0.37, -0.075],
+  [0.39, -0.055],
+  [0.41, -0.11],
+  [0.385, -0.17],
+  [0.4, -0.235],
+  [0.375, -0.28],
+  [-0.36, -0.285],
+  [-0.385, -0.24],
+  [-0.365, -0.17],
+  [-0.39, -0.11],
 ];
+// The box, left standing on the table: low enough that the words above stay on bare wall.
 const BOX: Pt[] = [
-  [-0.36, -0.105],
-  [-0.24, -0.105],
-  [-0.24, 0.135],
-  [-0.36, 0.135],
+  [-0.4, -0.105],
+  [-0.29, -0.105],
+  [-0.29, 0.055],
+  [-0.4, 0.055],
 ];
 const BOX_SIDE: Pt[] = [
-  [-0.24, -0.105],
-  [-0.212, -0.088],
-  [-0.212, 0.148],
-  [-0.24, 0.135],
+  [-0.29, -0.105],
+  [-0.265, -0.09],
+  [-0.265, 0.068],
+  [-0.29, 0.055],
 ];
 const BOX_TOP: Pt[] = [
-  [-0.36, 0.135],
-  [-0.24, 0.135],
-  [-0.212, 0.148],
-  [-0.332, 0.148],
+  [-0.4, 0.055],
+  [-0.29, 0.055],
+  [-0.265, 0.068],
+  [-0.375, 0.068],
 ];
+/** The sun's pane on the back wall, in the painting's metres (the room's light lines up with it). */
+export const SUN_PANE = { x: 0.02, y: 0.1, w: 0.34, h: 0.26, shear: 0.55, transom: 0.05, mullion: 0.03 };
 // Two bowls that don't match, one overlapping the other: a wide blue one, a smaller cream one
 // with a red rim.
 const BOWL_A = { cx: -0.06, cy: -0.135, rx: 0.115, ry: 0.032, depth: 0.06 };
@@ -97,60 +108,60 @@ export function paint(variant: string, ppm: number, seed = 7): Record<string, HT
   const out: Record<string, HTMLCanvasElement> = {};
   const later = variant === 'later';
 
-  // The back wall: one thin warm wash, nothing else (the words are written across it).
-  const wall = mk(1);
-  wash(wall, [[-0.45, -0.065], [0.45, -0.045], [0.45, 0.3], [-0.45, 0.3]], [222, 202, 170], 0.14);
-  out.wall = wall.canvas;
-
-  // The curtain, hanging still at the edge of the window we don't see.
+  // The curtain, hanging still at the edge of the window we don't see: pale, a few folds.
   const cur = mk(2);
-  crayon(cur, CURTAIN, BLUE, { alpha: 0.5, angle: 1.5, density: 1.2 });
+  crayon(cur, CURTAIN, BLUE, { alpha: 0.32, angle: 1.5, density: 0.9 });
   tooth(cur);
   out.curtain = cur.canvas;
 
   // The table, ochre wax worked along the grain, heavier at its near edge.
   const tab = mk(3);
   crayon(tab, TABLE, OCHRE, { alpha: 0.4, angle: 0.06, density: 0.9 });
-  crayon(tab, [[-0.45, -0.265], [0.45, -0.265], [0.45, -0.3], [-0.45, -0.3]], OCHRE, { alpha: 0.55, angle: 0.03, density: 1.3 });
+  crayon(tab, [[-0.35, -0.255], [0.37, -0.25], [0.36, -0.28], [-0.34, -0.282]], OCHRE, { alpha: 0.5, angle: 0.03, density: 1.2 });
   tooth(tab);
   out.table = tab.canvas;
 
-  // The things: the box (red front, ochre side), the two bowls, cereal in one.
+  // The things: the box (red front, ochre side), the two bowls, what is in them.
   const th = mk(4);
   if (later) {
-    // Later the same evening: the box on its side, both bowls filled again.
-    crayon(th, [[-0.4, -0.115], [-0.16, -0.115], [-0.16, -0.045], [-0.4, -0.045]], RED, { alpha: 0.6, angle: 1.3 });
+    // Later: the box on its side (empty), both bowls empty, one spoon left on the table.
+    crayon(th, [[-0.42, -0.115], [-0.2, -0.115], [-0.2, -0.05], [-0.42, -0.05]], RED, { alpha: 0.45, angle: 1.3 });
   } else {
-    crayon(th, BOX, RED, { alpha: 0.6, angle: 1.3, density: 1.4 });
-    crayon(th, BOX_SIDE, OCHRE, { alpha: 0.55, angle: 1.45, density: 1.4 });
-    crayon(th, BOX_TOP, OCHRE, { alpha: 0.35, angle: 0.1 });
+    crayon(th, BOX, RED, { alpha: 0.45, angle: 1.3, density: 1.3 });
+    crayon(th, BOX_SIDE, OCHRE, { alpha: 0.45, angle: 1.45, density: 1.3 });
+    crayon(th, BOX_TOP, OCHRE, { alpha: 0.3, angle: 0.1 });
   }
-  crayon(th, bowlOutside(BOWL_A), BLUE, { alpha: 0.6, angle: 0.25, density: 1.6, inset: 0.002 });
+  crayon(th, bowlOutside(BOWL_A), BLUE, { alpha: 0.55, angle: 0.25, density: 1.6, inset: 0.002 });
   crayon(th, bowlOutside(BOWL_B), [226, 214, 196], { alpha: 0.6, angle: 0.25, density: 1.6, inset: 0.002 });
-  crayon(th, ellipse(BOWL_B.cx, BOWL_B.cy, BOWL_B.rx, BOWL_B.ry, Math.PI, 2 * Math.PI, 20).concat(ellipse(BOWL_B.cx, BOWL_B.cy - 0.008, BOWL_B.rx * 0.99, BOWL_B.ry, 0, -Math.PI, 20)), RED, { alpha: 0.7, inset: 0, density: 2 });
-  // Milk and cereal inside the bowls (the cream bowl only later: seconds).
-  const full = later ? [BOWL_A, BOWL_B] : [BOWL_A];
-  for (const b of full) {
-    crayon(th, bowlInside(b), [236, 230, 216], { alpha: 0.35, angle: 0.1, inset: 0.006, density: 1.5 });
-    for (let i = 0; i < 26; i++) {
-      const a = th.r.range(0, Math.PI * 2), d = Math.sqrt(th.r.next());
-      const x = b.cx + Math.cos(a) * b.rx * 0.78 * d, y = b.cy + Math.sin(a) * b.ry * 0.62 * d;
-      dab(th, x, y, OCHRE);
-    }
+  crayon(th, ellipse(BOWL_B.cx, BOWL_B.cy, BOWL_B.rx, BOWL_B.ry, Math.PI, 2 * Math.PI, 20).concat(ellipse(BOWL_B.cx, BOWL_B.cy - 0.008, BOWL_B.rx * 0.99, BOWL_B.ry, 0, -Math.PI, 20)), RED, { alpha: 0.6, inset: 0, density: 2 });
+  if (!later) {
+    // The wide bowl full; in the other, the last of the box: a pitiful handful.
+    crayon(th, bowlInside(BOWL_A), [236, 230, 216], { alpha: 0.35, angle: 0.1, inset: 0.006, density: 1.5 });
+    const flakes = (b: typeof BOWL_A, n: number, spread: number) => {
+      for (let i = 0; i < n; i++) {
+        const a = th.r.range(0, Math.PI * 2), d = Math.sqrt(th.r.next()) * spread;
+        dab(th, b.cx + Math.cos(a) * b.rx * 0.78 * d, b.cy + Math.sin(a) * b.ry * 0.62 * d, OCHRE);
+      }
+    };
+    flakes(BOWL_A, 26, 1);
+    flakes(BOWL_B, 5, 0.5);
   }
   tooth(th);
   out.things = th.canvas;
 
   // The underdrawing: everything, in graphite, a little looser than the colour.
   const pen = mk(5);
-  graphite(pen, [[-0.45, -0.07], [0.45, -0.05]], { weight: 0.8 });
-  graphite(pen, [[-0.45, -0.265], [0.45, -0.265]], { weight: 0.9 });
-  graphite(pen, [[0.37, 0.3], [0.383, 0.17], [0.392, 0.05], [0.4, -0.05]], { weight: 0.7 });
-  graphite(pen, [[0.41, 0.28], [0.415, 0.1], [0.42, -0.04]], { weight: 0.5, alpha: 0.5 });
-  if (later) graphite(pen, [[-0.4, -0.115], [-0.16, -0.115], [-0.16, -0.045], [-0.4, -0.045]], { close: true });
-  else {
+  graphite(pen, [[-0.37, -0.075], [0.39, -0.055]], { weight: 0.8 });
+  graphite(pen, [[-0.355, -0.268], [0.375, -0.262]], { weight: 0.9 });
+  graphite(pen, [[0.37, 0.3], [0.383, 0.17], [0.392, 0.05], [0.4, -0.05]], { weight: 0.6, alpha: 0.6 });
+  if (later) {
+    graphite(pen, [[-0.42, -0.115], [-0.2, -0.115], [-0.2, -0.05], [-0.42, -0.05]], { close: true });
+    // The other spoon, on the table.
+    graphite(pen, [[0.2, -0.205], [0.28, -0.19]], { weight: 1.3 });
+    graphite(pen, ellipse(0.19, -0.207, 0.014, 0.006, 0, Math.PI * 2, 12), { weight: 0.9 });
+  } else {
     graphite(pen, BOX, { close: true });
-    graphite(pen, [[-0.24, -0.105], [-0.212, -0.088], [-0.212, 0.148], [-0.332, 0.148], [-0.36, 0.135]]);
+    graphite(pen, [[-0.29, -0.105], [-0.265, -0.09], [-0.265, 0.068], [-0.375, 0.068], [-0.4, 0.055]]);
   }
   for (const b of [BOWL_A, BOWL_B]) {
     graphite(pen, bowlInside(b), { weight: 0.8 });
@@ -162,15 +173,16 @@ export function paint(variant: string, ppm: number, seed = 7): Record<string, HT
   out.pencil = pen.canvas;
 
   // The sun, from the window on the right: a slanted pane across the back wall with the sash
-  // in shadow (the kitchen-light memory's own window), and a warm spill along the table.
+  // in shadow (the kitchen-light memory's own window), and a spill along the table. Painted
+  // white: its colour is the memory's light (light.warmth), so it hands over to the room's sun.
   const sun = mk(6);
-  const warm: [number, number, number] = later ? [255, 214, 168] : [255, 228, 190];
-  sunPane(sun, { x: 0.02, y: 0.1, w: 0.34, h: 0.26, shear: 0.55, transom: 0.05, mullion: 0.03, colour: warm, blur: 0.014 });
+  const white: [number, number, number] = [255, 255, 255];
+  sunPane(sun, { ...SUN_PANE, colour: white, blur: later ? 0.02 : 0.014 });
   sun.ctx.save();
   sun.ctx.filter = `blur(${Math.round(0.03 * ppm)}px)`;
-  sun.ctx.globalAlpha = 0.55;
-  sun.ctx.fillStyle = `rgb(${warm.join(',')})`;
-  const spill: Pt[] = [[-0.16, -0.075], [0.38, -0.055], [0.3, -0.2], [-0.26, -0.22]];
+  sun.ctx.globalAlpha = 0.5;
+  sun.ctx.fillStyle = 'rgb(255,255,255)';
+  const spill: Pt[] = [[-0.16, -0.075], [0.36, -0.06], [0.3, -0.2], [-0.26, -0.22]];
   sun.ctx.beginPath();
   spill.forEach((q, i) => {
     const [x, y] = [(q[0] + W / 2) * ppm, (H / 2 - q[1]) * ppm];

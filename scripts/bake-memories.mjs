@@ -12,7 +12,8 @@
  */
 import { build } from 'esbuild';
 import { chromium } from 'playwright';
-import { mkdirSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync, existsSync, readFileSync, rmSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -35,9 +36,12 @@ for (const [id, variants] of Object.entries(VARIANTS)) {
   const old = existsSync(manifestPath) ? JSON.parse(readFileSync(manifestPath, 'utf8')) : null;
   const info = await page.evaluate((id) => {
     const p = window.Painters.PAINTERS[id];
-    return { size: p.SIZE, layers: p.LAYERS, kinds: p.KINDS };
+    return { size: p.SIZE, layers: p.LAYERS, kinds: p.KINDS, pane: p.SUN_PANE ?? null, band: p.BAND ?? null };
   }, id);
-  const manifest = { size: info.size, variants: {} };
+  // The painting's size; the band at its top kept for the words; the sun's pane (where the
+  // memory's light leaves the room's light, the bleed).
+  const manifest = { size: info.size, band: info.band, pane: info.pane, variants: {} };
+  const seen = new Map();
   for (const v of variants) {
     mkdirSync(join(dir, v), { recursive: true });
     manifest.variants[v] = [];
@@ -51,10 +55,21 @@ for (const [id, variants] of Object.entries(VARIANTS)) {
       );
       for (const name of info.layers) {
         const prev = old?.variants?.[v]?.find((l) => l.name === name);
-        const file = `${v}/${name}${suffix}.webp`;
-        if (prev?.source === 'artist') console.log(`  kept (artist's): ${file}`);
-        else writeFileSync(join(dir, file), Buffer.from(layers[name].split(',')[1], 'base64'));
-        if (!suffix) manifest.variants[v].push({ name, kind: info.kinds[name], file: `${v}/${name}`, source: prev?.source === 'artist' ? 'artist' : 'code-painted stand-in' });
+        let file = `${v}/${name}`;
+        if (prev?.source === 'artist') console.log(`  kept (artist's): ${file}${suffix}.webp`);
+        else {
+          const bytes = Buffer.from(layers[name].split(',')[1], 'base64');
+          // A layer the same as one an earlier variant has is shared, not downloaded twice.
+          const hash = createHash('sha1').update(bytes).digest('hex') + suffix;
+          if (seen.has(hash)) {
+            file = seen.get(hash);
+            rmSync(join(dir, `${v}/${name}${suffix}.webp`), { force: true });
+          } else {
+            seen.set(hash, file);
+            writeFileSync(join(dir, `${file}${suffix}.webp`), bytes);
+          }
+        }
+        if (!suffix) manifest.variants[v].push({ name, kind: info.kinds[name], file, source: prev?.source === 'artist' ? 'artist' : 'code-painted stand-in' });
       }
     }
     console.log(`✓ ${id}/${v}: ${info.layers.join(', ')}`);

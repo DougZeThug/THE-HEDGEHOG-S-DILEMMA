@@ -89,6 +89,8 @@ export class App {
     awayFor: number; watched: number; minHold: number; why: string | null;
   } | null = null;
   private memoryClock = new MemoryClock();
+  private memoryGen = 0;
+  private prefetched = new Set<string>();
   /** Theatre Studio's ticker, while the Memory Editor is open (development only). */
   studioTick: ((now: number) => void) | null = null;
   private memoryRuntime: Promise<typeof import('./memory/runtime')> | null = null;
@@ -368,6 +370,7 @@ export class App {
       ctx: a.ctx,
       out: a.buses.memory,
       load: async (asset, take) => {
+        if (asset === 'synth:air') return (await import('./memory/synthAir')).synthAir(a.ctx.sampleRate, 7 + (take ?? 0));
         if (!asset.startsWith('music/')) return voices.raw(asset, take);
         try {
           const r = await fetch('./' + asset);
@@ -407,6 +410,8 @@ export class App {
     const a = this.text.anchorOf(phraseId, this.gazeId ?? this.lastTappedKey);
     if (!a) return false;
     this.endLivingMemory('switch');
+    // Only the latest request plays (two overlapping ones would otherwise both load).
+    const gen = ++this.memoryGen;
     let rt: typeof import('./memory/runtime');
     let prepared: Awaited<ReturnType<typeof rt.prepare>>;
     try {
@@ -416,8 +421,19 @@ export class App {
       console.warn('memory could not be prepared', e);
       return false;
     }
+    if (gen !== this.memoryGen || this.mode === 'departed') {
+      prepared.dispose();
+      prepared.audio?.dispose(0);
+      return false;
+    }
+    // A switch released the one before: let it go at once rather than overlap.
+    if (this.living) {
+      this.living.memory.dispose(0.3);
+      this.memoryWindow.release();
+      this.living = null;
+    }
     this.memoryWindow.place(a, hashString(a.key));
-    this.memoryWindow.setLayers(prepared.layers, prepared.size);
+    this.memoryWindow.setLayers(prepared.layers, prepared.size, prepared.band);
     const memory = new rt.LivingMemory(prepared, {
       reduced: this.prefs.reducedMotion,
       gentle: this.prefs.intensity === 'gentle',
@@ -428,8 +444,8 @@ export class App {
     });
     this.living = { memory, id, key: a.key, anchor: a, bled: false, hiddenSince: null, held: false, awayFor: 0, watched: 0, minHold: SCENE_BY_PHRASE.get(phraseId)?.minHold ?? 8, why: null };
     this.memoryClock.reset();
-    // The room hushes round it, until it lets go.
-    this.audio?.silence(prepared.def.hush, 3600, 1.4);
+    // The room hushes round it (and its music stops), until it lets go.
+    this.audio?.memoryHush(prepared.def.hush, 1.4);
     memory.start();
     return true;
   }
@@ -439,17 +455,9 @@ export class App {
     if (!l) return;
     if (s === 'residue' || s === 'complete') {
       // The room comes back as the memory lets go (issued now, never precomputed).
-      this.audio?.silence(l.memory.prepared.def.hush, 0.05, 1.4, 3.5);
+      this.audio?.memoryHush(0, 3.5);
     }
-    if (s === 'residue' && !l.bled && l.memory.prepared.def.bleed === 'kitchen-light' && !this.memoryLight.active) {
-      // What stays: the kitchen's late sun on the wall, where the memory was.
-      l.bled = true;
-      const a = l.anchor;
-      this.memoryLight.reducedMotion = this.prefs.reducedMotion;
-      this.memoryLight.strength = this.prefs.intensity === 'gentle' ? 0.6 : 1;
-      this.memoryLight.start(a.group, a.x, a.y, a.w, a.h, a.minX, a.maxX, a.maxY, { attack: 1.5, hold: 4, release: 5 }, this.time, 0);
-      this.memoryKey = a.key;
-    }
+
     if (s === 'complete') {
       this.memoryWindow.release();
       l.memory.prepared.dispose();
@@ -462,6 +470,28 @@ export class App {
         writeMemoryCounts(counts);
       }
     }
+  }
+
+  /**
+   * What stays: as a memory withdraws naturally, its sun comes into the room. It starts while the
+   * painted sun is still half there, at the painted pane's size, place and slant, so one becomes
+   * the other; then it is the kitchen-light memory's own light, fading on its own time.
+   */
+  private bleedMemory(l: NonNullable<App['living']>, frame: { state: Lifecycle; position: number; final: Record<string, number> }) {
+    const def = l.memory.prepared.def;
+    if (l.bled || def.bleed !== 'kitchen-light' || this.memoryLight.active) return;
+    const c = l.memory.controller;
+    if (frame.state !== 'withdrawing' || frame.position < c.sections.exit + (def.bleedAt ?? 2)) return;
+    l.bled = true;
+    const spill = frame.final['light.roomSpill'] ?? 1;
+    if (spill <= 0) return;
+    const pane = l.memory.prepared.pane;
+    if (!pane) return;
+    const at = this.memoryWindow.toWall(pane.x + (frame.final['layer:sun.x'] ?? 0), pane.y + (frame.final['layer:sun.y'] ?? 0));
+    this.memoryLight.reducedMotion = this.prefs.reducedMotion;
+    this.memoryLight.strength = (this.prefs.intensity === 'gentle' ? 0.6 : 1) * spill;
+    this.memoryLight.startPane(l.anchor.group, at.x, at.y, (pane.w / 2) * at.scale, (pane.h / 2) * at.scale, pane.transom * at.scale, pane.mullion * at.scale, { attack: 3, hold: 4, release: 6 }, this.time, 0);
+    this.memoryKey = l.key;
   }
 
   /** Let the playing memory go: gracefully, or (switch, depart, hidden) at once. */
@@ -511,13 +541,45 @@ export class App {
     else if (away && dist > 4.5) this.endLivingMemory('walk-away');
   }
 
+  /**
+   * Studio's playhead moved (the editor). The memory's own playing also moves it (the controller
+   * sets the sequence's position each frame): that is not a scrub, and doesn't hold it.
+   */
+  followPlayhead(position: number) {
+    const l = this.living;
+    if (!l) return;
+    if (!l.held && Math.abs(l.memory.controller.position - position) < 1e-3) return;
+    this.heldAt(position);
+  }
+
+  /**
+   * A memory's line is on a wall: fetch the runtime and its art now (at idle), so that when it is
+   * asked for it begins without a wait.
+   */
+  private prefetchMemories() {
+    if (this.mode !== 'room' || (this.frameCount++ & 31) !== 0) return;
+    for (const [phraseId, m] of SCENE_BY_PHRASE) {
+      if (this.prefetched.has(m.id) || !this.text.anchorOf(phraseId)) continue;
+      this.prefetched.add(m.id);
+      const variant = (readMemoryCounts()[m.id] ?? 0) > 0 ? m.variants.revisit[0] ?? m.variants.first : m.variants.first;
+      const idle = (window as { requestIdleCallback?: (f: () => void) => void }).requestIdleCallback ?? ((f: () => void) => setTimeout(f, 200));
+      idle(() => void this.memoryChunk().then((rt) => rt.prefetch(m.id, variant, { quality: this.prefs.quality })));
+    }
+  }
+  private frameCount = 0;
+
   private stepLivingMemory() {
     this.studioTick?.(performance.now());
+    this.prefetchMemories();
     const l = this.living;
     if (!l) return;
     if (l.held) {
-      const f = l.memory.controller.frame;
-      if (f) this.memoryWindow.update(f.final, this.rig.restingEye, 1 / 60);
+      // In the editor, re-read the timeline every frame so an edit shows as it is made.
+      const f = this.studioTick ? l.memory.controller.refresh() : l.memory.controller.frame;
+      if (f) {
+        this.memoryWindow.update(f.final, this.rig.restingEye, 1 / 60);
+        this.bleedMemory(l, f);
+      }
       return;
     }
     const paused = this.mode === 'settings' || document.hidden;
@@ -531,7 +593,10 @@ export class App {
     const dt = this.memoryClock.tick(performance.now() / 1000, this.audio?.ctx.currentTime ?? 0, this.audio?.ctx.state === 'running', paused);
     this.judgeMemoryAttention(l, dt);
     const frame = l.memory.step(dt);
-    if (frame) this.memoryWindow.update(frame.final, this.rig.restingEye, dt);
+    if (frame) {
+      this.memoryWindow.update(frame.final, this.rig.restingEye, dt);
+      this.bleedMemory(l, frame);
+    }
   }
 
   private bakeOldDrawings() {
@@ -802,17 +867,18 @@ export class App {
         this.room.setLit(0.08 + 0.92 * m ** 1.5, m);
         this.text.airShadowLight = this.lighting.score.key / ROOM_LEVELS.key;
         const since = this.time - this.handoffAt;
-        if (!this.hintShown && since > 4 && !(this.touch && this.dragged)) this.showHint();
+        // (No hint while a memory is forming or playing: it waits.)
+        if (!this.hintShown && since > 4 && !(this.touch && this.dragged) && !this.living) this.showHint();
         // Someone exploring only by eye, still sitting where the opening left them, may not know
         // they can get up: told once, never moved for them.
-        if (!this.touch && !this.walkHintShown && since > 25 && this.rig.seated && this.mode === 'room') {
+        if (!this.touch && !this.walkHintShown && since > 25 && this.rig.seated && this.mode === 'room' && !this.living) {
           this.walkHintShown = true;
           const h = $('hint');
           h.textContent = '↑ or W to walk · Esc to pause';
           h.classList.add('on');
           setTimeout(() => h.classList.remove('on'), 5500);
         }
-        if (this.touch && this.mode === 'room' && !this.touchHintShown && since > 12 && !this.touched) this.showTouchHint();
+        if (this.touch && this.mode === 'room' && !this.touchHintShown && since > 12 && !this.touched && !this.living) this.showTouchHint();
       }
     }
 

@@ -24,15 +24,29 @@ function look(m: MemoryDirector, from: number, seconds: number, o: Partial<Scene
   return null;
 }
 
+/** Look elsewhere for `seconds` from `from`. */
+function away(m: MemoryDirector, from: number, seconds: number, o: Partial<SceneState> = {}) {
+  for (let t = 0; t <= seconds + 1e-9; t += 0.1) m.update(base({ now: from + t, gazeId: 'summer', gazeFor: t, ...o }));
+}
+
 describe('when a living memory opens', () => {
-  it('a read before its earliest time arms it; a later look of a second begins it', () => {
+  it('a read before its earliest time arms it; coming back to the line begins it', () => {
     const m = new MemoryDirector();
     expect(look(m, 5, 4)).toBeNull(); // read at 5–9 s: armed, too early
-    expect(m.update(base({ now: 21 }))).toBeNull(); // not looking: nothing
+    away(m, 9.1, 12); // elsewhere until about 21 s
     const s = look(m, 22, 2);
     expect(s?.id).toBe('cereal');
     expect(s!.at).toBeCloseTo(23, 0); // a second's look (floating ticks)
     expect(s?.variant).toBe('first');
+  });
+
+  it('staring at the line never opens it: the look that arms it is not the one that begins it', () => {
+    const m = new MemoryDirector();
+    expect(look(m, 5, 40)).toBeNull(); // one unbroken look from 5 to 45 s
+    away(m, 45.1, 1.5); // a glance away is not leaving
+    expect(look(m, 46.7, 3)).toBeNull();
+    away(m, 49.8, 2.5);
+    expect(look(m, 52.4, 2)?.id).toBe('cereal');
   });
 
   it('a glance never begins it unarmed; a touch arms it and asks for it at once', () => {
@@ -76,8 +90,10 @@ describe('when a living memory opens', () => {
     m.update(base());
     expect(m.ended('cereal', 33, false, false)).toBe(false);
     expect(look(m, 40, 4)).toBeNull(); // cooling down
-    expect(look(m, 64, 4)?.id).toBe('cereal'); // re-armed by reading, after 30 s
-    expect(m.ended('cereal', 70, false, false)).toBe(true); // the second time it counts
+    expect(look(m, 64, 3)).toBeNull(); // read again after 30 s: armed
+    away(m, 67.1, 3);
+    expect(look(m, 70.2, 2)?.id).toBe('cereal');
+    expect(m.ended('cereal', 75, false, false)).toBe(true); // the second time it counts
   });
 
   it('a returning visitor gets the later fragment', () => {
@@ -97,12 +113,15 @@ describe('when a living memory opens', () => {
 });
 
 describe('living memories in a visit', () => {
-  it('a reader who stays with the first line meets the memory early; nothing talks over it', () => {
+  it('a reader who comes back to the first line meets the memory; nothing talks over it', () => {
     const reader = PERSONAS.find((p) => p.id === 'reader')!;
-    const r = visit(reader, 120, 1);
-    const at = r.devs.find((d) => d.label === 'memory-scene cereal')?.t;
-    expect(at).toBeGreaterThanOrEqual(20);
-    expect(at).toBeLessThanOrEqual(40);
+    // Over four visits, most meet it; never before its earliest time.
+    const runs = [1, 2, 3, 4].map((seed) => visit(reader, 180, seed));
+    const ats = runs.map((r) => r.devs.find((d) => d.label === 'memory-scene cereal')?.t).filter((t): t is number => t !== undefined);
+    expect(ats.length).toBeGreaterThanOrEqual(3);
+    for (const t of ats) expect(t).toBeGreaterThanOrEqual(20);
+    const r = runs[ats.length === 4 ? 0 : runs.findIndex((x) => x.devs.some((d) => d.label === 'memory-scene cereal'))];
+    const at = r.devs.find((d) => d.label === 'memory-scene cereal')!.t;
     // Nothing spoken while it plays (about 28 s, as the harness plays it).
     const spoken = r.devs.filter((d) => d.kind === 'voice' && d.t > at! && d.t < at! + 27);
     expect(spoken).toEqual([]);

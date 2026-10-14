@@ -26,13 +26,13 @@ export interface MemoryDef {
   sways: Sway[];
   /** Seconds of a graceful early exit. */
   exit: number;
-  residue?: { rise: number; hold: number; fall: number };
   /** The longest the living scene is held before it closes itself. */
   maxHold: number;
   /** Seconds sound may run on after the image has gone. */
   tail: number;
-  /** What stays in the room after a natural close. */
+  /** What stays in the room after a natural close, and when it comes (seconds after `exit`). */
   bleed?: 'kitchen-light';
+  bleedAt?: number;
   /** How deep the room hushes while it plays. */
   hush: number;
 }
@@ -40,53 +40,63 @@ export interface MemoryDef {
 export const sheetId = (id: string, variant: string) => `${id}-${variant}`;
 
 /**
- * Cereal: about 22 s from the first graphite to the dissolve, held while the visitor stays.
+ * Cereal: 22 s from the first graphite to the withdrawal, then the light goes down.
  *
- *   0–3      the light finds the drawing (graphite)
- *   1.5–5.5  the colour follows the light; the room's air comes in
- *   5.5      the scene is formed: the radio comes on (music:radio), a spoon
- *   5.5–22   living: the sun's pane slides slowly down the wall (late afternoon), the laugh at 13
- *   22       withdrawal: the light recedes, taking the colour; a spoon is put down
- *   26       residue: the kitchen-light patch stays on the wall
+ *   0.6      the kitchen is heard before anything is drawn
+ *   0.6–3.6  the light finds the bowls and the spoon, then the rest of the drawing (graphite)
+ *   1.5–5.5  the colour follows the light
+ *   5.5      the scene is formed: the radio comes on, the spoons
+ *   7.3      the spoons; 10.5 a laugh at the table
+ *   5.5–22   living: one arc of light. The sun's pane slides off the words and down toward the
+ *            table; it lifts a little after the laugh, then the evening goes down
+ *   21.2     a spoon put down: the meal ends, and 0.8 s later the light answers
+ *   22–28    the light recedes, taking the colour; the drawing stands alone, then sinks
+ *   24       the kitchen's sun is in the room (the bleed), overlapping the painted one
+ *   28–32    what stays
+ *
+ * A visitor who stays isn't held on a frozen frame: at 22 it closes itself.
  */
-const CEREAL_SECTIONS: Sections = { active: 5.5, exit: 22, residue: 26, end: 30 };
+const CEREAL_SECTIONS: Sections = { active: 5.5, exit: 22, residue: 28, end: 32 };
 
 export const CEREAL: MemoryDef = {
   id: 'cereal',
   art: 'cereal',
   variants: ['first', 'later'],
-  layers: ['wall', 'curtain', 'table', 'things', 'pencil', 'sun'],
+  layers: ['curtain', 'table', 'things', 'pencil', 'sun'],
   sections: CEREAL_SECTIONS,
   markers: [
-    { label: 'bed:kitchen', position: 2 },
+    { label: 'bed:kitchen', position: 0.6 },
     { label: 'music:radio', position: 5.5 },
-    { label: 'sfx:spoons', position: 6.2 },
-    { label: 'sfx:laugh', position: 13 },
-    { label: 'sfx:spoon-down', position: 22.6 },
+    { label: 'sfx:spoons', position: 7.3 },
+    // Inside the minimum hold: a visitor who gives it only that still hears the people.
+    { label: 'sfx:laugh', position: 10.5 },
+    // (The file has 0.6 s of quiet before the clink: heard at about 21.8, just before the light goes.)
+    { label: 'sfx:spoon-down', position: 21.2 },
   ],
   seed: (variant) => {
     const later = variant === 'later';
     return {
       tracks: {
-        'window.sketch': [[0, 0], [3, 1]],
+        'window.sketch': [[0.6, 0], [3.6, 1]],
         'window.reveal': [[1.5, 0], [5.5, 1]],
         'window.presence': [[0, 1]],
         'window.parallax': [[0, 0]],
-        // The light: a warm late-afternoon sun, its pool centred on the table, growing as it
-        // finds the drawing; later in the evening it is lower and warmer.
-        'light.x': [[0, 0.08], [22, -0.02]],
-        'light.y': [[0, 0.02]],
-        'light.radius': [[0, 0.3], [5.5, 0.5]],
+        // The light: it finds the spoon first, opens over the table, then drifts with the sun.
+        'light.x': [[0, -0.03], [5.5, 0.06], [22, -0.08]],
+        'light.y': [[0, -0.13], [5.5, 0]],
+        'light.radius': [[0, 0.15], [5.5, 0.5]],
         'light.soft': [[0, 0.14]],
-        'light.warmth': [[0, later ? 2600 : 3200], [22, later ? 2400 : 2900]],
-        'light.intensity': [[0, 0], [4, later ? 0.45 : 0.6], [22, later ? 0.4 : 0.65]],
+        // Late sun (about the kitchen-light memory's colour), warmer as the evening goes down.
+        'light.warmth': [[0, later ? 3600 : 4000], [22, later ? 3200 : 3500]],
+        'light.intensity': later
+          ? [[0, 0], [4, 0.45], [22, 0.35], [28, 0]]
+          : [[0, 0], [4, 0.6], [10, 0.6], [11.5, 0.7], [22, 0.5], [28, 0]],
         'light.roomSpill': [[0, 1]],
-        // The sun's pane slides slowly down and along the wall, as the sun does.
-        'layer:sun.x': [[0, 0], [22, -0.035]],
-        'layer:sun.y': [[0, 0], [22, -0.02]],
+        // The sun's pane slides off the words and down toward the table, as the sun does.
+        'layer:sun.x': [[0, 0], [22, -0.09]],
+        'layer:sun.y': [[0, 0], [22, -0.05]],
         'layer:sun.opacity': [[0, 0], [3.5, 1]],
         'layer:pencil.opacity': [[0, 0.9]],
-        'layer:wall.opacity': [[0, 1]],
         'layer:curtain.opacity': [[0, 1]],
         'layer:table.opacity': [[0, 1]],
         'layer:things.opacity': [[0, 1]],
@@ -104,23 +114,24 @@ export const CEREAL: MemoryDef = {
     // A small, bright kitchen.
     room: [0.5, 3, 0.18],
     cues: {
-      // Levels are for the files as recorded (measured mean, dB): toward a bed at about −41, spoons
-      // about −32, the laugh at about −36. The air came back at −69 and is lifted a long way.
-      'bed:kitchen': { asset: 'mem:kitchen-air', gainDb: variant === 'later' ? 24 : 28, place: { u: 0.3, v: 0, d: 1 }, fadeIn: 3, fadeOut: 5, lowpass: variant === 'later' ? 2500 : undefined },
-      'sfx:spoons': { asset: 'mem:spoon-bowl', take: 0, gainDb: 0, place: { u: -0.05, v: -0.25, d: 0.5 }, caption: '[spoons in two bowls]' },
-      'sfx:laugh': { asset: 'mem:laugh', gainDb: -16, place: { u: 0.15, v: -0.1, d: 1.2 }, lowpass: 5000, caption: '[two people laughing]' },
-      'sfx:spoon-down': { asset: 'mem:spoon-bowl', take: 1, gainDb: -9, place: { u: 0.1, v: -0.25, d: 0.5 }, caption: '[a spoon put down]' },
-      // The kitchen radio on the windowsill: a small speaker (no bass, no air), half-heard
-      // (the file measures −15.5 dB mean; toward about −32 once band-limited and placed).
-      'music:radio': { asset: 'music/memory-radio.mp3', gainDb: -13, place: { u: 0.42, v: 0.05, d: 0.8 }, highpass: 380, lowpass: 3400, fadeIn: 1.5, fadeOut: 4, caption: '[a radio playing in the kitchen]' },
+      // Levels are for the files as recorded, set by the sound designer from an offline render of
+      // this chain: the laugh about 6 dB over the radio in a phone's band, the spoons about 2 dB
+      // over it, the air under everything. The air is made in the engine (synthAir.ts): the
+      // recorded room tone came back as rumble.
+      'bed:kitchen': { asset: 'synth:air', gainDb: variant === 'later' ? -4 : 0, place: { u: 0.3, v: 0, d: 1 }, fadeIn: 3, fadeOut: 5 },
+      'sfx:spoons': { asset: 'mem:spoon-bowl', take: 0, gainDb: 2, place: { u: -0.05, v: -0.25, d: 0.5 }, caption: '[two spoons]' },
+      'sfx:laugh': { asset: 'mem:laugh', gainDb: -12, place: { u: 0.15, v: -0.1, d: 1.2 }, lowpass: 5000, caption: '[a laugh at the table]' },
+      'sfx:spoon-down': { asset: 'mem:spoon-bowl', take: 1, gainDb: -12, place: { u: 0.1, v: -0.25, d: 0.5 }, caption: '[a spoon put down]' },
+      // The kitchen radio on the windowsill: a small speaker (no bass, no air), half-heard.
+      'music:radio': { asset: 'music/memory-radio.mp3', gainDb: -16, place: { u: 0.42, v: 0.05, d: 0.8 }, highpass: 380, lowpass: 3400, fadeIn: 1.5, fadeOut: 4, caption: '[a radio, low]' },
     },
   }),
   sways: [],
-  exit: 1.6,
-  residue: { rise: 1.5, hold: 2.5, fall: 3 },
-  maxHold: 30,
+  exit: 2.4,
+  maxHold: 22,
   tail: 3,
   bleed: 'kitchen-light',
+  bleedAt: 2,
   hush: 0.5,
 };
 

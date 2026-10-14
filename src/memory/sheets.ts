@@ -21,7 +21,6 @@ export const WINDOW: Schema[string] = {
   reveal: [0, 0, 1],
   presence: [1, 0, 1],
   parallax: [1, 0, 1],
-  residue: [0, 0, 1],
 };
 
 export const LIGHT: Schema[string] = {

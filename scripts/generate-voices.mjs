@@ -105,23 +105,21 @@ const ASSETS = {
     [`two people at a kitchen table laughing together at something silly, a short warm unforced burst of shared laughter that trails off, no words, ${DRY}`, 3],
   ],
   'mem:footsteps': [
-    [`someone walking slowly at an even pace on old creaky wooden floorboards in soft slippers, six unhurried steps, each with a small creak, even level throughout, no voices, ${DRY}`, 5],
-    [`slow careful footsteps on old wooden hallway floorboards, five steps then stopping, a small creak under the last step, even level, no voices, ${DRY}`, 5],
+    [`an adult walking slowly along an old wooden upstairs landing in socks, about five unhurried footsteps roughly a second apart, a small creak under two of them, then the steps stop and stay stopped, recorded close and clearly audible, every step the same loudness, no voices, no breathing, no door, ${DRY}`, 5],
+    [`slow careful footsteps on old bare wooden hallway floorboards, someone in socks, five steps about a second apart, then stopping, one small creak as the weight settles on the last step, then stillness, recorded close and clearly audible at an even level, no voices, no breathing, no door, ${DRY}`, 5],
   ],
   'mem:floorboard': [
-    [`a single old wooden floorboard creaking once under shifting weight, a slow low groan, then silence, ${DRY}`, 1.5],
-    [`one short dry creak of an old floorboard settling on its own, nobody walking, ${DRY}`, 1.5],
+    [`a single old wooden floorboard creaking once as someone standing still shifts their weight, one slow low creak, then silence, recorded close and clearly audible, no footsteps, no voices, ${DRY}`, 1.5],
+    [`one short dry tick and creak of an old wooden floor settling on its own in a still house, nobody walking, recorded close and clearly audible, no voices, ${DRY}`, 1.5],
   ],
   'mem:bird': [
-    [`a single small songbird outside singing one short bright phrase, then silence, natural, no other birds, no wind, no traffic`, 2.5],
-    [`two small sparrow chirps outside a window, then silence, natural, no other birds, no wind, no traffic`, 2.5],
+    [`a single small songbird singing one short bright phrase, then silence, recorded close with a directional microphone, clearly audible, no other birds, no wind, no traffic, no reverb, no music`, 2.5],
+    [`two short sparrow chirps with a pause between them, then silence, recorded close with a directional microphone, clearly audible, no other birds, no wind, no traffic, no reverb, no music`, 2.5],
   ],
   'mem:curtain-breeze': [
-    [`a light cotton curtain lifting and falling once in a soft breeze at an open window, a gentle cloth rustle that rises and settles, close, no wind rumble, no whoosh`, 3],
+    [`a light cotton curtain lifting once and falling back, a gentle cloth rustle that rises over about a second and settles over two, the hem brushing a wooden sill, recorded close and clearly audible, no wind noise, no rumble, no whoosh, no birds, ${DRY}`, 3],
   ],
-  'mem:bedroom-air': [
-    [`the quiet even air of a sunlit bedroom with the window open on a summer morning, leaves stirring faintly in trees outside, a soft far-off hush, continuous and steady, nothing happening, no birds, no voices, no music`, 8, { loop: true }],
-  ],
+  // (No recorded bedroom air: room tone came back as rumble twice; it is made in the engine, src/memory/synthAir.ts.)
   'style:distant': [
     // (A first variant here consistently came back near-silent and was removed.)
     [`someone calling out a few quiet words from down a hallway, unintelligible, distant`, 3],

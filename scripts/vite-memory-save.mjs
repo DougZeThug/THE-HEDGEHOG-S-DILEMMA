@@ -14,9 +14,14 @@ export function memorySave(root) {
     configureServer(server) {
       server.middlewares.use('/__memory/save', (req, res) => {
         const local = ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.socket.remoteAddress ?? '');
-        if (req.method !== 'POST' || !local) {
+        // Only the editor's own page: a JSON POST from this dev server's origin (another site
+        // open in the browser can't send a "simple" request that writes the timeline).
+        const origin = req.headers.origin ?? '';
+        const sameOrigin = !!origin && origin.replace(/^https?:\/\//, '') === req.headers.host;
+        const json = (req.headers['content-type'] ?? '').startsWith('application/json');
+        if (req.method !== 'POST' || !local || !sameOrigin || !json) {
           res.statusCode = 403;
-          return res.end('local POST only');
+          return res.end('local, same-origin JSON POST only');
         }
         let body = '';
         req.on('data', (c) => {

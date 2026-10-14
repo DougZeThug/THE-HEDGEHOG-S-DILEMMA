@@ -23,7 +23,7 @@ export interface SceneMemory {
 
 export const SCENE_MEMORIES: SceneMemory[] = [
   // The discoverable first memory: early, armed by reading or touching the line.
-  { id: 'cereal', phraseId: 'cereal', earliest: 20, arm: 2.5, commit: 1.0, minHold: 10, maxHold: 30, variants: { first: 'first', revisit: ['later'] } },
+  { id: 'cereal', phraseId: 'cereal', earliest: 20, arm: 2.5, commit: 1.0, minHold: 10, maxHold: 22, variants: { first: 'first', revisit: ['later'] } },
 ];
 
 export const SCENE_BY_PHRASE = new Map(SCENE_MEMORIES.map((m) => [m.phraseId, m]));
