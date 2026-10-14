@@ -217,7 +217,7 @@ export class Room {
    */
   private addSkirting(group: THREE.Group, w: number) {
     // A painted grey board, darker than the wall, so the room's base line reads.
-    const trim = new THREE.MeshStandardMaterial({ color: 0x9e988f, roughness: 0.6 });
+    const trim = new THREE.MeshStandardMaterial({ color: 0xb8b3aa, roughness: 0.6 });
     const sk = new THREE.Mesh(new THREE.BoxGeometry(w, SKIRT, 0.014), trim);
     sk.position.set(0, -ROOM.height / 2 + SKIRT / 2, 0.007);
     sk.receiveShadow = true;

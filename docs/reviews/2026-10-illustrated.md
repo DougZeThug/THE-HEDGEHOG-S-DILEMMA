@@ -207,3 +207,24 @@ The opening was re-framed for it: eye 1.4 m, 2.85 m back, pitch −0.03, landsca
   - the chair's shadow softer (2.4, was 1);
   - the skylight's glow smaller (1.4, was 2.5), so the opening is a fitting, not a halo;
   - contrast 0.25 (was 0.35) and vignette 0.2 (was 0.1).
+
+### The creative director's evaluation, and what changed from it
+The cleaned room matched the reference's wall, warmth and corners within a few percent, but the director measured what still separated them:
+- **The floor was floodlit to the camera** (front/pool 0.93 against the reference's 0.63). Widening the cone had made it worse. In the reference the chair is held by the light and the visitor stands just outside it, in the dim.
+- **Too little bounce:** side walls at 0.67–0.72 of the back wall (reference 0.78), the chair's shadow core at 0.45 of the pool (0.57), and a brown skirting stripe where the reference has a light grey board.
+- **The tone curve crushed the darks** (1st percentile 53, reference 68) and stopped short of the highlights.
+- **The back wall had dark bands** under the ceiling and along the foot, where the reference's is one even sheet.
+- **The surfaces were now cleaner than the reference** (fine texture about half), so they read as CG, and the side-wall stains the artist chose had all but gone. The beat-up look had come from how many streaks there were and how evenly they covered the walls, not from how dark each one was.
+
+What was changed:
+- **The key** is narrower again (cone 0.68) and aimed 0.35 m behind the chair (a new look value, `aim`), so the pool spreads toward the wall behind, as in the reference. The floor's own darkening toward the visitor starts closer to the chair and goes deeper (0.5), and its corners are darker.
+- **Bounce:** fill 0.85 (was 0.6), a light grey skirting (`0xb8b3aa`).
+- **Grade:** contrast 0.15, exposure 1.15, and vignette 0.3 to keep the frame's corners falling away. A faint moving grain (0.015) that reads as film, not decay.
+- **The back wall:** a lighter foot (corner shading and grime halved on that wall only). The skylight's glow is a little lower and nearer the wall (1.2); a first try put it closer to the ceiling and brought the halo back.
+- **Surfaces:** the plaster's tooth back to three-quarters, floor specks 30.
+- **Stains:** four distinct runs per side wall, gathered near each end with clean wall between (alpha 0.14–0.22, 1.5–3.5 cm wide, 0.9–2.2 m long); two faint ones on the others.
+- **The chair's wood** about 6% darker and a little less saturated, nearer old wood than new pine.
+
+Measured at the hand-off pose (probe; reference in brackets): back wall about 180 (177), side wall 138 (139), pool 228 (229), frame median 129 (131), 1st percentile 71 (68), floor bottom-centre 203 (198), all at R/B 1.22 (1.23).
+
+Not done: the skylight's reveal as a sharp-cornered opening rather than a fitting (P2). The director's own caveat stands too: the reference is one rendered image, and the artist should judge the stains and the grain moving at full frame rate.

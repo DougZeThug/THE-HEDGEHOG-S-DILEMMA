@@ -102,7 +102,7 @@ export class Lighting {
     this.skyGlow = new THREE.PointLight(0xfff1de, 0, 0, 2);
     // Low enough (a metre under the glass) that the ceiling is washed broadly, not spotted, and a
     // little toward the wall behind the chair, which it lights from the top down.
-    this.skyGlow.position.set(PANEL.x, ROOM.height - 1.0, PANEL.z - 0.6);
+    this.skyGlow.position.set(PANEL.x, ROOM.height - 1.0, PANEL.z - 0.9);
     this.group.add(this.skyGlow);
 
     this.glow = new THREE.PointLight(0xffd2a6, 0.0, 2.0, 1.8);
@@ -225,6 +225,7 @@ export class Lighting {
     rel.applyAxisAngle(UP, ang);
     this.key.position.copy(chairPos).setY(0).add(rel);
     this.key.target.position.copy(chairPos);
+    this.key.target.position.z -= this.look.aim;
     this.glow.position.set(chairPos.x, 0.7, chairPos.z + 0.25);
     // The shadow map is redrawn only when what it shows changes: the light moved or widened, or
     // the chair moved or turned (its blur reads a million texels twenty times on every redraw).

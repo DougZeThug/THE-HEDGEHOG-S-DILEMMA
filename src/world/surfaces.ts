@@ -50,7 +50,7 @@ function toTex(c: HTMLCanvasElement, srgb: boolean): THREE.CanvasTexture {
 }
 
 /** Hand-trowelled plaster: broad mottling, faint directional passes, fine tooth. Writes colour and bump. */
-function plaster(W: number, H: number, seed: number, tone: [number, number, number], scale: { mottle: number; trowel: number; grain: number; blotch?: number }) {
+function plaster(W: number, H: number, seed: number, tone: [number, number, number], scale: { mottle: number; trowel: number; grain: number; blotch?: number; tooth?: number }) {
   const [c, g] = canvas(W, H);
   const [bc, bg] = canvas(W, H);
   const img = g.createImageData(W, H);
@@ -72,7 +72,7 @@ function plaster(W: number, H: number, seed: number, tone: [number, number, numb
         // tooth of a few centimetres: what makes plaster read as plaster from across a room.
         const b = n4.fbm(x / (110 * K), y / (110 * K), 4) - 0.5;
         const tooth = n4.fbm(x / (12 * K) + 41, y / (12 * K) + 7, 2) - 0.5;
-        cloud = b * blotch + tooth * 5;
+        cloud = b * blotch + tooth * (scale.tooth ?? 5);
       }
       const d = m * scale.mottle + tr * scale.trowel + fine * scale.grain + cloud;
       const i = (y * W + x) * 4;
@@ -304,9 +304,12 @@ export function weatheringMap(surface: Surface, wM: number, hM: number, seed: nu
     return t * t * (3 - 2 * t);
   };
   // Streaks (metres): where the water started, how far it ran, how wide, how dark.
-  const streaks = Array.from({ length: side ? 9 : surface === 'south' ? 5 : 4 }, () => ({
-    x: r.range(0.15, wM - 0.15), top: r.range(1.0, hM - 0.3), len: r.range(0.5, 1.8), w: r.range(0.025, 0.07), a: r.range(0.05, 0.12), k: r.range(0, 100),
-  }));
+  // On the side walls a few distinct runs gathered in two places (near each end), clean wall
+  // between, as in the reference; elsewhere a couple of faint ones.
+  const zones = [0.7, wM - 1.0];
+  const streaks = Array.from({ length: side ? 4 : 2 }, (_, i) => side
+    ? { x: zones[i % 2] + r.range(-0.35, 0.35), top: r.range(1.6, hM - 0.3), len: r.range(0.9, 2.2), w: r.range(0.015, 0.035), a: r.range(0.14, 0.22), k: r.range(0, 100) }
+    : { x: r.range(0.15, wM - 0.15), top: r.range(1.0, hM - 0.3), len: r.range(0.5, 1.8), w: r.range(0.025, 0.07), a: r.range(0.05, 0.1), k: r.range(0, 100) });
   for (let j = 0; j < H; j++) {
     const v = hM - (j + 0.5) / ppm; // height above the floor
     for (let i = 0; i < W; i++) {
@@ -328,7 +331,7 @@ export function weatheringMap(surface: Surface, wM: number, hM: number, seed: nu
       // Grime in the corners and along the foot, uneven.
       const edge = Math.min(u, wM - u);
       a += 0.09 * (1 - ss(0, 0.4, edge)) * (0.5 + n.fbm(u * 0.3, v / 0.6, 3));
-      a += 0.08 * (1 - ss(0.1, 0.5, v)) * (0.6 + 0.6 * m.fbm(u / 0.4, 3, 2));
+      a += (surface === 'north' ? 0.04 : 0.08) * (1 - ss(0.1, 0.5, v)) * (0.6 + 0.6 * m.fbm(u / 0.4, 3, 2));
       const k = (j * W + i) * 4;
       img.data[k] = img.data[k + 1] = img.data[k + 2] = Math.round(255 * Math.min(1, a));
       img.data[k + 3] = 255;
@@ -400,7 +403,7 @@ export function wallMaps(surface: Surface, seed: number, wM: number, hM: number)
     west: [234, 232, 228],
     south: [236, 234, 229],
   };
-  const { c, g, bc, bg } = plaster(W, H, seed, tone[surface] ?? [236, 234, 228], { mottle: 10, trowel: 5, grain: 4, blotch: 8 });
+  const { c, g, bc, bg } = plaster(W, H, seed, tone[surface] ?? [236, 234, 228], { mottle: 10, trowel: 5, grain: 4, blotch: 8, tooth: 7.5 });
   const r = new Rng(seed + 11);
   const floorY = H;
   const mx = (u: number) => u * PX_PER_M;
@@ -445,7 +448,7 @@ export function wallMaps(surface: Surface, seed: number, wM: number, hM: number)
   graphiteSmudges(g, W, H, r, 3);
   fineDetail(g, bg, W, H, new Rng(seed + 31), { specks: 18, pits: 6, scratches: 0.8 });
   // Little at the top: the box keeps a crisp, lit edge under its darker lid.
-  corners(g, W, H, { bottom: 0.55, top: 0.12, left: 0.45, right: 0.45 });
+  corners(g, W, H, { bottom: surface === 'north' ? 0.3 : 0.55, top: 0.12, left: 0.45, right: 0.45 });
   const map = toTex(c, true);
   const bump = toTex(bc, false);
   return { map, bump };
@@ -462,7 +465,7 @@ export function floorMaps(seed: number, wM: number, dM: number): SurfaceMaps {
   // the light falls (so the pool reads as light on a surface, not a paler floor).
   const { c, g, bc, bg } = plaster(W, H, seed, [190, 186, 181], { mottle: 15, trowel: 2, grain: 5, blotch: 18 });
   // Aggregate in the concrete, pits, the fine scratches of things set down and dragged.
-  fineDetail(g, bg, W, H, new Rng(seed + 31), { specks: 20, pits: 3, scratches: 0.5, light: 0.5 });
+  fineDetail(g, bg, W, H, new Rng(seed + 31), { specks: 30, pits: 3, scratches: 0.5, light: 0.5 });
   const r = new Rng(seed + 5);
   const n = makeNoise(seed + 9);
   const cx = W / 2, cy = H / 2;
@@ -544,12 +547,12 @@ export function floorMaps(seed: number, wM: number, dM: number): SurfaceMaps {
   g.fillRect(0, 0, W, H);
   // And toward where the visitor comes in, the floor nearer them is in the dim: they look into
   // the light, not stand in it.
-  const front = g.createLinearGradient(0, cy + 0.6 * PX_PER_M, 0, H);
+  const front = g.createLinearGradient(0, cy + 0.2 * PX_PER_M, 0, H);
   front.addColorStop(0, 'rgba(110,110,110,0)');
-  front.addColorStop(1, 'rgba(110,110,110,0.3)');
+  front.addColorStop(1, 'rgba(110,110,110,0.5)');
   g.fillStyle = front;
   g.fillRect(0, 0, W, H);
-  corners(g, W, H, { top: 0.3, bottom: 0.3, left: 0.3, right: 0.3 }, '96,92,86');
+  corners(g, W, H, { top: 0.45, bottom: 0.45, left: 0.45, right: 0.45 }, '96,92,86');
 
   return { map: toTex(c, true), bump: toTex(bc, false), rough: toTex(rc, false) };
 }

@@ -292,7 +292,7 @@ export class App {
           [
             ['fill', 0, 1.5], ['area', 0, 4], ['key', 0, 2], ['cone', 0.7, 1.3], ['glow', 0, 1.5], ['warmth', 0, 1.5], ['ceiling', 0, 12],
             ['exposure', 0.8, 1.4], ['vignette', 0, 0.6], ['grain', 0, 0.06], ['texture', 0, 2], ['contact', 0, 1.5], ['shadowSoft', 0.3, 3],
-            ['faint', 0.8, 1.6], ['skyGlow', 0, 20], ['contrast', 0, 0.8], ['stains', 0, 1],
+            ['faint', 0.8, 1.6], ['skyGlow', 0, 20], ['contrast', 0, 0.8], ['stains', 0, 1], ['aim', 0, 1],
           ] as [keyof Look, number, number][]
         ).map(([k, lo, hi]) =>
           n('look', k, lo, hi, () => this.look[k], (v) => {

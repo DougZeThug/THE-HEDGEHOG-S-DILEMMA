@@ -27,7 +27,7 @@ export function woodMaps(seed = 7): { map: THREE.CanvasTexture; rough: THREE.Can
   const img = g.createImageData(W, H);
   const rimg = rg.createImageData(W, H);
   const warp = makeNoise(seed), fig = makeNoise(seed + 1), pore = new Rng(seed + 2);
-  const light = [202, 138, 89], dark = [140, 92, 59], deep = [86, 57, 38];
+  const light = [188, 130, 86], dark = [130, 87, 57], deep = [80, 54, 37];
   // The seat occupies canvas rows 0..seatH (v from 1 down to SEAT_V0; the canvas is flipped).
   const seatH = Math.round(H * (1 - SEAT_V0));
   const seatW = Math.round(W * 0.8);
