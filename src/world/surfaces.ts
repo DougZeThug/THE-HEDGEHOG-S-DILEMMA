@@ -286,6 +286,78 @@ export function handMarks(map: THREE.CanvasTexture, lines: { u: number; v: numbe
 }
 
 /**
+ * Weathering, as an alpha map laid over a wall (its strength is the look's, so it can be turned
+ * down without baking again): water that ran down from somewhere and dried in streaks, the tide
+ * lines of an old damp patch, grime gathered in the corners and along the skirting. Mostly on the
+ * side walls, as in the artist's reference.
+ */
+export function weatheringMap(surface: Surface, wM: number, hM: number, seed: number): THREE.CanvasTexture {
+  const ppm = 64;
+  const W = Math.round(wM * ppm), H = Math.round(hM * ppm);
+  const [c, g] = canvas(W, H);
+  g.fillStyle = '#000';
+  g.fillRect(0, 0, W, H);
+  const r = new Rng(seed);
+  const side = surface === 'east' || surface === 'west';
+  const n = makeNoise(seed + 3);
+  // Streaks: a thin dark run, fading downward, with a faint wider halo, wandering a little.
+  const streaks = side ? 18 : surface === 'south' ? 9 : 6;
+  for (let i = 0; i < streaks; i++) {
+    const x = r.range(0.15, wM - 0.15) * ppm;
+    const y0 = H - r.range(0.9, hM - 0.25) * ppm;
+    const len = r.range(0.3, 1.6) * ppm;
+    const wdt = r.range(0.006, 0.022) * ppm;
+    const a = r.range(0.25, 0.55);
+    for (const [ww, aa] of [[wdt * 4, a * 0.22], [wdt, a]] as const) {
+      const grd = g.createLinearGradient(0, y0, 0, y0 + len);
+      grd.addColorStop(0, `rgba(255,255,255,${aa})`);
+      grd.addColorStop(0.25, `rgba(255,255,255,${aa * 0.8})`);
+      grd.addColorStop(1, 'rgba(255,255,255,0)');
+      g.strokeStyle = grd;
+      g.lineWidth = ww;
+      g.lineCap = 'round';
+      g.beginPath();
+      g.moveTo(x, y0);
+      for (let k = 1; k <= 8; k++) g.lineTo(x + (n.fbm(i * 3.1, k * 0.4, 2) - 0.5) * 0.05 * ppm, y0 + (len * k) / 8);
+      g.stroke();
+    }
+  }
+  // Old damp patches: soft, with a slightly darker rim where the water stopped.
+  const patches = side ? 5 : 3;
+  for (let i = 0; i < patches; i++) {
+    const x = r.range(0.3, wM - 0.3) * ppm, y = H - r.range(0.3, hM - 0.5) * ppm, rad = r.range(0.08, 0.32) * ppm;
+    const a = r.range(0.1, 0.2);
+    g.save();
+    g.translate(x, y);
+    g.scale(1, r.range(0.7, 1.4));
+    const grd = g.createRadialGradient(0, 0, 0, 0, 0, rad);
+    grd.addColorStop(0, `rgba(255,255,255,${a * 0.6})`);
+    grd.addColorStop(0.8, `rgba(255,255,255,${a})`);
+    grd.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = grd;
+    g.fillRect(-rad, -rad, rad * 2, rad * 2);
+    g.restore();
+  }
+  // Grime in the corners and along the foot of the wall, uneven.
+  for (let y = 0; y < H; y += 2) {
+    const k = 0.5 + n.fbm(0.3, y / 40, 3);
+    for (const [x0, dir] of [[0, 1], [W, -1]] as const) {
+      const grd = g.createLinearGradient(x0, 0, x0 + dir * 0.25 * ppm, 0);
+      grd.addColorStop(0, `rgba(255,255,255,${0.14 * k})`);
+      grd.addColorStop(1, 'rgba(255,255,255,0)');
+      g.fillStyle = grd;
+      g.fillRect(dir > 0 ? x0 : x0 - 0.25 * ppm, y, 0.25 * ppm, 2);
+    }
+  }
+  const foot = g.createLinearGradient(0, H, 0, H - 0.3 * ppm);
+  foot.addColorStop(0, 'rgba(255,255,255,0.16)');
+  foot.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = foot;
+  g.fillRect(0, 0, W, H);
+  return new THREE.CanvasTexture(c);
+}
+
+/**
  * What makes a surface read as a surface up close: specks and pits (per m²), and hairline
  * scratches, a few centimetres long; dark (and some light, `light` of them) in colour, and
  * pressed into the relief.
@@ -487,6 +559,13 @@ export function floorMaps(seed: number, wM: number, dM: number): SurfaceMaps {
   vg.addColorStop(0.45, 'rgba(118,118,118,0.12)');
   vg.addColorStop(1, 'rgba(118,118,118,0.22)');
   g.fillStyle = vg;
+  g.fillRect(0, 0, W, H);
+  // And toward where the visitor comes in, the floor nearer them is in the dim: they look into
+  // the light, not stand in it.
+  const front = g.createLinearGradient(0, cy + 0.6 * PX_PER_M, 0, H);
+  front.addColorStop(0, 'rgba(110,110,110,0)');
+  front.addColorStop(1, 'rgba(110,110,110,0.3)');
+  g.fillStyle = front;
   g.fillRect(0, 0, W, H);
   corners(g, W, H, { top: 0.3, bottom: 0.3, left: 0.3, right: 0.3 }, '96,92,86');
 

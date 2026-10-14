@@ -7,8 +7,10 @@ import { approach } from '../core/math';
 import { lookFor, neutralFor, type Look } from './Style';
 
 /** One frosted overhead source does nearly all the work; the fill is only bounce. */
-const AREA = 8;
-const KEY = 44;
+/** The lights were set for a 3.1 m ceiling; from higher they fall off with distance. */
+const REACH = (ROOM.height / 3.1) ** 2;
+const AREA = 8 * REACH;
+const KEY = 44 * REACH;
 const HEMI = 1.15;
 
 /** VSM blur radius, in texels of a 512 map (the radius scales with the map, so the penumbra doesn't). */

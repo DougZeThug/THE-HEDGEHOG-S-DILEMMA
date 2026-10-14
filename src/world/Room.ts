@@ -4,7 +4,7 @@ import { ROOM, surfaceSize } from './layout';
 
 /** Where the frosted panel hangs: north of the chair, so the chair's shadow falls toward whoever arrives. */
 export const PANEL = { x: 0.1, z: -0.95 };
-import { wallMaps, floorMaps, ceilingMaps, surfaceDetail, handMarks } from './surfaces';
+import { wallMaps, floorMaps, ceilingMaps, surfaceDetail, handMarks, weatheringMap } from './surfaces';
 import { ceilingFor, panelFor, type Look } from './Style';
 
 const SKIRT = 0.1;
@@ -105,7 +105,17 @@ export class Room {
       const writing = new THREE.Group();
       writing.position.z = 0.004;
       group.add(writing);
-      if (!isFloor && !isCeil) this.addSkirting(group, size.w);
+      if (!isFloor && !isCeil) {
+        this.addSkirting(group, size.w);
+        // Weathering over the plaster, under the writing; its strength is the look's.
+        const wm = new THREE.MeshStandardMaterial({ color: 0x6a6259, roughness: 0.95, alphaMap: weatheringMap(s, size.w, size.h, seeds[s] + 500), transparent: true, depthWrite: false, opacity: 0 });
+        const weather = new THREE.Mesh(new THREE.PlaneGeometry(size.w, size.h), wm);
+        weather.position.z = 0.002;
+        weather.receiveShadow = true;
+        weather.name = 'weathering';
+        group.add(weather);
+        this.weathering.push(wm);
+      }
       this.group.add(group);
       this.frames[s] = { surface: s, group, writing, mesh, size };
     }
@@ -165,6 +175,7 @@ export class Room {
   /** The look's share of the room: the ceiling's bounce, the plaster's relief. */
   setLook(look: Look) {
     this.ceilingBounce = look.ceiling;
+    for (const m of this.weathering) m.opacity = look.stains;
     for (const s of Object.keys(this.frames) as Surface[]) {
       const m = this.frames[s].mesh.material as THREE.MeshStandardMaterial;
       m.bumpScale = (s === 'floor' ? 0.5 : 0.9) * look.texture;
@@ -172,6 +183,7 @@ export class Room {
     this.setWarmth(this.warmth);
   }
   private ceilingBounce = 1;
+  private weathering: THREE.MeshStandardMaterial[] = [];
   private warmth = 0;
 
   /** The light's warmth as it is now (Lighting.warmthNow): the panel's glass, its rim, the ceiling's bounce. */
@@ -259,7 +271,7 @@ export class Room {
     f.west.group.position.set(-ROOM.halfW * s, H / 2, 0);
     for (const k of ['north', 'south', 'east', 'west'] as Surface[]) {
       f[k].mesh.scale.x = s;
-      for (const o of f[k].group.children) if (o.name === 'skirting') o.scale.x = s;
+      for (const o of f[k].group.children) if (o.name === 'skirting' || o.name === 'weathering') o.scale.x = s;
     }
     f.floor.mesh.scale.set(s, s, 1);
     f.ceiling.mesh.scale.set(s, s, 1);

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import * as THREE from 'three';
 import { Lighting } from '../src/world/Lighting';
+import { ROOM } from '../src/world/layout';
 import { LOOKS, lookFor, parseLook, neutralFor } from '../src/world/Style';
 import type { Environment } from '../src/state/Director';
 
@@ -26,9 +27,11 @@ describe('the room’s look', () => {
     const l = new Lighting('low');
     l.look = lookFor('original');
     settle(l);
-    // The constants before the look existed: AREA 8, KEY 44, HEMI 1.15, and a near-white light.
-    expect(l.area.intensity).toBeCloseTo(8, 3);
-    expect(l.key.intensity).toBeCloseTo(44, 3);
+    // The constants before the look existed: AREA 8, KEY 44, HEMI 1.15, and a near-white light,
+    // the first two compensated for the ceiling's height (they were set for 3.1 m).
+    const reach = (ROOM.height / 3.1) ** 2;
+    expect(l.area.intensity).toBeCloseTo(8 * reach, 3);
+    expect(l.key.intensity).toBeCloseTo(44 * reach, 3);
     expect(l.hemi.intensity).toBeCloseTo(1.15, 3);
     expect(l.key.color.getHexString()).toBe(new THREE.Color('#fff8ee').getHexString());
   });
