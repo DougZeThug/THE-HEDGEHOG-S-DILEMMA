@@ -41,6 +41,8 @@ interface Track {
   /** Seconds the gaze has been off the line since it was armed, and whether it has really left. */
   away: number;
   left: boolean;
+  /** Its line has been offered (written where the visitor faces) this visit. */
+  offered: boolean;
   played: boolean;
   unseen: number;
   notBefore: number;
@@ -52,10 +54,12 @@ export class MemoryDirector {
   active: { id: string; since: number } | null = null;
   private cooldownUntil = -Infinity;
   private last: number | null = null;
+  /** When the last memory (any) ended; kitchen-light's too, reported by the Director. */
+  lastEnded = -Infinity;
 
   /** `counts`: how many times each memory has been seen on earlier visits (persisted). */
   constructor(private counts: Record<string, number> = {}) {
-    for (const m of SCENE_MEMORIES) this.tracks.set(m.id, { armed: false, away: 0, left: false, played: false, unseen: 0, notBefore: m.earliest });
+    for (const m of SCENE_MEMORIES) this.tracks.set(m.id, { armed: false, away: 0, left: false, offered: false, played: false, unseen: 0, notBefore: m.earliest });
   }
 
   /** A touch on writing: arms its memory, and asks for it now if it is eligible. */
@@ -82,6 +86,28 @@ export class MemoryDirector {
     return !!this.active || [...this.tracks.values()].some((t) => t.played);
   }
 
+  /**
+   * A later memory whose line should now be offered: written alone where the visitor faces.
+   * Once per memory per visit; the Director writes it and holds the room a moment.
+   */
+  offer(s: { now: number; phase: string; free: boolean; visibleFacing: (phraseId: string) => boolean; departing: boolean; otherMemory: boolean }): SceneMemory | null {
+    if (s.departing || this.active || !s.free || s.otherMemory) return null;
+    if (s.now < this.cooldownUntil || s.now - this.lastEnded < 0) return null;
+    for (const m of SCENE_MEMORIES) {
+      const t = this.tracks.get(m.id)!;
+      if (!m.offer || t.played || t.offered || s.now < m.earliest || !m.offer.phases.includes(s.phase as never)) continue;
+      if (s.now - this.lastEnded < m.offer.apart) continue;
+      // Already where they are looking: no need to write it again.
+      if (s.visibleFacing(m.phraseId)) {
+        t.offered = true;
+        continue;
+      }
+      t.offered = true;
+      return m;
+    }
+    return null;
+  }
+
   update(s: SceneState): SceneStart | null {
     const tap = this.pendingTap;
     this.pendingTap = null;
@@ -101,7 +127,7 @@ export class MemoryDirector {
       if (looking) t.away = 0;
       else if ((t.away += dt) >= 2) t.left = true;
       if (s.now < t.notBefore || s.now < this.cooldownUntil || !s.free || s.otherMemory) continue;
-      const asked = tap === m.phraseId || (t.left && looking && s.gazeFor >= m.commit);
+      const asked = tap === m.phraseId || ((t.left || !m.lookBack) && looking && s.gazeFor >= (m.lookBack ? m.commit : m.arm));
       if (!asked) continue;
       return this.begin(m, s.now);
     }
@@ -148,6 +174,7 @@ export class MemoryDirector {
       return false;
     }
     this.cooldownUntil = now + (ranToEnd ? 60 : 45);
+    this.lastEnded = now;
     this.counts[id] = (this.counts[id] ?? 0) + 1;
     return true;
   }

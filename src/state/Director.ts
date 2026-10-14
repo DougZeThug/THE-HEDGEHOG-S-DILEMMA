@@ -1124,6 +1124,8 @@ export class Director {
     if (!free || this.pacing.repeats('voice', this.now, 4) || this.pacing.repeats('light', this.now, 10)) return;
     this.memoryPlayed = true;
     this.memoryQuietUntil = -Infinity;
+    // Later memories keep their distance from this one too.
+    this.scenes.lastEnded = this.now + m.attack + m.hold + m.release;
     this.queue(0, { type: 'memory', phraseId: m.phraseId, attack: m.attack, hold: m.hold, release: m.release }, 'memory', { major: true, ttl: 3 });
     // The light is the answer: nothing else while it is there, and a moment after.
     this.pacing.holdFor(this.now, m.attack + m.hold + m.release + 3);
@@ -1147,6 +1149,29 @@ export class Director {
     });
     if (start) this.queue(0, { type: 'memory-scene', ...start }, 'memory-scene', { major: true, ttl: 3 });
     if (this.scenes.active) this.pacing.holdFor(this.now, 0.5);
+    // A later memory's line is offered as the kitchen-light memory's is: written alone, where
+    // the visitor is looking, and the room holds still a moment so a visitor who stays with it
+    // gets the memory, not whatever else happened at the same time.
+    const offer = this.scenes.offer({
+      now: this.now,
+      phase: this.phase,
+      // (Never into a busy room: the line arrives into quiet, or waits.)
+      free: free && !this.pacing.repeats('text', this.now, 8) && !this.pacing.crowded(this.now),
+      visibleFacing: (id) => this.visible.has(id) && PHRASE_BY_ID.get(id)?.surface === this.facing,
+      departing: this.departing,
+      otherMemory: this.memoryAwaited(),
+    });
+    if (offer) {
+      const p = PHRASE_BY_ID.get(offer.phraseId);
+      if (!p) return;
+      this.visible.set(p.id, { mode: 'shown', since: this.now, base: true });
+      this.memory.surfaced.set(p.id, this.now);
+      this.pacing.holdFor(this.now, 2.4);
+      this.queue(0, {
+        type: 'write', key: `memory:${p.id}`, text: p.text, hand: p.hand === 'typed' ? 'pencil' : p.hand, size: 's',
+        surface: this.facing, purpose: 'recall', ttl: 0, source: p.id,
+      }, 'memory-offer');
+    }
   }
 
   /**

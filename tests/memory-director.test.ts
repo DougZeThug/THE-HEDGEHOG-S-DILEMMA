@@ -112,6 +112,35 @@ describe('when a living memory opens', () => {
   });
 });
 
+describe('later memories are offered, not hidden', () => {
+  const offerState = (o: Partial<Parameters<MemoryDirector['offer']>[0]> = {}) => ({
+    now: 200, phase: 'contradiction', free: true, visibleFacing: () => false, departing: false, otherMemory: false, ...o,
+  });
+  it('the bedroom line is offered once, from 150 s, once the room contradicts itself; the door from 240 s', () => {
+    const m = new MemoryDirector();
+    expect(m.offer(offerState({ now: 140 }))).toBeNull();
+    expect(m.offer(offerState({ now: 200, phase: 'familiar' }))).toBeNull();
+    expect(m.offer(offerState({ now: 200 }))?.id).toBe('bedroom');
+    expect(m.offer(offerState({ now: 201 }))).toBeNull(); // once
+    expect(m.offer(offerState({ now: 250 }))?.id).toBe('door');
+  });
+  it('at least two minutes after another memory, never into a busy room or over one playing', () => {
+    const m = new MemoryDirector();
+    m.lastEnded = 100;
+    expect(m.offer(offerState({ now: 200 }))).toBeNull();
+    expect(m.offer(offerState({ now: 230, free: false }))).toBeNull();
+    expect(m.offer(offerState({ now: 230, otherMemory: true }))).toBeNull();
+    expect(m.offer(offerState({ now: 230 }))?.id).toBe('bedroom');
+  });
+  it('an offered line begins its memory on a read (no look back needed later in the visit)', () => {
+    const m = new MemoryDirector();
+    let start = null;
+    for (let t = 0; t <= 3 && !start; t += 0.1) start = m.update(base({ now: 200 + t, visible: (id) => id === 'happiest-unneeded', gazeId: 'happiest-unneeded', gazeFor: t }));
+    expect(start?.id).toBe('bedroom');
+    expect(start?.variant).toBe('morning');
+  });
+});
+
 describe('living memories in a visit', () => {
   it('a reader who comes back to the first line meets the memory; nothing talks over it', () => {
     const reader = PERSONAS.find((p) => p.id === 'reader')!;
