@@ -394,10 +394,12 @@ export function floorMaps(seed: number, wM: number, dM: number): SurfaceMaps {
     g.fillRect(0, 0, r.range(4, 16) * K, r.range(0.8, 1.8) * K);
     g.restore();
   }
-  // The floor darkens toward the walls.
-  const vg = g.createRadialGradient(cx, cy, Math.min(W, H) * 0.18, cx, cy, Math.max(W, H) * 0.72);
+  // The floor darkens away from the chair: the concrete nearest it has been walked to, swept,
+  // sat beside; further out it is duller and greyer (and the pool of light reads as a pool).
+  const vg = g.createRadialGradient(cx, cy, 0.8 * PX_PER_M, cx, cy, 3.6 * PX_PER_M);
   vg.addColorStop(0, 'rgba(0,0,0,0)');
-  vg.addColorStop(1, 'rgba(98,92,84,0.2)');
+  vg.addColorStop(0.45, 'rgba(92,88,82,0.22)');
+  vg.addColorStop(1, 'rgba(84,80,74,0.42)');
   g.fillStyle = vg;
   g.fillRect(0, 0, W, H);
   corners(g, W, H, { top: 0.3, bottom: 0.3, left: 0.3, right: 0.3 }, '96,92,86');

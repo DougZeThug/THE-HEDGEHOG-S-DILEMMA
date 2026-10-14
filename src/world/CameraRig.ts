@@ -11,7 +11,7 @@ const KNEEL_EYE = 0.6;
  */
 const OPENING_EYE = 1.1;
 /** Where the opening is seen from: centred on the chair, about two and a half metres back. */
-export const OPENING_POS = { x: 0, z: 2.45, yaw: 0 };
+export const OPENING_POS = { x: 0, z: 2.45, zPortrait: 2.3, yaw: 0 };
 
 /**
  * First-person body: slow, weighted walking; a view that settles. Supports mouse
@@ -28,6 +28,8 @@ export class CameraRig {
   private eye = EYE;
   /** Until the visitor first walks, the eye rests here (the opening's), then rises to standing. */
   private restEye = EYE;
+  /** The opening is seen a little wider on a landscape screen (a portrait one is wide enough). */
+  private wideOpening = true;
   kneeling = false;
   reducedMotion = false;
   enabled = true;
@@ -70,13 +72,15 @@ export class CameraRig {
    * screen and the chair sits just below centre on a phone held upright.
    */
   frameOpening(aspect: number) {
-    this.pos.set(OPENING_POS.x, 0, OPENING_POS.z);
+    // An upright phone sees less across: it starts nearer, so the chair still holds the frame.
+    this.pos.set(OPENING_POS.x, 0, aspect < 1 ? OPENING_POS.zPortrait : OPENING_POS.z);
     this.yaw = OPENING_POS.yaw;
     // Low and centred, the chair large and the room a box around it; under reduced motion the
     // visitor starts standing (no rise of the view later).
     this.restEye = this.eye = this.reducedMotion ? EYE : OPENING_EYE;
     const low = !this.reducedMotion;
-    this.pitch = aspect < 1 ? (low ? -0.12 : -0.3) : low ? -0.02 : -0.15;
+    this.pitch = aspect < 1 ? (low ? -0.15 : -0.3) : low ? -0.02 : -0.15;
+    this.wideOpening = aspect >= 1;
   }
 
   /** Walk toward a world point, stopping `stopAt` metres short. */
@@ -202,7 +206,7 @@ export class CameraRig {
     this.camera.position.set(this.pos.x, this.eye + bob + sway, this.pos.z);
     this.camera.rotation.set(this.pitch, this.yaw, 0);
     // Seen from the opening's low place, a little wider: the box whole, its light at the top.
-    const seated = this.restEye < EYE - 0.1 && !this.kneeling;
+    const seated = this.restEye < EYE - 0.1 && !this.kneeling && this.wideOpening;
     const fovTarget = this.baseFov + (this.kneeling && !this.reducedMotion ? 8 : 0) + (seated ? 6 : 0);
     this.camera.fov = approach(this.camera.fov, fovTarget, dt, 1.5);
     this.camera.updateProjectionMatrix();
