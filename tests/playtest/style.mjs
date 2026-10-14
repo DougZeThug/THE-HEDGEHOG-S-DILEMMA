@@ -180,9 +180,13 @@ for (const profile of PROFILES) {
     // artist's reference is framed: they haven't taken a step yet).
     if (process.env.OPENING !== '0') await shot('open-handoff');
     for (const [name, from, to] of VIEWS) {
+      // The invariance pair measures the light, so the grade's vignette is off for it.
+      const inv = name.startsWith('inv-');
+      if (inv) await page.evaluate(() => { window.__hedgehog.post.vignette = 0; });
       await stand(page, from, to);
       await page.waitForTimeout(1000);
       await shot(name);
+      if (inv) await page.evaluate(() => { const a = window.__hedgehog; a.post.vignette = a.look.vignette; });
     }
     // The chair turned and moved (the Director's nudge): its shadow and contacts must follow.
     await stand(page, VIEWS[1][1], VIEWS[1][2]);

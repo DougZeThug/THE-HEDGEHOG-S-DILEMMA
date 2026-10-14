@@ -828,7 +828,12 @@ export class WallText {
       let base = HANDS[it.hand].opacity * (it.strength ?? 1) * (1 - (it.wash ?? 0));
       // Faint writing on a brighter wall sits higher on the tone curve and loses contrast: the
       // look gives it back (only the faint: the strong lines held their own).
-      if (base < 0.4) base = Math.min(0.4, base * this.faintBoost);
+      if (it.placement.surface === 'floor') {
+        // The floor by the chair is the brightest surface in the room, the key's pool high on the
+        // tone curve, where pencil is compressed hardest, strong lines too: all of it is given back
+        // more (and none in the original look).
+        base = Math.min(0.8, base * this.faintBoost ** 2);
+      } else if (base < 0.4) base = Math.min(0.4, base * this.faintBoost);
       if (it.plan) {
         const h = handAt(it.plan, wallClock());
         it.uniforms.uWrite.value = h / Math.max(1e-3, it.duration);

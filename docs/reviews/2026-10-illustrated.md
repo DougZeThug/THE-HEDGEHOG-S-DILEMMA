@@ -225,6 +225,25 @@ What was changed:
 - **Stains:** four distinct runs per side wall, gathered near each end with clean wall between (alpha 0.14–0.22, 1.5–3.5 cm wide, 0.9–2.2 m long); two faint ones on the others.
 - **The chair's wood** about 6% darker and a little less saturated, nearer old wood than new pine.
 
-Measured at the hand-off pose (probe; reference in brackets): back wall about 180 (177), side wall 138 (139), pool 228 (229), frame median 129 (131), 1st percentile 71 (68), floor bottom-centre 203 (198), all at R/B 1.22 (1.23).
+Measured at the hand-off pose with the key still at 1.8 (probe; reference in brackets): back wall about 180 (177), side wall 138 (139), pool 228 (229), frame median 129 (131), 1st percentile 71 (68), floor bottom-centre 203 (198), all at R/B 1.22 (1.23). The key then came down (below).
 
 Not done: the skylight's reveal as a sharp-cornered opening rather than a fitting (P2). The director's own caveat stands too: the reference is one rendered image, and the artist should judge the stains and the grain moving at full frame rate.
+
+### QA's findings, and the key brought back down
+QA tested the first pass (6e4bb3d) on its own build and on 1806b3c for comparison. It broke nothing:
+- Smoke passes with no console errors or failed requests; the opening passes when run alone.
+- No shader programs are compiled after the threshold. Draw calls, triangles and texture memory are identical, and phone frame times did not regress (the shadow's blur takes a fixed 20 samples however soft it is).
+- On phones the first line starts at least 40 px inside the left edge, and captions never overlapped the chair.
+
+The one real regression was **the pencil on the floor by the chair**. "It used to fit me" and "Budge up" had all but gone: Weber contrast 0.124 → 0.036 and 0.059 → 0.023, with nearly all of the loss from the stronger key. The style metrics could not see it, because they skip floor writing.
+
+The cause is the tone curve, not the ink. With the key at 1.8 the pool sits deep in the tone mapper's shoulder: raising the key from 1.3 to 1.8 moved the pool's luma only from 228 to 230, while it compressed everything in the pool, pencil included. Raising the floor writing's opacity alone did not bring it back. The key was the wrong lever for the pool's brightness.
+- **Key 1.1** (was 1.8), glow 0.6, and the panel's area light **1.45**, so the wall comes down with it. Pool 222 against the wall's 180, a ratio of 1.23 (reference 1.30); the pencil reads again at the chair.
+- **Floor writing** gets more of the look's faint boost than wall writing (`faint`², capped at 0.8): the pool is the brightest surface in the room. The original look is unchanged.
+- The floor's ink was not added to the style harness. A text quad's box takes in the chair's shadow, so its darkest pixels are the shadow, not the pencil, and the number would guard nothing. It is checked in the chair view by eye, against the original look.
+
+Also from QA, all P2:
+- **Invariance 8.0 is the vignette** (0.1 with the vignette off). The figure measures the grade, not the light; the harness should take those two frames with the vignette at 0.
+- **The dim is not shallower.** r9 and r10 were already at 0.721, and the pool now holds through the dim more firmly than before.
+- **The opening harness can fail under load**, when its 11 s screenshot stalls the sampler during the first line (it passes alone). It should move to the virtual clock that `style.mjs` uses.
+- **The faint wall drawings lost some contrast against r10** (desktop median 0.109 → 0.086). The lower key and lifted darks should give some of it back; the r13 capture re-measures it.
