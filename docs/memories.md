@@ -26,7 +26,7 @@ npm run dev
 open http://localhost:5173/?memory&studio
 ```
 
-Go in, then use the bar at the top: choose the memory and variant, press **Start**. The visitor walks to where the memory is seen whole and it begins; it is then held wherever Studio's playhead is. Scrub, play and keyframe in Studio's sequence editor (bottom); select objects in the outline (left: `window`, `light`, `layer:*`) to edit their values. Nothing sounds while scrubbing. **Play on** lets the memory run from where it is, as a visitor would see it (with sound); **Release** and **Interrupt** show its two ways of leaving.
+Go in, then use the bar at the top (sections and sound markers are read when a memory starts: after moving one, press **Start** again): choose the memory and variant, press **Start**. The visitor walks to where the memory is seen whole and it begins; it is then held wherever Studio's playhead is. Scrub, play and keyframe in Studio's sequence editor (bottom); select objects in the outline (left: `window`, `light`, `layer:*`) to edit their values. Nothing sounds while scrubbing. **Play on** lets the memory run from where it is, as a visitor would see it (with sound); **Release** and **Interrupt** show its two ways of leaving.
 
 When it looks right, press **Save to repo**: the dev server writes `src/memory/theatre-state.json`. Commit that file; the production build plays exactly it, without Studio. (**Download** gives the same file if the dev server can't write.) Studio also keeps unsaved work in the browser; if it ever asks whether to use the browser's state or the project's, choose the browser's to keep unsaved edits, or the project's to start from what is committed. Never rely on the browser alone: only the committed file ships.
 
@@ -35,8 +35,9 @@ What each value means:
 - `window.sketch`, `window.reveal`: how far the light has found the pencil drawing, and the colour (0–1). The colour follows the drawing.
 - `window.scale`, `offsetX`, `offsetY`: the painting's size relative to its line (1 ≈ as wide as the words) and a nudge from where it sits, its top just above the words.
 - `window.presence`: the whole memory's strength. `window.parallax`: depth (0 in this version; it can't be seen standing still).
+- The words are written across a band at the painting's top kept bare (`band` in the art manifest); the window is placed so they sit in it.
 - `light.x`, `light.y`, `light.radius`, `light.soft`: where the memory's light pool falls in the painting (metres from its centre), how big and how soft. The pool is what is revealed.
-- `light.warmth` (kelvin) and `light.intensity`: its colour and strength. `light.roomSpill`: how much of it may stay in the room.
+- `light.warmth` (kelvin) and `light.intensity`: its colour and strength (light layers are painted white: their colour is this). `light.roomSpill`: how strongly its light stays in the room after a natural close (the bleed, which starts at the painted sun's pane, `bleedAt` seconds after `exit`).
 - `layer:<name>.opacity`, `.x`, `.y`, `.depth`: each painted layer's strength and a small offset (metres).
 
 Sections and sounds are **markers** on the sequence: `active` (the scene is formed), `exit` (the authored withdrawal begins; the scene holds just before it while the visitor stays), `residue`, `end`; and `sfx:<name>`, `bed:<name>`, `music:<name>`, whose sounds are in the memory's cue sheet (`defs.ts`).
@@ -64,5 +65,6 @@ The code-painted stand-ins are re-baked with `npm run bake:memories` (Chromium, 
 ## What is a stand-in
 
 - All memory art is code-painted (wax crayon, graphite, light) in the replaceable format.
-- The kitchen radio's music has not been generated yet (its cue is silent until it is); its length is set from the authored timeline first.
+- The kitchen radio (`public/music/memory-radio.mp3`) is generated and plays inside the memory, pending the artist's ear.
+- The kitchen's air is made in the engine (`src/memory/synthAir.ts`), not recorded.
 - Every new sound is `review: pending` until the artist has listened on the audition sheet.

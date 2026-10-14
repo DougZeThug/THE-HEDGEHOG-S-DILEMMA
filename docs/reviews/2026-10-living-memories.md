@@ -198,3 +198,38 @@ Reviewed by the creative director, cinematic director, technical artist, sound d
 - **Music timing.** Built after the cereal's visuals and SFX; its length is set from the authored sequence (music enters when the scene has formed), then a music dry run at that length.
 - **Order and the gate before the other two scenes** (skeptic): cereal end to end first, no revisit art. Before `door-open` and the bedroom: the artist has seen and heard cereal; the fixed playtest harness (moved lines credited to their real wall, a "notices new writing" behaviour whose probabilities are committed before measuring) shows the bedroom's line is reachable; no new rAF loops or compiles. Revisits erode the same sheet (fewer layers, no music) rather than new art.
 - **Kept small:** at most three legible objects per memory (cereal: the box left on the table, two bowls that don't match, a spoon); no door closing in the hallway; curtain motion only in the bedroom; no floor bleed in v1; kitchen-light keeps its tuned rule until the new director has earned the migration; the editor is a small bar on top of Studio, not a custom inspector.
+
+## Cereal, built and evaluated (stage C–E)
+
+Evaluated after implementation by the cinematic director, creative director, technical artist and sound designer (captures in `test-output/review/memories/`, offline audio renders of the real chain), with QA/accessibility testing the build.
+
+What they found, and what was done:
+
+| Finding | Who | Done |
+|---|---|---|
+| One unbroken 2.5 s look both armed and began it: the "stare and get a picture" lesson | creative | Begins only on a look *back* (eyes elsewhere ≥ 2 s, then ≥ 1 s on the line); a touch is intent. Test fails on the old path. |
+| The box sat behind "perfect."; the reserve round the words removed only 45 % | creative, cinematic, technical | A band at the painting's top is kept for the words (the window is placed by it); reserve 0.85; the box lower, red softer (saturation within the agreed limit). |
+| An 8 s frozen hold for a visitor who stays; spoon-down after the light had started to go | cinematic | maxHold = exit = 22 s; spoon-down leads the withdrawal by 0.8 s. |
+| The living phase was a still image (3.5 cm drift in 16 s) | cinematic, creative | One arc of light: the pane slides off the words to the table, lifts after the laugh, the evening goes down. |
+| The dissolve was back-loaded; the drawing never stood alone | cinematic, technical | Natural dissolve `sine.inOut`; colour goes by 70 %, then the graphite alone, then plaster. |
+| The painted sun was double-warmed (salmon) and the bleed arrived later, larger and elsewhere | technical, cinematic, creative | Sun painted white, coloured by `light.warmth` (≈ kitchen-light's colour); the bleed starts at exit + 2 s at the painted pane's size, position and slant (MemoryLight.startPane). |
+| Ruled lines and a hard rectangular crop read as a panel | creative, cinematic | Graphite drawn in wobbling runs; the table stops short, raggedly. |
+| `later` was fuller, not eroded | creative | Both bowls empty, the box on its side, a spoon on the table. |
+| The laugh was masked by the radio and came after early leavers had gone | sound | Laugh +4 dB, radio −3 dB, spoons +2 dB; laugh at 10.5 s (inside the minimum hold). |
+| The recorded kitchen air was 75 % sub-bass, its leaves repeating every 8 s | sound | The air is made in the engine (`synthAir.ts`); no more credits on recorded room tone. |
+| A frame stall > 0.5 s silently dropped the radio | sound | A stall passes one-shots but owes beds and music, started part-way in (tested). |
+| Room music and room silences could override the memory's hush | sound | The memory has its own duck stage (multiplying) and stops the room's music while it plays. |
+| Studio: "Play on" re-froze; edits only showed after the playhead moved | technical | The editor ignores the controller's own writes; a held memory re-reads Theatre every frame. |
+| Serial loading after the commit; leaks on failure or overlap | technical | Parallel, cached, prefetched when the line is written; cleaned up on failure; a generation token guards overlap. |
+| Save endpoint accepted cross-origin simple POSTs | technical | Same-origin JSON only. |
+| Hints shown over a forming memory | cinematic | No hints while a memory plays. |
+
+Not done, and why:
+- **The curtain** (creative: remove it; outside three objects). The artist asked for a curtain in this memory; it is kept, paler and still. Its motion stays the bedroom's.
+- **The radio's prompt** (creative: "advert music"). It is the artist's choice to keep, retake or drop, by ear; the rebalance has lowered it under the people. No retake without the artist.
+- **"The box ran out"** (creative): the last flakes are painted into the second bowl (free); a box-shake sound would be a new paid generation and waits for the artist.
+- **A cooler return of the kitchen's light later in the visit** (creative): a new event; for the skeptic and the artist first.
+
+Measured reachability (fixed harness, 8 seeds × 300 s): cereal opens for the reader 7/8 (median 22 s), the explorer 4/8 (64 s), phone and still rarely, the chair visitor not at all; the bedroom's and the door's lines are read ≥ 2 s in at most 1/8 visits for any persona. **The gate before the other two scenes is not met**: their lines must first be offered the way kitchen-light's is (written alone where the visitor faces, a short hold), then measured again. The remaining SFX for them are prompted and dry-run (7 sounds, ~252 credits of the 341 left) but not generated.
+
+Spend so far: SFX 259 of 600 (four sounds, one retake); memory music 385 of 1,200 (the radio). Nothing has been judged by ear yet: every new take is pending on the audition sheet.
