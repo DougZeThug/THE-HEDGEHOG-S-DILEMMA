@@ -68,9 +68,11 @@ function plaster(W: number, H: number, seed: number, tone: [number, number, numb
       // plaster that has been patched, painted over and lived beside, never quite even.
       let cloud = 0;
       if (blotch) {
+        // Broad and gentle (dark clouds at the scale of a stain read as damp), and a mid-scale
+        // tooth of a few centimetres: what makes plaster read as plaster from across a room.
         const b = n4.fbm(x / (110 * K), y / (110 * K), 4) - 0.5;
-        const dark = Math.max(0, n4.fbm(x / (330 * K) + 17, y / (330 * K) + 5, 3) - 0.56);
-        cloud = b * blotch - dark * blotch * 4;
+        const tooth = n4.fbm(x / (12 * K) + 41, y / (12 * K) + 7, 2) - 0.5;
+        cloud = b * blotch + tooth * 10;
       }
       const d = m * scale.mottle + tr * scale.trowel + fine * scale.grain + cloud;
       const i = (y * W + x) * 4;
@@ -99,7 +101,7 @@ function corners(g: CanvasRenderingContext2D, W: number, H: number, edges: { top
     g.fillRect(0, 0, W, H);
   };
   if (edges.bottom) band(0, H, 0, H - edges.bottom * PX_PER_M, 0.2);
-  if (edges.top) band(0, 0, 0, edges.top * PX_PER_M, 0.16);
+  if (edges.top) band(0, 0, 0, edges.top * PX_PER_M, edges.top < 0.2 ? 0.1 : 0.16);
   if (edges.left) band(0, 0, edges.left * PX_PER_M, 0, 0.2);
   if (edges.right) band(W, 0, W - edges.right * PX_PER_M, 0, 0.2);
 }
@@ -251,6 +253,39 @@ function graphiteSmudges(g: CanvasRenderingContext2D, W: number, H: number, r: R
 }
 
 /**
+ * The writer's hand, under the lines that are on the walls: the heel of a right hand dragged
+ * along beneath a line from about its middle, a thumb at its end. Painted onto a wall's map
+ * once the writing is laid out (u, v: the line's centre in the wall's metres; w, h its size).
+ */
+export function handMarks(map: THREE.CanvasTexture, lines: { u: number; v: number; w: number; h: number }[], seed: number) {
+  const c = map.image as HTMLCanvasElement;
+  const g = c.getContext('2d')!;
+  const H = c.height;
+  const r = new Rng(seed);
+  const soft = (x: number, y: number, rx: number, ry: number, rot: number, a: number) => {
+    g.save();
+    g.translate(x, y);
+    g.rotate(rot);
+    g.scale(1, ry / rx);
+    const grd = g.createRadialGradient(0, 0, 0, 0, 0, rx);
+    grd.addColorStop(0, `rgba(72,72,78,${a})`);
+    grd.addColorStop(1, 'rgba(72,72,78,0)');
+    g.fillStyle = grd;
+    g.fillRect(-rx, -rx, rx * 2, rx * 2);
+    g.restore();
+  };
+  for (const l of lines) {
+    const base = H - (l.v - l.h / 2 - r.range(0.03, 0.06)) * PX_PER_M;
+    const x0 = (l.u - l.w / 2 + l.w * 0.4) * PX_PER_M;
+    const len = l.w * r.range(0.35, 0.55) * PX_PER_M;
+    // The drag: several overlapping soft strokes along the baseline.
+    for (let k = 0; k < 5; k++) soft(x0 + (len * k) / 5, base + r.range(-1.5, 1.5) * K, len / 5, r.range(2, 4) * K, r.range(-0.06, 0.04), r.range(0.1, 0.16));
+    soft((l.u + l.w / 2) * PX_PER_M + r.range(1, 4) * K, base - r.range(2, 8) * K, r.range(3, 5) * K, r.range(2.5, 4) * K, r.range(0, 3), r.range(0.12, 0.18));
+  }
+  map.needsUpdate = true;
+}
+
+/**
  * What makes a surface read as a surface up close: specks and pits (per m²), and hairline
  * scratches, a few centimetres long; dark (and some light, `light` of them) in colour, and
  * pressed into the relief.
@@ -258,7 +293,7 @@ function graphiteSmudges(g: CanvasRenderingContext2D, W: number, H: number, r: R
 function fineDetail(g: CanvasRenderingContext2D, bg: CanvasRenderingContext2D, W: number, H: number, r: Rng, o: { specks: number; pits: number; scratches: number; light?: number }) {
   const area = (W / PX_PER_M) * (H / PX_PER_M);
   for (let i = 0, n = Math.round(o.specks * area); i < n; i++) {
-    const x = r.range(0, W), y = r.range(0, H), rad = r.range(0.4, 1.3) * K;
+    const x = r.range(0, W), y = r.range(0, H), rad = r.range(1, 2.5) * K;
     const lightSpeck = r.chance(o.light ?? 0.15);
     g.fillStyle = lightSpeck ? `rgba(255,252,246,${r.range(0.08, 0.2)})` : `rgba(78,74,68,${r.range(0.06, 0.2)})`;
     g.beginPath();
@@ -266,7 +301,7 @@ function fineDetail(g: CanvasRenderingContext2D, bg: CanvasRenderingContext2D, W
     g.fill();
   }
   for (let i = 0, n = Math.round(o.pits * area); i < n; i++) {
-    const x = r.range(0, W), y = r.range(0, H), rad = r.range(1, 2.6) * K;
+    const x = r.range(0, W), y = r.range(0, H), rad = r.range(2, 5) * K;
     g.fillStyle = `rgba(90,86,80,${r.range(0.1, 0.22)})`;
     bg.fillStyle = `rgba(40,40,40,${r.range(0.5, 0.8)})`;
     for (const c of [g, bg]) {
@@ -312,7 +347,7 @@ export function wallMaps(surface: Surface, seed: number, wM: number, hM: number)
     west: [234, 232, 228],
     south: [236, 234, 229],
   };
-  const { c, g, bc, bg } = plaster(W, H, seed, tone[surface] ?? [236, 234, 228], { mottle: 15, trowel: 5, grain: 4, blotch: 21 });
+  const { c, g, bc, bg } = plaster(W, H, seed, tone[surface] ?? [236, 234, 228], { mottle: 10, trowel: 5, grain: 4, blotch: 8 });
   const r = new Rng(seed + 11);
   const floorY = H;
   const mx = (u: number) => u * PX_PER_M;
@@ -354,9 +389,10 @@ export function wallMaps(surface: Surface, seed: number, wM: number, hM: number)
   }
 
   baseScuffs(g, W, H, r, 22);
-  graphiteSmudges(g, W, H, r, 26);
-  fineDetail(g, bg, W, H, new Rng(seed + 31), { specks: 70, pits: 14, scratches: 3.5 });
-  corners(g, W, H, { bottom: 0.55, top: 0.45, left: 0.45, right: 0.45 });
+  graphiteSmudges(g, W, H, r, 8);
+  fineDetail(g, bg, W, H, new Rng(seed + 31), { specks: 70, pits: 45, scratches: 3.5 });
+  // Little at the top: the box keeps a crisp, lit edge under its darker lid.
+  corners(g, W, H, { bottom: 0.55, top: 0.12, left: 0.45, right: 0.45 });
   const map = toTex(c, true);
   const bump = toTex(bc, false);
   return { map, bump };
@@ -443,10 +479,13 @@ export function floorMaps(seed: number, wM: number, dM: number): SurfaceMaps {
   }
   // The floor darkens away from the chair: the concrete nearest it has been walked to, swept,
   // sat beside; further out it is duller and greyer (and the pool of light reads as a pool).
-  const vg = g.createRadialGradient(cx, cy, 0.8 * PX_PER_M, cx, cy, 3.6 * PX_PER_M);
+  // Neutral grey, not brown (falling light keeps its hue; dirt doesn't), centred a little toward
+  // the panel, as the light is.
+  const lcy = cy - 0.4 * PX_PER_M;
+  const vg = g.createRadialGradient(cx, lcy, 0.8 * PX_PER_M, cx, lcy, 3.6 * PX_PER_M);
   vg.addColorStop(0, 'rgba(0,0,0,0)');
-  vg.addColorStop(0.45, 'rgba(92,88,82,0.22)');
-  vg.addColorStop(1, 'rgba(84,80,74,0.42)');
+  vg.addColorStop(0.45, 'rgba(118,118,118,0.12)');
+  vg.addColorStop(1, 'rgba(118,118,118,0.22)');
   g.fillStyle = vg;
   g.fillRect(0, 0, W, H);
   corners(g, W, H, { top: 0.3, bottom: 0.3, left: 0.3, right: 0.3 }, '96,92,86');

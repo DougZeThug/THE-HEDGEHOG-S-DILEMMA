@@ -138,6 +138,13 @@ export class App {
       },
     });
     for (const [id, st] of this.director.visible) if (st.base) this.text.setShown(id);
+    // The hand that wrote what is already there left its marks under it.
+    this.room.handMarks(
+      [...this.director.visible]
+        .filter(([, st]) => st.base)
+        .map(([id]) => this.text.placementOf(id))
+        .filter((p): p is NonNullable<typeof p> => !!p && p.surface !== 'floor' && p.surface !== 'ceiling'),
+    );
 
     const samples = this.prefs.quality === 'high' ? 4 : this.prefs.quality === 'medium' ? 2 : 0;
     this.post = new Post(this.renderer, this.scene, this.rig.camera, samples);

@@ -105,7 +105,9 @@ export class Chair {
     const postZ = (y: number) => -0.165 - 0.05 * (y / 0.72);
     for (const sx of [-1, 1]) {
       add(squareBar(new THREE.Vector3(sx * 0.162, 0.004, 0.152), new THREE.Vector3(sx * 0.16, 0.334, 0.142), W, 0.88));
-      add(squareBar(new THREE.Vector3(sx * postX(0), 0.004, postZ(0)), new THREE.Vector3(sx * postX(0.72), 0.72, postZ(0.72)), W, 0.9));
+      // Made by hand: the left post came out a little short.
+      const top = sx < 0 ? 0.708 : 0.72;
+      add(squareBar(new THREE.Vector3(sx * postX(0), 0.004, postZ(0)), new THREE.Vector3(sx * postX(top), top, postZ(top)), W, 0.9));
     }
 
     // Back: a wider top rail and two slats, tenoned into the posts, following their rake.
@@ -117,7 +119,7 @@ export class Chair {
     };
     rail(0.665, 0.052);
     // Made by hand: the middle slat went in not quite level.
-    rail(0.575, 0.034, 0.03);
+    rail(0.575, 0.034, 0.055);
     rail(0.485, 0.034);
 
     // Stretchers: square too, low at the sides, a little higher across the front and back.
@@ -158,8 +160,8 @@ export class Chair {
     this.seatShade = plane(seatShade, 'chair-seat-shade');
 
     // Invisible proxy for gaze/click.
-    this.hit = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.75, 0.42), new THREE.MeshBasicMaterial({ visible: false }));
-    this.hit.position.y = 0.37;
+    this.hit = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.75, 0.44), new THREE.MeshBasicMaterial({ visible: false }));
+    this.hit.position.set(0, 0.37, -0.015);
     this.group.add(this.hit);
 
     this.group.rotation.y = this.baseYaw;

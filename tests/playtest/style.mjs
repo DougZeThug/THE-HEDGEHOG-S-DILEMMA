@@ -66,6 +66,8 @@ const stand = (page, from, to) =>
     ([f, t]) => {
       const a = window.__hedgehog;
       a.rig.cancelAttend();
+      // Fixed views are from standing height (the opening leaves the visitor seated until they walk).
+      a.rig.stand?.();
       a.rig.pos.set(f[0], 0, f[2]);
       const eye = a.rig.eye ?? 1.58;
       const dx = t[0] - f[0], dy = t[1] - eye, dz = t[2] - f[2];

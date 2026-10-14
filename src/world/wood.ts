@@ -27,7 +27,7 @@ export function woodMaps(seed = 7): { map: THREE.CanvasTexture; rough: THREE.Can
   const img = g.createImageData(W, H);
   const rimg = rg.createImageData(W, H);
   const warp = makeNoise(seed), fig = makeNoise(seed + 1), pore = new Rng(seed + 2);
-  const light = [150, 102, 66], dark = [104, 68, 44], deep = [64, 42, 28];
+  const light = [202, 138, 89], dark = [140, 92, 59], deep = [86, 57, 38];
   // The seat occupies canvas rows 0..seatH (v from 1 down to SEAT_V0; the canvas is flipped).
   const seatH = Math.round(H * (1 - SEAT_V0));
   const seatW = Math.round(W * 0.8);
@@ -35,7 +35,7 @@ export function woodMaps(seed = 7): { map: THREE.CanvasTexture; rough: THREE.Can
     const inSeat = y < seatH;
     // The seat: two boards, the joint across the middle of its depth; the back board's grain
     // starts elsewhere in the log and is a shade lighter.
-    const board = inSeat ? (y < seatH * 0.52 ? 0 : 1) : -1;
+    const board = inSeat ? (y < seatH * 0.55 ? 0 : 1) : -1;
     for (let x = 0; x < W; x++) {
       // Long, calm grain: lines run along U and only drift slowly.
       const yy = y + (board === 1 ? 157 : 0);
@@ -47,7 +47,7 @@ export function woodMaps(seed = 7): { map: THREE.CanvasTexture; rough: THREE.Can
       const figure = fig.fbm(x / 160, yy / 140, 3);
       // The seat is wide, flat-sawn board: broad figure, quieter latewood (a regular stripe
       // across it read as corduroy). Turned and bent parts keep the strong rings.
-      let t = inSeat && x < seatW ? 0.3 + 0.16 * late + 0.42 * (figure - 0.5) : 0.32 + 0.34 * late + 0.35 * (figure - 0.5);
+      let t = inSeat && x < seatW ? 0.3 + 0.3 * late + 0.5 * (figure - 0.5) : 0.32 + 0.34 * late + 0.35 * (figure - 0.5);
       // Pores: short dark dashes along the grain.
       const p = pore.next();
       if (p > 0.992) t += 0.3;
@@ -55,14 +55,14 @@ export function woodMaps(seed = 7): { map: THREE.CanvasTexture; rough: THREE.Can
       let rough = 0.5 + 0.14 * late + 0.08 * (figure - 0.5) + (p > 0.992 ? 0.2 : 0);
       if (inSeat && x < seatW) {
         // Sat on and handled for years: the seat's top is paler, honey rather than walnut.
-        shade *= board === 1 ? 1.14 : 1.08;
+        shade *= board === 1 ? 0.76 : 0.72;
         // The glue line, faint.
-        const joint = Math.abs(y - seatH * 0.52);
+        const joint = Math.abs(y - seatH * 0.55);
         if (joint < 2) shade *= 0.7;
         // Edges darker and rougher: dust and old finish where nobody sits or holds.
         const ex = Math.min(x, seatW - x) / seatW, ey = Math.min(y, seatH - y) / seatH;
         const edge = 1 - Math.min(1, Math.min(ex / 0.12, ey / 0.16));
-        shade *= 1 - 0.25 * edge;
+        shade *= 1 - 0.35 * edge;
         rough += 0.12 * edge;
       }
       t = Math.min(1, Math.max(0, t));

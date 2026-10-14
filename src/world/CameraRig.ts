@@ -5,15 +5,15 @@ import type { Room } from './Room';
 const EYE = 1.58;
 const KNEEL_EYE = 0.6;
 /**
- * The opening's eye: lower, as if sitting on the floor of the room, level with the chair's
- * world (the artist's reference is framed from about here). The visitor stands up when they
- * first walk.
+ * The opening's eye: a child's eye height, level with the chair's world (the artist's
+ * reference is framed from about here): the diorama as the child who made it saw it. The
+ * first step stands the visitor up into an adult, and the chair becomes too small.
  */
 const OPENING_EYE = 1.1;
 /** Standing up takes this long, eased at both ends. */
-const RISE_S = 1.8;
+const RISE_S = 2.8;
 /** Where the opening is seen from: centred on the chair, about two and a half metres back. */
-export const OPENING_POS = { x: 0, z: 2.45, zPortrait: 2.3, yaw: 0 };
+export const OPENING_POS = { x: 0, z: 2.45, zPortrait: 2.45, yaw: 0, yawPortrait: 0.07 };
 
 /**
  * First-person body: slow, weighted walking; a view that settles. Supports mouse
@@ -80,6 +80,8 @@ export class CameraRig {
   setAspect(aspect: number) {
     const v = (h: number) => (2 * Math.atan(Math.tan((h * Math.PI) / 360) / aspect) * 180) / Math.PI;
     this.baseFov = Math.min(88, clamp(62, v(58), v(95)));
+    // Turned upright: no wider view (a portrait screen is wide enough, and the cap holds).
+    if (aspect < 1) this.wideOpening = false;
   }
 
   look(dx: number, dy: number) {
@@ -105,6 +107,8 @@ export class CameraRig {
     const low = !this.reducedMotion;
     this.pitch = aspect < 1 ? (low ? -0.15 : -0.3) : low ? -0.02 : -0.15;
     this.wideOpening = aspect >= 1;
+    // An upright phone sees less across: turned a touch, so the unfinished line keeps its "I".
+    if (aspect < 1) this.yaw = OPENING_POS.yawPortrait;
   }
 
   /** Walk toward a world point, stopping `stopAt` metres short. */
@@ -254,9 +258,11 @@ export class CameraRig {
     // Seen from the opening's low place, a little wider: the box whole, its light at the top.
     // Only for the opening's composition: it goes at the hand-off, or once they look away.
     if (Math.abs(this.yaw) > 0.5) this.wideOpening = false;
-    const seated = this.restEye < EYE - 0.1 && !this.kneeling && this.wideOpening && !this.rise;
-    const fovTarget = this.baseFov + (this.kneeling && !this.reducedMotion ? 8 : 0) + (seated ? 6 : 0);
-    this.camera.fov = approach(this.camera.fov, fovTarget, dt, 1.5);
+    // While rising, the view narrows with the eye (one movement, not two); otherwise it eases.
+    const low = clamp((EYE - this.eye) / (EYE - OPENING_EYE));
+    const wide = this.wideOpening && !this.kneeling && !this.reducedMotion ? 6 * low : 0;
+    const fovTarget = this.baseFov + (this.kneeling && !this.reducedMotion ? 8 : 0) + wide;
+    this.camera.fov = this.rise ? fovTarget : approach(this.camera.fov, fovTarget, dt, 1.5);
     this.camera.updateProjectionMatrix();
   }
 

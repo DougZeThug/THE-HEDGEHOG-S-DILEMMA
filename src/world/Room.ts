@@ -4,22 +4,26 @@ import { ROOM, surfaceSize } from './layout';
 
 /** Where the frosted panel hangs: north of the chair, so the chair's shadow falls toward whoever arrives. */
 export const PANEL = { x: 0.1, z: -0.95 };
-import { wallMaps, floorMaps, ceilingMaps, surfaceDetail } from './surfaces';
+import { wallMaps, floorMaps, ceilingMaps, surfaceDetail, handMarks } from './surfaces';
 import { ceilingFor, panelFor, type Look } from './Style';
 
 const SKIRT = 0.1;
-const WELL_M = 1.3;
+const WELL_M = 1.2;
 
-/** The well's reveal as an alpha map: a square ring from the panel's rim outward, fading. */
+/**
+ * The well's reveal as an alpha map: a hard, bevelled square ring about 5 cm wide round the
+ * panel's rim, lit most at the glass, ending crisply where it meets the ceiling (a feathered
+ * halo read as bloom, a fitting's glow, not an opening).
+ */
 function wellTexture(): THREE.DataTexture {
-  const N = 128, d = new Uint8Array(N * N * 4);
-  const inner = 0.48 / (WELL_M / 2), outer = 1;
+  const N = 256, d = new Uint8Array(N * N * 4);
+  const inner = 0.48 / (WELL_M / 2), outer = 0.53 / (WELL_M / 2);
   for (let j = 0; j < N; j++)
     for (let i = 0; i < N; i++) {
       const x = Math.abs((i + 0.5) / N * 2 - 1), y = Math.abs((j + 0.5) / N * 2 - 1);
-      const r = Math.max(x, y);
-      const t = r < inner ? 0 : Math.max(0, 1 - (r - inner) / (outer - inner));
-      const a = Math.round(255 * 0.9 * t * t);
+      // A rounded square (no creases along the diagonals, as max(|x|, |y|) leaves).
+      const r = (x ** 10 + y ** 10) ** 0.1;
+      const a = r < inner || r > outer ? 0 : Math.round(255 * (0.75 - 0.3 * ((r - inner) / (outer - inner))));
       const k = (j * N + i) * 4;
       d[k] = d[k + 1] = d[k + 2] = a;
       d[k + 3] = 255;
@@ -176,7 +180,7 @@ export class Room {
     ceilingFor(w, this.ceilingEmissive).multiplyScalar(this.ceilingBounce);
     (this.panel.material as THREE.MeshStandardMaterial).emissive.copy(panelFor(w));
     panelFor(w, this.rimEmissive).multiplyScalar(0.3);
-    (this.well.material as THREE.MeshBasicMaterial).color.copy(panelFor(w)).multiplyScalar(0.5);
+    (this.well.material as THREE.MeshBasicMaterial).color.copy(panelFor(w)).multiplyScalar(0.6);
     this.setLit(this.panelLit, this.ceilingLit);
   }
   private panelLit = 1;
@@ -259,6 +263,16 @@ export class Room {
     }
     f.floor.mesh.scale.set(s, s, 1);
     f.ceiling.mesh.scale.set(s, s, 1);
+  }
+
+  /** The writer's hand under the lines on the walls (graphite drags and thumbs, painted once). */
+  handMarks(lines: { surface: Surface; u: number; v: number; w: number; h: number }[]) {
+    const seeds: Record<string, number> = { north: 101, east: 103, south: 107, west: 109 };
+    for (const s of ['north', 'east', 'south', 'west'] as Surface[]) {
+      const own = lines.filter((l) => l.surface === s);
+      const map = (this.frames[s].mesh.material as THREE.MeshStandardMaterial).map as THREE.CanvasTexture | null;
+      if (own.length && map) handMarks(map, own, seeds[s]);
+    }
   }
 
   /** Surface-local coordinates (metres, centred) for a (u, v) layout position. */
