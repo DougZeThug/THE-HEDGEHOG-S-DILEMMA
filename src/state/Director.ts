@@ -1450,7 +1450,8 @@ export class Director {
         nostalgia: ctx.field.reminiscence, misunderstanding: ctx.field.dissonance, affection: ctx.field.warmth,
       };
       let s = 0;
-      for (const [k, w] of Object.entries(f.dims)) s += (w ?? 0) * (pull[k] ?? 0.2);
+      // (Typed explicitly: @theatre/core's declarations narrow Object.entries globally.)
+      for (const [k, w] of Object.entries(f.dims) as [string, number | undefined][]) s += (w ?? 0) * (pull[k] ?? 0.2);
       return { f, s: s + 0.1 };
     });
     const i = this.rng.weighted(weights.map((x) => x.s));
