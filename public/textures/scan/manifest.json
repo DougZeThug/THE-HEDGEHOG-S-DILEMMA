@@ -1,0 +1,27 @@
+{
+ "plaster": {
+  "source": "white_plaster_02",
+  "metres": 1.0,
+  "detailStd": 0.07966,
+  "detailSize": 256
+ },
+ "concrete": {
+  "source": "concrete_floor_worn_001",
+  "metres": 3.0,
+  "detailStd": 0.04286,
+  "detailSize": 640,
+  "roughStd": 0.02879
+ },
+ "wood-grain": {
+  "source": "fine_grained_wood",
+  "metres": 0.6,
+  "detailStd": 0.13806,
+  "detailSize": 384
+ },
+ "wood-seat": {
+  "source": "wood_table_worn",
+  "metres": 0.55,
+  "detailStd": 0.15844,
+  "detailSize": 384
+ }
+}
