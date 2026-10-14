@@ -7,10 +7,25 @@
  *
  * Normalised to about −45 dBFS RMS; the cue sheet's gain sets it in the scene.
  */
-export async function synthAir(sampleRate: number, seed = 7, seconds = 16): Promise<AudioBuffer> {
+const made = new Map<string, Promise<AudioBuffer | null>>();
+
+/** Made once per sample rate and seed; null where the browser can't render offline. */
+export function synthAir(sampleRate: number, seed = 7, seconds = 16): Promise<AudioBuffer | null> {
+  const key = `${sampleRate}:${seed}:${seconds}`;
+  let p = made.get(key);
+  if (!p) {
+    p = make(sampleRate, seed, seconds).catch(() => null);
+    made.set(key, p);
+  }
+  return p;
+}
+
+async function make(sampleRate: number, seed: number, seconds: number): Promise<AudioBuffer | null> {
   const fade = 1;
   const len = Math.floor((seconds + fade) * sampleRate);
-  const off = new OfflineAudioContext(2, len, sampleRate);
+  const Offline = (globalThis as { OfflineAudioContext?: typeof OfflineAudioContext; webkitOfflineAudioContext?: typeof OfflineAudioContext }).OfflineAudioContext ?? (globalThis as { webkitOfflineAudioContext?: typeof OfflineAudioContext }).webkitOfflineAudioContext;
+  if (!Offline) return null;
+  const off = new Offline(2, len, sampleRate);
   let s = seed >>> 0 || 1;
   const rnd = () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296) * 2 - 1;
   const pink = () => {
@@ -56,7 +71,7 @@ export async function synthAir(sampleRate: number, seed = 7, seconds = 16): Prom
   const r = await off.startRendering();
   // A seamless loop: the extra second is crossfaded (equal power) into the start.
   const n = Math.floor(seconds * sampleRate), f = Math.floor(fade * sampleRate);
-  const out = new AudioBuffer({ numberOfChannels: 2, length: n, sampleRate });
+  const out = off.createBuffer(2, n, sampleRate);
   let sum = 0;
   for (let ch = 0; ch < 2; ch++) {
     const src = r.getChannelData(ch), dst = out.getChannelData(ch);

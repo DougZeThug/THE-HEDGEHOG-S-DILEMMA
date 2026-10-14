@@ -279,3 +279,14 @@ A way to make the door reachable without breaking the arc (a quiet sound from be
 Not done:
 - The creative director's suggestion to fold the side curtain into the net curtain: the artist asked for a curtain.
 - A curtain retake (cloth rather than air) and a footsteps gain curve: both wait for the artist's ear.
+
+QA after the bedroom and door (fixed):
+- **P0:** after kitchen-light had played, the bedroom's and the door's lines were still offered but could never begin (about a fifth of visits). Kitchen-light now counts in the arc but doesn't block; a test covers it.
+- A touch on an offered line while the room held still was lost. Taps are now kept for 10 s and honoured once the room is free.
+- Sound captions have a solid light backing, normal style, ≥ 16 px (they had measured 1.3–2.6:1 over the floor).
+- A 0.42–0.5 s frame could skip a one-shot, and a stall dropped it with its caption. Now nothing in a slowish frame is skipped, a one-shot passed in the last second still plays, and late or part-way starts are captioned (tested).
+- Synth air falls back (webkit prefix, or plays without air) and is made once per session.
+- A revisit loads only the sounds its timeline plays.
+- When a picture forms, a screen reader hears what it is (a hidden, polite description).
+
+Measured after (10-minute visits, 8 seeds): the bedroom opens in 1–4 of 8 visits per persona; the door in 3/8 for the explorer, otherwise rarely; cereal for the reader 7/8 (median 22 s).

@@ -82,7 +82,7 @@ kbd { font-family: inherit; font-size: 0.85em; border: 1px solid #c9c7c1; border
 @media (min-aspect-ratio: 1/1) { .captions { bottom: calc(2.2vh + env(safe-area-inset-bottom, 0px)); } }
 .captions .cap { display: block; opacity: 0; transition: opacity 1.4s ease; margin-top: 0.3rem; }
 .captions .cap.on { opacity: 1; }
-.captions .cap.sound { font-size: 0.95em; color: rgb(38, 40, 46); text-shadow: 0 0 6px rgba(240, 238, 232, 0.9), 0 0 2px rgba(240, 238, 232, 0.9); }
+.captions .cap.sound { display: table; margin-left: auto; margin-right: auto; font-size: max(16px, 0.95em); font-style: normal; color: rgb(30, 31, 36); background: rgba(240, 238, 232, 0.86); padding: 0.1em 0.55em; border-radius: 0.6em; }
 .hint {
   position: fixed; left: 50%; bottom: calc(3vh + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 5;
   font-size: 0.95rem; color: rgba(60, 62, 68, 0.75); opacity: 0; transition: opacity 2s ease; pointer-events: none;

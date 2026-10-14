@@ -474,6 +474,18 @@ export class App {
   private memoryState(s: Lifecycle) {
     const l = this.living;
     if (!l) return;
+    // What the picture is, for a screen reader (not shown: the captions are for sounds).
+    if (s === 'active') {
+      let sr = document.getElementById('memory-sr');
+      if (!sr) {
+        sr = document.createElement('div');
+        sr.id = 'memory-sr';
+        sr.className = 'sr-only';
+        sr.setAttribute('aria-live', 'polite');
+        document.body.append(sr);
+      }
+      sr.textContent = l.memory.prepared.def.describe(l.memory.prepared.variant);
+    }
     // Letting go early: the room's own light comes back with it (over about 4 s).
     if (s === 'withdrawing' && l.memory.prepared.def.roomDim) this.lighting.dimToChair(l.memory.prepared.def.roomDim, 4, this.time);
     if (s === 'residue' || s === 'complete') {

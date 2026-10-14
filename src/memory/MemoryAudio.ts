@@ -68,8 +68,10 @@ export class MemoryAudio implements AudioSink {
 
   /** Fetch and decode everything the sheet uses (on `memory-prepare`, before anything is due). */
   async prepare(): Promise<void> {
+    // Only what this variant's timeline actually plays (a dusk without its piano never decodes it).
+    const used = new Set(this.markers.map((m) => m.label));
     await Promise.all(
-      Object.entries(this.sheet.cues).map(async ([label, cue]) => {
+      Object.entries(this.sheet.cues).filter(([label]) => used.has(label)).map(async ([label, cue]) => {
         const b = await this.host.load(cue.asset, cue.take);
         if (b) this.buffers.set(label, b);
       }),
@@ -77,7 +79,8 @@ export class MemoryAudio implements AudioSink {
   }
 
   get ready(): boolean {
-    return Object.keys(this.sheet.cues).every((k) => this.buffers.has(k));
+    const used = new Set(this.markers.map((m) => m.label));
+    return Object.keys(this.sheet.cues).filter((k) => used.has(k)).every((k) => this.buffers.has(k));
   }
 
   /** How many sources are scheduled or sounding (for tests and the editor). */
@@ -94,11 +97,11 @@ export class MemoryAudio implements AudioSink {
 
   play(due: Due[]): void {
     if (this.disposed || !this.running) return;
-    for (const d of due) this.start(d.marker, this.now + d.delay, d.late ?? 0, d.late ? 0.3 : undefined);
+    for (const d of due) this.start(d.marker, this.now + d.delay, d.late ?? 0, d.late ? 0.3 : undefined, true);
   }
 
   /** Start one marker's cue at context time `at`, `into` seconds into its own timeline. */
-  private start(marker: Marker, at: number, into: number, fade?: number): void {
+  private start(marker: Marker, at: number, into: number, fade?: number, caption = false): void {
     const label = marker.label;
     const kind = cueKind(label);
     const cue = this.sheet.cues[label];
@@ -184,7 +187,9 @@ export class MemoryAudio implements AudioSink {
     this.live.add(live);
     src.start(at, from);
     // A caption says what began, briefly (a bed or music isn't captioned for its whole length).
-    if (cue.caption && into === 0) this.host.caption?.(cue.caption, kind === 'sfx' ? Math.min(dur, 4) : 2.5);
+    // (Also when it starts late or part-way in, after a stall: the caption is what a deaf visitor
+    // has of it. Not when it comes back after a pause or a seek.)
+    if (cue.caption && (into === 0 || caption)) this.host.caption?.(cue.caption, kind === 'sfx' ? Math.min(dur, 4) : 2.5);
   }
 
   private drop(l: Live): void {

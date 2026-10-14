@@ -196,10 +196,27 @@ describe('cue dispatch: every event once, never on a seek', () => {
     const got: string[] = [];
     for (let p = 0; p < 5; p += 1 / 30) for (const x of d.advance(p)) got.push(x.marker.label);
     const jump = d.advance(5.9); // a 0.9 s frame
-    expect(jump.map((x) => x.marker.label)).toEqual(['music:radio']);
-    expect(jump[0].late).toBeCloseTo(0.4, 6);
+    expect(jump.map((x) => x.marker.label)).toEqual(['music:radio', 'sfx:spoon']);
+    expect(jump[0].late).toBeCloseTo(0.4, 6); // the radio part-way in
+    expect(jump[1].late).toBeUndefined(); // the spoon from its start, a little late
     for (let p = 5.92; p < 8; p += 1 / 30) for (const x of d.advance(p)) got.push(x.marker.label);
-    expect(got).toEqual(['bed:air']); // the spoon is never played late; the radio not twice
+    expect(got).toEqual(['bed:air']); // nothing twice
+    // A long stall: a one-shot more than a second behind stays unheard.
+    const e = new CueDispatch([{ label: 'sfx:a', position: 2 }], 0.3);
+    for (let p = 0; p < 1.5; p += 1 / 30) e.advance(p);
+    expect(e.advance(3.4)).toEqual([]);
+  });
+
+  it('a slowish frame (0.42–0.5 s) skips nothing', () => {
+    for (let phase = 0; phase < 0.5; phase += 0.01) {
+      const d = new CueDispatch([{ label: 'sfx:x', position: 3 }], 0.3);
+      const got: string[] = [];
+      let p = 0;
+      for (; p < 2.5 + phase; p += 1 / 30) for (const x of d.advance(p)) got.push(x.marker.label);
+      for (const x of d.advance(p + 0.48)) got.push(x.marker.label);
+      for (let q = p + 0.5; q < 5; q += 1 / 30) for (const x of d.advance(q)) got.push(x.marker.label);
+      expect(got).toEqual(['sfx:x']);
+    }
   });
 
   it('never past the hold: an event beyond where the scene holds waits for the release', () => {

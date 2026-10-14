@@ -47,6 +47,8 @@ interface Track {
   left: boolean;
   /** Its line has been offered (written where the visitor faces) this visit. */
   offered: boolean;
+  /** A touch asked for it; honoured until then, once the room is free. */
+  requestedUntil: number;
   played: boolean;
   unseen: number;
   notBefore: number;
@@ -54,7 +56,6 @@ interface Track {
 
 export class MemoryDirector {
   private tracks = new Map<string, Track>();
-  private pendingTap: string | null = null;
   active: { id: string; since: number } | null = null;
   private cooldownUntil = -Infinity;
   private last: number | null = null;
@@ -63,7 +64,7 @@ export class MemoryDirector {
 
   /** `counts`: how many times each memory has been seen on earlier visits (persisted). */
   constructor(private counts: Record<string, number> = {}) {
-    for (const m of SCENE_MEMORIES) this.tracks.set(m.id, { armed: false, away: 0, left: false, offered: false, played: false, unseen: 0, notBefore: m.earliest });
+    for (const m of SCENE_MEMORIES) this.tracks.set(m.id, { armed: false, away: 0, left: false, offered: false, requestedUntil: -Infinity, played: false, unseen: 0, notBefore: m.earliest });
   }
 
   /** A touch on writing: arms its memory, and asks for it now if it is eligible. */
@@ -75,7 +76,9 @@ export class MemoryDirector {
     t.armed = true;
     // A touch is intent: coming back to the line later begins it without looking away first.
     t.left = true;
-    this.pendingTap = phraseId;
+    // Asked for: kept for a while if the room can't take it at once (it is often holding still
+    // just then, for the line being written).
+    t.requestedUntil = this.last === null ? Infinity : this.last + 10;
   }
 
   /** The line is one whose look belongs to its memory (not to the room's ordinary answers). */
@@ -128,8 +131,6 @@ export class MemoryDirector {
   }
 
   update(s: SceneState): SceneStart | null {
-    const tap = this.pendingTap;
-    this.pendingTap = null;
     if (s.departing || this.active) return null;
     const dt = this.last === null ? 0 : Math.max(0, s.now - this.last);
     this.last = s.now;
@@ -149,7 +150,9 @@ export class MemoryDirector {
       if (looking) t.away = 0;
       else if ((t.away += dt) >= 2) t.left = true;
       if (s.now < t.notBefore || s.now < this.cooldownUntil || !s.free || s.otherMemory) continue;
-      const asked = tap === m.phraseId || ((t.left || !m.lookBack) && looking && s.gazeFor >= (m.lookBack ? m.commit : m.arm));
+      if (t.requestedUntil === Infinity) t.requestedUntil = s.now + 10;
+      const tapped = s.now <= t.requestedUntil;
+      const asked = tapped || ((t.left || !m.lookBack) && looking && s.gazeFor >= (m.lookBack ? m.commit : m.arm));
       if (!asked) continue;
       return this.begin(m, s.now);
     }
@@ -175,6 +178,7 @@ export class MemoryDirector {
   private begin(m: SceneMemory, now: number): SceneStart {
     const t = this.tracks.get(m.id)!;
     t.played = true;
+    t.requestedUntil = -Infinity;
     this.active = { id: m.id, since: now };
     const seen = this.counts[m.id] ?? 0;
     const variant = seen === 0 ? m.variants.first : m.variants.revisit[(seen - 1) % m.variants.revisit.length] ?? m.variants.first;

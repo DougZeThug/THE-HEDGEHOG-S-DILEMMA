@@ -158,6 +158,25 @@ describe('later memories are offered, not hidden', () => {
   });
 });
 
+describe('the Director and its memories, wired together', () => {
+  it('after the kitchen-light memory, a later memory still opens when its line is read', () => {
+    const m = new MemoryDirector();
+    // Kitchen-light has played (it counts in the arc, but it doesn't block).
+    const s = (now: number, gazeFor: number) => base({ now, visible: (id) => id === 'happiest-unneeded', gazeId: 'happiest-unneeded', gazeFor, kitchenPlayed: true });
+    let start = null;
+    for (let t = 0; t <= 3 && !start; t += 0.1) start = m.update(s(300 + t, t));
+    expect(start?.id).toBe('bedroom');
+  });
+
+  it('a touch while the room is holding still is kept, and honoured once it is free', () => {
+    const m = new MemoryDirector();
+    m.update(base({ now: 299, visible: () => true }));
+    m.tapped('happiest-unneeded');
+    expect(m.update(base({ now: 300, visible: () => true, free: false }))).toBeNull();
+    expect(m.update(base({ now: 302.5, visible: () => true }))?.id).toBe('bedroom');
+  });
+});
+
 describe('living memories in a visit', () => {
   it('a reader who comes back to the first line meets the memory; nothing talks over it', () => {
     const reader = PERSONAS.find((p) => p.id === 'reader')!;

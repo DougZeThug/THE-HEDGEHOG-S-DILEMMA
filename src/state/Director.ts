@@ -1156,7 +1156,9 @@ export class Director {
       gazeId: v.gazeId,
       gazeFor: v.gazeFor,
       free,
-      otherMemory: this.memoryPlayed || this.memoryAwaited(),
+      // (Kitchen-light having played is not a block: the arc and the spacing decide. Only one
+      // waiting to be seen, or playing, is.)
+      otherMemory: this.memoryAwaited(),
       departing: this.departing,
       kitchenPlayed: this.memoryPlayed,
       facing: this.facing,

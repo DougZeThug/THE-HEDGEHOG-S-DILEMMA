@@ -46,23 +46,29 @@ export class CueDispatch {
     if (prev !== null && pos - prev > maxStep) {
       // A stall (a slow frame) jumped forward while playing: one-shots it passed stay unheard,
       // but a bed or the music it passed is still owed, started part-way in.
+      // A one-shot passed in the last second is still played, a little late (the footsteps
+      // that are the door's only event are not lost to one slow frame); older ones are not.
       const owed: Due[] = [];
       for (const m of this.markers) {
         const id = this.id(m);
-        if (!this.fired.has(id) && m.position >= prev && m.position < pos && LASTING.test(m.label)) owed.push({ marker: m, delay: 0, late: pos - m.position });
+        if (this.fired.has(id) || m.position < prev || m.position >= pos) continue;
+        if (LASTING.test(m.label)) owed.push({ marker: m, delay: 0, late: pos - m.position });
+        else if (pos - m.position <= 1) owed.push({ marker: m, delay: 0 });
       }
       this.seek(pos);
       for (const d of owed) this.fired.add(this.id(d.marker));
       return owed;
     }
     const to = Math.min(pos + this.lookahead, limit);
+    // From wherever the last step reached (a slowish frame skips nothing), or a frame's grace.
+    const from = Math.min(pos - this.tolerance, prev ?? pos);
     const out: Due[] = [];
     for (const m of this.markers) {
       const id = this.id(m);
       if (this.fired.has(id)) continue;
-      // Due inside the window ahead; one only just passed may still sound (late by a frame), one
-      // further behind is never played late.
-      if (m.position <= to && m.position >= pos - this.tolerance) {
+      // Due inside the window ahead; one passed since the last step still sounds (a little late);
+      // one further behind is never played late.
+      if (m.position <= to && m.position >= from) {
         this.fired.add(id);
         out.push({ marker: m, delay: Math.max(0, m.position - pos) });
       }

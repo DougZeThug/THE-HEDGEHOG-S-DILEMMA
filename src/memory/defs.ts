@@ -39,6 +39,8 @@ export interface MemoryDef {
   opensFrom?: string;
   /** The white room's own light goes down to this while it plays (the door: evening). */
   roomDim?: number;
+  /** What the picture is, for a screen reader (announced once, when it has formed). */
+  describe: (variant: string) => string;
 }
 
 export const sheetId = (id: string, variant: string) => `${id}-${variant}`;
@@ -136,6 +138,9 @@ export const CEREAL: MemoryDef = {
   tail: 3,
   bleed: 'kitchen-light',
   bleedAt: 2,
+  describe: (v) => v === 'later'
+    ? 'A drawing forms in the wall under the words: the same kitchen table later on, both bowls empty, the cereal box on its side.'
+    : 'A drawing forms in the wall under the words: a kitchen table in late sun, two bowls that do not match, a spoon, the cereal box left out.',
   hush: 0.5,
 };
 
@@ -226,6 +231,9 @@ export const BEDROOM: MemoryDef = {
   maxHold: 26,
   tail: 4,
   hush: 0.5,
+  describe: (v) => v === 'dusk'
+    ? 'A drawing forms in the wall by the words: the small bedroom at dusk, the bed still unmade, the last light on the wall above it.'
+    : 'A drawing forms in the wall by the words: a small bedroom in the morning, an unmade bed with the sun across it, a mug on the floor, a curtain at the window.',
 };
 
 /**
@@ -318,6 +326,9 @@ export const DOOR: MemoryDef = {
   hush: 0.75,
   opensFrom: 'ghost-door',
   roomDim: 0.55,
+  describe: (v) => v === 'passing'
+    ? 'The drawn door fills with evening: the landing light through the gap, and a shadow crossing it as someone passes.'
+    : 'The drawn door fills with evening: the landing light through the gap; someone comes to the door and stops, their shadow in the light. Nobody comes in.',
 };
 
 export const MEMORIES: Record<string, MemoryDef> = { cereal: CEREAL, bedroom: BEDROOM, door: DOOR };
