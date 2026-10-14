@@ -91,7 +91,9 @@ function plaster(W: number, H: number, seed: number, tone: [number, number, numb
         cloud = b * blotch + tooth * (scale.tooth ?? 5);
       }
       const d = m * scale.mottle + tr * scale.trowel + fine * scale.grain + cloud;
-      const sz = scan?.detail ? sampleDetail(scan.detail, x / PX_PER_M, y / PX_PER_M) : 0;
+      // On low quality (half the texels) only half of it: finer than the bake can hold, the scan
+      // turns to noise that competes with the writing.
+      const sz = scan?.detail ? K * sampleDetail(scan.detail, x / PX_PER_M, y / PX_PER_M) : 0;
       const sc = 1 + (scan?.colour ?? 0) * sz;
       const i = (y * W + x) * 4;
       img.data[i] = (tone[0] + d + warm * 3) * sc;
