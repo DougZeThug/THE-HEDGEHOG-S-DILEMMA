@@ -592,8 +592,34 @@ export class WallText {
   }
 
   /** Write new text beside a phrase or somewhere on a surface. Returns false if there was no room. */
-  write(o: { key: string; text: string; hand: Hand; size: Size; beside?: string; surface?: Surface; near?: { u: number; v: number }; purpose: Exclude<Purpose, 'phrase'>; ttl: number; now: number; source?: string; start?: boolean }): boolean {
+  write(o: { key: string; text: string; hand: Hand; size: Size; beside?: string; surface?: Surface; near?: { u: number; v: number }; by?: string; purpose: Exclude<Purpose, 'phrase'>; ttl: number; now: number; source?: string; start?: boolean }): boolean {
     if (this.items.has(o.key)) return false;
+    // Written by a drawing (a memory's line, by the drawing it opens from): as close to it as the
+    // wall allows, under it, else beside it, in a smaller hand if that is what fits.
+    if (o.by) {
+      const d = this.items.get(o.by)?.placement;
+      if (d) {
+        for (const size of [o.size, 'xs'] as Size[]) {
+          const mm = measureText(o.text, o.hand, size);
+          const W = surfaceSize(d.surface).w;
+          const regions: [[number, number], [number, number]][] = [
+            [[d.u - d.w / 2 - 0.1, d.u - d.w / 2 + mm.w + 0.1], [d.v - d.h / 2 - mm.h - 0.25, d.v - d.h / 2 - 0.02]],
+            [[d.u - d.w / 2 - mm.w - 0.2, d.u - d.w / 2 - 0.02], [d.v - d.h / 2 - 0.1, d.v + d.h / 2]],
+            [[d.u + d.w / 2 + 0.02, d.u + d.w / 2 + mm.w + 0.2], [d.v - d.h / 2 - 0.1, d.v + d.h / 2]],
+          ];
+          for (const [ur, vr] of regions) {
+            const rect = this.layout.findIn(d.surface, mm.w, mm.h, [Math.max(0, ur[0]) / W, Math.min(W, ur[1]) / W], [Math.max(0.3, vr[0]), vr[1]], 0.03, 120, true);
+            if (!rect) continue;
+            const pl = this.layout.add({ surface: d.surface, ...rect, rot: (((hashString(o.key) % 100) / 100) - 0.5) * 0.04 });
+            const it = this.create(o.key, o.text, o.hand, size, pl, o.purpose);
+            it.source = o.source;
+            it.expires = o.ttl > 0 ? o.now + o.ttl : 0;
+            if (o.start !== false) this.writeOn(o.key);
+            return true;
+          }
+        }
+      }
+    }
     const m = measureText(o.text, o.hand, o.size);
     let rect = null as null | { u: number; v: number; w: number; h: number };
     let surface: Surface | undefined = o.surface;
@@ -887,6 +913,24 @@ export class WallText {
     const half = size.h / 2, halfW = (size.w / 2) * this.room.scale;
     // Inside the corners, above the skirting and its shadow gap, below the cornice.
     return { key: best.key, group: this.room.frames[pl.surface].writing, x: l.x, y: l.y, w: pl.w, h: pl.h, minX: -halfW + 0.1, maxX: halfW - 0.1, minY: -half + 0.1, maxY: half - 0.1 };
+  }
+
+  /** A drawing now stands for a phrase: looking at it is meeting that phrase (a memory's drawing). */
+  drawingMeans(key: string, phraseId: string): void {
+    const it = this.items.get(key);
+    if (it) it.source = phraseId;
+  }
+
+  /** The same, for one item by its key (a drawing a memory opens from). */
+  anchorOfKey(key: string): { key: string; group: THREE.Object3D; x: number; y: number; w: number; h: number; minX: number; maxX: number; minY: number; maxY: number } | null {
+    const it = this.items.get(key);
+    if (!it || it.vis < 0.2) return null;
+    const pl = it.placement;
+    if (pl.surface === 'floor' || pl.surface === 'ceiling') return null;
+    const l = this.room.local(pl.surface, pl.u, pl.v);
+    const size = surfaceSize(pl.surface);
+    const half = size.h / 2, halfW = (size.w / 2) * this.room.scale;
+    return { key, group: this.room.frames[pl.surface].writing, x: l.x, y: l.y, w: pl.w, h: pl.h, minX: -halfW + 0.1, maxX: halfW - 0.1, minY: -half + 0.1, maxY: half - 0.1 };
   }
 
   /** Light washing a piece of writing out (0–1). */

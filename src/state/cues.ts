@@ -29,6 +29,8 @@ export type Cue =
       /** Written beside this phrase (on its surface), or on `surface` if absent. */
       beside?: string;
       surface?: Surface;
+      /** Written beneath this drawing (a memory's line under the drawing it opens from). */
+      under?: string;
       /** For the floor: write near this point (chair-relative metres). */
       nearPoint?: { x: number; z: number };
       /** The phrase these words come from: looking at them is meeting that phrase again. */

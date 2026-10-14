@@ -116,21 +116,38 @@ describe('later memories are offered, not hidden', () => {
   const offerState = (o: Partial<Parameters<MemoryDirector['offer']>[0]> = {}) => ({
     now: 200, phase: 'contradiction', free: true, visibleFacing: () => false, departing: false, otherMemory: false, ...o,
   });
-  it('the bedroom line is offered once, from 150 s, once the room contradicts itself; the door from 240 s', () => {
+  it('the bedroom answers the long dark silence; the door comes only after another memory, where the drawn door is', () => {
     const m = new MemoryDirector();
-    expect(m.offer(offerState({ now: 140 }))).toBeNull();
-    expect(m.offer(offerState({ now: 200, phase: 'familiar' }))).toBeNull();
-    expect(m.offer(offerState({ now: 200 }))?.id).toBe('bedroom');
-    expect(m.offer(offerState({ now: 201 }))).toBeNull(); // once
-    expect(m.offer(offerState({ now: 250 }))?.id).toBe('door');
+    expect(m.offer(offerState({ now: 140, darkEnded: 130 }))).toBeNull(); // too early
+    expect(m.offer(offerState({ now: 160, darkEnded: 155 }))).toBeNull(); // the dark only just lifted
+    expect(m.offer(offerState({ now: 200, phase: 'familiar', darkEnded: 130 }))).toBeNull();
+    expect(m.offer(offerState({ now: 200, darkEnded: 130 }))?.id).toBe('bedroom');
+    expect(m.offer(offerState({ now: 201, darkEnded: 130 }))).toBeNull(); // once
+    // The door: not before another memory, and only facing its drawing's wall.
+    expect(m.offer(offerState({ now: 250, facing: 'south' }))).toBeNull();
+    m.tapped('happiest-unneeded');
+    m.update(base({ now: 251, visible: (id) => id === 'happiest-unneeded' }));
+    m.ended('bedroom', 280, true, true);
+    expect(m.offer(offerState({ now: 410, facing: 'north' }))).toBeNull();
+    expect(m.offer(offerState({ now: 410, facing: 'south' }))?.id).toBe('door');
   });
+
+  it('cereal belongs to the start: never after another memory, never late', () => {
+    const late = new MemoryDirector();
+    late.tapped('cereal');
+    expect(late.update(base({ now: 160 }))).toBeNull();
+    const after = new MemoryDirector();
+    after.tapped('cereal');
+    expect(after.update(base({ now: 60, kitchenPlayed: true }))).toBeNull();
+  });
+
   it('at least two minutes after another memory, never into a busy room or over one playing', () => {
     const m = new MemoryDirector();
     m.lastEnded = 100;
-    expect(m.offer(offerState({ now: 200 }))).toBeNull();
-    expect(m.offer(offerState({ now: 230, free: false }))).toBeNull();
-    expect(m.offer(offerState({ now: 230, otherMemory: true }))).toBeNull();
-    expect(m.offer(offerState({ now: 230 }))?.id).toBe('bedroom');
+    expect(m.offer(offerState({ now: 200, darkEnded: 130 }))).toBeNull();
+    expect(m.offer(offerState({ now: 230, darkEnded: 130, free: false }))).toBeNull();
+    expect(m.offer(offerState({ now: 230, darkEnded: 130, otherMemory: true }))).toBeNull();
+    expect(m.offer(offerState({ now: 230, darkEnded: 130 }))?.id).toBe('bedroom');
   });
   it('an offered line begins its memory on a read (no look back needed later in the visit)', () => {
     const m = new MemoryDirector();

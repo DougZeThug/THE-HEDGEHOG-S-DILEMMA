@@ -35,8 +35,10 @@ export const LIGHT: Schema[string] = {
 
 export const LAYER: Schema[string] = {
   opacity: [1, 0, 1],
-  x: [0, -0.1, 0.1],
-  y: [0, -0.1, 0.1],
+  x: [0, -0.3, 0.3],
+  y: [0, -0.3, 0.3],
+  // How far a hanging layer's foot swings (its top stays on its rod), metres.
+  skew: [0, -0.06, 0.06],
   depth: [0, 0, 0.06],
 };
 

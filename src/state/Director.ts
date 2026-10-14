@@ -1,4 +1,4 @@
-import { DRAWINGS } from '../content/drawings';
+import { DRAWINGS, DRAWING_BY_ID } from '../content/drawings';
 import { MemoryDirector } from './MemoryDirector';
 import { Rng } from '../core/rng';
 import { EventScheduler } from '../core/scheduler';
@@ -140,6 +140,9 @@ export class Director {
   private airDone = false;
   /** When the long held silence ends (the turn to the last phase doesn't break into it). */
   private heldSilenceUntil = -Infinity;
+  private pendingPhase: Phase | null = null;
+  /** A few seconds after a living memory ends, before the room turns a phase. */
+  private scenesQuietAt = -Infinity;
   private attentionVoices = 0;
   private readsUnanswered = 0;
   private readArmedUntil = -Infinity;
@@ -398,7 +401,13 @@ export class Director {
 
     if (!this.departing) {
       for (const m of formed) this.onMotif(m);
-      if (phaseChanged) this.onPhase(phaseChanged);
+      // The turn into a new phase waits for a living memory to end (it would black out the room
+      // in the middle of it), and a few seconds more.
+      if (phaseChanged) this.pendingPhase = phaseChanged;
+      if (this.pendingPhase && !this.scenes.active && this.now >= this.scenesQuietAt) {
+        this.onPhase(this.pendingPhase);
+        this.pendingPhase = null;
+      }
       if (phaseChanged === 'transform') this.transformAt = this.now;
       if (this.legacy) this.ruleOpening();
       this.ruleMemory();
@@ -479,6 +488,9 @@ export class Director {
     }
     if (cue.type === 'music' && !rule.startsWith('sit:') && this.situations.claimed('music')) return false;
     if (cue.type === 'reveal' && this.withheld().includes(cue.phraseId)) return false;
+    // While a living memory plays, the room waits with it: no silence (a dim would darken the
+    // painting), no new line revealed or written.
+    if (this.scenes.active && (cue.type === 'silence' || cue.type === 'reveal' || (cue.type === 'write' && rule !== 'memory-offer'))) return false;
     if (cue.type === 'reveal') {
       const cur = this.visible.get(cue.phraseId);
       if (cur && cur.mode === 'shown') return false;
@@ -1146,6 +1158,8 @@ export class Director {
       free,
       otherMemory: this.memoryPlayed || this.memoryAwaited(),
       departing: this.departing,
+      kitchenPlayed: this.memoryPlayed,
+      facing: this.facing,
     });
     if (start) this.queue(0, { type: 'memory-scene', ...start }, 'memory-scene', { major: true, ttl: 3 });
     if (this.scenes.active) this.pacing.holdFor(this.now, 0.5);
@@ -1160,16 +1174,22 @@ export class Director {
       visibleFacing: (id) => this.visible.has(id) && PHRASE_BY_ID.get(id)?.surface === this.facing,
       departing: this.departing,
       otherMemory: this.memoryAwaited(),
+      facing: this.facing,
+      darkEnded: Number.isFinite(this.heldSilenceUntil) ? this.heldSilenceUntil : null,
+      kitchenPlayed: this.memoryPlayed,
     });
     if (offer) {
       const p = PHRASE_BY_ID.get(offer.phraseId);
       if (!p) return;
+      // The door's line is written beneath the room's drawn door, which its memory opens from.
+      const under = offer.id === 'door' ? DRAWING_BY_ID.get('ghost-door') : undefined;
       this.visible.set(p.id, { mode: 'shown', since: this.now, base: true });
       this.memory.surfaced.set(p.id, this.now);
       this.pacing.holdFor(this.now, 2.4);
       this.queue(0, {
         type: 'write', key: `memory:${p.id}`, text: p.text, hand: p.hand === 'typed' ? 'pencil' : p.hand, size: 's',
-        surface: this.facing, purpose: 'recall', ttl: 0, source: p.id,
+        surface: under ? under.surface : this.facing, purpose: 'recall', ttl: 0, source: p.id,
+        ...(under ? { under: under.id } : {}),
       }, 'memory-offer');
     }
   }
@@ -1183,8 +1203,14 @@ export class Director {
     this.scenes.cancel(id, this.now);
   }
 
+  /** A memory the Director didn't begin is playing (the artist's panel): the room waits with it. */
+  memoryExternal(id: string): void {
+    this.scenes.external(id, this.now);
+  }
+
   memoryEnded(id: string, seen: boolean, ranToEnd: boolean): boolean {
     const counted = this.scenes.ended(id, this.now, seen, ranToEnd);
+    this.scenesQuietAt = this.now + 6;
     if (counted) {
       // Staying with a memory is attention, as returning to a line is.
       this.engagement.raise('memory', this.now, id);

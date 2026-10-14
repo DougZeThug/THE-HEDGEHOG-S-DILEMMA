@@ -29,6 +29,7 @@ interface ArtManifest {
   size: [number, number];
   band?: number | null;
   pane?: Pane | null;
+  register?: { x: number; y: number; h: number } | null;
   variants: Record<string, { name: string; kind: LayerKind; file: string; source: string }[]>;
 }
 
@@ -48,6 +49,8 @@ export interface Prepared {
   band: number;
   /** The painted sun's pane, if the memory's light can stay in the room. */
   pane: Pane | null;
+  /** Where the painting's drawn shape is (to register it on a drawing on the wall). */
+  register: { x: number; y: number; h: number } | null;
   layers: WindowLayer[];
   audio: MemoryAudio | null;
   dispose(): void;
@@ -150,6 +153,7 @@ export async function prepare(id: string, variant: string, host: RuntimeHost): P
     size: manifest.size,
     band: manifest.band ?? 0.17,
     pane: manifest.pane ?? null,
+    register: manifest.register ?? null,
     layers: loaded.map((l) => ({ name: l.name, kind: l.kind, texture: l.texture })),
     audio,
     dispose() {

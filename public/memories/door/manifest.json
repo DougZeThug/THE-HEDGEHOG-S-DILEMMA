@@ -3,8 +3,13 @@
     0.9,
     0.6
   ],
-  "band": 0.17,
+  "band": 0,
   "pane": null,
+  "register": {
+    "x": 0.06,
+    "y": 0.06,
+    "h": 0.36
+  },
   "variants": {
     "passing": [
       {
@@ -29,6 +34,12 @@
         "name": "strip",
         "kind": "light",
         "file": "passing/strip",
+        "source": "code-painted stand-in"
+      },
+      {
+        "name": "shadow",
+        "kind": "shade",
+        "file": "passing/shadow",
         "source": "code-painted stand-in"
       }
     ],
@@ -55,6 +66,12 @@
         "name": "strip",
         "kind": "light",
         "file": "passing/strip",
+        "source": "code-painted stand-in"
+      },
+      {
+        "name": "shadow",
+        "kind": "shade",
+        "file": "passing/shadow",
         "source": "code-painted stand-in"
       }
     ]

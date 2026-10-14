@@ -411,7 +411,11 @@ export class App {
   }
 
   async playMemory(id: string, phraseId: string, variant = 'first'): Promise<boolean> {
-    const a = this.text.anchorOf(phraseId, this.gazeId ?? this.lastTappedKey);
+    let a = this.text.anchorOf(phraseId, this.gazeId ?? this.lastTappedKey);
+    // A memory that opens from a drawing can begin from the drawing alone.
+    const opensFrom = SCENE_BY_PHRASE.get(phraseId)?.id === 'door' ? 'ghost-door' : null;
+    const drawn = opensFrom ? this.text.anchorOfKey(opensFrom) : null;
+    if (drawn && (!a || a.group !== drawn.group)) a = drawn;
     if (!a) return false;
     this.endLivingMemory('switch');
     // Only the latest request plays (two overlapping ones would otherwise both load).
@@ -437,7 +441,16 @@ export class App {
       this.memoryWindow.release();
       this.living = null;
     }
-    this.memoryWindow.place(a, hashString(a.key));
+    // Opening from a drawing already on the wall: the painting's own drawn shape lies on it.
+    let fixed: { cx: number; cy: number; w: number } | null = null;
+    const from = prepared.def.opensFrom ? this.text.anchorOfKey(prepared.def.opensFrom) : null;
+    if (from && prepared.register && from.group === a.group) {
+      const scale = from.h / prepared.register.h;
+      fixed = { cx: from.x - prepared.register.x * scale, cy: from.y - prepared.register.y * scale, w: prepared.size[0] * scale };
+    }
+    this.memoryWindow.place(a, hashString(a.key), fixed);
+    // Anything already drawn on that wall is kept clear of (a painting never lands on a drawing).
+    this.memoryWindow.avoid = fixed ? [] : this.drawingsOn(a.group);
     this.memoryWindow.setLayers(prepared.layers, prepared.size, prepared.band);
     const memory = new rt.LivingMemory(prepared, {
       reduced: this.prefs.reducedMotion,
@@ -449,8 +462,11 @@ export class App {
     });
     this.living = { memory, id, key: a.key, anchor: a, bled: false, hiddenSince: null, held: false, awayFor: 0, watched: 0, minHold: SCENE_BY_PHRASE.get(phraseId)?.minHold ?? 8, why: null };
     this.memoryClock.reset();
-    // The room hushes round it (and its music stops), until it lets go.
+    // The room hushes round it (and its music stops), until it lets go. For the door the white
+    // room itself goes to evening, so the landing's light is the brightest thing there.
     this.audio?.memoryHush(prepared.def.hush, 1.4);
+    if (prepared.def.roomDim) this.lighting.dimToChair(prepared.def.roomDim, prepared.def.maxHold + 4, this.time);
+    if (this.director.scenes.active?.id !== id) this.director.memoryExternal(id);
     memory.start();
     return true;
   }
@@ -458,6 +474,8 @@ export class App {
   private memoryState(s: Lifecycle) {
     const l = this.living;
     if (!l) return;
+    // Letting go early: the room's own light comes back with it (over about 4 s).
+    if (s === 'withdrawing' && l.memory.prepared.def.roomDim) this.lighting.dimToChair(l.memory.prepared.def.roomDim, 4, this.time);
     if (s === 'residue' || s === 'complete') {
       // The room comes back as the memory lets go (issued now, never precomputed).
       this.audio?.memoryHush(0, 3.5);
@@ -967,7 +985,9 @@ export class App {
           ? { u: c.x + cue.nearPoint.x + ROOM.halfW, v: c.z + cue.nearPoint.z + ROOM.halfD }
           : cue.surface && !cue.beside ? this.viewPointOn(cue.surface) : undefined;
         const size = this.touch && cue.size === 'xs' && cue.purpose === 'recall' ? 's' : cue.size;
-        const ok = this.text.write({ key: cue.key, text: cue.text, hand: cue.hand, size, beside: cue.beside, surface: cue.surface, near, purpose: cue.purpose, ttl: cue.ttl, now: this.time, source: cue.source });
+        // A memory's line by the drawing it opens from; looking at the drawing is reading it too.
+        if (cue.under && cue.source) this.text.drawingMeans(cue.under, cue.source);
+        const ok = this.text.write({ key: cue.key, text: cue.text, hand: cue.hand, size, beside: cue.beside, surface: cue.surface, near, by: cue.under, purpose: cue.purpose, ttl: cue.ttl, now: this.time, source: cue.source });
         if (ok && cue.strike) this.text.strike(cue.strike, this.time, cue.ttl);
         if (!ok) this.director.writeFailed(cue.key);
         break;
@@ -1052,6 +1072,17 @@ export class App {
   }
 
   /** Where the centre of view meets a surface, in layout (u, v) coordinates. */
+  /** The drawings on a wall (their rectangles in its group's metres). */
+  private drawingsOn(group: THREE.Object3D): { x: number; y: number; w: number; h: number }[] {
+    const out: { x: number; y: number; w: number; h: number }[] = [];
+    for (const it of this.text.items.values()) {
+      if (it.purpose !== 'drawing' || it.vis < 0.2) continue;
+      const a = this.text.anchorOfKey(it.key);
+      if (a && a.group === group) out.push({ x: a.x, y: a.y, w: a.w, h: a.h });
+    }
+    return out;
+  }
+
   private viewPointOn(surface: Surface): { u: number; v: number } | undefined {
     const frame = this.room.frames[surface];
     this.raycaster.setFromCamera(new THREE.Vector2(0, 0), this.rig.camera);

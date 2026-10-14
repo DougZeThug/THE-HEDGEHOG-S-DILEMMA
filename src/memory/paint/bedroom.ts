@@ -3,7 +3,8 @@ import { crayon, ellipse, graphite, sheet, sunPane, tooth, wash, type Pt } from 
 /**
  * "I was happiest when nobody needed anything from me."
  *
- * A small bedroom in the morning: a single bed, unmade, slept in by one; a window with a pale
+ * A small bedroom in the morning: a single bed, unmade (the duvet thrown back from the pillow),
+ * slept in by one; a mug on the floorboards by the bed (tea taken back to bed); a window with a pale
  * net curtain lit from behind (no view: nothing outside asks to be looked at); a curtain at its
  * side, the one thing in these memories that moves by itself. The morning sun lies across the
  * bed. Nobody is drawn, and nothing in the room wants anything.
@@ -89,6 +90,10 @@ export function paint(variant: string, ppm: number, seed = 11): Record<string, H
   crayon(bed, HEAD, OCHRE, { alpha: 0.55, angle: 1.5, density: 1.4 });
   crayon(bed, SHEET, CREAM, { alpha: 0.45, angle: 0.1, density: 1.1 });
   crayon(bed, DUVET, BLUE, { alpha: 0.5, angle: 0.5, density: 1.3 });
+  // Thrown back at the pillow end: a triangle of sheet where someone got out.
+  crayon(bed, [[-0.36, -0.12], [-0.25, -0.11], [-0.33, -0.2]], CREAM, { alpha: 0.6, angle: 0.3, density: 2, inset: 0.001 });
+  // The mug on the floor by the foot of the bed.
+  crayon(bed, [[0.12, -0.235], [0.155, -0.235], [0.152, -0.275], [0.123, -0.275]], CREAM, { alpha: 0.7, angle: 1.4, density: 2.2, inset: 0.001 });
   crayon(bed, ellipse(-0.33, -0.112, 0.055, 0.022, 0, Math.PI * 2, 20), CREAM, { alpha: 0.6, angle: 0.2, density: 2, inset: 0.002 });
   crayon(bed, [[-0.39, -0.255], [0.07, -0.255], [0.07, -0.275], [-0.39, -0.275]], OCHRE, { alpha: 0.5, angle: 0.02, density: 1.4 });
   tooth(bed);
@@ -106,6 +111,11 @@ export function paint(variant: string, ppm: number, seed = 11): Record<string, H
   graphite(pen, [[-0.39, -0.11], [0.07, -0.115], [0.07, -0.26], [-0.39, -0.26]], { weight: 0.8 });
   graphite(pen, DUVET, { close: true, weight: 0.7, alpha: 0.6 });
   graphite(pen, ellipse(-0.33, -0.112, 0.055, 0.022, 0, Math.PI * 2, 20), { weight: 0.7 });
+  // The turned-back corner, the mug and its handle.
+  graphite(pen, [[-0.36, -0.12], [-0.25, -0.11], [-0.33, -0.2], [-0.36, -0.12]], { weight: 0.6, alpha: 0.7 });
+  graphite(pen, [[0.12, -0.235], [0.123, -0.275], [0.152, -0.275], [0.155, -0.235]], { weight: 0.7 });
+  graphite(pen, ellipse(0.1375, -0.235, 0.0175, 0.004, 0, Math.PI * 2, 12), { weight: 0.6 });
+  graphite(pen, ellipse(0.162, -0.252, 0.008, 0.01, -Math.PI / 2, Math.PI / 2, 8), { weight: 0.6 });
   // The dent in the pillow, and the floor's edge.
   graphite(pen, [[-0.35, -0.108], [-0.33, -0.116], [-0.31, -0.109]], { weight: 0.5, alpha: 0.5 });
   graphite(pen, [[-0.4, -0.262], [0.41, -0.262]], { weight: 0.6, alpha: 0.6 });
@@ -120,7 +130,9 @@ export function paint(variant: string, ppm: number, seed = 11): Record<string, H
   sun.ctx.fillStyle = 'rgb(255,255,255)';
   sun.ctx.fillRect((WIN.x0 + W / 2) * ppm, (H / 2 - WIN.y1) * ppm, (WIN.x1 - WIN.x0) * ppm, (WIN.y1 - WIN.y0) * ppm);
   sun.ctx.restore();
-  sunPane(sun, { ...SUN_PANE, colour: white, blur: variant === 'dusk' ? 0.03 : 0.012 });
+  // Dusk: the sun has left the bed; low, long and slanted on the wall above it.
+  const pane = variant === 'dusk' ? { ...SUN_PANE, x: -0.12, y: -0.04, w: 0.36, h: 0.11, shear: -0.6 } : SUN_PANE;
+  sunPane(sun, { ...pane, colour: white, blur: variant === 'dusk' ? 0.025 : 0.012 });
   out.sun = sun.canvas;
   return out;
 }

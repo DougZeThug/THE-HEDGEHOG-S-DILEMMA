@@ -13,6 +13,7 @@
     "transom": 0.03,
     "mullion": 0.04
   },
+  "register": null,
   "variants": {
     "morning": [
       {

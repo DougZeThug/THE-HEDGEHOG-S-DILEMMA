@@ -35,6 +35,10 @@ export interface MemoryDef {
   bleedAt?: number;
   /** How deep the room hushes while it plays. */
   hush: number;
+  /** A drawing on the room's wall the painting opens from, registered onto its lines. */
+  opensFrom?: string;
+  /** The white room's own light goes down to this while it plays (the door: evening). */
+  roomDim?: number;
 }
 
 export const sheetId = (id: string, variant: string) => `${id}-${variant}`;
@@ -138,16 +142,18 @@ export const CEREAL: MemoryDef = {
 /**
  * The bedroom ("I was happiest when nobody needed anything from me"): the longest, about 26 s.
  *
- *   0.5      the morning's air before anything is drawn
- *   0.5–3.5  the light finds the window, then the bed (graphite)
- *   1.5–6    the colour follows the light; a bird outside at 4.5
- *   8        someone downstairs starts playing the piano (music:piano); the curtain breathes
- *   8–26     living: the sun lies across the bed and moves a little along it; one more bird
- *   26–32    the light recedes, taking the colour; the drawing alone, then plaster
+ *   0.3      a bird outside, over bare plaster (sound leads)
+ *   1.5–4    the light finds the window, then the bed (graphite)
+ *   2.5–7    the colour follows the light
+ *   8        someone downstairs starts playing (the first note through the floor is an event)
+ *   7–24     living: the morning gets on. The sun's pane slides along the bed and reaches the
+ *            pillow's dent (where someone slept) at about 22; at 10.4 the curtain lifts once, on
+ *            its sound, and the window brightens with it
+ *   26–32    the light recedes, taking the colour; the drawing alone; the piano rings out
  *
- * At dusk (a revisit): lower, warmer light; no birds, no piano; the curtain once.
+ * At dusk (a revisit): no birds, no piano; the sun lies on the wall above the bed and goes down.
  */
-const BEDROOM_SECTIONS: Sections = { active: 6, exit: 26, residue: 32, end: 35 };
+const BEDROOM_SECTIONS: Sections = { active: 7, exit: 26, residue: 32, end: 35 };
 
 export const BEDROOM: MemoryDef = {
   id: 'bedroom',
@@ -156,33 +162,36 @@ export const BEDROOM: MemoryDef = {
   layers: ['room', 'curtain', 'bed', 'pencil', 'sun'],
   sections: BEDROOM_SECTIONS,
   markers: [
-    { label: 'bed:air', position: 0.5 },
-    { label: 'sfx:bird-1', position: 4.5 },
+    { label: 'sfx:bird-1', position: 0.3 },
+    { label: 'bed:air', position: 1 },
     { label: 'music:piano', position: 8 },
-    { label: 'sfx:curtain', position: 10.2 },
-    { label: 'sfx:bird-2', position: 17.3 },
+    { label: 'sfx:curtain', position: 9.8 },
   ],
   seed: (variant) => {
     const dusk = variant === 'dusk';
     return {
       tracks: {
-        'window.sketch': [[0.5, 0], [3.5, 1]],
-        'window.reveal': [[1.5, 0], [6, 1]],
+        'window.sketch': [[1.5, 0], [4, 1]],
+        'window.reveal': [[2.5, 0], [7, 1]],
         'window.presence': [[0, 1]],
         'window.parallax': [[0, 0]],
         // The light finds the window first, then opens over the bed.
-        'light.x': [[0, 0.26], [6, 0], [26, 0.04]],
-        'light.y': [[0, 0], [6, -0.08]],
-        'light.radius': [[0, 0.14], [6, 0.52]],
+        'light.x': [[1.5, 0.26], [7, 0], [26, 0.04]],
+        'light.y': [[1.5, 0], [7, -0.08]],
+        'light.radius': [[1.5, 0.14], [7, 0.52]],
         'light.soft': [[0, 0.16]],
-        // Morning: pale, nearly white (not kitchen-light's amber). Dusk: low and warm.
-        'light.warmth': dusk ? [[0, 3300], [26, 2800]] : [[0, 5000], [26, 4600]],
-        'light.intensity': dusk ? [[0, 0], [5, 0.35], [26, 0.25], [32, 0]] : [[0, 0], [5, 0.5], [26, 0.55], [32, 0]],
+        // Morning: pale, nearly white, warming a little as it gets on. Dusk: a sunset.
+        'light.warmth': dusk ? [[0, 3300], [26, 2400]] : [[0, 5000], [22, 5400]],
+        'light.intensity': dusk
+          ? [[0, 0], [5, 0.9], [26, 0.3], [32, 0]]
+          : [[0, 0], [6, 1.0], [10.4, 1.05], [11.4, 1.3], [12.6, 1.1], [22, 1.4], [26, 1.3], [32, 0]],
         'light.roomSpill': [[0, 0]],
-        // The sun's pane moves a little along the bed, at the sun's own pace.
-        'layer:sun.x': [[0, 0], [26, dusk ? 0.03 : 0.06]],
-        'layer:sun.y': [[0, 0], [26, dusk ? 0.03 : 0.01]],
+        // The sun's pane slides along the bed toward the pillow (dusk: up the wall, fading).
+        'layer:sun.x': dusk ? [[0, 0], [26, 0.04]] : [[0, 0], [22, -0.15]],
+        'layer:sun.y': dusk ? [[0, 0], [26, 0.03]] : [[0, 0], [22, 0.02]],
         'layer:sun.opacity': [[0, 0], [3, 1]],
+        // The curtain: one lift, its top on the rod, on the sound of it.
+        'layer:curtain.skew': dusk ? [[0, 0], [12, 0], [13.2, 0.02], [15, 0]] : [[0, 0], [10.4, 0], [11.4, 0.035], [12.6, 0.012], [14.5, 0]],
         'layer:pencil.opacity': [[0, 0.9]],
         'layer:room.opacity': [[0, 1]],
         'layer:curtain.opacity': [[0, 1]],
@@ -193,118 +202,122 @@ export const BEDROOM: MemoryDef = {
         { label: 'exit', position: BEDROOM_SECTIONS.exit },
         { label: 'residue', position: BEDROOM_SECTIONS.residue },
         { label: 'end', position: BEDROOM_SECTIONS.end },
-        ...BEDROOM.markers.filter((m) => !(dusk && /^(music:piano|sfx:bird)/.test(m.label))),
+        ...(dusk ? [{ label: 'bed:air', position: 1 }, { label: 'sfx:curtain', position: 11.4 }] : BEDROOM.markers),
       ],
     };
   },
   cues: (variant) => ({
     // A small, soft, rather dead room (bedding, curtains).
     room: [0.3, 2, 0.12],
-    // Levels set from the files as measured (mean: birds −22/−23, curtain −36, piano −21).
+    // Levels set from the files as measured (mean: birds −22, curtain −36, piano −21).
     cues: {
       'bed:air': { asset: 'synth:air', take: 3, gainDb: variant === 'dusk' ? -6 : -2, place: { u: 0.3, v: 0, d: 1 }, fadeIn: 3, fadeOut: 5 },
-      // Birds outside, beyond the window: distance made here, not in the recording.
-      'sfx:bird-1': { asset: 'mem:bird', take: 0, gainDb: -10, place: { u: 0.3, v: 0.1, d: 4 }, lowpass: 6000, caption: '[a bird outside]' },
-      'sfx:bird-2': { asset: 'mem:bird', take: 1, gainDb: -12, place: { u: 0.36, v: 0.12, d: 5 }, lowpass: 5500 },
-      'sfx:curtain': { asset: 'mem:curtain-breeze', gainDb: -3, place: { u: 0.13, v: 0, d: 0.4 }, caption: '[the curtain stirs]' },
-      // Someone downstairs, playing for themselves: below, muffled by the floor.
-      'music:piano': { asset: 'music/memory-bedroom.mp3', gainDb: -10, place: { u: -0.1, v: -1.3, d: 2 }, lowpass: 1700, fadeIn: 5, fadeOut: 6, caption: '[a piano, downstairs]' },
+      // A bird outside, beyond the window: distance made here, not in the recording.
+      'sfx:bird-1': { asset: 'mem:bird', take: 0, gainDb: -10, place: { u: 0.3, v: 0.1, d: 4 }, lowpass: 6000, fadeIn: 0.04, caption: '[a bird outside]' },
+      'sfx:curtain': { asset: 'mem:curtain-breeze', gainDb: 3, place: { u: 0.13, v: 0, d: 0.4 }, caption: '[the curtain stirs]' },
+      // Someone downstairs, playing for themselves: below, muffled by the floor. The first note
+      // is heard, not faded in.
+      'music:piano': { asset: 'music/memory-bedroom.mp3', gainDb: -14, place: { u: -0.1, v: -1.3, d: 2 }, lowpass: 1000, fadeIn: 0.3, fadeOut: 6, caption: '[a piano, downstairs]' },
     },
   }),
-  sways: [{ key: 'sway:curtain.x', amp: 0.006, period: 7, at: 8 }],
+  // The curtain at rest, barely breathing at its foot (none under reduced motion).
+  sways: [{ key: 'sway:curtain.skew', amp: 0.004, period: 7, at: 7 }],
   exit: 2.6,
   maxHold: 26,
-  tail: 3,
+  tail: 4,
   hush: 0.5,
 };
 
 /**
- * The door ("the door, slightly open"): the shortest, about 16 s, and the quietest.
+ * The door ("the door, slightly open"), opened from the room's own drawn door. About 18 s.
  *
- *   0.4      a floorboard somewhere (sound leads); the light finds the gap in the door
- *   0.4–4.5  the drawing, then the evening room; the landing's light through the gap
- *   6        someone walks along the landing; at about 8 their shadow crosses the light
- *   8–16     stillness; the house settles
- *   16–20    the light recedes
+ * Approach (the first meeting):
+ *   0–4.5    the white room goes to evening; the light finds the gap in the door (its two lines
+ *            first), then the door, the floor, the blanket's edge
+ *   5        footsteps on the landing, coming nearer
+ *   ≈9.5     they stop outside; their shadow comes into the light and stays there
+ *   14       a floorboard, just outside: someone shifting their weight
+ *   18       the light recedes while they are still there. Nobody comes in. The door never closes.
  *
- * Approach (a revisit): the steps come nearer and stop outside; the light stays half-blocked.
- * Nobody comes in. The door never closes.
+ * Passing (a return visit): someone walks along the landing; their shadow crosses the light.
  */
-const DOOR_SECTIONS: Sections = { active: 4.5, exit: 16, residue: 20, end: 22 };
+const DOOR_SECTIONS: Sections = { active: 4.5, exit: 18, residue: 22, end: 24 };
 
 export const DOOR: MemoryDef = {
   id: 'door',
   art: 'door',
-  variants: ['passing', 'approach'],
-  layers: ['room', 'door', 'pencil', 'strip'],
+  variants: ['approach', 'passing'],
+  layers: ['room', 'door', 'pencil', 'strip', 'shadow'],
   sections: DOOR_SECTIONS,
   markers: [
-    { label: 'sfx:floorboard', position: 0.4 },
-    { label: 'sfx:steps', position: 6 },
-    { label: 'sfx:settle', position: 13 },
+    { label: 'sfx:steps', position: 5 },
+    { label: 'sfx:settle', position: 14 },
   ],
   seed: (variant) => {
-    const approach = variant === 'approach';
+    const passing = variant === 'passing';
+    const exit = DOOR_SECTIONS.exit;
     return {
       tracks: {
-        'window.sketch': [[0.4, 0], [3, 1]],
-        'window.reveal': [[1.2, 0], [4.5, 1]],
+        'window.sketch': [[0.6, 0], [3, 1]],
+        'window.reveal': [[1.4, 0], [4.5, 1]],
         'window.presence': [[0, 1]],
         'window.parallax': [[0, 0]],
-        'light.x': [[0, 0.1], [4.5, 0.05]],
-        'light.y': [[0, -0.12], [4.5, -0.06]],
-        'light.radius': [[0, 0.12], [4.5, 0.5]],
+        // The light starts at the gap.
+        'light.x': [[0, 0.13], [4.5, 0.1]],
+        'light.y': [[0, 0.05], [4.5, -0.05]],
+        'light.radius': [[0, 0.1], [4.5, 0.55]],
         'light.soft': [[0, 0.12]],
-        // The landing's bulb: warm.
-        'light.warmth': [[0, 2700]],
-        'light.intensity': [[0, 0], [3, 0.75], [16, 0.7], [20, 0]],
-        'light.roomSpill': [[0, 0]],
-        // The shadow is only the light in the gap dimming as someone crosses it.
-        'layer:strip.opacity': approach
-          ? [[0, 0], [2.5, 1], [9.4, 1], [10, 0.45]]
-          : [[0, 0], [2.5, 1], [7.7, 1], [8.3, 0.3], [9.1, 1]],
+        // The landing's bulb: warm, and brighter than the evening room around it.
+        'light.warmth': [[0, 2900]],
+        'light.intensity': passing
+          ? [[0, 0], [3, 1.6], [8.1, 1.6], [8.4, 1.25], [9.3, 1.6], [16, 1.5], [20, 0]]
+          : [[0, 0], [3, 1.6], [18, 1.5], [22, 0]],
+        // The shadow: approach comes into the light and stays (it is still there as the light
+        // goes); passing crosses it, left to right, with the steps.
+        'layer:shadow.x': passing ? [[0, -0.3, 'linear'], [7.7, -0.3, 'linear'], [9.1, 0.32]] : [[0, -0.3], [8.8, -0.3], [10.1, 0], [14, 0.006], [14.6, 0]],
+        'layer:shadow.opacity': passing ? [[0, 0], [7.6, 0], [7.8, 0.8], [9.1, 0.8], [9.3, 0]] : [[0, 0], [8.7, 0], [9.6, 0.75]],
+        'layer:strip.opacity': [[0, 0], [2.5, 1]],
         'layer:pencil.opacity': [[0, 0.9]],
         'layer:room.opacity': [[0, 1]],
         'layer:door.opacity': [[0, 1]],
       },
       markers: [
         { label: 'active', position: DOOR_SECTIONS.active },
-        { label: 'exit', position: DOOR_SECTIONS.exit },
-        { label: 'residue', position: DOOR_SECTIONS.residue },
-        { label: 'end', position: DOOR_SECTIONS.end },
-        ...(approach
-          ? [
-              { label: 'sfx:steps', position: 5 },
-              { label: 'sfx:settle', position: 13 },
-            ]
-          : DOOR.markers),
+        { label: 'exit', position: exit },
+        { label: 'residue', position: exit + 4 },
+        { label: 'end', position: exit + 6 },
+        // (The approach's last step lands at about 9.7, as the shadow arrives; passing, the
+        // loudest steps fall either side of the gap, at the light's lowest.)
+        { label: 'sfx:steps', position: passing ? 7 : 5.3 },
+        { label: 'sfx:settle', position: passing ? 13 : 14 },
       ],
     };
   },
   cues: (variant) => {
-    const approach = variant === 'approach';
+    const passing = variant === 'passing';
     return {
       // A narrow landing beyond the door: hard, a little reflective.
       room: [0.9, 2.2, 0.22],
       // Levels from the files as measured (mean: steps −28/−35, floorboards −34/−32).
       cues: {
-        'sfx:floorboard': { asset: 'mem:floorboard', take: 1, gainDb: -9, place: { u: 0.4, v: -0.3, d: 3 }, lowpass: 3500, caption: '[a floorboard]' },
-        // Passing: along the landing, behind the wall, left to right. Approach: from the far end
-        // of the landing to just outside the door, and stopping there.
-        'sfx:steps': approach
-          ? { asset: 'mem:footsteps', take: 1, gainDb: 1, place: { u: -0.6, v: -0.3, d: 6 }, to: { u: 0.1, v: -0.3, d: 0.8 }, lowpass: 1500, lowpassTo: 5000, cutOnInterrupt: true, caption: '[footsteps, coming closer, stopping]' }
-          : { asset: 'mem:footsteps', take: 0, gainDb: -5, place: { u: -0.8, v: -0.3, d: 2.5 }, to: { u: 0.9, v: -0.3, d: 2.5 }, lowpass: 3000, cutOnInterrupt: true, caption: '[footsteps, passing outside]' },
-        'sfx:settle': approach
-          ? { asset: 'mem:floorboard', take: 0, gainDb: -6, place: { u: 0.1, v: -0.3, d: 0.8 }, lowpass: 5000, caption: '[a floorboard, just outside]' }
-          : { asset: 'mem:floorboard', take: 1, gainDb: -14, place: { u: -0.5, v: -0.3, d: 5 }, lowpass: 2500 },
+        // Approach: from the far end of the landing to just outside the door, stopping there.
+        // Passing: along the landing behind the wall, left to right.
+        'sfx:steps': passing
+          ? { asset: 'mem:footsteps', take: 0, gainDb: -5, place: { u: -1.0, v: -0.3, d: 2 }, to: { u: 2.7, v: -0.3, d: 2 }, lowpass: 3000, cutOnInterrupt: true, caption: '[footsteps on the landing]' }
+          : { asset: 'mem:footsteps', take: 0, gainDb: -3, place: { u: -0.6, v: -0.3, d: 10 }, to: { u: 0.15, v: -0.3, d: 0.5 }, lowpass: 1500, lowpassTo: 5000, cutOnInterrupt: true, caption: '[footsteps on the landing]' },
+        'sfx:settle': passing
+          ? { asset: 'mem:floorboard', take: 1, gainDb: -9, place: { u: -0.5, v: -0.3, d: 5 }, lowpass: 2500 }
+          : { asset: 'mem:floorboard', take: 0, gainDb: -2, place: { u: 0.15, v: -0.3, d: 0.8 }, lowpass: 5000, caption: '[a floorboard, just outside]' },
       },
     };
   },
   sways: [],
   exit: 2,
-  maxHold: 16,
+  maxHold: 18,
   tail: 2,
   hush: 0.75,
+  opensFrom: 'ghost-door',
+  roomDim: 0.55,
 };
 
 export const MEMORIES: Record<string, MemoryDef> = { cereal: CEREAL, bedroom: BEDROOM, door: DOOR };

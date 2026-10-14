@@ -26,6 +26,10 @@ export interface SceneState {
   /** Another memory (kitchen-light) is waiting, playing or has played this visit. */
   otherMemory: boolean;
   departing: boolean;
+  /** The kitchen-light memory has played this visit (it counts in the arc). */
+  kitchenPlayed?: boolean;
+  /** The wall the visitor faces. */
+  facing?: string;
 }
 
 export interface SceneStart {
@@ -90,15 +94,30 @@ export class MemoryDirector {
    * A later memory whose line should now be offered: written alone where the visitor faces.
    * Once per memory per visit; the Director writes it and holds the room a moment.
    */
-  offer(s: { now: number; phase: string; free: boolean; visibleFacing: (phraseId: string) => boolean; departing: boolean; otherMemory: boolean }): SceneMemory | null {
+  offer(s: {
+    now: number;
+    phase: string;
+    free: boolean;
+    visibleFacing: (phraseId: string) => boolean;
+    departing: boolean;
+    otherMemory: boolean;
+    facing?: string;
+    /** When the room's long held silence ended (null if it hasn't come). */
+    darkEnded?: number | null;
+    kitchenPlayed?: boolean;
+  }): SceneMemory | null {
     if (s.departing || this.active || !s.free || s.otherMemory) return null;
     if (s.now < this.cooldownUntil || s.now - this.lastEnded < 0) return null;
     for (const m of SCENE_MEMORIES) {
       const t = this.tracks.get(m.id)!;
       if (!m.offer || t.played || t.offered || s.now < m.earliest || !m.offer.phases.includes(s.phase as never)) continue;
       if (s.now - this.lastEnded < m.offer.apart) continue;
-      // Already where they are looking: no need to write it again.
-      if (s.visibleFacing(m.phraseId)) {
+      if (!this.arcAllows(m, s.now, !!s.kitchenPlayed)) continue;
+      if (m.offer.wall && s.facing !== m.offer.wall) continue;
+      // The pale morning answers the dark: a few seconds after the held silence lifts.
+      if (m.offer.afterDark && !(s.darkEnded != null ? s.now >= s.darkEnded + 8 : s.now >= 200)) continue;
+      // Already where they are looking: no need to write it again (unless it has its own place).
+      if (!m.offer.wall && s.visibleFacing(m.phraseId)) {
         t.offered = true;
         continue;
       }
@@ -117,6 +136,9 @@ export class MemoryDirector {
     for (const m of SCENE_MEMORIES) {
       const t = this.tracks.get(m.id)!;
       if (t.played || !s.visible(m.phraseId)) continue;
+      if (!this.arcAllows(m, s.now, !!s.kitchenPlayed)) continue;
+      // A memory with its own place (the door, under the room's drawn door) begins only there.
+      if (m.offer?.wall && s.facing !== undefined && s.facing !== m.offer.wall) continue;
       const looking = s.gazeId === m.phraseId;
       if (looking && s.gazeFor >= m.arm && !t.armed) {
         t.armed = true;
@@ -132,6 +154,22 @@ export class MemoryDirector {
       return this.begin(m, s.now);
     }
     return null;
+  }
+
+  /** Its place in the arc: company first, absence only after something. */
+  private arcAllows(m: SceneMemory, now: number, kitchenPlayed: boolean): boolean {
+    const another = kitchenPlayed || [...this.tracks.entries()].some(([id, t]) => id !== m.id && t.played);
+    if (m.arc === 'first') return !another && now <= (m.latest ?? Infinity);
+    if (m.arc === 'afterAnother') return another;
+    return true;
+  }
+
+  /**
+   * A memory playing that the Director didn't begin (the artist's panel, captures): the room
+   * still waits with it.
+   */
+  external(id: string, now: number): void {
+    if (!this.active) this.active = { id, since: now };
   }
 
   private begin(m: SceneMemory, now: number): SceneStart {

@@ -55,6 +55,10 @@ export function compose(base: Values, env: Values, w: Weights): Values {
       case 'parallax':
         out[k] = v * w.parallax;
         break;
+      case 'skew':
+        // A hanging thing's sway (the curtain): it is motion, so none under reduced motion.
+        out[k] = (v + env1(env, `sway:${obj.replace(/^layer:/, '')}.skew`, 0)) * w.motion;
+        break;
       case 'x':
       case 'y':
       case 'rot':

@@ -21,7 +21,7 @@ import type { Values } from '../memory/types';
  *
  * Nothing here compiles after boot: one material, no defines, dummy textures until art arrives.
  */
-export type LayerKind = 'pigment' | 'light' | 'sketch';
+export type LayerKind = 'pigment' | 'light' | 'sketch' | 'shade';
 
 export interface WindowLayer {
   name: string;
@@ -39,8 +39,9 @@ const VERT = /* glsl */ `
 const FRAG = /* glsl */ `
   uniform sampler2D uL0, uL1, uL2, uL3, uL4, uL5, uNoise;
   uniform float uOpacity[${SLOTS}];
-  uniform float uKind[${SLOTS}];   // 0 pigment, 1 light, 2 sketch
+  uniform float uKind[${SLOTS}];   // 0 pigment, 1 light, 2 sketch, 3 shade (a shadow in the light)
   uniform vec2 uShift[${SLOTS}];   // parallax and layer offset, in uv
+  uniform float uSkew[${SLOTS}];   // a hanging layer's sway: none at the top (its rod), most at the bottom, in uv
   uniform int uCount;
   uniform vec2 uSize;              // metres
   uniform vec2 uNominal;           // the painting's own size (m), in which its light is authored
@@ -54,8 +55,11 @@ const FRAG = /* glsl */ `
 
   vec3 toLinear(vec3 c) { return mix(c / 12.92, pow((c + 0.055) / 1.055, vec3(2.4)), step(0.04045, c)); }
 
+  float shade = 1.0;
   void layer(int i, vec4 c, inout vec3 col, inout float cov, inout vec3 light, inout vec4 lead) {
     float o = uOpacity[i];
+    // A shadow falls only in the light: it takes light away, never adds paint.
+    if (uKind[i] > 2.5) { shade *= 1.0 - c.a * o; return; }
     // The graphite is kept apart (premultiplied), so the colour it lies over (not yet revealed)
     // never tints it; it is laid over the colour at the end, revealed by its own mask.
     if (uKind[i] > 1.5) lead = c * o + lead * (1.0 - c.a * o);
@@ -80,12 +84,12 @@ const FRAG = /* glsl */ `
     float edge = smoothstep(0.0, 0.06 + 0.05 * n, min(e.x, e.y));
 
     vec3 col = vec3(0.0); float cov = 0.0; vec3 light = vec3(0.0); vec4 lead = vec4(0.0);
-    if (uCount > 0) layer(0, texture2D(uL0, vUv + uShift[0]), col, cov, light, lead);
-    if (uCount > 1) layer(1, texture2D(uL1, vUv + uShift[1]), col, cov, light, lead);
-    if (uCount > 2) layer(2, texture2D(uL2, vUv + uShift[2]), col, cov, light, lead);
-    if (uCount > 3) layer(3, texture2D(uL3, vUv + uShift[3]), col, cov, light, lead);
-    if (uCount > 4) layer(4, texture2D(uL4, vUv + uShift[4]), col, cov, light, lead);
-    if (uCount > 5) layer(5, texture2D(uL5, vUv + uShift[5]), col, cov, light, lead);
+    if (uCount > 0) layer(0, texture2D(uL0, vUv + uShift[0] + vec2(uSkew[0] * (1.0 - vUv.y), 0.0)), col, cov, light, lead);
+    if (uCount > 1) layer(1, texture2D(uL1, vUv + uShift[1] + vec2(uSkew[1] * (1.0 - vUv.y), 0.0)), col, cov, light, lead);
+    if (uCount > 2) layer(2, texture2D(uL2, vUv + uShift[2] + vec2(uSkew[2] * (1.0 - vUv.y), 0.0)), col, cov, light, lead);
+    if (uCount > 3) layer(3, texture2D(uL3, vUv + uShift[3] + vec2(uSkew[3] * (1.0 - vUv.y), 0.0)), col, cov, light, lead);
+    if (uCount > 4) layer(4, texture2D(uL4, vUv + uShift[4] + vec2(uSkew[4] * (1.0 - vUv.y), 0.0)), col, cov, light, lead);
+    if (uCount > 5) layer(5, texture2D(uL5, vUv + uShift[5] + vec2(uSkew[5] * (1.0 - vUv.y), 0.0)), col, cov, light, lead);
 
     // Unstylized (the editor's comparison): the layers as baked, with no mask, noise or reserve.
     float mask = mix(1.0, colourMask, uStylize);
@@ -104,7 +108,7 @@ const FRAG = /* glsl */ `
     pigCov *= 1.0 - mix(0.0, 0.85, reserve * uStylize);
 
     vec3 pigment = toLinear(col / max(cov, 1e-3));
-    vec3 lit = toLinear(min(light, vec3(1.0))) * uLight * mask * edge * uPresence;
+    vec3 lit = toLinear(min(light, vec3(1.0))) * shade * uLight * mask * edge * uPresence;
 
     // dst × (cover × pigment / plaster + (1 − cover)) + dst × light (see the blend below).
     gl_FragColor = vec4(pigCov * pigment / uPlaster + lit, 1.0 - pigCov);
@@ -166,6 +170,9 @@ export class MemoryWindow {
   /** The painting's proportions (width / height), and the band at its top kept for the words. */
   private aspect = 1.5;
   private band = 0.17;
+  private fixed: { cx: number; cy: number; w: number } | null = null;
+  /** Drawings on the wall to keep clear of (group metres). */
+  avoid: { x: number; y: number; w: number; h: number }[] = [];
   /** Where the painting is on its wall now (group metres), and its scale from painting metres. */
   private at = { cx: 0, cy: 0, scale: 1 };
   private eye = new THREE.Vector3();
@@ -189,6 +196,7 @@ export class MemoryWindow {
       uOpacity: { value: new Array(SLOTS).fill(0) },
       uKind: { value: new Array(SLOTS).fill(0) },
       uShift: { value: Array.from({ length: SLOTS }, () => new THREE.Vector2()) },
+      uSkew: { value: new Array(SLOTS).fill(0) },
       uCount: { value: 0 },
       uSize: { value: new THREE.Vector2(0.9, 0.6) },
       uNominal: { value: new THREE.Vector2(0.9, 0.6) },
@@ -241,7 +249,7 @@ export class MemoryWindow {
     for (let i = 0; i < SLOTS; i++) {
       const l = this.layers[i];
       this.u[keys[i]].value = l ? l.texture : this.dummy;
-      kinds[i] = !l ? 0 : l.kind === 'light' ? 1 : l.kind === 'sketch' ? 2 : 0;
+      kinds[i] = !l ? 0 : l.kind === 'light' ? 1 : l.kind === 'sketch' ? 2 : l.kind === 'shade' ? 3 : 0;
     }
     this.u.uCount.value = this.layers.length;
   }
@@ -258,8 +266,14 @@ export class MemoryWindow {
   }
 
   /** Put the window on the wall where its line is written (a WallText anchor). */
-  place(a: { group: THREE.Object3D; x: number; y: number; w: number; h: number; minX: number; maxX: number; minY: number; maxY: number }, seed: number): void {
+  /**
+   * `fixed`: where the painting goes when it opens from something already on the wall (the door
+   * opens from the room's drawn door): its centre and width, in the group's metres. Otherwise it
+   * is placed round its line.
+   */
+  place(a: { group: THREE.Object3D; x: number; y: number; w: number; h: number; minX: number; maxX: number; minY: number; maxY: number }, seed: number, fixed: { cx: number; cy: number; w: number } | null = null): void {
     this.placed = a;
+    this.fixed = fixed;
     this.mesh.visible = true;
     if (this.mesh.parent !== a.group) a.group.add(this.mesh);
     this.u.uSeed.value = (seed % 997) / 997;
@@ -280,7 +294,7 @@ export class MemoryWindow {
     const v = (k: string, d: number) => (k in final ? final[k] : d);
     // About as wide as the words (never a panorama, never a postage stamp), its top just above
     // them: the line is written across the painting's pale upper band, the scene lies below it.
-    const w = THREE.MathUtils.clamp(a.w * 0.95, 0.8, 1.3) * v('window.scale', 1);
+    const w = this.fixed ? this.fixed.w : THREE.MathUtils.clamp(a.w * 0.95, 0.8, 1.3) * v('window.scale', 1);
     const h = w / this.aspect;
     let cx = a.x + v('window.offsetX', 0);
     // The words sit in the band at the painting's top (never down in the scene): its top is just
@@ -291,6 +305,22 @@ export class MemoryWindow {
     // instead, its foot just over them, like a picture over its caption.
     const below = top - h >= a.minY;
     let cy = (below ? top - h / 2 : a.y + a.h / 2 + 0.02 + h / 2) + v('window.offsetY', 0);
+    if (this.fixed) {
+      cx = this.fixed.cx;
+      cy = this.fixed.cy;
+    }
+    // Step sideways off any drawing it would cover: the nearer side that clears it inside the
+    // wall, else the other.
+    cx = THREE.MathUtils.clamp(cx, a.minX + w / 2, a.maxX - w / 2);
+    const covers = (x: number, d: { x: number; y: number; w: number; h: number }) => Math.abs(d.y - cy) < (d.h + h) / 2 && Math.abs(d.x - x) < (d.w + w) / 2;
+    for (const d of this.avoid) {
+      if (!covers(cx, d)) continue;
+      const sides = [d.x - (d.w + w) / 2 - 0.02, d.x + (d.w + w) / 2 + 0.02]
+        .map((x) => THREE.MathUtils.clamp(x, a.minX + w / 2, a.maxX - w / 2))
+        .filter((x) => !covers(x, d))
+        .sort((p, q) => Math.abs(p - cx) - Math.abs(q - cx));
+      if (sides.length) cx = sides[0];
+    }
     cx = THREE.MathUtils.clamp(cx, a.minX + w / 2, a.maxX - w / 2);
     cy = THREE.MathUtils.clamp(cy, a.minY + h / 2, a.maxY - h / 2);
     this.mesh.position.set(cx, cy, 0.004);
@@ -324,11 +354,13 @@ export class MemoryWindow {
     const amount = v('window.parallax', 1) * grazing;
     const opac = this.u.uOpacity.value as number[];
     const shift = this.u.uShift.value as THREE.Vector2[];
+    const skew = this.u.uSkew.value as number[];
     for (let i = 0; i < SLOTS; i++) {
       const l = this.layers[i];
       if (!l) {
         opac[i] = 0;
         shift[i].set(0, 0);
+        skew[i] = 0;
         continue;
       }
       const k = `layer:${l.name}.`;
@@ -338,6 +370,8 @@ export class MemoryWindow {
       const sy = MAX_SHIFT * Math.tanh(((ly / lz) * depth * amount) / MAX_SHIFT);
       // A layer seen from the right shows more of its left: shift its sampling toward the eye.
       shift[i].set((sx - v(k + 'x', 0)) / w, (sy - v(k + 'y', 0)) / h);
+      // (Authored in the painting's own metres at its bottom edge.)
+      skew[i] = -(v(k + 'skew', 0) * scale) / w;
     }
   }
 

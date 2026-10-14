@@ -47,7 +47,7 @@ export async function synthAir(sampleRate: number, seed = 7, seconds = 16): Prom
   const g = off.createGain();
   g.gain.setValueAtTime(0.05, 0);
   for (let t = 1 + (rnd() + 1) * 2; t < seconds + fade - 2; t += 6 + (rnd() + 1) * 2.5) {
-    g.gain.setTargetAtTime(0.6, t, 0.3);
+    g.gain.setTargetAtTime(2.5, t, 0.3);
     g.gain.setTargetAtTime(0.05, t + 0.9, 0.6);
   }
   leaves.connect(bp).connect(g).connect(off.destination);

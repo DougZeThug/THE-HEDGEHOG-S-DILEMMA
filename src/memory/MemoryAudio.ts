@@ -117,6 +117,12 @@ export class MemoryAudio implements AudioSink {
       from = src.loopStart + (from % Math.max(0.1, src.loopEnd - src.loopStart));
     } else if (from >= buf.duration - 0.05) return;
     const gain = c.createGain();
+    // A one-shot is a point in the scene: mono before its panner (a stereo file's own left/right
+    // imbalance would otherwise move it away from where it is placed).
+    if (kind === 'sfx') {
+      gain.channelCount = 1;
+      gain.channelCountMode = 'explicit';
+    }
     const level = Math.pow(10, cue.gainDb / 20) * (0.55 + 0.45 * this.host.intensity);
     const fadeIn = fade ?? cue.fadeIn ?? 0;
     gain.gain.setValueAtTime(fadeIn > 0 ? 0 : level, at);
@@ -227,6 +233,12 @@ export class MemoryAudio implements AudioSink {
         continue; // a clink already ringing rings on
       }
       const own = l.cue.fadeOut ?? fade;
+      // Music that ends on its own soon after a natural close plays out (its last chord decays
+      // with the image) rather than being faded under.
+      if (mode === 'natural' && l.kind === 'music' && l.src.buffer) {
+        const left = l.src.buffer.duration - (Math.max(0, this.now - l.at) + l.from);
+        if (left <= own + 4) continue;
+      }
       // Interrupted, music recedes just after the picture (a bed goes with it).
       this.fadeOut(l, mode === 'natural' ? own : Math.min(own, l.kind === 'music' ? fade + 1.5 : fade));
     }

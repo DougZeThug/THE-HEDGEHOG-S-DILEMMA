@@ -21,13 +21,13 @@ const BASE = process.env.BASE ?? 'http://localhost:4173/';
 const OUT = process.env.OUT ?? `test-output/review/memories/${process.env.MEMORY ?? 'cereal'}`;
 const PROFILES = (process.env.PROFILES ?? 'desktop,phone').split(',');
 const MEMORY = process.env.MEMORY ?? 'cereal';
-const VARIANT = process.env.VARIANT ?? { cereal: 'first', bedroom: 'morning', door: 'passing' }[MEMORY];
+const VARIANT = process.env.VARIANT ?? { cereal: 'first', bedroom: 'morning', door: 'approach' }[MEMORY];
 const PHRASE = { cereal: 'cereal', bedroom: 'happiest-unneeded', door: 'door-open' }[MEMORY];
 // Stages: [name, sequence position or null for the untouched wall], per memory.
 const STAGES = {
   cereal: [['0-untouched', null], ['1-first-drawing', 1.8], ['2-developing', 3.8], ['3-active', 9], ['4-active-late', 20], ['5-dissolving', 24.5], ['6-drawing-alone', 26.2], ['7-residue', 29]],
-  bedroom: [['0-untouched', null], ['1-first-drawing', 2], ['2-developing', 4.5], ['3-active', 12], ['4-active-late', 24], ['5-dissolving', 28.5], ['6-drawing-alone', 30.6], ['7-residue', 33]],
-  door: [['0-untouched', null], ['1-first-drawing', 1.6], ['2-developing', 3.4], ['3-active', 6.5], ['4-shadow', 8.3], ['5-stillness', 13], ['6-dissolving', 17.5], ['7-drawing-alone', 19]],
+  bedroom: [['0-untouched', null], ['1-first-drawing', 2.6], ['2-developing', 5.5], ['3-active', 9], ['4-curtain', 11.4], ['5-active-late', 22], ['6-dissolving', 28.5], ['7-drawing-alone', 30.6]],
+  door: [['0-untouched', null], ['1-first-drawing', 1.6], ['2-developing', 3.4], ['3-active', 6.5], ['4-shadow', 11], ['5-weight', 14.3], ['6-dissolving', 19.5], ['7-drawing-alone', 21]],
 }[MEMORY];
 mkdirSync(OUT, { recursive: true });
 
@@ -48,13 +48,19 @@ for (const profile of PROFILES) {
   const programs0 = await page.evaluate(() => window.__hedgehog.renderer.info.programs.length);
   await page.click('#enter');
   await page.waitForFunction(() => (window.__hedgehog.score?.t ?? 0) > 2, null, { timeout: 60000 });
-  await page.click('#skip');
+  // (On a loaded machine the opening may already be over: skip only if it is still there.)
+  await page.evaluate(() => {
+    const b = document.getElementById('skip');
+    if (b && !b.hidden) b.click();
+  });
   await page.waitForFunction(() => window.__hedgehog.score.stage === 'done', null, { timeout: 120000 });
   await page.waitForTimeout(1500);
   // Write the line, and stand 2.4 m in front of it, looking at it.
   const where = await page.evaluate(async (phrase) => {
     const a = window.__hedgehog;
-    if (!a.text.anchorOf(phrase)) a.text.setShown(phrase);
+    // The door's line is written beneath the room's drawn door, as the Director offers it.
+    if (phrase === 'door-open') a.apply({ type: 'write', key: 'memory:door-open', text: 'the door, slightly open', hand: 'pencil', size: 's', surface: 'south', under: 'ghost-door', purpose: 'recall', ttl: 0, source: 'door-open' });
+    else if (!a.text.anchorOf(phrase)) a.text.setShown(phrase);
     for (let i = 0; i < 100 && !a.text.anchorOf(phrase); i++) await new Promise((r) => setTimeout(r, 50));
     const an = a.text.anchorOf(phrase);
     const it = a.text.items.get(an.key);

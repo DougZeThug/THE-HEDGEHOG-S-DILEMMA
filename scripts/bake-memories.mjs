@@ -36,11 +36,12 @@ for (const [id, variants] of Object.entries(VARIANTS)) {
   const old = existsSync(manifestPath) ? JSON.parse(readFileSync(manifestPath, 'utf8')) : null;
   const info = await page.evaluate((id) => {
     const p = window.Painters.PAINTERS[id];
-    return { size: p.SIZE, layers: p.LAYERS, kinds: p.KINDS, pane: p.SUN_PANE ?? null, band: p.BAND ?? null };
+    return { size: p.SIZE, layers: p.LAYERS, kinds: p.KINDS, pane: p.SUN_PANE ?? null, band: p.BAND ?? null, register: p.REGISTER ?? null };
   }, id);
   // The painting's size; the band at its top kept for the words; the sun's pane (where the
   // memory's light leaves the room's light, the bleed).
-  const manifest = { size: info.size, band: info.band, pane: info.pane, variants: {} };
+  // `register`: a drawn shape on the room's wall the painting opens from (its centre and height).
+  const manifest = { size: info.size, band: info.band, pane: info.pane, register: info.register, variants: {} };
   const seen = new Map();
   for (const v of variants) {
     mkdirSync(join(dir, v), { recursive: true });
