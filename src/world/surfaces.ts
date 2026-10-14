@@ -293,17 +293,17 @@ export function handMarks(map: THREE.CanvasTexture, lines: { u: number; v: numbe
 function fineDetail(g: CanvasRenderingContext2D, bg: CanvasRenderingContext2D, W: number, H: number, r: Rng, o: { specks: number; pits: number; scratches: number; light?: number }) {
   const area = (W / PX_PER_M) * (H / PX_PER_M);
   for (let i = 0, n = Math.round(o.specks * area); i < n; i++) {
-    const x = r.range(0, W), y = r.range(0, H), rad = r.range(1, 2.5) * K;
+    const x = r.range(0, W), y = r.range(0, H), rad = r.range(0.5, 1.4) * K;
     const lightSpeck = r.chance(o.light ?? 0.15);
-    g.fillStyle = lightSpeck ? `rgba(255,252,246,${r.range(0.08, 0.2)})` : `rgba(78,74,68,${r.range(0.06, 0.2)})`;
+    g.fillStyle = lightSpeck ? `rgba(255,252,246,${r.range(0.06, 0.14)})` : `rgba(78,74,68,${r.range(0.04, 0.11)})`;
     g.beginPath();
     g.arc(x, y, rad, 0, Math.PI * 2);
     g.fill();
   }
   for (let i = 0, n = Math.round(o.pits * area); i < n; i++) {
-    const x = r.range(0, W), y = r.range(0, H), rad = r.range(2, 5) * K;
-    g.fillStyle = `rgba(90,86,80,${r.range(0.1, 0.22)})`;
-    bg.fillStyle = `rgba(40,40,40,${r.range(0.5, 0.8)})`;
+    const x = r.range(0, W), y = r.range(0, H), rad = r.range(0.8, 2) * K;
+    g.fillStyle = `rgba(96,92,86,${r.range(0.04, 0.09)})`;
+    bg.fillStyle = `rgba(60,60,60,${r.range(0.25, 0.45)})`;
     for (const c of [g, bg]) {
       c.beginPath();
       c.arc(x, y, rad, 0, Math.PI * 2);
@@ -390,7 +390,7 @@ export function wallMaps(surface: Surface, seed: number, wM: number, hM: number)
 
   baseScuffs(g, W, H, r, 22);
   graphiteSmudges(g, W, H, r, 8);
-  fineDetail(g, bg, W, H, new Rng(seed + 31), { specks: 70, pits: 45, scratches: 3.5 });
+  fineDetail(g, bg, W, H, new Rng(seed + 31), { specks: 60, pits: 25, scratches: 3.5 });
   // Little at the top: the box keeps a crisp, lit edge under its darker lid.
   corners(g, W, H, { bottom: 0.55, top: 0.12, left: 0.45, right: 0.45 });
   const map = toTex(c, true);
