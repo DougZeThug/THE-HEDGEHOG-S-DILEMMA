@@ -29,6 +29,8 @@ type Name = keyof typeof SIZES;
 
 const details: Partial<Record<Name | 'concrete-rough', Detail>> = {};
 const normals: Partial<Record<Name, NormalTile>> = {};
+/** Once the room is baked, anything still arriving is dropped (and what was used is released). */
+let closed = false;
 
 async function pixels(url: string): Promise<ImageData | null> {
   try {
@@ -46,13 +48,13 @@ async function pixels(url: string): Promise<ImageData | null> {
   }
 }
 
-/** Load the scans (phones take the smaller normal maps). Never throws. */
-export async function loadScans(quality: 'low' | 'medium' | 'high'): Promise<void> {
+/** Load the scans. Never throws. */
+export async function loadScans(): Promise<void> {
   const jobs: Promise<void>[] = [];
   const detail = (key: Name | 'concrete-rough', file: string, metres: number) =>
     jobs.push(
       pixels(BASE + file).then((d) => {
-        if (!d) return;
+        if (!d || closed) return;
         const z = new Float32Array(d.width * d.height);
         for (let i = 0; i < z.length; i++) z[i] = (d.data[i * 4] - 128) / 40;
         details[key] = { w: d.width, h: d.height, metres, z };
@@ -60,14 +62,22 @@ export async function loadScans(quality: 'low' | 'medium' | 'high'): Promise<voi
     );
   for (const n of Object.keys(SIZES) as Name[]) detail(n, `${n}-detail.jpg`, SIZES[n]);
   detail('concrete-rough', 'concrete-rough.jpg', SIZES.concrete);
-  // Only the chair's wood takes a normal map (the room's fine relief goes into its bump bake).
+  // Only the chair's wood takes a normal map (the room's fine relief goes into its bump bake); at
+  // the chair's size on screen 512 px holds all of it.
   for (const n of ['wood-grain', 'wood-seat'] as const)
     jobs.push(
-      pixels(BASE + (quality === 'low' ? `${n}-normal-512.jpg` : `${n}-normal.jpg`)).then((d) => {
-        if (d) normals[n] = { w: d.width, h: d.height, metres: SIZES[n], rgba: d.data };
+      pixels(BASE + `${n}-normal.jpg`).then((d) => {
+        if (d && !closed) normals[n] = { w: d.width, h: d.height, metres: SIZES[n], rgba: d.data };
       }),
     );
   await Promise.all(jobs);
+}
+
+/** The room and the chair are baked: let the decoded scans go, and drop any still arriving. */
+export function releaseScans(): void {
+  closed = true;
+  for (const k of Object.keys(details) as (keyof typeof details)[]) delete details[k];
+  for (const k of Object.keys(normals) as (keyof typeof normals)[]) delete normals[k];
 }
 
 export function scanDetail(name: Name | 'concrete-rough'): Detail | null {

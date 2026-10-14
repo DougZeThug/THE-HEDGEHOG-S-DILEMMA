@@ -9,9 +9,10 @@ against the artist's reference). From a scan it takes only what a code-painted c
   bake's own mottle carries the large scale and the tile never shows), as a z-score:
   128 + 40·z, clipped at ±3σ, at the size the bake can hold. The bake multiplies its colour by
   1 + amp·z; detail finer than the bake's texels is the normal map's.
-- `<name>-normal.jpg` / `-normal-512.jpg`: the scan's OpenGL normal map, high-passed above
-  ~20 cm (a glossy floor would otherwise show the tile in its sheen), at 1K and 512 (phones).
-- `<name>-rough.jpg` (floor only): roughness, high-passed, as a z-score like the detail.
+- `<name>-normal.jpg` (the chair's woods only; the room's fine relief goes into its bump bake):
+  the scan's OpenGL normal map, high-passed above ~20 cm, at 512 px (what the chair can show).
+- `<name>-rough.jpg` (floor only): roughness, high-passed, as a z-score like the detail, at half
+  the detail's size.
 
 Every filter wraps around, so the outputs tile as the scans do. Inputs are the files fetched as
 `<id>_<Diffuse|nor_gl|Rough>_1k.jpg` (the Poly Haven API's names).
@@ -27,13 +28,14 @@ SRC = Path(sys.argv[1])
 OUT = Path(__file__).resolve().parent.parent / 'public' / 'textures' / 'scan'
 OUT.mkdir(parents=True, exist_ok=True)
 
-# id, our name, the scan's real width (m), whether its roughness is used, and the detail map's
-# size: what the bake it goes into can hold (200 px/m for the room; the chair's atlas is denser).
+# id, our name, the scan's real width (m), whether its roughness is used, the detail map's size
+# (what the bake it goes into can hold: 200 px/m for the room, less where the floor's 3 m tile is
+# seen from a distance; the chair's atlas is denser), and whether it ships a normal map.
 MATERIALS = [
-    ('white_plaster_02', 'plaster', 1.0, False, 256),
-    ('concrete_floor_worn_001', 'concrete', 3.0, True, 640),
-    ('fine_grained_wood', 'wood-grain', 0.6, False, 384),
-    ('wood_table_worn', 'wood-seat', 0.55, False, 384),
+    ('white_plaster_02', 'plaster', 1.0, False, 256, False),
+    ('concrete_floor_worn_001', 'concrete', 3.0, True, 448, False),
+    ('fine_grained_wood', 'wood-grain', 0.6, False, 384, True),
+    ('wood_table_worn', 'wood-seat', 0.55, False, 384, True),
 ]
 DETAIL_CUT_M = 0.15
 NORMAL_CUT_M = 0.20
@@ -63,7 +65,7 @@ def load(id_: str, kind: str) -> np.ndarray:
 
 
 manifest = {}
-for id_, name, metres, rough, size in MATERIALS:
+for id_, name, metres, rough, size, normal in MATERIALS:
     rgb = load(id_, 'Diffuse')
     px_per_m = rgb.shape[1] / metres
     lum = rgb @ np.array([0.2126, 0.7152, 0.0722])
@@ -72,19 +74,19 @@ for id_, name, metres, rough, size in MATERIALS:
     sd = zscore_jpg((lum - low) / np.maximum(low, 1.0), OUT / f'{name}-detail.jpg', size)
     entry = {'source': id_, 'metres': metres, 'detailStd': round(sd, 5), 'detailSize': size}
 
-    n = load(id_, 'nor_gl') / 255.0 * 2 - 1
-    xy = n[..., :2] - blur_wrap(n[..., :2], NORMAL_CUT_M * px_per_m / 2.0)
-    z = np.sqrt(np.clip(1 - (xy ** 2).sum(-1), 0.04, 1))
-    nn = np.concatenate([xy, z[..., None]], -1)
-    nn /= np.linalg.norm(nn, axis=-1, keepdims=True)
-    img = Image.fromarray(np.round((nn * 0.5 + 0.5) * 255).astype(np.uint8), 'RGB')
-    img.save(OUT / f'{name}-normal.jpg', quality=88, subsampling=0, optimize=True)
-    img.resize((512, 512), Image.LANCZOS).save(OUT / f'{name}-normal-512.jpg', quality=88, subsampling=0, optimize=True)
+    if normal:
+        n = load(id_, 'nor_gl') / 255.0 * 2 - 1
+        xy = n[..., :2] - blur_wrap(n[..., :2], NORMAL_CUT_M * px_per_m / 2.0)
+        z = np.sqrt(np.clip(1 - (xy ** 2).sum(-1), 0.04, 1))
+        nn = np.concatenate([xy, z[..., None]], -1)
+        nn /= np.linalg.norm(nn, axis=-1, keepdims=True)
+        img = Image.fromarray(np.round((nn * 0.5 + 0.5) * 255).astype(np.uint8), 'RGB')
+        img.resize((512, 512), Image.LANCZOS).save(OUT / f'{name}-normal.jpg', quality=88, subsampling=0, optimize=True)
 
     if rough:
         r = load(id_, 'Rough')[..., 0] / 255.0
         hp = r - blur_wrap(r, DETAIL_CUT_M * px_per_m / 2.0)
-        entry['roughStd'] = round(zscore_jpg(hp, OUT / f'{name}-rough.jpg', size), 5)
+        entry['roughStd'] = round(zscore_jpg(hp, OUT / f'{name}-rough.jpg', size // 2), 5)
     manifest[name] = entry
 
 (OUT / 'manifest.json').write_text(json.dumps(manifest, indent=1) + '\n')

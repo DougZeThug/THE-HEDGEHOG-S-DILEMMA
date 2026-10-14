@@ -31,7 +31,7 @@ const SCAN_AMP = {
   wall: { colour: 0.025, bump: 10 },
   // The side walls, lit raking from the panel, show their plaster most in the reference.
   sideWall: { colour: 0.035, bump: 12 },
-  floor: { colour: 0.034, bump: 8 },
+  floor: { colour: 0.03, bump: 8 },
   ceiling: { colour: 0.026, bump: 8 },
 };
 

@@ -1,7 +1,7 @@
 import { STATIC_DRAWINGS } from './content/drawings';
 import * as THREE from 'three';
 import { Room } from './world/Room';
-import { loadScans } from './world/scans';
+import { loadScans, releaseScans } from './world/scans';
 import { Chair } from './world/Chair';
 import { Lighting, shadowMapSize } from './world/Lighting';
 import { lookFor, parseLook, LOOK_NAMES, LOOKS, type Look, type LookName } from './world/Style';
@@ -105,16 +105,20 @@ export class App {
     const seed = Number.isFinite(seedParam) && seedParam > 0 ? seedParam : 1000 + (this.visits + 1) * 7919;
     $('threshold-line').textContent = THRESHOLD_LINES[Math.min(THRESHOLD_LINES.length - 1, this.visits)];
 
-    // The fonts, and the material scans the room's surfaces are baked with (scans.ts): neither
-    // holds the threshold longer than four seconds; without the scans the room bakes as before.
+    // The fonts (at most four seconds), then the material scans the room's surfaces are baked with
+    // (scans.ts), which get at most a second and a half more: on a slow connection the room bakes
+    // without them, as before, rather than keep the visitor at the threshold.
+    const scans = loadScans();
     await Promise.race([
-      Promise.all([...FONTS_TO_LOAD.map((f) => document.fonts.load(f).catch(() => null)), loadScans(this.prefs.quality)]),
+      Promise.all(FONTS_TO_LOAD.map((f) => document.fonts.load(f).catch(() => null))),
       new Promise((r) => setTimeout(r, 4000)),
     ]);
+    await Promise.race([scans, new Promise((r) => setTimeout(r, 1500))]);
 
     this.setupRenderer();
     this.room = new Room(this.prefs.quality);
     this.chair = new Chair();
+    releaseScans();
     this.lighting = new Lighting(this.prefs.quality);
     this.text = new WallText(this.room, 4242);
     this.scene.add(this.room.group, this.chair.group, this.lighting.group, this.text.air);

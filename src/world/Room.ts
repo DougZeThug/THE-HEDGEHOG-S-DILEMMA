@@ -86,6 +86,31 @@ function wellGeometry(): THREE.BufferGeometry {
   return geo;
 }
 
+/** The opening's lip: three square loops (feather, edge, feather), alpha 0 → 0.85 → 0. */
+function lipGeometry(): THREE.BufferGeometry {
+  const loops = [
+    [OPENING / 2 - 0.008, 0],
+    [OPENING / 2, 0.85],
+    [OPENING / 2 + 0.012, 0],
+  ] as const;
+  const pos: number[] = [], col: number[] = [];
+  const corner = (r: number, k: number) => [[-r, -r], [r, -r], [r, r], [-r, r]][k % 4];
+  for (let l = 0; l < 2; l++)
+    for (let k = 0; k < 4; k++) {
+      const [ra, aa] = loops[l], [rb, ab] = loops[l + 1];
+      const a0 = corner(ra, k), a1 = corner(ra, k + 1), b0 = corner(rb, k), b1 = corner(rb, k + 1);
+      for (const [p, a] of [[a0, aa], [a1, aa], [b1, ab], [a0, aa], [b1, ab], [b0, ab]] as [number[], number][]) {
+        pos.push(p[0], 0, p[1]);
+        col.push(1, 1, 1, a);
+      }
+    }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 4));
+  geo.computeVertexNormals();
+  return geo;
+}
+
 /**
  * The ceiling's bounce, as a map: broad, centred between the skylight and the wall behind the
  * chair (the light that comes back off the floor and that wall), not a halo round the opening.
@@ -211,14 +236,15 @@ export class Room {
     // The well's sides (unlit: coloured by the glass, so the dims and the cooling reach them).
     this.well = new THREE.Mesh(wellGeometry(), new THREE.MeshBasicMaterial({ color: 0xffffff, vertexColors: true, side: THREE.DoubleSide }));
     this.well.position.set(PANEL.x, H, PANEL.z);
-    // A crisp dark line round the opening, where the reveal meets the ceiling (lit by the room, so
-    // it dims with it).
+    // A dark line round the opening, where the reveal meets the ceiling: darkest on the edge,
+    // feathered a centimetre to either side (it also softens the bright edge on phones, which
+    // render without antialiasing). Lit by the room, so it dims with it.
     const lip = new THREE.Mesh(
-      new THREE.RingGeometry(OPENING / 2 * Math.SQRT2, (OPENING / 2 + 0.012) * Math.SQRT2, 4, 1, Math.PI / 4),
-      new THREE.MeshStandardMaterial({ color: 0x5f5a54, roughness: 0.95, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }),
+      lipGeometry(),
+      new THREE.MeshStandardMaterial({ color: 0x5f5a54, roughness: 0.95, vertexColors: true, transparent: true, depthWrite: false, side: THREE.DoubleSide }),
     );
-    lip.rotation.x = Math.PI / 2;
     lip.position.set(PANEL.x, H - 0.0005, PANEL.z);
+    lip.renderOrder = 2;
     this.group.add(this.panel, this.well, lip);
 
     this.setScale(1);
@@ -275,7 +301,7 @@ export class Room {
    * its top catches the light as a lit edge.
    */
   private addSkirting(group: THREE.Group, w: number, h: number) {
-    const trim = new THREE.MeshStandardMaterial({ color: 0x9c968d, roughness: 0.6 });
+    const trim = new THREE.MeshStandardMaterial({ color: 0xaba69e, roughness: 0.6 });
     const sk = new THREE.Mesh(new THREE.BoxGeometry(w, SKIRT, 0.015), trim);
     sk.position.set(0, -h / 2 + SKIRT / 2, 0.0075);
     sk.receiveShadow = true;

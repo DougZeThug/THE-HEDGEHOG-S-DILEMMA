@@ -59,7 +59,7 @@ export interface Look {
 
 export const LOOKS = {
   original: { fill: 1, area: 1, key: 1, cone: 1, glow: 1, warmth: 0, ceiling: 4, exposure: 1.05, vignette: 0.32, grain: 0.032, texture: 1, contact: 0, shadowSoft: 1.8, faint: 1, skyGlow: 0, contrast: 0, stains: 0, aim: 0, panel: 1, vigLow: 0 },
-  reference: { fill: 0.85, area: 1.5, key: 1.1, cone: 0.6, glow: 0.6, warmth: 1, ceiling: 3.5, exposure: 1.15, vignette: 0.2, grain: 0.015, texture: 1.15, contact: 1, shadowSoft: 1.6, faint: 1.2, skyGlow: 0.7, contrast: 0.15, stains: 1, aim: 0.75, panel: 1.35, vigLow: 1 },
+  reference: { fill: 0.85, area: 1.5, key: 1.1, cone: 0.6, glow: 0.6, warmth: 1, ceiling: 3.5, exposure: 1.15, vignette: 0.2, grain: 0.015, texture: 1.15, contact: 1, shadowSoft: 1.6, faint: 1.2, skyGlow: 0.7, contrast: 0.15, stains: 1, aim: 0.55, panel: 1.35, vigLow: 1 },
 } satisfies Record<string, Look>;
 
 export type LookName = 'original' | 'subtle' | 'reference';
