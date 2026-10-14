@@ -92,3 +92,60 @@ The technical artist, the cinematic director and the skeptic reviewed the plan a
    - Maps: `scripts/scan-detail.py`, 1.5 MB in all; the detail maps are sized to the bakes.
 7. **Guards added:** ink contrast-to-noise (Weber ÷ local background std) in `style-metrics.py`; front-floor/pool ratio; the panel and well following the dim and cooling.
 8. **Cut:** PMREM, the bounce light, the glossier floor, the profiled extruded skirting, lathe finials, plank groove and chamfers, the tone-mapping change, KTX2, GTAO, bloom, DOF and haze.
+
+## After implementation: the evaluations
+
+**Measured first, at matched pixel density** (ours rendered at 2× and scaled so the back walls are equally wide). Texture contrast per band was taken over clean patches (σ 1/2/4/10 px, % of mean) as the technical artist measured it; the side walls started at about half the reference's, so their amplitude was raised. The skylight's brightest pixels (p99.5) reach 243 against the reference's 245. The glass and well follow a full cooling (R/B 1.07 → 1.00) and a dim (well −68%, glass −30%, staying the brightest thing).
+
+**QA** (e35193d, against 1d16546):
+- **Nothing broken:**
+  - smoke and the opening pass, with no 404s or console errors;
+  - with the scans blocked, the room renders as before;
+  - at room scale 1.25 the opening stays aligned with the glass and the corner seams sit at the corners;
+  - the chair's hit area covers the caps;
+  - on phones the first line is still 36–42 px inside the edge, and captions never cover the chair;
+  - the floor pencil by the chair stays legible: ink over texture 6.3 against the original look's 6.2.
+- **P1, the skylight's edge stair-steps on phones,** which render without antialiasing. Fixed with a dark lip feathered a centimetre to either side of the edge.
+- **P1, a longer wait at the threshold:** about +3 s on a slow phone connection, +1.2 s locally on desktop (the bake). Fixed as follows:
+  - the scans have their own deadline, a second and a half after the fonts, and late arrivals are dropped;
+  - they ship as 360 KB instead of about 900 (relief maps only for the chair's woods, at 512 px; a smaller concrete map);
+  - the decoded pixels are released once the room and the chair are baked.
+- **P2:** the unused relief maps were shipped; they are now gone. Draw calls rose 34 → 42 (the seam strips): accepted for now; merging each wall's strips is the remedy if a phone needs it. The opening harness's title check is flaky under load (the harness, not the app).
+
+**Creative director:**
+- At parity now: the skylight, the edges and the mid-tones (frame median 130.8 against 131.0).
+- What still separated the frames was where the light falls and where the texture sits:
+  - the walls were lit top-down (`skyGlow`) where the reference darkens into its ceiling;
+  - the pool was too broad;
+  - the grain was even everywhere, where the reference's marks are particular;
+  - the seat's tone was flat, and the spherical caps read as toy finials.
+- **The diorama question:** on the surfaces, no; in the structure, yes. What keeps it is the writing (the only handmade thing left, which the scan noise must never compete with), the particular marks, and the chair's smallness. At matched scale the reference's chair is 0.57 of its back wall's height and ours 0.69. That cuts against the artist's "enlarge the chair", so it is put to them once, not overridden.
+
+**Cinematic director:** their P1s are resolved: the source, the well, the edges, the vignette's mechanism and the chair's geometry. What remained is all taking light away:
+- the front floor too bright (pool over front 1.31 against 1.53);
+- the ceiling too bright, so the box had no lid (113 against 96);
+- no highlights on the chair's upper faces;
+- the skirting a flat band.
+They advised keeping the fill, since the wall you read was already right.
+
+**Done from both** (409751e, 9c38d30):
+- **Light:**
+  - ceiling bounce 6 → 3.5, the skylight's glow 1.2 → 0.7, and the painted spill round the opening removed;
+  - the key aimed 0.55 m behind the chair (was 0.35) and narrower (cone 0.6), with fill kept at 0.85 and the area light at 1.5;
+  - the shadow less blurred (2.4 → 1.6);
+  - the cream a touch warmer (`#ffe9cb`).
+- **Skylight:** a shallow reveal (0.1 m), its glass at `panel` 1.35 with a visible frost, the well's sides at 0.6 of the glass, and a crisp dark lip.
+- **Walls:**
+  - the back wall calmer (blotch 5, tooth 4);
+  - the side walls' runs stronger (alpha 0.2–0.32, damp 0.09), still gathered near each end;
+  - the floor's scan at 0.03.
+- **Skirting:** a lighter grey board with a lit lip and a deeper contact line.
+- **Chair:**
+  - upper faces paler, darker toward the floor;
+  - flattened-dome caps the posts' width;
+  - the seat's figure stronger, polished at the middle;
+  - the wood less saturated.
+
+**Measured after** (the hand-off pose at 2×, reference in brackets):
+- **Texture bands:** back wall 0.31/0.68/0.92/1.29 (0.39/0.76/0.99/1.17); ceiling 0.28/0.72/0.98/1.24 (0.32/0.78/1.03/1.19); floor 0.30/0.86/1.30/1.64 (0.84/1.31/1.51/1.66).
+- The finest band (about 1 px) stays under the reference's; part of that is the reference's own sharpening, and it is not chased.
