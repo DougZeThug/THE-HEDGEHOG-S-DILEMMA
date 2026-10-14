@@ -85,6 +85,8 @@ export class App {
   /** The living memory playing now (at most one), and the writing it formed round. */
   private living: { memory: LivingMemory; id: string; key: string; anchor: NonNullable<ReturnType<WallText['anchorOf']>>; bled: boolean; hiddenSince: number | null; held: boolean } | null = null;
   private memoryClock = new MemoryClock();
+  /** Theatre Studio's ticker, while the Memory Editor is open (development only). */
+  studioTick: ((now: number) => void) | null = null;
   private memoryRuntime: Promise<typeof import('./memory/runtime')> | null = null;
   private memoryKey: string | null = null;
   /** The piece of writing last touched (the memory's light falls where the visitor touched). */
@@ -176,6 +178,8 @@ export class App {
     // The artist's panel: only with ?tune, loaded only then.
     if (params.has('tune')) void import('./ui/Tune').then(({ mountTune }) => this.mountTune(mountTune));
     (window as unknown as { __hedgehog: unknown }).__hedgehog = this;
+    // The Memory Editor (Theatre Studio): development builds only, never shipped.
+    if (import.meta.env.DEV && /[?&]studio\b/.test(location.search)) void import('./memory/editor/MemoryEditor').then((m) => m.openEditor(this));
 
     // Warm up behind the black threshold: compile every shader now (with every light present,
     // so nothing recompiles when the light comes on), then render one black frame.
@@ -387,6 +391,13 @@ export class App {
    * Play a living memory round the line it belongs to (on whatever wall it is written).
    * Returns false if the line isn't on a wall or the memory couldn't be prepared.
    */
+  /** Walk to where a memory is seen whole and face it (the editor's Start: the real framing). */
+  frameMemory(phraseId: string) {
+    const a = this.text.anchorOf(phraseId);
+    const c = a && this.text.centreOf(a.key);
+    if (c) this.rig.attend(c, 2.4);
+  }
+
   async playMemory(id: string, phraseId: string, variant = 'first'): Promise<boolean> {
     const a = this.text.anchorOf(phraseId, this.gazeId ?? this.lastTappedKey);
     if (!a) return false;
@@ -458,6 +469,7 @@ export class App {
   }
 
   private stepLivingMemory() {
+    this.studioTick?.(performance.now());
     const l = this.living;
     if (!l) return;
     if (l.held) {
