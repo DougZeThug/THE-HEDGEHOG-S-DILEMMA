@@ -87,7 +87,8 @@
       "duration": 3,
       "cost": 33,
       "at": "2026-10-14T17:58:13.723Z",
-      "review": "pending"
+      "review": "approved",
+      "reviewedAt": "2026-10-14"
     },
     "mem-spoon-bowl-2.mp3": {
       "key": "mem:spoon-bowl",
@@ -95,7 +96,8 @@
       "duration": 1.5,
       "cost": 17,
       "at": "2026-10-14T17:58:14.882Z",
-      "review": "pending"
+      "review": "approved",
+      "reviewedAt": "2026-10-14"
     },
     "mem-laugh-1.mp3": {
       "key": "mem:laugh",
@@ -103,7 +105,8 @@
       "duration": 3,
       "cost": 33,
       "at": "2026-10-14T17:58:17.146Z",
-      "review": "pending"
+      "review": "approved",
+      "reviewedAt": "2026-10-14"
     }
   }
 }

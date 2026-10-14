@@ -28,8 +28,9 @@
       "for": "Memory: \"We ate cereal for dinner and it was perfect.\" The kitchen radio, on from the moment the scene has formed.",
       "cost": 385,
       "at": "2026-10-14T18:37:50.727Z",
-      "review": "pending",
-      "costSource": "balance difference (4545 \u2192 4930 used)"
+      "review": "approved",
+      "costSource": "balance difference (4545 \u2192 4930 used)",
+      "reviewedAt": "2026-10-14"
     }
   }
 }
