@@ -148,6 +148,12 @@ export class CameraRig {
     return this.eye;
   }
 
+  /** The eye without its walking bob or breath (what a living memory's depth follows). */
+  get restingEye(): THREE.Vector3 {
+    return this.restingEyeV.set(this.pos.x, this.eye, this.pos.z);
+  }
+  private restingEyeV = new THREE.Vector3();
+
   update(dt: number, room: Room, chairPos: THREE.Vector3) {
     this.chair.copy(chairPos);
     const k = this.keys;

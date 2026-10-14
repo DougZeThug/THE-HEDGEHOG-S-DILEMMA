@@ -7,6 +7,10 @@ import { Lighting, shadowMapSize } from './world/Lighting';
 import { lookFor, parseLook, LOOK_NAMES, LOOKS, type Look, type LookName } from './world/Style';
 import { MemoryLight } from './world/MemoryLight';
 import { MemoryWindow } from './world/MemoryWindow';
+import { MemoryClock } from './memory/clock';
+import type { Lifecycle } from './memory/types';
+import type { LivingMemory } from './memory/runtime';
+import type { MemoryAudioHost } from './memory/MemoryAudio';
 import { WallText, wallClock, type TextItem } from './world/WallText';
 import { CameraRig } from './world/CameraRig';
 import { Post } from './world/Post';
@@ -78,6 +82,10 @@ export class App {
   readonly memoryLight = new MemoryLight();
   /** A living memory in the plaster (src/memory): neutral and on the wall from boot, so it is compiled with the room. */
   readonly memoryWindow = new MemoryWindow();
+  /** The living memory playing now (at most one), and the writing it formed round. */
+  private living: { memory: LivingMemory; id: string; key: string; anchor: NonNullable<ReturnType<WallText['anchorOf']>>; bled: boolean; hiddenSince: number | null; held: boolean } | null = null;
+  private memoryClock = new MemoryClock();
+  private memoryRuntime: Promise<typeof import('./memory/runtime')> | null = null;
   private memoryKey: string | null = null;
   /** The piece of writing last touched (the memory's light falls where the visitor touched). */
   private lastTappedKey: string | null = null;
@@ -325,8 +333,149 @@ export class App {
             this.apply({ type: 'memory', phraseId: m.phraseId, attack: m.attack, hold: m.hold, release: m.release });
           },
         },
+        {
+          label: 'cereal, now',
+          run: () => {
+            if (!this.text.anchorOf('cereal')) this.text.setShown('cereal');
+            void this.playMemory('cereal', 'cereal');
+          },
+        },
       ],
     );
+  }
+
+  // ─────────────────────────────── living memories ───────────────────────────────
+
+  /** The memories' runtime (GSAP, Theatre.js, the controller): a lazy chunk, loaded once. */
+  private memoryChunk() {
+    return (this.memoryRuntime ??= import('./memory/runtime'));
+  }
+
+  private memoryAudioHost(): MemoryAudioHost | null {
+    const a = this.audio, voices = this.voices;
+    if (!a || !voices) return null;
+    const mesh = this.memoryWindow.mesh;
+    return {
+      ctx: a.ctx,
+      out: a.buses.memory,
+      load: async (asset, take) => {
+        if (!asset.startsWith('music/')) return voices.raw(asset, take);
+        try {
+          const r = await fetch('./' + asset);
+          return r.ok ? await a.ctx.decodeAudioData(await r.arrayBuffer()) : null;
+        } catch {
+          return null;
+        }
+      },
+      impulse: (sec, decay, seed) => a.impulse(sec, decay, seed),
+      get intensity() {
+        return a.intensity;
+      },
+      // Window-local (u, v across it; d metres behind the wall) → the room.
+      where: (p) => {
+        mesh.updateWorldMatrix(true, false);
+        const w = mesh.localToWorld(new THREE.Vector3(p.u, p.v, -p.d / Math.max(1e-3, mesh.scale.z)));
+        return [w.x, w.y, w.z];
+      },
+      caption: (text, seconds) => {
+        if (!this.captions.speaking) this.captions.show(text, Math.max(1.6, seconds), true);
+      },
+    };
+  }
+
+  /**
+   * Play a living memory round the line it belongs to (on whatever wall it is written).
+   * Returns false if the line isn't on a wall or the memory couldn't be prepared.
+   */
+  async playMemory(id: string, phraseId: string, variant = 'first'): Promise<boolean> {
+    const a = this.text.anchorOf(phraseId, this.gazeId ?? this.lastTappedKey);
+    if (!a) return false;
+    this.endLivingMemory('switch');
+    let rt: typeof import('./memory/runtime');
+    let prepared: Awaited<ReturnType<typeof rt.prepare>>;
+    try {
+      rt = await this.memoryChunk();
+      prepared = await rt.prepare(id, variant, { renderer: this.renderer, audio: this.memoryAudioHost(), quality: this.prefs.quality });
+    } catch (e) {
+      console.warn('memory could not be prepared', e);
+      return false;
+    }
+    this.memoryWindow.place(a, hashString(a.key));
+    this.memoryWindow.setLayers(prepared.layers, prepared.size);
+    const memory = new rt.LivingMemory(prepared, {
+      reduced: this.prefs.reducedMotion,
+      gentle: this.prefs.intensity === 'gentle',
+      onState: (s) => this.memoryState(s),
+    });
+    this.living = { memory, id, key: a.key, anchor: a, bled: false, hiddenSince: null, held: false };
+    this.memoryClock.reset();
+    // The room hushes round it, until it lets go.
+    this.audio?.silence(prepared.def.hush, 3600, 1.4);
+    memory.start();
+    return true;
+  }
+
+  private memoryState(s: Lifecycle) {
+    const l = this.living;
+    if (!l) return;
+    if (s === 'residue' || s === 'complete') {
+      // The room comes back as the memory lets go (issued now, never precomputed).
+      this.audio?.silence(l.memory.prepared.def.hush, 0.05, 1.4, 3.5);
+    }
+    if (s === 'residue' && !l.bled && l.memory.prepared.def.bleed === 'kitchen-light' && !this.memoryLight.active) {
+      // What stays: the kitchen's late sun on the wall, where the memory was.
+      l.bled = true;
+      const a = l.anchor;
+      this.memoryLight.reducedMotion = this.prefs.reducedMotion;
+      this.memoryLight.strength = this.prefs.intensity === 'gentle' ? 0.6 : 1;
+      this.memoryLight.start(a.group, a.x, a.y, a.w, a.h, a.minX, a.maxX, a.maxY, { attack: 1.5, hold: 4, release: 5 }, this.time, 0);
+      this.memoryKey = a.key;
+    }
+    if (s === 'complete') {
+      this.memoryWindow.release();
+      l.memory.prepared.dispose();
+      this.living = null;
+    }
+  }
+
+  /** Let the playing memory go: gracefully, or (switch, depart, hidden) at once. */
+  endLivingMemory(why: 'complete' | 'look-away' | 'walk-away' | 'interrupt' | 'switch' | 'depart' | 'hidden') {
+    this.living?.memory.release(why);
+  }
+
+  /**
+   * Hold the playing memory at a position of its sequence (the editor, captures): it is shown as
+   * if played there, nothing sounds, and it stays until `heldAt(null)` lets it play on.
+   */
+  heldAt(position: number | null) {
+    const l = this.living;
+    if (!l) return null;
+    l.held = position !== null;
+    if (position === null) return null;
+    const f = l.memory.controller.scrub(position);
+    this.memoryWindow.update(f.final, this.rig.restingEye, 1);
+    return { state: f.state, position: f.position, final: f.final };
+  }
+
+  private stepLivingMemory() {
+    const l = this.living;
+    if (!l) return;
+    if (l.held) {
+      const f = l.memory.controller.frame;
+      if (f) this.memoryWindow.update(f.final, this.rig.restingEye, 1 / 60);
+      return;
+    }
+    const paused = this.mode === 'settings' || document.hidden;
+    const c = l.memory.controller;
+    if (paused !== c.isPaused) paused ? c.pause() : c.resume();
+    // Hidden for long: it ends, uncounted.
+    if (document.hidden) {
+      l.hiddenSince ??= performance.now();
+      if (performance.now() - l.hiddenSince > 10000) this.endLivingMemory('hidden');
+    } else l.hiddenSince = null;
+    const dt = this.memoryClock.tick(performance.now() / 1000, this.audio?.ctx.currentTime ?? 0, this.audio?.ctx.state === 'running', paused);
+    const frame = l.memory.step(dt);
+    if (frame) this.memoryWindow.update(frame.final, this.rig.restingEye, dt);
   }
 
   private bakeOldDrawings() {
@@ -658,6 +807,7 @@ export class App {
       this.text.wash(this.memoryKey, 0.35 * m);
       if (!this.memoryLight.active) this.memoryKey = null;
     }
+    this.stepLivingMemory();
     this.text.update(dt, this.time, cam, env, this.gazeId, v.gazeId === gazePhrase ? v.gazeFor : 0);
     this.post.update(dt, env, this.time);
 

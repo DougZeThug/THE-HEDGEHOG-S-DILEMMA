@@ -1,0 +1,84 @@
+{
+  "size": [
+    0.9,
+    0.6
+  ],
+  "variants": {
+    "first": [
+      {
+        "name": "wall",
+        "kind": "pigment",
+        "file": "first/wall",
+        "source": "code-painted stand-in"
+      },
+      {
+        "name": "curtain",
+        "kind": "pigment",
+        "file": "first/curtain",
+        "source": "code-painted stand-in"
+      },
+      {
+        "name": "table",
+        "kind": "pigment",
+        "file": "first/table",
+        "source": "code-painted stand-in"
+      },
+      {
+        "name": "things",
+        "kind": "pigment",
+        "file": "first/things",
+        "source": "code-painted stand-in"
+      },
+      {
+        "name": "pencil",
+        "kind": "sketch",
+        "file": "first/pencil",
+        "source": "code-painted stand-in"
+      },
+      {
+        "name": "sun",
+        "kind": "light",
+        "file": "first/sun",
+        "source": "code-painted stand-in"
+      }
+    ],
+    "later": [
+      {
+        "name": "wall",
+        "kind": "pigment",
+        "file": "later/wall",
+        "source": "code-painted stand-in"
+      },
+      {
+        "name": "curtain",
+        "kind": "pigment",
+        "file": "later/curtain",
+        "source": "code-painted stand-in"
+      },
+      {
+        "name": "table",
+        "kind": "pigment",
+        "file": "later/table",
+        "source": "code-painted stand-in"
+      },
+      {
+        "name": "things",
+        "kind": "pigment",
+        "file": "later/things",
+        "source": "code-painted stand-in"
+      },
+      {
+        "name": "pencil",
+        "kind": "sketch",
+        "file": "later/pencil",
+        "source": "code-painted stand-in"
+      },
+      {
+        "name": "sun",
+        "kind": "light",
+        "file": "later/sun",
+        "source": "code-painted stand-in"
+      }
+    ]
+  }
+}

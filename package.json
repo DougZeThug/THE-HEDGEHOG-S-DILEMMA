@@ -17,7 +17,9 @@
     "playtest:browser": "node tests/playtest/browser.mjs",
     "opening": "node tests/playtest/opening.mjs",
     "perf": "node tests/playtest/perf.mjs",
-    "style": "node tests/playtest/style.mjs && python3 tests/playtest/style-metrics.py ${OUT:-test-output/review/style/run}"
+    "style": "node tests/playtest/style.mjs && python3 tests/playtest/style-metrics.py ${OUT:-test-output/review/style/run}",
+    "memories:seed": "vite-node scripts/seed-memories.ts",
+    "bake:memories": "node scripts/bake-memories.mjs"
   },
   "dependencies": {
     "@fontsource/caveat": "^5.1.0",

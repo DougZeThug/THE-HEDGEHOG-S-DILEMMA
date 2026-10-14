@@ -43,6 +43,7 @@ const FRAG = /* glsl */ `
   uniform vec2 uShift[${SLOTS}];   // parallax and layer offset, in uv
   uniform int uCount;
   uniform vec2 uSize;              // metres
+  uniform vec2 uNominal;           // the painting's own size (m), in which its light is authored
   uniform float uPlaster;          // the lit plaster's mean, linear (what pigment is relative to)
   uniform float uReveal, uSketch, uResidue, uPresence, uStylize;
   uniform vec3 uLight;             // the memory's light colour × intensity, linear
@@ -67,7 +68,8 @@ const FRAG = /* glsl */ `
 
     // The pool of the memory's light: what it reaches is what is revealed. The drawing is
     // found a little ahead of the colour (the light finds the pencil first).
-    float d = length((m - uPool.xy) / max(uPool.z, 1e-3)) + (n - 0.5) * 0.35 + (n2 - 0.5) * 0.12;
+    vec2 mp = (vUv - 0.5) * uNominal;
+    float d = length((mp - uPool.xy) / max(uPool.z, 1e-3)) + (n - 0.5) * 0.35 + (n2 - 0.5) * 0.12;
     float soft = uPool.w / max(uPool.z, 1e-3) + 0.05;
     float colourMask = 1.0 - smoothstep(uReveal - soft, uReveal + soft, d);
     float sketchMask = 1.0 - smoothstep(uSketch - soft, uSketch + soft, d);
@@ -94,7 +96,7 @@ const FRAG = /* glsl */ `
     vec2 r = abs(m - uReserve.xy) - uReserve.zw;
     float rd = max(r.x, r.y) + (n2 - 0.5) * 0.02;
     float reserve = 1.0 - smoothstep(-0.005, 0.025, rd);
-    pigCov *= 1.0 - mix(0.0, 0.65, reserve * uStylize);
+    pigCov *= 1.0 - mix(0.0, 0.45, reserve * uStylize);
 
     vec3 pigment = toLinear(col / max(cov, 1e-3));
     vec3 lit = toLinear(min(light, vec3(1.0))) * uLight * mask * edge * uPresence;
@@ -158,6 +160,8 @@ export class MemoryWindow {
   private readonly dummy: THREE.DataTexture;
   private readonly u: Record<string, THREE.IUniform>;
   private layers: WindowLayer[] = [];
+  /** The painting's proportions (width / height). */
+  private aspect = 1.5;
   private eye = new THREE.Vector3();
   private eyeReady = false;
   private readonly tmp = new THREE.Vector3();
@@ -179,6 +183,7 @@ export class MemoryWindow {
       uShift: { value: Array.from({ length: SLOTS }, () => new THREE.Vector2()) },
       uCount: { value: 0 },
       uSize: { value: new THREE.Vector2(0.9, 0.6) },
+      uNominal: { value: new THREE.Vector2(0.9, 0.6) },
       // Linear (236, 234, 228): the plaster the painting is relative to.
       uPlaster: { value: 0.84 },
       uReveal: { value: 0 },
@@ -215,8 +220,10 @@ export class MemoryWindow {
   }
 
   /** The textures a memory brings, in slot order (back to front). Fewer than six is fine. */
-  setLayers(layers: WindowLayer[]): void {
+  setLayers(layers: WindowLayer[], size: [number, number] = [0.9, 0.6]): void {
     this.layers = layers.slice(0, SLOTS);
+    this.aspect = size[0] / size[1];
+    (this.u.uNominal.value as THREE.Vector2).set(size[0], size[1]);
     const keys = ['uL0', 'uL1', 'uL2', 'uL3', 'uL4', 'uL5'];
     const kinds = this.u.uKind.value as number[];
     for (let i = 0; i < SLOTS; i++) {
@@ -259,9 +266,12 @@ export class MemoryWindow {
     const a = this.placed;
     if (!a) return;
     const v = (k: string, d: number) => (k in final ? final[k] : d);
-    const w = v('window.width', 0.9), h = v('window.height', 0.6);
-    // The window sits round its line (the words fall across its brightest band), inside the wall.
-    let cx = a.x + v('window.offsetX', 0), cy = a.y + v('window.offsetY', -0.12);
+    // About as wide as the words (never a panorama, never a postage stamp), its top just above
+    // them: the line is written across the painting's pale upper band, the scene lies below it.
+    const w = THREE.MathUtils.clamp(a.w * 0.95, 0.8, 1.3) * v('window.scale', 1);
+    const h = w / this.aspect;
+    let cx = a.x + v('window.offsetX', 0);
+    let cy = a.y + a.h / 2 + 0.05 - h / 2 + v('window.offsetY', 0);
     cx = THREE.MathUtils.clamp(cx, a.minX + w / 2, a.maxX - w / 2);
     cy = THREE.MathUtils.clamp(cy, a.minY + h / 2, a.maxY - h / 2);
     this.mesh.position.set(cx, cy, 0.004);

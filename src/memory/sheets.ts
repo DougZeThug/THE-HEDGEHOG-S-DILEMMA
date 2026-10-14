@@ -12,10 +12,11 @@ import type { Schema } from './theatre';
  * layer:* each painted layer's strength, its small offset, and its depth in the plaster.
  */
 export const WINDOW: Schema[string] = {
-  width: [0.9, 0.2, 1.2],
-  height: [0.6, 0.2, 1.0],
+  // Its size relative to the line it forms round (1: about as wide as the words), and a nudge
+  // from where it sits (its top just above the words), in metres.
+  scale: [1, 0.5, 1.5],
   offsetX: [0, -0.6, 0.6],
-  offsetY: [-0.12, -0.6, 0.6],
+  offsetY: [0, -0.6, 0.6],
   sketch: [0, 0, 1],
   reveal: [0, 0, 1],
   presence: [1, 0, 1],
