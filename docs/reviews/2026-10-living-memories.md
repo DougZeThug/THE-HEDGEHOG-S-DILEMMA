@@ -162,3 +162,39 @@ Decisions so far:
   - production reproduces the committed Theatre state.
 - **Also:** `npm run build` with the dist grep (no studio, save endpoint or painters); `npm run smoke`, `npm run opening`, `npm run perf`, and `scripts/playtest.ts` diffed against `main`.
 - **Reviews:** QA/accessibility tests the build; the artistic specialists evaluate the captures. Report honestly what remains a stand-in.
+
+## Approach review (before stage C)
+
+Reviewed by the creative director, cinematic director, technical artist, sound designer and interaction designer; challenged by the skeptic. Full reports are summarised here. Where a reviewer contradicted the artist's explicit brief, the artist decided (14 October 2026).
+
+### The artist's decisions
+
+| Question | Options put | Artist chose |
+|---|---|---|
+| Cereal's light | sunlight shifting, kitchen-light as its bleed / evening bulb, dark window | **Sunlight.** When cereal closes naturally the existing kitchen-light patch is its residue on the wall; cereal and kitchen-light are never both offered in one visit. |
+| The hallway scene | on "I wanted you to stay." with no figure / move to "the door, slightly open" | **Moved to `door-open`.** A door ajar with a strip of landing light; the "faint shadow passing" only dims the strip; the footsteps stop outside. `stay` keeps its authored arc untouched. |
+| First memory | early (~20 s) with an arm latch / not before a second meeting (~75–90 s) | **Early, armed.** A read or tap at any time arms cereal; it commits on the next ≥ 1 s look from 20 s. No visible charge-up strokes. |
+| Laughter in cereal | keep, separate take / drop / reuse the next-room recording | **Keep, on a take the next-room situation doesn't use** (or claimed from it while the memory plays). |
+| The art | graphite + light / painted colour now / the artist paints | **Painted colour layers now**, code-painted in the replaceable layer format. |
+| Kitchen music | guitar at home / half-heard kitchen radio / piano | **A half-heard kitchen radio** on the windowsill, band-limited by the engine. |
+| Bedroom music | new, after hearing cereal / piano-warm downstairs / none | **New music, generated only after the kitchen's has been heard**, to the bedroom's measured length; piano-warm may be tried in place first at no cost. |
+| "No music in the first two minutes" | lift it inside memories / keep it | **Lifted inside a memory** the visitor opened. Room music keeps the rule. |
+
+### Decided by the main session, and why
+
+- **GSAP's ticker re-sleeps after every seek** (skeptic, verified: 61 callbacks a second after one seek). Every seek goes through `gsapClock.seek`; a unit test fails without it. A Playwright rAF count stays in stage C.
+- **Roles.** Theatre owns everything specific to one image (light curves, layer strengths, holds, where the withdrawal starts, the `sfx:`/`bed:`/`music:` markers). GSAP owns only the grammar shared by every memory: emerge, dissolve, interrupt exit, residue decay, one named-layer breath; its durations come from Theatre's section markers (cinematic director, endorsed by the skeptic).
+- **Gates for both dependencies** (the artist asked for both, so neither is removed now):
+  - GSAP: no ticker loop (test), and one envelope edit visibly changes every memory.
+  - Theatre: the artist makes at least one saved change in Studio that a production capture reproduces. A minimal `?memory&studio` path (Studio plus its own export) moves forward into stage C so this can be met; if the artist hasn't used Studio by the end of stage D, the timelines fall back to the `Key[]` arrays in `seed.ts` and `@theatre/*` is dropped.
+- **Render model: pigment multiplied into the lit plaster plus a light term** (technical artist; the model `MemoryLight` already proved). The room's dims, the chair's shadow and the plaster's relief act on the painting; no `uRoomLit`, no plaster sampler, no `grain`.
+- **Painted colour within limits** (cinematic director, creative director, applied to the artist's choice): the room's own hand (graphite underdrawing that stays visible, wax-crayon fill that skips on the tooth, at most three colours per scene), painted values about 105–205 display, local saturation about ≤ 0.35, warmth carried mostly by the memory's light. Bare plaster is reserved round the words; the ink is drawn on top.
+- **Parallax 0 in v1** (skeptic, computed: 0.08 mm while standing at 6 cm depth). The renderer supports up to 2 cm, soft-clamped, from a smoothed eye; the seeds use depth 0.
+- **Two perceptible movements, not six stages:** the light finds the drawing (graphite first), then the scene settles. The mask is the shape of the memory's light, not an ink bloom from the words.
+- **Window size** about 0.9 × 0.6 m, anchored on the actual written item on whatever wall it is (cereal is usually moved north beside "I wanted you to"); kept clear of the stay line.
+- **Triggers** (interaction designer, skeptic): arm on read or tap; commit on a later ≥ 1 s look; a tap on the memory's line or window means "I'm staying"; a tap elsewhere releases it. Release judged by the window, not `gazeId`; minimum hold before a look-away can end it; walking toward the wall never releases. One active memory at a time; cooldown 45–60 s; each scene once per visit.
+- **Clock.** The memory advances by the audio clock while it runs, real time otherwise (`MemoryClock`); fades are issued on state transitions, never precomputed.
+- **Sound** (sound designer): files generated close and dry at an even level, distance made in the engine (distance prompts measured −54 to −64 dB); per-event panners; the memory's own small room, never the white room's reverb; no `behind` placement; beds are state (never restarted by a seek), music is timeline; authored levels, no normalising; memory files loaded on prepare, not on arrival; captions for every memory sound. `style-distant-2`, `sfx-cup` and `sfx-chair-creak` are not reused.
+- **Music timing.** Built after the cereal's visuals and SFX; its length is set from the authored sequence (music enters when the scene has formed), then a music dry run at that length.
+- **Order and the gate before the other two scenes** (skeptic): cereal end to end first, no revisit art. Before `door-open` and the bedroom: the artist has seen and heard cereal; the fixed playtest harness (moved lines credited to their real wall, a "notices new writing" behaviour whose probabilities are committed before measuring) shows the bedroom's line is reachable; no new rAF loops or compiles. Revisits erode the same sheet (fewer layers, no music) rather than new art.
+- **Kept small:** at most three legible objects per memory (cereal: the box left on the table, two bowls that don't match, a spoon); no door closing in the hallway; curtain motion only in the bedroom; no floor bleed in v1; kitchen-light keeps its tuned rule until the new director has earned the migration; the editor is a small bar on top of Studio, not a custom inspector.
