@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { Rng } from '../core/rng';
 import { makeNoise } from './noise';
 import type { Surface } from '../content/types';
+import { scanDetail, sampleDetail, type Detail } from './scans';
 
 /**
  * The room's surfaces, painted once at load. Everything here is meant to be nearly
@@ -22,6 +23,17 @@ let PX_PER_M = 200;
 const MARKS = 1.6;
 let K = 1;
 const DENSITY = { low: 100, medium: 200, high: 200 } as const;
+/**
+ * How strongly each surface takes its scan (colour: relative per sd; bump: bake levels per sd),
+ * set by measuring band-pass contrast against the artist's reference at matched pixel density.
+ */
+const SCAN_AMP = {
+  wall: { colour: 0.025, bump: 10 },
+  // The side walls, lit raking from the panel, show their plaster most in the reference.
+  sideWall: { colour: 0.035, bump: 12 },
+  floor: { colour: 0.028, bump: 8 },
+  ceiling: { colour: 0.026, bump: 8 },
+};
 
 /** Set before painting: low-quality devices bake their surfaces at half the resolution. */
 export function surfaceDetail(quality: keyof typeof DENSITY): void {
@@ -49,8 +61,12 @@ function toTex(c: HTMLCanvasElement, srgb: boolean): THREE.CanvasTexture {
   return t;
 }
 
-/** Hand-trowelled plaster: broad mottling, faint directional passes, fine tooth. Writes colour and bump. */
-function plaster(W: number, H: number, seed: number, tone: [number, number, number], scale: { mottle: number; trowel: number; grain: number; blotch?: number; tooth?: number }) {
+/**
+ * Hand-trowelled plaster: broad mottling, faint directional passes, fine tooth. Writes colour and
+ * bump. With a scan (scans.ts), its fine structure is folded in: the colour multiplied by
+ * 1 + colour·z, the relief raised by bump·z (z the scan's high-passed luminance, in sd).
+ */
+function plaster(W: number, H: number, seed: number, tone: [number, number, number], scale: { mottle: number; trowel: number; grain: number; blotch?: number; tooth?: number }, scan?: { detail: Detail | null; colour: number; bump: number }) {
   const [c, g] = canvas(W, H);
   const [bc, bg] = canvas(W, H);
   const img = g.createImageData(W, H);
@@ -75,12 +91,14 @@ function plaster(W: number, H: number, seed: number, tone: [number, number, numb
         cloud = b * blotch + tooth * (scale.tooth ?? 5);
       }
       const d = m * scale.mottle + tr * scale.trowel + fine * scale.grain + cloud;
+      const sz = scan?.detail ? sampleDetail(scan.detail, x / PX_PER_M, y / PX_PER_M) : 0;
+      const sc = 1 + (scan?.colour ?? 0) * sz;
       const i = (y * W + x) * 4;
-      img.data[i] = tone[0] + d + warm * 3;
-      img.data[i + 1] = tone[1] + d + warm * 1.2;
-      img.data[i + 2] = tone[2] + d - warm * 2;
+      img.data[i] = (tone[0] + d + warm * 3) * sc;
+      img.data[i + 1] = (tone[1] + d + warm * 1.2) * sc;
+      img.data[i + 2] = (tone[2] + d - warm * 2) * sc;
       img.data[i + 3] = 255;
-      const b = 128 + tr * 70 + m * 30 + fine * 26;
+      const b = 128 + tr * 70 + m * 30 + fine * 26 + (scan?.bump ?? 0) * sz;
       bimg.data[i] = bimg.data[i + 1] = bimg.data[i + 2] = b;
       bimg.data[i + 3] = 255;
     }
@@ -403,7 +421,7 @@ export function wallMaps(surface: Surface, seed: number, wM: number, hM: number)
     west: [234, 232, 228],
     south: [236, 234, 229],
   };
-  const { c, g, bc, bg } = plaster(W, H, seed, tone[surface] ?? [236, 234, 228], { mottle: 10, trowel: 5, grain: 4, blotch: 8, tooth: 7.5 });
+  const { c, g, bc, bg } = plaster(W, H, seed, tone[surface] ?? [236, 234, 228], { mottle: 10, trowel: 5, grain: 4, blotch: 8, tooth: 7.5 }, { detail: scanDetail('plaster'), ...(surface === 'east' || surface === 'west' ? SCAN_AMP.sideWall : SCAN_AMP.wall) });
   const r = new Rng(seed + 11);
   const floorY = H;
   const mx = (u: number) => u * PX_PER_M;
@@ -463,7 +481,7 @@ export function floorMaps(seed: number, wM: number, dM: number): SurfaceMaps {
   const W = Math.round(wM * PX_PER_M), H = Math.round(dM * PX_PER_M);
   // Sealed concrete, a shade darker than the walls: cloudy, flecked, with a soft sheen where
   // the light falls (so the pool reads as light on a surface, not a paler floor).
-  const { c, g, bc, bg } = plaster(W, H, seed, [190, 186, 181], { mottle: 15, trowel: 2, grain: 5, blotch: 18 });
+  const { c, g, bc, bg } = plaster(W, H, seed, [190, 186, 181], { mottle: 15, trowel: 2, grain: 5, blotch: 18 }, { detail: scanDetail('concrete'), ...SCAN_AMP.floor });
   // Aggregate in the concrete, pits, the fine scratches of things set down and dragged.
   fineDetail(g, bg, W, H, new Rng(seed + 31), { specks: 30, pits: 3, scratches: 0.5, light: 0.5 });
   const r = new Rng(seed + 5);
@@ -473,6 +491,7 @@ export function floorMaps(seed: number, wM: number, dM: number): SurfaceMaps {
   // Roughness: matte, with a smoother path worn from the south side to the chair.
   const [rc, rg] = canvas(W, H);
   const rimg = rg.createImageData(W, H);
+  const roughScan = scanDetail('concrete-rough');
   for (let y = 0; y < H; y++)
     for (let x = 0; x < W; x++) {
       const along = y > cy ? 1 : Math.max(0, 1 - (cy - y) / (0.4 * PX_PER_M));
@@ -481,7 +500,9 @@ export function floorMaps(seed: number, wM: number, dM: number): SurfaceMaps {
       const ring = Math.exp(-(((Math.hypot(x - cx, y - cy) - 0.42 * PX_PER_M) / (0.22 * PX_PER_M)) ** 2));
       // Polished where people stand by the chair: a soft sheen there catches the light.
       const near = Math.exp(-((Math.hypot(x - cx, y - cy) / (0.75 * PX_PER_M)) ** 2));
-      const rough = 0.74 - 0.12 * path - 0.14 * ring - 0.14 * near + (n.fbm(x / (30 * K), y / (30 * K), 2) - 0.5) * 0.1;
+      // The concrete's own: where it was trowelled smoother or left open (the scan, gently).
+      const sr = roughScan ? 0.035 * sampleDetail(roughScan, x / PX_PER_M, y / PX_PER_M) : 0;
+      const rough = 0.74 - 0.12 * path - 0.14 * ring - 0.14 * near + (n.fbm(x / (30 * K), y / (30 * K), 2) - 0.5) * 0.1 + sr;
       const i = (y * W + x) * 4;
       rimg.data[i] = rimg.data[i + 1] = rimg.data[i + 2] = Math.round(rough * 255);
       rimg.data[i + 3] = 255;
@@ -560,7 +581,7 @@ export function floorMaps(seed: number, wM: number, dM: number): SurfaceMaps {
 /** The ceiling: a slightly cooler white, nearly featureless, with the faintest board joints. */
 export function ceilingMaps(seed: number, wM: number, dM: number): SurfaceMaps {
   const W = Math.round(wM * PX_PER_M), H = Math.round(dM * PX_PER_M);
-  const { c, g, bc } = plaster(W, H, seed, [229, 232, 235], { mottle: 4, trowel: 1.5, grain: 2 });
+  const { c, g, bc } = plaster(W, H, seed, [229, 232, 235], { mottle: 4, trowel: 1.5, grain: 2 }, { detail: scanDetail('plaster'), ...SCAN_AMP.ceiling });
   for (let x = 1.2 * PX_PER_M; x < W; x += 1.2 * PX_PER_M) {
     g.fillStyle = 'rgba(120,124,130,0.06)';
     g.fillRect(x, 0, Math.max(1, K), H);

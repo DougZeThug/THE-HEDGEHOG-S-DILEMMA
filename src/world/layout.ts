@@ -93,6 +93,8 @@ const CLUSTERS: Record<Surface, Cluster[]> = {
 export const RESERVED: Partial<Record<Surface, Rect[]>> = {
   north: [{ u: ROOM.halfW, v: 1.55, w: 1.1, h: 1.2 }],
   south: [{ u: ROOM.halfW, v: 1.45, w: 2.2, h: 0.9 }],
+  // The skylight's opening (Room.PANEL), with a margin: nothing is written into the light.
+  ceiling: [{ u: ROOM.halfW + 0.1, v: ROOM.halfD - 0.95, w: 1.6, h: 1.6 }],
 };
 
 function chooseCluster(p: Phrase): string {

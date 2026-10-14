@@ -21,6 +21,7 @@ const GradeShader = {
     uWhite: { value: 0 },
     uBlack: { value: 1 },
     uVignette: { value: 0.32 },
+    uVigLow: { value: 0 },
     uContrast: { value: 0 },
     uGrain: { value: 0.035 },
     uTime: { value: 0 },
@@ -32,7 +33,7 @@ const GradeShader = {
   `,
   fragmentShader: /* glsl */ `
     uniform sampler2D tDiffuse;
-    uniform float uSaturation, uDarkness, uWhite, uBlack, uVignette, uGrain, uTime, uContrast;
+    uniform float uSaturation, uDarkness, uWhite, uBlack, uVignette, uGrain, uTime, uContrast, uVigLow;
     uniform vec2 uRes;
     varying vec2 vUv;
     float h(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
@@ -43,7 +44,13 @@ const GradeShader = {
       vec2 d = vUv - 0.5;
       d.x *= uRes.x / uRes.y;
       float v = smoothstep(0.95, 0.25, length(d));
-      c.rgb *= mix(1.0, v, uVignette + uDarkness * 0.6);
+      // The look's own vignette can sit lower (centred at 0.42 of the height) and spare the
+      // highlights; the Director's darkness keeps the plain one.
+      vec2 dl = vUv - vec2(0.5, 0.5 - 0.08 * uVigLow);
+      dl.x *= uRes.x / uRes.y;
+      float vl = mix(smoothstep(0.95, 0.25, length(dl)), 1.0, smoothstep(0.85, 0.95, l) * uVigLow);
+      float vk = uVignette + uDarkness * 0.6;
+      c.rgb *= mix(1.0, mix(v, vl, uVignette / max(vk, 1e-4)), vk);
       c.rgb *= 1.0 - uDarkness * 0.92;
       // A gentle S on luminance (hue kept): fuller lights, deeper darks, mid-greys where they were.
       float ls = clamp(l, 0.0, 1.0);
@@ -82,6 +89,8 @@ export class Post {
   /** Film grain and vignette strengths (the ?tune panel changes them live). */
   grain = 0.032;
   vignette = 0.32;
+  /** The vignette's shape (Look.vigLow). */
+  vigLow = 0;
   /** The look's tonal S-curve (0 none); App weights it by the room's light. */
   contrast = 0;
 
@@ -123,6 +132,7 @@ export class Post {
     u.uTime.value = this.reducedMotion ? 0.5 : time * 0.25;
     u.uGrain.value = this.reducedMotion ? this.grain * 0.625 : this.grain;
     u.uVignette.value = this.vignette;
+    u.uVigLow.value = this.vigLow;
     u.uContrast.value = this.contrast;
   }
 

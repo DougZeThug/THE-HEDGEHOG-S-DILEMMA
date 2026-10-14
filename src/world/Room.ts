@@ -8,33 +8,87 @@ import { wallMaps, floorMaps, ceilingMaps, surfaceDetail, handMarks, weatheringM
 import { ceilingFor, panelFor, type Look } from './Style';
 
 const SKIRT = 0.1;
-const WELL_M = 1.2;
+/** The skylight: frosted glass set back in a square well, its sides splaying out to the ceiling. */
+const GLASS = 0.9;
+const OPENING = 1.0;
+const WELL_DEPTH = 0.25;
+/** Seams where planes meet: a dark core about a centimetre wide, gone by three. */
+const SEAM = 0.03;
+/** The glass's emissive intensity as built (the look's `panel` multiplies it). */
+const PANEL_GLOW = 2.2;
+/** The well's sides, lit by the glass: their brightest, as a multiple of the glass's colour. */
+const WELL_GLOW = 0.8;
 
 /**
- * The well's reveal as an alpha map: a hard, bevelled square ring about 5 cm wide round the
- * panel's rim, lit most at the glass, ending crisply where it meets the ceiling (a feathered
- * halo read as bloom, a fitting's glow, not an opening).
+ * The ceiling: a plane with the skylight's opening cut out (eight quads round a square hole), in
+ * the ceiling group's plane (local y is world z). The opening stays where the skylight is as the
+ * room's scale changes; the rest stretches, its texture with it, as a scaled plane would.
  */
-function wellTexture(): THREE.DataTexture {
-  const N = 256, d = new Uint8Array(N * N * 4);
-  const inner = 0.48 / (WELL_M / 2), outer = 0.53 / (WELL_M / 2);
-  for (let j = 0; j < N; j++)
-    for (let i = 0; i < N; i++) {
-      const x = Math.abs((i + 0.5) / N * 2 - 1), y = Math.abs((j + 0.5) / N * 2 - 1);
-      // A rounded square (no creases along the diagonals, as max(|x|, |y|) leaves).
-      const r = (x ** 10 + y ** 10) ** 0.1;
-      const a = r < inner || r > outer ? 0 : Math.round(255 * (0.75 - 0.3 * ((r - inner) / (outer - inner))));
-      const k = (j * N + i) * 4;
-      d[k] = d[k + 1] = d[k + 2] = a;
-      d[k + 3] = 255;
+function ceilingGeometry(): THREE.BufferGeometry {
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(16 * 3), 3));
+  geo.setAttribute('normal', new THREE.Float32BufferAttribute(new Float32Array(16 * 3).map((_, i) => (i % 3 === 2 ? 1 : 0)), 3));
+  geo.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(16 * 2), 2));
+  const idx: number[] = [];
+  for (let j = 0; j < 3; j++)
+    for (let i = 0; i < 3; i++) {
+      if (i === 1 && j === 1) continue; // the opening
+      const a = j * 4 + i, b = a + 1, c = a + 4, d = a + 5;
+      idx.push(a, b, d, a, d, c);
     }
-  const t = new THREE.DataTexture(d, N, N);
-  t.magFilter = t.minFilter = THREE.LinearFilter;
-  t.needsUpdate = true;
-  return t;
+  geo.setIndex(idx);
+  return geo;
+}
+function setCeilingGeometry(geo: THREE.BufferGeometry, w: number, h: number) {
+  const xs = [-w / 2, PANEL.x - OPENING / 2, PANEL.x + OPENING / 2, w / 2];
+  const ys = [-h / 2, PANEL.z - OPENING / 2, PANEL.z + OPENING / 2, h / 2];
+  const pos = geo.attributes.position, uv = geo.attributes.uv;
+  for (let j = 0; j < 4; j++)
+    for (let i = 0; i < 4; i++) {
+      const k = j * 4 + i;
+      pos.setXYZ(k, xs[i], ys[j], 0);
+      uv.setXY(k, xs[i] / w + 0.5, ys[j] / h + 0.5);
+    }
+  pos.needsUpdate = uv.needsUpdate = true;
+  geo.computeBoundingSphere();
 }
 
-/** The ceiling's bounce, as a map: 1 at the panel's rim, falling steeply toward the walls. */
+/**
+ * The well's four splayed sides, as one mesh: lit by the glass (no light in the room reaches
+ * them), brightest where they meet it and falling off toward the ceiling; the far side, which
+ * faces whoever looks up from the south, a third brighter than the others.
+ */
+function wellGeometry(): THREE.BufferGeometry {
+  const a = GLASS / 2, b = OPENING / 2, h = WELL_DEPTH;
+  const pos: number[] = [], col: number[] = [];
+  // Each side: two corners at the glass (y = h) and two at the ceiling (y = 0), in local x/z.
+  const sides: [number, number, number, number, number][] = [
+    // [dirX, dirZ, along X?, sign, brightness]
+    [0, -1, 1, 1, 1.0], // north, the far side as seen from the south
+    [0, 1, 1, 1, 0.55],
+    [1, 0, 0, 1, 0.75],
+    [-1, 0, 0, 1, 0.75],
+  ];
+  for (const [dx, dz, alongX, , k] of sides) {
+    const corner = (r: number, t: number, y: number) =>
+      alongX ? [t * r, y, dz * r] : [dx * r, y, t * r];
+    const g0 = corner(a, -1, h), g1 = corner(a, 1, h), c0 = corner(b, -1, 0), c1 = corner(b, 1, 0);
+    const top = 0.95 * k, low = 0.3 * k;
+    for (const [p, v] of [[g0, top], [g1, top], [c1, low], [g0, top], [c1, low], [c0, low]] as [number[], number][]) {
+      pos.push(...p);
+      col.push(v, v, v);
+    }
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  return geo;
+}
+
+/**
+ * The ceiling's bounce, as a map: broad, centred between the skylight and the wall behind the
+ * chair (the light that comes back off the floor and that wall), not a halo round the opening.
+ */
 function ceilingGlow(wM: number, dM: number): THREE.CanvasTexture {
   const ppm = 40;
   const c = document.createElement('canvas');
@@ -42,14 +96,14 @@ function ceilingGlow(wM: number, dM: number): THREE.CanvasTexture {
   c.height = Math.round(dM * ppm);
   const g = c.getContext('2d')!;
   // Canvas rows run toward -z in the room (the ceiling is laid face down), as in surfaces.ts.
-  const px = c.width / 2 + PANEL.x * ppm, pz = c.height / 2 - PANEL.z * ppm;
-  const grd = g.createRadialGradient(px, pz, 0.45 * ppm, px, pz, 3.2 * ppm);
-  grd.addColorStop(0, '#ffffff');
-  grd.addColorStop(0.2, '#787878');
-  grd.addColorStop(1, '#262626');
+  const px = c.width / 2 + PANEL.x * ppm, pz = c.height / 2 - (PANEL.z - 0.9) * ppm;
+  const grd = g.createRadialGradient(px, pz, 0.2 * ppm, px, pz, 3.6 * ppm);
+  grd.addColorStop(0, '#d8d8d8');
+  grd.addColorStop(0.45, '#8a8a8a');
+  grd.addColorStop(1, '#2a2a2a');
   g.fillStyle = grd;
   g.fillRect(0, 0, c.width, c.height);
-  // Linear values (a factor, not a colour): 1 at the rim, 0.47 half a metre out, 0.15 at the walls.
+  // Linear values (a factor, not a colour).
   return new THREE.CanvasTexture(c);
 }
 
@@ -97,7 +151,8 @@ export class Room {
         emissive: new THREE.Color(isCeil ? 0x23262a : 0x000000),
         emissiveMap: isCeil ? ceilingGlow(size.w, size.h) : null,
       });
-      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(size.w, size.h), mat);
+      // The ceiling has the skylight's opening cut in it (it stays put as the room scales).
+      const mesh = new THREE.Mesh(isCeil ? ceilingGeometry() : new THREE.PlaneGeometry(size.w, size.h), mat);
       mesh.receiveShadow = true;
       const group = new THREE.Group();
       group.name = s;
@@ -106,7 +161,7 @@ export class Room {
       writing.position.z = 0.004;
       group.add(writing);
       if (!isFloor && !isCeil) {
-        this.addSkirting(group, size.w);
+        this.addSkirting(group, size.w, size.h);
         // Weathering over the plaster, under the writing; its strength is the look's.
         const wm = new THREE.MeshStandardMaterial({ color: 0x6a6259, roughness: 0.95, alphaMap: weatheringMap(s, size.w, size.h, seeds[s] + 500), transparent: true, depthWrite: false, opacity: 0 });
         const weather = new THREE.Mesh(new THREE.PlaneGeometry(size.w, size.h), wm);
@@ -127,54 +182,46 @@ export class Room {
     this.frames.east.group.rotation.y = -Math.PI / 2;
     this.frames.west.group.rotation.y = Math.PI / 2;
 
-    // Frosted ceiling panel — the only visible source of light. Brighter at its centre,
-    // softening toward a thin frame, like light through etched glass.
+    // Frosted glass — the only visible source of light — at the top of its well. Light through
+    // it is even but not flat: a faint frosted mottle, a little brighter at the centre.
     const pc = document.createElement('canvas');
     pc.width = pc.height = 128;
     const pg = pc.getContext('2d')!;
     const grd = pg.createRadialGradient(64, 64, 6, 64, 64, 92);
     grd.addColorStop(0, '#ffffff');
-    grd.addColorStop(0.6, '#f4f2ec');
-    grd.addColorStop(1, '#d8d6d0');
+    grd.addColorStop(1, '#ecebe6');
     pg.fillStyle = grd;
     pg.fillRect(0, 0, 128, 128);
+    const frost = pg.getImageData(0, 0, 128, 128);
+    for (let j = 0; j < 128; j++)
+      for (let i = 0; i < 128; i++) {
+        const m = 1 + 0.025 * (Math.sin(i * 0.11 + Math.sin(j * 0.07) * 2) * Math.sin(j * 0.09 + Math.cos(i * 0.05) * 2));
+        for (let c = 0; c < 3; c++) frost.data[(j * 128 + i) * 4 + c] = Math.min(255, frost.data[(j * 128 + i) * 4 + c] * m);
+      }
+    pg.putImageData(frost, 0, 0);
     const ptex = new THREE.CanvasTexture(pc);
     ptex.colorSpace = THREE.SRGBColorSpace;
-    const panelMat = new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0xffffff, emissiveMap: ptex, emissiveIntensity: 2.2, roughness: 1 });
-    this.panel = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.9), panelMat);
+    const panelMat = new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0xffffff, emissiveMap: ptex, emissiveIntensity: PANEL_GLOW, roughness: 1 });
+    this.panel = new THREE.Mesh(new THREE.PlaneGeometry(GLASS, GLASS), panelMat);
     this.panel.rotation.x = Math.PI / 2;
-    this.panel.position.set(PANEL.x, H - 0.021, PANEL.z);
-    // The rim of the light well catches the light (lit from the panel itself, which no light here
-    // reaches): the brightest ring after the glass, not a drawn frame.
-    const rim = new THREE.Mesh(
-      new THREE.BoxGeometry(0.96, 0.02, 0.96),
-      new THREE.MeshStandardMaterial({ color: 0xc9c7c2, roughness: 0.55, emissive: 0x000000 }),
-    );
-    this.rim = rim.material as THREE.MeshStandardMaterial;
-    rim.position.set(PANEL.x, H - 0.008, PANEL.z);
-    // The light well's reveal: the glass sits back in the ceiling, and the splayed sides of its
-    // opening catch the light, brightest at the glass and fading into the ceiling (the artist's
-    // reference shows the source as a lit opening, not a fitting).
-    this.well = new THREE.Mesh(
-      new THREE.PlaneGeometry(WELL_M, WELL_M),
-      new THREE.MeshBasicMaterial({ color: 0xffffff, alphaMap: wellTexture(), transparent: true, depthWrite: false, opacity: 1 }),
-    );
-    this.well.rotation.x = Math.PI / 2;
-    this.well.position.set(PANEL.x, H - 0.003, PANEL.z);
-    this.group.add(rim, this.panel, this.well);
+    this.panel.position.set(PANEL.x, H + WELL_DEPTH - 0.001, PANEL.z);
+    // The well's sides (unlit: coloured by the glass, so the dims and the cooling reach them).
+    this.well = new THREE.Mesh(wellGeometry(), new THREE.MeshBasicMaterial({ color: 0xffffff, vertexColors: true, side: THREE.DoubleSide }));
+    this.well.position.set(PANEL.x, H, PANEL.z);
+    this.group.add(this.panel, this.well);
 
     this.setScale(1);
   }
 
-  private rim: THREE.MeshStandardMaterial;
   private well: THREE.Mesh;
-  private rimEmissive = new THREE.Color(0xffffff);
+  private wellColour = new THREE.Color(0xffffff);
   private ceilingEmissive = new THREE.Color(0x23262a);
   private ceilingLit = 1;
 
   /** The look's share of the room: the ceiling's bounce, the plaster's relief. */
   setLook(look: Look) {
     this.ceilingBounce = look.ceiling;
+    this.panelGlow = look.panel;
     for (const m of this.weathering) m.opacity = look.stains;
     for (const s of Object.keys(this.frames) as Surface[]) {
       const m = this.frames[s].mesh.material as THREE.MeshStandardMaterial;
@@ -183,16 +230,16 @@ export class Room {
     this.setWarmth(this.warmth);
   }
   private ceilingBounce = 1;
+  private panelGlow = 1;
   private weathering: THREE.MeshStandardMaterial[] = [];
   private warmth = 0;
 
-  /** The light's warmth as it is now (Lighting.warmthNow): the panel's glass, its rim, the ceiling's bounce. */
+  /** The light's warmth as it is now (Lighting.warmthNow): the panel's glass, its well, the ceiling's bounce. */
   setWarmth(w: number) {
     this.warmth = w;
     ceilingFor(w, this.ceilingEmissive).multiplyScalar(this.ceilingBounce);
     (this.panel.material as THREE.MeshStandardMaterial).emissive.copy(panelFor(w));
-    panelFor(w, this.rimEmissive).multiplyScalar(0.3);
-    (this.well.material as THREE.MeshBasicMaterial).color.copy(panelFor(w)).multiplyScalar(0.6);
+    panelFor(w, this.wellColour).multiplyScalar(WELL_GLOW);
     this.setLit(this.panelLit, this.ceilingLit);
   }
   private panelLit = 1;
@@ -204,54 +251,73 @@ export class Room {
   setLit(panel: number, ceiling: number) {
     this.panelLit = panel;
     this.ceilingLit = ceiling;
-    (this.panel.material as THREE.MeshStandardMaterial).emissiveIntensity = 2.2 * panel;
+    (this.panel.material as THREE.MeshStandardMaterial).emissiveIntensity = PANEL_GLOW * this.panelGlow * panel;
     (this.frames.ceiling.mesh.material as THREE.MeshStandardMaterial).emissive.copy(this.ceilingEmissive).multiplyScalar(ceiling);
-    this.rim.emissive.copy(this.rimEmissive).multiplyScalar(panel);
-    (this.well.material as THREE.MeshBasicMaterial).opacity = Math.min(1, panel);
+    (this.well.material as THREE.MeshBasicMaterial).color.copy(this.wellColour).multiplyScalar(this.panelGlow * panel);
   }
 
   /**
-   * Soft grey trim: a skirting, and where the wall meets it and the ceiling, a soft shadow a
-   * few centimetres deep rather than a ruled line (a hard 1-px seam is the most computer-drawn
-   * thing in a white room).
+   * Grey trim, and the lines where planes meet. The artist's reference draws every junction as
+   * a crisp dark line a centimetre or so wide (round 1 had softened them to a few centimetres of
+   * shade; the reference is the standard): along the ceiling, down both corners, above the
+   * skirting, and where the skirting stands on the floor. The skirting stands 1.5 cm proud, so
+   * its top catches the light as a lit edge.
    */
-  private addSkirting(group: THREE.Group, w: number) {
-    // A painted grey board, darker than the wall, so the room's base line reads.
+  private addSkirting(group: THREE.Group, w: number, h: number) {
     const trim = new THREE.MeshStandardMaterial({ color: 0xb8b3aa, roughness: 0.6 });
-    const sk = new THREE.Mesh(new THREE.BoxGeometry(w, SKIRT, 0.014), trim);
-    sk.position.set(0, -ROOM.height / 2 + SKIRT / 2, 0.007);
+    const sk = new THREE.Mesh(new THREE.BoxGeometry(w, SKIRT, 0.015), trim);
+    sk.position.set(0, -h / 2 + SKIRT / 2, 0.0075);
     sk.receiveShadow = true;
     sk.name = 'skirting';
-    const reveal = new THREE.Mesh(new THREE.PlaneGeometry(w, 0.03), Room.seam(false));
-    reveal.position.set(0, -ROOM.height / 2 + SKIRT + 0.015, 0.0015);
-    reveal.name = 'skirting';
-    const top = new THREE.Mesh(new THREE.PlaneGeometry(w, 0.04), Room.seam(true));
-    top.position.set(0, ROOM.height / 2 - 0.02, 0.0015);
+    const above = new THREE.Mesh(new THREE.PlaneGeometry(w, SEAM), Room.seam('bottom'));
+    above.position.set(0, -h / 2 + SKIRT + SEAM / 2, 0.0015);
+    above.name = 'skirting';
+    // On the board's face, where it meets the floor.
+    const contact = new THREE.Mesh(new THREE.PlaneGeometry(w, SEAM * 0.6), Room.seam('bottom'));
+    contact.position.set(0, -h / 2 + SEAM * 0.3, 0.0155);
+    contact.name = 'skirting';
+    const top = new THREE.Mesh(new THREE.PlaneGeometry(w, SEAM), Room.seam('top'));
+    top.position.set(0, h / 2 - SEAM / 2, 0.0015);
     top.name = 'skirting';
-    group.add(sk, reveal, top);
+    group.add(sk, above, contact, top);
+    // Down each corner (kept at the wall's ends as the room scales: `setScale`).
+    for (const side of [-1, 1]) {
+      const corner = new THREE.Mesh(new THREE.PlaneGeometry(SEAM, h), Room.seam(side < 0 ? 'left' : 'right'));
+      corner.position.set((side * (w - SEAM)) / 2, 0, 0.0016);
+      corner.name = 'corner';
+      corner.userData.side = side;
+      corner.userData.halfW = w / 2;
+      group.add(corner);
+    }
   }
 
-  /** A shadow that is darkest at one edge (the top, or the bottom) and fades out over its height. */
-  private static seams: Partial<Record<'top' | 'bottom', THREE.MeshStandardMaterial>> = {};
-  private static seam(atTop: boolean): THREE.MeshStandardMaterial {
-    const k = atTop ? 'top' : 'bottom';
-    const cached = Room.seams[k];
+  /** A line darkest at one edge, fading out across the strip: a crisp core, gone by its far side. */
+  private static seams: Partial<Record<'top' | 'bottom' | 'left' | 'right', THREE.MeshStandardMaterial>> = {};
+  private static seam(edge: 'top' | 'bottom' | 'left' | 'right'): THREE.MeshStandardMaterial {
+    const cached = Room.seams[edge];
     if (cached) return cached;
+    const across = edge === 'left' || edge === 'right';
     const c = document.createElement('canvas');
-    c.width = 1;
-    c.height = 64;
+    c.width = across ? 64 : 1;
+    c.height = across ? 1 : 64;
     const g = c.getContext('2d')!;
-    const grd = g.createLinearGradient(0, atTop ? 0 : 64, 0, atTop ? 64 : 0);
-    grd.addColorStop(0, 'rgb(110,110,110)');
-    grd.addColorStop(0.3, 'rgb(55,55,55)');
+    // From the junction outward: a core a third of the strip wide (about a centimetre), then gone.
+    const grd = across
+      ? g.createLinearGradient(edge === 'left' ? 0 : 64, 0, edge === 'left' ? 64 : 0, 0)
+      : g.createLinearGradient(0, edge === 'top' ? 0 : 64, 0, edge === 'top' ? 64 : 0);
+    grd.addColorStop(0, 'rgb(120,120,120)');
+    grd.addColorStop(0.25, 'rgb(95,95,95)');
+    grd.addColorStop(0.45, 'rgb(25,25,25)');
     grd.addColorStop(1, 'rgb(0,0,0)');
     g.fillStyle = grd;
-    g.fillRect(0, 0, 1, 64);
+    g.fillRect(0, 0, c.width, c.height);
     const t = new THREE.CanvasTexture(c);
-    const m = new THREE.MeshStandardMaterial({ color: 0x8f8a83, roughness: 0.95, alphaMap: t, transparent: true, depthWrite: false });
-    Room.seams[k] = m;
+    const m = new THREE.MeshStandardMaterial({ color: 0x7d7872, roughness: 0.95, alphaMap: t, transparent: true, depthWrite: false });
+    Room.seams[edge] = m;
     return m;
   }
+
+  private ceilingAt = NaN;
 
   /** Horizontal half-extents at the current scale. */
   get halfW() {
@@ -271,10 +337,16 @@ export class Room {
     f.west.group.position.set(-ROOM.halfW * s, H / 2, 0);
     for (const k of ['north', 'south', 'east', 'west'] as Surface[]) {
       f[k].mesh.scale.x = s;
-      for (const o of f[k].group.children) if (o.name === 'skirting' || o.name === 'weathering') o.scale.x = s;
+      for (const o of f[k].group.children) {
+        if (o.name === 'skirting' || o.name === 'weathering') o.scale.x = s;
+        else if (o.name === 'corner') o.position.x = o.userData.side * (o.userData.halfW * s - SEAM / 2);
+      }
     }
     f.floor.mesh.scale.set(s, s, 1);
-    f.ceiling.mesh.scale.set(s, s, 1);
+    if (s !== this.ceilingAt) {
+      this.ceilingAt = s;
+      setCeilingGeometry(f.ceiling.mesh.geometry, f.ceiling.size.w * s, f.ceiling.size.h * s);
+    }
   }
 
   /** The writer's hand under the lines on the walls (graphite drags and thumbs, painted once). */

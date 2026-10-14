@@ -51,3 +51,44 @@ The files are committed to `public/textures/`, with CC0 credits in the README.
 3. Is an environment map on the floor worth its cost, or does a cheaper sheen do?
 4. Is a tone-mapping change worth the re-measure?
 5. What is missing from this list that would make the frame read "professional"?
+
+## Reviews and decision
+
+The technical artist, the cinematic director and the skeptic reviewed the plan above.
+
+**What they found:**
+- **The technical artist:** a bound normal map silently disables the bump map that carries the authored relief, and the floor's roughness slot is already used by its authored polish. 2K maps download 25 MB and buy nothing; detail transfer is right for colour. They recommended `concrete_floor_worn_001` for the floor, fine-grained wood for the chair's members and worn table wood for its seat. A PMREM environment adds diffuse light and can't follow the cooling. The skylight's well can't be lit by the area light.
+- **The cinematic director:** the mid-tones match; what's missing is the extremes and the edges.
+  - The skylight isn't a source: 225 against 241, and its halo reads as an LED fitting.
+  - The chair has no fill.
+  - The edges are fog, not lines.
+  - The vignette does the lighting's job.
+  - The PMREM's mirror point is out of frame.
+  - Keep Neutral tone mapping.
+  - The ceiling needs plaster detail too.
+- **The skeptic:**
+  - The crops compared different pixel densities (the reference has 1.5× ours). At the same scale our wall detail is within about 15% of the reference; the floor is the real gap (1.3–1.5×).
+  - The reference's professional edges are 1–2 px dark lines, which round 1 removed on purpose.
+  - Lowering the floor's roughness has the same flaw as the PMREM: it would re-light the front floor round 3 darkened, and glare would sit under the floor pencil.
+  - The chair's median already matches the reference once the mask is right; a "bounce card" light would duplicate the existing `glow`, add a cooling leak and flatten the chair.
+  - Scan detail at the handwriting's scale can mask it, and the guards can't see that.
+  - Phones gain little from wall and floor scans.
+
+**Decided** (the main session, reconciling):
+1. **Edges:** seams narrowed to a 1 cm core fading by 3 cm, with vertical corner seams added, and a contact seam where the skirting meets the floor. The skirting stays a box, made 1.5 cm proud so its top catches the light. This reverses round 1's "contour as tone": the artist's standard is the reference.
+2. **Skylight:**
+   - square corners;
+   - a real recess built from 4 MeshBasic faces, the far face brighter, all coloured through `panelFor × panelLit`, so the dims and the cooling reach it;
+   - the panel brighter (a `panel` look value), its brightest pixels at 240 or more;
+   - the ceiling's glow reshaped from a rim halo into a broad bounce toward the back wall;
+   - a test that the panel and the well follow a dim and a full cooling.
+3. **Vignette:** centred lower and sparing the highlights. The Director's darkness path is unchanged.
+4. **Chair:** members about 20% thicker, the back posts extended into capped tops, the seat overhanging, and darker joints and undersides. **No new light** (skeptic): the existing `glow` is the fill.
+5. **Floor:** roughness stays at 0.7 or more, with gloss only in the authored polish near the chair (skeptic, against the technical artist and cinematic director). The floor's extra detail goes into the 10–60 cm mottle and the scan's fine band.
+6. **Scans** (the artist's choice):
+   - Walls, ceiling and floor take the scan's high-passed luminance folded into their existing colour and relief bakes. No new samplers, no shader patch, and the authored relief is kept.
+   - The amplitudes are set from measurements at matched pixel density: walls about 1.2× the measured gap, the floor more.
+   - The chair takes the two woods into its atlas, plus a tiled normal map (512 px on phones).
+   - Maps: `scripts/scan-detail.py`, 1.5 MB in all; the detail maps are sized to the bakes.
+7. **Guards added:** ink contrast-to-noise (Weber ÷ local background std) in `style-metrics.py`; front-floor/pool ratio; the panel and well following the dim and cooling.
+8. **Cut:** PMREM, the bounce light, the glossier floor, the profiled extruded skirting, lathe finials, plank groove and chamfers, the tone-mapping change, KTX2, GTAO, bloom, DOF and haze.

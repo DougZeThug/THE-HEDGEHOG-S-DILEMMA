@@ -1,6 +1,7 @@
 import { STATIC_DRAWINGS } from './content/drawings';
 import * as THREE from 'three';
 import { Room } from './world/Room';
+import { loadScans } from './world/scans';
 import { Chair } from './world/Chair';
 import { Lighting, shadowMapSize } from './world/Lighting';
 import { lookFor, parseLook, LOOK_NAMES, LOOKS, type Look, type LookName } from './world/Style';
@@ -104,8 +105,10 @@ export class App {
     const seed = Number.isFinite(seedParam) && seedParam > 0 ? seedParam : 1000 + (this.visits + 1) * 7919;
     $('threshold-line').textContent = THRESHOLD_LINES[Math.min(THRESHOLD_LINES.length - 1, this.visits)];
 
+    // The fonts, and the material scans the room's surfaces are baked with (scans.ts): neither
+    // holds the threshold longer than four seconds; without the scans the room bakes as before.
     await Promise.race([
-      Promise.all(FONTS_TO_LOAD.map((f) => document.fonts.load(f).catch(() => null))),
+      Promise.all([...FONTS_TO_LOAD.map((f) => document.fonts.load(f).catch(() => null)), loadScans(this.prefs.quality)]),
       new Promise((r) => setTimeout(r, 4000)),
     ]);
 
@@ -194,6 +197,7 @@ export class App {
     this.room.setLook(l);
     this.post.grain = l.grain;
     this.post.vignette = l.vignette;
+    this.post.vigLow = l.vigLow;
     this.chairContact = l.contact;
   }
 
@@ -292,7 +296,7 @@ export class App {
           [
             ['fill', 0, 1.5], ['area', 0, 4], ['key', 0, 2], ['cone', 0.7, 1.3], ['glow', 0, 1.5], ['warmth', 0, 1.5], ['ceiling', 0, 12],
             ['exposure', 0.8, 1.4], ['vignette', 0, 0.6], ['grain', 0, 0.06], ['texture', 0, 2], ['contact', 0, 1.5], ['shadowSoft', 0.3, 3],
-            ['faint', 0.8, 1.6], ['skyGlow', 0, 20], ['contrast', 0, 0.8], ['stains', 0, 1], ['aim', 0, 1],
+            ['faint', 0.8, 1.6], ['skyGlow', 0, 20], ['contrast', 0, 0.8], ['stains', 0, 1], ['aim', 0, 1], ['panel', 0.5, 3], ['vigLow', 0, 1],
           ] as [keyof Look, number, number][]
         ).map(([k, lo, hi]) =>
           n('look', k, lo, hi, () => this.look[k], (v) => {

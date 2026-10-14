@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { makeNoise } from './noise';
 import { Rng } from '../core/rng';
+import { scanDetail, scanNormal, sampleDetail, type NormalTile } from './scans';
 
 /**
  * Wood for a small hand-made chair: oiled walnut, long grain that wanders, the occasional
@@ -14,7 +15,28 @@ import { Rng } from '../core/rng';
  */
 export const SEAT_V0 = 0.5;
 
-export function woodMaps(seed = 7): { map: THREE.CanvasTexture; rough: THREE.CanvasTexture } {
+/**
+ * Where an atlas pixel is on the wood, in metres: the legs' half runs 2.2 units of u per metre
+ * along the grain and 2.2 of v per metre round the bar (Chair.squareBar); the seat's quarter is
+ * the seat's top, about 0.375 m by 0.35 m.
+ */
+function atlasMetres(x: number, y: number, W: number, H: number, seatH: number, seatW: number): { seat: boolean; a: number; b: number } {
+  if (y < seatH && x < seatW) return { seat: true, a: (x / seatW) * 0.375, b: (y / seatH) * 0.35 };
+  return { seat: false, a: x / W / 2.2, b: (1 - y / H) / 2.2 };
+}
+
+/** A tile's pixel at metres (it tiles), nearest. */
+function tileAt(t: NormalTile, xm: number, ym: number, out: number[]): number[] {
+  const x = ((Math.floor((xm / t.metres) * t.w) % t.w) + t.w) % t.w;
+  const y = ((Math.floor((ym / t.metres) * t.h) % t.h) + t.h) % t.h;
+  const i = (y * t.w + x) * 4;
+  out[0] = t.rgba[i];
+  out[1] = t.rgba[i + 1];
+  out[2] = t.rgba[i + 2];
+  return out;
+}
+
+export function woodMaps(seed = 7): { map: THREE.CanvasTexture; rough: THREE.CanvasTexture; normal: THREE.CanvasTexture | null } {
   const W = 1024, H = 512;
   const c = document.createElement('canvas');
   c.width = W;
@@ -27,7 +49,10 @@ export function woodMaps(seed = 7): { map: THREE.CanvasTexture; rough: THREE.Can
   const img = g.createImageData(W, H);
   const rimg = rg.createImageData(W, H);
   const warp = makeNoise(seed), fig = makeNoise(seed + 1), pore = new Rng(seed + 2);
-  const light = [188, 130, 86], dark = [130, 87, 57], deep = [80, 54, 37];
+  const light = [180, 138, 108], dark = [124, 92, 70], deep = [64, 45, 32];
+  // Real wood's fine structure (scans.ts): the members' straight grain, the seat's worn board.
+  // The members' scan has its grain running down the image, so it is turned to run along U.
+  const grainScan = scanDetail('wood-grain'), seatScan = scanDetail('wood-seat');
   // The seat occupies canvas rows 0..seatH (v from 1 down to SEAT_V0; the canvas is flipped).
   const seatH = Math.round(H * (1 - SEAT_V0));
   const seatW = Math.round(W * 0.8);
@@ -55,7 +80,7 @@ export function woodMaps(seed = 7): { map: THREE.CanvasTexture; rough: THREE.Can
       let rough = 0.5 + 0.14 * late + 0.08 * (figure - 0.5) + (p > 0.992 ? 0.2 : 0);
       if (inSeat && x < seatW) {
         // Sat on and handled for years: the seat's top is paler, honey rather than walnut.
-        shade *= board === 1 ? 0.76 : 0.72;
+        shade *= board === 1 ? 0.74 : 0.7;
         // The glue line, faint.
         const joint = Math.abs(y - seatH * 0.55);
         if (joint < 2) shade *= 0.7;
@@ -69,8 +94,11 @@ export function woodMaps(seed = 7): { map: THREE.CanvasTexture; rough: THREE.Can
       const a = t < 0.6 ? t / 0.6 : 1;
       const b = t < 0.6 ? 0 : (t - 0.6) / 0.4;
       const i = (y * W + x) * 4;
+      const at = atlasMetres(x, y, W, H, seatH, seatW);
+      const sz = at.seat ? (seatScan ? 0.16 * sampleDetail(seatScan, at.a, at.b) : 0) : grainScan ? 0.08 * sampleDetail(grainScan, -at.b, -at.a) : 0;
+      shade *= 1 + sz;
       // The seat's top has gone amber (oil and years), the legs stay the darker, redder walnut.
-      const amber = inSeat && x < seatW ? [1, 1.1, 1.12] : [1, 1, 1];
+      const amber = inSeat && x < seatW ? [1, 1.06, 1.06] : [1, 1, 1];
       for (let k = 0; k < 3; k++) img.data[i + k] = (light[k] + (dark[k] - light[k]) * a + (deep[k] - dark[k]) * b) * shade * amber[k];
       img.data[i + 3] = 255;
       rimg.data[i] = rimg.data[i + 1] = rimg.data[i + 2] = Math.round(Math.min(1, rough) * 255);
@@ -92,5 +120,43 @@ export function woodMaps(seed = 7): { map: THREE.CanvasTexture; rough: THREE.Can
   map.anisotropy = 8;
   const rough = new THREE.CanvasTexture(rc);
   rough.wrapS = rough.wrapT = THREE.RepeatWrapping;
-  return { map, rough };
+  return { map, rough, normal: woodNormal(W, H, seatH, seatW) };
+}
+
+/**
+ * The scans' relief, laid out as the atlas is. The members' scan is turned a quarter (its grain
+ * runs down the image): its up becomes +u, its left +v, and its normals turn with it.
+ */
+function woodNormal(W: number, H: number, seatH: number, seatW: number): THREE.CanvasTexture | null {
+  const grain = scanNormal('wood-grain'), seat = scanNormal('wood-seat');
+  if (!grain || !seat) return null;
+  const c = document.createElement('canvas');
+  c.width = W;
+  c.height = H;
+  const g = c.getContext('2d')!;
+  const img = g.createImageData(W, H);
+  const px = [0, 0, 0];
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++) {
+      const at = atlasMetres(x, y, W, H, seatH, seatW);
+      const i = (y * W + x) * 4;
+      if (at.seat) {
+        tileAt(seat, at.a, at.b, px);
+        img.data[i] = px[0];
+        img.data[i + 1] = px[1];
+      } else {
+        // Image column = -v (left), image row = -u (up).
+        tileAt(grain, -at.b, -at.a, px);
+        img.data[i] = px[1];
+        img.data[i + 1] = 255 - px[0];
+      }
+      img.data[i + 2] = px[2];
+      img.data[i + 3] = 255;
+    }
+  g.putImageData(img, 0, 0);
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = THREE.RepeatWrapping;
+  t.wrapT = THREE.ClampToEdgeWrapping;
+  t.anisotropy = 8;
+  return t;
 }

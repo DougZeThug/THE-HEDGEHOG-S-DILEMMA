@@ -51,11 +51,15 @@ export interface Look {
   stains: number;
   /** How far behind the chair the key is aimed (m), so its pool spreads toward the wall behind, as in the reference. */
   aim: number;
+  /** The skylight's glass: brightness, multiple (it should be the one near-white thing in the frame). */
+  panel: number;
+  /** The vignette's shape: 0 centred on the frame, 1 centred lower and sparing the highlights (the dark top comes from the unlit ceiling, not the lens). */
+  vigLow: number;
 }
 
 export const LOOKS = {
-  original: { fill: 1, area: 1, key: 1, cone: 1, glow: 1, warmth: 0, ceiling: 4, exposure: 1.05, vignette: 0.32, grain: 0.032, texture: 1, contact: 0, shadowSoft: 1.8, faint: 1, skyGlow: 0, contrast: 0, stains: 0, aim: 0 },
-  reference: { fill: 0.85, area: 1.45, key: 1.1, cone: 0.68, glow: 0.6, warmth: 1, ceiling: 6, exposure: 1.15, vignette: 0.3, grain: 0.015, texture: 1.15, contact: 1, shadowSoft: 2.4, faint: 1.2, skyGlow: 1.2, contrast: 0.15, stains: 1, aim: 0.35 },
+  original: { fill: 1, area: 1, key: 1, cone: 1, glow: 1, warmth: 0, ceiling: 4, exposure: 1.05, vignette: 0.32, grain: 0.032, texture: 1, contact: 0, shadowSoft: 1.8, faint: 1, skyGlow: 0, contrast: 0, stains: 0, aim: 0, panel: 1, vigLow: 0 },
+  reference: { fill: 0.85, area: 1.45, key: 1.1, cone: 0.68, glow: 0.6, warmth: 1, ceiling: 6, exposure: 1.15, vignette: 0.2, grain: 0.015, texture: 1.15, contact: 1, shadowSoft: 2.4, faint: 1.2, skyGlow: 1.2, contrast: 0.15, stains: 1, aim: 0.35, panel: 1.6, vigLow: 1 },
 } satisfies Record<string, Look>;
 
 export type LookName = 'original' | 'subtle' | 'reference';

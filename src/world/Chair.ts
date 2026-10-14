@@ -24,7 +24,9 @@ function squareBar(a: THREE.Vector3, b: THREE.Vector3, w: number, taper: number)
     const t = y / len + 0.5;
     const k = taper + (1 - taper) * t;
     pos.setXYZ(i, x * k, y, z * k);
-    uv.setXY(i, t * len * 2.2, (Math.atan2(z, x) / (2 * Math.PI) + 0.5) * 0.12);
+    // Around the bar, v runs at half the texels per metre u does along it (it used to squeeze the
+    // whole perimeter into a sliver, smearing the grain across the bar); inside the legs' half.
+    uv.setXY(i, t * len * 2.2, (Math.atan2(z, x) / (2 * Math.PI) + 0.5) * 4 * w * 2.2);
   }
   edgeWear(g);
   const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize());
@@ -63,14 +65,17 @@ export class Chair {
   baseYaw = 0.22;
 
   constructor() {
-    const { map, rough } = woodMaps(7);
+    const { map, rough, normal } = woodMaps(7);
     // Oiled, not lacquered: no clearcoat, and no sheen (a cloth lobe; it made the seat velvet).
+    // The grain's relief from the scans (wood.ts), when they loaded.
     const mat = new THREE.MeshStandardMaterial({
       map,
       roughnessMap: rough,
       roughness: 1,
       metalness: 0,
       vertexColors: true,
+      normalMap: normal,
+      normalScale: new THREE.Vector2(0.5, 0.5),
     });
 
     const parts: THREE.BufferGeometry[] = [];
@@ -84,7 +89,8 @@ export class Chair {
     const seat = new RoundedBoxGeometry(1, 1, 1, 4, 0.12);
     {
       const pos = seat.attributes.position;
-      const W0 = 0.33, W1 = 0.37, D = 0.315, T = 0.028;
+      // It overhangs the legs a little at the front and sides, its front edge a visible board.
+      const W0 = 0.355, W1 = 0.395, D = 0.35, T = 0.032;
       for (let i = 0; i < pos.count; i++) {
         let x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
         const front = z + 0.5; // 0 at back, 1 at front
@@ -104,20 +110,26 @@ export class Chair {
 
     // Square legs, eased at the arrises, a little slimmer at the foot. The front pair stands
     // straight; the back pair runs on up into the posts, raked back.
-    const W = 0.03;
+    const W = 0.036;
     const postX = (y: number) => 0.152 - 0.012 * (y / 0.72);
     const postZ = (y: number) => -0.165 - 0.05 * (y / 0.72);
     for (const sx of [-1, 1]) {
       add(squareBar(new THREE.Vector3(sx * 0.162, 0.004, 0.152), new THREE.Vector3(sx * 0.16, 0.334, 0.142), W, 0.88));
-      // Made by hand: the left post came out a little short.
-      const top = sx < 0 ? 0.708 : 0.72;
+      // Made by hand: the left post came out a little short. The posts run on above the top
+      // rail and end in a rounded cap.
+      const top = sx < 0 ? 0.748 : 0.76;
       add(squareBar(new THREE.Vector3(sx * postX(0), 0.004, postZ(0)), new THREE.Vector3(sx * postX(top), top, postZ(top)), W, 0.9));
+      const cap = new RoundedBoxGeometry(W * 1.12, W * 0.9, W * 1.12, 3, W * 0.42);
+      edgeWear(cap);
+      const cuv = cap.attributes.uv;
+      for (let k = 0; k < cuv.count; k++) cuv.setXY(k, cuv.getX(k) * W * 2.2 + 0.3, cuv.getY(k) * W * 2.2 * 0.5);
+      add(cap, new THREE.Matrix4().makeTranslation(sx * postX(top), top + W * 0.4, postZ(top)));
     }
 
     // Back: a wider top rail and two slats, tenoned into the posts, following their rake.
     const lean = new THREE.Matrix4().makeRotationX(-Math.atan(0.05 / 0.716));
     const rail = (y: number, h: number, tilt = 0) => {
-      const g = bentBoard(2 * postX(y) + 0.01, h, 0.014, 0.006, 0);
+      const g = bentBoard(2 * postX(y) + 0.01, h, 0.018, 0.006, 0);
       const m = new THREE.Matrix4().makeTranslation(0, y, postZ(y) + 0.002).multiply(lean).multiply(new THREE.Matrix4().makeRotationZ(tilt));
       add(g, m);
     };
@@ -127,7 +139,7 @@ export class Chair {
     rail(0.485, 0.034);
 
     // Stretchers: square too, low at the sides, a little higher across the front and back.
-    const S = 0.018;
+    const S = 0.022;
     const legAt = (sx: number, front: boolean, y: number) =>
       front ? new THREE.Vector3(sx * (0.162 - 0.002 * (y / 0.33)), y, 0.152 - 0.01 * (y / 0.33)) : new THREE.Vector3(sx * postX(y), y, postZ(y));
     add(squareBar(legAt(-1, true, 0.14), legAt(1, true, 0.14), S, 1));
@@ -164,8 +176,8 @@ export class Chair {
     this.seatShade = plane(seatShade, 'chair-seat-shade');
 
     // Invisible proxy for gaze/click.
-    this.hit = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.75, 0.44), new THREE.MeshBasicMaterial({ visible: false }));
-    this.hit.position.set(0, 0.37, -0.015);
+    this.hit = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.8, 0.46), new THREE.MeshBasicMaterial({ visible: false }));
+    this.hit.position.set(0, 0.4, -0.015);
     this.group.add(this.hit);
 
     this.group.rotation.y = this.baseYaw;
@@ -270,16 +282,21 @@ function mergeParts(parts: THREE.BufferGeometry[]): THREE.BufferGeometry {
 /** Paler where touched and on the edges, darker in the joints and where it meets the floor. */
 function bakeWear(g: THREE.BufferGeometry, seatTop: number) {
   const pos = g.attributes.position;
+  const nor = g.attributes.normal;
   const edge = g.attributes.wear;
   const col = new Float32Array(pos.count * 3);
   for (let i = 0; i < pos.count; i++) {
     const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
-    let k = 1 + 0.2 * edge.getX(i);
-    // Joints: old finish and dust gather where the stretchers go in and under the seat.
+    let k = 1 + 0.35 * edge.getX(i);
+    // Joints: old finish and dust gather where the stretchers go in and under the seat, and
+    // every underside is darker (never handled, never polished).
     if (Math.abs(x) > 0.12 && y < seatTop - 0.02) {
-      for (const yj of [0.09, 0.14]) k -= 0.1 * Math.exp(-(((y - yj) / 0.012) ** 2));
-      k -= 0.12 * Math.exp(-(((y - (seatTop - 0.035)) / 0.015) ** 2));
+      for (const yj of [0.09, 0.14]) k -= 0.22 * Math.exp(-(((y - yj) / 0.014) ** 2));
+      k -= 0.25 * Math.exp(-(((y - (seatTop - 0.035)) / 0.018) ** 2));
     }
+    if (nor.getY(i) < -0.5) k -= 0.3;
+    // Where the rails go into the posts.
+    if (y > 0.46 && Math.abs(Math.abs(x) - 0.148) < 0.02) k -= 0.15;
     // Seat: worn pale across the front edge and in the middle where someone sat.
     if (Math.abs(y - seatTop) < 0.03) {
       k += 0.16 * Math.exp(-(((z - 0.15) / 0.035) ** 2)) * Math.exp(-((x / 0.17) ** 4));
