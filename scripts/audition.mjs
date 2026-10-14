@@ -143,7 +143,8 @@ for (const [file, e] of Object.entries(sfxLedger.entries)) {
 }
 const nDesigned = designs.designs.length, nLibrary = designTakes.filter((t) => t.id.startsWith('lib-')).length;
 for (const t of designTakes) if (t.group === 'voices') t.groupLabel = `new voices: ${nDesigned} made to order (three previews each), ${nLibrary} from the ElevenLabs library — keep only a few`;
-// New voices first: the casting decides who reads everything else.
+// The memories' sounds first (what is waiting now), then the new voices: the casting decides who reads everything else.
+designTakes.sort((a, b) => Number(b.group === 'memories') - Number(a.group === 'memories'));
 takes.unshift(...designTakes);
 
 const tpl = readFileSync(join(ROOT, 'audition/page.html'), 'utf8');
