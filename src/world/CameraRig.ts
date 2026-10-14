@@ -5,15 +5,15 @@ import type { Room } from './Room';
 const EYE = 1.58;
 const KNEEL_EYE = 0.6;
 /**
- * The opening's eye: a child's eye height, level with the chair's world (the artist's
- * reference is framed from about here): the diorama as the child who made it saw it. The
- * first step stands the visitor up into an adult, and the chair becomes too small.
+ * The opening's eye: a child's eye height (the artist's reference is framed from about here,
+ * from the back of the room): the diorama as the child who made it saw it. The first step
+ * stands the visitor up into an adult, and the chair becomes too small.
  */
-const OPENING_EYE = 1.1;
+const OPENING_EYE = 1.35;
 /** Standing up takes this long, eased at both ends. */
 const RISE_S = 2.8;
-/** Where the opening is seen from: centred on the chair, about two and a half metres back. */
-export const OPENING_POS = { x: 0, z: 2.45, zPortrait: 2.45, yaw: 0, yawPortrait: 0.07 };
+/** Where the opening is seen from: centred on the chair, from the back of the room. */
+export const OPENING_POS = { x: 0, z: 2.85, zPortrait: 2.85, yaw: 0, yawPortrait: 0.05 };
 
 /**
  * First-person body: slow, weighted walking; a view that settles. Supports mouse
@@ -105,7 +105,9 @@ export class CameraRig {
     this.rise = null;
     this.walkHeld = this.walked = 0;
     const low = !this.reducedMotion;
-    this.pitch = aspect < 1 ? (low ? -0.15 : -0.3) : low ? -0.02 : -0.15;
+    // Looking a little down, the horizon just above the middle (as the reference is framed): the
+    // skylight at the top of the frame, the chair two-thirds of the way down.
+    this.pitch = aspect < 1 ? (low ? -0.1 : -0.2) : low ? -0.08 : -0.12;
     this.wideOpening = aspect >= 1;
     // An upright phone sees less across: turned a touch, so the unfinished line keeps its "I".
     if (aspect < 1) this.yaw = OPENING_POS.yawPortrait;
@@ -260,7 +262,7 @@ export class CameraRig {
     if (Math.abs(this.yaw) > 0.5) this.wideOpening = false;
     // While rising, the view narrows with the eye (one movement, not two); otherwise it eases.
     const low = clamp((EYE - this.eye) / (EYE - OPENING_EYE));
-    const wide = this.wideOpening && !this.kneeling && !this.reducedMotion ? 6 * low : 0;
+    const wide = this.wideOpening && !this.kneeling && !this.reducedMotion ? 9 * low : 0;
     const fovTarget = this.baseFov + (this.kneeling && !this.reducedMotion ? 8 : 0) + wide;
     this.camera.fov = this.rise ? fovTarget : approach(this.camera.fov, fovTarget, dt, 1.5);
     this.camera.updateProjectionMatrix();

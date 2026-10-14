@@ -92,7 +92,7 @@ All of this is implemented and running; none of it is shown to the visitor as nu
   - **0 s.** You tap the black threshold, which is also the title card; that tap lets the room be heard.
   - **0.3–5 s.** "The Hedgehog's Dilemma" holds on black and fades.
   - **In the dark.** A chair creaks, then a switch clicks by the door.
-  - **Where you are.** Low (a child's eye height, 1.1 m), centred on the chair two and a half metres back: the room as a box around it, its light at the top. Your first deliberate step stands you up, in one slow movement; looking around doesn't. With reduced motion you start standing.
+  - **Where you are.** Low (a child's eye height, 1.35 m), centred on the chair from the back of the room: the room as a box around it, its light at the top. Your first deliberate step stands you up, in one slow movement; looking around doesn't. With reduced motion you start standing.
   - **The chair.** A wide, soft throw of light finds it alone, and the walls are barely there. The fixture stays dim, the source rather than the subject. You can look around from here.
   - **The room.** It comes up nearly empty: plaster with old erased marks, and small writing on the floor by the chair. You can walk from here.
   - **A hand writes.** "I wanted you to", in pen, in silence, then stops. The stop is held for two seconds.

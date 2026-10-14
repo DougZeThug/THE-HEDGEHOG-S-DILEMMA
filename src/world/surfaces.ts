@@ -295,65 +295,46 @@ export function weatheringMap(surface: Surface, wM: number, hM: number, seed: nu
   const ppm = 64;
   const W = Math.round(wM * ppm), H = Math.round(hM * ppm);
   const [c, g] = canvas(W, H);
-  g.fillStyle = '#000';
-  g.fillRect(0, 0, W, H);
+  const img = g.createImageData(W, H);
   const r = new Rng(seed);
+  const n = makeNoise(seed + 3), m = makeNoise(seed + 7);
   const side = surface === 'east' || surface === 'west';
-  const n = makeNoise(seed + 3);
-  // Streaks: a thin dark run, fading downward, with a faint wider halo, wandering a little.
-  const streaks = side ? 18 : surface === 'south' ? 9 : 6;
-  for (let i = 0; i < streaks; i++) {
-    const x = r.range(0.15, wM - 0.15) * ppm;
-    const y0 = H - r.range(0.9, hM - 0.25) * ppm;
-    const len = r.range(0.3, 1.6) * ppm;
-    const wdt = r.range(0.006, 0.022) * ppm;
-    const a = r.range(0.25, 0.55);
-    for (const [ww, aa] of [[wdt * 4, a * 0.22], [wdt, a]] as const) {
-      const grd = g.createLinearGradient(0, y0, 0, y0 + len);
-      grd.addColorStop(0, `rgba(255,255,255,${aa})`);
-      grd.addColorStop(0.25, `rgba(255,255,255,${aa * 0.8})`);
-      grd.addColorStop(1, 'rgba(255,255,255,0)');
-      g.strokeStyle = grd;
-      g.lineWidth = ww;
-      g.lineCap = 'round';
-      g.beginPath();
-      g.moveTo(x, y0);
-      for (let k = 1; k <= 8; k++) g.lineTo(x + (n.fbm(i * 3.1, k * 0.4, 2) - 0.5) * 0.05 * ppm, y0 + (len * k) / 8);
-      g.stroke();
+  const ss = (a: number, b: number, x: number) => {
+    const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
+    return t * t * (3 - 2 * t);
+  };
+  // Streaks (metres): where the water started, how far it ran, how wide, how dark.
+  const streaks = Array.from({ length: side ? 22 : surface === 'south' ? 10 : 7 }, () => ({
+    x: r.range(0.15, wM - 0.15), top: r.range(1.0, hM - 0.3), len: r.range(0.35, 1.7), w: r.range(0.008, 0.03), a: r.range(0.18, 0.4), k: r.range(0, 100),
+  }));
+  for (let j = 0; j < H; j++) {
+    const v = hM - (j + 0.5) / ppm; // height above the floor
+    for (let i = 0; i < W; i++) {
+      const u = (i + 0.5) / ppm;
+      let a = 0;
+      // Old damp: cloudy, irregular, never round.
+      a += ss(0.6, 0.78, n.fbm(u / 0.5, v / 0.5, 4)) * (side ? 0.16 : 0.09);
+      for (const st of streaks) {
+        const t = (st.top - v) / st.len;
+        if (t < 0 || t > 1) continue;
+        const wob = (m.fbm(st.k, v * 3, 2) - 0.5) * 0.06;
+        const dx = (u - st.x - wob) / st.w;
+        if (Math.abs(dx) > 6) continue;
+        // Starts faint, darkest a little below where it began, thins out as it runs down;
+        // uneven along its length, with a soft wider stain round the run.
+        const along = ss(0, 0.15, t) * (1 - t) ** 1.4 * (0.6 + 0.8 * m.fbm(st.k + 5, v * 8, 2));
+        a += st.a * along * (Math.exp(-dx * dx) + 0.25 * Math.exp(-(dx * dx) / 9));
+      }
+      // Grime in the corners and along the foot, uneven.
+      const edge = Math.min(u, wM - u);
+      a += 0.14 * (1 - ss(0, 0.28, edge)) * (0.5 + n.fbm(u * 0.3, v / 0.6, 3));
+      a += 0.16 * (1 - ss(0.1, 0.4, v)) * (0.6 + 0.6 * m.fbm(u / 0.4, 3, 2));
+      const k = (j * W + i) * 4;
+      img.data[k] = img.data[k + 1] = img.data[k + 2] = Math.round(255 * Math.min(1, a));
+      img.data[k + 3] = 255;
     }
   }
-  // Old damp patches: soft, with a slightly darker rim where the water stopped.
-  const patches = side ? 5 : 3;
-  for (let i = 0; i < patches; i++) {
-    const x = r.range(0.3, wM - 0.3) * ppm, y = H - r.range(0.3, hM - 0.5) * ppm, rad = r.range(0.08, 0.32) * ppm;
-    const a = r.range(0.1, 0.2);
-    g.save();
-    g.translate(x, y);
-    g.scale(1, r.range(0.7, 1.4));
-    const grd = g.createRadialGradient(0, 0, 0, 0, 0, rad);
-    grd.addColorStop(0, `rgba(255,255,255,${a * 0.6})`);
-    grd.addColorStop(0.8, `rgba(255,255,255,${a})`);
-    grd.addColorStop(1, 'rgba(255,255,255,0)');
-    g.fillStyle = grd;
-    g.fillRect(-rad, -rad, rad * 2, rad * 2);
-    g.restore();
-  }
-  // Grime in the corners and along the foot of the wall, uneven.
-  for (let y = 0; y < H; y += 2) {
-    const k = 0.5 + n.fbm(0.3, y / 40, 3);
-    for (const [x0, dir] of [[0, 1], [W, -1]] as const) {
-      const grd = g.createLinearGradient(x0, 0, x0 + dir * 0.25 * ppm, 0);
-      grd.addColorStop(0, `rgba(255,255,255,${0.14 * k})`);
-      grd.addColorStop(1, 'rgba(255,255,255,0)');
-      g.fillStyle = grd;
-      g.fillRect(dir > 0 ? x0 : x0 - 0.25 * ppm, y, 0.25 * ppm, 2);
-    }
-  }
-  const foot = g.createLinearGradient(0, H, 0, H - 0.3 * ppm);
-  foot.addColorStop(0, 'rgba(255,255,255,0.16)');
-  foot.addColorStop(1, 'rgba(255,255,255,0)');
-  g.fillStyle = foot;
-  g.fillRect(0, 0, W, H);
+  g.putImageData(img, 0, 0);
   return new THREE.CanvasTexture(c);
 }
 

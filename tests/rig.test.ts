@@ -29,7 +29,7 @@ describe('the opening seen low, standing up on the first step', () => {
     const r = opened();
     expect(r.pos.x).toBe(OPENING_POS.x);
     expect(r.pos.z).toBe(OPENING_POS.z);
-    expect(r.eyeHeight).toBeCloseTo(1.1, 3);
+    expect(r.eyeHeight).toBeCloseTo(1.35, 3);
   });
 
   it('looking around never stands the visitor up', () => {
@@ -37,14 +37,14 @@ describe('the opening seen low, standing up on the first step', () => {
     run(r, 3, ['ArrowLeft']);
     r.look(200, 50);
     run(r, 5);
-    expect(r.eyeHeight).toBeCloseTo(1.1, 2);
+    expect(r.eyeHeight).toBeCloseTo(1.35, 2);
   });
 
   it('a tap of a key doesn’t; a step does, once, eased at both ends', () => {
     const r = opened();
     run(r, 0.1, ['KeyW']);
     run(r, 3);
-    expect(r.eyeHeight).toBeCloseTo(1.1, 2);
+    expect(r.eyeHeight).toBeCloseTo(1.35, 2);
     const eyes = [...run(r, 0.5, ['KeyW']), ...run(r, 3)];
     expect(eyes[eyes.length - 1]).toBeCloseTo(1.58, 2);
     const speeds = eyes.slice(1).map((e, i) => (e - eyes[i]) * 60);

@@ -29,7 +29,7 @@ export interface Persona {
 }
 
 // Where the opening leaves the visitor (CameraRig.OPENING_POS; an upright phone a little nearer).
-const SPAWN = { x: 0, z: 2.45 };
+const SPAWN = { x: 0, z: 2.85 };
 /** Yaw that faces each wall (0 = north, +π/2 = west). */
 const YAW: Record<Surface, number> = { north: 0, west: Math.PI / 2, south: Math.PI, east: -Math.PI / 2, floor: 0, ceiling: 0 };
 
