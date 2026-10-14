@@ -121,7 +121,7 @@ const SFX_FOR = {
   'sfx:eraser': 'The writing in the air rubbed out as someone comes close (a breath follows it).',
   'mem:kitchen-air': 'Cereal memory: the air of the sunny kitchen, looped under the scene (it came back very quiet and is lifted about 28 dB).',
   'mem:spoon-bowl': 'Cereal memory: spoons in two bowls as the scene forms (the first take); a spoon put down as it goes (the second).',
-  'mem:eating': 'Cereal memory: options for the meal, in place of the spoons you turned down (1: one person eating cereal and milk; 2: two people, two bowls, recorded quiet; 3: cereal and milk poured). Not yet in the memory: keep the one you want.',
+  'mem:eating': 'Cereal memory: the meal (1: one of them eating on, at 15 s; 2: two people, two bowls, as the scene forms; 3: cereal and milk poured, not used).',
   'mem:laugh': 'Cereal memory: two people laughing at the table (a take the next-room situation never uses).',
   'mem:footsteps': 'Door memory: someone walking along the landing (passing), or coming to the door and stopping (approach).',
   'mem:floorboard': 'Door memory: someone shifting their weight outside the door (the first take); the house settling (the second).',

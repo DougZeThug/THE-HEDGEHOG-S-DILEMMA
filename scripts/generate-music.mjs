@@ -101,7 +101,9 @@ FRAGMENTS.push(
 const ledger = existsSync(LEDGER) ? JSON.parse(readFileSync(LEDGER, 'utf8')) : { spent: 0, entries: {} };
 const only = typeof args.only === 'string' ? args.only.split(',') : null;
 const outOf = (f) => (f.memory ? join(ROOT, 'public/music') : OUT);
-const todo = FRAGMENTS.filter((f) => !f.deferred && (!only || only.includes(f.id)) && (args.force || !existsSync(join(outOf(f), `${f.id}.mp3`))));
+// A fragment already in the ledger was paid for: never again without --force (a turned-down take
+// moves to audition/music/, so a missing file in public/music doesn't mean it was never made).
+const todo = FRAGMENTS.filter((f) => !f.deferred && (!only || only.includes(f.id)) && (args.force || (!ledger.entries[f.id] && !existsSync(join(outOf(f), `${f.id}.mp3`)))));
 const estimate = Math.ceil(todo.reduce((a, f) => a + f.seconds * PER_SECOND, 0));
 const budget = Number(args.budget ?? 1000);
 console.log(`plan: ${todo.length} fragments, ~${estimate} credits (budget ${budget})`);

@@ -31,9 +31,39 @@
         "type": "PositionalSequence",
         "markers": [
           {
+            "id": "m13",
+            "label": "bed:kitchen",
+            "position": 0.6
+          },
+          {
             "id": "mz",
             "label": "active",
             "position": 5.5
+          },
+          {
+            "id": "mr0",
+            "label": "music:radio",
+            "position": 5.5
+          },
+          {
+            "id": "mr1",
+            "label": "sfx:eating",
+            "position": 7.3
+          },
+          {
+            "id": "m16",
+            "label": "sfx:laugh",
+            "position": 10.5
+          },
+          {
+            "id": "mr2",
+            "label": "sfx:eating-later",
+            "position": 15.2
+          },
+          {
+            "id": "m17",
+            "label": "sfx:spoon-down",
+            "position": 21.2
           },
           {
             "id": "m10",
@@ -49,21 +79,6 @@
             "id": "m12",
             "label": "end",
             "position": 32
-          },
-          {
-            "id": "m13",
-            "label": "bed:kitchen",
-            "position": 0.6
-          },
-          {
-            "id": "m16",
-            "label": "sfx:laugh",
-            "position": 10.5
-          },
-          {
-            "id": "m17",
-            "label": "sfx:spoon-down",
-            "position": 21.2
           }
         ],
         "tracksByObject": {

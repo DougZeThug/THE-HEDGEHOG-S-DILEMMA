@@ -22,7 +22,7 @@
       "costNote": "measured: account balance fell 660 for both fragments together; the API returned no cost header"
     },
     "memory-radio": {
-      "file": "public/music/memory-radio.mp3",
+      "file": "music/memory-radio.mp3",
       "prompt": "An ordinary cheerful song playing on the radio in a sunny kitchen: a light, easy-going 1970s soft-pop instrumental with strummed acoustic guitar, a round bass line, brushed drums and a little electric piano, major key, relaxed mid tempo, warm and happy, nothing dramatic. It starts straight away in the middle of the song, no intro, no build and no ending, it simply carries on. Instrumental, no vocals.",
       "seconds": 28,
       "for": "Memory: \"We ate cereal for dinner and it was perfect.\" The kitchen radio, on from the moment the scene has formed.",
@@ -43,13 +43,13 @@
       "costSource": "balance difference (4930 → 5521 used, less the 233 credits of SFX reported by their own headers in the same window)"
     },
     "memory-radio-folk-a": {
-      "file": "public/music/memory-radio-folk-a.mp3",
+      "file": "music/memory-radio-folk-a.mp3",
       "prompt": "Playing on the radio in a sunny kitchen, a 1970s folk song on the radio: strummed and lightly picked steel-string acoustic guitar with a simple, cheerful harmonica melody over it, major key, easy walking tempo, sunny and unhurried. It starts straight away in the middle of the song, no intro, no build and no ending, it simply carries on. Instrumental, no vocals, nothing dramatic, warm and happy.",
       "seconds": 19,
       "for": "Memory: cereal. The kitchen radio, option A (harmonica): gentle acoustic folk. Not yet in the memory: keep the one you want.",
       "cost": 261,
       "at": "2026-10-14T23:01:21.138Z",
-      "review": "pending",
+      "review": "rejected",
       "costNote": "measured from the account balance: 1,044 for the four options together (the per-request header was missing)"
     },
     "memory-radio-folk-c": {
@@ -59,27 +59,27 @@
       "for": "Memory: cereal. The kitchen radio, option C (waltz): gentle acoustic folk. Not yet in the memory: keep the one you want.",
       "cost": 261,
       "at": "2026-10-14T23:01:30.625Z",
-      "review": "pending",
+      "review": "approved",
       "costNote": "measured from the account balance: 1,044 for the four options together (the per-request header was missing)"
     },
     "memory-radio-folk-d": {
-      "file": "public/music/memory-radio-folk-d.mp3",
+      "file": "music/memory-radio-folk-d.mp3",
       "prompt": "Playing on the radio in a sunny kitchen, an easy-going acoustic folk song on the radio: two acoustic guitars and a mandolin playing together, a light upright bass, a bright singable melody, major key, relaxed mid tempo, sunny. It starts straight away in the middle of the song, no intro, no build and no ending, it simply carries on. Instrumental, no vocals, nothing dramatic, warm and happy.",
       "seconds": 19,
       "for": "Memory: cereal. The kitchen radio, option D (mandolin): gentle acoustic folk. Not yet in the memory: keep the one you want.",
       "cost": 261,
       "at": "2026-10-14T23:01:37.048Z",
-      "review": "pending",
+      "review": "rejected",
       "costNote": "measured from the account balance: 1,044 for the four options together (the per-request header was missing)"
     },
     "memory-radio-folk-b": {
-      "file": "public/music/memory-radio-folk-b.mp3",
+      "file": "music/memory-radio-folk-b.mp3",
       "prompt": "Playing on the radio in a sunny kitchen, a gentle folk tune on the radio: a single steel-string acoustic guitar, fingerpicked with an alternating thumb bass, a bright simple melody in a major key, relaxed tempo, homely and content. It starts straight away in the middle of the song, no intro, no build and no ending, it simply carries on. Instrumental, no vocals, nothing dramatic, warm and happy.",
       "seconds": 19,
       "for": "Memory: cereal. The kitchen radio, option B (fingerpicked): gentle acoustic folk. Not yet in the memory: keep the one you want.",
       "cost": 261,
       "at": "2026-10-14T23:02:05.797Z",
-      "review": "pending",
+      "review": "rejected",
       "costNote": "measured from the account balance: 1,044 for the four options together (the per-request header was missing)"
     }
   }

@@ -327,3 +327,22 @@ Checked: 247 tests pass. In the browser, cereal (first), the door (passing) and 
   - 3: cereal and milk poured.
 - Everything is on the audition sheet, pending. None of it is in the memory until the artist keeps one.
 - **Spend:** music 2,447 in all (1,787 on the living memories); SFX 807 in all (591 on the memories, within the 600 approved).
+
+**The artist's choice (14 Oct):** radio **C**, the folk waltz for guitar and fiddle, and meal takes **1** and **2**. A, B, D and meal take 3 were turned down.
+
+Cereal (first) now plays:
+- the air from 0.6 s;
+- the radio from 5.5 s, on the windowsill as before, matched to the first radio's level;
+- two people eating at 7.3 s (take 2, +10 dB because it was recorded quietly);
+- the laugh at 10.5 s;
+- one of them eating on at 15.2 s (take 1, no caption, since it is the same sound again);
+- the spoon put down at 21.2 s.
+
+Cereal (later) keeps empty bowls: no radio and nobody eating, only the air, the laugh and the spoon put down.
+
+The four turned-down radios (the first, A, B and D) moved to `audition/music/` so they don't ship. `generate-music.mjs` now skips anything already in the ledger unless `--force`, so a moved file is never paid for twice.
+
+Checked:
+- 247 tests pass, and the build's dist check passes.
+- Cereal first and later play on desktop and phone with no errors, 20 programs, and textures back to baseline.
+- Every memory's markers resolve to an existing file and take.
