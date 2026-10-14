@@ -31,7 +31,7 @@ const SCAN_AMP = {
   wall: { colour: 0.025, bump: 10 },
   // The side walls, lit raking from the panel, show their plaster most in the reference.
   sideWall: { colour: 0.035, bump: 12 },
-  floor: { colour: 0.028, bump: 8 },
+  floor: { colour: 0.034, bump: 8 },
   ceiling: { colour: 0.026, bump: 8 },
 };
 
@@ -328,7 +328,7 @@ export function weatheringMap(surface: Surface, wM: number, hM: number, seed: nu
   // between, as in the reference; elsewhere a couple of faint ones.
   const zones = [0.7, wM - 1.0];
   const streaks = Array.from({ length: side ? 4 : 2 }, (_, i) => side
-    ? { x: zones[i % 2] + r.range(-0.35, 0.35), top: r.range(1.6, hM - 0.3), len: r.range(0.9, 2.2), w: r.range(0.015, 0.035), a: r.range(0.14, 0.22), k: r.range(0, 100) }
+    ? { x: zones[i % 2] + r.range(-0.35, 0.35), top: r.range(1.6, hM - 0.3), len: r.range(0.9, 2.2), w: r.range(0.015, 0.035), a: r.range(0.2, 0.32), k: r.range(0, 100) }
     : { x: r.range(0.15, wM - 0.15), top: r.range(1.0, hM - 0.3), len: r.range(0.5, 1.8), w: r.range(0.025, 0.07), a: r.range(0.05, 0.1), k: r.range(0, 100) });
   for (let j = 0; j < H; j++) {
     const v = hM - (j + 0.5) / ppm; // height above the floor
@@ -336,7 +336,7 @@ export function weatheringMap(surface: Surface, wM: number, hM: number, seed: nu
       const u = (i + 0.5) / ppm;
       let a = 0;
       // Old damp: cloudy, irregular, never round.
-      a += ss(0.6, 0.78, n.fbm(u / 0.5, v / 0.5, 4)) * (side ? 0.07 : 0.04);
+      a += ss(0.6, 0.78, n.fbm(u / 0.5, v / 0.5, 4)) * (side ? 0.09 : 0.04);
       for (const st of streaks) {
         const t = (st.top - v) / st.len;
         if (t < 0 || t > 1) continue;
@@ -423,7 +423,10 @@ export function wallMaps(surface: Surface, seed: number, wM: number, hM: number)
     west: [234, 232, 228],
     south: [236, 234, 229],
   };
-  const { c, g, bc, bg } = plaster(W, H, seed, tone[surface] ?? [236, 234, 228], { mottle: 10, trowel: 5, grain: 4, blotch: 8, tooth: 7.5 }, { detail: scanDetail('plaster'), ...(surface === 'east' || surface === 'west' ? SCAN_AMP.sideWall : SCAN_AMP.wall) });
+  // The wall you read is the calmest surface in the room (as in the reference): less cloud, less
+  // tooth; its history is in particular marks, not grain spread everywhere.
+  const calm = surface === 'north';
+  const { c, g, bc, bg } = plaster(W, H, seed, tone[surface] ?? [236, 234, 228], { mottle: 10, trowel: 5, grain: 4, blotch: calm ? 5 : 8, tooth: calm ? 4 : 7.5 }, { detail: scanDetail('plaster'), ...(surface === 'east' || surface === 'west' ? SCAN_AMP.sideWall : SCAN_AMP.wall) });
   const r = new Rng(seed + 11);
   const floorY = H;
   const mx = (u: number) => u * PX_PER_M;
@@ -588,13 +591,8 @@ export function ceilingMaps(seed: number, wM: number, dM: number): SurfaceMaps {
     g.fillStyle = 'rgba(120,124,130,0.06)';
     g.fillRect(x, 0, Math.max(1, K), H);
   }
-  // Light spilling from the frosted panel onto the ceiling around it.
-  const px = W / 2 + 0.1 * PX_PER_M, pz = H / 2 + 0.95 * PX_PER_M;
-  const spill = g.createRadialGradient(px, pz, 0.4 * PX_PER_M, px, pz, 2.2 * PX_PER_M);
-  spill.addColorStop(0, 'rgba(255,253,248,0.22)');
-  spill.addColorStop(1, 'rgba(255,253,248,0)');
-  g.fillStyle = spill;
-  g.fillRect(0, 0, W, H);
+  // (No painted spill round the skylight: the ceiling is the room's dark lid, as in the reference;
+  // its bounce is Room's emissive map, on the look.)
   corners(g, W, H, { top: 0.4, bottom: 0.4, left: 0.4, right: 0.4 }, '104,108,114');
   return { map: toTex(c, true), bump: toTex(bc, false) };
 }

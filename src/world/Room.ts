@@ -6,18 +6,19 @@ import { ROOM, surfaceSize } from './layout';
 export const PANEL = { x: 0.1, z: -0.95 };
 import { wallMaps, floorMaps, ceilingMaps, surfaceDetail, handMarks, weatheringMap } from './surfaces';
 import { ceilingFor, panelFor, type Look } from './Style';
+import { makeNoise } from './noise';
 
 const SKIRT = 0.1;
 /** The skylight: frosted glass set back in a square well, its sides splaying out to the ceiling. */
 const GLASS = 0.9;
-const OPENING = 1.0;
-const WELL_DEPTH = 0.25;
+const OPENING = 0.96;
+const WELL_DEPTH = 0.1;
 /** Seams where planes meet: a dark core about a centimetre wide, gone by three. */
 const SEAM = 0.03;
 /** The glass's emissive intensity as built (the look's `panel` multiplies it). */
 const PANEL_GLOW = 2.2;
 /** The well's sides, lit by the glass: their brightest, as a multiple of the glass's colour. */
-const WELL_GLOW = 0.8;
+const WELL_GLOW = 0.6;
 
 /**
  * The ceiling: a plane with the skylight's opening cut out (eight quads round a square hole), in
@@ -193,9 +194,11 @@ export class Room {
     pg.fillStyle = grd;
     pg.fillRect(0, 0, 128, 128);
     const frost = pg.getImageData(0, 0, 128, 128);
+    const fn = makeNoise(5);
     for (let j = 0; j < 128; j++)
       for (let i = 0; i < 128; i++) {
-        const m = 1 + 0.025 * (Math.sin(i * 0.11 + Math.sin(j * 0.07) * 2) * Math.sin(j * 0.09 + Math.cos(i * 0.05) * 2));
+        // Clouded, as frosted glass is (the reference's is visibly mottled).
+        const m = 1 + 0.12 * (fn.fbm(i / 22, j / 22, 4) - 0.5);
         for (let c = 0; c < 3; c++) frost.data[(j * 128 + i) * 4 + c] = Math.min(255, frost.data[(j * 128 + i) * 4 + c] * m);
       }
     pg.putImageData(frost, 0, 0);
@@ -208,7 +211,15 @@ export class Room {
     // The well's sides (unlit: coloured by the glass, so the dims and the cooling reach them).
     this.well = new THREE.Mesh(wellGeometry(), new THREE.MeshBasicMaterial({ color: 0xffffff, vertexColors: true, side: THREE.DoubleSide }));
     this.well.position.set(PANEL.x, H, PANEL.z);
-    this.group.add(this.panel, this.well);
+    // A crisp dark line round the opening, where the reveal meets the ceiling (lit by the room, so
+    // it dims with it).
+    const lip = new THREE.Mesh(
+      new THREE.RingGeometry(OPENING / 2 * Math.SQRT2, (OPENING / 2 + 0.012) * Math.SQRT2, 4, 1, Math.PI / 4),
+      new THREE.MeshStandardMaterial({ color: 0x5f5a54, roughness: 0.95, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }),
+    );
+    lip.rotation.x = Math.PI / 2;
+    lip.position.set(PANEL.x, H - 0.0005, PANEL.z);
+    this.group.add(this.panel, this.well, lip);
 
     this.setScale(1);
   }
@@ -264,7 +275,7 @@ export class Room {
    * its top catches the light as a lit edge.
    */
   private addSkirting(group: THREE.Group, w: number, h: number) {
-    const trim = new THREE.MeshStandardMaterial({ color: 0xb8b3aa, roughness: 0.6 });
+    const trim = new THREE.MeshStandardMaterial({ color: 0x9c968d, roughness: 0.6 });
     const sk = new THREE.Mesh(new THREE.BoxGeometry(w, SKIRT, 0.015), trim);
     sk.position.set(0, -h / 2 + SKIRT / 2, 0.0075);
     sk.receiveShadow = true;
@@ -273,9 +284,14 @@ export class Room {
     above.position.set(0, -h / 2 + SKIRT + SEAM / 2, 0.0015);
     above.name = 'skirting';
     // On the board's face, where it meets the floor.
-    const contact = new THREE.Mesh(new THREE.PlaneGeometry(w, SEAM * 0.6), Room.seam('bottom'));
+    const contact = new THREE.Mesh(new THREE.PlaneGeometry(w, SEAM * 0.6), Room.seam('contact'));
     contact.position.set(0, -h / 2 + SEAM * 0.3, 0.0155);
     contact.name = 'skirting';
+    // The board's rounded top edge catches the light: a lit lip a few millimetres deep.
+    const lit = new THREE.Mesh(new THREE.PlaneGeometry(w, 0.005), Room.lipMaterial);
+    lit.position.set(0, -h / 2 + SKIRT - 0.0025, 0.0152);
+    lit.name = 'skirting';
+    group.add(lit);
     const top = new THREE.Mesh(new THREE.PlaneGeometry(w, SEAM), Room.seam('top'));
     top.position.set(0, h / 2 - SEAM / 2, 0.0015);
     top.name = 'skirting';
@@ -292,10 +308,13 @@ export class Room {
   }
 
   /** A line darkest at one edge, fading out across the strip: a crisp core, gone by its far side. */
-  private static seams: Partial<Record<'top' | 'bottom' | 'left' | 'right', THREE.MeshStandardMaterial>> = {};
-  private static seam(edge: 'top' | 'bottom' | 'left' | 'right'): THREE.MeshStandardMaterial {
-    const cached = Room.seams[edge];
+  private static lipMaterial = new THREE.MeshStandardMaterial({ color: 0xcdc8bf, roughness: 0.5 });
+  private static seams: Partial<Record<'top' | 'bottom' | 'left' | 'right' | 'contact', THREE.MeshStandardMaterial>> = {};
+  private static seam(which: 'top' | 'bottom' | 'left' | 'right' | 'contact'): THREE.MeshStandardMaterial {
+    const cached = Room.seams[which];
     if (cached) return cached;
+    // Where the board stands on the floor: the same line, deeper.
+    const edge = which === 'contact' ? 'bottom' : which;
     const across = edge === 'left' || edge === 'right';
     const c = document.createElement('canvas');
     c.width = across ? 64 : 1;
@@ -312,8 +331,8 @@ export class Room {
     g.fillStyle = grd;
     g.fillRect(0, 0, c.width, c.height);
     const t = new THREE.CanvasTexture(c);
-    const m = new THREE.MeshStandardMaterial({ color: 0x7d7872, roughness: 0.95, alphaMap: t, transparent: true, depthWrite: false });
-    Room.seams[edge] = m;
+    const m = new THREE.MeshStandardMaterial({ color: which === 'contact' ? 0x4f4b46 : 0x7d7872, roughness: 0.95, alphaMap: t, transparent: true, depthWrite: false });
+    Room.seams[which] = m;
     return m;
   }
 

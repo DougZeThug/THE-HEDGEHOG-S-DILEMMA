@@ -119,11 +119,12 @@ export class Chair {
       // rail and end in a rounded cap.
       const top = sx < 0 ? 0.748 : 0.76;
       add(squareBar(new THREE.Vector3(sx * postX(0), 0.004, postZ(0)), new THREE.Vector3(sx * postX(top), top, postZ(top)), W, 0.9));
-      const cap = new RoundedBoxGeometry(W * 1.12, W * 0.9, W * 1.12, 3, W * 0.42);
+      // A flattened dome, the post's own width.
+      const cap = new RoundedBoxGeometry(W, W * 0.5, W, 3, W * 0.24);
       edgeWear(cap);
       const cuv = cap.attributes.uv;
       for (let k = 0; k < cuv.count; k++) cuv.setXY(k, cuv.getX(k) * W * 2.2 + 0.3, cuv.getY(k) * W * 2.2 * 0.5);
-      add(cap, new THREE.Matrix4().makeTranslation(sx * postX(top), top + W * 0.4, postZ(top)));
+      add(cap, new THREE.Matrix4().makeTranslation(sx * postX(top), top + W * 0.2, postZ(top)));
     }
 
     // Back: a wider top rail and two slats, tenoned into the posts, following their rake.
@@ -295,6 +296,8 @@ function bakeWear(g: THREE.BufferGeometry, seatTop: number) {
       k -= 0.25 * Math.exp(-(((y - (seatTop - 0.035)) / 0.018) ** 2));
     }
     if (nor.getY(i) < -0.5) k -= 0.3;
+    // Upper faces answer the skylight: paler, polished by hands and use.
+    if (nor.getY(i) > 0.5) k += 0.12;
     // Where the rails go into the posts.
     if (y > 0.46 && Math.abs(Math.abs(x) - 0.148) < 0.02) k -= 0.15;
     // Seat: worn pale across the front edge and in the middle where someone sat.
@@ -306,6 +309,7 @@ function bakeWear(g: THREE.BufferGeometry, seatTop: number) {
     if (y > 0.62) k += 0.14 * Math.exp(-((x / 0.07) ** 2));
     // Feet: darker, from the floor.
     if (y < 0.06) k -= 0.18 * (1 - y / 0.06);
+    if (y < 0.3) k -= 0.1 * (1 - y / 0.3);
     col[i * 3] = col[i * 3 + 1] = col[i * 3 + 2] = k;
   }
   g.setAttribute('color', new THREE.BufferAttribute(col, 3));

@@ -49,7 +49,7 @@ export function woodMaps(seed = 7): { map: THREE.CanvasTexture; rough: THREE.Can
   const img = g.createImageData(W, H);
   const rimg = rg.createImageData(W, H);
   const warp = makeNoise(seed), fig = makeNoise(seed + 1), pore = new Rng(seed + 2);
-  const light = [180, 138, 108], dark = [124, 92, 70], deep = [64, 45, 32];
+  const light = [176, 140, 114], dark = [122, 93, 73], deep = [62, 45, 33];
   // Real wood's fine structure (scans.ts): the members' straight grain, the seat's worn board.
   // The members' scan has its grain running down the image, so it is turned to run along U.
   const grainScan = scanDetail('wood-grain'), seatScan = scanDetail('wood-seat');
@@ -87,15 +87,16 @@ export function woodMaps(seed = 7): { map: THREE.CanvasTexture; rough: THREE.Can
         // Edges darker and rougher: dust and old finish where nobody sits or holds.
         const ex = Math.min(x, seatW - x) / seatW, ey = Math.min(y, seatH - y) / seatH;
         const edge = 1 - Math.min(1, Math.min(ex / 0.12, ey / 0.16));
-        shade *= 1 - 0.35 * edge;
-        rough += 0.12 * edge;
+        shade *= 1 - 0.2 * edge;
+        // Polished where people sat: smoother at the middle, so the key leaves a sheen there.
+        rough += 0.12 * edge - 0.12 * (1 - edge);
       }
       t = Math.min(1, Math.max(0, t));
       const a = t < 0.6 ? t / 0.6 : 1;
       const b = t < 0.6 ? 0 : (t - 0.6) / 0.4;
       const i = (y * W + x) * 4;
       const at = atlasMetres(x, y, W, H, seatH, seatW);
-      const sz = at.seat ? (seatScan ? 0.16 * sampleDetail(seatScan, at.a, at.b) : 0) : grainScan ? 0.08 * sampleDetail(grainScan, -at.b, -at.a) : 0;
+      const sz = at.seat ? (seatScan ? 0.24 * sampleDetail(seatScan, at.a, at.b) : 0) : grainScan ? 0.08 * sampleDetail(grainScan, -at.b, -at.a) : 0;
       shade *= 1 + sz;
       // The seat's top has gone amber (oil and years), the legs stay the darker, redder walnut.
       const amber = inSeat && x < seatW ? [1, 1.06, 1.06] : [1, 1, 1];
