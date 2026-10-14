@@ -13,7 +13,7 @@ import sys
 from pathlib import Path
 
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageFilter
 
 D = Path(sys.argv[1])
 data = json.loads((D / 'style.json').read_text())
@@ -89,8 +89,12 @@ def ink_contrast(img, box):
     dE = float(np.linalg.norm(lw - li))
     dC = float(abs(np.hypot(li[1], li[2]) - np.hypot(lw[1], lw[2])))
     # Contrast against the surface's own texture (the skeptic, scanned round): the ink's step
-    # over the spread of the bare surface round it, which a grainier plaster can mask.
-    bare = L[L >= np.percentile(L, 40)]
+    # over the spread of the bare surface round it, which a grainier plaster can mask. Texture
+    # only: the light's own smooth fall across the box is taken out first (high-pass, 4 px).
+    box = img[y0:y1, x0:x1]
+    Lb = box @ np.array([0.2126, 0.7152, 0.0722])
+    hp = Lb - np.asarray(Image.fromarray(np.clip(Lb, 0, 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(4))).astype(float)
+    bare = hp[Lb >= np.percentile(Lb, 40)]
     cnr = (wall - ink) / max(0.5, float(bare.std()))
     return {'wall': round(wall, 1), 'ink': round(ink, 1), 'weber': round((wall - ink) / max(1.0, wall), 3), 'dE': round(dE, 1), 'dC': round(dC, 1), 'cnr': round(cnr, 1)}
 
