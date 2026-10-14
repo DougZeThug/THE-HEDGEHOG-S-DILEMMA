@@ -1,5 +1,6 @@
 import { lifeTimeline, leaveTimeline, type Sway } from './behaviours';
 import { compose, type Weights } from './compose';
+import { seek } from './gsapClock';
 import { CueDispatch, type Due } from './cueDispatch';
 import type { Lifecycle, Marker, MemoryFrame, ReleaseReason, TimelineSource, Values } from './types';
 
@@ -178,8 +179,8 @@ export class MemoryPlaybackController {
         break;
       }
     }
-    this.life.time(t, true);
-    if (this.leave) this.leave.time(t - this.released, true);
+    seek(this.life, t);
+    if (this.leave) seek(this.leave, t - this.released);
     const base = this.o.timeline.at(this.pos);
     const env = { ...this.env };
     const frame: MemoryFrame = { state: this._state, t, position: this.pos, base, env, final: compose(base, env, this.o.weights) };
@@ -210,7 +211,7 @@ export class MemoryPlaybackController {
         this.leave = leaveTimeline(this.env, { reduced: this.o.reduced, mode: 'natural', dissolve: Math.max(0.5, s.residue - s.exit), exit: this.o.exit, residue: this.o.residue });
       }
       this.released = s.exit;
-      this.leave.time(p - s.exit, true);
+      seek(this.leave, p - s.exit);
     } else if (this.leave) {
       this.leave.kill();
       this.leave = null;
@@ -218,7 +219,7 @@ export class MemoryPlaybackController {
       this.env.exit = 1;
       this.env.residue = 0;
     }
-    this.life.time(this._t, true);
+    seek(this.life, this._t);
     this.dispatch.seek(p);
     this.o.audio?.seek(p);
     const base = this.o.timeline.at(p);

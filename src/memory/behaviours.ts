@@ -46,11 +46,13 @@ export function sway(tl: gsap.core.Timeline, env: Values, s: Sway, reduced: bool
   env[s.key] = 0;
   if (reduced || s.amp === 0) return;
   const half = s.period / 2;
-  const inner = gsap.timeline({ repeat: -1, yoyo: true });
-  inner.fromTo(env, { [s.key]: -s.amp }, { [s.key]: s.amp, duration: half, ease: 'sine.inOut' });
-  // Fade the breath in over a period, so it starts from stillness.
   const start = s.at + (s.phase ?? 0) * s.period;
-  tl.add(inner, start);
+  // It starts from stillness: still until `start`, then a first half-breath out from rest, then
+  // the endless breath (nothing is rendered ahead of its time).
+  tl.fromTo(env, { [s.key]: 0 }, { [s.key]: s.amp, duration: half, ease: 'sine.inOut', immediateRender: false }, start);
+  const inner = gsap.timeline({ repeat: -1, yoyo: true });
+  inner.fromTo(env, { [s.key]: s.amp }, { [s.key]: -s.amp, duration: half, ease: 'sine.inOut', immediateRender: false });
+  tl.add(inner, start + half);
 }
 
 /** Leaving, on time since release: the mask receding, or (interrupted) a quicker graceful exit. */

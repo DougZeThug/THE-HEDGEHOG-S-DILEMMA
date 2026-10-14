@@ -121,6 +121,22 @@ describe('behaviours: paused GSAP timelines on the room clock', () => {
     expect(gsap.globalTimeline.getChildren().length).toBe(before);
   });
 
+  it('a breath starts from stillness, never from its full amplitude', () => {
+    const env: Values = {};
+    const tl = lifeTimeline(env, { reduced: false, entrance: 2, sways: [{ key: 'sway:curtain.x', amp: 0.02, period: 4, at: 5 }] });
+    for (const t of [0, 2, 4.9]) {
+      tl.time(t, true);
+      expect(env['sway:curtain.x']).toBe(0);
+    }
+    tl.time(5.4, true);
+    expect(Math.abs(env['sway:curtain.x'])).toBeLessThan(0.005);
+    tl.time(7, true);
+    expect(env['sway:curtain.x']).toBeCloseTo(0.02, 6);
+    tl.time(2, true); // seeking back is still again
+    expect(env['sway:curtain.x']).toBe(0);
+    tl.kill();
+  });
+
   it('reduced motion: no sway at all, and a slower entrance', () => {
     const env: Values = {};
     const tl = lifeTimeline(env, { reduced: true, entrance: 2, sways: [{ key: 'sway:curtain.x', amp: 0.02, period: 4, at: 0 }] });
@@ -261,6 +277,18 @@ describe('the playback controller: one clock, a clear lifecycle', () => {
     expect(audio.log.filter((l) => l.startsWith('seek')).length).toBe(5);
     expect(c.scrub(18).state).toBe('withdrawing');
     expect(c.scrub(21).state).toBe('residue');
+  });
+
+  it("GSAP's ticker never runs a loop of its own, however the memory is stepped or scrubbed", async () => {
+    const { c } = controller();
+    c.start();
+    run(c, 30);
+    c.scrub(4);
+    c.scrub(19);
+    const frame = gsap.ticker.frame;
+    await new Promise((r) => setTimeout(r, 150));
+    expect(gsap.ticker.frame).toBe(frame);
+    c.dispose();
   });
 
   it('a hundred rapid starts and stops leave no timelines and no sound behind', () => {

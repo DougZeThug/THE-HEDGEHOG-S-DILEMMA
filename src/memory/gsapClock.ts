@@ -18,3 +18,12 @@ export { gsap };
 export function quiet(): void {
   gsap.ticker.sleep();
 }
+
+/**
+ * Position a paused timeline. Rendering wakes GSAP's ticker (it would then run a frame loop for
+ * the rest of the visit, ticking nothing); put it straight back to sleep. Every seek goes here.
+ */
+export function seek(tl: gsap.core.Timeline, t: number): void {
+  tl.time(t, true);
+  gsap.ticker.sleep();
+}
