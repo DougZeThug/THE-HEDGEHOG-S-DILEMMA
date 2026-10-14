@@ -227,5 +227,15 @@
     "sfx-eraser-1.mp3",
     "sfx-eraser-2.mp3",
     "sfx-eraser-3.mp3"
+  ],
+  "mem:kitchen-air": [
+    "mem-kitchen-air-1.mp3"
+  ],
+  "mem:spoon-bowl": [
+    "mem-spoon-bowl-1.mp3",
+    "mem-spoon-bowl-2.mp3"
+  ],
+  "mem:laugh": [
+    "mem-laugh-1.mp3"
   ]
 }

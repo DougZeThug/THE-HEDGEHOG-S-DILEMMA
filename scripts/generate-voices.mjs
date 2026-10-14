@@ -89,34 +89,38 @@ const ASSETS = {
   'sfx:chair-creak': [
     [`a small old wooden chair creaking once softly as weight shifts, close, quiet room, ${DRY}`, 1.5],
   ],
-  // The living memories (docs/memories.md): sounds heard inside a remembered place, a little
-  // removed, as if through the wall the memory forms in. Beds loop; one-shots are placed by the
-  // memory's cue sheet. Drafts for the sound designer's review before anything is generated.
-  'mem:kitchen-evening': [
-    [`a small home kitchen in the early evening heard from the doorway, a faint fridge hum, a clock ticking softly, the odd quiet household sound, warm and calm, no voices, no music, steady room tone`, 10],
+  // The living memories (docs/memories.md, docs/reviews/2026-10-living-memories.md). Generated
+  // close and dry at an even level, with no baked fade: distance, direction and place come from
+  // the engine (prompts that ask for distance come back near-silent here: −54 to −64 dB). Beds
+  // are asked for as seamless loops; one-shots are placed by each memory's cue sheet.
+  'mem:kitchen-air': [
+    // (A first take asking for a "far-off hush" came back at −72 dB mean, unusable.)
+    [`the room tone of a small sunny kitchen with the window open, recorded at a normal level: soft continuous outdoor air and leaves rustling gently, even and steady, clearly audible, nothing happening, no voices, no music, no ticking`, 8, { loop: true }],
   ],
   'mem:spoon-bowl': [
-    [`a metal spoon gently tapping and scraping the inside of a ceramic cereal bowl twice, unhurried, at a kitchen table, slightly distant, no voices`, 1.5],
-    [`a spoon set down softly into an empty ceramic bowl with one small clink, domestic, slightly distant`, 1.5],
+    [`two metal spoons in two ceramic cereal bowls at a small kitchen table, a few unhurried clinks and soft scrapes, overlapping, no chewing, no voices, ${DRY}`, 3],
+    [`a spoon laid down in an empty ceramic bowl, one small clink and a brief rattle as it settles, then nothing, ${DRY}`, 1.5],
   ],
-  'mem:footsteps-away': [
-    [`slow footsteps in socks on old wooden floorboards walking away down a hallway, fading out, a quiet house, slightly muffled, no voices`, 5],
+  'mem:laugh': [
+    [`two people at a kitchen table laughing together at something silly, a short warm unforced burst of shared laughter that trails off, no words, ${DRY}`, 3],
   ],
-  'mem:footsteps-near': [
-    [`slow, careful footsteps on old wooden floorboards approaching from the far end of a hallway and stopping, a quiet house, slightly muffled, no voices`, 5],
+  'mem:footsteps': [
+    [`someone walking slowly at an even pace on old creaky wooden floorboards in soft slippers, six unhurried steps, each with a small creak, even level throughout, no voices, ${DRY}`, 5],
+    [`slow careful footsteps on old wooden hallway floorboards, five steps then stopping, a small creak under the last step, even level, no voices, ${DRY}`, 5],
   ],
   'mem:floorboard': [
-    [`a single old wooden floorboard creaking once under someone's weight somewhere down a hallway, quiet house, distant, nothing else`, 1.5],
-    [`one soft low creak of a floorboard in another room, then silence, distant`, 1.5],
+    [`a single old wooden floorboard creaking once under shifting weight, a slow low groan, then silence, ${DRY}`, 1.5],
+    [`one short dry creak of an old floorboard settling on its own, nobody walking, ${DRY}`, 1.5],
   ],
-  'mem:birds-distant': [
-    [`distant birdsong outside an open bedroom window on a quiet morning, a few small birds far away, gentle, sparse, no wind noise, no traffic`, 8],
+  'mem:bird': [
+    [`a single small songbird outside singing one short bright phrase, then silence, natural, no other birds, no wind, no traffic`, 2.5],
+    [`two small sparrow chirps outside a window, then silence, natural, no other birds, no wind, no traffic`, 2.5],
   ],
   'mem:curtain-breeze': [
-    [`a light cotton curtain moving softly in a gentle breeze at an open window, a faint airy rustle that rises and settles, close but quiet`, 4],
+    [`a light cotton curtain lifting and falling once in a soft breeze at an open window, a gentle cloth rustle that rises and settles, close, no wind rumble, no whoosh`, 3],
   ],
   'mem:bedroom-air': [
-    [`the still air of a quiet sunlit bedroom with the window open, very soft distant outdoor ambience, peaceful, steady room tone, no voices, no music`, 8],
+    [`the quiet even air of a sunlit bedroom with the window open on a summer morning, leaves stirring faintly in trees outside, a soft far-off hush, continuous and steady, nothing happening, no birds, no voices, no music`, 8, { loop: true }],
   ],
   'style:distant': [
     // (A first variant here consistently came back near-silent and was removed.)
@@ -150,7 +154,7 @@ if (!balance.ok) process.exit(1);
 for (const [key, variants] of Object.entries(ASSETS)) {
   if (ONLY && !ONLY.includes(key)) continue;
   const files = [];
-  for (const [i, [text, duration]] of variants.entries()) {
+  for (const [i, [text, duration, opts]] of variants.entries()) {
     const file = fileOf(key, i);
     const path = join(OUT, file);
     if (existsSync(path) && !force) {
@@ -160,7 +164,8 @@ for (const [key, variants] of Object.entries(ASSETS)) {
     const res = await fetch('https://api.elevenlabs.io/v1/sound-generation?output_format=mp3_44100_128', {
       method: 'POST',
       headers: { 'xi-api-key': KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, duration_seconds: duration, prompt_influence: 0.55 }),
+      // A bed asks for a seamless loop (the v2 sound model's option).
+      body: JSON.stringify({ text, duration_seconds: duration, prompt_influence: 0.55, ...(opts?.loop ? { loop: true, model_id: 'eleven_text_to_sound_v2' } : {}) }),
     });
     if (!res.ok) {
       console.error(`✗ ${file}: ${res.status} ${(await res.text()).slice(0, 200)}`);

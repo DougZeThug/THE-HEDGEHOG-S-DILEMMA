@@ -1,5 +1,5 @@
 {
-  "spent": 216,
+  "spent": 475,
   "entries": {
     "sfx-switch-1.mp3": {
       "key": "sfx:switch",
@@ -71,6 +71,38 @@
       "duration": 1.5,
       "cost": 17,
       "at": "2026-10-13T16:39:12.126Z",
+      "review": "pending"
+    },
+    "mem-kitchen-air-1.mp3": {
+      "key": "mem:kitchen-air",
+      "text": "the room tone of a small sunny kitchen with the window open, recorded at a normal level: soft continuous outdoor air and leaves rustling gently, even and steady, clearly audible, nothing happening, no voices, no music, no ticking",
+      "duration": 8,
+      "cost": 88,
+      "at": "2026-10-14T17:58:40.286Z",
+      "review": "pending"
+    },
+    "mem-spoon-bowl-1.mp3": {
+      "key": "mem:spoon-bowl",
+      "text": "two metal spoons in two ceramic cereal bowls at a small kitchen table, a few unhurried clinks and soft scrapes, overlapping, no chewing, no voices, dry, intimate, close, natural home recording, no music, no reverb tail",
+      "duration": 3,
+      "cost": 33,
+      "at": "2026-10-14T17:58:13.723Z",
+      "review": "pending"
+    },
+    "mem-spoon-bowl-2.mp3": {
+      "key": "mem:spoon-bowl",
+      "text": "a spoon laid down in an empty ceramic bowl, one small clink and a brief rattle as it settles, then nothing, dry, intimate, close, natural home recording, no music, no reverb tail",
+      "duration": 1.5,
+      "cost": 17,
+      "at": "2026-10-14T17:58:14.882Z",
+      "review": "pending"
+    },
+    "mem-laugh-1.mp3": {
+      "key": "mem:laugh",
+      "text": "two people at a kitchen table laughing together at something silly, a short warm unforced burst of shared laughter that trails off, no words, dry, intimate, close, natural home recording, no music, no reverb tail",
+      "duration": 3,
+      "cost": 33,
+      "at": "2026-10-14T17:58:17.146Z",
       "review": "pending"
     }
   }
