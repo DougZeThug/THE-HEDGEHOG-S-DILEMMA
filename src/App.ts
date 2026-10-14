@@ -348,7 +348,11 @@ export class App {
           label: 'cereal, now',
           run: () => {
             if (!this.text.anchorOf('cereal')) this.text.setShown('cereal');
-            void this.playMemory('cereal', 'cereal');
+            // Walk to where it is seen whole, face it, and begin once the line is there.
+            setTimeout(() => {
+              this.frameMemory('cereal');
+              void this.playMemory('cereal', 'cereal');
+            }, 600);
           },
         },
       ],
