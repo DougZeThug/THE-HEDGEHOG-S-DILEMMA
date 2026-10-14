@@ -28,7 +28,8 @@ import { Voices, type VoicePlacement, type Played } from './audio/Voices';
 import { openingScore, levelsAt, stageAt, ROOM_LEVELS, OPENING_WRITTEN, OPENING_SPOKEN, OPENING_UNFINISHED, type Score, type Levels, type Stage, type ScoreEvent } from './state/OpeningScore';
 import VOICE_TIMINGS from './content/voice-timings.json';
 import { Captions } from './ui/Captions';
-import { loadPrefs, savePrefs, readVisits, writeVisits, forgetVisits, readOpeningSeen, writeOpeningSeen, type Prefs } from './ui/prefs';
+import { loadPrefs, savePrefs, readVisits, writeVisits, forgetVisits, readOpeningSeen, writeOpeningSeen, readMemoryCounts, writeMemoryCounts, type Prefs } from './ui/prefs';
+import { SCENE_BY_PHRASE } from './content/memories';
 import { LocalInterpreter } from './interpret/LocalInterpreter';
 import type { Interpreter } from './interpret/Interpreter';
 import { clamp } from './core/math';
@@ -83,7 +84,10 @@ export class App {
   /** A living memory in the plaster (src/memory): neutral and on the wall from boot, so it is compiled with the room. */
   readonly memoryWindow = new MemoryWindow();
   /** The living memory playing now (at most one), and the writing it formed round. */
-  private living: { memory: LivingMemory; id: string; key: string; anchor: NonNullable<ReturnType<WallText['anchorOf']>>; bled: boolean; hiddenSince: number | null; held: boolean } | null = null;
+  private living: { memory: LivingMemory; id: string; key: string; anchor: NonNullable<ReturnType<WallText['anchorOf']>>; bled: boolean; hiddenSince: number | null; held: boolean;
+    /** Seconds looking away from it, and watching it; why it was let go. */
+    awayFor: number; watched: number; minHold: number; why: string | null;
+  } | null = null;
   private memoryClock = new MemoryClock();
   /** Theatre Studio's ticker, while the Memory Editor is open (development only). */
   studioTick: ((now: number) => void) | null = null;
@@ -150,6 +154,7 @@ export class App {
     this.director = new Director({
       seed,
       visits: this.visits + 1,
+      memoryCounts: readMemoryCounts(),
       situations: forced,
       // Where each piece of writing is, for situations that relate place to memory.
       geometry: (id) => {
@@ -416,9 +421,12 @@ export class App {
     const memory = new rt.LivingMemory(prepared, {
       reduced: this.prefs.reducedMotion,
       gentle: this.prefs.intensity === 'gentle',
-      onState: (s) => this.memoryState(s),
+      onState: (s, why) => {
+        if (why && this.living) this.living.why ??= why;
+        this.memoryState(s);
+      },
     });
-    this.living = { memory, id, key: a.key, anchor: a, bled: false, hiddenSince: null, held: false };
+    this.living = { memory, id, key: a.key, anchor: a, bled: false, hiddenSince: null, held: false, awayFor: 0, watched: 0, minHold: SCENE_BY_PHRASE.get(phraseId)?.minHold ?? 8, why: null };
     this.memoryClock.reset();
     // The room hushes round it, until it lets go.
     this.audio?.silence(prepared.def.hush, 3600, 1.4);
@@ -446,6 +454,13 @@ export class App {
       this.memoryWindow.release();
       l.memory.prepared.dispose();
       this.living = null;
+      // Seen: watched past its first moments. It ran to its end if nobody let it go early.
+      const seen = l.watched >= Math.min(l.minHold, 8);
+      if (this.director.memoryEnded(l.id, seen, l.why === null || l.why === 'complete')) {
+        const counts = readMemoryCounts();
+        counts[l.id] = (counts[l.id] ?? 0) + 1;
+        writeMemoryCounts(counts);
+      }
     }
   }
 
@@ -468,6 +483,34 @@ export class App {
     return { state: f.state, position: f.position, final: f.final };
   }
 
+  /**
+   * Is the visitor still with the memory? Judged by the painting, not by which line the gaze
+   * rests on (a painting larger than its words is still being watched when the eye wanders
+   * over it). Looking away lets it go after its minimum hold (2 s, or 3 s on a touch screen,
+   * looking back cancels it); walking off lets it go; stepping back to see it whole, or coming
+   * closer, never does. Looked away from for 6 s before anyone saw it: it withdraws, unspent.
+   */
+  private judgeMemoryAttention(l: NonNullable<App['living']>, dt: number) {
+    const c = l.memory.controller;
+    if (dt <= 0 || (c.state !== 'emerging' && c.state !== 'active')) return;
+    const cam = this.rig.camera;
+    const mesh = this.memoryWindow.mesh;
+    const centre = mesh.getWorldPosition(new THREE.Vector3());
+    const to = centre.clone().sub(cam.position);
+    const dist = to.length();
+    const fwd = cam.getWorldDirection(new THREE.Vector3());
+    const half = Math.atan2(mesh.scale.x / 2, Math.max(0.1, dist));
+    const away = fwd.angleTo(to) > half + THREE.MathUtils.degToRad(10);
+    l.awayFor = away ? l.awayFor + dt : 0;
+    if (!away) l.watched += dt;
+    if (c.t < l.minHold) {
+      if (l.awayFor > 6) this.endLivingMemory('look-away');
+      return;
+    }
+    if (l.awayFor > (this.touch ? 3 : 2)) this.endLivingMemory('look-away');
+    else if (away && dist > 4.5) this.endLivingMemory('walk-away');
+  }
+
   private stepLivingMemory() {
     this.studioTick?.(performance.now());
     const l = this.living;
@@ -486,6 +529,7 @@ export class App {
       if (performance.now() - l.hiddenSince > 10000) this.endLivingMemory('hidden');
     } else l.hiddenSince = null;
     const dt = this.memoryClock.tick(performance.now() / 1000, this.audio?.ctx.currentTime ?? 0, this.audio?.ctx.state === 'running', paused);
+    this.judgeMemoryAttention(l, dt);
     const frame = l.memory.step(dt);
     if (frame) this.memoryWindow.update(frame.final, this.rig.restingEye, dt);
   }
@@ -889,6 +933,12 @@ export class App {
       case 'erode':
         this.text.erode(cue.key, cue.keep, this.time);
         break;
+      case 'memory-scene': {
+        void this.playMemory(cue.id, cue.phraseId, cue.variant).then((ok) => {
+          if (!ok) this.director.memoryFailed(cue.id);
+        });
+        break;
+      }
       case 'memory': {
         const a = this.text.anchorOf(cue.phraseId, this.gazeId ?? this.lastTappedKey);
         if (!a) break;
@@ -1257,6 +1307,17 @@ export class App {
       const p = v.clone().project(cam);
       return { x: ((p.x + 1) / 2) * innerWidth, y: ((1 - p.y) / 2) * innerHeight, front: p.z < 1 };
     };
+    // During a living memory, a touch on the painting or its line means "I'm staying"; a touch
+    // anywhere else lets it go, then does what it would have done.
+    const l = this.living;
+    if (l && !l.held && (l.memory.state === 'emerging' || l.memory.state === 'active')) {
+      const onWindow = this.raycaster.intersectObject(this.memoryWindow.mesh, false).length > 0;
+      if (onWindow) {
+        l.awayFor = 0;
+        return;
+      }
+      this.endLivingMemory('interrupt');
+    }
     const chairAt = toScreen(this.chair.group.position.clone().setY(0.4));
     const chairHit = this.raycaster.intersectObject(this.chair.hit, false).length > 0 || (chairAt.front && Math.hypot(chairAt.x - x, chairAt.y - y) < 56);
     if (chairHit) {
@@ -1313,8 +1374,16 @@ export class App {
     this.lastTappedKey = it.key;
     if (pid) this.director.tapped({ phraseId: pid });
     const c = it.centre;
+    // A line that opens into a memory: stop where its painting is seen whole (on a portrait
+    // phone 1.25 m shows only about a metre of wall).
+    let stop = 1.25;
+    if (pid && SCENE_BY_PHRASE.has(pid)) {
+      const hfov = 2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(cam.fov) / 2) * cam.aspect);
+      const w = THREE.MathUtils.clamp(it.placement.w * 0.95, 0.8, 1.3);
+      stop = Math.max(1.25, (1.15 * w) / (2 * Math.tan(hfov / 2)));
+    }
     if (it.placement.surface === 'ceiling') this.rig.faceToward(c);
-    else this.rig.attend(c, it.placement.surface === 'floor' ? 0.8 : 1.25);
+    else this.rig.attend(c, it.placement.surface === 'floor' ? 0.8 : stop);
   }
 
   /** Once, if a touch visitor hasn't touched anything yet: that the words and the chair can be touched. */
@@ -1492,6 +1561,8 @@ export class App {
   }
 
   openContribute() {
+    // Writing is another thing to do: the memory lets go.
+    this.endLivingMemory('interrupt');
     if (this.mode !== 'room') return;
     this.mode = 'contribute';
     if (document.pointerLockElement) document.exitPointerLock();
@@ -1525,6 +1596,7 @@ export class App {
 
   depart() {
     if (this.mode !== 'settings' && this.mode !== 'room') return;
+    this.endLivingMemory('depart');
     $('settings').hidden = true;
     this.mode = 'departed';
     void this.wakeLock?.release().catch(() => {});

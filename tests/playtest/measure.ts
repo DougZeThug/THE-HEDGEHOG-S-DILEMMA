@@ -84,6 +84,9 @@ function classify(cue: Cue): { kind: Kind; label: string; recorded: boolean; sur
       return { kind: 'light', label: cue.type, recorded: false };
     case 'memory':
       return { kind: 'light', label: `memory ${cue.phraseId}`, recorded: false, surface: PHRASE_BY_ID.get(cue.phraseId)?.surface };
+    case 'memory-scene':
+      // It opens on the line being looked at, wherever that is written: always seen.
+      return { kind: 'light', label: `memory-scene ${cue.id}`, recorded: false };
     case 'chairTurn':
     case 'chairNudge':
       return { kind: 'chair', label: cue.type, recorded: false };
@@ -133,7 +136,15 @@ export function visit(p: Persona, seconds: number, seed: number, dt = 0.1): Visi
   const phases: { phase: string; t: number }[] = [];
   let phase = d.phase;
   const tapper = d as unknown as { tapped?: (t: { phraseId?: string; chair?: boolean }) => boolean };
+  // A living memory, as the App plays it: it runs to its natural close (about 22 s, then its
+  // residue) unless the visitor leaves, and then reports back. Seen while it plays: it opens on
+  // the line being looked at.
+  let memoryEndsAt: { id: string; at: number } | null = null;
   for (let t = 0; t < seconds; t += dt) {
+    if (memoryEndsAt && t >= memoryEndsAt.at) {
+      d.memoryEnded(memoryEndsAt.id, true, true);
+      memoryEndsAt = null;
+    }
     const f = p.frame(t);
     if (f.tap && tapper.tapped) taps += tapper.tapped(f.tap.chair ? { chair: true } : { phraseId: f.tap.phrase }) ? 1 : 0;
     const facing = facingOf(f.yaw);
@@ -149,8 +160,14 @@ export function visit(p: Persona, seconds: number, seed: number, dt = 0.1): Visi
         t: +(t + dt).toFixed(1), rule: c.rule, kind: k.kind, recorded: k.recorded, label: k.label,
         responsive: RESPONSIVE.test(c.rule),
         seen: k.kind !== 'text' || !k.surface || k.surface === facing || k.surface === 'floor' || (k.surface === 'ceiling' && f.pitch > 0.4),
-        holdUntil: (c.rule === 'held-silence' || c.rule === 'still-silence') && c.cue.type === 'silence' ? t + dt + c.cue.seconds : undefined,
+        holdUntil:
+          (c.rule === 'held-silence' || c.rule === 'still-silence') && c.cue.type === 'silence'
+            ? t + dt + c.cue.seconds
+            : c.cue.type === 'memory-scene'
+              ? t + dt + Math.min(c.cue.maxHold, 22) + 6
+              : undefined,
       });
+      if (c.cue.type === 'memory-scene') memoryEndsAt = { id: c.cue.id, at: t + dt + Math.min(c.cue.maxHold, 22) + 6 };
     }
     for (const w of WINDOWS) {
       if (t < w && t + dt >= w) {
