@@ -129,3 +129,61 @@ QA, the creative director, the technical artist and the cinematic director evalu
 - **Advised against, and not done:**
   - adding vignette to darken the floor's front corners;
   - pushing warmth past the light toward the reference's sepia.
+
+## Round 2: the artist's comparisons
+
+**"It still doesn't completely look like the reference image."** Side by side, the remaining gaps were:
+- **Framing:** the reference looks from low, centred and closer.
+- **Walls:** visible plaster texture and grime.
+- **Floor:** a pool of light on grey concrete.
+- **The chair's shape.**
+
+The reviewers had left the grime and the framing out, so the artist was asked. They chose:
+- **Walls:** "Texture, no stains": much more visible plaster and graphite smudges, no streaks or water stains.
+- **Viewpoint:** "Opening only": the opening framed like the reference, rising to standing height when the visitor walks.
+- **Chair:** "Like the reference": a square-legged ladder-back, still small.
+
+**"The lighting and detail is also better in the reference."** Added:
+- **The skylight's glow**, so the wall behind the chair is lit from its top centre and the ceiling round the opening. It is an unshadowed light a metre under the glass, part of the look, and it comes and goes with the room's own light.
+- **A gentle luminance S-curve** in the grade.
+- **Fine surface detail:** specks, pits and hairline scratches in the plaster and concrete, and a glossier floor by the chair.
+
+### What was built
+- **The opening:** eye 1.1 m (a child's eye height), centred, 2.45 m back; landscape is 6° wider.
+  - A deliberate first step stands the visitor up: a third of a second of walking, or 15 cm, or being walked toward something.
+  - The rise is one eased movement over 2.8 s, the view narrowing with it. Looking around doesn't trigger it.
+  - Under reduced motion, after leaving and returning, or when reduced motion is turned on, the visitor is standing.
+  - A desktop visitor still seated 25 s after the hand-off is told once that they can walk.
+- **The chair:** square tapered legs eased at the arrises, raked posts (one 12 mm short), a top rail and two slats (one 0.055 rad off level), square stretchers, a two-board seat (55/45).
+- **The walls:** plaster tooth a few centimetres across, and gentle broad mottling. The large dark clouds of a first try read as damp, and its large pits as spots; both were removed. Fine specks, pits and scratches. Graphite drags and thumbs under the lines present at the start. A crisp lit top edge.
+- **The floor:** sealed concrete darker than the walls, with a soft sheen by the chair. It is greyer and duller away from the chair, in neutral grey (brown read as dirt).
+- **Light:**
+  - the skylight's glow;
+  - the key's cone at 0.65;
+  - the ceiling bounce at 6;
+  - the reveal of the skylight a hard bevelled ring (a feathered halo read as bloom);
+  - contrast 0.35.
+
+### Evaluations of this round
+- **Creative director.** The composition now matches the reference: the chair's centre, height and the floor line within 2–3%. What separated them was surface and tone, and was fixed:
+  - the wall texture's scale;
+  - the floor's tonal structure;
+  - the wall's top edge;
+  - the chair's split values;
+  - the skylight as a fitting.
+
+  Deliberately left:
+  - the room's proportion (the reference's room is taller or narrower; re-laying every wall's writing for it isn't worth it);
+  - the writing's content, the crayon, stains and sepia, and the chair's shadow without legs.
+
+  The low view gave the opening a meaning worth keeping: the diorama as the child who made it saw it. The first step stands the visitor up into an adult, and the chair becomes too small.
+- **Interaction designer:**
+  - **The phone's spawn sat just inside the Director's hard 2.4 m "far" edge,** so a still phone visitor lost most of the solitude arc (solitude 0.16 against 0.70 at 300 s). Being apart now counts in proportion from 1.7 to 2.3 m, and the air writing answers someone who never came near from 2.1 m. This is tested at both spawns, and the personas now start where the opening leaves the visitor.
+  - **A key tap or a thumb's drift stood the visitor up,** and the rise lurched. Fixed as above.
+- **QA:**
+  - **The first line lost its "I" on narrow phones.** The portrait opening is now as far back as the landscape one and turned 0.07 rad.
+  - **Turning reduced motion on didn't stop the rise.** It stands the visitor now.
+  - **The harnesses took their fixed views from the seated height.** They now stand the rig first.
+  - **Captions on desktop lay over the chair's feet.** Landscape captions now sit lower.
+  - **Smaller items:** the wider view on rotation, the click area, and the ring's corner creases.
+  - Programs: 16, none later. Draw calls: 33 still, 49 when the shadow redraws. The new chair is 5k triangles (the old one 27k).

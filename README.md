@@ -61,28 +61,28 @@ For inspection: add `?debug` to the URL for a live overlay of the engine's state
 Minimal, but authored. The emptiness is meant to look chosen, not default.
 
 - **Surfaces** are painted once at load (`src/world/surfaces.ts`):
-  - off-white, hand-trowelled plaster with broad mottling and faint horizontal passes;
-  - a subtly varied matte floor, slightly smoother along the path people walk in, scuffed in arcs around the chair;
+  - off-white, hand-trowelled plaster: broad gentle mottling, faint horizontal passes, a fine tooth a few centimetres across, specks, small pits and hairline scratches;
+  - sealed concrete, a shade darker than the walls: cloudy, with a soft sheen where people stand by the chair, slightly smoother along the path people walk in, scuffed in arcs around the chair, duller and greyer further from it;
   - a ceiling a little cooler than the walls, with the faintest board joints;
-  - soft grey trim: a skirting, and a soft shadow a few centimetres deep above it and where the walls meet the ceiling (not a ruled line).
+  - a grey painted skirting, and a soft shadow a few centimetres deep above it and where the walls meet the ceiling (not a ruled line).
+  - the writer's hand: graphite dragged along under the lines on the walls and a thumb at their ends; a few smudges elsewhere, an eraser's paler halo.
 - **Physical history**, faint, but there to be found from a metre or two:
   - writing that was rubbed out: a single "you" in the empty space behind the chair, an apology lower and off to one side, and not only confessions (somewhere, a shopping list);
   - masking-tape residue around paler rectangles where something once hung;
   - pencil height marks with an initial near one corner, and a few days counted in fives low on the wall behind you;
   - scuffs along the skirting, graphite dust settled above it under the busiest writing, soft occlusion in every corner;
   - on the floor, a little to one side, the pressed marks of where the chair used to stand.
-- **Light** comes almost entirely from one frosted overhead panel, hung slightly north of the chair.
-  - The floor is brightest around the chair. The wall you read is the brightest wall; the side walls, the top corners and the ceiling fall away from it.
+- **Light** comes almost entirely from one frosted overhead panel, hung slightly north of the chair, set back in the ceiling (its reveal catches the light).
+  - The floor is brightest around the chair. The wall you read is the brightest wall, washed from its top centre by the skylight's glow; the side walls, the corners and the ceiling fall away from it, the ceiling brightest round the opening.
   - The light is cream rather than white. The warmth is in the light alone, never the plaster or the grade, so when the room cools (someone too close) it cools as far as it ever did.
   - The chair's shadow is soft-edged (a few centimetres of penumbra, the same on a phone) and stretches toward whoever arrives. Under the seat lies the panel's own shade, and its feet press small dark contacts into the floor.
   - Where this came from, and what was left out (outlines, tonal banding, damp stains, a sepia grade): `docs/reviews/2026-10-illustrated.md`. `?style=original|subtle|reference` compares the light before and after; reference is the room.
   - The shadow-casting source can still drift away from where the panel says it should be.
-- **The chair** is a small hand-made ladder-back (`src/world/Chair.ts`, `src/world/wood.ts`):
-  - turned legs that splay slightly, back posts that lean and end in finials;
-  - an arched crest rail and slats bent to receive a back, and a dished, slightly trapezoidal seat;
+- **The chair** is a small hand-made ladder-back (`src/world/Chair.ts`, `src/world/wood.ts`), seat at 34 cm, posts to 72 cm:
+  - square legs eased at the edges, slimmer at the foot; back posts raked back, one a little short;
+  - a top rail and two slats (one set in not quite level), square stretchers, a dished, slightly trapezoidal seat;
   - oiled walnut (no lacquer, no sheen), its figure broad enough to read from across the room; the seat two boards glued side by side, its top worn to amber;
-  - wear baked into the wood: paler across the seat's front edge, the middle of the crest rail, the edges and the turnings' high points, where hands and bodies touched it; darker in the joints and at the feet;
-  - one slat set in not quite level.
+  - wear baked into the wood: paler across the seat's front edge, the middle of the top rail and every arris, where hands and bodies touched it; darker in the joints and at the feet.
 
 ## What the room does
 
@@ -92,6 +92,7 @@ All of this is implemented and running; none of it is shown to the visitor as nu
   - **0 s.** You tap the black threshold, which is also the title card; that tap lets the room be heard.
   - **0.3–5 s.** "The Hedgehog's Dilemma" holds on black and fades.
   - **In the dark.** A chair creaks, then a switch clicks by the door.
+  - **Where you are.** Low (a child's eye height, 1.1 m), centred on the chair two and a half metres back: the room as a box around it, its light at the top. Your first deliberate step stands you up, in one slow movement; looking around doesn't. With reduced motion you start standing.
   - **The chair.** A wide, soft throw of light finds it alone, and the walls are barely there. The fixture stays dim, the source rather than the subject. You can look around from here.
   - **The room.** It comes up nearly empty: plaster with old erased marks, and small writing on the floor by the chair. You can walk from here.
   - **A hand writes.** "I wanted you to", in pen, in silence, then stops. The stop is held for two seconds.
