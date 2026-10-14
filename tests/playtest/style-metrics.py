@@ -88,7 +88,11 @@ def ink_contrast(img, box):
     lw, li = lab(a[L >= np.percentile(L, 60)].mean(0)), lab(a[L <= np.percentile(L, 4)].mean(0))
     dE = float(np.linalg.norm(lw - li))
     dC = float(abs(np.hypot(li[1], li[2]) - np.hypot(lw[1], lw[2])))
-    return {'wall': round(wall, 1), 'ink': round(ink, 1), 'weber': round((wall - ink) / max(1.0, wall), 3), 'dE': round(dE, 1), 'dC': round(dC, 1)}
+    # Contrast against the surface's own texture (the skeptic, scanned round): the ink's step
+    # over the spread of the bare surface round it, which a grainier plaster can mask.
+    bare = L[L >= np.percentile(L, 40)]
+    cnr = (wall - ink) / max(0.5, float(bare.std()))
+    return {'wall': round(wall, 1), 'ink': round(ink, 1), 'weber': round((wall - ink) / max(1.0, wall), 3), 'dE': round(dE, 1), 'dC': round(dC, 1), 'cnr': round(cnr, 1)}
 
 
 ref = np.asarray(Image.open(D / 'reference.png').convert('RGB')).astype(float) if (D / 'reference.png').exists() else None
@@ -145,6 +149,13 @@ for (p, s), v in rng.items():
         pool = v.get(n, {}).get('floorPool')
         if pool:
             r[f'{n} pool R/B'] = round(pool['rgb'][0] / max(1, pool['rgb'][2]), 3)
+    # The skylight's glass and well follow the room's light and its cooling (no leak).
+    for k in ('panel', 'well'):
+        ref_, dim_, cool_ = (v.get(n, {}).get(k) for n in ('reference', 'dim', 'cool'))
+        if ref_ and dim_:
+            r[f'dim {k} drop'] = round(1 - dim_['luma'] / max(1, ref_['luma']), 3)
+        if ref_ and cool_:
+            r[f'{k} R/B ref→cool'] = [round(ref_['rgb'][0] / max(1, ref_['rgb'][2]), 3), round(cool_['rgb'][0] / max(1, cool_['rgb'][2]), 3)]
     out['range'][f'{p} {s}'] = r
 # Pairs that must match: a moved chair's frame and the same with the shadow forced to redraw (a
 # stale shadow differs), and the room before and after losing the GL context.
@@ -171,4 +182,5 @@ for prof in sorted({f['profile'] for f in out['frames']}):
     for st in sorted({f['style'] for f in out['frames']}):
         w = [i['weber'] for f in out['frames'] if f.get('profile') == prof and f.get('style') == st and f.get('name') in ('reference', 'north-writing', 'east', 'west') for i in f.get('ink', [])]
         if w:
-            print(f'ink {prof:7} {st:9} median weber {np.median(w):.3f} (n={len(w)})')
+            c = [i['cnr'] for f in out['frames'] if f.get('profile') == prof and f.get('style') == st and f.get('name') in ('reference', 'north-writing', 'east', 'west') for i in f.get('ink', [])]
+            print(f'ink {prof:7} {st:9} median weber {np.median(w):.3f}  median contrast/texture {np.median(c):.1f} (n={len(w)})')
