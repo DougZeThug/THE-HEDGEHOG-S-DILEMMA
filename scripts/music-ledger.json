@@ -8,7 +8,7 @@
       "for": "Warmth late in a visit, through the wall where the laughter lives (the next-room situation).",
       "cost": 330,
       "at": "2026-10-13T13:39:27.405Z",
-      "review": "pending",
+      "review": "approved",
       "costNote": "measured: account balance fell 660 for both fragments together; the API returned no cost header"
     },
     "piano-unresolved": {
@@ -18,7 +18,7 @@
       "for": "Contradiction: a phrase that starts warmly and does not resolve, then stops.",
       "cost": 330,
       "at": "2026-10-13T13:39:36.664Z",
-      "review": "pending",
+      "review": "approved",
       "costNote": "measured: account balance fell 660 for both fragments together; the API returned no cost header"
     },
     "memory-radio": {
@@ -28,8 +28,8 @@
       "for": "Memory: \"We ate cereal for dinner and it was perfect.\" The kitchen radio, on from the moment the scene has formed.",
       "cost": 385,
       "at": "2026-10-14T18:37:50.727Z",
-      "review": "approved",
-      "costSource": "balance difference (4545 \u2192 4930 used)",
+      "review": "rejected",
+      "costSource": "balance difference (4545 → 4930 used)",
       "reviewedAt": "2026-10-14"
     },
     "memory-bedroom": {
@@ -39,8 +39,8 @@
       "for": "Memory: \"I was happiest when nobody needed anything from me.\" Someone downstairs playing for themselves, from 8 s until the memory has gone (the engine puts it below, through the floor).",
       "cost": 358,
       "at": "2026-10-14T19:54:27.214Z",
-      "review": "pending",
-      "costSource": "balance difference (4930 \u2192 5521 used, less the 233 credits of SFX reported by their own headers in the same window)"
+      "review": "approved",
+      "costSource": "balance difference (4930 → 5521 used, less the 233 credits of SFX reported by their own headers in the same window)"
     }
   }
 }

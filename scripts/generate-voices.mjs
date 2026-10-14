@@ -156,7 +156,8 @@ for (const [key, variants] of Object.entries(ASSETS)) {
     const file = fileOf(key, i);
     const path = join(OUT, file);
     if (existsSync(path) && !force) {
-      files.push(file);
+      // A take the artist turned down on the audition sheet stays out of the room.
+      if (ledger.entries[file]?.review !== 'rejected') files.push(file);
       continue;
     }
     const res = await fetch('https://api.elevenlabs.io/v1/sound-generation?output_format=mp3_44100_128', {

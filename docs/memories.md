@@ -65,6 +65,6 @@ The code-painted stand-ins are re-baked with `npm run bake:memories` (Chromium, 
 ## What is a stand-in
 
 - All memory art is code-painted (wax crayon, graphite, light) in the replaceable format.
-- The kitchen radio (`public/music/memory-radio.mp3`) is generated and plays inside the memory, pending the artist's ear.
+- The kitchen radio (`public/music/memory-radio.mp3`) was generated, then turned down by the artist on the audition sheet: cereal plays without music. The file stays for the sheet only.
 - The kitchen's air is made in the engine (`src/memory/synthAir.ts`), not recorded.
 - Every new sound is `review: pending` until the artist has listened on the audition sheet.

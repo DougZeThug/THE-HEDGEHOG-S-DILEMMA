@@ -51,8 +51,8 @@ export const sheetId = (id: string, variant: string) => `${id}-${variant}`;
  *   0.6      the kitchen is heard before anything is drawn
  *   0.6–3.6  the light finds the bowls and the spoon, then the rest of the drawing (graphite)
  *   1.5–5.5  the colour follows the light
- *   5.5      the scene is formed: the radio comes on, the spoons
- *   7.3      the spoons; 10.5 a laugh at the table
+ *   5.5      the scene is formed: only the kitchen's air under it (the artist turned down the
+ *            radio and the spoons in the bowls); 10.5 a laugh at the table
  *   5.5–22   living: one arc of light. The sun's pane slides off the words and down toward the
  *            table; it lifts a little after the laugh, then the evening goes down
  *   21.2     a spoon put down: the meal ends, and 0.8 s later the light answers
@@ -72,8 +72,6 @@ export const CEREAL: MemoryDef = {
   sections: CEREAL_SECTIONS,
   markers: [
     { label: 'bed:kitchen', position: 0.6 },
-    { label: 'music:radio', position: 5.5 },
-    { label: 'sfx:spoons', position: 7.3 },
     // Inside the minimum hold: a visitor who gives it only that still hears the people.
     { label: 'sfx:laugh', position: 10.5 },
     // (The file has 0.6 s of quiet before the clink: heard at about 21.8, just before the light goes.)
@@ -112,7 +110,7 @@ export const CEREAL: MemoryDef = {
         { label: 'exit', position: CEREAL_SECTIONS.exit },
         { label: 'residue', position: CEREAL_SECTIONS.residue },
         { label: 'end', position: CEREAL_SECTIONS.end },
-        ...CEREAL.markers.filter((m) => !(later && m.label === 'music:radio')),
+        ...CEREAL.markers,
       ],
     };
   },
@@ -121,15 +119,12 @@ export const CEREAL: MemoryDef = {
     room: [0.5, 3, 0.18],
     cues: {
       // Levels are for the files as recorded, set by the sound designer from an offline render of
-      // this chain: the laugh about 6 dB over the radio in a phone's band, the spoons about 2 dB
-      // over it, the air under everything. The air is made in the engine (synthAir.ts): the
-      // recorded room tone came back as rumble.
+      // this chain, the air under everything. The air is made in the engine (synthAir.ts): the
+      // recorded room tone came back as rumble. The radio (music/memory-radio.mp3) and the take of
+      // spoons in two bowls were turned down by the artist on the audition sheet.
       'bed:kitchen': { asset: 'synth:air', gainDb: variant === 'later' ? -4 : 0, place: { u: 0.3, v: 0, d: 1 }, fadeIn: 3, fadeOut: 5 },
-      'sfx:spoons': { asset: 'mem:spoon-bowl', take: 0, gainDb: 2, place: { u: -0.05, v: -0.25, d: 0.5 }, caption: '[two spoons]' },
       'sfx:laugh': { asset: 'mem:laugh', gainDb: -12, place: { u: 0.15, v: -0.1, d: 1.2 }, lowpass: 5000, caption: '[a laugh at the table]' },
-      'sfx:spoon-down': { asset: 'mem:spoon-bowl', take: 1, gainDb: -12, place: { u: 0.1, v: -0.25, d: 0.5 }, caption: '[a spoon put down]' },
-      // The kitchen radio on the windowsill: a small speaker (no bass, no air), half-heard.
-      'music:radio': { asset: 'music/memory-radio.mp3', gainDb: -16, place: { u: 0.42, v: 0.05, d: 0.8 }, highpass: 380, lowpass: 3400, fadeIn: 1.5, fadeOut: 4, caption: '[a radio, low]' },
+      'sfx:spoon-down': { asset: 'mem:spoon-bowl', take: 0, gainDb: -12, place: { u: 0.1, v: -0.25, d: 0.5 }, caption: '[a spoon put down]' },
     },
   }),
   sways: [],
@@ -214,7 +209,7 @@ export const BEDROOM: MemoryDef = {
   cues: (variant) => ({
     // A small, soft, rather dead room (bedding, curtains).
     room: [0.3, 2, 0.12],
-    // Levels set from the files as measured (mean: birds −22, curtain −36, piano −21).
+    // Levels set from the files as measured (mean: bird −23, curtain −36, piano −21).
     cues: {
       'bed:air': { asset: 'synth:air', take: 3, gainDb: variant === 'dusk' ? -6 : -2, place: { u: 0.3, v: 0, d: 1 }, fadeIn: 3, fadeOut: 5 },
       // A bird outside, beyond the window: distance made here, not in the recording.
@@ -306,7 +301,8 @@ export const DOOR: MemoryDef = {
     return {
       // A narrow landing beyond the door: hard, a little reflective.
       room: [0.9, 2.2, 0.22],
-      // Levels from the files as measured (mean: steps −28/−35, floorboards −34/−32).
+      // Levels from the files as measured (mean: steps −28/−35, floorboard −34). The artist kept
+      // the weight-shift creak and turned down the house settling, so passing uses the creak too.
       cues: {
         // Approach: from the far end of the landing to just outside the door, stopping there.
         // Passing: along the landing behind the wall, left to right.
@@ -314,7 +310,7 @@ export const DOOR: MemoryDef = {
           ? { asset: 'mem:footsteps', take: 0, gainDb: -5, place: { u: -1.0, v: -0.3, d: 2 }, to: { u: 2.7, v: -0.3, d: 2 }, lowpass: 3000, cutOnInterrupt: true, caption: '[footsteps on the landing]' }
           : { asset: 'mem:footsteps', take: 0, gainDb: -3, place: { u: -0.6, v: -0.3, d: 10 }, to: { u: 0.15, v: -0.3, d: 0.5 }, lowpass: 1500, lowpassTo: 5000, cutOnInterrupt: true, caption: '[footsteps on the landing]' },
         'sfx:settle': passing
-          ? { asset: 'mem:floorboard', take: 1, gainDb: -9, place: { u: -0.5, v: -0.3, d: 5 }, lowpass: 2500 }
+          ? { asset: 'mem:floorboard', take: 0, gainDb: -7, place: { u: -0.5, v: -0.3, d: 5 }, lowpass: 2500 }
           : { asset: 'mem:floorboard', take: 0, gainDb: -2, place: { u: 0.15, v: -0.3, d: 0.8 }, lowpass: 5000, caption: '[a floorboard, just outside]' },
       },
     };

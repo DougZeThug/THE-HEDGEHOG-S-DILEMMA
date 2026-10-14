@@ -290,3 +290,26 @@ QA after the bedroom and door (fixed):
 - When a picture forms, a screen reader hears what it is (a hidden, polite description).
 
 Measured after (10-minute visits, 8 seeds): the bedroom opens in 1–4 of 8 visits per persona; the door in 3/8 for the explorer, otherwise rarely; cereal for the reader 7/8 (median 22 s).
+
+## The artist's ear (audition sheet, 14 Oct)
+
+The artist listened to every memory sound and the music on the audition sheet. Their decisions are now in `scripts/sfx-ledger.json` and `scripts/music-ledger.json`. Their room-sound decisions from 13 Oct had been saved on the sheet but never applied; they are applied now too.
+
+**Kept:**
+- Cereal: the laugh, the spoon put down, and the recorded kitchen air (the memory still uses the synthesised air).
+- The bedroom: the second bird, the curtain, and the piano downstairs.
+- The door: both footsteps takes, and the weight-shift floorboard.
+- In the room: the switch's first take, all graphite and eraser takes, and both piano pilots.
+
+**Turned down, and what changed:**
+- **The kitchen radio** (`memory-radio`, approved earlier on my recommendation, before it was heard). Cereal now plays without music: the air, the laugh, and the spoon put down.
+- **Spoons in two bowls** (`mem-spoon-bowl-1`). Its cue at 7.3 s is gone; nothing replaces it. The approved take is a spoon *laid down*, which means the meal is over, so it stays only at the end.
+- **The first bird** (`mem-bird-1`). The bedroom uses the second, two sparrow chirps (mean −23 dB against −22, so the level is unchanged).
+- **The house settling** (`mem-floorboard-2`). The door's passing variant uses the weight-shift creak instead, 2 dB up to match its level.
+- **Switch takes 2 and 3.** They have left the room.
+
+Rejected takes are removed from `public/voices/manifest.json`, and `generate-voices.mjs` no longer puts a rejected take back when it rebuilds the manifest. The radio's markers are removed from both cereal sheets in `theatre-state.json` and from `defs.ts`.
+
+Checked: 247 tests pass. In the browser, cereal (first), the door (passing) and the bedroom (morning) play through with no errors, no new shader programs and textures back to baseline.
+
+**Open, for the artist:** whether cereal should have a new radio take or a new take of spoons in bowls. Both fit the remaining approved budgets (music 457 credits, SFX 108). Neither will be generated without being asked, and only with a sense of what was wrong.

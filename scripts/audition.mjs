@@ -120,11 +120,11 @@ const SFX_FOR = {
   'sfx:graphite': 'Graphite on plaster, while the first line is written in silence.',
   'sfx:eraser': 'The writing in the air rubbed out as someone comes close (a breath follows it).',
   'mem:kitchen-air': 'Cereal memory: the air of the sunny kitchen, looped under the scene (it came back very quiet and is lifted about 28 dB).',
-  'mem:spoon-bowl': 'Cereal memory: spoons in two bowls as the scene forms; a spoon put down as it goes.',
+  'mem:spoon-bowl': 'Cereal memory: spoons in two bowls as the scene forms (the first take); a spoon put down as it goes (the second).',
   'mem:laugh': 'Cereal memory: two people laughing at the table (a take the next-room situation never uses).',
   'mem:footsteps': 'Door memory: someone walking along the landing (passing), or coming to the door and stopping (approach).',
-  'mem:floorboard': 'Door memory: a floorboard before anything is drawn; the house settling; someone shifting their weight outside.',
-  'mem:bird': 'Bedroom memory: a bird outside the window (two takes, two moments).',
+  'mem:floorboard': 'Door memory: someone shifting their weight outside the door (the first take); the house settling (the second).',
+  'mem:bird': 'Bedroom memory: a bird outside the window, over bare plaster (two takes; one is used).',
   'mem:curtain-breeze': 'Bedroom memory: the curtain stirring as it breathes.',
 };
 const sfxLedger = existsSync(join(ROOT, 'scripts/sfx-ledger.json')) ? JSON.parse(readFileSync(join(ROOT, 'scripts/sfx-ledger.json'), 'utf8')) : { entries: {} };

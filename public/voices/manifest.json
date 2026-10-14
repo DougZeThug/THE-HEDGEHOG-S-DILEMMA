@@ -35,9 +35,7 @@
     "sfx-chair-creak-1.mp3"
   ],
   "sfx:switch": [
-    "sfx-switch-1.mp3",
-    "sfx-switch-2.mp3",
-    "sfx-switch-3.mp3"
+    "sfx-switch-1.mp3"
   ],
   "sfx:graphite": [
     "sfx-graphite-1.mp3",
@@ -232,7 +230,6 @@
     "mem-kitchen-air-1.mp3"
   ],
   "mem:spoon-bowl": [
-    "mem-spoon-bowl-1.mp3",
     "mem-spoon-bowl-2.mp3"
   ],
   "mem:laugh": [
@@ -243,11 +240,9 @@
     "mem-footsteps-2.mp3"
   ],
   "mem:floorboard": [
-    "mem-floorboard-1.mp3",
-    "mem-floorboard-2.mp3"
+    "mem-floorboard-1.mp3"
   ],
   "mem:bird": [
-    "mem-bird-1.mp3",
     "mem-bird-2.mp3"
   ],
   "mem:curtain-breeze": [

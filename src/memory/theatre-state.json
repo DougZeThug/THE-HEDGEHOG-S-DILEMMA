@@ -56,16 +56,6 @@
             "position": 0.6
           },
           {
-            "id": "m14",
-            "label": "music:radio",
-            "position": 5.5
-          },
-          {
-            "id": "m15",
-            "label": "sfx:spoons",
-            "position": 7.3
-          },
-          {
             "id": "m16",
             "label": "sfx:laugh",
             "position": 10.5
@@ -547,11 +537,6 @@
             "id": "m29",
             "label": "bed:kitchen",
             "position": 0.6
-          },
-          {
-            "id": "m2a",
-            "label": "sfx:spoons",
-            "position": 7.3
           },
           {
             "id": "m2b",
