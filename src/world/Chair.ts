@@ -3,8 +3,9 @@ import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeom
 import { woodMaps, SEAT_V0 } from './wood';
 
 /**
- * A small hand-made ladder-back chair. Seat at 34 cm, posts to 72 cm: a child's chair, too
- * small for the visitor, made by someone who cared. Square legs eased at the edges, back posts
+ * A plain hand-made ladder-back chair, modelled at a child's chair's measurements (seat 34 cm,
+ * posts 72 cm) and shown at CHAIR_SCALE, the proportion of the artist's reference (seat about
+ * 44 cm, posts about 92 cm): smallish, made by someone who cared. Square legs eased at the edges, back posts
  * raked back, a top rail and two slats, square stretchers, a seat of two boards. Wear is baked
  * into vertex colour: paler where hands and bodies touched it (the seat's front edge, the top
  * rail, every arris), darker in the joints and where it meets the floor.
@@ -47,6 +48,9 @@ function bentBoard(w: number, h: number, t: number, bend: number, arch: number):
   for (let k = 0; k < uv.count; k++) uv.setXY(k, uv.getX(k) * w * 2.2, uv.getY(k) * 0.08 + 0.3);
   return g;
 }
+
+/** The chair's size in the room against its modelled measurements (the reference's proportion). */
+export const CHAIR_SCALE = 1.28;
 
 export class Chair {
   readonly group = new THREE.Group();
@@ -165,6 +169,9 @@ export class Chair {
     this.group.add(this.hit);
 
     this.group.rotation.y = this.baseYaw;
+    // Built at a child's chair's measurements, shown at the artist's reference's: a plain, smallish
+    // chair (seat 44 cm, posts 92 cm). Everything on it (the hit proxy, its contacts) scales with it.
+    this.group.scale.setScalar(CHAIR_SCALE);
   }
 
   /**

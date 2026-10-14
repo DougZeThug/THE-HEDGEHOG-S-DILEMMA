@@ -78,7 +78,7 @@ Minimal, but authored. The emptiness is meant to look chosen, not default.
   - The chair's shadow is soft-edged (a few centimetres of penumbra, the same on a phone) and stretches toward whoever arrives. Under the seat lies the panel's own shade, and its feet press small dark contacts into the floor.
   - Where this came from, and what was left out (outlines, tonal banding, damp stains, a sepia grade): `docs/reviews/2026-10-illustrated.md`. `?style=original|subtle|reference` compares the light before and after; reference is the room.
   - The shadow-casting source can still drift away from where the panel says it should be.
-- **The chair** is a small hand-made ladder-back (`src/world/Chair.ts`, `src/world/wood.ts`), seat at 34 cm, posts to 72 cm:
+- **The chair** is a plain hand-made ladder-back (`src/world/Chair.ts`, `src/world/wood.ts`), seat at about 44 cm, posts to about 92 cm (the proportion of the artist's reference):
   - square legs eased at the edges, slimmer at the foot; back posts raked back, one a little short;
   - a top rail and two slats (one set in not quite level), square stretchers, a dished, slightly trapezoidal seat;
   - oiled walnut (no lacquer, no sheen), its figure broad enough to read from across the room; the seat two boards glued side by side, its top worn to amber;
@@ -92,7 +92,7 @@ All of this is implemented and running; none of it is shown to the visitor as nu
   - **0 s.** You tap the black threshold, which is also the title card; that tap lets the room be heard.
   - **0.3–5 s.** "The Hedgehog's Dilemma" holds on black and fades.
   - **In the dark.** A chair creaks, then a switch clicks by the door.
-  - **Where you are.** Low (a child's eye height, 1.35 m), centred on the chair from the back of the room: the room as a box around it, its light at the top. Your first deliberate step stands you up, in one slow movement; looking around doesn't. With reduced motion you start standing.
+  - **Where you are.** Low (a child's eye height, 1.4 m), centred on the chair from the back of the room: the room as a box around it, its light at the top. Your first deliberate step stands you up, in one slow movement; looking around doesn't. With reduced motion you start standing.
   - **The chair.** A wide, soft throw of light finds it alone, and the walls are barely there. The fixture stays dim, the source rather than the subject. You can look around from here.
   - **The room.** It comes up nearly empty: plaster with old erased marks, and small writing on the floor by the chair. You can walk from here.
   - **A hand writes.** "I wanted you to", in pen, in silence, then stops. The stop is held for two seconds.

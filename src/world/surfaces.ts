@@ -460,7 +460,7 @@ export function floorMaps(seed: number, wM: number, dM: number): SurfaceMaps {
   const W = Math.round(wM * PX_PER_M), H = Math.round(dM * PX_PER_M);
   // Sealed concrete, a shade darker than the walls: cloudy, flecked, with a soft sheen where
   // the light falls (so the pool reads as light on a surface, not a paler floor).
-  const { c, g, bc, bg } = plaster(W, H, seed, [192, 186, 176], { mottle: 18, trowel: 2, grain: 7, blotch: 20 });
+  const { c, g, bc, bg } = plaster(W, H, seed, [190, 186, 181], { mottle: 18, trowel: 2, grain: 7, blotch: 20 });
   // Aggregate in the concrete, pits, the fine scratches of things set down and dragged.
   fineDetail(g, bg, W, H, new Rng(seed + 31), { specks: 45, pits: 12, scratches: 2, light: 0.4 });
   const r = new Rng(seed + 5);
@@ -512,11 +512,12 @@ export function floorMaps(seed: number, wM: number, dM: number): SurfaceMaps {
   g.translate(ox, oy);
   g.rotate(-0.12);
   g.fillStyle = 'rgba(255,255,250,0.035)';
-  g.fillRect(-0.17 * PX_PER_M, -0.155 * PX_PER_M, 0.34 * PX_PER_M, 0.31 * PX_PER_M);
+  // (At the chair's size in the room: Chair.CHAIR_SCALE.)
+  g.fillRect(-0.22 * PX_PER_M, -0.2 * PX_PER_M, 0.44 * PX_PER_M, 0.4 * PX_PER_M);
   for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
     g.fillStyle = 'rgba(88,82,74,0.09)';
     g.beginPath();
-    g.arc(sx * 0.155 * PX_PER_M, sy * 0.14 * PX_PER_M, 2.6 * K, 0, Math.PI * 2);
+    g.arc(sx * 0.2 * PX_PER_M, sy * 0.18 * PX_PER_M, 3.2 * K, 0, Math.PI * 2);
     g.fill();
   }
   g.restore();

@@ -106,7 +106,7 @@ export class Lighting {
     this.group.add(this.skyGlow);
 
     this.glow = new THREE.PointLight(0xffd2a6, 0.0, 2.0, 1.8);
-    this.glow.position.set(0, 0.55, 0.25);
+    this.glow.position.set(0, 0.7, 0.25);
     this.group.add(this.glow);
     this.residue = new THREE.PointLight(0xffcf9c, 0, 1.4, 2);
     this.residue.position.set(0, 0.22, 0);
@@ -225,7 +225,7 @@ export class Lighting {
     rel.applyAxisAngle(UP, ang);
     this.key.position.copy(chairPos).setY(0).add(rel);
     this.key.target.position.copy(chairPos);
-    this.glow.position.set(chairPos.x, 0.55, chairPos.z + 0.25);
+    this.glow.position.set(chairPos.x, 0.7, chairPos.z + 0.25);
     // The shadow map is redrawn only when what it shows changes: the light moved or widened, or
     // the chair moved or turned (its blur reads a million texels twenty times on every redraw).
     // Tolerances are what the eye can't see: 3 mm of key light moves the shadow under 1 mm.
