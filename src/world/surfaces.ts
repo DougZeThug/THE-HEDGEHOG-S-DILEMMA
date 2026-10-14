@@ -100,8 +100,8 @@ function corners(g: CanvasRenderingContext2D, W: number, H: number, edges: { top
   };
   if (edges.bottom) band(0, H, 0, H - edges.bottom * PX_PER_M, 0.2);
   if (edges.top) band(0, 0, 0, edges.top * PX_PER_M, 0.16);
-  if (edges.left) band(0, 0, edges.left * PX_PER_M, 0, 0.13);
-  if (edges.right) band(W, 0, W - edges.right * PX_PER_M, 0, 0.13);
+  if (edges.left) band(0, 0, edges.left * PX_PER_M, 0, 0.2);
+  if (edges.right) band(W, 0, W - edges.right * PX_PER_M, 0, 0.2);
 }
 
 /** Graphite that was written and rubbed out: a grey ghost, smeared, with eraser passes through it. */
@@ -250,6 +250,48 @@ function graphiteSmudges(g: CanvasRenderingContext2D, W: number, H: number, r: R
   }
 }
 
+/**
+ * What makes a surface read as a surface up close: specks and pits (per m²), and hairline
+ * scratches, a few centimetres long; dark (and some light, `light` of them) in colour, and
+ * pressed into the relief.
+ */
+function fineDetail(g: CanvasRenderingContext2D, bg: CanvasRenderingContext2D, W: number, H: number, r: Rng, o: { specks: number; pits: number; scratches: number; light?: number }) {
+  const area = (W / PX_PER_M) * (H / PX_PER_M);
+  for (let i = 0, n = Math.round(o.specks * area); i < n; i++) {
+    const x = r.range(0, W), y = r.range(0, H), rad = r.range(0.4, 1.3) * K;
+    const lightSpeck = r.chance(o.light ?? 0.15);
+    g.fillStyle = lightSpeck ? `rgba(255,252,246,${r.range(0.08, 0.2)})` : `rgba(78,74,68,${r.range(0.06, 0.2)})`;
+    g.beginPath();
+    g.arc(x, y, rad, 0, Math.PI * 2);
+    g.fill();
+  }
+  for (let i = 0, n = Math.round(o.pits * area); i < n; i++) {
+    const x = r.range(0, W), y = r.range(0, H), rad = r.range(1, 2.6) * K;
+    g.fillStyle = `rgba(90,86,80,${r.range(0.1, 0.22)})`;
+    bg.fillStyle = `rgba(40,40,40,${r.range(0.5, 0.8)})`;
+    for (const c of [g, bg]) {
+      c.beginPath();
+      c.arc(x, y, rad, 0, Math.PI * 2);
+      c.fill();
+    }
+  }
+  g.lineCap = bg.lineCap = 'round';
+  for (let i = 0, n = Math.round(o.scratches * area); i < n; i++) {
+    const x = r.range(0, W), y = r.range(0, H), len = r.range(1, 6) * PX_PER_M * 0.01, a = r.range(0, Math.PI);
+    const x1 = x + Math.cos(a) * len, y1 = y + Math.sin(a) * len;
+    g.strokeStyle = `rgba(86,82,76,${r.range(0.05, 0.12)})`;
+    g.lineWidth = 0.6 * K;
+    bg.strokeStyle = 'rgba(70,70,70,0.5)';
+    bg.lineWidth = 0.6 * K;
+    for (const c of [g, bg]) {
+      c.beginPath();
+      c.moveTo(x, y);
+      c.quadraticCurveTo((x + x1) / 2 + r.range(-2, 2) * K, (y + y1) / 2 + r.range(-2, 2) * K, x1, y1);
+      c.stroke();
+    }
+  }
+}
+
 /** Scuffs along the skirting: shoes, a chair back, a bag set down. */
 function baseScuffs(g: CanvasRenderingContext2D, W: number, H: number, r: Rng, n: number) {
   for (let i = 0; i < n; i++) {
@@ -270,7 +312,7 @@ export function wallMaps(surface: Surface, seed: number, wM: number, hM: number)
     west: [234, 232, 228],
     south: [236, 234, 229],
   };
-  const { c, g, bc } = plaster(W, H, seed, tone[surface] ?? [236, 234, 228], { mottle: 15, trowel: 5, grain: 4, blotch: 21 });
+  const { c, g, bc, bg } = plaster(W, H, seed, tone[surface] ?? [236, 234, 228], { mottle: 15, trowel: 5, grain: 4, blotch: 21 });
   const r = new Rng(seed + 11);
   const floorY = H;
   const mx = (u: number) => u * PX_PER_M;
@@ -313,6 +355,7 @@ export function wallMaps(surface: Surface, seed: number, wM: number, hM: number)
 
   baseScuffs(g, W, H, r, 22);
   graphiteSmudges(g, W, H, r, 26);
+  fineDetail(g, bg, W, H, new Rng(seed + 31), { specks: 70, pits: 14, scratches: 3.5 });
   corners(g, W, H, { bottom: 0.55, top: 0.45, left: 0.45, right: 0.45 });
   const map = toTex(c, true);
   const bump = toTex(bc, false);
@@ -328,7 +371,9 @@ export function floorMaps(seed: number, wM: number, dM: number): SurfaceMaps {
   const W = Math.round(wM * PX_PER_M), H = Math.round(dM * PX_PER_M);
   // Sealed concrete, a shade darker than the walls: cloudy, flecked, with a soft sheen where
   // the light falls (so the pool reads as light on a surface, not a paler floor).
-  const { c, g, bc } = plaster(W, H, seed, [192, 186, 176], { mottle: 18, trowel: 2, grain: 7, blotch: 20 });
+  const { c, g, bc, bg } = plaster(W, H, seed, [192, 186, 176], { mottle: 18, trowel: 2, grain: 7, blotch: 20 });
+  // Aggregate in the concrete, pits, the fine scratches of things set down and dragged.
+  fineDetail(g, bg, W, H, new Rng(seed + 31), { specks: 45, pits: 12, scratches: 2, light: 0.4 });
   const r = new Rng(seed + 5);
   const n = makeNoise(seed + 9);
   const cx = W / 2, cy = H / 2;
@@ -342,7 +387,9 @@ export function floorMaps(seed: number, wM: number, dM: number): SurfaceMaps {
       const across = Math.exp(-(((x - cx) / (0.55 * PX_PER_M)) ** 2));
       const path = along * across * (0.6 + 0.4 * n.fbm(x / (60 * K), y / (60 * K), 2));
       const ring = Math.exp(-(((Math.hypot(x - cx, y - cy) - 0.42 * PX_PER_M) / (0.22 * PX_PER_M)) ** 2));
-      const rough = 0.74 - 0.12 * path - 0.08 * ring + (n.fbm(x / (30 * K), y / (30 * K), 2) - 0.5) * 0.1;
+      // Polished where people stand by the chair: a soft sheen there catches the light.
+      const near = Math.exp(-((Math.hypot(x - cx, y - cy) / (0.75 * PX_PER_M)) ** 2));
+      const rough = 0.74 - 0.12 * path - 0.14 * ring - 0.14 * near + (n.fbm(x / (30 * K), y / (30 * K), 2) - 0.5) * 0.1;
       const i = (y * W + x) * 4;
       rimg.data[i] = rimg.data[i + 1] = rimg.data[i + 2] = Math.round(rough * 255);
       rimg.data[i + 3] = 255;

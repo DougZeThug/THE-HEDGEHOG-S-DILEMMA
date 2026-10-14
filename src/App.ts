@@ -285,7 +285,7 @@ export class App {
           [
             ['fill', 0, 1.5], ['area', 0, 4], ['key', 0, 2], ['cone', 0.7, 1.3], ['glow', 0, 1.5], ['warmth', 0, 1.5], ['ceiling', 0, 12],
             ['exposure', 0.8, 1.4], ['vignette', 0, 0.6], ['grain', 0, 0.06], ['texture', 0, 2], ['contact', 0, 1.5], ['shadowSoft', 0.3, 3],
-            ['faint', 0.8, 1.6],
+            ['faint', 0.8, 1.6], ['skyGlow', 0, 20], ['contrast', 0, 0.8],
           ] as [keyof Look, number, number][]
         ).map(([k, lo, hi]) =>
           n('look', k, lo, hi, () => this.look[k], (v) => {
@@ -618,6 +618,7 @@ export class App {
     const room = THREE.MathUtils.clamp(this.lighting.score.area, 0, 1) * this.lighting.roomLight;
     this.renderer.toneMappingExposure = LOOKS.original.exposure + (this.look.exposure - LOOKS.original.exposure) * room;
     this.text.faintBoost = 1 + (this.look.faint - 1) * room;
+    this.post.contrast = this.look.contrast * room;
     this.room.setWarmth(this.lighting.warmthNow);
     // The chair's contact with the floor is there as the light on it is: none in the dark.
     (this.chair.contact.material as THREE.MeshBasicMaterial).opacity = this.chairContact * Math.min(1, this.lighting.keyLevel);

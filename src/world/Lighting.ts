@@ -33,6 +33,13 @@ export class Lighting {
   readonly key: THREE.SpotLight;
   readonly hemi: THREE.HemisphereLight;
   readonly glow: THREE.PointLight;
+  /**
+   * The skylight's glow in the room's upper air: light that has come through the frosted glass
+   * and spreads, washing the ceiling round the opening and the top of the walls nearest it,
+   * brightest at the top centre of the wall behind the chair and falling away down and to the
+   * corners (the artist's reference is lit so). Unshadowed; part of the look.
+   */
+  readonly skyGlow: THREE.PointLight;
   /** Warmth left behind at a place on the floor (not at the chair). */
   readonly residue: THREE.PointLight;
   private residueFade: { amount: number; start: number; seconds: number } | null = null;
@@ -89,6 +96,12 @@ export class Lighting {
     this.key.shadow.camera.near = 0.5;
     this.key.shadow.camera.far = 8;
     this.group.add(this.key, this.key.target);
+
+    this.skyGlow = new THREE.PointLight(0xfff1de, 0, 0, 2);
+    // Low enough (a metre under the glass) that the ceiling is washed broadly, not spotted, and a
+    // little toward the wall behind the chair, which it lights from the top down.
+    this.skyGlow.position.set(PANEL.x, ROOM.height - 1.0, PANEL.z - 0.6);
+    this.group.add(this.skyGlow);
 
     this.glow = new THREE.PointLight(0xffd2a6, 0.0, 2.0, 1.8);
     this.glow.position.set(0, 0.55, 0.25);
@@ -200,6 +213,9 @@ export class Lighting {
     this.hemi.color.copy(col).lerp(this.white, 0.4);
     this.hemi.intensity = HEMI * (0.75 + 0.25 * I) * k * sc.hemi * mood * asLit(L.fill, lit);
     this.glow.intensity = (0.1 + c.glow * 0.7 + c.extraWarm * 1.2) * k * sc.glow * as(L.glow);
+    // The skylight's glow belongs to the lit room: it comes and goes with the room's own light.
+    this.skyGlow.color.copy(col);
+    this.skyGlow.intensity = L.skyGlow * I * k * lit;
 
     // The shadow drifts: the key light orbits the chair a little, the visible panel does not.
     const ang = c.drift * (1 + 0.25 * Math.sin(now * 0.05));
