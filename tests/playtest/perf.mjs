@@ -87,6 +87,8 @@ const gpu = (page) =>
         r.info.reset();
         render();
         a.__lastFrame = { calls: r.info.render.calls, triangles: r.info.render.triangles };
+        (a.__recent ??= []).push(a.__lastFrame);
+        if (a.__recent.length > 30) a.__recent.shift();
       };
     }
     // The composer's targets too: two RGBA16F colour buffers, and MSAA storage when sampling.
@@ -119,6 +121,8 @@ const stand = (page, from, to) =>
     ([f, t]) => {
       const a = window.__hedgehog;
       a.rig.cancelAttend();
+      // Fixed views are from standing height (the opening leaves the visitor seated until they walk).
+      a.rig.stand?.();
       a.rig.pos.set(f[0], 0, f[2]);
       const eye = a.rig.eye ?? 1.58;
       const dx = t[0] - f[0], dy = t[1] - eye, dz = t[2] - f[2];
@@ -173,6 +177,17 @@ for (const [name, opts] of [
   await stand(page, [0.1, 0, 2.6], [0, 0.6, 0]);
   await page.waitForTimeout(800);
   r.roomFrames = stats(await framePacing(page, SAMPLE_S));
+  // Draw calls from a fixed pose: a still frame, and a frame that redraws the chair's shadow
+  // (the shadow map is redrawn only when the light or the chair moves).
+  r.stillFrame = { ...(await gpu(page)) };
+  r.stillFrame = { calls: r.stillFrame.calls, triangles: r.stillFrame.triangles };
+  r.shadowFrame = await page.evaluate(async () => {
+    const a = window.__hedgehog;
+    a.__recent = [];
+    a.lighting.invalidateShadow();
+    await new Promise((d) => setTimeout(d, 1500));
+    return a.__recent.reduce((m, f) => (f.calls > m.calls ? f : m), { calls: 0, triangles: 0 });
+  });
   // Fixed frames for continuity (compare by eye, or diff two runs).
   for (const [state, from, to] of [
     ['chair', [0.1, 0, 2.6], [0, 0.6, 0]],
@@ -207,7 +222,7 @@ for (const [name, opts] of [
   const lt = await page.evaluate(() => window.__longTasks);
   r.longTasks = { count: lt.length, totalMs: lt.reduce((a, [, d]) => a + d, 0), worstMs: lt.reduce((a, [, d]) => Math.max(a, d), 0) };
   result.profiles[name] = r;
-  console.log(name, JSON.stringify({ readyMs: r.readyMs, enterToScoreMs: r.enterToScoreMs, handoffWallMs: r.handoffWallMs, programsAtThreshold: r.threshold.programs, programsAdded: r.programsAddedAfterEntering, longTasks: r.longTasks, room: r.roomFrames, memory: r.memoryFrames, memoryCalls: r.memoryGpu.calls, gpu: { ...r.gpuAfter, renderer: undefined }, errors: errors.length }));
+  console.log(name, JSON.stringify({ readyMs: r.readyMs, enterToScoreMs: r.enterToScoreMs, handoffWallMs: r.handoffWallMs, programsAtThreshold: r.threshold.programs, programsAdded: r.programsAddedAfterEntering, longTasks: r.longTasks, room: r.roomFrames, stillFrame: r.stillFrame, shadowFrame: r.shadowFrame, memory: r.memoryFrames, memoryCalls: r.memoryGpu.calls, gpu: { ...r.gpuAfter, renderer: undefined }, errors: errors.length }));
   await ctx.close();
 }
 await browser.close();

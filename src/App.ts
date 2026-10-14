@@ -1,8 +1,10 @@
 import { STATIC_DRAWINGS } from './content/drawings';
 import * as THREE from 'three';
 import { Room } from './world/Room';
+import { loadScans, releaseScans } from './world/scans';
 import { Chair } from './world/Chair';
-import { Lighting } from './world/Lighting';
+import { Lighting, shadowMapSize } from './world/Lighting';
+import { lookFor, parseLook, LOOK_NAMES, LOOKS, type Look, type LookName } from './world/Style';
 import { MemoryLight } from './world/MemoryLight';
 import { WallText, wallClock, type TextItem } from './world/WallText';
 import { CameraRig } from './world/CameraRig';
@@ -76,6 +78,11 @@ export class App {
   private memoryKey: string | null = null;
   /** The piece of writing last touched (the memory's light falls where the visitor touched). */
   private lastTappedKey: string | null = null;
+  /** How dark the chair's contact with the floor is, at full light (the look sets it). */
+  chairContact = 1;
+  /** The room's look (Style.ts): ?style=original|subtle|reference; reference unless asked. */
+  lookName: LookName = 'reference';
+  look: Look = lookFor('reference');
   /** The opening while it plays: its score, when it started (wall clock), what has been done. */
   private opening: { score: Score; start: number; fired: Set<number>; skip?: { at: number; from: Levels } } | null = null;
   /** When the room was handed to the Director (scene time), for hints and the inspector. */
@@ -98,14 +105,20 @@ export class App {
     const seed = Number.isFinite(seedParam) && seedParam > 0 ? seedParam : 1000 + (this.visits + 1) * 7919;
     $('threshold-line').textContent = THRESHOLD_LINES[Math.min(THRESHOLD_LINES.length - 1, this.visits)];
 
+    // The fonts (at most four seconds), then the material scans the room's surfaces are baked with
+    // (scans.ts), which get at most a second and a half more: on a slow connection the room bakes
+    // without them, as before, rather than keep the visitor at the threshold.
+    const scans = loadScans();
     await Promise.race([
       Promise.all(FONTS_TO_LOAD.map((f) => document.fonts.load(f).catch(() => null))),
       new Promise((r) => setTimeout(r, 4000)),
     ]);
+    await Promise.race([scans, new Promise((r) => setTimeout(r, 1500))]);
 
     this.setupRenderer();
     this.room = new Room(this.prefs.quality);
     this.chair = new Chair();
+    releaseScans();
     this.lighting = new Lighting(this.prefs.quality);
     this.text = new WallText(this.room, 4242);
     this.scene.add(this.room.group, this.chair.group, this.lighting.group, this.text.air);
@@ -132,9 +145,17 @@ export class App {
       },
     });
     for (const [id, st] of this.director.visible) if (st.base) this.text.setShown(id);
+    // The hand that wrote what is already there left its marks under it.
+    this.room.handMarks(
+      [...this.director.visible]
+        .filter(([, st]) => st.base)
+        .map(([id]) => this.text.placementOf(id))
+        .filter((p): p is NonNullable<typeof p> => !!p && p.surface !== 'floor' && p.surface !== 'ceiling'),
+    );
 
     const samples = this.prefs.quality === 'high' ? 4 : this.prefs.quality === 'medium' ? 2 : 0;
     this.post = new Post(this.renderer, this.scene, this.rig.camera, samples);
+    this.setStyle(parseLook(params.get('style')));
     this.applyPrefs();
     this.onResize();
     addEventListener('resize', () => this.onResize());
@@ -166,15 +187,42 @@ export class App {
     this.renderer.setAnimationLoop(() => this.frame());
   }
 
+  /** Change the room's look (uniforms and light levels only: nothing compiles). */
+  setStyle(name: LookName) {
+    this.lookName = name;
+    this.look = lookFor(name);
+    this.applyLook();
+  }
+
+  /** Push the current look's values to the lights, the room, the grade and the chair. */
+  private applyLook() {
+    const l = this.look;
+    this.lighting.look = l;
+    this.room.setLook(l);
+    this.post.grain = l.grain;
+    this.post.vignette = l.vignette;
+    this.post.vigLow = l.vigLow;
+    this.chairContact = l.contact;
+  }
+
   private setupRenderer() {
     this.renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.VSMShadowMap;
+    // Redrawn when the light or the chair moves (Lighting.shadowDirty), not every frame.
+    this.renderer.shadowMap.autoUpdate = false;
+    this.renderer.shadowMap.needsUpdate = true;
     this.renderer.toneMapping = THREE.NeutralToneMapping;
     this.renderer.toneMappingExposure = 1.05;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     $('stage').appendChild(this.renderer.domElement);
     this.renderer.domElement.tabIndex = -1;
+    // A phone may drop the GL context (a backgrounded tab); when it comes back, so must the
+    // chair's shadow, which is otherwise only redrawn when something moves.
+    this.renderer.domElement.addEventListener('webglcontextrestored', () => {
+      this.lighting?.invalidateShadow();
+      this.renderer.shadowMap.needsUpdate = true;
+    });
   }
 
   private pixelRatio() {
@@ -247,11 +295,24 @@ export class App {
         n('light', 'sky', 0, 1.5, () => sc.hemi, (v) => (sc.hemi = v)),
         n('light', 'glow', 0, 2, () => sc.glow, (v) => (sc.glow = v)),
         n('light', 'cone', 0.5, 1.2, () => sc.cone, (v) => (sc.cone = v)),
-        n('grade', 'grain', 0, 0.08, () => this.post.grain, (v) => (this.post.grain = v)),
-        n('grade', 'vignette', 0, 0.8, () => this.post.vignette, (v) => (this.post.vignette = v)),
+        // The look (Style.ts): the presets below set all of these; a slider then changes one.
+        ...(
+          [
+            ['fill', 0, 1.5], ['area', 0, 4], ['key', 0, 2], ['cone', 0.7, 1.3], ['glow', 0, 1.5], ['warmth', 0, 1.5], ['ceiling', 0, 12],
+            ['exposure', 0.8, 1.4], ['vignette', 0, 0.6], ['grain', 0, 0.06], ['texture', 0, 2], ['contact', 0, 1.5], ['shadowSoft', 0.3, 3],
+            ['faint', 0.8, 1.6], ['skyGlow', 0, 20], ['contrast', 0, 0.8], ['stains', 0, 1], ['aim', 0, 1], ['panel', 0.5, 3], ['vigLow', 0, 1],
+          ] as [keyof Look, number, number][]
+        ).map(([k, lo, hi]) =>
+          n('look', k, lo, hi, () => this.look[k], (v) => {
+            this.look = { ...this.look, [k]: v };
+            this.lookName = 'custom' as LookName;
+            this.applyLook();
+          }),
+        ),
         n('memory', 'light', 0, 0.8, () => this.memoryLight.gain, (v) => (this.memoryLight.gain = v)),
       ],
       [
+        ...LOOK_NAMES.map((name) => ({ label: name, run: () => this.setStyle(name), pressed: () => this.lookName === name })),
         {
           label: 'the memory, now',
           run: () => {
@@ -496,6 +557,7 @@ export class App {
     if (this.mode === 'room') this.renderer.domElement.focus();
     this.director.release({ written: OPENING_WRITTEN, spoken: OPENING_SPOKEN, unfinished: OPENING_UNFINISHED.filter((id) => this.text.unfinished(id)) });
     this.handoffAt = this.time;
+    this.rig.endOpeningFrame();
     writeOpeningSeen();
   }
 
@@ -532,6 +594,15 @@ export class App {
         this.text.airShadowLight = this.lighting.score.key / ROOM_LEVELS.key;
         const since = this.time - this.handoffAt;
         if (!this.hintShown && since > 4 && !(this.touch && this.dragged)) this.showHint();
+        // Someone exploring only by eye, still sitting where the opening left them, may not know
+        // they can get up: told once, never moved for them.
+        if (!this.touch && !this.walkHintShown && since > 25 && this.rig.seated && this.mode === 'room') {
+          this.walkHintShown = true;
+          const h = $('hint');
+          h.textContent = '↑ or W to walk · Esc to pause';
+          h.classList.add('on');
+          setTimeout(() => h.classList.remove('on'), 5500);
+        }
         if (this.touch && this.mode === 'room' && !this.touchHintShown && since > 12 && !this.touched) this.showTouchHint();
       }
     }
@@ -566,7 +637,17 @@ export class App {
     const v = this.director.visitor;
     const scaleTarget = this.prefs.reducedMotion ? 1 + (env.roomScale - 1) * 0.3 : env.roomScale;
     this.room.setScale(this.room.scale + (scaleTarget - this.room.scale) * (1 - Math.exp(-dt / 6)));
-    this.lighting.update(dt, env, this.time, this.chair.group.position);
+    this.lighting.update(dt, env, this.time, this.chair.group.position, this.chair.group.rotation.y);
+    if (this.lighting.shadowDirty) this.renderer.shadowMap.needsUpdate = true;
+    // Exposure, like the look's light, comes and goes with the room's own light (the opening, a dim).
+    const room = THREE.MathUtils.clamp(this.lighting.score.area, 0, 1) * this.lighting.roomLight;
+    this.renderer.toneMappingExposure = LOOKS.original.exposure + (this.look.exposure - LOOKS.original.exposure) * room;
+    this.text.faintBoost = 1 + (this.look.faint - 1) * room;
+    this.post.contrast = this.look.contrast * room;
+    this.room.setWarmth(this.lighting.warmthNow);
+    // The chair's contact with the floor is there as the light on it is: none in the dark.
+    (this.chair.contact.material as THREE.MeshBasicMaterial).opacity = this.chairContact * Math.min(1, this.lighting.keyLevel);
+    (this.chair.seatShade.material as THREE.MeshBasicMaterial).opacity = this.chairContact * Math.min(1, this.lighting.panelLevel);
     if (this.memoryKey) {
       // The light washes the words out a little (to about half their strength), then gives them back.
       const m = this.memoryLight.update(this.time);
@@ -936,7 +1017,9 @@ export class App {
       else {
         // Walking: a thumb pushing up drifts sideways a little; that shouldn't turn the body.
         const dx = e.clientX - t.sx;
-        this.rig.touchMove.set(clamp((Math.sign(dx) * Math.max(0, Math.abs(dx) - 20)) / 80, -1, 1), clamp(-(e.clientY - t.sy) / 90, -1, 1));
+        // And a thumb meant to turn drifts up or down a little: that shouldn't walk.
+        const dy = -(e.clientY - t.sy);
+        this.rig.touchMove.set(clamp((Math.sign(dx) * Math.max(0, Math.abs(dx) - 20)) / 80, -1, 1), clamp((Math.sign(dy) * Math.max(0, Math.abs(dy) - 10)) / 90, -1, 1));
       }
       t.x = e.clientX;
       t.y = e.clientY;
@@ -1085,6 +1168,8 @@ export class App {
 
   // ─────────────────────────────── UI ───────────────────────────────
 
+  private walkHintShown = false;
+
   private showHint() {
     this.hintShown = true;
     const h = $('hint');
@@ -1184,7 +1269,11 @@ export class App {
     }
     if (this.voices) this.voices.speechFallback = p.speech;
     this.captions.enabled = p.captions;
-    if (this.rig) this.rig.reducedMotion = p.reducedMotion;
+    if (this.rig) {
+      // Turned on to stop movement: no rise of the view to come either (the panel hides the cut).
+      if (p.reducedMotion && !this.rig.reducedMotion) this.rig.stand();
+      this.rig.reducedMotion = p.reducedMotion;
+    }
     document.documentElement.classList.toggle('reduce-motion', p.reducedMotion);
     if (p.muted || !p.speech) this.voices?.stopSpeech();
     if (this.post) {
@@ -1193,12 +1282,13 @@ export class App {
     }
     if (this.renderer && this.post) {
       this.onResize();
-      const size = p.quality === 'low' ? 512 : p.quality === 'medium' ? 1024 : 2048;
+      const size = shadowMapSize(p.quality);
       const sh = this.lighting.key.shadow;
       if (sh.mapSize.x !== size) {
         sh.mapSize.set(size, size);
         sh.map?.dispose();
         sh.map = null as unknown as THREE.WebGLRenderTarget;
+        this.lighting.invalidateShadow();
       }
       this.post.setSamples(p.quality === 'high' ? 4 : p.quality === 'medium' ? 2 : 0);
     }
@@ -1336,6 +1426,7 @@ export class App {
     this.rig.pos.set(0.15, 0, 2.55);
     this.rig.yaw = 0.06;
     this.rig.pitch = -0.06;
+    this.rig.stand();
     this.rig.setKneel(false);
     this.rig.cancelAttend();
     const dep = $('departure');

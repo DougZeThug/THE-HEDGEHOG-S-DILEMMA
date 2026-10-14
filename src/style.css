@@ -78,6 +78,8 @@ kbd { font-family: inherit; font-size: 0.85em; border: 1px solid #c9c7c1; border
   font-style: italic; font-size: clamp(1.05rem, 2.2vw, 1.35rem); color: rgba(38, 40, 46, 0.86);
   text-shadow: 0 0 14px rgba(243, 242, 239, 0.95), 0 0 3px rgba(243, 242, 239, 0.9);
 }
+/* On a landscape screen the opening frames the chair low: captions sit below its feet. */
+@media (min-aspect-ratio: 1/1) { .captions { bottom: calc(2.2vh + env(safe-area-inset-bottom, 0px)); } }
 .captions .cap { display: block; opacity: 0; transition: opacity 1.4s ease; margin-top: 0.3rem; }
 .captions .cap.on { opacity: 1; }
 .captions .cap.sound { font-size: 0.85em; color: rgba(70, 74, 82, 0.8); }

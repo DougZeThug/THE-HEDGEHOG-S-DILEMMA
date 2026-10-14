@@ -29,11 +29,12 @@ npm test             # unit tests (Vitest): emotional engine, selection, schedul
 npm run build && npx vite preview --port 4173 &
 npm run smoke        # browser smoke test (Playwright + Chromium): full visit, screenshots in test-output/
 npm run perf         # startup, frame pacing, shader programs, GPU memory, fixed-state frames (BASE, OUT)
+npm run style        # each look from fixed places and through the opening, beside the reference image (BASE, OUT)
 ```
 
 Playwright is a pinned devDependency (`1.56.1`, Chromium 1194). It downloads no browser on install; point it at one with `PLAYWRIGHT_BROWSERS_PATH` or `CHROMIUM_PATH` (perf).
 
-**Tuning.** Add `?tune` to the URL for a small panel (loaded only then): the room's light (key, room, sky, glow, cone), grain and vignette, the memory's light, a button that calls the memory now, and *copy values*. It changes how things look, never what the Director decides, and stores nothing.
+**Tuning.** Add `?tune` to the URL for a small panel (loaded only then): the room's light (key, room, sky, glow, cone), the look (`original`, `subtle`, `reference`, and each of its values: fill, area, key, cone, glow, warmth, ceiling, exposure, vignette and its shape, grain, plaster relief, the chair's contact and shadow softness, stains, the key's aim, the skylight's brightness), the memory's light, a button that calls the memory now, and *copy values*. It changes how things look, never what the Director decides, and stores nothing.
 
 Headphones are recommended. Sound starts only after you press **go in**.
 
@@ -59,26 +60,30 @@ For inspection: add `?debug` to the URL for a live overlay of the engine's state
 
 Minimal, but authored. The emptiness is meant to look chosen, not default.
 
-- **Surfaces** are painted once at load (`src/world/surfaces.ts`):
-  - off-white, hand-trowelled plaster with broad mottling and faint horizontal passes;
-  - a subtly varied matte floor, slightly smoother along the path people walk in, scuffed in arcs around the chair;
+- **Surfaces** are painted once at load (`src/world/surfaces.ts`), with the fine structure of real material scans folded in (CC0, Poly Haven; `public/textures/scan`, made by `scripts/scan-detail.py` and loaded by `src/world/scans.ts`). A scan gives only its texture: the room's colours, warmth and marks are its own, and how strongly each surface takes its scan was measured against the artist's reference. Phones take half, and without the scans the room bakes as before.
+  - off-white, hand-trowelled plaster: broad gentle mottling, faint horizontal passes, a fine tooth a few centimetres across, specks, small pits and hairline scratches;
+  - sealed concrete, a shade darker than the walls: cloudy, with a soft sheen where people stand by the chair, slightly smoother along the path people walk in, scuffed in arcs around the chair, duller and greyer further from it;
   - a ceiling a little cooler than the walls, with the faintest board joints;
-  - soft grey trim: a skirting with a shadow gap above it, and a fine shadow gap where walls meet the ceiling.
-- **Physical history**, at the edge of visibility:
-  - writing that was rubbed out (a graphite ghost of "I'm sorry" in the empty space behind the chair);
+  - a grey painted skirting standing 1.5 cm proud, its top catching the light; and every junction drawn as the reference draws it, a crisp line about a centimetre wide fading out by three: under the ceiling, down the corners, above the skirting, and where the skirting stands on the floor.
+  - the writer's hand: graphite dragged along under the lines on the walls and a thumb at their ends; a few smudges elsewhere, an eraser's paler halo.
+- **Physical history**, faint, but there to be found from a metre or two:
+  - writing that was rubbed out: a single "you" in the empty space behind the chair, an apology lower and off to one side, and not only confessions (somewhere, a shopping list);
   - masking-tape residue around paler rectangles where something once hung;
   - pencil height marks with an initial near one corner, and a few days counted in fives low on the wall behind you;
-  - scuffs along the skirting, soft occlusion in every corner;
+  - scuffs along the skirting, graphite dust settled above it under the busiest writing, soft occlusion in every corner;
   - on the floor, a little to one side, the pressed marks of where the chair used to stand.
-- **Light** comes almost entirely from one frosted overhead panel, hung slightly north of the chair.
-  - The floor is brightest around the chair, the walls fall away gently toward the corners, and the ceiling stays dim.
-  - The chair's shadow is soft-edged and stretches toward whoever arrives.
+- **Light** comes almost entirely from one skylight north of the chair: a square opening in the ceiling, its frosted glass set back 25 cm up a well whose sides are lit by it, brightest where they meet the glass (`src/world/Room.ts`). The glass is the one near-white thing in the frame, and the well dims and cools with the room's light.
+  - The floor is brightest around the chair. The wall you read is the brightest wall, washed from its top centre by the skylight's glow; the side walls, the corners and the ceiling fall away from it, the ceiling brightest round the opening.
+  - The light is cream rather than white. The warmth is in the light alone, never the plaster or the grade, so when the room cools (someone too close) it cools as far as it ever did.
+  - The chair's shadow is soft-edged (a few centimetres of penumbra, the same on a phone) and stretches toward whoever arrives. Under the seat lies the panel's own shade, and its feet press small dark contacts into the floor.
+  - The walls carry a few faint, wide water runs and old damp, mostly on the side walls, as in the artist's reference (the look's `stains`); the plaster's tooth and the floor's mottle stay soft.
+  - Where this came from, and what was left out (outlines, tonal banding, a sepia grade): `docs/reviews/2026-10-illustrated.md`. `?style=original|subtle|reference` compares the light before and after; reference is the room.
   - The shadow-casting source can still drift away from where the panel says it should be.
-- **The chair** is a small hand-made ladder-back (`src/world/Chair.ts`, `src/world/wood.ts`):
-  - turned legs that splay slightly, back posts that lean and end in finials;
-  - an arched crest rail and slats bent to receive a back, and a dished, slightly trapezoidal seat;
-  - oiled walnut with long calm grain;
-  - wear baked into the wood: paler across the seat's front edge and the middle of the crest rail, where hands and bodies touched it, and darker at the feet.
+- **The chair** is a plain hand-made ladder-back (`src/world/Chair.ts`, `src/world/wood.ts`), seat at about 44 cm, posts to about 92 cm (the proportion of the artist's reference):
+  - square legs eased at the edges, slimmer at the foot, sturdy (about 4.6 cm); back posts raked back, one a little short, running on above the top rail into rounded caps;
+  - a top rail and two slats (one set in not quite level), square stretchers, a dished, slightly trapezoidal seat overhanging the legs;
+  - oiled walnut (no lacquer, no sheen), its figure broad enough to read from across the room, with the grain and relief of two real wood scans; the seat two boards glued side by side, its top worn to amber;
+  - wear baked into the wood: paler across the seat's front edge, the middle of the top rail and every arris, where hands and bodies touched it; darker in the joints and at the feet.
 
 ## What the room does
 
@@ -88,6 +93,7 @@ All of this is implemented and running; none of it is shown to the visitor as nu
   - **0 s.** You tap the black threshold, which is also the title card; that tap lets the room be heard.
   - **0.3–5 s.** "The Hedgehog's Dilemma" holds on black and fades.
   - **In the dark.** A chair creaks, then a switch clicks by the door.
+  - **Where you are.** Low (a child's eye height, 1.4 m), centred on the chair from the back of the room: the room as a box around it, its light at the top. Your first deliberate step stands you up, in one slow movement; looking around doesn't. With reduced motion you start standing.
   - **The chair.** A wide, soft throw of light finds it alone, and the walls are barely there. The fixture stays dim, the source rather than the subject. You can look around from here.
   - **The room.** It comes up nearly empty: plaster with old erased marks, and small writing on the floor by the chair. You can walk from here.
   - **A hand writes.** "I wanted you to", in pen, in silence, then stops. The stop is held for two seconds.
@@ -197,8 +203,9 @@ src/
                               plus continuous environment targets (light, scale, sound)
                 cues.ts       the only vocabulary between the composer and the world
   core/         seeded RNG, event scheduler (spacing of major events), maths
-  world/        Room (procedural plaster/paper/floor, skirting, panel), Chair (lathe-turned
-                legs, curved slats, procedural grain), Lighting (area light + shadow-casting
+  world/        Room (procedural plaster/floor with scanned detail, skirting, seams, the
+                skylight's well), Chair (square ladder-back, wood atlas with scanned grain),
+                scans (CC0 material detail), Style (the looks), Lighting (area light + shadow-casting
                 spot that can drift), WallText (canvas handwriting on lit planes, dissolve
                 shader, annotations, links, strikes, shy/near legibility, attention),
                 layout (authored regions + deterministic packing), CameraRig, Post (grade),
@@ -343,4 +350,4 @@ node scripts/generate-dialogue.mjs --approve=… --reject=…           # after 
 
 ## Credits
 
-Fonts (bundled, SIL Open Font License): Reenie Beanie, Caveat, Nothing You Could Do, Cormorant Garamond — via Fontsource. 3D: three.js. All writing in the room is original.
+Fonts (bundled, SIL Open Font License): Reenie Beanie, Caveat, Nothing You Could Do, Cormorant Garamond — via Fontsource. 3D: three.js. Material scans (CC0, Poly Haven): White Plaster 02 and Fine Grained Wood by Rob Tuytel; Concrete Floor Worn 001 and Wood Table Worn by Dimitrios Savva and Rico Cilliers (`public/textures/scan/CREDITS.md`). All writing in the room is original.

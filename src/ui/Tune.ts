@@ -14,7 +14,7 @@ export interface TuneControl {
   set(v: number): void;
 }
 
-export function mountTune(controls: TuneControl[], actions: { label: string; run(): void }[]) {
+export function mountTune(controls: TuneControl[], actions: { label: string; run(): void; pressed?(): boolean }[]) {
   const el = document.createElement('div');
   el.id = 'tune';
   el.setAttribute('role', 'region');
@@ -44,14 +44,19 @@ export function mountTune(controls: TuneControl[], actions: { label: string; run
       r.out.textContent = r.c.get().toFixed(2);
     }
   };
+  // Each group is a fieldset, so a slider is named with its group ("look: key", not just "key").
   let group = '';
+  let set: HTMLFieldSetElement = body as unknown as HTMLFieldSetElement;
   for (const c of controls) {
     if (c.group !== group) {
       group = c.group;
-      const g = document.createElement('div');
+      set = document.createElement('fieldset');
+      set.style.cssText = 'border:0;margin:6px 0 0;padding:0';
+      const g = document.createElement('legend');
       g.textContent = group;
-      g.style.cssText = 'margin-top:6px;opacity:.6;text-transform:uppercase;font-size:10px;letter-spacing:.05em';
-      body.append(g);
+      g.style.cssText = 'padding:0;opacity:.6;text-transform:uppercase;font-size:10px;letter-spacing:.05em';
+      set.append(g);
+      body.append(set);
     }
     const row = document.createElement('label');
     row.style.cssText = 'display:grid;grid-template-columns:70px 1fr 38px;gap:6px;align-items:center';
@@ -62,8 +67,9 @@ export function mountTune(controls: TuneControl[], actions: { label: string; run
       c.set(Number(input.value));
       out.textContent = Number(input.value).toFixed(2);
     };
+    input.setAttribute('aria-label', `${c.group}: ${c.label}`);
     row.append(Object.assign(document.createElement('span'), { textContent: c.label }), input, out);
-    body.append(row);
+    set.append(row);
     rows.push({ c, input, out });
   }
   // On a phone the panel starts folded: thumbs are for looking.
@@ -71,16 +77,24 @@ export function mountTune(controls: TuneControl[], actions: { label: string; run
   setInterval(() => !body.hidden && refresh(), 1000);
   const values = () => JSON.stringify(Object.fromEntries(controls.map((c) => [`${c.group}.${c.label}`, +c.get().toFixed(3)])), null, 1);
   const copy = { label: 'copy values', run: () => void navigator.clipboard?.writeText(values()).catch(() => {}) };
-  for (const a of [...actions, copy]) {
+  const toggles: [HTMLButtonElement, () => boolean][] = [];
+  const pressed = () => {
+    for (const [b, p] of toggles) b.setAttribute('aria-pressed', String(p()));
+  };
+  for (const a of [...actions, copy] as { label: string; run(): void; pressed?(): boolean }[]) {
     const b = document.createElement('button');
     b.textContent = a.label;
     b.style.cssText = 'margin:6px 6px 0 0;font:inherit';
+    if (a.pressed) toggles.push([b, a.pressed]);
     b.onclick = (e) => {
       e.stopPropagation();
       a.run();
+      pressed();
+      refresh();
     };
     body.append(b);
   }
+  pressed();
   // Clicks on the panel are the panel's (not a look, not pointer lock).
   for (const t of ['pointerdown', 'mousedown', 'touchstart', 'click'] as const) el.addEventListener(t, (e) => e.stopPropagation());
   document.body.append(el);

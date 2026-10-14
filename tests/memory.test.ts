@@ -88,6 +88,23 @@ describe('a memory intruding as light', () => {
     }
   });
 
+  it('nothing else writes its line before the memory offers it (40 seeds, two walls)', () => {
+    const early: string[] = [];
+    for (let seed = 1; seed <= 40; seed++) {
+      for (const facing of ['north', 'east'] as const) {
+        const d = new Director({ seed });
+        d.release({ written: ['stay'], spoken: ['crumbs'] });
+        for (let t = 0; t < 150; t += 0.1) {
+          const out = d.tick(0.1, { ...still, gazePhraseId: t % 20 < 6 ? 'stay' : null }, facing);
+          const hit = out.find((c) => c.rule !== 'memory-offer' && JSON.stringify(c.cue).includes(Director.MEMORY.phraseId));
+          if (hit) early.push(`seed ${seed} ${facing} at ${d.now.toFixed(0)} s: ${hit.rule}`);
+        }
+        if (d.visible.has(Director.MEMORY.phraseId) && d.now < 150) early.push(`seed ${seed} ${facing}: visible`);
+      }
+    }
+    expect(early).toEqual([]);
+  });
+
   it('if its line found no room, it is offered again', () => {
     const d = new Director({ seed: 3 });
     d.release({ written: ['stay'], spoken: ['crumbs'] });

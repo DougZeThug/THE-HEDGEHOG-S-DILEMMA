@@ -56,7 +56,7 @@ export const DRAWINGS: readonly DrawingDef[] = [
   { id: 'noughts', shape: 'noughts', style: 'doodle', hand: 'pencil', strength: 0.7, surface: 'west', size: [0.15, 0.15], at: [3.7, 0.74], when: 'start' },
   // Someone drew round the chair once, side on, at its own size, when it stood against this
   // wall. Mostly rubbed out; just made out from where the chair stands now.
-  { id: 'ghost-chair', shape: 'chair', style: 'ghost', hand: 'faint', strength: 0.7, surface: 'west', size: [0.42, 0.82], at: [0.62, 0.515], when: 'start', rubbed: 0.35, upright: true },
+  { id: 'ghost-chair', shape: 'chair', style: 'ghost', hand: 'faint', strength: 0.7, surface: 'west', size: [0.54, 1.05], at: [0.68, 0.625], when: 'start', rubbed: 0.35, upright: true },
   // An eye in the margin, its iris rubbed away: nothing looking out of it.
   { id: 'ghost-eye', shape: 'eye', style: 'ghost', hand: 'child', strength: 0.65, surface: 'west', size: [0.09, 0.05], at: [1.55, 0.38], when: 'start', rubbed: 0.2 },
   // Someone getting a biro to work, low down: a spiral, a scribble.

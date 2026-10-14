@@ -503,8 +503,15 @@ export class Director {
   /** Phrases kept for particular moments; they never just drift onto the walls. */
   static readonly RESERVED = new Set(['thank-staying', 'moving-chair', 'glad-came', 'dont-have-say']);
 
+  /** Kept for its moment: the reserved lines, and the memory's line until the memory offers it. */
+  private reserved(id: string): boolean {
+    return Director.RESERVED.has(id) || (id === Director.MEMORY.phraseId && !this.memoryOffered);
+  }
+
   private hiddenExcluding(): Set<string> {
-    return new Set([...this.visible.keys(), ...Director.RESERVED, ...this.withheld()]);
+    const out = new Set([...this.visible.keys(), ...Director.RESERVED, ...this.withheld()]);
+    if (!this.memoryOffered) out.add(Director.MEMORY.phraseId);
+    return out;
   }
 
   /** Lines about leaving and staying, kept back while "I wanted you to" is unfinished. */
@@ -738,7 +745,7 @@ export class Director {
     if (answerRead && reading) {
       const related = [...(reading.contradicts ?? []), ...(reading.echoes ?? [])]
         .map((r) => PHRASE_BY_ID.get(r))
-        .find((p) => p && free(p.id) && !Director.RESERVED.has(p.id) && !this.withheld().includes(p.id) && p.surface !== 'floor' && p.surface !== 'ceiling' && !['transform', 'annotation', 'still', 'near'].includes(p.tier ?? 'arrival'));
+        .find((p) => p && free(p.id) && !this.reserved(p.id) && !this.withheld().includes(p.id) && p.surface !== 'floor' && p.surface !== 'ceiling' && !['transform', 'annotation', 'still', 'near'].includes(p.tier ?? 'arrival'));
       if (related) {
         id = related.id;
         rule = 'accumulate-read';
@@ -895,7 +902,7 @@ export class Director {
     const p = PHRASE_BY_ID.get(id);
     if (!p) return false;
     const ok = (x: Phrase | undefined): x is Phrase =>
-      !!x && x.tier !== 'annotation' && !this.visible.has(x.id) && !Director.RESERVED.has(x.id) && (x.tier !== 'transform' || this.phase === 'transform');
+      !!x && x.tier !== 'annotation' && !this.visible.has(x.id) && !this.reserved(x.id) && (x.tier !== 'transform' || this.phase === 'transform');
     // A related line comes up somewhere else — to be come across, not handed over beside it.
     const related = [...(p.echoes ?? []), ...(this.phase === 'arrival' ? [] : (p.contradicts ?? []))].map((r) => PHRASE_BY_ID.get(r)).filter(ok);
     const r = related[0];
@@ -1141,7 +1148,7 @@ export class Director {
     // An answer to stepping back (well clear of the chair, so there is room to come closer), not
     // to standing by the door; only after a long time apart for someone who never came near.
     const back = v.approaches.length > 0;
-    if (v.distance < (back ? 2.1 : 2.4) || v.gazeChairFor < 1.5 || v.speed > 0.3) return;
+    if (v.distance < 2.1 || v.gazeChairFor < 1.5 || v.speed > 0.3) return;
     if (!back && this.now < 150) return;
     // Words that are not already on a wall: a repeat would read as a copy, not as something said.
     const withheld = this.withheld();
@@ -1341,7 +1348,7 @@ export class Director {
     // Lines kept for particular moments, and late lines, are never borrowed as context early.
     const fits = (id: string) => {
       const b = PHRASE_BY_ID.get(id);
-      return !!b && !Director.RESERVED.has(id) && (b.tier !== 'transform' || this.phase === 'transform');
+      return !!b && !this.reserved(id) && (b.tier !== 'transform' || this.phase === 'transform');
     };
     const options = RECONTEXTS.filter((r) => !this.recontextsUsed.has(r.id) && this.visitor.read.has(r.phrase) && fits(r.beside));
     if (!options.length) return;
@@ -1404,7 +1411,7 @@ export class Director {
     const open = new Set<Tier>(TIER_OPEN[this.phase].filter((t) => t !== 'near'));
     // Floor and ceiling writing belongs to where it is; it never wanders.
     const cands = PHRASES.filter(
-      (p) => p.surface !== wall && p.surface !== 'floor' && p.surface !== 'ceiling' && open.has(p.tier) && !this.strays.has(p.id) && p.kind !== 'word' && p.kind !== 'passage',
+      (p) => p.surface !== wall && p.surface !== 'floor' && p.surface !== 'ceiling' && open.has(p.tier) && !this.strays.has(p.id) && !this.reserved(p.id) && p.kind !== 'word' && p.kind !== 'passage',
     ).map((p) => {
       // Strongly something else, and nothing like this wall.
       const foreign = 1 - belonging(p, wall);

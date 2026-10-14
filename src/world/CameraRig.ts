@@ -4,6 +4,16 @@ import type { Room } from './Room';
 
 const EYE = 1.58;
 const KNEEL_EYE = 0.6;
+/**
+ * The opening's eye: a child's eye height (the artist's reference is framed from about here,
+ * from the back of the room): the diorama as the child who made it saw it. The first step
+ * stands the visitor up into an adult, and the chair becomes too small.
+ */
+const OPENING_EYE = 1.4;
+/** Standing up takes this long, eased at both ends. */
+const RISE_S = 2.8;
+/** Where the opening is seen from: centred on the chair, from the back of the room. */
+export const OPENING_POS = { x: 0, z: 2.85, zPortrait: 2.85, yaw: 0, yawPortrait: 0.05 };
 
 /**
  * First-person body: slow, weighted walking; a view that settles. Supports mouse
@@ -18,6 +28,30 @@ export class CameraRig {
   private vel = new THREE.Vector2();
   private yawVel = 0;
   private eye = EYE;
+  /** Until the visitor first walks, the eye rests here (the opening's), then rises to standing. */
+  private restEye = EYE;
+  /** The opening is seen a little wider on a landscape screen (a portrait one is wide enough). */
+  private wideOpening = false;
+  private walkHeld = 0;
+  private walked = 0;
+  private rise: { from: number; t: number } | null = null;
+
+  /** Still where the opening left them: low, not yet stood up. */
+  get seated() {
+    return this.restEye < EYE && !this.rise;
+  }
+
+  /** The opening has handed the room over: its wider view goes (the low eye stays until a step). */
+  endOpeningFrame() {
+    this.wideOpening = false;
+  }
+
+  /** Standing, now (returning after leaving; reduced motion turned on): no rise, no wider view. */
+  stand() {
+    this.rise = null;
+    this.restEye = this.eye = EYE;
+    this.wideOpening = false;
+  }
   kneeling = false;
   reducedMotion = false;
   enabled = true;
@@ -46,6 +80,8 @@ export class CameraRig {
   setAspect(aspect: number) {
     const v = (h: number) => (2 * Math.atan(Math.tan((h * Math.PI) / 360) / aspect) * 180) / Math.PI;
     this.baseFov = Math.min(88, clamp(62, v(58), v(95)));
+    // Turned upright: no wider view (a portrait screen is wide enough, and the cap holds).
+    if (aspect < 1) this.wideOpening = false;
   }
 
   look(dx: number, dy: number) {
@@ -60,7 +96,21 @@ export class CameraRig {
    * screen and the chair sits just below centre on a phone held upright.
    */
   frameOpening(aspect: number) {
-    this.pitch = aspect < 1 ? -0.3 : -0.15;
+    // An upright phone sees less across: it starts nearer, so the chair still holds the frame.
+    this.pos.set(OPENING_POS.x, 0, aspect < 1 ? OPENING_POS.zPortrait : OPENING_POS.z);
+    this.yaw = OPENING_POS.yaw;
+    // Low and centred, the chair large and the room a box around it; under reduced motion the
+    // visitor starts standing (no rise of the view later).
+    this.restEye = this.eye = this.reducedMotion ? EYE : OPENING_EYE;
+    this.rise = null;
+    this.walkHeld = this.walked = 0;
+    const low = !this.reducedMotion;
+    // Looking a little down, the horizon just above the middle (as the reference is framed): the
+    // skylight at the top of the frame, the chair two-thirds of the way down.
+    this.pitch = aspect < 1 ? (low ? -0.08 : -0.2) : low ? -0.03 : -0.12;
+    this.wideOpening = aspect >= 1;
+    // An upright phone sees less across: turned a touch, so the unfinished line keeps its "I".
+    if (aspect < 1) this.yaw = OPENING_POS.yawPortrait;
   }
 
   /** Walk toward a world point, stopping `stopAt` metres short. */
@@ -167,8 +217,34 @@ export class CameraRig {
       this.pos.z = chairPos.z + (cz / cd) * minD;
     }
 
-    const targetEye = this.kneeling ? KNEEL_EYE : EYE;
-    this.eye = approach(this.eye, targetEye, dt, this.kneeling ? 0.9 : 0.7);
+    // A deliberate first step (a third of a second of walking, or 15 cm, not a tap or a thumb's
+    // drift) or being walked toward something stands the visitor up: once, in one eased movement
+    // that starts and ends at rest; looking around doesn't. Once up, they stay up.
+    if (this.restEye < EYE && !this.rise && this.walk && !this.kneeling) {
+      if (fwd || strafe) {
+        this.walkHeld += dt;
+        this.walked += Math.hypot(this.vel.x, this.vel.y) * dt;
+      } else this.walkHeld = 0;
+      if (this.goal || this.walkHeld >= 0.3 || this.walked >= 0.15) this.rise = { from: this.eye, t: 0 };
+    }
+    if (this.rise && !this.kneeling) {
+      const r = this.rise;
+      r.t += dt;
+      const k = Math.min(1, r.t / RISE_S);
+      this.eye = r.from + (EYE - r.from) * k * k * (3 - 2 * k);
+      if (k >= 1) {
+        this.rise = null;
+        this.restEye = EYE;
+      }
+    } else {
+      // Kneeling partway through standing: they are up now, as far as the room is concerned.
+      if (this.rise) {
+        this.rise = null;
+        this.restEye = EYE;
+      }
+      const targetEye = this.kneeling ? KNEEL_EYE : this.restEye;
+      this.eye = approach(this.eye, targetEye, dt, this.kneeling ? 0.9 : 0.7);
+    }
 
     // A body, not a tripod: footfall bob when walking, breath when standing.
     const moving = Math.hypot(this.vel.x, this.vel.y);
@@ -181,8 +257,14 @@ export class CameraRig {
     }
     this.camera.position.set(this.pos.x, this.eye + bob + sway, this.pos.z);
     this.camera.rotation.set(this.pitch, this.yaw, 0);
-    const fovTarget = this.baseFov + (this.kneeling && !this.reducedMotion ? 8 : 0);
-    this.camera.fov = approach(this.camera.fov, fovTarget, dt, 1.5);
+    // Seen from the opening's low place, a little wider: the box whole, its light at the top.
+    // Only for the opening's composition: it goes at the hand-off, or once they look away.
+    if (Math.abs(this.yaw) > 0.5) this.wideOpening = false;
+    // While rising, the view narrows with the eye (one movement, not two); otherwise it eases.
+    const low = clamp((EYE - this.eye) / (EYE - OPENING_EYE));
+    const wide = this.wideOpening && !this.kneeling && !this.reducedMotion ? 10 * low : 0;
+    const fovTarget = this.baseFov + (this.kneeling && !this.reducedMotion ? 8 : 0) + wide;
+    this.camera.fov = this.rise ? fovTarget : approach(this.camera.fov, fovTarget, dt, 1.5);
     this.camera.updateProjectionMatrix();
   }
 

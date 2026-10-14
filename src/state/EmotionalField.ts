@@ -43,7 +43,10 @@ export class EmotionalField {
     const acclimate = smoothstep(8, 35, vis.nearFor) * (0.5 + 0.5 * settled);
     const hes = mem.strength.hesitation;
 
-    if (vis.distance > 2.4) this.farTimer += dt;
+    // Apart: counted in proportion from 1.7 m to fully by 2.3 m (a hard edge at one distance made
+    // a few centimetres of where someone happened to be put decide the whole solitude arc).
+    const apart = smoothstep(1.7, 2.3, vis.distance);
+    if (apart > 0) this.farTimer += dt * apart;
     else this.farTimer = Math.max(0, this.farTimer - dt * 2);
 
     // Reading feeds reminiscence and dissonance through the phrases themselves.

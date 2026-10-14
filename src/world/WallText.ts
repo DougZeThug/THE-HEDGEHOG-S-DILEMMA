@@ -220,6 +220,8 @@ export class WallText {
   private lineTex: THREE.CanvasTexture[];
   private geo = new THREE.PlaneGeometry(1, 1);
   reducedMotion = false;
+  /** How much faint writing is strengthened (the look's, with the room's light; 1 = as written). */
+  faintBoost = 1;
   /** Writing in the air (add to the scene): at most one piece, which goes when approached. */
   readonly air = new THREE.Group();
   private airItem: {
@@ -823,7 +825,15 @@ export class WallText {
       }
       const gazed = gazeId === it.key;
       it.emphasis = approach(it.emphasis, gazed ? clamp((gazeFor - 0.8) / 3) * 0.7 : 0, dt, gazed ? 1.2 : 3);
-      const base = HANDS[it.hand].opacity * (it.strength ?? 1) * (1 - (it.wash ?? 0));
+      let base = HANDS[it.hand].opacity * (it.strength ?? 1) * (1 - (it.wash ?? 0));
+      // Faint writing on a brighter wall sits higher on the tone curve and loses contrast: the
+      // look gives it back (only the faint: the strong lines held their own).
+      if (it.placement.surface === 'floor') {
+        // The floor by the chair is the brightest surface in the room, the key's pool high on the
+        // tone curve, where pencil is compressed hardest, strong lines too: all of it is given back
+        // more (and none in the original look).
+        base = Math.min(0.8, base * this.faintBoost ** 2);
+      } else if (base < 0.4) base = Math.min(0.4, base * this.faintBoost);
       if (it.plan) {
         const h = handAt(it.plan, wallClock());
         it.uniforms.uWrite.value = h / Math.max(1e-3, it.duration);

@@ -16,7 +16,8 @@
     "playtest": "vite-node scripts/playtest.ts",
     "playtest:browser": "node tests/playtest/browser.mjs",
     "opening": "node tests/playtest/opening.mjs",
-    "perf": "node tests/playtest/perf.mjs"
+    "perf": "node tests/playtest/perf.mjs",
+    "style": "node tests/playtest/style.mjs && python3 tests/playtest/style-metrics.py ${OUT:-test-output/review/style/run}"
   },
   "dependencies": {
     "@fontsource/caveat": "^5.1.0",
