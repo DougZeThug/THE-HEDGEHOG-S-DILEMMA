@@ -187,3 +187,23 @@ The reviewers had left the grime and the framing out, so the artist was asked. T
   - **Captions on desktop lay over the chair's feet.** Landscape captions now sit lower.
   - **Smaller items:** the wider view on rotation, the click area, and the ring's corner creases.
   - Programs: 16, none later. Draw calls: 33 still, 49 when the shadow redraws. The new chair is 5k triangles (the old one 27k).
+
+## Round 3: "it should really look exactly like the reference"
+
+The artist was asked about every feature the reviewers had left out. They chose:
+- **Stains:** "Yes, like the reference": streaks and old damp, mostly on the side walls, as a look value (`stains`, 0–1) laid over the walls, so it can be turned down without baking again. This reverses the round-1 decision against drips: the artist's choice.
+- **Writing:** "Keep the authored opening". The reference's phrases illustrate composition, not text to copy, so "I wanted you to" stays unfinished and the crumbs stay.
+- **Room:** "Yes, taller room": 3.6 m (was 3.1). The lights are compensated for the reach (`REACH = (height / 3.1)²`), so the original look is still the old light.
+- **Chair:** "Enlarge the chair". At 72 cm it was 37% of the back wall's height on screen; the reference's is 56%. No camera position gives the reference's composition with a chair that small. It is scaled 1.28 (`CHAIR_SCALE`): seat about 44 cm, posts about 92 cm. The hit area, contacts and seat shade scale with it; the chair's glow is raised to 0.7 m.
+
+The opening was re-framed for it: eye 1.4 m, 2.85 m back, pitch −0.03, landscape 10° wider. Measured against the reference: chair centre at 69–71% of the frame height (reference 69%), chair height 25% (26%), the skylight whole at the top, the horizon at about 48% (44%).
+
+**"In the reference the lighting is still better and the walls and floor look a little more cinematic, less beat up."** Side by side, the walls had become a building's decay: 22 hard streaks per side wall, dark damp clouds, specks and pits everywhere, and a floor of dense speckle. The reference's surfaces are soft: a few faint, wide runs, a gentle mottle, nothing sharp. Its light is warmer (back wall R/B 1.23, against our 1.18), its pool brighter than its wall (pool/wall 1.30, against 1.17), its chair's shadow soft, and the skylight's halo small.
+- **Walls:** streaks 9 / 5 / 4 per wall (side / south / north, was 22 / 10 / 7), wider (2.5–7 cm) and far fainter (alpha 0.05–0.12, was 0.18–0.4); old damp at less than half; corner and foot grime halved and spread. The plaster's tooth is half as strong; smudges 3 per wall (was 8); specks, pits and scratches cut by about 70%.
+- **Floor:** a softer concrete mottle; specks 20, pits 3, scratches 0.5 per m² (was 45 / 12 / 2).
+- **Light** (the reference look; measured with the probe at the hand-off pose, sweeping candidates):
+  - the cream deeper (`#ffedd4`, was `#fff1de`), which brings the back wall's R/B to the reference's;
+  - the key stronger (1.8, was 1.1), its cone wider (0.75, was 0.65) and the panel's area light lower (1.85, was 2.2), so the pool outshines the wall as in the reference;
+  - the chair's shadow softer (2.4, was 1);
+  - the skylight's glow smaller (1.4, was 2.5), so the opening is a fitting, not a halo;
+  - contrast 0.25 (was 0.35) and vignette 0.2 (was 0.1).

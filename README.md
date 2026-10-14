@@ -76,7 +76,8 @@ Minimal, but authored. The emptiness is meant to look chosen, not default.
   - The floor is brightest around the chair. The wall you read is the brightest wall, washed from its top centre by the skylight's glow; the side walls, the corners and the ceiling fall away from it, the ceiling brightest round the opening.
   - The light is cream rather than white. The warmth is in the light alone, never the plaster or the grade, so when the room cools (someone too close) it cools as far as it ever did.
   - The chair's shadow is soft-edged (a few centimetres of penumbra, the same on a phone) and stretches toward whoever arrives. Under the seat lies the panel's own shade, and its feet press small dark contacts into the floor.
-  - Where this came from, and what was left out (outlines, tonal banding, damp stains, a sepia grade): `docs/reviews/2026-10-illustrated.md`. `?style=original|subtle|reference` compares the light before and after; reference is the room.
+  - The walls carry a few faint, wide water runs and old damp, mostly on the side walls, as in the artist's reference (the look's `stains`); the plaster's tooth and the floor's mottle stay soft.
+  - Where this came from, and what was left out (outlines, tonal banding, a sepia grade): `docs/reviews/2026-10-illustrated.md`. `?style=original|subtle|reference` compares the light before and after; reference is the room.
   - The shadow-casting source can still drift away from where the panel says it should be.
 - **The chair** is a plain hand-made ladder-back (`src/world/Chair.ts`, `src/world/wood.ts`), seat at about 44 cm, posts to about 92 cm (the proportion of the artist's reference):
   - square legs eased at the edges, slimmer at the foot; back posts raked back, one a little short;

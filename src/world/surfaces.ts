@@ -72,7 +72,7 @@ function plaster(W: number, H: number, seed: number, tone: [number, number, numb
         // tooth of a few centimetres: what makes plaster read as plaster from across a room.
         const b = n4.fbm(x / (110 * K), y / (110 * K), 4) - 0.5;
         const tooth = n4.fbm(x / (12 * K) + 41, y / (12 * K) + 7, 2) - 0.5;
-        cloud = b * blotch + tooth * 10;
+        cloud = b * blotch + tooth * 5;
       }
       const d = m * scale.mottle + tr * scale.trowel + fine * scale.grain + cloud;
       const i = (y * W + x) * 4;
@@ -304,8 +304,8 @@ export function weatheringMap(surface: Surface, wM: number, hM: number, seed: nu
     return t * t * (3 - 2 * t);
   };
   // Streaks (metres): where the water started, how far it ran, how wide, how dark.
-  const streaks = Array.from({ length: side ? 22 : surface === 'south' ? 10 : 7 }, () => ({
-    x: r.range(0.15, wM - 0.15), top: r.range(1.0, hM - 0.3), len: r.range(0.35, 1.7), w: r.range(0.008, 0.03), a: r.range(0.18, 0.4), k: r.range(0, 100),
+  const streaks = Array.from({ length: side ? 9 : surface === 'south' ? 5 : 4 }, () => ({
+    x: r.range(0.15, wM - 0.15), top: r.range(1.0, hM - 0.3), len: r.range(0.5, 1.8), w: r.range(0.025, 0.07), a: r.range(0.05, 0.12), k: r.range(0, 100),
   }));
   for (let j = 0; j < H; j++) {
     const v = hM - (j + 0.5) / ppm; // height above the floor
@@ -313,7 +313,7 @@ export function weatheringMap(surface: Surface, wM: number, hM: number, seed: nu
       const u = (i + 0.5) / ppm;
       let a = 0;
       // Old damp: cloudy, irregular, never round.
-      a += ss(0.6, 0.78, n.fbm(u / 0.5, v / 0.5, 4)) * (side ? 0.16 : 0.09);
+      a += ss(0.6, 0.78, n.fbm(u / 0.5, v / 0.5, 4)) * (side ? 0.07 : 0.04);
       for (const st of streaks) {
         const t = (st.top - v) / st.len;
         if (t < 0 || t > 1) continue;
@@ -323,12 +323,12 @@ export function weatheringMap(surface: Surface, wM: number, hM: number, seed: nu
         // Starts faint, darkest a little below where it began, thins out as it runs down;
         // uneven along its length, with a soft wider stain round the run.
         const along = ss(0, 0.15, t) * (1 - t) ** 1.4 * (0.6 + 0.8 * m.fbm(st.k + 5, v * 8, 2));
-        a += st.a * along * (Math.exp(-dx * dx) + 0.25 * Math.exp(-(dx * dx) / 9));
+        a += st.a * along * (Math.exp(-dx * dx) + 0.4 * Math.exp(-(dx * dx) / 9));
       }
       // Grime in the corners and along the foot, uneven.
       const edge = Math.min(u, wM - u);
-      a += 0.14 * (1 - ss(0, 0.28, edge)) * (0.5 + n.fbm(u * 0.3, v / 0.6, 3));
-      a += 0.16 * (1 - ss(0.1, 0.4, v)) * (0.6 + 0.6 * m.fbm(u / 0.4, 3, 2));
+      a += 0.09 * (1 - ss(0, 0.4, edge)) * (0.5 + n.fbm(u * 0.3, v / 0.6, 3));
+      a += 0.08 * (1 - ss(0.1, 0.5, v)) * (0.6 + 0.6 * m.fbm(u / 0.4, 3, 2));
       const k = (j * W + i) * 4;
       img.data[k] = img.data[k + 1] = img.data[k + 2] = Math.round(255 * Math.min(1, a));
       img.data[k + 3] = 255;
@@ -442,8 +442,8 @@ export function wallMaps(surface: Surface, seed: number, wM: number, hM: number)
   }
 
   baseScuffs(g, W, H, r, 22);
-  graphiteSmudges(g, W, H, r, 8);
-  fineDetail(g, bg, W, H, new Rng(seed + 31), { specks: 60, pits: 25, scratches: 3.5 });
+  graphiteSmudges(g, W, H, r, 3);
+  fineDetail(g, bg, W, H, new Rng(seed + 31), { specks: 18, pits: 6, scratches: 0.8 });
   // Little at the top: the box keeps a crisp, lit edge under its darker lid.
   corners(g, W, H, { bottom: 0.55, top: 0.12, left: 0.45, right: 0.45 });
   const map = toTex(c, true);
@@ -460,9 +460,9 @@ export function floorMaps(seed: number, wM: number, dM: number): SurfaceMaps {
   const W = Math.round(wM * PX_PER_M), H = Math.round(dM * PX_PER_M);
   // Sealed concrete, a shade darker than the walls: cloudy, flecked, with a soft sheen where
   // the light falls (so the pool reads as light on a surface, not a paler floor).
-  const { c, g, bc, bg } = plaster(W, H, seed, [190, 186, 181], { mottle: 18, trowel: 2, grain: 7, blotch: 20 });
+  const { c, g, bc, bg } = plaster(W, H, seed, [190, 186, 181], { mottle: 15, trowel: 2, grain: 5, blotch: 18 });
   // Aggregate in the concrete, pits, the fine scratches of things set down and dragged.
-  fineDetail(g, bg, W, H, new Rng(seed + 31), { specks: 45, pits: 12, scratches: 2, light: 0.4 });
+  fineDetail(g, bg, W, H, new Rng(seed + 31), { specks: 20, pits: 3, scratches: 0.5, light: 0.5 });
   const r = new Rng(seed + 5);
   const n = makeNoise(seed + 9);
   const cx = W / 2, cy = H / 2;
