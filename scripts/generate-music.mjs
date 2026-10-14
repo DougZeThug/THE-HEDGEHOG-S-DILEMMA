@@ -43,6 +43,23 @@ const FRAGMENTS = [
   },
 ];
 
+// The living memories' music (docs/memories.md): heard inside the remembered place, never a
+// score over the room. Drafts for the sound designer's review before the dry run.
+FRAGMENTS.push(
+  {
+    id: 'memory-kitchen',
+    seconds: 35,
+    for: 'Memory: "We ate cereal for dinner and it was perfect." Ordinary happiness, enters once the kitchen has formed.',
+    prompt: 'A small, warm, unhurried tune played on an old upright piano in a home kitchen in the early evening, simple and happy, like someone playing for the people they love while dinner is cleared. Gentle, light-hearted, a little imperfect, relaxed tempo, ends softly on a resolved chord. Solo piano only, instrumental, no drums, no strings, no swell, not sentimental, heard from the next room.',
+  },
+  {
+    id: 'memory-bedroom',
+    seconds: 35,
+    for: 'Memory: "I was happiest when nobody needed anything from me." Peace, solitude, morning light.',
+    prompt: 'Tranquil, airy, sparse music for a quiet sunlit bedroom in the morning with the window open: a few slow sustained notes on a soft felt piano with long silences between them, unhurried, peaceful and spacious, no melody that insists, no build. Instrumental, no drums, no strings, no pads, intimate and still.',
+  },
+);
+
 const ledger = existsSync(LEDGER) ? JSON.parse(readFileSync(LEDGER, 'utf8')) : { spent: 0, entries: {} };
 const only = typeof args.only === 'string' ? args.only.split(',') : null;
 const todo = FRAGMENTS.filter((f) => (!only || only.includes(f.id)) && (args.force || !existsSync(join(OUT, `${f.id}.mp3`))));

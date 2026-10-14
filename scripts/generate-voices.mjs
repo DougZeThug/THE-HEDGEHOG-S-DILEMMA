@@ -30,8 +30,9 @@ const OUT = new URL('../public/voices/', import.meta.url).pathname;
 mkdirSync(OUT, { recursive: true });
 const force = !!args.force;
 // Sound generation is billed by length; this is the assumption used for estimates (the real
-// cost comes back in each response's character-cost header and is recorded).
-const PER_SECOND = 40;
+// cost comes back in each response's character-cost header and is recorded). The ledger's first
+// nine sounds measured 11 credits a second; 12 keeps a margin.
+const PER_SECOND = 12;
 const LEDGER = new URL('./sfx-ledger.json', import.meta.url).pathname;
 const ledger = existsSync(LEDGER) ? JSON.parse(readFileSync(LEDGER, 'utf8')) : { spent: 0, entries: {} };
 
@@ -87,6 +88,35 @@ const ASSETS = {
   ],
   'sfx:chair-creak': [
     [`a small old wooden chair creaking once softly as weight shifts, close, quiet room, ${DRY}`, 1.5],
+  ],
+  // The living memories (docs/memories.md): sounds heard inside a remembered place, a little
+  // removed, as if through the wall the memory forms in. Beds loop; one-shots are placed by the
+  // memory's cue sheet. Drafts for the sound designer's review before anything is generated.
+  'mem:kitchen-evening': [
+    [`a small home kitchen in the early evening heard from the doorway, a faint fridge hum, a clock ticking softly, the odd quiet household sound, warm and calm, no voices, no music, steady room tone`, 10],
+  ],
+  'mem:spoon-bowl': [
+    [`a metal spoon gently tapping and scraping the inside of a ceramic cereal bowl twice, unhurried, at a kitchen table, slightly distant, no voices`, 1.5],
+    [`a spoon set down softly into an empty ceramic bowl with one small clink, domestic, slightly distant`, 1.5],
+  ],
+  'mem:footsteps-away': [
+    [`slow footsteps in socks on old wooden floorboards walking away down a hallway, fading out, a quiet house, slightly muffled, no voices`, 5],
+  ],
+  'mem:footsteps-near': [
+    [`slow, careful footsteps on old wooden floorboards approaching from the far end of a hallway and stopping, a quiet house, slightly muffled, no voices`, 5],
+  ],
+  'mem:floorboard': [
+    [`a single old wooden floorboard creaking once under someone's weight somewhere down a hallway, quiet house, distant, nothing else`, 1.5],
+    [`one soft low creak of a floorboard in another room, then silence, distant`, 1.5],
+  ],
+  'mem:birds-distant': [
+    [`distant birdsong outside an open bedroom window on a quiet morning, a few small birds far away, gentle, sparse, no wind noise, no traffic`, 8],
+  ],
+  'mem:curtain-breeze': [
+    [`a light cotton curtain moving softly in a gentle breeze at an open window, a faint airy rustle that rises and settles, close but quiet`, 4],
+  ],
+  'mem:bedroom-air': [
+    [`the still air of a quiet sunlit bedroom with the window open, very soft distant outdoor ambience, peaceful, steady room tone, no voices, no music`, 8],
   ],
   'style:distant': [
     // (A first variant here consistently came back near-silent and was removed.)
