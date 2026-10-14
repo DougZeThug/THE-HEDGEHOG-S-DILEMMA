@@ -24,7 +24,7 @@ for (const p of PERSONAS) {
       if (g && LINES.includes(g)) seen[g] = Math.max(seen[g] ?? 0, (this as Director).visitor.gazeFor);
       return orig.call(this, dt, input, facing);
     };
-    const r = visit(p, 420, s);
+    const r = visit(p, Number(process.env.SECONDS ?? 420), s);
     Director.prototype.tick = orig;
     firsts.push(r.devs.find((d) => d.label === 'memory-scene cereal')?.t ?? null);
     for (const d of r.devs) if (d.label.startsWith('memory-scene') && d.label !== 'memory-scene cereal') (scenes[d.label.slice(13)] ??= []).push(d.t);
