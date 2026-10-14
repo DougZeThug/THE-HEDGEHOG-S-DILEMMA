@@ -6,7 +6,9 @@ import type { Values } from './types';
  * emergence, the dissolve, a graceful exit, the curtain's breathing). Each field has one writer;
  * this function composes them deterministically into what is drawn and heard.
  *
- *   opacity   = base × emerge × (1 − dissolve) × exit × presence
+ *   opacity   = base × emerge × exit × presence
+ *   reveal    = base × (1 − dissolve)                     (the light recedes, taking the colour)
+ *   sketch    = base × (1 − dissolve in its second half)  (the graphite is the last to sink)
  *   offsets   = base + envelope offset × motion           (motion 0 under reduced motion)
  *   parallax  = base × parallaxWeight                     (0.25 under reduced motion)
  *   light     = base × emerge × exit × presence
@@ -35,7 +37,8 @@ export function compose(base: Values, env: Values, w: Weights): Values {
   const emerge = env1(env, 'emerge', 0);
   const dissolve = env1(env, 'dissolve', 0);
   const exit = env1(env, 'exit');
-  const gate = clamp01(emerge * (1 - dissolve) * exit * w.presence);
+  // The dissolve acts through the light's reveal (below), not as a fade of the whole picture.
+  const gate = clamp01(emerge * exit * w.presence);
   const out: Values = {};
   for (const k in base) {
     const v = base[k];
@@ -68,5 +71,6 @@ export function compose(base: Values, env: Values, w: Weights): Values {
   }
   // The window's reveal is authored (the mask's growth); the dissolve takes it back.
   if ('window.reveal' in base) out['window.reveal'] = clamp01(base['window.reveal'] * (1 - dissolve));
+  if ('window.sketch' in base) out['window.sketch'] = clamp01(base['window.sketch'] * (1 - clamp01(dissolve * 2 - 1)));
   return out;
 }

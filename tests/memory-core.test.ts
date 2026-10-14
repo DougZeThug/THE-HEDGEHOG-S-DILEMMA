@@ -88,17 +88,20 @@ const run = (c: MemoryPlaybackController, seconds: number, dt = 0.05) => {
 };
 
 describe('compose: one writer per field', () => {
-  it('opacity is base × emerge × (1 − dissolve) × exit × presence; offsets add motion', () => {
-    const base = { 'layer:bowl.opacity': 0.8, 'layer:curtain.x': 0.1, 'window.parallax': 1, 'light.intensity': 2 };
+  it('opacity is base × emerge × exit × presence; the dissolve takes the reveal, then the graphite; offsets add motion', () => {
+    const base = { 'layer:bowl.opacity': 0.8, 'layer:curtain.x': 0.1, 'window.parallax': 1, 'light.intensity': 2, 'window.reveal': 1, 'window.sketch': 1 };
     const env = { emerge: 0.5, dissolve: 0.25, exit: 1, 'sway:curtain.x': 0.02 };
     const f = compose(base, env, FULL);
-    expect(f['layer:bowl.opacity']).toBeCloseTo(0.8 * 0.5 * 0.75, 6);
+    expect(f['layer:bowl.opacity']).toBeCloseTo(0.8 * 0.5, 6);
+    expect(f['window.reveal']).toBeCloseTo(0.75, 6);
+    expect(f['window.sketch']).toBe(1); // still there while the colour goes
+    expect(compose(base, { ...env, dissolve: 0.75 }, FULL)['window.sketch']).toBeCloseTo(0.5, 6);
     expect(f['layer:curtain.x']).toBeCloseTo(0.12, 6);
     expect(f['light.intensity']).toBeCloseTo(1, 6);
     const r = compose(base, env, weightsFor(true, true));
     expect(r['layer:curtain.x']).toBeCloseTo(0.1, 6); // no procedural motion under reduced motion
     expect(r['window.parallax']).toBeCloseTo(0.25, 6);
-    expect(r['layer:bowl.opacity']).toBeCloseTo(0.8 * 0.5 * 0.75 * 0.6, 6); // gentle presence
+    expect(r['layer:bowl.opacity']).toBeCloseTo(0.8 * 0.5 * 0.6, 6); // gentle presence
   });
 });
 
