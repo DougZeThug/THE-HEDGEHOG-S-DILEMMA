@@ -43,26 +43,34 @@ const FRAGMENTS = [
   },
 ];
 
-// The living memories' music (docs/memories.md): heard inside the remembered place, never a
-// score over the room. Drafts for the sound designer's review before the dry run.
+// The living memories' music (docs/memories.md), heard inside the remembered place, never a
+// score over the room. The kitchen's is its radio, as the artist chose: an ordinary song,
+// generated full-range (the engine makes it a small radio on the windowsill: band-limited,
+// placed, in the kitchen's own room). Its length is the memory's authored span from the scene
+// forming to its last sound. The bedroom's is generated only after the kitchen's has been heard.
+// Memory pieces go to public/music/ as pending takes so they can be judged in place.
 FRAGMENTS.push(
   {
-    id: 'memory-kitchen',
-    seconds: 35,
-    for: 'Memory: "We ate cereal for dinner and it was perfect." Ordinary happiness, enters once the kitchen has formed.',
-    prompt: 'A small, warm, unhurried tune played on an old upright piano in a home kitchen in the early evening, simple and happy, like someone playing for the people they love while dinner is cleared. Gentle, light-hearted, a little imperfect, relaxed tempo, ends softly on a resolved chord. Solo piano only, instrumental, no drums, no strings, no swell, not sentimental, heard from the next room.',
+    id: 'memory-radio',
+    seconds: 28,
+    memory: true,
+    for: 'Memory: "We ate cereal for dinner and it was perfect." The kitchen radio, on from the moment the scene has formed.',
+    prompt: 'An ordinary cheerful song playing on the radio in a sunny kitchen: a light, easy-going 1970s soft-pop instrumental with strummed acoustic guitar, a round bass line, brushed drums and a little electric piano, major key, relaxed mid tempo, warm and happy, nothing dramatic. It starts straight away in the middle of the song, no intro, no build and no ending, it simply carries on. Instrumental, no vocals.',
   },
   {
     id: 'memory-bedroom',
-    seconds: 35,
-    for: 'Memory: "I was happiest when nobody needed anything from me." Peace, solitude, morning light.',
-    prompt: 'Tranquil, airy, sparse music for a quiet sunlit bedroom in the morning with the window open: a few slow sustained notes on a soft felt piano with long silences between them, unhurried, peaceful and spacious, no melody that insists, no build. Instrumental, no drums, no strings, no pads, intimate and still.',
+    seconds: 24,
+    memory: true,
+    deferred: true,
+    for: 'Memory: "I was happiest when nobody needed anything from me." Not generated until the kitchen radio has been heard; then to the bedroom\'s measured length.',
+    prompt: 'Draft, for the sound designer: to be written after the kitchen radio has been heard.',
   },
 );
 
 const ledger = existsSync(LEDGER) ? JSON.parse(readFileSync(LEDGER, 'utf8')) : { spent: 0, entries: {} };
 const only = typeof args.only === 'string' ? args.only.split(',') : null;
-const todo = FRAGMENTS.filter((f) => (!only || only.includes(f.id)) && (args.force || !existsSync(join(OUT, `${f.id}.mp3`))));
+const outOf = (f) => (f.memory ? join(ROOT, 'public/music') : OUT);
+const todo = FRAGMENTS.filter((f) => !f.deferred && (!only || only.includes(f.id)) && (args.force || !existsSync(join(outOf(f), `${f.id}.mp3`))));
 const estimate = Math.ceil(todo.reduce((a, f) => a + f.seconds * PER_SECOND, 0));
 const budget = Number(args.budget ?? 1000);
 console.log(`plan: ${todo.length} fragments, ~${estimate} credits (budget ${budget})`);
@@ -81,6 +89,7 @@ const balance = balanceAllows(await readBalance(key), estimate);
 console.log(`balance: ${balance.note}`);
 if (!balance.ok) process.exit(1);
 mkdirSync(OUT, { recursive: true });
+mkdirSync(join(ROOT, 'public/music'), { recursive: true });
 for (const f of todo) {
   const before = await readBalance(key);
   const res = await fetch(`${API}/v1/music?output_format=mp3_44100_128`, {
@@ -93,12 +102,12 @@ for (const f of todo) {
     if ([401, 402, 403, 429].includes(res.status)) break;
     continue;
   }
-  writeFileSync(join(OUT, `${f.id}.mp3`), Buffer.from(await res.arrayBuffer()));
+  writeFileSync(join(outOf(f), `${f.id}.mp3`), Buffer.from(await res.arrayBuffer()));
   const header = Number(res.headers.get('character-cost') ?? NaN);
   const after = await readBalance(key);
   const measured = before.known && after.known ? after.used - before.used : NaN;
   const cost = Number.isFinite(header) ? header : Number.isFinite(measured) && measured > 0 ? measured : null;
-  ledger.entries[f.id] = { file: `music/${f.id}.mp3`, prompt: f.prompt, seconds: f.seconds, for: f.for, cost, requestId: res.headers.get('request-id') ?? undefined, at: new Date().toISOString(), review: 'pending' };
+  ledger.entries[f.id] = { file: f.memory ? `public/music/${f.id}.mp3` : `music/${f.id}.mp3`, prompt: f.prompt, seconds: f.seconds, for: f.for, cost, requestId: res.headers.get('request-id') ?? undefined, at: new Date().toISOString(), review: 'pending' };
   if (cost) ledger.spent += cost;
   writeFileSync(LEDGER, JSON.stringify(ledger, null, 2) + '\n');
   console.log(`  ${f.id}: ${cost ?? '?'} credits`);

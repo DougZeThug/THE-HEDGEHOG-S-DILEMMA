@@ -135,6 +135,15 @@ export class MemoryAudio implements AudioSink {
       node = lp;
       nodes.push(lp);
     }
+    if (cue.highpass) {
+      const hp = c.createBiquadFilter();
+      hp.type = 'highpass';
+      hp.Q.value = 0.7;
+      hp.frequency.setValueAtTime(cue.highpass, at);
+      node.connect(hp);
+      node = hp;
+      nodes.push(hp);
+    }
     let out: AudioNode;
     if (kind === 'bed') {
       // A bed is the place's air: wide, leaning toward the window, not a point.

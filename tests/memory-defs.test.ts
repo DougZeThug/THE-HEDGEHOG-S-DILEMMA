@@ -26,7 +26,9 @@ describe('the living memories, as defined and committed', () => {
         // Every sound marker on the timeline has a cue; every recorded cue exists.
         const cues = def.cues(v);
         for (const m of seed.markers) if (cueKind(m.label)) expect(cues.cues[m.label], m.label).toBeDefined();
-        for (const c of Object.values(cues.cues)) if (!c.asset.startsWith('music/')) expect(manifest[c.asset]?.length, c.asset).toBeGreaterThan(0);
+        for (const c of Object.values(cues.cues))
+          if (c.asset.startsWith('music/')) expect(existsSync(join(ROOT, 'public', c.asset)), c.asset).toBe(true);
+          else expect(manifest[c.asset]?.length, c.asset).toBeGreaterThan(0);
         // And the committed timeline has the sheet (production never plays the fallbacks).
         expect((state as { sheetsById: Record<string, unknown> }).sheetsById[sheetId(def.id, v)]).toBeDefined();
       }

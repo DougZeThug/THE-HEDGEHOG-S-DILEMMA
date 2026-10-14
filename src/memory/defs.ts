@@ -110,8 +110,9 @@ export const CEREAL: MemoryDef = {
       'sfx:spoons': { asset: 'mem:spoon-bowl', take: 0, gainDb: 0, place: { u: -0.05, v: -0.25, d: 0.5 }, caption: '[spoons in two bowls]' },
       'sfx:laugh': { asset: 'mem:laugh', gainDb: -16, place: { u: 0.15, v: -0.1, d: 1.2 }, lowpass: 5000, caption: '[two people laughing]' },
       'sfx:spoon-down': { asset: 'mem:spoon-bowl', take: 1, gainDb: -9, place: { u: 0.1, v: -0.25, d: 0.5 }, caption: '[a spoon put down]' },
-      // The kitchen radio on the windowsill (generated after the timing is set; silent until then).
-      'music:radio': { asset: 'music/memory-radio.mp3', gainDb: -14, place: { u: 0.42, v: 0.05, d: 0.8 }, lowpass: 3200, fadeIn: 1.5, fadeOut: 4, caption: '[a radio playing in the kitchen]' },
+      // The kitchen radio on the windowsill: a small speaker (no bass, no air), half-heard
+      // (the file measures −15.5 dB mean; toward about −32 once band-limited and placed).
+      'music:radio': { asset: 'music/memory-radio.mp3', gainDb: -13, place: { u: 0.42, v: 0.05, d: 0.8 }, highpass: 380, lowpass: 3400, fadeIn: 1.5, fadeOut: 4, caption: '[a radio playing in the kitchen]' },
     },
   }),
   sways: [],

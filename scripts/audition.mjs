@@ -100,13 +100,18 @@ for (const v of designs.library ?? []) {
 // Music pilots (scripts/generate-music.mjs): a piano in the next room; for listening only.
 const musicLedger = existsSync(join(ROOT, 'scripts/music-ledger.json')) ? JSON.parse(readFileSync(join(ROOT, 'scripts/music-ledger.json'), 'utf8')) : { entries: {} };
 for (const [id, e] of Object.entries(musicLedger.entries)) {
-  const path = join(ROOT, 'audition', e.file);
+  // Memory music lives in public/music (it plays inside its memory while pending).
+  const memory = e.file.startsWith('public/');
+  const path = memory ? join(ROOT, e.file) : join(ROOT, 'audition', e.file);
   if (!existsSync(path)) continue;
   designTakes.push({
-    id: `music-${id}`, group: 'music', groupLabel: 'music pilots: a piano heard through the wall (never in the opening, never under a voice) — keep or not', line: 'Music (pilot)',
+    id: `music-${id}`,
+    group: memory ? 'memories' : 'music',
+    groupLabel: memory ? "living memories' sounds and music: already playing inside the memory (pending your ear) — keep or not" : 'music pilots: a piano heard through the wall (never in the opening, never under a voice) — keep or not',
+    line: memory ? 'Memory music' : 'Music (pilot)',
     interpretation: e.for, voice: 'ElevenLabs Music, instrumental', model: 'music', stability: '—', input: e.prompt,
     generation: 2, lab: false, audition: true, design: true, status: 'preview', review: e.review ?? 'pending',
-    m: null, path, src: OUT ? `audio/${basename(e.file)}` : e.file,
+    m: null, path, src: OUT ? `audio/${basename(e.file)}` : memory ? `../${e.file}` : e.file,
   });
 }
 // New room sounds (scripts/generate-voices.mjs): already in the room; the artist hasn't heard them.
@@ -114,13 +119,19 @@ const SFX_FOR = {
   'sfx:switch': 'The light switched on by the door, in the dark, before the chair is lit.',
   'sfx:graphite': 'Graphite on plaster, while the first line is written in silence.',
   'sfx:eraser': 'The writing in the air rubbed out as someone comes close (a breath follows it).',
+  'mem:kitchen-air': 'Cereal memory: the air of the sunny kitchen, looped under the scene (it came back very quiet and is lifted about 28 dB).',
+  'mem:spoon-bowl': 'Cereal memory: spoons in two bowls as the scene forms; a spoon put down as it goes.',
+  'mem:laugh': 'Cereal memory: two people laughing at the table (a take the next-room situation never uses).',
 };
 const sfxLedger = existsSync(join(ROOT, 'scripts/sfx-ledger.json')) ? JSON.parse(readFileSync(join(ROOT, 'scripts/sfx-ledger.json'), 'utf8')) : { entries: {} };
 for (const [file, e] of Object.entries(sfxLedger.entries)) {
   const path = join(ROOT, 'public/voices', file);
   if (!existsSync(path)) continue;
   designTakes.push({
-    id: `sfx-${file.replace('.mp3', '')}`, group: 'sounds', groupLabel: 'new room sounds, already in the room: not this removes a variant', line: 'Sounds',
+    id: `sfx-${file.replace('.mp3', '')}`,
+    group: e.key.startsWith('mem:') ? 'memories' : 'sounds',
+    groupLabel: e.key.startsWith('mem:') ? "living memories' sounds and music: already playing inside the memory (pending your ear) — keep or not" : 'new room sounds, already in the room: not this removes a variant',
+    line: 'Sounds',
     interpretation: SFX_FOR[e.key] ?? e.key,
     voice: e.key, model: 'sound effects', stability: '—', input: e.text, generation: 2, lab: false, audition: false, design: true, status: 'in the room', review: e.review ?? 'pending',
     m: null, path, src: OUT ? `audio/${basename(file)}` : `../public/voices/${file}`,

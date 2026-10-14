@@ -1,5 +1,5 @@
 {
-  "spent": 660,
+  "spent": 1045,
   "entries": {
     "piano-warm": {
       "file": "music/piano-warm.mp3",
@@ -20,6 +20,16 @@
       "at": "2026-10-13T13:39:36.664Z",
       "review": "pending",
       "costNote": "measured: account balance fell 660 for both fragments together; the API returned no cost header"
+    },
+    "memory-radio": {
+      "file": "public/music/memory-radio.mp3",
+      "prompt": "An ordinary cheerful song playing on the radio in a sunny kitchen: a light, easy-going 1970s soft-pop instrumental with strummed acoustic guitar, a round bass line, brushed drums and a little electric piano, major key, relaxed mid tempo, warm and happy, nothing dramatic. It starts straight away in the middle of the song, no intro, no build and no ending, it simply carries on. Instrumental, no vocals.",
+      "seconds": 28,
+      "for": "Memory: \"We ate cereal for dinner and it was perfect.\" The kitchen radio, on from the moment the scene has formed.",
+      "cost": 385,
+      "at": "2026-10-14T18:37:50.727Z",
+      "review": "pending",
+      "costSource": "balance difference (4545 \u2192 4930 used)"
     }
   }
 }

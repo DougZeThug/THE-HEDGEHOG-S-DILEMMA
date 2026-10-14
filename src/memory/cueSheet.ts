@@ -31,6 +31,8 @@ export interface Cue {
   /** Lowpass, Hz (a muffle through a wall, distance); `lowpassTo` sweeps it over the clip. */
   lowpass?: number;
   lowpassTo?: number;
+  /** Highpass, Hz: a small speaker (the kitchen radio) has no bass. */
+  highpass?: number;
   fadeIn?: number;
   /** Beds and music: how long they take to leave once the memory lets go. */
   fadeOut?: number;
