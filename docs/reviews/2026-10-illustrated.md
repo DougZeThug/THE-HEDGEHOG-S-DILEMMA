@@ -247,3 +247,19 @@ Also from QA, all P2:
 - **The dim is not shallower.** r9 and r10 were already at 0.721, and the pool now holds through the dim more firmly than before.
 - **The opening harness can fail under load**, when its 11 s screenshot stalls the sampler during the first line (it passes alone). It should move to the virtual clock that `style.mjs` uses.
 - **The faint wall drawings lost some contrast against r10** (desktop median 0.109 → 0.086). The lower key and lifted darks should give some of it back; the r13 capture re-measures it.
+
+### Final capture (r13, the build at 1d16546)
+`test-output/review/style/r13/compare.png`: the reference beside the desktop and phone hand-off frames.
+- **Against the reference** (desktop, reference-framed view; reference in brackets): pool/wall 1.23 (1.30), wall R/B 1.20 (1.23), chair shadow/pool 0.58 (0.68), the back wall's top corners 0.62 of its centre (0.49).
+- **Guards:**
+  - no programs compiled by switching looks, 16 at the threshold, no errors;
+  - the dim takes 72% of the back wall (the original 73%), and the pool holds through it (pool/wall 4.1);
+  - a cooled pool is no warmer than the original's (R/B 1.047 against 1.056);
+  - crumbs ΔE 20.1 (the original 19.2);
+  - ink median Weber 0.076 desktop and 0.153 phone (original 0.070 and 0.097);
+  - the floor's pencil by the chair reads in the reference look as in the original (`r13/chair-orig-vs-ref.png`).
+- **Harnesses:** smoke and the opening pass on the final build. The invariance pair in this run still had the vignette on, because the capture had loaded before the harness changed (13.0 at vignette 0.3, against the original's 12.5 at 0.32). The phone context-loss pair is over the stale threshold in the original look only (3.45). It was 3.33 before this round, and it does not come from grain alone: it predates this work and is left for its own look.
+- **Left for the artist:**
+  - whether the side walls' runs read "like the reference" or as beaten up;
+  - whether the grain reads as film at full frame rate;
+  - the skylight's reveal, still a fitting rather than a sharp-cornered opening (P2).
