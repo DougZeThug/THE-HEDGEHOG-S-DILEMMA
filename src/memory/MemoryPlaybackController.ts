@@ -1,7 +1,7 @@
 import { lifeTimeline, leaveTimeline, type Sway } from './behaviours';
 import { compose, type Weights } from './compose';
 import { CueDispatch, type Due } from './cueDispatch';
-import type { Lifecycle, MemoryFrame, ReleaseReason, TimelineSource, Values } from './types';
+import type { Lifecycle, Marker, MemoryFrame, ReleaseReason, TimelineSource, Values } from './types';
 
 /**
  * The one owner of a playing memory: its lifecycle and its local time. The App steps it once a
@@ -21,7 +21,8 @@ export interface AudioSink {
   play(due: Due[]): void;
   /** Leaving: beds fade over `fade` seconds; tails may run on. */
   release(mode: 'natural' | 'interrupt', fade: number): void;
-  pause(): void;
+  /** Returns events it was handed but hadn't sounded yet, so they are handed out again on resume. */
+  pause(): Marker[] | void;
   resume(): void;
   /** The sequence jumped (the editor): stop what was scheduled, resync beds. */
   seek(position: number): void;
@@ -135,7 +136,7 @@ export class MemoryPlaybackController {
   pause(): void {
     if (this.paused) return;
     this.paused = true;
-    this.o.audio?.pause();
+    for (const m of this.o.audio?.pause() ?? []) this.dispatch.unfire(m);
   }
   resume(): void {
     if (!this.paused) return;

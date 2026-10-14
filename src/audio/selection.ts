@@ -52,6 +52,8 @@ export function chooseSource(q: SourceQuery): Source {
 export function preloadStages(manifest: Record<string, string[]>, perPhrase = 1): { first: string[]; rest: string[] } {
   const first: string[] = [], rest: string[] = [];
   for (const [key, files] of Object.entries(manifest)) {
+    // A memory's sounds are fetched when the memory is prepared, never on arrival.
+    if (key.startsWith('mem:')) continue;
     if (!key.startsWith('phrase:')) first.push(...files);
     else {
       first.push(...files.slice(0, perPhrase));

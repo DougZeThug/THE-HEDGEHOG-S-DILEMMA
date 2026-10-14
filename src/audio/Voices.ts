@@ -183,6 +183,21 @@ export class Voices {
     return p;
   }
 
+  /**
+   * A recording as it was made, for a memory's cue sheet (which carries its own authored levels):
+   * the take asked for, or the first. Kept decoded until `forget` lets it go.
+   */
+  async raw(key: string, take = 0): Promise<AudioBuffer | null> {
+    const files = this.manifest[key];
+    if (!files?.length) return null;
+    return this.loadBuffer(files[Math.min(files.length - 1, Math.max(0, take))]);
+  }
+
+  /** Let a memory's recordings go once it has finished (phones keep little decoded audio). */
+  forget(keys: string[]): void {
+    for (const k of keys) for (const f of this.manifest[k] ?? []) this.buffers.delete(f);
+  }
+
   /** Loudness diagnostics for QA: file → [rms dBFS, peak dBFS, seconds]. */
   async levels(): Promise<Record<string, [number, number, number]>> {
     const out: Record<string, [number, number, number]> = {};

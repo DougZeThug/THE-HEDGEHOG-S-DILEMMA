@@ -17,7 +17,7 @@ export class AudioEngine {
   readonly master: GainNode;
   readonly limiter: DynamicsCompressorNode;
   readonly out: GainNode;
-  readonly buses: { ambience: GainNode; music: GainNode; voices: GainNode };
+  readonly buses: { ambience: GainNode; music: GainNode; voices: GainNode; memory: GainNode };
   /** Ducking stage for "silence" moments (ambience + music). */
   readonly duck: GainNode;
   readonly reverbIn: GainNode;
@@ -59,7 +59,9 @@ export class AudioEngine {
 
     this.duck = c.createGain();
     this.duck.connect(this.master);
-    this.buses = { ambience: c.createGain(), music: c.createGain(), voices: c.createGain() };
+    // A playing memory has its own bus: the room's silences fall around it, never on it.
+    this.buses = { ambience: c.createGain(), music: c.createGain(), voices: c.createGain(), memory: c.createGain() };
+    this.buses.memory.connect(this.master);
     this.buses.ambience.connect(this.duck);
     this.buses.music.connect(this.duck);
     this.buses.voices.connect(this.master);
