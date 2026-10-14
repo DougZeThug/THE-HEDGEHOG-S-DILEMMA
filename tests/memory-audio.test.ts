@@ -146,7 +146,7 @@ describe('memory audio: scheduled on the audio clock, never twice, nothing left 
     expect(ctx.sources[0].loopStart).toBeGreaterThan(0);
   });
 
-  it('a seek plays no one-shot it passes, restarts music at the right offset, leaves a playing bed alone', async () => {
+  it('a seek (held by hand) is silent; playing on brings back the bed and the music part-way in, never a one-shot it passed', async () => {
     const { ctx, audio } = setup();
     await audio.prepare();
     const d = new CueDispatch(MARKERS);
@@ -154,24 +154,25 @@ describe('memory audio: scheduled on the audio clock, never twice, nothing left 
     const bed = ctx.sources[0];
     d.seek(15);
     audio.seek(15);
-    const after = ctx.sources.slice(1);
-    expect(after.length).toBe(1); // music only
-    expect(after[0].startAt![1]).toBeCloseTo(6, 6); // 15 − 9 s into the music
-    expect(bed.stopAt).toBeNull(); // the bed was never restarted or stopped
+    expect(ctx.sources.length).toBe(1); // nothing new while held
+    expect(bed.stopAt).not.toBeNull(); // the bed fades while held
+    ctx.advance(2);
+    audio.resync(15);
+    const back = ctx.sources.slice(1);
+    expect(back.map((x) => x.loop)).toEqual([true, false]); // the bed, then the music
+    expect(back[1].startAt![1]).toBeCloseTo(6, 6); // 15 − 9 s into the music
     playThrough(ctx, audio, d, 15, 18);
-    expect(ctx.sources.length).toBe(2); // the spoon and the steps behind the seek never sounded
+    expect(ctx.sources.length).toBe(3); // the spoon and the steps behind the seek never sounded
   });
 
-  it('seeking back before a bed stops it; playing forward again starts it once', async () => {
+  it('scrubbing back and forth with the real audio starts nothing at all', async () => {
     const { ctx, audio } = setup();
     await audio.prepare();
-    const d = new CueDispatch(MARKERS);
-    playThrough(ctx, audio, d, 0, 3);
-    d.seek(1);
-    audio.seek(1);
-    expect(ctx.sources[0].stopAt).not.toBeNull();
-    playThrough(ctx, audio, d, 1, 3);
-    expect(ctx.sources.filter((s) => s.loop).length).toBe(2);
+    for (const p of [5, 18, 2, 23, 0, 12]) {
+      audio.seek(p);
+      ctx.advance(0.5);
+    }
+    expect(ctx.sources.length).toBe(0);
   });
 
   it('pause takes back what had not sounded, fades beds and music; resume continues them where they were', async () => {

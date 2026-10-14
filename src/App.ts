@@ -421,7 +421,8 @@ export class App {
       console.warn('memory could not be prepared', e);
       return false;
     }
-    if (gen !== this.memoryGen || this.mode === 'departed') {
+    // Asked for and then superseded, or the visitor has gone to write or to leave meanwhile.
+    if (gen !== this.memoryGen || this.mode !== 'room') {
       prepared.dispose();
       prepared.audio?.dispose(0);
       return false;
@@ -507,7 +508,11 @@ export class App {
     const l = this.living;
     if (!l) return null;
     l.held = position !== null;
-    if (position === null) return null;
+    if (position === null) {
+      // Plays on from here: no stale time from the hold.
+      this.memoryClock.reset();
+      return null;
+    }
     const f = l.memory.controller.scrub(position);
     this.memoryWindow.update(f.final, this.rig.restingEye, 1);
     return { state: f.state, position: f.position, final: f.final };
@@ -585,11 +590,6 @@ export class App {
     const paused = this.mode === 'settings' || document.hidden;
     const c = l.memory.controller;
     if (paused !== c.isPaused) paused ? c.pause() : c.resume();
-    // Hidden for long: it ends, uncounted.
-    if (document.hidden) {
-      l.hiddenSince ??= performance.now();
-      if (performance.now() - l.hiddenSince > 10000) this.endLivingMemory('hidden');
-    } else l.hiddenSince = null;
     const dt = this.memoryClock.tick(performance.now() / 1000, this.audio?.ctx.currentTime ?? 0, this.audio?.ctx.state === 'running', paused);
     this.judgeMemoryAttention(l, dt);
     const frame = l.memory.step(dt);
@@ -1344,6 +1344,18 @@ export class App {
     document.addEventListener('visibilitychange', () => {
       // Away during the opening: on return, the room is simply there.
       if (document.hidden && this.opening) this.skipOpening();
+      // A living memory pauses with the tab; away for more than 10 s, it ends (uncounted).
+      // (Here, not in the frame loop: a background tab runs no frames.)
+      const l = this.living;
+      if (l && document.hidden) {
+        l.hiddenSince = performance.now();
+        l.memory.controller.pause();
+      } else if (l && l.hiddenSince !== null) {
+        const away = performance.now() - l.hiddenSince;
+        l.hiddenSince = null;
+        this.memoryClock.reset();
+        if (away > 10000) this.endLivingMemory('hidden');
+      }
       if (document.hidden) {
         void this.audio?.suspend();
         this.wakeLock = null; // released by the browser when hidden
@@ -1448,8 +1460,10 @@ export class App {
       const w = THREE.MathUtils.clamp(it.placement.w * 0.95, 0.8, 1.3);
       stop = Math.max(1.25, (1.15 * w) / (2 * Math.tan(hfov / 2)));
     }
+    // (For a memory's line, aim a little below the words, at the painting that forms under them.)
+    const aim = stop > 1.25 || (pid && SCENE_BY_PHRASE.has(pid)) ? c.clone().setY(c.y - 0.2) : c;
     if (it.placement.surface === 'ceiling') this.rig.faceToward(c);
-    else this.rig.attend(c, it.placement.surface === 'floor' ? 0.8 : stop);
+    else this.rig.attend(aim, it.placement.surface === 'floor' ? 0.8 : stop);
   }
 
   /** Once, if a touch visitor hasn't touched anything yet: that the words and the chair can be touched. */

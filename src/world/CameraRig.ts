@@ -123,11 +123,12 @@ export class CameraRig {
     }
     d.normalize().multiplyScalar(len - stopAt);
     this.goal = this.pos.clone().add(d);
-    this.faceToward(target);
+    // Aimed from where the walk ends, so the target is in the middle of the view on arrival.
+    this.faceToward(target, this.goal);
   }
 
-  faceToward(target: THREE.Vector3) {
-    const eyePos = this.pos.clone().setY(this.eye);
+  faceToward(target: THREE.Vector3, from: THREE.Vector3 = this.pos) {
+    const eyePos = from.clone().setY(this.eye);
     const d = target.clone().sub(eyePos);
     const yaw = Math.atan2(-d.x, -d.z);
     const pitch = Math.atan2(d.y, Math.hypot(d.x, d.z));

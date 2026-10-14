@@ -25,8 +25,10 @@ export interface AudioSink {
   /** Returns events it was handed but hadn't sounded yet, so they are handed out again on resume. */
   pause(): Marker[] | void;
   resume(): void;
-  /** The sequence jumped (the editor): stop what was scheduled, resync beds. */
+  /** The sequence was moved by hand: silent while held. */
   seek(position: number): void;
+  /** Playing on from `position` after a seek: what should be sounding there comes back. */
+  resync?(position: number): void;
   dispose(fade: number): void;
 }
 
@@ -66,6 +68,7 @@ export class MemoryPlaybackController {
   private why: ReleaseReason | undefined;
   private readonly dispatch: CueDispatch;
   private last: MemoryFrame | null = null;
+  private resyncDue = false;
 
   constructor(private o: PlaybackOptions) {
     this.life = lifeTimeline(this.env, { reduced: o.reduced, entrance: o.entrance, sways: o.sways });
@@ -153,6 +156,10 @@ export class MemoryPlaybackController {
   step(dt: number): MemoryFrame | null {
     if (this._state === 'dormant' || this._state === 'complete') return null;
     if (this.paused) return this.last;
+    if (this.resyncDue && dt > 0) {
+      this.resyncDue = false;
+      this.o.audio?.resync?.(this.pos);
+    }
     this._t += dt;
     const t = this._t;
     const s = this.s;
@@ -226,6 +233,7 @@ export class MemoryPlaybackController {
     seek(this.life, this._t);
     this.dispatch.seek(p);
     this.o.audio?.seek(p);
+    this.resyncDue = true;
     const base = this.o.timeline.at(p);
     const env = { ...this.env };
     const frame: MemoryFrame = { state: this._state, t: this._t, position: p, base, env, final: compose(base, env, this.o.weights) };

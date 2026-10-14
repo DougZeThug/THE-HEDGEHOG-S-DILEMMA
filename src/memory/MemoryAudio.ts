@@ -266,20 +266,21 @@ export class MemoryAudio implements AudioSink {
   }
 
   /**
-   * The editor jumped to `position`: nothing scheduled survives the jump; music restarts where the
-   * new position puts it; a bed plays if the position is past its marker (and keeps playing,
-   * untouched, if it already was).
+   * The sequence was moved by hand (the editor, a held capture): it is silent while held, so
+   * everything fades and nothing new is scheduled. `resync` brings back what should be sounding
+   * when it plays on.
    */
-  seek(position: number): void {
+  seek(_position: number): void {
     if (this.disposed) return;
     this.released = false;
     this.paused = [];
+    for (const l of [...this.live]) this.fadeOut(l, l.kind === 'sfx' ? 0.05 : 0.3);
+  }
+
+  /** Playing on from `position` after a seek: the bed and the music it is inside, part-way in. */
+  resync(position: number): void {
+    if (this.disposed || !this.running) return;
     const t = this.now;
-    for (const l of [...this.live]) {
-      if (l.kind === 'bed' && l.at <= t && l.marker.position <= position) continue;
-      this.fadeOut(l, l.kind === 'sfx' ? 0.05 : 0.3);
-    }
-    if (!this.running) return;
     for (const m of this.markers) {
       const kind = cueKind(m.label);
       if (m.position > position || kind === 'sfx' || kind === null) continue;
