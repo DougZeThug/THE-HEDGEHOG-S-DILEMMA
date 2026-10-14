@@ -128,7 +128,6 @@ for f in out['frames']:
         inv.setdefault((f['profile'], f['style']), {})[f['name']] = f['places']['invPoint']['luma']
 out['invariance'] = {f'{p} {s}': {**v, 'diff': round(v.get('inv-centre', 0) - v.get('inv-corner', 0), 1)} for (p, s), v in inv.items()}
 
-(D / 'metrics.json').write_text(json.dumps(out, indent=1))
 
 # A short table: the reference-framed view's ratios per style, and the median ink contrast per style.
 print('reference', json.dumps(out['reference']['ratios'] if out['reference'] else None))
@@ -188,3 +187,6 @@ for prof in sorted({f['profile'] for f in out['frames']}):
         if w:
             c = [i['cnr'] for f in out['frames'] if f.get('profile') == prof and f.get('style') == st and f.get('name') in ('reference', 'north-writing', 'east', 'west') for i in f.get('ink', [])]
             print(f'ink {prof:7} {st:9} median weber {np.median(w):.3f}  median contrast/texture {np.median(c):.1f} (n={len(w)})')
+
+# Written last, once the range and the pairs are in it too.
+(D / 'metrics.json').write_text(json.dumps(out, indent=1))
