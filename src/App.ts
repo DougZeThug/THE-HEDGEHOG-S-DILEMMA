@@ -542,6 +542,7 @@ export class App {
     if (this.mode === 'room') this.renderer.domElement.focus();
     this.director.release({ written: OPENING_WRITTEN, spoken: OPENING_SPOKEN, unfinished: OPENING_UNFINISHED.filter((id) => this.text.unfinished(id)) });
     this.handoffAt = this.time;
+    this.rig.endOpeningFrame();
     writeOpeningSeen();
   }
 
@@ -578,6 +579,15 @@ export class App {
         this.text.airShadowLight = this.lighting.score.key / ROOM_LEVELS.key;
         const since = this.time - this.handoffAt;
         if (!this.hintShown && since > 4 && !(this.touch && this.dragged)) this.showHint();
+        // Someone exploring only by eye, still sitting where the opening left them, may not know
+        // they can get up: told once, never moved for them.
+        if (!this.touch && !this.walkHintShown && since > 25 && this.rig.seated && this.mode === 'room') {
+          this.walkHintShown = true;
+          const h = $('hint');
+          h.textContent = '↑ or W to walk · Esc to pause';
+          h.classList.add('on');
+          setTimeout(() => h.classList.remove('on'), 5500);
+        }
         if (this.touch && this.mode === 'room' && !this.touchHintShown && since > 12 && !this.touched) this.showTouchHint();
       }
     }
@@ -992,7 +1002,9 @@ export class App {
       else {
         // Walking: a thumb pushing up drifts sideways a little; that shouldn't turn the body.
         const dx = e.clientX - t.sx;
-        this.rig.touchMove.set(clamp((Math.sign(dx) * Math.max(0, Math.abs(dx) - 20)) / 80, -1, 1), clamp(-(e.clientY - t.sy) / 90, -1, 1));
+        // And a thumb meant to turn drifts up or down a little: that shouldn't walk.
+        const dy = -(e.clientY - t.sy);
+        this.rig.touchMove.set(clamp((Math.sign(dx) * Math.max(0, Math.abs(dx) - 20)) / 80, -1, 1), clamp((Math.sign(dy) * Math.max(0, Math.abs(dy) - 10)) / 90, -1, 1));
       }
       t.x = e.clientX;
       t.y = e.clientY;
@@ -1141,6 +1153,8 @@ export class App {
 
   // ─────────────────────────────── UI ───────────────────────────────
 
+  private walkHintShown = false;
+
   private showHint() {
     this.hintShown = true;
     const h = $('hint');
@@ -1240,7 +1254,11 @@ export class App {
     }
     if (this.voices) this.voices.speechFallback = p.speech;
     this.captions.enabled = p.captions;
-    if (this.rig) this.rig.reducedMotion = p.reducedMotion;
+    if (this.rig) {
+      // Turned on to stop movement: no rise of the view to come either (the panel hides the cut).
+      if (p.reducedMotion && !this.rig.reducedMotion) this.rig.stand();
+      this.rig.reducedMotion = p.reducedMotion;
+    }
     document.documentElement.classList.toggle('reduce-motion', p.reducedMotion);
     if (p.muted || !p.speech) this.voices?.stopSpeech();
     if (this.post) {
@@ -1393,6 +1411,7 @@ export class App {
     this.rig.pos.set(0.15, 0, 2.55);
     this.rig.yaw = 0.06;
     this.rig.pitch = -0.06;
+    this.rig.stand();
     this.rig.setKneel(false);
     this.rig.cancelAttend();
     const dep = $('departure');

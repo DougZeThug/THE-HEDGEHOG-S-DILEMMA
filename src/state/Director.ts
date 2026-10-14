@@ -1148,7 +1148,7 @@ export class Director {
     // An answer to stepping back (well clear of the chair, so there is room to come closer), not
     // to standing by the door; only after a long time apart for someone who never came near.
     const back = v.approaches.length > 0;
-    if (v.distance < (back ? 2.1 : 2.4) || v.gazeChairFor < 1.5 || v.speed > 0.3) return;
+    if (v.distance < 2.1 || v.gazeChairFor < 1.5 || v.speed > 0.3) return;
     if (!back && this.now < 150) return;
     // Words that are not already on a wall: a repeat would read as a copy, not as something said.
     const withheld = this.withheld();

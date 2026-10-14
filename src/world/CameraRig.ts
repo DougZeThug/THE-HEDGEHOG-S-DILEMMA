@@ -10,6 +10,8 @@ const KNEEL_EYE = 0.6;
  * first walk.
  */
 const OPENING_EYE = 1.1;
+/** Standing up takes this long, eased at both ends. */
+const RISE_S = 1.8;
 /** Where the opening is seen from: centred on the chair, about two and a half metres back. */
 export const OPENING_POS = { x: 0, z: 2.45, zPortrait: 2.3, yaw: 0 };
 
@@ -29,7 +31,27 @@ export class CameraRig {
   /** Until the visitor first walks, the eye rests here (the opening's), then rises to standing. */
   private restEye = EYE;
   /** The opening is seen a little wider on a landscape screen (a portrait one is wide enough). */
-  private wideOpening = true;
+  private wideOpening = false;
+  private walkHeld = 0;
+  private walked = 0;
+  private rise: { from: number; t: number } | null = null;
+
+  /** Still where the opening left them: low, not yet stood up. */
+  get seated() {
+    return this.restEye < EYE && !this.rise;
+  }
+
+  /** The opening has handed the room over: its wider view goes (the low eye stays until a step). */
+  endOpeningFrame() {
+    this.wideOpening = false;
+  }
+
+  /** Standing, now (returning after leaving; reduced motion turned on): no rise, no wider view. */
+  stand() {
+    this.rise = null;
+    this.restEye = this.eye = EYE;
+    this.wideOpening = false;
+  }
   kneeling = false;
   reducedMotion = false;
   enabled = true;
@@ -78,6 +100,8 @@ export class CameraRig {
     // Low and centred, the chair large and the room a box around it; under reduced motion the
     // visitor starts standing (no rise of the view later).
     this.restEye = this.eye = this.reducedMotion ? EYE : OPENING_EYE;
+    this.rise = null;
+    this.walkHeld = this.walked = 0;
     const low = !this.reducedMotion;
     this.pitch = aspect < 1 ? (low ? -0.15 : -0.3) : low ? -0.02 : -0.15;
     this.wideOpening = aspect >= 1;
@@ -187,12 +211,34 @@ export class CameraRig {
       this.pos.z = chairPos.z + (cz / cd) * minD;
     }
 
-    // The first step (or being walked toward something) stands the visitor up, slowly, as a
-    // body does; looking around doesn't. Once up, they stay up.
-    if (this.walk && (fwd || strafe || this.goal)) this.restEye = EYE;
-    const targetEye = this.kneeling ? KNEEL_EYE : this.restEye;
-    const rising = !this.kneeling && targetEye - this.eye > 0.1;
-    this.eye = approach(this.eye, targetEye, dt, this.kneeling ? 0.9 : rising ? 1.3 : 0.7);
+    // A deliberate first step (a third of a second of walking, or 15 cm, not a tap or a thumb's
+    // drift) or being walked toward something stands the visitor up: once, in one eased movement
+    // that starts and ends at rest; looking around doesn't. Once up, they stay up.
+    if (this.restEye < EYE && !this.rise && this.walk && !this.kneeling) {
+      if (fwd || strafe) {
+        this.walkHeld += dt;
+        this.walked += Math.hypot(this.vel.x, this.vel.y) * dt;
+      } else this.walkHeld = 0;
+      if (this.goal || this.walkHeld >= 0.3 || this.walked >= 0.15) this.rise = { from: this.eye, t: 0 };
+    }
+    if (this.rise && !this.kneeling) {
+      const r = this.rise;
+      r.t += dt;
+      const k = Math.min(1, r.t / RISE_S);
+      this.eye = r.from + (EYE - r.from) * k * k * (3 - 2 * k);
+      if (k >= 1) {
+        this.rise = null;
+        this.restEye = EYE;
+      }
+    } else {
+      // Kneeling partway through standing: they are up now, as far as the room is concerned.
+      if (this.rise) {
+        this.rise = null;
+        this.restEye = EYE;
+      }
+      const targetEye = this.kneeling ? KNEEL_EYE : this.restEye;
+      this.eye = approach(this.eye, targetEye, dt, this.kneeling ? 0.9 : 0.7);
+    }
 
     // A body, not a tripod: footfall bob when walking, breath when standing.
     const moving = Math.hypot(this.vel.x, this.vel.y);
@@ -206,7 +252,9 @@ export class CameraRig {
     this.camera.position.set(this.pos.x, this.eye + bob + sway, this.pos.z);
     this.camera.rotation.set(this.pitch, this.yaw, 0);
     // Seen from the opening's low place, a little wider: the box whole, its light at the top.
-    const seated = this.restEye < EYE - 0.1 && !this.kneeling && this.wideOpening;
+    // Only for the opening's composition: it goes at the hand-off, or once they look away.
+    if (Math.abs(this.yaw) > 0.5) this.wideOpening = false;
+    const seated = this.restEye < EYE - 0.1 && !this.kneeling && this.wideOpening && !this.rise;
     const fovTarget = this.baseFov + (this.kneeling && !this.reducedMotion ? 8 : 0) + (seated ? 6 : 0);
     this.camera.fov = approach(this.camera.fov, fovTarget, dt, 1.5);
     this.camera.updateProjectionMatrix();
