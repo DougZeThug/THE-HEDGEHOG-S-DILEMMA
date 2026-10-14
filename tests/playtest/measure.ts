@@ -2,6 +2,7 @@ import { DRAWING_BY_ID } from '../../src/content/drawings';
 import { Director } from '../../src/state/Director';
 import { OPENING_WRITTEN, OPENING_SPOKEN, OPENING_UNFINISHED } from '../../src/state/OpeningScore';
 import { PHRASE_BY_ID } from '../../src/content/phrases';
+import { Rng } from '../../src/core/rng';
 import type { Surface } from '../../src/content/types';
 import type { Cue, TimedCue } from '../../src/state/cues';
 import type { Persona, Frame } from './personas';
@@ -140,6 +141,15 @@ export function visit(p: Persona, seconds: number, seed: number, dt = 0.1): Visi
   // residue) unless the visitor leaves, and then reports back. Seen while it plays: it opens on
   // the line being looked at.
   let memoryEndsAt: { id: string; at: number } | null = null;
+  // Where each line is actually written (the first lines are often re-written on the wall the
+  // visitor faces, not their own), and a visitor's habit of glancing at writing that appears
+  // in front of them. The chance is fixed here, before any memory was measured with it:
+  // 0.6 at a desk, 0.4 on a phone (a small screen and a thumb busy walking).
+  const writtenOn = new Map<string, Surface>();
+  for (const id of OPENING_WRITTEN) writtenOn.set(id, PHRASE_BY_ID.get(id)!.surface);
+  const noticeRng = new Rng(seed * 7919 + 13);
+  const noticeChance = p.device === 'phone' ? 0.4 : 0.6;
+  let notice: { id: string; until: number } | null = null;
   for (let t = 0; t < seconds; t += dt) {
     if (memoryEndsAt && t >= memoryEndsAt.at) {
       d.memoryEnded(memoryEndsAt.id, true, true);
@@ -148,9 +158,19 @@ export function visit(p: Persona, seconds: number, seed: number, dt = 0.1): Visi
     const f = p.frame(t);
     if (f.tap && tapper.tapped) taps += tapper.tapped(f.tap.chair ? { chair: true } : { phraseId: f.tap.phrase }) ? 1 : 0;
     const facing = facingOf(f.yaw);
+    if (notice && (t >= notice.until || facing !== writtenOn.get(notice.id))) notice = null;
+    const gaze = notice ? notice.id : readable(d, f.gaze, facing, writtenOn);
     const cues: TimedCue[] = d.tick(dt, {
-      x: f.x, z: f.z, yaw: f.yaw, pitch: f.pitch, gazePhraseId: readable(d, f.gaze), gazeChair: f.gazeChair, nearSurface: nearWall(f.x, f.z), kneeling: f.kneeling,
+      x: f.x, z: f.z, yaw: f.yaw, pitch: f.pitch, gazePhraseId: gaze, gazeChair: f.gazeChair && !notice, nearSurface: nearWall(f.x, f.z), kneeling: f.kneeling,
     }, facing);
+    for (const c of cues) {
+      const cue = c.cue;
+      const id = cue.type === 'write' ? cue.source ?? cue.key : cue.type === 'reveal' ? cue.phraseId : null;
+      if (!id || !PHRASE_BY_ID.has(id)) continue;
+      const surface = cue.type === 'write' ? cue.surface ?? PHRASE_BY_ID.get(id)!.surface : PHRASE_BY_ID.get(id)!.surface;
+      writtenOn.set(id, surface);
+      if (surface === facing && !notice && noticeRng.chance(noticeChance)) notice = { id, until: t + dt + noticeRng.range(2, 3) };
+    }
     if (d.phase !== phase) phases.push({ phase: (phase = d.phase), t: +(t + dt).toFixed(1) });
     for (const c of cues) {
       if (c.cue.type === 'stopVoice') interruptions++;
@@ -184,13 +204,19 @@ export function visit(p: Persona, seconds: number, seed: number, dt = 0.1): Visi
   return { persona: p.id, seed, devs, interruptions, frames: p.frame, director: d, recognised, phases };
 }
 
-/** What a gaze can rest on: the line if it is written, else a written line on the same wall. */
-function readable(d: Director, id: string | null): string | null {
+/**
+ * What a gaze can rest on: the line, if it is written where the visitor is looking; else a line
+ * that is written on the wall they face; else nothing.
+ */
+function readable(d: Director, id: string | null, facing: Surface, writtenOn: Map<string, Surface>): string | null {
   if (!id) return null;
+  const where = (pid: string) => writtenOn.get(pid) ?? PHRASE_BY_ID.get(pid)?.surface;
+  const home = PHRASE_BY_ID.get(id)?.surface;
   const st = d.visible.get(id);
-  if (st && st.mode === 'shown') return id;
-  const wall = PHRASE_BY_ID.get(id)?.surface;
-  for (const [vid, vs] of d.visible) if (vs.mode === 'shown' && PHRASE_BY_ID.get(vid)?.surface === wall && wall !== 'floor') return vid;
+  // Floor and ceiling writing is read where it is (looking down or up), whatever the facing.
+  if (st && st.mode === 'shown' && (where(id) === facing || home === 'floor' || home === 'ceiling')) return id;
+  if (home === 'floor' || home === 'ceiling') return null;
+  for (const [vid, vs] of d.visible) if (vs.mode === 'shown' && where(vid) === facing) return vid;
   return null;
 }
 
