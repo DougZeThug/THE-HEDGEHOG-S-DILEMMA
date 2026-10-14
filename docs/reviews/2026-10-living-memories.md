@@ -233,3 +233,49 @@ Not done, and why:
 Measured reachability (fixed harness, 8 seeds × 300 s): cereal opens for the reader 7/8 (median 22 s), the explorer 4/8 (64 s), phone and still rarely, the chair visitor not at all; the bedroom's and the door's lines are read ≥ 2 s in at most 1/8 visits for any persona. **The gate before the other two scenes is not met**: their lines must first be offered the way kitchen-light's is (written alone where the visitor faces, a short hold), then measured again. The remaining SFX for them are prompted and dry-run (7 sounds, ~252 credits of the 341 left) but not generated.
 
 Spend so far: SFX 259 of 600 (four sounds, one retake); memory music 385 of 1,200 (the radio). Nothing has been judged by ear yet: every new take is pending on the audition sheet.
+
+## The bedroom and the door (stage G)
+
+The artist approved cereal and its four sounds, then asked for both remaining memories, with spending as approved. Reachability first: the bedroom's and the door's lines are **offered** the way kitchen-light's is (written alone on the wall the visitor faces, a short hold, never into a busy room). In the fixed harness that met the gate (each line read ≥ 2 s in ≥ 30 % of visits for every persona).
+
+Built: the bedroom (single unmade bed, net-curtained window, a curtain, morning sun, a bird, someone downstairs playing the piano; dusk revisit) and the door (a child's view of the bedroom door ajar and the landing light). Generated after dry runs: 7 SFX (233 credits; SFX total 492 of 600) and the bedroom's piano (358 credits by balance difference; memory music 743 of 1,200).
+
+Evaluated by the creative director, cinematic director and sound designer (QA in progress at the time of writing). The artist decided three points they raised:
+
+| Question | Artist chose |
+|---|---|
+| The door formed above the unfinished "I wanted you to", reading as its ending | **It opens from the room's own drawn door** (`ghost-door`, south wall, since the visit began): the painted door registers onto the drawing's lines; its line is written beside it, and looking at the drawing counts as reading it. |
+| Which door first | **The steps stop outside first** (the artist's original wording); passing is the revisit. |
+| An arc across the visit (company → solitude → absence) | **Kept**: cereal only early and never after another memory; the bedroom answers the room's long dark silence; the door only after another memory. |
+
+Also done from the evaluation:
+- **The door:** the shadow is a shade layer that takes light away (no figure, no paint). The white room goes to evening while it plays (its own dim), so the landing light is the brightest thing there. The painting has a floor wedge of light toward the bed, and the bedroom's blanket in the corner (the same room).
+- **The bedroom:**
+  - one arc: the morning gets on, and the sun reaches the pillow's dent;
+  - one curtain lift on its sound, a hanging sway with the top on the rod, none under reduced motion;
+  - sound leads;
+  - the second bird is cut;
+  - the piano starts as an event and rings out at a natural close;
+  - the duvet is thrown back and there is a mug on the floor;
+  - at dusk the sun is on the wall above the bed and goes down.
+- **Placement:** a line too low for a painting below gets it above; paintings step off drawings already on the wall.
+- **The room waits for a memory:** phase turns wait until it ends (+6 s), silences and new writing are held, and a memory begun from the panel holds the room too.
+- **Sound** (offline renders):
+  - the approach steps use the clearer take (88 % of take 2's energy was below 300 Hz), coming from further and stopping close;
+  - the passing walker is loudest at the door;
+  - one-shots are mono before their panner (a stereo creak had landed 9 dB to the left);
+  - the curtain is +6 dB;
+  - the piano is quieter and darker ("downstairs");
+  - the bird fades in;
+  - the air's leaves are now audible.
+
+Measured after (fixed harness, 8 seeds; 7- and 10-minute visits):
+- The bedroom opens in 1–3 of 8 visits per persona.
+- **The door is rare: 0/40 in 7 minutes, 2/40 in 10 minutes** (the arc, the offer and the south wall together).
+- Cereal: the reader 7/8 (median 22 s), the explorer 2/8. Others rarely, since cereal is now early-only.
+
+A way to make the door reachable without breaking the arc (a quiet sound from beyond the south wall, inviting a turn) is a new design element for the artist to decide.
+
+Not done:
+- The creative director's suggestion to fold the side curtain into the net curtain: the artist asked for a curtain.
+- A curtain retake (cloth rather than air) and a footsteps gain curve: both wait for the artist's ear.
