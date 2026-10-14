@@ -6,6 +6,7 @@ import { Chair } from './world/Chair';
 import { Lighting, shadowMapSize } from './world/Lighting';
 import { lookFor, parseLook, LOOK_NAMES, LOOKS, type Look, type LookName } from './world/Style';
 import { MemoryLight } from './world/MemoryLight';
+import { MemoryWindow } from './world/MemoryWindow';
 import { WallText, wallClock, type TextItem } from './world/WallText';
 import { CameraRig } from './world/CameraRig';
 import { Post } from './world/Post';
@@ -75,6 +76,8 @@ export class App {
   private leaving: number | null = null;
   /** A memory's light on a wall, and the writing it falls across. */
   readonly memoryLight = new MemoryLight();
+  /** A living memory in the plaster (src/memory): neutral and on the wall from boot, so it is compiled with the room. */
+  readonly memoryWindow = new MemoryWindow();
   private memoryKey: string | null = null;
   /** The piece of writing last touched (the memory's light falls where the visitor touched). */
   private lastTappedKey: string | null = null;
@@ -176,6 +179,7 @@ export class App {
     // tone mapping), not the screen: three keys programs on the bound target. The memory's light
     // is in the scene, unseen, so it is compiled here too.
     this.room.frames.north.writing.add(this.memoryLight.mesh);
+    this.room.frames.north.writing.add(this.memoryWindow.mesh);
     this.renderer.setRenderTarget(this.post.composer.readBuffer);
     this.renderer.compile(this.scene, this.rig.camera);
     this.renderer.setRenderTarget(null);
