@@ -1,5 +1,5 @@
 {
-  "spent": 708,
+  "spent": 807,
   "entries": {
     "sfx-switch-1.mp3": {
       "key": "sfx:switch",
@@ -163,6 +163,30 @@
       "cost": 33,
       "at": "2026-10-14T19:54:14.419Z",
       "review": "approved"
+    },
+    "mem-eating-1.mp3": {
+      "key": "mem:eating",
+      "text": "one person happily eating cereal with milk from a ceramic bowl, a metal spoon dipping in and tapping the rim, a soft crunch of cereal, an easy unhurried rhythm, no voices, dry, intimate, close, natural home recording, no music, no reverb tail",
+      "duration": 3,
+      "cost": 33,
+      "at": "2026-10-14T23:01:09.570Z",
+      "review": "pending"
+    },
+    "mem-eating-2.mp3": {
+      "key": "mem:eating",
+      "text": "two people eating cereal together at a small kitchen table, two spoons clinking against two ceramic bowls at different moments, a little crunch, relaxed and companionable, no voices, dry, intimate, close, natural home recording, no music, no reverb tail",
+      "duration": 3,
+      "cost": 33,
+      "at": "2026-10-14T23:01:11.133Z",
+      "review": "pending"
+    },
+    "mem-eating-3.mp3": {
+      "key": "mem:eating",
+      "text": "dry cereal poured from a cardboard box into a ceramic bowl with a light rattle, then a short pour of milk, the start of a meal, no voices, dry, intimate, close, natural home recording, no music, no reverb tail",
+      "duration": 3,
+      "cost": 33,
+      "at": "2026-10-14T23:01:12.866Z",
+      "review": "pending"
     }
   }
 }

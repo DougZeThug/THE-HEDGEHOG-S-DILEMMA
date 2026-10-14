@@ -107,7 +107,7 @@ for (const [id, e] of Object.entries(musicLedger.entries)) {
   designTakes.push({
     id: `music-${id}`,
     group: memory ? 'memories' : 'music',
-    groupLabel: memory ? "living memories' sounds and music: already playing inside the memory (pending your ear) — keep or not" : 'music pilots: a piano heard through the wall (never in the opening, never under a voice) — keep or not',
+    groupLabel: memory ? "living memories' sounds and music: new options for cereal first (radio and meal), then what already plays — keep or not" : 'music pilots: a piano heard through the wall (never in the opening, never under a voice) — keep or not',
     line: memory ? 'Memory music' : 'Music (pilot)',
     interpretation: e.for, voice: 'ElevenLabs Music, instrumental', model: 'music', stability: '—', input: e.prompt,
     generation: 2, lab: false, audition: true, design: true, status: 'preview', review: e.review ?? 'pending',
@@ -121,6 +121,7 @@ const SFX_FOR = {
   'sfx:eraser': 'The writing in the air rubbed out as someone comes close (a breath follows it).',
   'mem:kitchen-air': 'Cereal memory: the air of the sunny kitchen, looped under the scene (it came back very quiet and is lifted about 28 dB).',
   'mem:spoon-bowl': 'Cereal memory: spoons in two bowls as the scene forms (the first take); a spoon put down as it goes (the second).',
+  'mem:eating': 'Cereal memory: options for the meal, in place of the spoons you turned down (1: one person eating cereal and milk; 2: two people, two bowls, recorded quiet; 3: cereal and milk poured). Not yet in the memory: keep the one you want.',
   'mem:laugh': 'Cereal memory: two people laughing at the table (a take the next-room situation never uses).',
   'mem:footsteps': 'Door memory: someone walking along the landing (passing), or coming to the door and stopping (approach).',
   'mem:floorboard': 'Door memory: someone shifting their weight outside the door (the first take); the house settling (the second).',
@@ -134,7 +135,7 @@ for (const [file, e] of Object.entries(sfxLedger.entries)) {
   designTakes.push({
     id: `sfx-${file.replace('.mp3', '')}`,
     group: e.key.startsWith('mem:') ? 'memories' : 'sounds',
-    groupLabel: e.key.startsWith('mem:') ? "living memories' sounds and music: already playing inside the memory (pending your ear) — keep or not" : 'new room sounds, already in the room: not this removes a variant',
+    groupLabel: e.key.startsWith('mem:') ? "living memories' sounds and music: new options for cereal first (radio and meal), then what already plays — keep or not" : 'new room sounds, already in the room: not this removes a variant',
     line: 'Sounds',
     interpretation: SFX_FOR[e.key] ?? e.key,
     voice: e.key, model: 'sound effects', stability: '—', input: e.text, generation: 2, lab: false, audition: false, design: true, status: 'in the room', review: e.review ?? 'pending',

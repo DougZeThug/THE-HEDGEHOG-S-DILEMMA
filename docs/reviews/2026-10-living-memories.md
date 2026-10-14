@@ -313,3 +313,17 @@ Rejected takes are removed from `public/voices/manifest.json`, and `generate-voi
 Checked: 247 tests pass. In the browser, cereal (first), the door (passing) and the bedroom (morning) play through with no errors, no new shader programs and textures back to baseline.
 
 **Open, for the artist:** whether cereal should have a new radio take or a new take of spoons in bowls. Both fit the remaining approved budgets (music 457 credits, SFX 108). Neither will be generated without being asked, and only with a sense of what was wrong.
+
+**New options, at the artist's request (14 Oct).** They disliked the radio's music and that particular eating sound, and asked for several options. The music cap was raised to allow four radio options (≤1,150 credits).
+- **The radio:** four gentle acoustic folk pieces of 19 s each (`public/music/memory-radio-folk-{a,b,c,d}.mp3`):
+  - A: guitar and harmonica, 1970s;
+  - B: solo fingerpicked guitar;
+  - C: a guitar and fiddle waltz;
+  - D: two guitars, mandolin and upright bass.
+  - Together they cost 1,044 credits, measured from the balance because the per-request header was missing. ElevenLabs refused B's first prompt as copyrighted because it named a picking style after a person, and it cost nothing.
+- **The meal:** three takes of `mem:eating`, 99 credits in all:
+  - 1: one person eating cereal and milk;
+  - 2: two people, two bowls (recorded quietly, −41 dB mean, and will need gain);
+  - 3: cereal and milk poured.
+- Everything is on the audition sheet, pending. None of it is in the memory until the artist keeps one.
+- **Spend:** music 2,447 in all (1,787 on the living memories); SFX 807 in all (591 on the memories, within the 600 approved).

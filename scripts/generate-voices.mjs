@@ -101,6 +101,12 @@ const ASSETS = {
     [`two metal spoons in two ceramic cereal bowls at a small kitchen table, a few unhurried clinks and soft scrapes, overlapping, no chewing, no voices, ${DRY}`, 3],
     [`a spoon laid down in an empty ceramic bowl, one small clink and a brief rattle as it settles, then nothing, ${DRY}`, 1.5],
   ],
+  // The artist turned down the spoons-in-bowls take: three other ways of hearing the meal.
+  'mem:eating': [
+    [`one person happily eating cereal with milk from a ceramic bowl, a metal spoon dipping in and tapping the rim, a soft crunch of cereal, an easy unhurried rhythm, no voices, ${DRY}`, 3],
+    [`two people eating cereal together at a small kitchen table, two spoons clinking against two ceramic bowls at different moments, a little crunch, relaxed and companionable, no voices, ${DRY}`, 3],
+    [`dry cereal poured from a cardboard box into a ceramic bowl with a light rattle, then a short pour of milk, the start of a meal, no voices, ${DRY}`, 3],
+  ],
   'mem:laugh': [
     [`two people at a kitchen table laughing together at something silly, a short warm unforced burst of shared laughter that trails off, no words, ${DRY}`, 3],
   ],

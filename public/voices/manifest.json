@@ -247,5 +247,10 @@
   ],
   "mem:curtain-breeze": [
     "mem-curtain-breeze-1.mp3"
+  ],
+  "mem:eating": [
+    "mem-eating-1.mp3",
+    "mem-eating-2.mp3",
+    "mem-eating-3.mp3"
   ]
 }

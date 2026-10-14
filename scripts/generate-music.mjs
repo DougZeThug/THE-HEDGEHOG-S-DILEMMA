@@ -65,6 +65,36 @@ FRAGMENTS.push(
     // The sound designer's prompt (approach review): someone else, content, needing nothing.
     prompt: 'Someone downstairs playing an upright piano for themselves on a bright morning: an easy, contented little tune in a major key, walking tempo, simple, a couple of small slips carried on through. Starts straight away with the tune, no intro, no ending. Solo piano, instrumental, close home recording, dry.',
   },
+  // The artist turned down the 1970s soft-pop radio and asked for gentle acoustic folk, several
+  // options to choose from (four, up to 1,150 credits). Long enough for the radio's span in the memory.
+  {
+    id: 'memory-radio-folk-a',
+    seconds: 19,
+    memory: true,
+    for: 'Memory: cereal. The kitchen radio, option A (harmonica): gentle acoustic folk. Not yet in the memory: keep the one you want.',
+    prompt: 'Playing on the radio in a sunny kitchen, a 1970s folk song on the radio: strummed and lightly picked steel-string acoustic guitar with a simple, cheerful harmonica melody over it, major key, easy walking tempo, sunny and unhurried. It starts straight away in the middle of the song, no intro, no build and no ending, it simply carries on. Instrumental, no vocals, nothing dramatic, warm and happy.',
+  },
+  {
+    id: 'memory-radio-folk-b',
+    seconds: 19,
+    memory: true,
+    for: 'Memory: cereal. The kitchen radio, option B (fingerpicked): gentle acoustic folk. Not yet in the memory: keep the one you want.',
+    prompt: 'Playing on the radio in a sunny kitchen, a gentle folk tune on the radio: a single steel-string acoustic guitar, fingerpicked with an alternating thumb bass, a bright simple melody in a major key, relaxed tempo, homely and content. It starts straight away in the middle of the song, no intro, no build and no ending, it simply carries on. Instrumental, no vocals, nothing dramatic, warm and happy.',
+  },
+  {
+    id: 'memory-radio-folk-c',
+    seconds: 19,
+    memory: true,
+    for: 'Memory: cereal. The kitchen radio, option C (waltz): gentle acoustic folk. Not yet in the memory: keep the one you want.',
+    prompt: 'Playing on the radio in a sunny kitchen, a gentle folk waltz on the radio in three-four time: acoustic guitar and a soft fiddle playing a sweet, lilting melody, major key, unhurried, like a song everyone in the family knows. It starts straight away in the middle of the song, no intro, no build and no ending, it simply carries on. Instrumental, no vocals, nothing dramatic, warm and happy.',
+  },
+  {
+    id: 'memory-radio-folk-d',
+    seconds: 19,
+    memory: true,
+    for: 'Memory: cereal. The kitchen radio, option D (mandolin): gentle acoustic folk. Not yet in the memory: keep the one you want.',
+    prompt: 'Playing on the radio in a sunny kitchen, an easy-going acoustic folk song on the radio: two acoustic guitars and a mandolin playing together, a light upright bass, a bright singable melody, major key, relaxed mid tempo, sunny. It starts straight away in the middle of the song, no intro, no build and no ending, it simply carries on. Instrumental, no vocals, nothing dramatic, warm and happy.',
+  },
 
 );
 
