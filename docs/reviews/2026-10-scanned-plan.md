@@ -149,3 +149,22 @@ They advised keeping the fill, since the wall you read was already right.
 **Measured after** (the hand-off pose at 2×, reference in brackets):
 - **Texture bands:** back wall 0.31/0.68/0.92/1.29 (0.39/0.76/0.99/1.17); ceiling 0.28/0.72/0.98/1.24 (0.32/0.78/1.03/1.19); floor 0.30/0.86/1.30/1.64 (0.84/1.31/1.51/1.66).
 - The finest band (about 1 px) stays under the reference's; part of that is the reference's own sharpening, and it is not chased.
+
+### Final capture (s3, the build at 9c38d30; b08cf6d is the same code)
+`test-output/review/style/s3/compare.png`: the reference beside the desktop and phone hand-off frames.
+- **Guards:**
+  - nothing compiled by switching looks, 19 programs at the threshold, no errors;
+  - the dim takes 73% of the back wall in every look (the original 74%), and the pool holds through it;
+  - a cooled pool is no warmer than the original's (R/B 1.048 against 1.055);
+  - the glass and the well cool fully (R/B 1.09 → 1.01) and dim (−40% and −50%);
+  - screen invariance stays under 1 with the vignette off;
+  - crumbs ΔE 20.1 (the original 19.3).
+- **Ink:**
+  - median Weber 0.088 on desktop and 0.145 on phone (original 0.085 and 0.097);
+  - ink over the surface's texture 6.7 on desktop and 12.4 on phone (original 5.7 and 6.4).
+  - That last guard first took the bare surface's whole spread, so the light's own fall across a text box read as grain and showed the phone below the original. High-passed (4 px) it measures texture only. A cut of the phones' scan to a third, made in answer to the artefact, was undone.
+- **Harnesses:** smoke and the opening pass. The context-loss pair is over its threshold in the original look only, as before this work.
+- **Left for the artist:**
+  - whether it now reads as professionally as the reference, on their own screen;
+  - the chair's size: 0.69 of the back wall's height against the reference's 0.57; their "enlarge the chair" stands unless they say otherwise;
+  - whether real scanned materials still feel like the diorama the work grew from.
