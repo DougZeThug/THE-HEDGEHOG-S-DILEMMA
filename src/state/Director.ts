@@ -129,6 +129,13 @@ export class Director {
   memoryPlayed = false;
   /** No voices of the room's own until then: the memory's line has just been offered. */
   private memoryQuietUntil = -Infinity;
+  /** After a vignette, even the room finishing its own line waits (its quiet is part of it). */
+  private vignetteQuietUntil = -Infinity;
+
+  private get vignettePlaying(): boolean {
+    return !!this.scenes.active && VIGNETTE_BY_ID.has(this.scenes.active.id);
+  }
+
   /** The last vignette to end (the visit's turn keeps clear of it). */
   private vignetteEnded: { id: string; at: number; dimmed: boolean } | null = null;
   /** The living memories: when one may open (src/state/MemoryDirector.ts). */
@@ -326,8 +333,8 @@ export class Director {
     // The memory's line has just been written for the visitor to stay with: the room doesn't
     // talk over it (authored situations and a finished line aside).
     if (this.now < this.memoryQuietUntil && !extra.finish && !rule.startsWith('sit:')) return;
-    // Nothing talks over a living memory.
-    if (this.scenes.active && !extra.finish) return;
+    // Nothing talks over a living memory (a finished line aside; nothing at all over a vignette).
+    if (this.scenes.active && (!extra.finish || this.vignettePlaying)) return;
     // A vignette's line is its own: the room doesn't say it first.
     if (extra.phraseId && !extra.finish && this.scenes.claimsVoice(extra.phraseId)) return;
     // A phrase with recorded performances: choose the one directed for this moment.
@@ -468,6 +475,8 @@ export class Director {
     // A memory that never found room isn't spent: it waits for the next look.
     if (cue.type === 'memory-scene' || cue.type === 'vignette') this.scenes.cancel(cue.id, this.now);
     if (cue.type !== 'voice' || !cue.phraseId) return;
+    // A line the room was finishing, unheard: it is still unfinished.
+    if (cue.finish) this.unfinished.add(cue.phraseId);
     // A voice that was to write its line as it was heard: the line was marked as there when the
     // voice was queued. Unheard, it was never written, so it isn't there.
     if (cue.write) {
@@ -495,12 +504,11 @@ export class Director {
     if (cue.type === 'music' && !rule.startsWith('sit:') && this.situations.claimed('music')) return false;
     // Nothing sounds over a memory: a situation's laugh or murmur waits too (it is emitted
     // directly, not through the voice rules that already wait).
-    if (this.scenes.active && ((cue.type === 'voice' && !cue.finish) || cue.type === 'sound' || cue.type === 'music')) return false;
+    if (this.scenes.active && ((cue.type === 'voice' && (!cue.finish || this.vignettePlaying)) || cue.type === 'sound' || cue.type === 'music')) return false;
     if (cue.type === 'reveal' && this.withheld().includes(cue.phraseId)) return false;
     // The visit's turn, due while a vignette plays or just after one: it waits until it is clear.
     if (rule === 'phase-transform' && cue.type === 'silence' && !this.departing) {
-      const active = this.scenes.active && VIGNETTE_BY_ID.has(this.scenes.active.id);
-      const { delay, dark } = this.turnClear(active ? 30 : 0);
+      const { delay, dark } = this.turnClear(this.vignettePlaying ? 30 : 0);
       if (delay > 0) {
         const { dim: _d, dimSeconds: _s, ...rest } = cue;
         this.queue(delay, dark ? cue : rest, rule, { major: true, ttl: 30 });
@@ -835,6 +843,8 @@ export class Director {
    */
   private ruleFinish() {
     if (!this.unfinished.size || this.now < 12) return;
+    // Not over a vignette: a heard memory has voices of its own (a painted one can take it).
+    if (this.vignettePlaying || this.now < this.vignetteQuietUntil) return;
     const v = this.visitor;
     for (const id of this.unfinished) {
       const p = PHRASE_BY_ID.get(id);
@@ -1241,6 +1251,8 @@ export class Director {
   /** A preview has ended (never counted, nothing left behind): the room goes on. */
   memoryPreviewEnded(id: string): void {
     this.scenes.previewEnded(id);
+    // Its quiet afterwards is part of it, previewed or not (nothing is counted).
+    if (VIGNETTE_BY_ID.has(id)) this.vignetteQuietUntil = this.now + 20;
   }
 
   /** A memory the Director didn't begin is playing (the artist's panel): the room waits with it. */
@@ -1254,6 +1266,7 @@ export class Director {
     // After a vignette the room doesn't answer at once with another voice: its quiet is part of it.
     if (VIGNETTE_BY_ID.has(id)) {
       this.memoryQuietUntil = Math.max(this.memoryQuietUntil, this.now + 20);
+      this.vignetteQuietUntil = this.now + 20;
       this.vignetteEnded = { id, at: this.now, dimmed: VIGNETTE_BY_ID.get(id)!.variants.first.events.some((e) => 'fx' in e && e.fx.kind === 'dim') };
     }
     if (counted) {

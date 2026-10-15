@@ -236,6 +236,7 @@ Two other changes:
 - **B is a cold open:** no settling hush, the room cuts straight in on "Have you seen my charger?".
 - **F's heard-before version** is heard once. After that the chair belongs to the room again.
 - **The hint is held back during a vignette.** On a phone it sat where the captions are.
+- **The room finished "I wanted you to stay." just after a vignette (found by the browser run on the phone).** A finished line was exempt from both the quiet over a memory and the quiet after one. Over a vignette and for 20 s after it (a preview too), the room now waits to finish its line, and a finish that never sounded leaves the line unfinished.
 
 ### Not done, and why
 

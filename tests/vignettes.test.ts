@@ -233,6 +233,9 @@ describe('the Director and its vignettes', () => {
     expect(accept({ type: 'voice', kind: 'laugh', text: null, caption: '', position: { kind: 'beyond', surface: 'north' }, gain: 0.5 }, 'sit:next-room')).toBe(false);
     expect(accept({ type: 'sound', kind: 'cup', position: { kind: 'chair' }, gain: 0.5 }, 'respond-sound')).toBe(false);
     expect(accept({ type: 'music', mood: 'warm', notes: 4, truncate: false }, 'music')).toBe(false);
+    // Not even the room finishing its own unfinished line: that waits, still unfinished.
+    const fin = { type: 'voice', kind: 'tender', text: 'I wanted you to stay.', caption: '', position: { kind: 'surface', phraseId: 'stay' }, gain: 0.5, phraseId: 'stay', finish: true };
+    expect(accept(fin, 'finish-look')).toBe(false);
   });
 
   it('a line the vignette speaks itself is not said by the room first; lines that only open one are', () => {
