@@ -73,6 +73,8 @@ describe('the walls are not neatly partitioned', () => {
 
   it('the held line still reaches the empty wall if the visitor happened to be facing it when the time came', () => {
     const d = new Director({ seed: 4, situations: ['residue'] });
+    // (A visit with no vignettes recorded: their quiet would move this one's moments.)
+    d.scenes.setAvailable(new Set());
     const base: VisitorInput = { x: 0, z: 2.4, yaw: 0, pitch: 0, gazePhraseId: null, gazeChair: false, nearSurface: null, kneeling: false };
     const cues: TimedCue[] = [];
     for (let t = 0; t < 25; t += 0.1) cues.push(...d.tick(0.1, { ...base, x: 2.2, z: 0, gazePhraseId: 'good-day' }, 'east'));

@@ -144,6 +144,14 @@ export interface VignetteDef {
   group?: 'kitchen';
   /** Only once another memory has been seen (on any visit). */
   requires?: { seen: string };
+  /** Only once this unfinished line has been finished (the chair's vignette waits for "stay"). */
+  afterFinished?: string;
+  /**
+   * Its line is offered (written alone where the visitor looks, the room holding still), as the
+   * bedroom's and the door's are, if it hasn't been met by then: for lines the room rarely writes.
+   * At most two offers a visit, of any memory.
+   */
+  offer?: { phases: Phase[]; apart: number };
   /** The memory's own small room: [seconds, decay, wet]. */
   room: [number, number, number];
   /** How far the room's own sound goes down while it plays. */

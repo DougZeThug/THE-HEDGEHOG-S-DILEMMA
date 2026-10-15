@@ -50,6 +50,8 @@ export interface SceneState {
   kneeling?: boolean;
   /** What the visitor has done, for choosing a vignette's version. */
   variantCtx?: () => Omit<VariantContext, 'seen'>;
+  /** Is this line finished (not left unfinished on the wall)? */
+  finished?: (phraseId: string) => boolean;
 }
 
 export interface SceneStart {
@@ -99,6 +101,9 @@ export class MemoryDirector {
   /** Vignettes whose voices are recorded and approved (null: all, as in tests and previews). */
   private available: Set<string> | null = null;
   private pending: PendingEcho[] = [];
+  /** Lines written alone for a memory this visit (the kitchen-light memory's counts too). */
+  private offersMade = 0;
+  private lastOfferAt = -Infinity;
 
   /** `counts`: how many times each memory has been seen on earlier visits (persisted). */
   constructor(private counts: Record<string, number> = {}) {
@@ -189,6 +194,8 @@ export class MemoryDirector {
     /** When the room's long held silence ended (null if it hasn't come). */
     darkEnded?: number | null;
     kitchenPlayed?: boolean;
+    /** The kitchen-light memory's line has been offered this visit. */
+    kitchenOffered?: boolean;
   }): SceneMemory | null {
     if (s.departing || this.active || !s.free || s.otherMemory) return null;
     if (s.now < this.cooldownUntil || s.now - this.lastEnded < 0) return null;
@@ -198,6 +205,12 @@ export class MemoryDirector {
       if (s.now - this.lastEnded < m.offer.apart) continue;
       if (!this.arcAllows(m, s.now, !!s.kitchenPlayed)) continue;
       if (m.offer.wall && s.facing !== m.offer.wall) continue;
+      if (m.kind === 'vignette') {
+        // Offered only if it can play, keeps its distance, and the visit hasn't had two offers.
+        if (this.offersMade + (s.kitchenOffered ? 1 : 0) >= 2 || !this.isAvailable(m.id) || !this.vignetteAllows(m, s)) continue;
+        // Never close behind another line written alone.
+        if (s.now - this.lastOfferAt < m.offer.apart) continue;
+      }
       // The pale morning answers the dark: a few seconds after the held silence lifts.
       if (m.offer.afterDark && !(s.darkEnded != null ? s.now >= s.darkEnded + 8 : s.now >= 200)) continue;
       // Already where they are looking: no need to write it again (unless it has its own place).
@@ -206,9 +219,16 @@ export class MemoryDirector {
         continue;
       }
       t.offered = true;
+      this.offersMade++;
+      this.lastOfferAt = s.now;
       return m;
     }
     return null;
+  }
+
+  /** A vignette may still open at the chair this visit (the room's own voice there waits). */
+  claimsChair(): boolean {
+    return ALL_MEMORIES.some((m) => m.chair && !this.tracks.get(m.id)!.played && this.isAvailable(m.id));
   }
 
   update(s: SceneState): SceneStart | null {
@@ -252,8 +272,9 @@ export class MemoryDirector {
   }
 
   /** A vignette keeps its distance, its phase, and its place (the kitchen is one kitchen). */
-  private vignetteAllows(m: SceneMemory, s: SceneState): boolean {
+  private vignetteAllows(m: SceneMemory, s: Pick<SceneState, 'now' | 'phase' | 'kitchenPlayed' | 'finished'>): boolean {
     if (m.kind !== 'vignette') return true;
+    if (m.afterFinished && !(s.finished?.(m.afterFinished) ?? true)) return false;
     if (s.now - this.lastEnded < (this.lastTone === m.tone ? SAME_TONE_APART : VIGNETTE_APART)) return false;
     if (m.phases && s.phase && !m.phases.includes(s.phase as never)) return false;
     if (m.group === 'kitchen' && s.kitchenPlayed) return false;

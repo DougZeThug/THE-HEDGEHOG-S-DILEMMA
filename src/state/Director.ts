@@ -1171,6 +1171,7 @@ export class Director {
       facing: this.facing,
       phase: this.phase,
       chairDistance: v.distance,
+      finished: (id) => !this.unfinished.has(id),
       stillFor: v.stillFor,
       kneeling: v.kneeling,
       variantCtx: () => ({
@@ -1197,6 +1198,7 @@ export class Director {
       facing: this.facing,
       darkEnded: Number.isFinite(this.heldSilenceUntil) ? this.heldSilenceUntil : null,
       kitchenPlayed: this.memoryPlayed,
+      kitchenOffered: this.memoryOffered,
     });
     if (offer) {
       const p = PHRASE_BY_ID.get(offer.phraseId);
@@ -1590,6 +1592,8 @@ export class Director {
   private ruleKneel() {
     const v = this.visitor;
     if (!v.kneeling || this.kneelVoiced || v.kneelTime < 4) return;
+    // The chair's vignette (a child, asking someone to stay) may still come: its moment is kept.
+    if (this.scenes.claimsChair()) return;
     this.kneelVoiced = true;
     if (this.rng.chance(0.4)) this.speakPhrase('kneel', PHRASE_BY_ID.get('small-minute')!, { kind: 'chair' }, 2, 'child', 0.45);
   }

@@ -118,6 +118,8 @@ describe('later memories are offered, not hidden', () => {
   });
   it('the bedroom answers the long dark silence; the door comes only after another memory, where the drawn door is', () => {
     const m = new MemoryDirector();
+    // (The painted memories alone: no vignette's voices recorded.)
+    m.setAvailable(new Set());
     expect(m.offer(offerState({ now: 140, darkEnded: 130 }))).toBeNull(); // too early
     expect(m.offer(offerState({ now: 160, darkEnded: 155 }))).toBeNull(); // the dark only just lifted
     expect(m.offer(offerState({ now: 200, phase: 'familiar', darkEnded: 130 }))).toBeNull();

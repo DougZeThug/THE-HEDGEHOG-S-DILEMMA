@@ -49,6 +49,7 @@ export interface SceneMemory {
   group?: 'kitchen';
   requires?: { seen: string };
   phases?: Phase[];
+  afterFinished?: string;
 }
 
 export const SCENE_MEMORIES: SceneMemory[] = [
@@ -88,6 +89,8 @@ export const VIGNETTE_MEMORIES: SceneMemory[] = VIGNETTES.map((v) => ({
   group: v.group,
   requires: v.requires,
   phases: v.phases,
+  afterFinished: v.afterFinished,
+  offer: v.offer,
 }));
 
 /** Every memory the Director may open: the painted ones, then the vignettes. */

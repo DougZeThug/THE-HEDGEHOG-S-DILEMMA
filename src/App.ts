@@ -403,6 +403,11 @@ export class App {
       out: a.buses.memory,
       load: async (asset, take) => {
         if (asset === 'synth:air') return (await import('./memory/synthAir')).synthAir(a.ctx.sampleRate, 7 + (take ?? 0));
+        if (asset.startsWith('synth:')) {
+          const { synthSound, SYNTH_KINDS } = await import('./memory/synthSounds');
+          const kind = asset.slice(6) as (typeof SYNTH_KINDS)[number];
+          return SYNTH_KINDS.includes(kind) ? synthSound(a.ctx, kind, 1 + (take ?? 0)) : null;
+        }
         if (!asset.startsWith('music/')) return voices.raw(asset, take);
         try {
           const r = await fetch('./' + asset);
