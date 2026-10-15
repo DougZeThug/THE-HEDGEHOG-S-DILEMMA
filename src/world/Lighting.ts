@@ -226,6 +226,9 @@ export class Lighting {
     this.key.position.copy(chairPos).setY(0).add(rel);
     this.key.target.position.copy(chairPos);
     this.key.target.position.z -= this.look.aim;
+    // The cone is aimed past the chair (`aim`), so the shadow's camera must see that much further
+    // forward, or the chair's shadow ends in a straight edge just in front of its front legs.
+    this.key.shadow.focus = 0.4 * (1 + Math.max(0, this.look.aim));
     this.glow.position.set(chairPos.x, 0.7, chairPos.z + 0.25);
     // The shadow map is redrawn only when what it shows changes: the light moved or widened, or
     // the chair moved or turned (its blur reads a million texels twenty times on every redraw).
