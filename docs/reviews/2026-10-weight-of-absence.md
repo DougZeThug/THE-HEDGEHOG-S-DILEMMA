@@ -297,3 +297,36 @@ The artist marked the sad takes:
 Applying the marks exposed a bug: the phone preload fetched every vignette voice on arrival, about 1.4 MB. Vignette voices are now fetched only when a vignette is prepared, as the painted memories' sounds are.
 
 Then the artist kept the flat "Hiya. …No." and the "Okay, I'll see you tomorrow." takes, and B now uses the new line. All nine vignettes are live. Reach is unchanged: 59 across 40 simulated visits. C, D and G remain rarely met, because their lines are rarely read; that is the artist's call.
+
+## Reaching C, D and G
+
+The artist asked to make C, D and G easier to reach. They had never been met in simulated visits.
+
+**Measured causes:**
+- C's line was on the wall in only 5 of 40 visits.
+- G's line was mostly read before 150 s, when it couldn't play yet.
+- D's line was read while the room was still quiet after another memory.
+- A read at the wrong moment was lost.
+
+**Offers failed in three ways** (the interaction designer):
+- Offers were noticed but lost to the 2.5 s threshold. C was offered 5 times; the longest looks were 2.0–2.4 s.
+- An offer of a line already on the wall was used up with nothing visible happening.
+- The room's 2.4 s hold after an offer blocked the very memory it offered. Found while measuring.
+
+**Done:**
+- A 1.5 s look begins a vignette for 20 s after its line is offered.
+- Owed vignettes (read when they couldn't play) get their line written again once they can, with a 1.5 s look or a tap for 30 s.
+- Offers go to owed vignettes first, then to memories never heard.
+- A line already on the wall is written again instead of the offer being silently spent.
+- The hold that comes with an offer no longer blocks that memory.
+- G has an offer.
+- C opens beside "I wanted to be left alone with you.": its title is *Alone together*, and the line is on the wall about three times as often.
+- **Guard against pushing:** at most one pointing every 120 s, three a visit, none within 60 s of a vignette.
+
+**Result:** C 5, D 1, G 4 in 40 simulated visits (from 0). 70 vignettes in all, about 1.75 a visit, under the ceiling of 2 per 10 minutes. The painted memories did not lose reach.
+
+The gain depends on visitors noticing a line written for them. With no noticing, C, D and G stay at 0; with 90%, C 11, D 5, G 5.
+
+**Open:**
+- The creative director should judge C's new opening line, since C, D and G now all open from lines on the north wall.
+- A 1.5 s look on a phone should be checked by hand: a drag that stops on a line may start a vignette by accident.

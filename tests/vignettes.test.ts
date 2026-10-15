@@ -364,3 +364,50 @@ describe('previewing takes not kept yet', () => {
     expect(v.filesOf('vig:charger:toaster')).toEqual(['vignettes/charger--toaster.mp3']);
   });
 });
+
+describe('reaching the rarely met (C, D, G)', () => {
+  const offerAt = (m: MemoryDirector, now: number, visibleFacing: (id: string) => boolean = () => false) =>
+    m.offer({ now, phase: 'contradiction', free: true, visibleFacing, departing: false, otherMemory: false, facing: 'north' });
+
+  it('a line read when its vignette could not play is remembered: written again once it can, and a short look begins it', () => {
+    const m = new MemoryDirector();
+    // Read too early (G's opens from 150 s): nothing begins, but it is owed.
+    expect(read(m, 'jumper', 100)).toBeNull();
+    // Once it may play and its line is on the wall they face, the room writes it again there.
+    const pick = offerAt(m, 200, (id) => id === 'jumper');
+    expect(pick?.id).toBe('a-bag');
+    expect(pick?.reink).toBe(true);
+    // For a while, a 1.5 s look is enough.
+    expect(read(m, 'jumper', 201, 1.6)?.id).toBe('a-bag');
+  });
+
+  it('a line just offered begins its vignette after a short look; later it needs the usual read', () => {
+    // (Someone who has met the painted memories before: a vignette's line is offered.)
+    const m = new MemoryDirector({ bedroom: 1, door: 1 });
+    const pick = offerAt(m, 300);
+    expect(pick?.kind).toBe('vignette');
+    expect(pick!.reink).toBeFalsy();
+    expect(read(m, pick!.phraseId, 301, 1.6)?.id).toBe(pick!.id);
+    const later = new MemoryDirector({ bedroom: 1, door: 1 });
+    const p2 = offerAt(later, 300)!;
+    expect(read(later, p2.phraseId, 330, 1.6)).toBeNull();
+  });
+
+  it('never pushing: one pointing every two minutes, three a visit, none just after a vignette', () => {
+    const m = new MemoryDirector();
+    expect(offerAt(m, 300)).not.toBeNull();
+    expect(offerAt(m, 300 + 60)).toBeNull();
+    const n = new MemoryDirector();
+    const all = [300, 430, 560, 690, 820, 950].map((t) => offerAt(n, t, () => true)).filter(Boolean);
+    expect(all.length).toBeLessThanOrEqual(3);
+    const v = new MemoryDirector();
+    read(v, 'lonely-birthday', 200);
+    v.ended('gone-quiet', 220, true, true);
+    expect(offerAt(v, 250)).toBeNull();
+  });
+
+  it("C opens beside its title's line, which the room actually writes", () => {
+    expect(VIGNETTES.find((v) => v.id === 'back-seat')!.anchor.phrase).toBe('alone-with-you');
+    expect(VIGNETTES.find((v) => v.id === 'a-bag')!.offer).toBeTruthy();
+  });
+});

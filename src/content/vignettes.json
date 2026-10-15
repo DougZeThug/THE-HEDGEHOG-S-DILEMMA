@@ -216,7 +216,7 @@
         }
       },
       "anchor": {
-        "phrase": "didnt-know-say"
+        "phrase": "alone-with-you"
       },
       "earliest": 240,
       "arm": 2.5,
@@ -1037,7 +1037,14 @@
         }
       },
       "rules": [],
-      "describe": "A small shop, a fridge humming, someone at the till."
+      "describe": "A small shop, a fridge humming, someone at the till.",
+      "offer": {
+        "phases": [
+          "contradiction",
+          "transform"
+        ],
+        "apart": 120
+      }
     },
     {
       "id": "come-over",

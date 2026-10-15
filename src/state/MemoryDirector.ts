@@ -87,7 +87,25 @@ interface Track {
   played: boolean;
   unseen: number;
   notBefore: number;
+  /** Until then a shorter look begins it (its line was just offered, or written again for it). */
+  easyUntil: number;
+  /** A vignette whose line was read when it couldn't play: owed, it is pointed at once it can. */
+  owed: boolean;
+  /** Its line has been written again for it (once a visit). */
+  reinked: boolean;
 }
+
+/** A look this long begins a vignette whose line the room has just pointed at (or that is owed). */
+export const EASY_LOOK = 1.5;
+/** The room points at a line (an offer, or a line written again) at most this often… */
+export const POINT_APART = 120;
+/** …this many times a visit (the painted memories' offers included)… */
+export const POINTS_PER_VISIT = 3;
+/** …and never this soon after a vignette has ended. */
+export const POINT_AFTER_VIGNETTE = 60;
+
+/** What the room points at: a line written alone where the visitor looks, or (`reink`) one already there, written again. */
+export type OfferPick = SceneMemory & { reink?: boolean };
 
 export class MemoryDirector {
   private tracks = new Map<string, Track>();
@@ -104,10 +122,14 @@ export class MemoryDirector {
   /** Lines written alone for a memory this visit (the kitchen-light memory's counts too). */
   private offersMade = 0;
   private lastOfferAt = -Infinity;
+  /** Every time the room pointed at a line this visit (offers and lines written again). */
+  private points = 0;
+  private lastPointAt = -Infinity;
+  private lastVignetteEnded = -Infinity;
 
   /** `counts`: how many times each memory has been seen on earlier visits (persisted). */
   constructor(private counts: Record<string, number> = {}) {
-    for (const m of ALL_MEMORIES) this.tracks.set(m.id, { armed: false, away: 0, left: false, offered: false, requestedUntil: -Infinity, played: false, unseen: 0, notBefore: m.earliest });
+    for (const m of ALL_MEMORIES) this.tracks.set(m.id, { armed: false, away: 0, left: false, offered: false, requestedUntil: -Infinity, played: false, unseen: 0, notBefore: m.earliest, easyUntil: -Infinity, owed: false, reinked: false });
   }
 
   /** Which vignettes may speak (their recordings approved); the rest wait, or play voiceless. */
@@ -196,32 +218,55 @@ export class MemoryDirector {
     kitchenPlayed?: boolean;
     /** The kitchen-light memory's line has been offered this visit. */
     kitchenOffered?: boolean;
-  }): SceneMemory | null {
+  }): OfferPick | null {
     if (s.departing || this.active || !s.free || s.otherMemory) return null;
     if (s.now < this.cooldownUntil || s.now - this.lastEnded < 0) return null;
-    for (const m of ALL_MEMORIES) {
+    // Never pushing: at most one pointing every two minutes, three a visit, none just after a vignette.
+    const pointed = this.points + (s.kitchenOffered ? 1 : 0);
+    if (pointed >= POINTS_PER_VISIT || s.now - this.lastPointAt < POINT_APART || s.now - this.lastVignetteEnded < POINT_AFTER_VIGNETTE) return null;
+    const point = <T extends SceneMemory>(m: T, t: Track, reink: boolean): OfferPick => {
+      this.points++;
+      this.lastPointAt = s.now;
+      // For a while, a shorter look at it begins it (an offer: 20 s; a line written again for an owed one: 30 s).
+      t.easyUntil = s.now + (reink && t.owed ? 30 : 20);
+      return reink ? { ...m, reink: true } : m;
+    };
+    // Owed vignettes first (read when they couldn't play), then memories never heard on any visit.
+    const owed = (m: SceneMemory) => this.tracks.get(m.id)!.owed && m.kind === 'vignette';
+    const rank = (m: SceneMemory) => (owed(m) ? 0 : (this.counts[m.id] ?? 0) === 0 ? 1 : 2);
+    const order = [...ALL_MEMORIES].sort((a, b) => rank(a) - rank(b));
+    for (const m of order) {
       const t = this.tracks.get(m.id)!;
-      if (!m.offer || t.played || t.offered || s.now < m.earliest || !m.offer.phases.includes(s.phase as never)) continue;
+      if (t.played || s.now < m.earliest) continue;
+      // An owed vignette whose line is already where they look: written again there, once.
+      if (owed(m) && !t.reinked && s.visibleFacing(m.phraseId) && this.isAvailable(m.id) && this.vignetteAllows(m, s) && s.now >= t.notBefore) {
+        t.reinked = true;
+        return point(m, t, true);
+      }
+      if (!m.offer || t.offered || !m.offer.phases.includes(s.phase as never)) continue;
       if (s.now - this.lastEnded < m.offer.apart) continue;
       if (!this.arcAllows(m, s.now, !!s.kitchenPlayed)) continue;
       if (m.offer.wall && s.facing !== m.offer.wall) continue;
       if (m.kind === 'vignette') {
         // Offered only if it can play, keeps its distance, and the visit hasn't had two offers.
-        if (this.offersMade + (s.kitchenOffered ? 1 : 0) >= 2 || !this.isAvailable(m.id) || !this.vignetteAllows(m, s)) continue;
+        if (!this.isAvailable(m.id) || !this.vignetteAllows(m, s)) continue;
         // Never close behind another line written alone.
         if (s.now - this.lastOfferAt < m.offer.apart) continue;
       }
       // The pale morning answers the dark: a few seconds after the held silence lifts.
       if (m.offer.afterDark && !(s.darkEnded != null ? s.now >= s.darkEnded + 8 : s.now >= 200)) continue;
-      // Already where they are looking: no need to write it again (unless it has its own place).
+      // Already where they are looking: written again there rather than a second time (not a new line).
       if (!m.offer.wall && s.visibleFacing(m.phraseId)) {
         t.offered = true;
-        continue;
+        t.reinked = true;
+        return point(m, t, true);
       }
+      // New lines written alone: two a visit at most, of any memory.
+      if (this.offersMade + (s.kitchenOffered ? 1 : 0) >= 2) continue;
       t.offered = true;
       this.offersMade++;
       this.lastOfferAt = s.now;
-      return m;
+      return point(m, t, false);
     }
     return null;
   }
@@ -259,7 +304,9 @@ export class MemoryDirector {
       // A memory with its own place (the door, under the room's drawn door) begins only there.
       if (m.offer?.wall && s.facing !== undefined && s.facing !== m.offer.wall) continue;
       const looking = s.gazeId === m.phraseId;
-      if (looking && s.gazeFor >= m.arm && !t.armed) {
+      // Just pointed at, or owed and pointed at again: a shorter look is enough.
+      const need = m.kind === 'vignette' && s.now <= t.easyUntil ? Math.min(EASY_LOOK, m.arm) : m.arm;
+      if (looking && s.gazeFor >= need && !t.armed) {
         t.armed = true;
         t.away = 0;
         t.left = false;
@@ -267,11 +314,14 @@ export class MemoryDirector {
       if (!t.armed) continue;
       if (looking) t.away = 0;
       else if ((t.away += dt) >= 2) t.left = true;
-      if (s.now < t.notBefore || s.now < this.cooldownUntil || !s.free || s.otherMemory) continue;
-      if (!this.vignetteAllows(m, s)) continue;
+      if (s.now < t.notBefore || s.now < this.cooldownUntil || !s.free || s.otherMemory || !this.vignetteAllows(m, s)) {
+        // Read, but it couldn't play then: remembered, and pointed at once it can (offer()).
+        if (m.kind === 'vignette' && this.isAvailable(m.id)) t.owed = true;
+        continue;
+      }
       if (t.requestedUntil === Infinity) t.requestedUntil = s.now + 10;
       const tapped = s.now <= t.requestedUntil;
-      const asked = tapped || ((t.left || !m.lookBack) && looking && s.gazeFor >= (m.lookBack ? m.commit : m.arm));
+      const asked = tapped || ((t.left || !m.lookBack) && looking && s.gazeFor >= (m.lookBack ? m.commit : need));
       if (!asked) continue;
       const start = this.begin(m, s.now, s);
       if (start) return start;
@@ -368,6 +418,7 @@ export class MemoryDirector {
   ended(id: string, now: number, seen: boolean, ranToEnd: boolean): boolean {
     if (this.active?.id !== id) return false;
     this.active = null;
+    if (VIGNETTE_BY_ID.has(id)) this.lastVignetteEnded = now;
     const t = this.tracks.get(id);
     if (!t) return false;
     if (!seen && t.unseen === 0) {

@@ -157,7 +157,8 @@ export function visit(p: Persona, seconds: number, seed: number, dt = 0.1): Visi
   const writtenOn = new Map<string, Surface>();
   for (const id of OPENING_WRITTEN) writtenOn.set(id, PHRASE_BY_ID.get(id)!.surface);
   const noticeRng = new Rng(seed * 7919 + 13);
-  const noticeChance = p.device === 'phone' ? 0.4 : 0.6;
+  // (NOTICE=0…1 overrides it, to see how much a result leans on this assumption.)
+  const noticeChance = process.env.NOTICE !== undefined ? Number(process.env.NOTICE) : p.device === 'phone' ? 0.4 : 0.6;
   let notice: { id: string; until: number } | null = null;
   for (let t = 0; t < seconds; t += dt) {
     if (memoryEndsAt && t >= memoryEndsAt.at) {
@@ -174,9 +175,10 @@ export function visit(p: Persona, seconds: number, seed: number, dt = 0.1): Visi
     }, facing);
     for (const c of cues) {
       const cue = c.cue;
-      const id = cue.type === 'write' ? cue.source ?? cue.key : cue.type === 'reveal' ? cue.phraseId : null;
+      // (A line written again in front of them can be noticed as a new one can.)
+      const id = cue.type === 'write' ? cue.source ?? cue.key : cue.type === 'reveal' || cue.type === 'redraw' ? cue.phraseId : null;
       if (!id || !PHRASE_BY_ID.has(id)) continue;
-      const surface = cue.type === 'write' ? cue.surface ?? PHRASE_BY_ID.get(id)!.surface : PHRASE_BY_ID.get(id)!.surface;
+      const surface = cue.type === 'write' ? cue.surface ?? PHRASE_BY_ID.get(id)!.surface : cue.type === 'redraw' ? writtenOn.get(id) ?? PHRASE_BY_ID.get(id)!.surface : PHRASE_BY_ID.get(id)!.surface;
       writtenOn.set(id, surface);
       if (surface === facing && !notice && noticeRng.chance(noticeChance)) notice = { id, until: t + dt + noticeRng.range(2, 3) };
     }

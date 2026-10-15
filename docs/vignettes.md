@@ -5,13 +5,25 @@ Small remembered fragments, heard rather than seen: one or two voices, the pause
 ## How they behave
 
 - **Opening.** A vignette opens beside a line, not on the line it would only act out. Reading that line for 2.5 s, or touching it, begins it once it may play. The chair's vignette opens from stillness by the chair (8 s within 1.15 m), or kneeling there, once "I wanted you to stay" has been finished.
-- **Spacing.** At least 90 s from any memory's end, and 150 s after one of the same tone. Earliest times: B, D, G, H, I and J from 150 s; C and E from 240 s. C's and D's lines are rarely written, so they may be offered (written alone where the visitor looks). Offers are limited to two a visit, counting the painted memories' offers.
+- **Spacing.** At least 90 s from any memory's end, and 150 s after one of the same tone. Earliest times: B, D, G, H, I and J from 150 s; C and E from 240 s. C's, D's and G's lines are rarely read, so they may be offered: written alone where the visitor looks, or, if the line is already on that wall, written again there. New lines written this way are limited to two a visit, counting the painted memories' offers.
+- **Reaching the rarely met.** Three rules make C, D and G easier to reach:
+  - **A short look is enough for a while.** For 20 s after the room offers a line, a 1.5 s look (instead of 2.5 s) begins its vignette.
+  - **A read is remembered.** A line read when its vignette couldn't play (too early, or the room still quiet after another memory) is owed. Once it can play, and if its line is on the wall the visitor faces, the room writes it again there, once. For 30 s, a 1.5 s look or a touch begins it.
+  - **Order.** Offers go first to owed vignettes, then to memories never heard on any visit.
+- **Never pushing.** The room points at a line, by offering it or writing it again, at most once every 120 s, three times a visit, and never within 60 s of a vignette ending.
 - **Visitors meet a vignette only once its recordings are kept.** Its voiced lines must all have takes the artist approved on the audition sheet. Until then the room is unchanged, apart from versions that have no voices.
-- **In practice: one or two a visit.** In simulated 10-minute visits (`npx vite-node scripts/vignette-reach.ts`), with all nine live, there were 59 vignettes across 40 visits (8 seeds × 5 personas, each persona repeating the middle of its script once it runs out):
-  - the chair visitor met F every time, and one more in half the visits;
-  - the explorer met two or three, the reader and the phone persona one or two;
-  - the still visitor met one in four visits;
-  - C and G were never met. Their lines are read for 2.5 s in 1 and 6 of 40 visits. C was offered 4 times, but scripted personas never look at newly written lines, so whether an offer is read is unknown here.
+- **In practice: one or two a visit.** Measured in simulated 10-minute visits (`npx vite-node scripts/vignette-reach.ts`): all nine live, 8 seeds × 5 personas, each persona repeating the middle of its script once it runs out. 70 vignettes across 40 visits:
+  - the chair visitor met F every time, and one more in most visits;
+  - the explorer met two or three, the reader and the phone persona one or two, the still visitor about one;
+  - **C in 5 visits, D in 1 and G in 4** (all 0 before these rules).
+  - The gain depends on visitors noticing a line the room writes for them. The simulation assumes a 60% chance at a desk and 40% on a phone of looking at it for 2–3 s. The sweep (`NOTICE=…`) shows how much rests on that:
+
+    | Notice chance | All vignettes | C | D | G |
+    |---|---|---|---|---|
+    | 0 | 60 | 0 | 0 | 0 |
+    | 0.3 | 62 | 1 | 3 | 0 |
+    | 0.9 | 78 | 11 | 5 | 5 |
+  - D stays the rarest. Six of the nine are sad, and a sad one waits 150 s after another sad one, so D's chance usually comes late in a visit.
 - **Interruption.**
   - Turning away or touching the walls never ends one: turning toward a voice is attention.
   - Walking off (more than 3 m from where it began, for 1.5 s, moving or not; back within 2.5 m forgives) finishes the sentence being said, and nothing more is said. Opening the writing field does the same.
@@ -64,7 +76,7 @@ Small remembered fragments, heard rather than seen: one or two voices, the pause
 
 *Two people side by side in a car at night; a question asked, answered, and not believed.*
 
-- **Opens from:** "I didn't know what to say." (`didnt-know-say`), or offered (written alone where the visitor looks) if it hasn't come by itself.
+- **Opens from:** "I wanted to be left alone with you." (`alone-with-you`), or offered (written alone where the visitor looks) if it hasn't come by itself.
 - **Who:** the passenger (sarah); the driver (restrained).
 - **First time** (15 s):
   - 0.0: *[a car, at night]*
@@ -151,7 +163,7 @@ Small remembered fragments, heard rather than seen: one or two voices, the pause
 
 *A stranger's ordinary kindness lands too close, and is refused politely.*
 
-- **Opens from:** "I kept your jumper. I don't wear it." (`jumper`).
+- **Opens from:** "I kept your jumper. I don't wear it." (`jumper`), or offered (written alone where the visitor looks) if it hasn't come by itself.
 - **Who:** a shop assistant, a stranger (older-woman); a customer (sarah).
 - **First time** (15 s):
   - 0.0: *[a small shop]*

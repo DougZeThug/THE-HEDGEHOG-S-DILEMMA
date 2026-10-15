@@ -136,6 +136,9 @@ export class Director {
     return !!this.scenes.active && VIGNETTE_BY_ID.has(this.scenes.active.id);
   }
 
+  /** The hold that came with the last line offered for a memory (it doesn't hold back that memory). */
+  private offerHoldTo = -Infinity;
+
   /** The last vignette to end (the visit's turn keeps clear of it). */
   private vignetteEnded: { id: string; at: number; dimmed: boolean } | null = null;
   /** The living memories: when one may open (src/state/MemoryDirector.ts). */
@@ -1179,7 +1182,9 @@ export class Director {
    */
   private ruleScenes() {
     const v = this.visitor;
-    const free = this.scheduler.majorFree(this.now) && !this.pacing.holding(this.now) && !this.pacing.repeats('voice', this.now, 4) && !this.pacing.repeats('light', this.now, 10);
+    // (The hold that comes with a line offered for a memory is that memory's: it doesn't keep it waiting.)
+    const held = this.pacing.holding(this.now) && this.pacing.heldUntil > this.offerHoldTo;
+    const free = this.scheduler.majorFree(this.now) && !held && !this.pacing.repeats('voice', this.now, 4) && !this.pacing.repeats('light', this.now, 10);
     const start = this.scenes.update({
       now: this.now,
       visible: (id) => this.visible.has(id),
@@ -1223,7 +1228,12 @@ export class Director {
       kitchenPlayed: this.memoryPlayed,
       kitchenOffered: this.memoryOffered,
     });
-    if (offer) {
+    if (offer?.reink) {
+      // Already on the wall they face: written again there, in front of them (no new line).
+      this.pacing.holdFor(this.now, 2.4);
+      this.offerHoldTo = this.now + 2.4;
+      this.queue(0, { type: 'redraw', phraseId: offer.phraseId, seconds: 3 }, 'memory-offer');
+    } else if (offer) {
       const p = PHRASE_BY_ID.get(offer.phraseId);
       if (!p) return;
       // The door's line is written beneath the room's drawn door, which its memory opens from.
@@ -1231,6 +1241,7 @@ export class Director {
       this.visible.set(p.id, { mode: 'shown', since: this.now, base: true });
       this.memory.surfaced.set(p.id, this.now);
       this.pacing.holdFor(this.now, 2.4);
+      this.offerHoldTo = this.now + 2.4;
       this.queue(0, {
         type: 'write', key: `memory:${p.id}`, text: p.text, hand: p.hand === 'typed' ? 'pencil' : p.hand, size: 's',
         surface: under ? under.surface : this.facing, purpose: 'recall', ttl: 0, source: p.id,
