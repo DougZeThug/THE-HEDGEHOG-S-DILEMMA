@@ -79,6 +79,12 @@ function makeTextMaterial(tex: THREE.Texture, hand: Hand, aspect: number, seed: 
     uLod: { value: -1 },
     /** Drawings only: how much fine lines are held as they get small (0 for writing). */
     uThin: { value: 0 },
+    /**
+     * One word gone (a vignette's trace): the band of the hand's time [x, y] that is that word,
+     * and how far it has gone (z, 0–1). Every text material has it (one shared program): off by
+     * default, so no piece of writing inherits another's gap.
+     */
+    uGap: { value: new THREE.Vector3(-1, -1, 0) },
   };
   mat.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, uniforms);
@@ -86,11 +92,13 @@ function makeTextMaterial(tex: THREE.Texture, hand: Hand, aspect: number, seed: 
     shader.fragmentShader = FRAG_NOISE + shader.fragmentShader.replace(
       '#include <map_fragment>',
       /* glsl */ `
+      float hhR = 0.0;
       {
         // Alpha is the ink; red is when the hand reaches it.
         // A fixed, softer level for a shadow (uLod ≥ 0), so it doesn't sharpen as you come close.
         // (The top of the words is further from the floor: its shadow is softer.)
         vec4 hhTx = uLod >= 0.0 ? textureLod(map, vMapUv, uLod + vMapUv.y) : texture2D(map, vMapUv);
+        hhR = hhTx.r;
         // Drawings' fine lines would mip away on a phone: hold their ink as they get small.
         if (uThin > 0.0) hhTx.a = min(1.0, hhTx.a * (1.0 + uThin * clamp(log2(fwidth(vMapUv.x) * float(textureSize(map, 0).x)), 0.0, 2.0)));
         if (hhTx.a < 0.004) discard;
@@ -108,11 +116,13 @@ function makeTextMaterial(tex: THREE.Texture, hand: Hand, aspect: number, seed: 
         float edge = uReveal * 1.25 - 0.12;
         diffuseColor.a *= 1.0 - smoothstep(edge - 0.1, edge + 0.02, n);
       }
+      // A word gone: it fades to a ghost of itself (graphite never quite rubs out of plaster).
+      if (uGap.z > 0.0) diffuseColor.a *= 1.0 - 0.85 * uGap.z * step(uGap.x, hhR) * step(hhR, uGap.y);
       diffuseColor.a *= uOpacity;
       diffuseColor.rgb *= 1.0 - 0.45 * uEmphasis;`,
     );
   };
-  mat.customProgramCacheKey = () => 'hh-text3';
+  mat.customProgramCacheKey = () => 'hh-text4';
   return { mat, uniforms };
 }
 
@@ -158,6 +168,29 @@ export interface TextItem {
   strength?: number;
   /** Washed out by light falling across it (0–1): a memory's sun on the wall. */
   wash?: number;
+  /** One word going (or gone), as a vignette leaves it: its band of the hand's time. */
+  gap?: { lo: number; hi: number; gone: number; target: number; rate: number };
+  /** Harder to read the closer one comes (0–1), and how far it is receding now. */
+  recede?: { amount: number; k: number };
+}
+
+/**
+ * The band of a piece of writing's red (time) channel that is word `k`: from halfway through the
+ * gap before it to halfway through the gap after (so no ink of a neighbour is caught).
+ */
+export function wordBand(words: [number, number][], duration: number, k: number): [number, number] {
+  const d = Math.max(1e-3, duration);
+  const lo = k === 0 ? -1 : (words[k - 1][1] + words[k][0]) / 2 / d;
+  const hi = k === words.length - 1 ? 2 : (words[k][1] + words[k + 1][0]) / 2 / d;
+  return [lo, hi];
+}
+
+/**
+ * How much receding writing withdraws at distance `dist` (m): nothing beyond 3.2 m, all of
+ * `amount` by 1.2 m.
+ */
+export function recedeAt(amount: number, dist: number): number {
+  return amount * smoothstep(3.2, 1.2, dist);
 }
 
 /** Where the hand is (its own seconds) at wall-clock time `now`. */
@@ -747,6 +780,57 @@ export class WallText {
    * Rub out a piece of writing except for one word, which stays where it was written.
    * The remaining word becomes its own item, `${key}:kept`.
    */
+  /** Every piece of writing that is this line (where it was written, and wherever it was written again). */
+  keysOf(phraseId: string): string[] {
+    return [...this.items.values()].filter((it) => it.purpose !== 'drawing' && (it.phrase?.id === phraseId || it.source === phraseId || it.key === phraseId)).map((it) => it.key);
+  }
+
+  /**
+   * One word of a line goes, over `seconds`, as if rubbed out (a ghost of it stays). Returns
+   * false if the line or the word isn't there.
+   */
+  loseWord(key: string, word: string, seconds: number): boolean {
+    const it = this.items.get(key);
+    const text = (it?.mesh.userData.text as string) ?? '';
+    if (!it || !text) return false;
+    const ranges = wordRanges(text);
+    const k = ranges.findIndex(([a, b]) => text.slice(a, b).toLowerCase().replace(/[^a-z']/g, '') === word.toLowerCase());
+    if (k < 0 || k >= it.words.length) return false;
+    const [lo, hi] = wordBand(it.words, it.duration, k);
+    it.gap = { lo, hi, gone: it.gap?.gone ?? 0, target: 1, rate: 1 / Math.max(0.5, this.reducedMotion ? seconds * 1.5 : seconds) };
+    return true;
+  }
+
+  /**
+   * Made but not yet seen (`write` with `start: false`): it is simply there, as if it always had
+   * been, coming up in patches over `seconds`. Never the hand writing it.
+   */
+  appear(key: string, seconds: number): void {
+    const it = this.items.get(key);
+    if (!it) return;
+    it.plan = null;
+    it.uniforms.uWrite.value = 2;
+    it.vis = 0;
+    it.target = 1;
+    it.rate = 1 / Math.max(0.5, seconds);
+    it.mesh.visible = true;
+  }
+
+  /** A lost word comes back. */
+  restoreWord(key: string, seconds = 6): void {
+    const it = this.items.get(key);
+    if (it?.gap) {
+      it.gap.target = 0;
+      it.gap.rate = 1 / Math.max(0.5, seconds);
+    }
+  }
+
+  /** The line becomes harder to read as one comes close (for the rest of the visit, or until `amount` 0). */
+  recede(key: string, amount: number): void {
+    const it = this.items.get(key);
+    if (it) it.recede = { amount, k: it.recede?.k ?? 0 };
+  }
+
   erode(key: string, keep: string, now: number): boolean {
     const it = this.items.get(key);
     if (!it || it.vis <= 0 || !keep) return false;
@@ -851,6 +935,20 @@ export class WallText {
       }
       const gazed = gazeId === it.key;
       it.emphasis = approach(it.emphasis, gazed ? clamp((gazeFor - 0.8) / 3) * 0.7 : 0, dt, gazed ? 1.2 : 3);
+      // Receding: the closer, the less of it (and a look doesn't bring it back); stepping back
+      // returns it, more slowly than it went.
+      let recede = 0;
+      if (it.recede) {
+        const k = recedeAt(it.recede.amount, dist);
+        it.recede.k = approach(it.recede.k, k, dt, k > it.recede.k ? 1.2 : 2.5);
+        recede = it.recede.k;
+        it.emphasis *= 1 - recede;
+      }
+      if (it.gap) {
+        const g = it.gap;
+        g.gone = g.target > g.gone ? Math.min(g.target, g.gone + g.rate * dt) : Math.max(g.target, g.gone - g.rate * dt);
+        it.uniforms.uGap.value.set(g.lo, g.hi, g.gone);
+      }
       let base = HANDS[it.hand].opacity * (it.strength ?? 1) * (1 - (it.wash ?? 0));
       // Faint writing on a brighter wall sits higher on the tone curve and loses contrast: the
       // look gives it back (only the faint: the strong lines held their own).
@@ -869,8 +967,8 @@ export class WallText {
           it.uniforms.uWrite.value = 2;
         }
       }
-      it.uniforms.uReveal.value = it.vis;
-      it.uniforms.uOpacity.value = clamp(base * legible * it.shy * env.textContrast * (1 + it.emphasis * 0.3), 0, 1);
+      it.uniforms.uReveal.value = it.vis * (1 - 0.3 * recede);
+      it.uniforms.uOpacity.value = clamp(base * legible * Math.min(it.shy, 1 - 0.8 * recede) * env.textContrast * (1 + it.emphasis * 0.3), 0, 1);
       it.uniforms.uEmphasis.value = it.emphasis;
     }
     for (const ln of [...this.lines.values()]) {

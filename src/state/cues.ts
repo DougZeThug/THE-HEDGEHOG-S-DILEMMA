@@ -39,6 +39,8 @@ export type Cue =
       /** Phrase that gets a faint line struck through it. */
       strike?: string;
       ttl: number;
+      /** Found, not written: it appears as if it had always been there (a vignette's echo). */
+      found?: boolean;
     }
   | { type: 'link'; a: string; b: string; ttl: number }
   | {

@@ -49,10 +49,6 @@ export type Effect =
   | { kind: 'sun'; attack: number; hold: number; release: number; strength?: number }
   /** The white room's own light goes down toward the chair, and comes back. */
   | { kind: 'dim'; to: number; seconds: number }
-  /** A faint warmth left on the chair's seat. */
-  | { kind: 'seat'; amount: number; seconds: number }
-  /** Marks on the floor by the chair: two cup rings, one of which fades; a second shadow. */
-  | { kind: 'trace'; trace: 'rings' | 'shadow'; seconds: number; fadeAfter?: number; strength?: number }
   /** One word of a line on the wall goes, as if rubbed out (and may come back). */
   | { kind: 'loseWord'; phraseId: string; word: string; seconds: number }
   /** A line becomes harder to read the closer the visitor comes. */

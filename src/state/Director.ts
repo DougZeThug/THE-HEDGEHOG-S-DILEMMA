@@ -1819,6 +1819,8 @@ export class Director {
         type: 'write', key: `echo:${def.id}:${e.id}`, text: e.write.text, hand: e.write.hand, size: e.write.size,
         ...(e.write.beside ? { beside: e.write.beside } : {}), ...(surface ? { surface } : {}),
         purpose: e.write.beside ? 'annotation' : 'recall', ...(e.write.strike && e.write.beside ? { strike: e.write.beside } : {}), ttl: 0,
+        // Found on a wall later, not watched being written.
+        found: true,
       }, { key: `echo:${def.id}:${e.id}` }]];
     }
     if (e.voice) {

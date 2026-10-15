@@ -112,6 +112,15 @@ export class App {
   } | null = null;
   private vignetteClock = new MemoryClock();
   private vignetteGen = 0;
+  /**
+   * `?vignette=<id>[&variant=<v>]`: play one, as a preview, a few seconds after the room is
+   * open (recorded or not: an unrecorded line is a wordless voice with its caption).
+   */
+  private previewVignette: { id: string; variant: string; at: number | null } | null = (() => {
+    const p = new URLSearchParams(location.search);
+    const id = p.get('vignette');
+    return id ? { id, variant: p.get('variant') ?? 'first', at: null } : null;
+  })();
   private prefetched = new Set<string>();
   /** Theatre Studio's ticker, while the Memory Editor is open (development only). */
   studioTick: ((now: number) => void) | null = null;
@@ -684,11 +693,6 @@ export class App {
       case 'dim':
         this.lighting.dimToChair(fx.to, fx.seconds, this.time);
         break;
-      case 'seat': {
-        const c = this.chair.group.position;
-        this.lighting.leaveResidue(c.x, c.z, fx.amount * gentle, fx.seconds, this.time);
-        break;
-      }
       default:
         this.absence(fx);
     }
@@ -698,12 +702,17 @@ export class App {
    * A gap in a vignette. Pauses, waits and silences are not captioned (an empty caption is what
    * a deaf visitor has of nothing being said); only a sound that defines a silence is, as a sound.
    */
-  private vignetteGap(_kind: GapKind, seconds: number, caption?: string) {
+  private vignetteGap(kind: GapKind, seconds: number, caption?: string) {
+    // Waiting for an answer: the unanswered line stays on screen, dimmed, through the wait.
+    if (kind === 'wait') setTimeout(() => this.captions.linger(seconds), 300);
     if (caption && !this.captions.speaking) this.captions.show(caption, Math.max(2, seconds * 0.6), true);
   }
 
-  /** Effects that leave a trace in the room (src/world/Traces.ts, WallText): stage 3. */
-  private absence(_fx: Effect) {}
+  /** What a vignette leaves on the walls: a word gone, a line that withdraws as one comes close. */
+  private absence(fx: Effect) {
+    if (fx.kind === 'loseWord') for (const k of this.text.keysOf(fx.phraseId)) this.text.loseWord(k, fx.word, fx.seconds);
+    else if (fx.kind === 'recede') for (const k of this.text.keysOf(fx.phraseId)) this.text.recede(k, fx.amount);
+  }
 
   /**
    * Play a vignette. From the Director (its line was read, or the chair was stayed with), or a
@@ -760,6 +769,14 @@ export class App {
   }
 
   private stepVignette() {
+    const pv = this.previewVignette;
+    if (pv && this.mode === 'room' && !this.opening && !this.living) {
+      pv.at ??= this.time + 4;
+      if (this.time >= pv.at) {
+        this.previewVignette = null;
+        void this.playVignette(pv.id, pv.variant, true);
+      }
+    }
     const v = this.vignette;
     if (!v) return;
     const p = v.player;
@@ -1271,7 +1288,8 @@ export class App {
         const size = this.touch && cue.size === 'xs' && cue.purpose === 'recall' ? 's' : cue.size;
         // A memory's line by the drawing it opens from; looking at the drawing is reading it too.
         if (cue.under && cue.source) this.text.drawingMeans(cue.under, cue.source);
-        const ok = this.text.write({ key: cue.key, text: cue.text, hand: cue.hand, size, beside: cue.beside, surface: cue.surface, near, by: cue.under, purpose: cue.purpose, ttl: cue.ttl, now: this.time, source: cue.source });
+        const ok = this.text.write({ key: cue.key, text: cue.text, hand: cue.hand, size, beside: cue.beside, surface: cue.surface, near, by: cue.under, purpose: cue.purpose, ttl: cue.ttl, now: this.time, source: cue.source, start: !cue.found });
+        if (ok && cue.found) this.text.appear(cue.key, 5);
         if (ok && cue.strike) this.text.strike(cue.strike, this.time, cue.ttl);
         if (!ok) this.director.writeFailed(cue.key);
         break;

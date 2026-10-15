@@ -35,7 +35,7 @@ const DEF: VignetteDef = {
         { at: 8, gap: 'silence', seconds: 6 },
       ],
     },
-    quiet: { span: 8, events: [{ at: 1, fx: { kind: 'seat', amount: 0.5, seconds: 6 } }, { at: 2, gap: 'silence', seconds: 6 }] },
+    quiet: { span: 8, events: [{ at: 1, fx: { kind: 'dim', to: 0.5, seconds: 6 } }, { at: 2, gap: 'silence', seconds: 6 }] },
   },
   rules: [],
   describe: 'Someone looking for a charger.',
@@ -180,7 +180,7 @@ describe('a vignette, played', () => {
     await p.prepare();
     p.start();
     run(p, s.ctx, 10);
-    expect(s.fx.map(([f]) => f.kind)).toEqual(['seat']);
+    expect(s.fx.map(([f]) => f.kind)).toEqual(['dim']);
     expect(s.fallbacks).toHaveLength(0);
     expect(p.done).toBe(true);
   });

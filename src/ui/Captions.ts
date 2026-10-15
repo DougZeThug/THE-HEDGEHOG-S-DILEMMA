@@ -32,10 +32,28 @@ export class Captions {
     requestAnimationFrame(() => s.classList.add('on'));
     const hold = Math.max(2.5, seconds + 1.2) * 1000;
     this.wordsUntil = sound ? (this.speaking ? this.wordsUntil : 0) : performance.now() + hold;
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       s.classList.remove('on');
       setTimeout(() => s.remove(), 1600);
     }, hold);
+    if (!sound) this.lastWords = { el: s, timer };
+  }
+
+  private lastWords: { el: HTMLElement; timer: ReturnType<typeof setTimeout> } | null = null;
+
+  /**
+   * Someone waits for an answer that doesn't come: what was last said stays, dimmed, for
+   * `seconds` (for a visitor who can't hear the silence, the unanswered line is the waiting).
+   */
+  linger(seconds: number) {
+    const w = this.lastWords;
+    if (!this.enabled || !w || !w.el.isConnected || !w.el.classList.contains('on')) return;
+    clearTimeout(w.timer);
+    w.el.classList.add('waiting');
+    w.timer = setTimeout(() => {
+      w.el.classList.remove('on');
+      setTimeout(() => w.el.remove(), 1600);
+    }, seconds * 1000);
   }
 
   clear() {

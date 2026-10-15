@@ -237,3 +237,35 @@ describe('the Director and its vignettes', () => {
     for (const v of VIGNETTES) expect(spokenLines(v, 'first').length).toBeGreaterThan(0);
   });
 });
+
+import { wordBand, recedeAt } from '../src/world/WallText';
+
+describe('what a vignette leaves on the walls', () => {
+  it("a lost word's band runs from halfway into the gap before it to halfway into the gap after", () => {
+    // "I was loneliest at…": words at their hand-times (seconds), over 4 s.
+    const words: [number, number][] = [[0, 0.2], [0.4, 0.8], [1.0, 1.9], [2.1, 2.3]];
+    const [lo, hi] = wordBand(words, 4, 2);
+    expect(lo).toBeCloseTo(0.9 / 4);
+    expect(hi).toBeCloseTo(2.0 / 4);
+    // Nothing of a neighbour is caught.
+    expect(lo).toBeGreaterThan(0.8 / 4);
+    expect(hi).toBeLessThan(2.1 / 4);
+    // At the ends, the band runs off the piece.
+    expect(wordBand(words, 4, 0)[0]).toBeLessThan(0);
+    expect(wordBand(words, 4, 3)[1]).toBeGreaterThan(1);
+  });
+
+  it('receding writing is whole from across the room and withdraws as one comes close', () => {
+    expect(recedeAt(1, 4)).toBe(0);
+    expect(recedeAt(1, 3.2)).toBe(0);
+    expect(recedeAt(1, 2.2)).toBeGreaterThan(0.3);
+    expect(recedeAt(1, 1.2)).toBe(1);
+    expect(recedeAt(0.5, 1)).toBe(0.5);
+  });
+
+  it("J's return takes 'loneliest' from its line, which is there to lose it", () => {
+    const party = VIGNETTES.find((v) => v.id === 'gone-quiet')!;
+    const lose = party.variants.nobody.events.find((e) => 'fx' in e && e.fx.kind === 'loseWord');
+    expect(lose && 'fx' in lose && lose.fx.kind === 'loseWord' && PHRASE_BY_ID.get(lose.fx.phraseId)!.text.split(/\s+/)).toContain(lose && 'fx' in lose && lose.fx.kind === 'loseWord' ? lose.fx.word : '');
+  });
+});

@@ -82,6 +82,10 @@ kbd { font-family: inherit; font-size: 0.85em; border: 1px solid #c9c7c1; border
 @media (min-aspect-ratio: 1/1) { .captions { bottom: calc(2.2vh + env(safe-area-inset-bottom, 0px)); } }
 .captions .cap { display: block; opacity: 0; transition: opacity 1.4s ease; margin-top: 0.3rem; }
 .captions .cap.on { opacity: 1; }
+/* A wait for an answer: the unanswered line stays, dimmed. Two people: their lines lean apart. */
+.captions .cap.on.waiting { opacity: 0.55; }
+.captions .cap.side-left { text-align: left; margin-right: 18%; }
+.captions .cap.side-right { text-align: right; margin-left: 18%; }
 .captions .cap.sound { display: table; margin-left: auto; margin-right: auto; font-size: max(16px, 0.95em); font-style: normal; color: rgb(30, 31, 36); background: rgba(240, 238, 232, 0.86); padding: 0.1em 0.55em; border-radius: 0.6em; }
 .hint {
   position: fixed; left: 50%; bottom: calc(3vh + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 5;
