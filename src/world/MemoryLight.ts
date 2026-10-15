@@ -109,6 +109,8 @@ export class MemoryLight {
   start(parent: THREE.Object3D, x: number, y: number, lineW: number, lineH: number, minX: number, maxX: number, maxY: number, cue: { attack: number; hold: number; release: number }, now: number, delay = 0.8) {
     const paneW = Math.max(0.5, lineW / 2 + 0.1);
     this.uniforms.uPane.value.set(paneW, PANE_H);
+    this.uniforms.uTransom.value = PANE_H * 0.6;
+    this.uniforms.uMullion.value = 0.15;
     // Room for the slant, the slide and the faint warmth round it.
     const w = (paneW + PANE_H * SHEAR) * 2 * 2.4 + SLIDE;
     const h = PANE_H * 2 * 2.4;
@@ -117,6 +119,26 @@ export class MemoryLight {
     // Not past the corners: the lit pane stays on this wall.
     const reach = paneW + PANE_H * SHEAR + 0.05;
     const cx = THREE.MathUtils.clamp(x, minX + reach, maxX - reach);
+    parent.add(this.mesh);
+    this.mesh.position.set(cx, cy, 0.006);
+    this.mesh.scale.set(w, h, 1);
+    this.uniforms.uSize.value.set(w, h);
+    this.run = { start: now + delay, attack: cue.attack, hold: cue.hold, release: cue.release };
+    this.mesh.visible = true;
+  }
+
+  /**
+   * The light a living memory leaves in the room (its bleed): the same pane, at the size, place
+   * and slant of the sun painted in the memory, so the painted sun becomes the room's.
+   * (cx, cy): the pane's centre on the wall (the group's metres); half sizes; the sash's transom
+   * and mullion offsets from the centre.
+   */
+  startPane(parent: THREE.Object3D, cx: number, cy: number, halfW: number, halfH: number, transom: number, mullion: number, cue: { attack: number; hold: number; release: number }, now: number, delay = 0) {
+    this.uniforms.uPane.value.set(halfW, halfH);
+    this.uniforms.uTransom.value = transom;
+    this.uniforms.uMullion.value = mullion;
+    const w = (halfW + halfH * SHEAR) * 2 * 2.4 + SLIDE;
+    const h = halfH * 2 * 2.4;
     parent.add(this.mesh);
     this.mesh.position.set(cx, cy, 0.006);
     this.mesh.scale.set(w, h, 1);

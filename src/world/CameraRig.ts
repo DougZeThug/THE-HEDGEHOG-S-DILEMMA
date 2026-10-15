@@ -26,6 +26,10 @@ export class CameraRig {
   yaw = 0.06;
   pitch = -0.06;
   private vel = new THREE.Vector2();
+  /** Walking (not just turning or breathing). */
+  get moving(): boolean {
+    return Math.hypot(this.vel.x, this.vel.y) > 0.15;
+  }
   private yawVel = 0;
   private eye = EYE;
   /** Until the visitor first walks, the eye rests here (the opening's), then rises to standing. */
@@ -123,11 +127,12 @@ export class CameraRig {
     }
     d.normalize().multiplyScalar(len - stopAt);
     this.goal = this.pos.clone().add(d);
-    this.faceToward(target);
+    // Aimed from where the walk ends, so the target is in the middle of the view on arrival.
+    this.faceToward(target, this.goal);
   }
 
-  faceToward(target: THREE.Vector3) {
-    const eyePos = this.pos.clone().setY(this.eye);
+  faceToward(target: THREE.Vector3, from: THREE.Vector3 = this.pos) {
+    const eyePos = from.clone().setY(this.eye);
     const d = target.clone().sub(eyePos);
     const yaw = Math.atan2(-d.x, -d.z);
     const pitch = Math.atan2(d.y, Math.hypot(d.x, d.z));
@@ -147,6 +152,12 @@ export class CameraRig {
   get eyeHeight() {
     return this.eye;
   }
+
+  /** The eye without its walking bob or breath (what a living memory's depth follows). */
+  get restingEye(): THREE.Vector3 {
+    return this.restingEyeV.set(this.pos.x, this.eye, this.pos.z);
+  }
+  private restingEyeV = new THREE.Vector3();
 
   update(dt: number, room: Room, chairPos: THREE.Vector3) {
     this.chair.copy(chairPos);

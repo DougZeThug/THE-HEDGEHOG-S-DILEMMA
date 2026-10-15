@@ -109,7 +109,18 @@
       ]
     }
   },
-  "saved": {},
+  "saved": {
+    "small-voice": {
+      "voiceId": "AKwm7X6KQdtIeyGeqsPu",
+      "from": "small-voice-1",
+      "at": "2026-10-15T09:29:31.563Z"
+    },
+    "older-woman": {
+      "voiceId": "fpU8yTs54f2kk5I96Hdk",
+      "from": "older-woman-2",
+      "at": "2026-10-15T09:29:33.973Z"
+    }
+  },
   "library": {
     "lib-maria-moody": {
       "at": "2026-10-13T12:35:43.483Z",

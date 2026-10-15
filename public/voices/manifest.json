@@ -35,14 +35,43 @@
     "sfx-chair-creak-1.mp3"
   ],
   "sfx:switch": [
-    "sfx-switch-1.mp3",
-    "sfx-switch-2.mp3",
-    "sfx-switch-3.mp3"
+    "sfx-switch-1.mp3"
   ],
   "sfx:graphite": [
     "sfx-graphite-1.mp3",
     "sfx-graphite-2.mp3",
     "sfx-graphite-3.mp3"
+  ],
+  "sfx:eraser": [
+    "sfx-eraser-1.mp3",
+    "sfx-eraser-2.mp3",
+    "sfx-eraser-3.mp3"
+  ],
+  "mem:kitchen-air": [
+    "mem-kitchen-air-1.mp3"
+  ],
+  "mem:spoon-bowl": [
+    "mem-spoon-bowl-2.mp3"
+  ],
+  "mem:laugh": [
+    "mem-laugh-1.mp3"
+  ],
+  "mem:footsteps": [
+    "mem-footsteps-1.mp3",
+    "mem-footsteps-2.mp3"
+  ],
+  "mem:floorboard": [
+    "mem-floorboard-1.mp3"
+  ],
+  "mem:bird": [
+    "mem-bird-2.mp3"
+  ],
+  "mem:curtain-breeze": [
+    "mem-curtain-breeze-1.mp3"
+  ],
+  "mem:eating": [
+    "mem-eating-1.mp3",
+    "mem-eating-2.mp3"
   ],
   "phrase:stay": [
     "dialogue/stay--tender.mp3",
@@ -223,9 +252,129 @@
     "dialogue/thank-staying--two-cups.mp3",
     "dialogue/thank-staying--two-cups-b.mp3"
   ],
-  "sfx:eraser": [
-    "sfx-eraser-1.mp3",
-    "sfx-eraser-2.mp3",
-    "sfx-eraser-3.mp3"
+  "vig:charger:charger": [
+    "vignettes/charger--charger.mp3"
+  ],
+  "vig:charger:toaster": [
+    "vignettes/charger--toaster-b.mp3"
+  ],
+  "vig:charger:tomorrow-okay": [
+    "vignettes/charger--tomorrow-okay.mp3",
+    "vignettes/charger--tomorrow-okay-b.mp3"
+  ],
+  "vig:charger:yeah": [
+    "vignettes/charger--yeah--distracted.mp3",
+    "vignettes/charger--yeah--warm.mp3",
+    "vignettes/charger--yeah--warm-b.mp3"
+  ],
+  "vig:back-seat:angry": [
+    "vignettes/back-seat--angry.mp3",
+    "vignettes/back-seat--angry-b.mp3"
+  ],
+  "vig:back-seat:no": [
+    "vignettes/back-seat--no--tired.mp3",
+    "vignettes/back-seat--no--tired-b.mp3",
+    "vignettes/back-seat--no--quick.mp3"
+  ],
+  "vig:back-seat:okay": [
+    "vignettes/back-seat--okay.mp3",
+    "vignettes/back-seat--okay-b.mp3"
+  ],
+  "vig:practice:hey": [
+    "vignettes/practice--hey.mp3",
+    "vignettes/practice--hey-b.mp3"
+  ],
+  "vig:practice:hiya": [
+    "vignettes/practice--hiya--flat.mp3",
+    "vignettes/practice--hiya--flat-b.mp3"
+  ],
+  "vig:practice:again": [
+    "vignettes/practice--again.mp3",
+    "vignettes/practice--again-b.mp3"
+  ],
+  "vig:washing-up:done": [
+    "vignettes/washing-up--done.mp3",
+    "vignettes/washing-up--done-b.mp3"
+  ],
+  "vig:washing-up:dont": [
+    "vignettes/washing-up--dont--light.mp3",
+    "vignettes/washing-up--dont--light-b.mp3",
+    "vignettes/washing-up--dont--tired.mp3",
+    "vignettes/washing-up--dont--tired-b.mp3"
+  ],
+  "vig:washing-up:what": [
+    "vignettes/washing-up--what.mp3",
+    "vignettes/washing-up--what-b.mp3"
+  ],
+  "vig:washing-up:thanks": [
+    "vignettes/washing-up--thanks.mp3"
+  ],
+  "vig:five-minutes:stay": [
+    "vignettes/five-minutes--stay.mp3",
+    "vignettes/five-minutes--stay-b.mp3"
+  ],
+  "vig:five-minutes:minute": [
+    "vignettes/five-minutes--minute--fond.mp3",
+    "vignettes/five-minutes--minute--fond-b.mp3",
+    "vignettes/five-minutes--minute--distracted.mp3"
+  ],
+  "vig:five-minutes:promise": [
+    "vignettes/five-minutes--promise.mp3",
+    "vignettes/five-minutes--promise-b.mp3"
+  ],
+  "vig:five-minutes:asleep": [
+    "vignettes/five-minutes--asleep.mp3",
+    "vignettes/five-minutes--asleep-b.mp3"
+  ],
+  "vig:a-bag:bag": [
+    "vignettes/a-bag--bag.mp3",
+    "vignettes/a-bag--bag-b.mp3"
+  ],
+  "vig:a-bag:sorry": [
+    "vignettes/a-bag--sorry-b.mp3"
+  ],
+  "vig:come-over:come": [
+    "vignettes/come-over--come.mp3",
+    "vignettes/come-over--come-b.mp3"
+  ],
+  "vig:come-over:will": [
+    "vignettes/come-over--will--automatic.mp3",
+    "vignettes/come-over--will--automatic-b.mp3",
+    "vignettes/come-over--will--unsure.mp3",
+    "vignettes/come-over--will--unsure-b.mp3"
+  ],
+  "vig:come-over:always": [
+    "vignettes/come-over--always.mp3",
+    "vignettes/come-over--always-b.mp3"
+  ],
+  "vig:come-over:okay": [
+    "vignettes/come-over--okay.mp3",
+    "vignettes/come-over--okay-b.mp3"
+  ],
+  "vig:biscuit:last": [
+    "vignettes/biscuit--last.mp3",
+    "vignettes/biscuit--last-b.mp3"
+  ],
+  "vig:biscuit:have": [
+    "vignettes/biscuit--have.mp3",
+    "vignettes/biscuit--have-b.mp3"
+  ],
+  "vig:biscuit:halves": [
+    "vignettes/biscuit--halves.mp3",
+    "vignettes/biscuit--halves-b.mp3"
+  ],
+  "vig:biscuit:just": [
+    "vignettes/biscuit--just.mp3",
+    "vignettes/biscuit--just-b.mp3"
+  ],
+  "vig:biscuit:goon": [
+    "vignettes/biscuit--goon.mp3"
+  ],
+  "vig:gone-quiet:quiet": [
+    "vignettes/gone-quiet--quiet.mp3",
+    "vignettes/gone-quiet--quiet-b.mp3"
+  ],
+  "vig:gone-quiet:fine": [
+    "vignettes/gone-quiet--fine.mp3"
   ]
 }

@@ -44,17 +44,29 @@ export function estimateCredits(perf, direction) {
   return Math.ceil(((perf.leadIn ? perf.leadIn.length + 1 : 0) + perf.input.length) * rate);
 }
 
+/** Spellings a transcript may use for the same spoken word (so "OK" is not a misread "Okay"). */
+const SAME_WORD = { ok: 'okay', yea: 'yeah', yeh: 'yeah', alright: 'alright', 'all-right': 'alright' };
+
 /** Words of a line, normalised for comparison (case, punctuation, quotes, bracketed tags). */
 export function words(s) {
   return s
     .toLowerCase()
     .replace(/[’‘]/g, "'")
     .replace(/\[[^\]]*\]|\([^)]*\)/g, ' ')
+    .replace(/\ball right\b/g, 'alright')
     .replace(/[^a-z0-9' ]+/g, ' ')
     .split(/\s+/)
     .map((w) => w.replace(/^'+|'+$/g, ''))
-    .filter(Boolean);
+    .filter(Boolean)
+    .map((w) => SAME_WORD[w] ?? w);
 }
+
+/**
+ * Directions the vignettes never use. The artist heard the first takes ("too happy and
+ * expressive") and asked for them to sound like the wall lines they kept: quiet, sad, held back,
+ * whispered where close. Nothing bright, amused or laughing.
+ */
+export const BRIGHT_TAGS = /\[[^\]]*(laugh|bright|cheer|teas|amused|happ|playful|excited|pleased|calling out|casual|generous)[^\]]*\]/i;
 
 /** Word error rate of a transcript against the authored text. */
 export function wordErrorRate(reference, hypothesis) {
@@ -87,8 +99,12 @@ export function spokenTags(perf, transcript) {
   return tagWords.filter((w) => !text.has(w) && heard.has(w));
 }
 
-/** Validate an authored direction file. Returns a list of problems (empty = valid). */
-export function validateDirection(direction, phraseText) {
+/**
+ * Validate an authored direction file. Returns a list of problems (empty = valid).
+ * `phraseText(phraseId, perf)` gives the authored words a take must say (for a vignette's take,
+ * from its vignette and line). `opts.sad`: refuse bright, amused or laughing directions.
+ */
+export function validateDirection(direction, phraseText, opts = {}) {
   const problems = [];
   const ids = new Set(), files = new Set();
   for (const p of direction.performances) {
@@ -98,14 +114,15 @@ export function validateDirection(direction, phraseText) {
     files.add(p.file);
     if (!direction.voices[p.voice]) problems.push(`${p.id}: unknown voice ${p.voice}`);
     if (!((p.model ?? direction.model) in MODEL_RATES)) problems.push(`${p.id}: unknown model`);
-    const authored = phraseText(p.phraseId);
-    if (authored === undefined) problems.push(`${p.id}: unknown phrase ${p.phraseId}`);
+    const authored = phraseText(p.phraseId, p);
+    if (authored === undefined) problems.push(`${p.id}: unknown ${p.vignette ? `line ${p.vignette}/${p.line}` : `phrase ${p.phraseId}`}`);
     else if (authored !== p.text) problems.push(`${p.id}: text differs from the authored phrase`);
     if (words(p.input).join(' ') !== words(p.text).join(' ')) problems.push(`${p.id}: input words differ from the text`);
     if (p.leadIn !== undefined && !/\w/.test(p.leadIn)) problems.push(`${p.id}: empty lead-in`);
     if ((p.input.match(/\[/g) ?? []).length > MAX_TAGS) problems.push(`${p.id}: more than ${MAX_TAGS} audio tags`);
     if (p.scene && !SCENE_MODELS.has(p.model ?? direction.model)) problems.push(`${p.id}: scene context needs a model that accepts it`);
-    if (!/^(dialogue|lab)\/[a-z0-9-]+\.mp3$/.test(p.file)) problems.push(`${p.id}: bad file name`);
+    if (!/^(dialogue|lab|vignettes)\/[a-z0-9-]+\.mp3$/.test(p.file)) problems.push(`${p.id}: bad file name`);
+    if (opts.sad && BRIGHT_TAGS.test(p.input)) problems.push(`${p.id}: too bright for a vignette (the artist's direction)`);
   }
   return problems;
 }
@@ -126,6 +143,11 @@ export function planJobs(direction, ledger, opts = {}) {
     // A proposed take is direction written for the next batch: generated only when asked for.
     if (perf.proposed && !proposed && !forced && !(only ?? []).includes(perf.id)) {
       skipped.push({ id: perf.id, reason: 'proposed (use --proposed to generate)' });
+      continue;
+    }
+    // A designed voice not yet saved to the account can't be asked for (saving it is the artist's call).
+    if (!direction.voices[perf.voice]?.voiceId) {
+      skipped.push({ id: perf.id, reason: `voice ${perf.voice} not saved to the account yet` });
       continue;
     }
     if (perf.retired && !forced) {
@@ -222,6 +244,36 @@ export function buildManifest(manifest, direction, ledger, fileExists = () => tr
     // A retired take stays on disk and in the ledger; it returns only if someone approves it.
     if ((perf.retired || perf.audition) && e.review !== 'approved') continue;
     (out[`phrase:${perf.phraseId}`] ??= []).push(perf.file);
+  }
+  return out;
+}
+
+/**
+ * Rebuild the vignettes' `vig:<vignette>:<line>` entries: only takes the artist has kept
+ * (approved after listening), never one that merely validated. Other entries are kept.
+ */
+export function buildVignetteManifest(manifest, direction, ledger, fileExists = () => true) {
+  const out = {};
+  for (const [k, v] of Object.entries(manifest)) if (!k.startsWith('vig:')) out[k] = v;
+  for (const perf of direction.performances) {
+    const e = ledger.entries[perf.id];
+    if (!e || e.review !== 'approved' || !USABLE.has(e.status) || !fileExists(perf.file)) continue;
+    (out[`vig:${perf.vignette}:${perf.line}`] ??= []).push(perf.file);
+  }
+  return out;
+}
+
+/**
+ * For the artist's previews only (`?vignette=<id>` in the room): every vignette take generated
+ * and not turned down, under the same `vig:` keys, so a vignette can be heard in place before
+ * anything is kept. The room's own choice of what visitors meet reads the manifest, never this.
+ */
+export function buildVignettePreview(direction, ledger, fileExists = () => true) {
+  const out = {};
+  for (const perf of direction.performances) {
+    const e = ledger.entries[perf.id];
+    if (!e || e.review === 'rejected' || !PRESENT.has(e.status) || !fileExists(perf.file)) continue;
+    (out[`vig:${perf.vignette}:${perf.line}`] ??= []).push(perf.file);
   }
   return out;
 }

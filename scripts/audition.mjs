@@ -100,13 +100,18 @@ for (const v of designs.library ?? []) {
 // Music pilots (scripts/generate-music.mjs): a piano in the next room; for listening only.
 const musicLedger = existsSync(join(ROOT, 'scripts/music-ledger.json')) ? JSON.parse(readFileSync(join(ROOT, 'scripts/music-ledger.json'), 'utf8')) : { entries: {} };
 for (const [id, e] of Object.entries(musicLedger.entries)) {
-  const path = join(ROOT, 'audition', e.file);
+  // Memory music lives in public/music (it plays inside its memory while pending).
+  const memory = e.file.startsWith('public/');
+  const path = memory ? join(ROOT, e.file) : join(ROOT, 'audition', e.file);
   if (!existsSync(path)) continue;
   designTakes.push({
-    id: `music-${id}`, group: 'music', groupLabel: 'music pilots: a piano heard through the wall (never in the opening, never under a voice) — keep or not', line: 'Music (pilot)',
+    id: `music-${id}`,
+    group: memory ? 'memories' : 'music',
+    groupLabel: memory ? "living memories' sounds and music: new options for cereal first (radio and meal), then what already plays — keep or not" : 'music pilots: a piano heard through the wall (never in the opening, never under a voice) — keep or not',
+    line: memory ? 'Memory music' : 'Music (pilot)',
     interpretation: e.for, voice: 'ElevenLabs Music, instrumental', model: 'music', stability: '—', input: e.prompt,
     generation: 2, lab: false, audition: true, design: true, status: 'preview', review: e.review ?? 'pending',
-    m: null, path, src: OUT ? `audio/${basename(e.file)}` : e.file,
+    m: null, path, src: OUT ? `audio/${basename(e.file)}` : memory ? `../${e.file}` : e.file,
   });
 }
 // New room sounds (scripts/generate-voices.mjs): already in the room; the artist hasn't heard them.
@@ -114,25 +119,93 @@ const SFX_FOR = {
   'sfx:switch': 'The light switched on by the door, in the dark, before the chair is lit.',
   'sfx:graphite': 'Graphite on plaster, while the first line is written in silence.',
   'sfx:eraser': 'The writing in the air rubbed out as someone comes close (a breath follows it).',
+  'mem:kitchen-air': 'Cereal memory: the air of the sunny kitchen, looped under the scene (it came back very quiet and is lifted about 28 dB).',
+  'mem:spoon-bowl': 'Cereal memory: spoons in two bowls as the scene forms (the first take); a spoon put down as it goes (the second).',
+  'mem:eating': 'Cereal memory: the meal (1: one of them eating on, at 15 s; 2: two people, two bowls, as the scene forms; 3: cereal and milk poured, not used).',
+  'mem:laugh': 'Cereal memory: two people laughing at the table (a take the next-room situation never uses).',
+  'mem:footsteps': 'Door memory: someone walking along the landing (passing), or coming to the door and stopping (approach).',
+  'mem:floorboard': 'Door memory: someone shifting their weight outside the door (the first take); the house settling (the second).',
+  'mem:bird': 'Bedroom memory: a bird outside the window, over bare plaster (two takes; one is used).',
+  'mem:curtain-breeze': 'Bedroom memory: the curtain stirring as it breathes.',
 };
 const sfxLedger = existsSync(join(ROOT, 'scripts/sfx-ledger.json')) ? JSON.parse(readFileSync(join(ROOT, 'scripts/sfx-ledger.json'), 'utf8')) : { entries: {} };
 for (const [file, e] of Object.entries(sfxLedger.entries)) {
   const path = join(ROOT, 'public/voices', file);
   if (!existsSync(path)) continue;
   designTakes.push({
-    id: `sfx-${file.replace('.mp3', '')}`, group: 'sounds', groupLabel: 'new room sounds, already in the room: not this removes a variant', line: 'Sounds',
+    id: `sfx-${file.replace('.mp3', '')}`,
+    group: e.key.startsWith('mem:') ? 'memories' : 'sounds',
+    groupLabel: e.key.startsWith('mem:') ? "living memories' sounds and music: new options for cereal first (radio and meal), then what already plays — keep or not" : 'new room sounds, already in the room: not this removes a variant',
+    line: 'Sounds',
     interpretation: SFX_FOR[e.key] ?? e.key,
     voice: e.key, model: 'sound effects', stability: '—', input: e.text, generation: 2, lab: false, audition: false, design: true, status: 'in the room', review: e.review ?? 'pending',
     m: null, path, src: OUT ? `audio/${basename(file)}` : `../public/voices/${file}`,
   });
 }
+// The vignettes (src/content/vignettes.json): their takes, once generated, as cards to keep or
+// not; and each vignette's scores as read-throughs (its lines at their times, in silence where
+// nothing is recorded yet), so rhythm and pauses can be judged before anything is paid for.
+const vData = JSON.parse(readFileSync(join(ROOT, 'src/content/vignettes.json'), 'utf8'));
+const vDir = existsSync(join(ROOT, 'src/content/vignettes.dialogue.json')) ? JSON.parse(readFileSync(join(ROOT, 'src/content/vignettes.dialogue.json'), 'utf8')) : { performances: [], voices: {} };
+const vLedger = existsSync(join(ROOT, 'scripts/vignette-ledger.json')) ? JSON.parse(readFileSync(join(ROOT, 'scripts/vignette-ledger.json'), 'utf8')) : { entries: {} };
+const vTakes = [];
+for (const p of vDir.performances) {
+  const path = join(ROOT, 'public/voices', p.file);
+  const e = vLedger.entries[p.id];
+  if (!existsSync(path) || !e) continue;
+  const v = vData.vignettes.find((x) => x.id === p.vignette);
+  vTakes.push({
+    id: p.id, group: `vig-${p.vignette}`, groupLabel: `vignette: ${v?.title ?? p.vignette} — each line's readings`, line: v?.title ?? p.vignette,
+    interpretation: p.direction, voice: p.voice, model: p.model ?? vDir.model, stability: p.stability ?? '—', input: p.input, scene: sceneText(p.scene),
+    generation: 2, lab: false, audition: true, vignette: true, status: e.status, review: e.review ?? 'pending', transcript: e.transcript, events: e.events,
+    m: analyse(path, words(p.text).length), path, src: OUT ? `audio/${basename(p.file)}` : `../public/voices/${p.file}`,
+  });
+}
+const phraseSrc = readFileSync(join(ROOT, 'src/content/phrases.ts'), 'utf8');
+const phraseText = new Map([...phraseSrc.matchAll(/p\('([^']+)',\s*("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g)].map((m) => [m[1], m[2].startsWith('"') ? JSON.parse(m[2]) : m[2].slice(1, -1).replace(/\\'/g, "'")]));
+// The take a read-through plays for a line: a kept one (of the reading the version asks for, or
+// any), otherwise one generated and not turned down (marked "not kept yet"), so a vignette can be
+// heard as scored before anything is kept.
+const takesOf = (vignette, line) => vDir.performances.filter((p) => p.vignette === vignette && p.line === line && existsSync(join(ROOT, 'public/voices', p.file)) && vLedger.entries[p.id] && vLedger.entries[p.id].review !== 'rejected');
+const ofReading = (p, reading) => !reading || new RegExp(`--${reading}(-[a-z])?\\.mp3$`).test(p.file);
+const readThroughTake = (vignette, line, reading) => {
+  const all = takesOf(vignette, line);
+  const kept = all.filter((p) => vLedger.entries[p.id].review === 'approved');
+  const take = kept.find((p) => ofReading(p, reading)) ?? kept[0] ?? all.find((p) => ofReading(p, reading)) ?? all[0];
+  return take ? { take, pending: vLedger.entries[take.id].review !== 'approved' } : null;
+};
+const vignettes = vData.vignettes.map((v) => ({
+  id: v.id, title: v.title, tone: v.tone, intent: v.intent, anchor: v.anchor.phrase ? phraseText.get(v.anchor.phrase) ?? v.anchor.phrase : 'stillness by the chair',
+  anchorId: v.anchor.phrase ?? null,
+  speakers: v.speakers,
+  variants: Object.fromEntries(Object.entries(v.variants).map(([name, s]) => [name, {
+    span: s.span,
+    events: s.events.map((e) => {
+      if (e.line) {
+        const l = v.lines.find((x) => x.id === e.line);
+        const got = readThroughTake(v.id, e.line, e.reading);
+        const take = got?.take;
+        return {
+          at: e.at, kind: 'line', who: v.speakers[l.speaker]?.who ?? l.speaker, side: e.place?.at, text: l.text, end: e.end ?? null,
+          src: take ? (OUT ? `audio/${basename(take.file)}` : `../public/voices/${take.file}`) : null, pending: !!got?.pending,
+          turnedDown: !take && vDir.performances.some((p) => p.vignette === v.id && p.line === e.line && vLedger.entries[p.id]?.review === 'rejected'), take: take?.id ?? null, stopAfter: e.stopAfter ?? null,
+        };
+      }
+      if (e.sfx || e.bed) return { at: e.at, kind: e.bed ? 'bed' : 'sound', text: e.caption ?? (e.bed ? `[the air of the place: ${e.bed}]` : `[${e.sfx}]`) };
+      if (e.gap) return { at: e.at, kind: 'gap', text: `${e.gap} ${e.seconds} s`, seconds: e.seconds };
+      return { at: e.at, kind: 'effect', text: e.fx.kind === 'loseWord' ? `the word "${e.fx.word}" fades from the line` : e.fx.kind === 'recede' ? 'the line grows harder to read up close' : e.fx.kind === 'dim' ? 'the room goes down to the chair' : e.fx.kind };
+    }),
+  }])),
+}));
+designTakes.push(...vTakes);
 const nDesigned = designs.designs.length, nLibrary = designTakes.filter((t) => t.id.startsWith('lib-')).length;
 for (const t of designTakes) if (t.group === 'voices') t.groupLabel = `new voices: ${nDesigned} made to order (three previews each), ${nLibrary} from the ElevenLabs library — keep only a few`;
-// New voices first: the casting decides who reads everything else.
+// The memories' sounds first (what is waiting now), then the new voices: the casting decides who reads everything else.
+designTakes.sort((a, b) => Number(b.group === 'memories') - Number(a.group === 'memories'));
 takes.unshift(...designTakes);
 
 const tpl = readFileSync(join(ROOT, 'audition/page.html'), 'utf8');
-const data = JSON.stringify({ built: new Date().toISOString(), takes: takes.map(({ path, ...t }) => t) }).replace(/</g, '\\u003c');
+const data = JSON.stringify({ built: new Date().toISOString(), takes: takes.map(({ path, ...t }) => t), vignettes }).replace(/</g, '\\u003c');
 const page = tpl.replace('/*DATA*/', data);
 if (OUT) {
   mkdirSync(join(OUT, 'audio'), { recursive: true });

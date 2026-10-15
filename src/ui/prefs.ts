@@ -69,8 +69,22 @@ export function readVisits(): number {
 export function writeVisits(n: number) {
   safeSet(VISITS, String(n));
 }
+const MEMORY_COUNTS = 'hh.memories';
+/** How many times each living memory has been seen, across visits (its revisit variant). */
+export function readMemoryCounts(): Record<string, number> {
+  try {
+    const v = JSON.parse(safeGet(MEMORY_COUNTS) ?? '{}');
+    return v && typeof v === 'object' ? v : {};
+  } catch {
+    return {};
+  }
+}
+export function writeMemoryCounts(c: Record<string, number>) {
+  safeSet(MEMORY_COUNTS, JSON.stringify(c));
+}
 export function forgetVisits() {
   safeSet(VISITS, null);
+  safeSet(MEMORY_COUNTS, null);
   safeSet('hh.opening-seen', null);
 }
 

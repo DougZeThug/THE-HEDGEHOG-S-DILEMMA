@@ -1,0 +1,82 @@
+{
+  "size": [
+    0.9,
+    0.6
+  ],
+  "band": 0.17,
+  "pane": {
+    "x": 0.02,
+    "y": 0.1,
+    "w": 0.34,
+    "h": 0.26,
+    "shear": 0.55,
+    "transom": 0.05,
+    "mullion": 0.03
+  },
+  "variants": {
+    "first": [
+      {
+        "name": "curtain",
+        "kind": "pigment",
+        "file": "first/curtain",
+        "source": "code-painted stand-in"
+      },
+      {
+        "name": "table",
+        "kind": "pigment",
+        "file": "first/table",
+        "source": "code-painted stand-in"
+      },
+      {
+        "name": "things",
+        "kind": "pigment",
+        "file": "first/things",
+        "source": "code-painted stand-in"
+      },
+      {
+        "name": "pencil",
+        "kind": "sketch",
+        "file": "first/pencil",
+        "source": "code-painted stand-in"
+      },
+      {
+        "name": "sun",
+        "kind": "light",
+        "file": "first/sun",
+        "source": "code-painted stand-in"
+      }
+    ],
+    "later": [
+      {
+        "name": "curtain",
+        "kind": "pigment",
+        "file": "first/curtain",
+        "source": "code-painted stand-in"
+      },
+      {
+        "name": "table",
+        "kind": "pigment",
+        "file": "first/table",
+        "source": "code-painted stand-in"
+      },
+      {
+        "name": "things",
+        "kind": "pigment",
+        "file": "later/things",
+        "source": "code-painted stand-in"
+      },
+      {
+        "name": "pencil",
+        "kind": "sketch",
+        "file": "later/pencil",
+        "source": "code-painted stand-in"
+      },
+      {
+        "name": "sun",
+        "kind": "light",
+        "file": "later/sun",
+        "source": "code-painted stand-in"
+      }
+    ]
+  }
+}

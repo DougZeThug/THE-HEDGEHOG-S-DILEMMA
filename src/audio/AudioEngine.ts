@@ -17,7 +17,7 @@ export class AudioEngine {
   readonly master: GainNode;
   readonly limiter: DynamicsCompressorNode;
   readonly out: GainNode;
-  readonly buses: { ambience: GainNode; music: GainNode; voices: GainNode };
+  readonly buses: { ambience: GainNode; music: GainNode; voices: GainNode; memory: GainNode };
   /** Ducking stage for "silence" moments (ambience + music). */
   readonly duck: GainNode;
   readonly reverbIn: GainNode;
@@ -28,6 +28,8 @@ export class AudioEngine {
   readonly analyser: AnalyserNode;
   /** Whole-mix stage for pausing (settings open); independent of silences. */
   readonly pause: GainNode;
+  private readonly memoryDuck: GainNode;
+  private readonly memoryMusic: GainNode;
   private noiseBuf: AudioBuffer | null = null;
   private volume = 0.8;
   private muted = false;
@@ -58,10 +60,16 @@ export class AudioEngine {
     this.out.connect(this.analyser);
 
     this.duck = c.createGain();
-    this.duck.connect(this.master);
-    this.buses = { ambience: c.createGain(), music: c.createGain(), voices: c.createGain() };
+    // While a living memory plays, the room recedes round it on its own stage (multiplying the
+    // room's silences, never replacing them), and the room's own music stops.
+    this.memoryDuck = c.createGain();
+    this.memoryMusic = c.createGain();
+    this.duck.connect(this.memoryDuck).connect(this.master);
+    // A playing memory has its own bus: the room's silences fall around it, never on it.
+    this.buses = { ambience: c.createGain(), music: c.createGain(), voices: c.createGain(), memory: c.createGain() };
+    this.buses.memory.connect(this.master);
     this.buses.ambience.connect(this.duck);
-    this.buses.music.connect(this.duck);
+    this.buses.music.connect(this.memoryMusic).connect(this.duck);
     this.buses.voices.connect(this.master);
     this.buses.music.gain.value = 0.8;
     this.buses.voices.gain.value = 0.9;
@@ -234,6 +242,19 @@ export class AudioEngine {
     p.positionY.value = y;
     p.positionZ.value = z;
     return p;
+  }
+
+  /**
+   * A living memory hushes the room (depth 0…1) and stops its music; `memoryHush(0)` gives the
+   * room back. Its own stage: a deeper room silence already under way is kept, not lifted.
+   */
+  memoryHush(depth: number, seconds = 1.4) {
+    const t = this.ctx.currentTime;
+    for (const [p, v] of [[this.memoryDuck.gain, 1 - depth], [this.memoryMusic.gain, depth > 0 ? 0 : 1]] as const) {
+      p.cancelScheduledValues(t);
+      p.setValueAtTime(p.value, t);
+      p.setTargetAtTime(v, t, Math.max(0.05, seconds / 3));
+    }
   }
 
   /** Peak level (dBFS) at the output, for diagnostics. */

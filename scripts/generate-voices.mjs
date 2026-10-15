@@ -30,8 +30,9 @@ const OUT = new URL('../public/voices/', import.meta.url).pathname;
 mkdirSync(OUT, { recursive: true });
 const force = !!args.force;
 // Sound generation is billed by length; this is the assumption used for estimates (the real
-// cost comes back in each response's character-cost header and is recorded).
-const PER_SECOND = 40;
+// cost comes back in each response's character-cost header and is recorded). The ledger's first
+// nine sounds measured 11 credits a second; 12 keeps a margin.
+const PER_SECOND = 12;
 const LEDGER = new URL('./sfx-ledger.json', import.meta.url).pathname;
 const ledger = existsSync(LEDGER) ? JSON.parse(readFileSync(LEDGER, 'utf8')) : { spent: 0, entries: {} };
 
@@ -88,6 +89,43 @@ const ASSETS = {
   'sfx:chair-creak': [
     [`a small old wooden chair creaking once softly as weight shifts, close, quiet room, ${DRY}`, 1.5],
   ],
+  // The living memories (docs/memories.md, docs/reviews/2026-10-living-memories.md). Generated
+  // close and dry at an even level, with no baked fade: distance, direction and place come from
+  // the engine (prompts that ask for distance come back near-silent here: −54 to −64 dB). Beds
+  // are asked for as seamless loops; one-shots are placed by each memory's cue sheet.
+  'mem:kitchen-air': [
+    // (A first take asking for a "far-off hush" came back at −72 dB mean, unusable.)
+    [`the room tone of a small sunny kitchen with the window open, recorded at a normal level: soft continuous outdoor air and leaves rustling gently, even and steady, clearly audible, nothing happening, no voices, no music, no ticking`, 8, { loop: true }],
+  ],
+  'mem:spoon-bowl': [
+    [`two metal spoons in two ceramic cereal bowls at a small kitchen table, a few unhurried clinks and soft scrapes, overlapping, no chewing, no voices, ${DRY}`, 3],
+    [`a spoon laid down in an empty ceramic bowl, one small clink and a brief rattle as it settles, then nothing, ${DRY}`, 1.5],
+  ],
+  // The artist turned down the spoons-in-bowls take: three other ways of hearing the meal.
+  'mem:eating': [
+    [`one person happily eating cereal with milk from a ceramic bowl, a metal spoon dipping in and tapping the rim, a soft crunch of cereal, an easy unhurried rhythm, no voices, ${DRY}`, 3],
+    [`two people eating cereal together at a small kitchen table, two spoons clinking against two ceramic bowls at different moments, a little crunch, relaxed and companionable, no voices, ${DRY}`, 3],
+    [`dry cereal poured from a cardboard box into a ceramic bowl with a light rattle, then a short pour of milk, the start of a meal, no voices, ${DRY}`, 3],
+  ],
+  'mem:laugh': [
+    [`two people at a kitchen table laughing together at something silly, a short warm unforced burst of shared laughter that trails off, no words, ${DRY}`, 3],
+  ],
+  'mem:footsteps': [
+    [`an adult walking slowly along an old wooden upstairs landing in socks, about five unhurried footsteps roughly a second apart, a small creak under two of them, then the steps stop and stay stopped, recorded close and clearly audible, every step the same loudness, no voices, no breathing, no door, ${DRY}`, 5],
+    [`slow careful footsteps on old bare wooden hallway floorboards, someone in socks, five steps about a second apart, then stopping, one small creak as the weight settles on the last step, then stillness, recorded close and clearly audible at an even level, no voices, no breathing, no door, ${DRY}`, 5],
+  ],
+  'mem:floorboard': [
+    [`a single old wooden floorboard creaking once as someone standing still shifts their weight, one slow low creak, then silence, recorded close and clearly audible, no footsteps, no voices, ${DRY}`, 1.5],
+    [`one short dry tick and creak of an old wooden floor settling on its own in a still house, nobody walking, recorded close and clearly audible, no voices, ${DRY}`, 1.5],
+  ],
+  'mem:bird': [
+    [`a single small songbird singing one short bright phrase, then silence, recorded close with a directional microphone, clearly audible, no other birds, no wind, no traffic, no reverb, no music`, 2.5],
+    [`two short sparrow chirps with a pause between them, then silence, recorded close with a directional microphone, clearly audible, no other birds, no wind, no traffic, no reverb, no music`, 2.5],
+  ],
+  'mem:curtain-breeze': [
+    [`a light cotton curtain lifting once and falling back, a gentle cloth rustle that rises over about a second and settles over two, the hem brushing a wooden sill, recorded close and clearly audible, no wind noise, no rumble, no whoosh, no birds, ${DRY}`, 3],
+  ],
+  // (No recorded bedroom air: room tone came back as rumble twice; it is made in the engine, src/memory/synthAir.ts.)
   'style:distant': [
     // (A first variant here consistently came back near-silent and was removed.)
     [`someone calling out a few quiet words from down a hallway, unintelligible, distant`, 3],
@@ -120,17 +158,19 @@ if (!balance.ok) process.exit(1);
 for (const [key, variants] of Object.entries(ASSETS)) {
   if (ONLY && !ONLY.includes(key)) continue;
   const files = [];
-  for (const [i, [text, duration]] of variants.entries()) {
+  for (const [i, [text, duration, opts]] of variants.entries()) {
     const file = fileOf(key, i);
     const path = join(OUT, file);
     if (existsSync(path) && !force) {
-      files.push(file);
+      // A take the artist turned down on the audition sheet stays out of the room.
+      if (ledger.entries[file]?.review !== 'rejected') files.push(file);
       continue;
     }
     const res = await fetch('https://api.elevenlabs.io/v1/sound-generation?output_format=mp3_44100_128', {
       method: 'POST',
       headers: { 'xi-api-key': KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, duration_seconds: duration, prompt_influence: 0.55 }),
+      // A bed asks for a seamless loop (the v2 sound model's option).
+      body: JSON.stringify({ text, duration_seconds: duration, prompt_influence: 0.55, ...(opts?.loop ? { loop: true, model_id: 'eleven_text_to_sound_v2' } : {}) }),
     });
     if (!res.ok) {
       console.error(`✗ ${file}: ${res.status} ${(await res.text()).slice(0, 200)}`);

@@ -43,9 +43,67 @@ const FRAGMENTS = [
   },
 ];
 
+// The living memories' music (docs/memories.md), heard inside the remembered place, never a
+// score over the room. The kitchen's is its radio, as the artist chose: an ordinary song,
+// generated full-range (the engine makes it a small radio on the windowsill: band-limited,
+// placed, in the kitchen's own room). Its length is the memory's authored span from the scene
+// forming to its last sound. The bedroom's is generated only after the kitchen's has been heard.
+// Memory pieces go to public/music/ as pending takes so they can be judged in place.
+FRAGMENTS.push(
+  {
+    id: 'memory-radio',
+    seconds: 28,
+    memory: true,
+    for: 'Memory: "We ate cereal for dinner and it was perfect." The kitchen radio, on from the moment the scene has formed.',
+    prompt: 'An ordinary cheerful song playing on the radio in a sunny kitchen: a light, easy-going 1970s soft-pop instrumental with strummed acoustic guitar, a round bass line, brushed drums and a little electric piano, major key, relaxed mid tempo, warm and happy, nothing dramatic. It starts straight away in the middle of the song, no intro, no build and no ending, it simply carries on. Instrumental, no vocals.',
+  },
+  {
+    id: 'memory-bedroom',
+    seconds: 26,
+    memory: true,
+    for: 'Memory: "I was happiest when nobody needed anything from me." Someone downstairs playing for themselves, from 8 s until the memory has gone (the engine puts it below, through the floor).',
+    // The sound designer's prompt (approach review): someone else, content, needing nothing.
+    prompt: 'Someone downstairs playing an upright piano for themselves on a bright morning: an easy, contented little tune in a major key, walking tempo, simple, a couple of small slips carried on through. Starts straight away with the tune, no intro, no ending. Solo piano, instrumental, close home recording, dry.',
+  },
+  // The artist turned down the 1970s soft-pop radio and asked for gentle acoustic folk, several
+  // options to choose from (four, up to 1,150 credits). Long enough for the radio's span in the memory.
+  {
+    id: 'memory-radio-folk-a',
+    seconds: 19,
+    memory: true,
+    for: 'Memory: cereal. The kitchen radio, option A (harmonica): gentle acoustic folk. Not yet in the memory: keep the one you want.',
+    prompt: 'Playing on the radio in a sunny kitchen, a 1970s folk song on the radio: strummed and lightly picked steel-string acoustic guitar with a simple, cheerful harmonica melody over it, major key, easy walking tempo, sunny and unhurried. It starts straight away in the middle of the song, no intro, no build and no ending, it simply carries on. Instrumental, no vocals, nothing dramatic, warm and happy.',
+  },
+  {
+    id: 'memory-radio-folk-b',
+    seconds: 19,
+    memory: true,
+    for: 'Memory: cereal. The kitchen radio, option B (fingerpicked): gentle acoustic folk. Not yet in the memory: keep the one you want.',
+    prompt: 'Playing on the radio in a sunny kitchen, a gentle folk tune on the radio: a single steel-string acoustic guitar, fingerpicked with an alternating thumb bass, a bright simple melody in a major key, relaxed tempo, homely and content. It starts straight away in the middle of the song, no intro, no build and no ending, it simply carries on. Instrumental, no vocals, nothing dramatic, warm and happy.',
+  },
+  {
+    id: 'memory-radio-folk-c',
+    seconds: 19,
+    memory: true,
+    for: 'Memory: cereal. The kitchen radio, option C (waltz): gentle acoustic folk. Not yet in the memory: keep the one you want.',
+    prompt: 'Playing on the radio in a sunny kitchen, a gentle folk waltz on the radio in three-four time: acoustic guitar and a soft fiddle playing a sweet, lilting melody, major key, unhurried, like a song everyone in the family knows. It starts straight away in the middle of the song, no intro, no build and no ending, it simply carries on. Instrumental, no vocals, nothing dramatic, warm and happy.',
+  },
+  {
+    id: 'memory-radio-folk-d',
+    seconds: 19,
+    memory: true,
+    for: 'Memory: cereal. The kitchen radio, option D (mandolin): gentle acoustic folk. Not yet in the memory: keep the one you want.',
+    prompt: 'Playing on the radio in a sunny kitchen, an easy-going acoustic folk song on the radio: two acoustic guitars and a mandolin playing together, a light upright bass, a bright singable melody, major key, relaxed mid tempo, sunny. It starts straight away in the middle of the song, no intro, no build and no ending, it simply carries on. Instrumental, no vocals, nothing dramatic, warm and happy.',
+  },
+
+);
+
 const ledger = existsSync(LEDGER) ? JSON.parse(readFileSync(LEDGER, 'utf8')) : { spent: 0, entries: {} };
 const only = typeof args.only === 'string' ? args.only.split(',') : null;
-const todo = FRAGMENTS.filter((f) => (!only || only.includes(f.id)) && (args.force || !existsSync(join(OUT, `${f.id}.mp3`))));
+const outOf = (f) => (f.memory ? join(ROOT, 'public/music') : OUT);
+// A fragment already in the ledger was paid for: never again without --force (a turned-down take
+// moves to audition/music/, so a missing file in public/music doesn't mean it was never made).
+const todo = FRAGMENTS.filter((f) => !f.deferred && (!only || only.includes(f.id)) && (args.force || (!ledger.entries[f.id] && !existsSync(join(outOf(f), `${f.id}.mp3`)))));
 const estimate = Math.ceil(todo.reduce((a, f) => a + f.seconds * PER_SECOND, 0));
 const budget = Number(args.budget ?? 1000);
 console.log(`plan: ${todo.length} fragments, ~${estimate} credits (budget ${budget})`);
@@ -64,6 +122,7 @@ const balance = balanceAllows(await readBalance(key), estimate);
 console.log(`balance: ${balance.note}`);
 if (!balance.ok) process.exit(1);
 mkdirSync(OUT, { recursive: true });
+mkdirSync(join(ROOT, 'public/music'), { recursive: true });
 for (const f of todo) {
   const before = await readBalance(key);
   const res = await fetch(`${API}/v1/music?output_format=mp3_44100_128`, {
@@ -76,12 +135,12 @@ for (const f of todo) {
     if ([401, 402, 403, 429].includes(res.status)) break;
     continue;
   }
-  writeFileSync(join(OUT, `${f.id}.mp3`), Buffer.from(await res.arrayBuffer()));
+  writeFileSync(join(outOf(f), `${f.id}.mp3`), Buffer.from(await res.arrayBuffer()));
   const header = Number(res.headers.get('character-cost') ?? NaN);
   const after = await readBalance(key);
   const measured = before.known && after.known ? after.used - before.used : NaN;
   const cost = Number.isFinite(header) ? header : Number.isFinite(measured) && measured > 0 ? measured : null;
-  ledger.entries[f.id] = { file: `music/${f.id}.mp3`, prompt: f.prompt, seconds: f.seconds, for: f.for, cost, requestId: res.headers.get('request-id') ?? undefined, at: new Date().toISOString(), review: 'pending' };
+  ledger.entries[f.id] = { file: f.memory ? `public/music/${f.id}.mp3` : `music/${f.id}.mp3`, prompt: f.prompt, seconds: f.seconds, for: f.for, cost, requestId: res.headers.get('request-id') ?? undefined, at: new Date().toISOString(), review: 'pending' };
   if (cost) ledger.spent += cost;
   writeFileSync(LEDGER, JSON.stringify(ledger, null, 2) + '\n');
   console.log(`  ${f.id}: ${cost ?? '?'} credits`);

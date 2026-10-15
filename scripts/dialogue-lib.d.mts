@@ -14,12 +14,14 @@ export function estimateCredits(perf: any, direction: any): number;
 export function words(s: string): string[];
 export function wordErrorRate(reference: string, hypothesis: string): number;
 export function spokenTags(perf: any, transcript: string): string[];
-export function validateDirection(direction: any, phraseText: (id: string) => string | undefined): string[];
+export function validateDirection(direction: any, phraseText: (id: string, perf: any) => string | undefined, opts?: { sad?: boolean }): string[];
 export function planJobs(direction: any, ledger: Ledger, opts?: { only?: string[]; regenerate?: string[]; pilot?: boolean; proposed?: boolean; fileExists?: (f: string) => boolean }): { jobs: Job[]; skipped: { id: string; reason: string }[] };
 export function applyBudget(jobs: Job[], budget: number): { run: Job[]; queued: Job[]; estimate: number };
 export function mp3Info(buf: Uint8Array | ArrayBuffer): { valid: boolean; frames: number; seconds: number };
 export function classifyFailure(status: number, body: string): { kind: string; code: string; message: string; retry: boolean; stop: boolean };
 export function buildManifest(manifest: Record<string, string[]>, direction: any, ledger: Ledger, fileExists?: (f: string) => boolean): Record<string, string[]>;
+export function buildVignettePreview(direction: any, ledger: Ledger, fileExists?: (f: string) => boolean): Record<string, string[]>;
+export function buildVignetteManifest(manifest: Record<string, string[]>, direction: any, ledger: Ledger, fileExists?: (f: string) => boolean): Record<string, string[]>;
 export function runJobs(o: {
   jobs: Job[]; direction: any; ledger: Ledger; key: string; fetch: (url: string, init?: any) => Promise<any>;
   writeFile: (f: string, d: Uint8Array) => Promise<void>; trim?: (audio: Uint8Array, fromSeconds: number) => Promise<Uint8Array>; saveLedger: (l: Ledger) => Promise<void>;

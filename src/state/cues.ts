@@ -29,6 +29,8 @@ export type Cue =
       /** Written beside this phrase (on its surface), or on `surface` if absent. */
       beside?: string;
       surface?: Surface;
+      /** Written beneath this drawing (a memory's line under the drawing it opens from). */
+      under?: string;
       /** For the floor: write near this point (chair-relative metres). */
       nearPoint?: { x: number; z: number };
       /** The phrase these words come from: looking at them is meeting that phrase again. */
@@ -37,6 +39,8 @@ export type Cue =
       /** Phrase that gets a faint line struck through it. */
       strike?: string;
       ttl: number;
+      /** Found, not written: it appears as if it had always been there (a vignette's echo). */
+      found?: boolean;
     }
   | { type: 'link'; a: string; b: string; ttl: number }
   | {
@@ -101,6 +105,10 @@ export type Cue =
    * where a line is written, rises over `attack` seconds, holds, and leaves over `release`.
    */
   | { type: 'memory'; phraseId: string; attack: number; hold: number; release: number }
+  /** A living memory opens round its line (src/memory; the App plays it and reports its end). */
+  | { type: 'memory-scene'; id: string; phraseId: string; variant: string; minHold: number; maxHold: number }
+  /** A vignette (src/content/vignettes.ts): its score plays in the App, on the memory clock. */
+  | { type: 'vignette'; id: string; phraseId: string; variant: string }
   /** A drawing drawn on the wall, stroke by stroke (src/content/drawings.ts). */
   | { type: 'draw'; id: string }
   /** Rub out a piece of writing except for one word. */

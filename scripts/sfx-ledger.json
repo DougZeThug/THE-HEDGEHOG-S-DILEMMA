@@ -1,5 +1,5 @@
 {
-  "spent": 216,
+  "spent": 807,
   "entries": {
     "sfx-switch-1.mp3": {
       "key": "sfx:switch",
@@ -7,7 +7,7 @@
       "duration": 1,
       "cost": 11,
       "at": "2026-10-13T13:15:40.471Z",
-      "review": "pending"
+      "review": "approved"
     },
     "sfx-switch-2.mp3": {
       "key": "sfx:switch",
@@ -15,7 +15,7 @@
       "duration": 1,
       "cost": 11,
       "at": "2026-10-13T13:15:42.069Z",
-      "review": "pending"
+      "review": "rejected"
     },
     "sfx-switch-3.mp3": {
       "key": "sfx:switch",
@@ -23,7 +23,7 @@
       "duration": 1,
       "cost": 11,
       "at": "2026-10-13T13:15:45.252Z",
-      "review": "pending"
+      "review": "rejected"
     },
     "sfx-graphite-1.mp3": {
       "key": "sfx:graphite",
@@ -31,7 +31,7 @@
       "duration": 4,
       "cost": 44,
       "at": "2026-10-13T13:15:46.614Z",
-      "review": "pending"
+      "review": "approved"
     },
     "sfx-graphite-2.mp3": {
       "key": "sfx:graphite",
@@ -39,7 +39,7 @@
       "duration": 4,
       "cost": 44,
       "at": "2026-10-13T13:15:48.106Z",
-      "review": "pending"
+      "review": "approved"
     },
     "sfx-graphite-3.mp3": {
       "key": "sfx:graphite",
@@ -47,7 +47,7 @@
       "duration": 4,
       "cost": 44,
       "at": "2026-10-13T13:15:49.516Z",
-      "review": "pending"
+      "review": "approved"
     },
     "sfx-eraser-1.mp3": {
       "key": "sfx:eraser",
@@ -55,7 +55,7 @@
       "duration": 1.5,
       "cost": 17,
       "at": "2026-10-13T16:39:09.558Z",
-      "review": "pending"
+      "review": "approved"
     },
     "sfx-eraser-2.mp3": {
       "key": "sfx:eraser",
@@ -63,7 +63,7 @@
       "duration": 1.5,
       "cost": 17,
       "at": "2026-10-13T16:39:10.752Z",
-      "review": "pending"
+      "review": "approved"
     },
     "sfx-eraser-3.mp3": {
       "key": "sfx:eraser",
@@ -71,7 +71,122 @@
       "duration": 1.5,
       "cost": 17,
       "at": "2026-10-13T16:39:12.126Z",
-      "review": "pending"
+      "review": "approved"
+    },
+    "mem-kitchen-air-1.mp3": {
+      "key": "mem:kitchen-air",
+      "text": "the room tone of a small sunny kitchen with the window open, recorded at a normal level: soft continuous outdoor air and leaves rustling gently, even and steady, clearly audible, nothing happening, no voices, no music, no ticking",
+      "duration": 8,
+      "cost": 88,
+      "at": "2026-10-14T17:58:40.286Z",
+      "review": "approved"
+    },
+    "mem-spoon-bowl-1.mp3": {
+      "key": "mem:spoon-bowl",
+      "text": "two metal spoons in two ceramic cereal bowls at a small kitchen table, a few unhurried clinks and soft scrapes, overlapping, no chewing, no voices, dry, intimate, close, natural home recording, no music, no reverb tail",
+      "duration": 3,
+      "cost": 33,
+      "at": "2026-10-14T17:58:13.723Z",
+      "review": "rejected",
+      "reviewedAt": "2026-10-14"
+    },
+    "mem-spoon-bowl-2.mp3": {
+      "key": "mem:spoon-bowl",
+      "text": "a spoon laid down in an empty ceramic bowl, one small clink and a brief rattle as it settles, then nothing, dry, intimate, close, natural home recording, no music, no reverb tail",
+      "duration": 1.5,
+      "cost": 17,
+      "at": "2026-10-14T17:58:14.882Z",
+      "review": "approved",
+      "reviewedAt": "2026-10-14"
+    },
+    "mem-laugh-1.mp3": {
+      "key": "mem:laugh",
+      "text": "two people at a kitchen table laughing together at something silly, a short warm unforced burst of shared laughter that trails off, no words, dry, intimate, close, natural home recording, no music, no reverb tail",
+      "duration": 3,
+      "cost": 33,
+      "at": "2026-10-14T17:58:17.146Z",
+      "review": "approved",
+      "reviewedAt": "2026-10-14"
+    },
+    "mem-footsteps-1.mp3": {
+      "key": "mem:footsteps",
+      "text": "an adult walking slowly along an old wooden upstairs landing in socks, about five unhurried footsteps roughly a second apart, a small creak under two of them, then the steps stop and stay stopped, recorded close and clearly audible, every step the same loudness, no voices, no breathing, no door, dry, intimate, close, natural home recording, no music, no reverb tail",
+      "duration": 5,
+      "cost": 55,
+      "at": "2026-10-14T19:54:04.182Z",
+      "review": "approved"
+    },
+    "mem-footsteps-2.mp3": {
+      "key": "mem:footsteps",
+      "text": "slow careful footsteps on old bare wooden hallway floorboards, someone in socks, five steps about a second apart, then stopping, one small creak as the weight settles on the last step, then stillness, recorded close and clearly audible at an even level, no voices, no breathing, no door, dry, intimate, close, natural home recording, no music, no reverb tail",
+      "duration": 5,
+      "cost": 55,
+      "at": "2026-10-14T19:54:06.004Z",
+      "review": "approved"
+    },
+    "mem-floorboard-1.mp3": {
+      "key": "mem:floorboard",
+      "text": "a single old wooden floorboard creaking once as someone standing still shifts their weight, one slow low creak, then silence, recorded close and clearly audible, no footsteps, no voices, dry, intimate, close, natural home recording, no music, no reverb tail",
+      "duration": 1.5,
+      "cost": 17,
+      "at": "2026-10-14T19:54:07.742Z",
+      "review": "approved"
+    },
+    "mem-floorboard-2.mp3": {
+      "key": "mem:floorboard",
+      "text": "one short dry tick and creak of an old wooden floor settling on its own in a still house, nobody walking, recorded close and clearly audible, no voices, dry, intimate, close, natural home recording, no music, no reverb tail",
+      "duration": 1.5,
+      "cost": 17,
+      "at": "2026-10-14T19:54:09.238Z",
+      "review": "rejected"
+    },
+    "mem-bird-1.mp3": {
+      "key": "mem:bird",
+      "text": "a single small songbird singing one short bright phrase, then silence, recorded close with a directional microphone, clearly audible, no other birds, no wind, no traffic, no reverb, no music",
+      "duration": 2.5,
+      "cost": 28,
+      "at": "2026-10-14T19:54:11.053Z",
+      "review": "rejected"
+    },
+    "mem-bird-2.mp3": {
+      "key": "mem:bird",
+      "text": "two short sparrow chirps with a pause between them, then silence, recorded close with a directional microphone, clearly audible, no other birds, no wind, no traffic, no reverb, no music",
+      "duration": 2.5,
+      "cost": 28,
+      "at": "2026-10-14T19:54:12.685Z",
+      "review": "approved"
+    },
+    "mem-curtain-breeze-1.mp3": {
+      "key": "mem:curtain-breeze",
+      "text": "a light cotton curtain lifting once and falling back, a gentle cloth rustle that rises over about a second and settles over two, the hem brushing a wooden sill, recorded close and clearly audible, no wind noise, no rumble, no whoosh, no birds, dry, intimate, close, natural home recording, no music, no reverb tail",
+      "duration": 3,
+      "cost": 33,
+      "at": "2026-10-14T19:54:14.419Z",
+      "review": "approved"
+    },
+    "mem-eating-1.mp3": {
+      "key": "mem:eating",
+      "text": "one person happily eating cereal with milk from a ceramic bowl, a metal spoon dipping in and tapping the rim, a soft crunch of cereal, an easy unhurried rhythm, no voices, dry, intimate, close, natural home recording, no music, no reverb tail",
+      "duration": 3,
+      "cost": 33,
+      "at": "2026-10-14T23:01:09.570Z",
+      "review": "approved"
+    },
+    "mem-eating-2.mp3": {
+      "key": "mem:eating",
+      "text": "two people eating cereal together at a small kitchen table, two spoons clinking against two ceramic bowls at different moments, a little crunch, relaxed and companionable, no voices, dry, intimate, close, natural home recording, no music, no reverb tail",
+      "duration": 3,
+      "cost": 33,
+      "at": "2026-10-14T23:01:11.133Z",
+      "review": "approved"
+    },
+    "mem-eating-3.mp3": {
+      "key": "mem:eating",
+      "text": "dry cereal poured from a cardboard box into a ceramic bowl with a light rattle, then a short pour of milk, the start of a meal, no voices, dry, intimate, close, natural home recording, no music, no reverb tail",
+      "duration": 3,
+      "cost": 33,
+      "at": "2026-10-14T23:01:12.866Z",
+      "review": "rejected"
     }
   }
 }

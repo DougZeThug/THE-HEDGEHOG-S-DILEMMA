@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import dialogue from '../src/content/dialogue.json';
 import { PHRASE_BY_ID } from '../src/content/phrases';
 import {
-  applyBudget, buildManifest, classifyFailure, emptyLedger, mp3Info, performanceHash, planJobs, runJobs, spokenTags, validateDirection, wordErrorRate,
+  applyBudget, buildManifest, buildVignetteManifest, buildVignettePreview, classifyFailure, emptyLedger, mp3Info, performanceHash, planJobs, runJobs, spokenTags, validateDirection, wordErrorRate,
 } from '../scripts/dialogue-lib.mjs';
 
 const ROOT = join(__dirname, '..');
@@ -252,5 +252,61 @@ describe('the whole spoken corpus is cast', () => {
       expect(direction.performances.some((x: any) => x.id === p.variantOf), p.id).toBe(true);
       if (ledger.entries[p.id]?.review !== 'approved') expect(p.audition, p.id).toBe(true);
     }
+  });
+});
+
+describe('the vignettes\' recording direction', () => {
+  const vdir = JSON.parse(readFileSync('src/content/vignettes.dialogue.json', 'utf8'));
+  const vdata = JSON.parse(readFileSync('src/content/vignettes.json', 'utf8')) as { vignettes: { id: string; lines: { id: string; text: string }[] }[] };
+  const lineText = new Map(vdata.vignettes.flatMap((v) => v.lines.map((l) => [`${v.id}/${l.id}`, l.text] as const)));
+
+  it('says exactly the words written, never brightly (the artist: sad, like the wall lines kept)', () => {
+    expect(validateDirection(vdir, (_: string, p: { vignette: string; line: string }) => lineText.get(`${p.vignette}/${p.line}`), { sad: true })).toEqual([]);
+    const bad = { ...vdir, performances: [{ ...vdir.performances[0], input: `[laughing] ${vdir.performances[0].text}` }] };
+    expect(validateDirection(bad, (_: string, p: { vignette: string; line: string }) => lineText.get(`${p.vignette}/${p.line}`), { sad: true }).join()).toMatch(/too bright/);
+    // Whispered and close to tears is allowed now.
+    const close = { ...vdir, performances: [{ ...vdir.performances[0], input: `[whispering, close to tears] ${vdir.performances[0].text}` }] };
+    expect(validateDirection(close, (_: string, p: { vignette: string; line: string }) => lineText.get(`${p.vignette}/${p.line}`), { sad: true })).toEqual([]);
+  });
+
+  it('every line of every vignette has a take directed for it', () => {
+    const directed = new Set(vdir.performances.map((p: { vignette: string; line: string }) => `${p.vignette}/${p.line}`));
+    for (const k of lineText.keys()) expect(directed.has(k), k).toBe(true);
+  });
+
+  it('waits for the artist: a take reaches the room only once kept, never because it validated', () => {
+    const p = vdir.performances.find((x: { voice: string }) => vdir.voices[x.voice].voiceId);
+    const ledger = emptyLedger();
+    ledger.entries[p.id] = { status: 'validated' };
+    expect(buildVignetteManifest({ 'phrase:stay': ['a.mp3'] }, vdir, ledger)).toEqual({ 'phrase:stay': ['a.mp3'] });
+    ledger.entries[p.id].review = 'approved';
+    expect(buildVignetteManifest({}, vdir, ledger)[`vig:${p.vignette}:${p.line}`]).toEqual([p.file]);
+  });
+
+  it("the artist's previews hear every take not turned down; the room's manifest still only the kept", () => {
+    const [a, b, c] = vdir.performances;
+    const ledger = emptyLedger();
+    ledger.entries[a.id] = { status: 'validated' };
+    ledger.entries[b.id] = { status: 'needs-review' };
+    ledger.entries[c.id] = { status: 'validated', review: 'rejected' };
+    const files = Object.values(buildVignettePreview(vdir, ledger)).flat();
+    expect(files).toContain(a.file);
+    expect(files).toContain(b.file);
+    expect(files).not.toContain(c.file);
+    expect(Object.keys(buildVignetteManifest({}, vdir, ledger))).toHaveLength(0);
+  });
+
+  it('a designed voice not yet saved is never asked for (and costs nothing)', () => {
+    // As before the designs were saved: one of them without its voice ID.
+    const unsaved = { ...vdir, voices: { ...vdir.voices, 'small-voice': { ...vdir.voices['small-voice'], voiceId: null } } };
+    const { jobs, skipped } = planJobs(unsaved, emptyLedger());
+    expect(jobs.every((j: { perf: { voice: string } }) => unsaved.voices[j.perf.voice].voiceId)).toBe(true);
+    expect(skipped.some((s: { reason: string }) => /not saved/.test(s.reason))).toBe(true);
+  });
+
+  it('a transcript may spell "Okay" as "OK" without the take being marked wrong', () => {
+    expect(wordErrorRate('Okay.', 'OK.')).toBe(0);
+    expect(wordErrorRate("You alright? You've gone quiet.", "You all right? You've gone quiet")).toBe(0);
+    expect(wordErrorRate('Yeah. Tomorrow.', 'Yea, tomorrow.')).toBe(0);
   });
 });

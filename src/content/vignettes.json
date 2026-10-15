@@ -1,0 +1,1547 @@
+{
+  "$comment": "Vignettes: small remembered fragments (src/content/vignettes.ts, docs/vignettes.md, decisions in docs/reviews/2026-10-weight-of-absence.md). The only place their words are written. Times in seconds from the first sound; places are in the white room, fixed from where the visitor is as it begins.",
+  "vignettes": [
+    {
+      "id": "charger",
+      "title": "The charger",
+      "tone": "sad",
+      "intent": "An ordinary goodbye on an ordinary morning, said without looking up.",
+      "speakers": {
+        "other": {
+          "voice": "young",
+          "who": "someone leaving for the day"
+        },
+        "writer": {
+          "voice": "sarah",
+          "who": "the one who stays"
+        }
+      },
+      "anchor": {
+        "phrase": "ordinary"
+      },
+      "earliest": 150,
+      "arm": 2.5,
+      "commit": 1,
+      "lookBack": false,
+      "room": [
+        0.4,
+        2.2,
+        0.12
+      ],
+      "hush": 0.4,
+      "lines": [
+        {
+          "id": "charger",
+          "speaker": "other",
+          "text": "Have you seen my charger?"
+        },
+        {
+          "id": "toaster",
+          "speaker": "writer",
+          "text": "By the toaster."
+        },
+        {
+          "id": "tomorrow-okay",
+          "speaker": "other",
+          "text": "Okay, I'll see you tomorrow."
+        },
+        {
+          "id": "yeah",
+          "speaker": "writer",
+          "text": "Yeah. Tomorrow."
+        }
+      ],
+      "variants": {
+        "first": {
+          "span": 16.3,
+          "events": [
+            {
+              "at": 0,
+              "bed": "flat",
+              "asset": "synth:air",
+              "gainDb": -2,
+              "take": 4,
+              "fadeIn": 1,
+              "fadeOut": 3
+            },
+            {
+              "at": 0.4,
+              "line": "charger",
+              "place": {
+                "at": "beyond",
+                "d": 1.2
+              },
+              "lowpass": 2600
+            },
+            {
+              "at": 2.8,
+              "line": "toaster",
+              "place": {
+                "at": "self"
+              },
+              "dry": true
+            },
+            {
+              "at": 4.2,
+              "gap": "pause",
+              "seconds": 1.6
+            },
+            {
+              "at": 6.0,
+              "line": "tomorrow-okay",
+              "place": {
+                "at": "door"
+              }
+            },
+            {
+              "at": 8.5,
+              "line": "yeah",
+              "place": {
+                "at": "self"
+              },
+              "dry": true,
+              "reading": "distracted"
+            },
+            {
+              "at": 10.1,
+              "sfx": "door",
+              "asset": "sfx:door",
+              "place": {
+                "at": "door"
+              },
+              "gainDb": -8,
+              "caption": "[a door closes]"
+            },
+            {
+              "at": 10.9,
+              "gap": "silence",
+              "seconds": 5
+            }
+          ]
+        },
+        "again": {
+          "span": 14.8,
+          "events": [
+            {
+              "at": 0,
+              "bed": "flat",
+              "asset": "synth:air",
+              "gainDb": -2,
+              "take": 4,
+              "fadeIn": 1,
+              "fadeOut": 3
+            },
+            {
+              "at": 0.4,
+              "line": "charger",
+              "place": {
+                "at": "beyond",
+                "d": 1.2
+              },
+              "lowpass": 2600
+            },
+            {
+              "at": 2.8,
+              "line": "toaster",
+              "place": {
+                "at": "self"
+              },
+              "dry": true
+            },
+            {
+              "at": 4.2,
+              "gap": "pause",
+              "seconds": 1.6
+            },
+            {
+              "at": 6.0,
+              "line": "tomorrow-okay",
+              "place": {
+                "at": "door"
+              }
+            },
+            {
+              "at": 8.4,
+              "sfx": "door",
+              "asset": "sfx:door",
+              "place": {
+                "at": "door"
+              },
+              "gainDb": -8,
+              "caption": "[a door closes]"
+            },
+            {
+              "at": 9.0,
+              "gap": "wait",
+              "seconds": 5
+            }
+          ]
+        }
+      },
+      "rules": [],
+      "echoes": [
+        {
+          "id": "tomorrow",
+          "after": [
+            60,
+            180
+          ],
+          "when": {
+            "notFacing": true
+          },
+          "write": {
+            "text": "tomorrow",
+            "hand": "faint",
+            "size": "s",
+            "otherWall": true
+          }
+        }
+      ],
+      "describe": "An ordinary morning, heard: someone looking for a charger, leaving for the day.",
+      "coldOpen": true
+    },
+    {
+      "id": "back-seat",
+      "title": "Alone together",
+      "tone": "sad",
+      "intent": "Two people side by side in a car at night; a question asked, answered, and not believed.",
+      "speakers": {
+        "asker": {
+          "voice": "sarah",
+          "who": "the passenger"
+        },
+        "driver": {
+          "voice": "restrained",
+          "who": "the driver"
+        }
+      },
+      "anchor": {
+        "phrase": "alone-with-you"
+      },
+      "earliest": 240,
+      "arm": 2.5,
+      "commit": 1,
+      "lookBack": false,
+      "room": [
+        0.25,
+        1.2,
+        0.08
+      ],
+      "hush": 0.45,
+      "offer": {
+        "phases": [
+          "contradiction",
+          "transform"
+        ],
+        "apart": 120
+      },
+      "lines": [
+        {
+          "id": "angry",
+          "speaker": "asker",
+          "text": "Are you angry with me?"
+        },
+        {
+          "id": "no",
+          "speaker": "driver",
+          "text": "No."
+        },
+        {
+          "id": "okay",
+          "speaker": "asker",
+          "text": "Okay."
+        }
+      ],
+      "variants": {
+        "first": {
+          "span": 15,
+          "events": [
+            {
+              "at": 0,
+              "bed": "road",
+              "asset": "synth:road",
+              "gainDb": 10,
+              "fadeIn": 2,
+              "fadeOut": 2.5,
+              "caption": "[a car, at night]"
+            },
+            {
+              "at": 1.6,
+              "line": "angry",
+              "place": {
+                "at": "left",
+                "d": 0.5
+              }
+            },
+            {
+              "at": 4.2,
+              "line": "no",
+              "place": {
+                "at": "right",
+                "d": 0.5
+              },
+              "reading": "quick"
+            },
+            {
+              "at": 5.4,
+              "sfx": "indicator",
+              "asset": "synth:indicator",
+              "place": {
+                "at": "right",
+                "d": 0.4,
+                "h": 0.9
+              },
+              "gainDb": -16,
+              "caption": "[the indicator ticking]"
+            },
+            {
+              "at": 5.4,
+              "gap": "pause",
+              "seconds": 1.6
+            },
+            {
+              "at": 7.0,
+              "line": "okay",
+              "place": {
+                "at": "left",
+                "d": 0.5
+              }
+            },
+            {
+              "at": 8.0,
+              "gap": "wait",
+              "seconds": 6
+            }
+          ]
+        },
+        "pause": {
+          "span": 17,
+          "events": [
+            {
+              "at": 0,
+              "bed": "road",
+              "asset": "synth:road",
+              "gainDb": 10,
+              "fadeIn": 2,
+              "fadeOut": 2.5,
+              "caption": "[a car, at night]"
+            },
+            {
+              "at": 1.6,
+              "line": "angry",
+              "place": {
+                "at": "left",
+                "d": 0.5
+              }
+            },
+            {
+              "at": 3.6,
+              "gap": "pause",
+              "seconds": 3
+            },
+            {
+              "at": 6.8,
+              "line": "no",
+              "place": {
+                "at": "right",
+                "d": 0.5
+              },
+              "reading": "tired"
+            },
+            {
+              "at": 8.0,
+              "sfx": "indicator",
+              "asset": "synth:indicator",
+              "place": {
+                "at": "right",
+                "d": 0.4,
+                "h": 0.9
+              },
+              "gainDb": -16,
+              "caption": "[the indicator ticking]"
+            },
+            {
+              "at": 9.6,
+              "line": "okay",
+              "place": {
+                "at": "left",
+                "d": 0.5
+              }
+            },
+            {
+              "at": 10.6,
+              "gap": "wait",
+              "seconds": 6
+            }
+          ]
+        }
+      },
+      "rules": [
+        {
+          "when": {
+            "seen": [
+              1,
+              99
+            ]
+          },
+          "variant": "pause"
+        },
+        {
+          "when": {
+            "motif": "distance"
+          },
+          "variant": "pause"
+        }
+      ],
+      "describe": "Inside a car at night, the indicator ticking; two people, side by side."
+    },
+    {
+      "id": "practice",
+      "title": "Practice",
+      "tone": "sad",
+      "intent": "Rehearsing a call that is never made: wanting to be found while staying hard to reach.",
+      "speakers": {
+        "writer": {
+          "voice": "sarah",
+          "who": "someone, alone"
+        }
+      },
+      "anchor": {
+        "phrase": "this-bit"
+      },
+      "earliest": 150,
+      "arm": 2.5,
+      "commit": 1,
+      "lookBack": false,
+      "room": [
+        0.2,
+        1,
+        0.04
+      ],
+      "hush": 0.5,
+      "lines": [
+        {
+          "id": "hey",
+          "speaker": "writer",
+          "text": "Hey. It's me."
+        },
+        {
+          "id": "hiya",
+          "speaker": "writer",
+          "text": "Hiya. …No."
+        },
+        {
+          "id": "again",
+          "speaker": "writer",
+          "text": "Hey. It's me. Nothing's wrong. I just—"
+        }
+      ],
+      "variants": {
+        "first": {
+          "span": 18,
+          "events": [
+            {
+              "at": 0,
+              "bed": "room",
+              "asset": "synth:air",
+              "gainDb": -6,
+              "take": 6,
+              "fadeIn": 1.5,
+              "fadeOut": 3
+            },
+            {
+              "at": 1.0,
+              "line": "hey",
+              "place": {
+                "at": "close"
+              },
+              "dry": true
+            },
+            {
+              "at": 2.8,
+              "gap": "pause",
+              "seconds": 2
+            },
+            {
+              "at": 4.8,
+              "line": "hiya",
+              "place": {
+                "at": "close"
+              },
+              "dry": true
+            },
+            {
+              "at": 7.0,
+              "gap": "pause",
+              "seconds": 3
+            },
+            {
+              "at": 10.0,
+              "line": "again",
+              "place": {
+                "at": "close"
+              },
+              "dry": true
+            },
+            {
+              "at": 13.6,
+              "gap": "silence",
+              "seconds": 4.4
+            }
+          ]
+        },
+        "again": {
+          "span": 10,
+          "events": [
+            {
+              "at": 0,
+              "bed": "room",
+              "asset": "synth:air",
+              "gainDb": -6,
+              "take": 6,
+              "fadeIn": 1.5,
+              "fadeOut": 3
+            },
+            {
+              "at": 1.0,
+              "line": "hey",
+              "place": {
+                "at": "close"
+              },
+              "dry": true
+            },
+            {
+              "at": 3.0,
+              "gap": "silence",
+              "seconds": 6
+            }
+          ]
+        }
+      },
+      "rules": [],
+      "describe": "Someone alone, close by, trying out how to begin a phone call.",
+      "offer": {
+        "phases": [
+          "contradiction",
+          "transform"
+        ],
+        "apart": 120
+      }
+    },
+    {
+      "id": "washing-up",
+      "title": "Washing up",
+      "tone": "sad",
+      "intent": "Kindness felt as intrusion; a boundary kept, and regretted only once it is respected.",
+      "speakers": {
+        "other": {
+          "voice": "bill",
+          "who": "someone who came round"
+        },
+        "writer": {
+          "voice": "sarah",
+          "who": "the one being helped"
+        }
+      },
+      "anchor": {
+        "phrase": "far-enough"
+      },
+      "earliest": 240,
+      "arm": 2.5,
+      "commit": 1,
+      "lookBack": false,
+      "room": [
+        0.45,
+        2.4,
+        0.12
+      ],
+      "hush": 0.4,
+      "lines": [
+        {
+          "id": "done",
+          "speaker": "other",
+          "text": "I did your washing up."
+        },
+        {
+          "id": "dont",
+          "speaker": "writer",
+          "text": "You don't have to keep doing that."
+        },
+        {
+          "id": "what",
+          "speaker": "other",
+          "text": "Doing what?"
+        },
+        {
+          "id": "thanks",
+          "speaker": "writer",
+          "text": "…Thank you."
+        }
+      ],
+      "variants": {
+        "first": {
+          "span": 15,
+          "events": [
+            {
+              "at": 0,
+              "bed": "kitchen",
+              "asset": "synth:air",
+              "gainDb": -4,
+              "take": 5,
+              "fadeIn": 1,
+              "fadeOut": 3
+            },
+            {
+              "at": 0.8,
+              "line": "done",
+              "place": {
+                "at": "left",
+                "d": 1.2
+              }
+            },
+            {
+              "at": 3.2,
+              "line": "dont",
+              "place": {
+                "at": "self"
+              },
+              "dry": true,
+              "reading": "light"
+            },
+            {
+              "at": 5.6,
+              "line": "what",
+              "place": {
+                "at": "left",
+                "d": 1.2
+              }
+            },
+            {
+              "at": 7.0,
+              "gap": "silence",
+              "seconds": 5
+            },
+            {
+              "at": 9.6,
+              "sfx": "drip",
+              "asset": "synth:drip",
+              "place": {
+                "at": "left",
+                "d": 1.4,
+                "h": 0.9
+              },
+              "gainDb": -8,
+              "caption": "[a tap drips]"
+            },
+            {
+              "at": 12.5,
+              "fx": {
+                "kind": "recede",
+                "phraseId": "far-enough",
+                "amount": 1,
+                "seconds": 0
+              }
+            }
+          ]
+        },
+        "again": {
+          "span": 18,
+          "events": [
+            {
+              "at": 0,
+              "bed": "kitchen",
+              "asset": "synth:air",
+              "gainDb": -4,
+              "take": 5,
+              "fadeIn": 1,
+              "fadeOut": 3
+            },
+            {
+              "at": 0.8,
+              "line": "done",
+              "place": {
+                "at": "left",
+                "d": 1.2
+              }
+            },
+            {
+              "at": 3.2,
+              "line": "dont",
+              "place": {
+                "at": "self"
+              },
+              "dry": true,
+              "reading": "tired"
+            },
+            {
+              "at": 5.6,
+              "line": "what",
+              "place": {
+                "at": "left",
+                "d": 1.2
+              }
+            },
+            {
+              "at": 7.0,
+              "gap": "silence",
+              "seconds": 6
+            },
+            {
+              "at": 13.4,
+              "line": "thanks",
+              "place": {
+                "at": "beyond",
+                "d": 1.0
+              },
+              "lowpass": 3200
+            },
+            {
+              "at": 15.5,
+              "fx": {
+                "kind": "recede",
+                "phraseId": "far-enough",
+                "amount": 1,
+                "seconds": 0
+              }
+            }
+          ]
+        }
+      },
+      "rules": [],
+      "describe": "A kitchen; someone has done the washing up, unasked."
+    },
+    {
+      "id": "five-minutes",
+      "title": "Just for a minute",
+      "tone": "sad",
+      "intent": "A child asks someone to stay; the answer is kind, and already leaving.",
+      "speakers": {
+        "child": {
+          "voice": "small-voice",
+          "who": "the writer, small, remembered"
+        },
+        "parent": {
+          "voice": "matilda",
+          "who": "whoever put them to bed"
+        }
+      },
+      "anchor": {
+        "chair": {
+          "within": 1.15,
+          "still": 8
+        }
+      },
+      "afterFinished": "stay",
+      "earliest": 150,
+      "arm": 0,
+      "commit": 0,
+      "lookBack": false,
+      "room": [
+        0.3,
+        1.4,
+        0.08
+      ],
+      "hush": 0.5,
+      "lines": [
+        {
+          "id": "stay",
+          "speaker": "child",
+          "text": "Can you stay until I fall asleep?"
+        },
+        {
+          "id": "minute",
+          "speaker": "parent",
+          "text": "Just for a minute."
+        },
+        {
+          "id": "promise",
+          "speaker": "child",
+          "text": "Promise?"
+        },
+        {
+          "id": "asleep",
+          "speaker": "parent",
+          "text": "Oh— I thought you'd be asleep."
+        }
+      ],
+      "variants": {
+        "first": {
+          "span": 29,
+          "events": [
+            {
+              "at": 0,
+              "fx": {
+                "kind": "dim",
+                "to": 0.35,
+                "seconds": 27.5
+              }
+            },
+            {
+              "at": 0,
+              "bed": "night",
+              "asset": "synth:air",
+              "gainDb": -10,
+              "take": 8,
+              "fadeIn": 3,
+              "fadeOut": 4
+            },
+            {
+              "at": 4.5,
+              "line": "stay",
+              "place": {
+                "at": "chair",
+                "h": 0.6
+              }
+            },
+            {
+              "at": 7.4,
+              "line": "minute",
+              "place": {
+                "at": "right",
+                "d": 0.7,
+                "h": 1.1
+              },
+              "reading": "fond"
+            },
+            {
+              "at": 9.6,
+              "line": "promise",
+              "place": {
+                "at": "chair",
+                "h": 0.6
+              }
+            },
+            {
+              "at": 10.6,
+              "gap": "wait",
+              "seconds": 6
+            },
+            {
+              "at": 14.0,
+              "sfx": "creak",
+              "asset": "sfx:chair-creak",
+              "place": {
+                "at": "chair",
+                "h": 0.5
+              },
+              "gainDb": -10,
+              "caption": "[the chair creaks]"
+            },
+            {
+              "at": 17.0,
+              "gap": "silence",
+              "seconds": 5
+            },
+            {
+              "at": 23.0,
+              "line": "asleep",
+              "place": {
+                "at": "door"
+              }
+            }
+          ]
+        },
+        "again": {
+          "span": 17.5,
+          "events": [
+            {
+              "at": 0,
+              "fx": {
+                "kind": "dim",
+                "to": 0.5,
+                "seconds": 17
+              }
+            },
+            {
+              "at": 0,
+              "bed": "night",
+              "asset": "synth:air",
+              "gainDb": -10,
+              "take": 8,
+              "fadeIn": 3,
+              "fadeOut": 4
+            },
+            {
+              "at": 6.0,
+              "sfx": "creak",
+              "asset": "sfx:chair-creak",
+              "place": {
+                "at": "chair",
+                "h": 0.5
+              },
+              "gainDb": -10,
+              "caption": "[the chair creaks]"
+            },
+            {
+              "at": 7.0,
+              "gap": "silence",
+              "seconds": 7
+            }
+          ]
+        }
+      },
+      "rules": [],
+      "describe": "The room goes down to the chair alone, as a bedroom does at night.",
+      "maxSeen": 2
+    },
+    {
+      "id": "a-bag",
+      "title": "A bag for that",
+      "tone": "bittersweet",
+      "intent": "A stranger's ordinary kindness lands too close, and is refused politely.",
+      "speakers": {
+        "assistant": {
+          "voice": "older-woman",
+          "who": "a shop assistant, a stranger"
+        },
+        "writer": {
+          "voice": "sarah",
+          "who": "a customer"
+        }
+      },
+      "anchor": {
+        "phrase": "jumper"
+      },
+      "earliest": 150,
+      "arm": 2.5,
+      "commit": 1,
+      "lookBack": false,
+      "room": [
+        0.5,
+        2.6,
+        0.14
+      ],
+      "hush": 0.45,
+      "lines": [
+        {
+          "id": "bag",
+          "speaker": "assistant",
+          "text": "Do you want a bag for that, love?"
+        },
+        {
+          "id": "sorry",
+          "speaker": "writer",
+          "text": "Sorry. No. Thank you."
+        }
+      ],
+      "variants": {
+        "first": {
+          "span": 15,
+          "events": [
+            {
+              "at": 0,
+              "bed": "shop",
+              "asset": "synth:fridge",
+              "gainDb": 6,
+              "fadeIn": 2,
+              "fadeOut": 3,
+              "caption": "[a small shop]"
+            },
+            {
+              "at": 1.4,
+              "sfx": "till",
+              "asset": "synth:till",
+              "place": {
+                "at": "left",
+                "d": 0.8,
+                "h": 1.0
+              },
+              "gainDb": -14,
+              "caption": "[the till beeps]"
+            },
+            {
+              "at": 3.2,
+              "line": "bag",
+              "place": {
+                "at": "left",
+                "d": 0.8
+              }
+            },
+            {
+              "at": 5.4,
+              "gap": "pause",
+              "seconds": 3
+            },
+            {
+              "at": 8.6,
+              "line": "sorry",
+              "place": {
+                "at": "self"
+              },
+              "dry": true
+            },
+            {
+              "at": 11.0,
+              "sfx": "till2",
+              "asset": "synth:till",
+              "place": {
+                "at": "left",
+                "d": 0.8,
+                "h": 1.0
+              },
+              "gainDb": -14,
+              "caption": "[the till beeps]"
+            }
+          ]
+        },
+        "again": {
+          "span": 13,
+          "events": [
+            {
+              "at": 0,
+              "bed": "shop",
+              "asset": "synth:fridge",
+              "gainDb": 6,
+              "fadeIn": 2,
+              "fadeOut": 3,
+              "caption": "[a small shop]"
+            },
+            {
+              "at": 1.4,
+              "sfx": "till",
+              "asset": "synth:till",
+              "place": {
+                "at": "left",
+                "d": 0.8,
+                "h": 1.0
+              },
+              "gainDb": -14,
+              "caption": "[the till beeps]"
+            },
+            {
+              "at": 3.2,
+              "line": "bag",
+              "place": {
+                "at": "left",
+                "d": 0.8
+              }
+            },
+            {
+              "at": 5.4,
+              "gap": "wait",
+              "seconds": 5
+            },
+            {
+              "at": 11.0,
+              "sfx": "till2",
+              "asset": "synth:till",
+              "place": {
+                "at": "left",
+                "d": 0.8,
+                "h": 1.0
+              },
+              "gainDb": -14,
+              "caption": "[the till beeps]"
+            }
+          ]
+        }
+      },
+      "rules": [],
+      "describe": "A small shop, a fridge humming, someone at the till.",
+      "offer": {
+        "phases": [
+          "contradiction",
+          "transform"
+        ],
+        "apart": 120
+      }
+    },
+    {
+      "id": "come-over",
+      "title": "Come over",
+      "tone": "bittersweet",
+      "intent": "Declining is easy while someone keeps asking; the loss is when they stop.",
+      "speakers": {
+        "friend": {
+          "voice": "warm",
+          "who": "an old friend"
+        },
+        "writer": {
+          "voice": "sarah",
+          "who": "the one who never comes"
+        }
+      },
+      "anchor": {
+        "phrase": "good-day"
+      },
+      "earliest": 150,
+      "arm": 2.5,
+      "commit": 1,
+      "lookBack": false,
+      "room": [
+        0.35,
+        2,
+        0.1
+      ],
+      "hush": 0.35,
+      "lines": [
+        {
+          "id": "come",
+          "speaker": "friend",
+          "text": "You should come over sometime."
+        },
+        {
+          "id": "will",
+          "speaker": "writer",
+          "text": "Yeah. I will."
+        },
+        {
+          "id": "always",
+          "speaker": "friend",
+          "text": "You always say that."
+        },
+        {
+          "id": "okay",
+          "speaker": "friend",
+          "text": "Okay."
+        }
+      ],
+      "variants": {
+        "first": {
+          "span": 10.5,
+          "events": [
+            {
+              "at": 0,
+              "bed": "street",
+              "asset": "synth:air",
+              "gainDb": -6,
+              "take": 2,
+              "fadeIn": 1,
+              "fadeOut": 2.5
+            },
+            {
+              "at": 0.5,
+              "line": "come",
+              "place": {
+                "at": "right",
+                "d": 0.9
+              }
+            },
+            {
+              "at": 3.0,
+              "line": "will",
+              "place": {
+                "at": "self"
+              },
+              "dry": true,
+              "reading": "automatic"
+            },
+            {
+              "at": 4.4,
+              "gap": "pause",
+              "seconds": 1.2
+            },
+            {
+              "at": 5.6,
+              "line": "always",
+              "place": {
+                "at": "right",
+                "d": 0.9
+              }
+            }
+          ]
+        },
+        "okay": {
+          "span": 10,
+          "events": [
+            {
+              "at": 0,
+              "bed": "street",
+              "asset": "synth:air",
+              "gainDb": -6,
+              "take": 2,
+              "fadeIn": 1,
+              "fadeOut": 2.5
+            },
+            {
+              "at": 0.5,
+              "line": "come",
+              "place": {
+                "at": "right",
+                "d": 0.9
+              }
+            },
+            {
+              "at": 3.0,
+              "line": "will",
+              "place": {
+                "at": "self"
+              },
+              "dry": true,
+              "reading": "unsure"
+            },
+            {
+              "at": 4.4,
+              "gap": "pause",
+              "seconds": 2.2
+            },
+            {
+              "at": 6.6,
+              "line": "okay",
+              "place": {
+                "at": "right",
+                "d": 0.9
+              }
+            }
+          ]
+        }
+      },
+      "rules": [
+        {
+          "when": {
+            "seen": [
+              1,
+              99
+            ]
+          },
+          "variant": "okay"
+        },
+        {
+          "when": {
+            "field": {
+              "solitude": [
+                0.6,
+                1
+              ]
+            }
+          },
+          "variant": "okay"
+        }
+      ],
+      "describe": "Two old friends parting in the street."
+    },
+    {
+      "id": "biscuit",
+      "title": "The last one",
+      "tone": "warm",
+      "intent": "An ordinary afternoon and a habit of giving way, love and self-erasure at once; happy, and gone.",
+      "speakers": {
+        "other": {
+          "voice": "liam",
+          "who": "someone across the table"
+        },
+        "writer": {
+          "voice": "sarah",
+          "who": "the one who lets them"
+        }
+      },
+      "anchor": {
+        "phrase": "laugh-breathe"
+      },
+      "earliest": 150,
+      "arm": 2.5,
+      "commit": 1,
+      "lookBack": false,
+      "room": [
+        0.4,
+        2.2,
+        0.12
+      ],
+      "hush": 0.35,
+      "lines": [
+        {
+          "id": "last",
+          "speaker": "other",
+          "text": "Is that the last one?"
+        },
+        {
+          "id": "have",
+          "speaker": "writer",
+          "text": "Have it."
+        },
+        {
+          "id": "halves",
+          "speaker": "other",
+          "text": "Go halves."
+        },
+        {
+          "id": "just",
+          "speaker": "writer",
+          "text": "Just have it."
+        },
+        {
+          "id": "goon",
+          "speaker": "writer",
+          "text": "…Go on, then."
+        }
+      ],
+      "variants": {
+        "first": {
+          "span": 9.5,
+          "events": [
+            {
+              "at": 0,
+              "bed": "afternoon",
+              "asset": "synth:air",
+              "gainDb": -6,
+              "take": 3,
+              "fadeIn": 1,
+              "fadeOut": 2.5
+            },
+            {
+              "at": 0.4,
+              "sfx": "packet",
+              "asset": "synth:rustle",
+              "place": {
+                "at": "right",
+                "d": 0.7,
+                "h": 0.9
+              },
+              "gainDb": -12,
+              "caption": "[a biscuit packet]"
+            },
+            {
+              "at": 1.4,
+              "line": "last",
+              "place": {
+                "at": "right",
+                "d": 0.7
+              }
+            },
+            {
+              "at": 3.1,
+              "line": "have",
+              "place": {
+                "at": "self"
+              },
+              "dry": true
+            },
+            {
+              "at": 4.5,
+              "line": "halves",
+              "place": {
+                "at": "right",
+                "d": 0.7
+              }
+            },
+            {
+              "at": 6.0,
+              "line": "just",
+              "place": {
+                "at": "self"
+              },
+              "dry": true
+            }
+          ]
+        },
+        "again": {
+          "span": 9.5,
+          "events": [
+            {
+              "at": 0,
+              "bed": "afternoon",
+              "asset": "synth:air",
+              "gainDb": -6,
+              "take": 3,
+              "fadeIn": 1,
+              "fadeOut": 2.5
+            },
+            {
+              "at": 0.4,
+              "sfx": "packet",
+              "asset": "synth:rustle",
+              "place": {
+                "at": "right",
+                "d": 0.7,
+                "h": 0.9
+              },
+              "gainDb": -12,
+              "caption": "[a biscuit packet]"
+            },
+            {
+              "at": 1.4,
+              "line": "last",
+              "place": {
+                "at": "right",
+                "d": 0.7
+              }
+            },
+            {
+              "at": 3.1,
+              "line": "have",
+              "place": {
+                "at": "self"
+              },
+              "dry": true
+            },
+            {
+              "at": 4.5,
+              "line": "halves",
+              "place": {
+                "at": "right",
+                "d": 0.7
+              }
+            },
+            {
+              "at": 6.0,
+              "line": "goon",
+              "place": {
+                "at": "self"
+              },
+              "dry": true
+            }
+          ]
+        }
+      },
+      "rules": [],
+      "describe": "An afternoon at a table, a biscuit packet nearly empty."
+    },
+    {
+      "id": "gone-quiet",
+      "title": "Gone quiet",
+      "tone": "sad",
+      "intent": "Present but invisible at a party; the second time, nobody even asks.",
+      "speakers": {
+        "friend": {
+          "voice": "warm",
+          "who": "a friend from the party"
+        },
+        "writer": {
+          "voice": "sarah",
+          "who": "the one whose party it is"
+        }
+      },
+      "anchor": {
+        "phrase": "lonely-birthday"
+      },
+      "earliest": 150,
+      "arm": 2.5,
+      "commit": 1,
+      "lookBack": false,
+      "room": [
+        0.6,
+        2.8,
+        0.16
+      ],
+      "hush": 0.45,
+      "lines": [
+        {
+          "id": "quiet",
+          "speaker": "friend",
+          "text": "You alright? You've gone quiet."
+        },
+        {
+          "id": "fine",
+          "speaker": "writer",
+          "text": "I'm fine. It's just loud."
+        }
+      ],
+      "variants": {
+        "first": {
+          "span": 13,
+          "events": [
+            {
+              "at": 0,
+              "bed": "party",
+              "asset": "vf-two-voices",
+              "gainDb": 19,
+              "take": 1,
+              "fadeIn": 1.5,
+              "fadeOut": 0.4,
+              "lowpass": 1200,
+              "caption": "[a party, through the wall]",
+              "place": {
+                "at": "beyond",
+                "d": 1.2
+              }
+            },
+            {
+              "at": 1.6,
+              "sfx": "laughter",
+              "asset": "vf-laugh-next-room",
+              "place": {
+                "at": "beyond",
+                "d": 1.6
+              },
+              "gainDb": -2,
+              "lowpass": 1400,
+              "caption": "[laughter, through the wall]"
+            },
+            {
+              "at": 4.6,
+              "line": "quiet",
+              "place": {
+                "at": "right",
+                "d": 0.4
+              }
+            },
+            {
+              "at": 7.0,
+              "line": "fine",
+              "place": {
+                "at": "self"
+              },
+              "dry": true
+            }
+          ]
+        },
+        "nobody": {
+          "span": 14,
+          "events": [
+            {
+              "at": 0,
+              "bed": "party",
+              "asset": "vf-two-voices",
+              "gainDb": 19,
+              "take": 1,
+              "fadeIn": 1.5,
+              "fadeOut": 0.4,
+              "lowpass": 1200,
+              "caption": "[a party, through the wall]",
+              "place": {
+                "at": "beyond",
+                "d": 1.2
+              }
+            },
+            {
+              "at": 1.6,
+              "sfx": "laughter",
+              "asset": "vf-laugh-next-room",
+              "place": {
+                "at": "beyond",
+                "d": 1.6
+              },
+              "gainDb": -2,
+              "lowpass": 1400,
+              "caption": "[laughter, through the wall]"
+            },
+            {
+              "at": 7.5,
+              "sfx": "laughter2",
+              "asset": "vf-laugh-next-room",
+              "place": {
+                "at": "beyond",
+                "d": 2.2
+              },
+              "gainDb": 5,
+              "lowpass": 1300,
+              "take": 1,
+              "caption": "[laughter, further off]"
+            },
+            {
+              "at": 8.5,
+              "fx": {
+                "kind": "loseWord",
+                "phraseId": "lonely-birthday",
+                "word": "loneliest",
+                "seconds": 5.5
+              }
+            }
+          ]
+        }
+      },
+      "rules": [
+        {
+          "when": {
+            "seen": [
+              1,
+              99
+            ]
+          },
+          "variant": "nobody"
+        }
+      ],
+      "describe": "A party heard through a wall, from the hallway outside it."
+    }
+  ]
+}

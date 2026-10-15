@@ -1,0 +1,83 @@
+{
+  "size": [
+    0.9,
+    0.6
+  ],
+  "band": 0.17,
+  "pane": {
+    "x": -0.1,
+    "y": -0.16,
+    "w": 0.3,
+    "h": 0.16,
+    "shear": -0.35,
+    "transom": 0.03,
+    "mullion": 0.04
+  },
+  "register": null,
+  "variants": {
+    "morning": [
+      {
+        "name": "room",
+        "kind": "pigment",
+        "file": "morning/room",
+        "source": "code-painted stand-in"
+      },
+      {
+        "name": "curtain",
+        "kind": "pigment",
+        "file": "morning/curtain",
+        "source": "code-painted stand-in"
+      },
+      {
+        "name": "bed",
+        "kind": "pigment",
+        "file": "morning/bed",
+        "source": "code-painted stand-in"
+      },
+      {
+        "name": "pencil",
+        "kind": "sketch",
+        "file": "morning/pencil",
+        "source": "code-painted stand-in"
+      },
+      {
+        "name": "sun",
+        "kind": "light",
+        "file": "morning/sun",
+        "source": "code-painted stand-in"
+      }
+    ],
+    "dusk": [
+      {
+        "name": "room",
+        "kind": "pigment",
+        "file": "morning/room",
+        "source": "code-painted stand-in"
+      },
+      {
+        "name": "curtain",
+        "kind": "pigment",
+        "file": "morning/curtain",
+        "source": "code-painted stand-in"
+      },
+      {
+        "name": "bed",
+        "kind": "pigment",
+        "file": "morning/bed",
+        "source": "code-painted stand-in"
+      },
+      {
+        "name": "pencil",
+        "kind": "sketch",
+        "file": "morning/pencil",
+        "source": "code-painted stand-in"
+      },
+      {
+        "name": "sun",
+        "kind": "light",
+        "file": "dusk/sun",
+        "source": "code-painted stand-in"
+      }
+    ]
+  }
+}

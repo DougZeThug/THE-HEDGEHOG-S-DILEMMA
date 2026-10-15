@@ -1,7 +1,9 @@
 import { DRAWING_BY_ID } from '../../src/content/drawings';
+import { VIGNETTE_BY_ID } from '../../src/content/vignettes';
 import { Director } from '../../src/state/Director';
 import { OPENING_WRITTEN, OPENING_SPOKEN, OPENING_UNFINISHED } from '../../src/state/OpeningScore';
 import { PHRASE_BY_ID } from '../../src/content/phrases';
+import { Rng } from '../../src/core/rng';
 import type { Surface } from '../../src/content/types';
 import type { Cue, TimedCue } from '../../src/state/cues';
 import type { Persona, Frame } from './personas';
@@ -34,9 +36,14 @@ export interface Development {
  * migration, recontext, music, life next door, situations' own ambience, and the room's
  * filler when it is waiting (sounds, writing behind you) — is the room's own life.
  */
-const RESPONSIVE = /^(finish-|accumulate-turn|accumulate-read|encounter:|first-approach|near-|long-near|still-|still-voice|withdraw-|kneel|motif-|tap|respond-line|respond-chair|respond-still|voice-attention|rehear|contribution|sit:residue|sit:listening|withhold)/;
+const RESPONSIVE = /^(finish-|accumulate-turn|accumulate-read|encounter:|first-approach|near-|long-near|still-|still-voice|withdraw-|kneel|motif-|tap|respond-line|respond-chair|respond-still|voice-attention|rehear|contribution|sit:residue|sit:listening|withhold|vignette|echo:)/;
 
 const HALF = 3.2;
+
+const vignetteSpan = (id: string, variant: string) => {
+  const v = VIGNETTE_BY_ID.get(id);
+  return (v?.variants[variant] ?? v?.variants.first)?.span ?? 20;
+};
 
 export function facingOf(yaw: number): Surface {
   const dx = -Math.sin(yaw), dz = -Math.cos(yaw);
@@ -84,6 +91,12 @@ function classify(cue: Cue): { kind: Kind; label: string; recorded: boolean; sur
       return { kind: 'light', label: cue.type, recorded: false };
     case 'memory':
       return { kind: 'light', label: `memory ${cue.phraseId}`, recorded: false, surface: PHRASE_BY_ID.get(cue.phraseId)?.surface };
+    case 'memory-scene':
+      // It opens on the line being looked at, wherever that is written: always seen.
+      return { kind: 'light', label: `memory-scene ${cue.id}`, recorded: false };
+    case 'vignette':
+      // Heard: voices (recorded: only approved vignettes ever play in the room).
+      return { kind: 'voice', label: `vignette ${cue.id}`, recorded: true };
     case 'chairTurn':
     case 'chairNudge':
       return { kind: 'chair', label: cue.type, recorded: false };
@@ -133,13 +146,42 @@ export function visit(p: Persona, seconds: number, seed: number, dt = 0.1): Visi
   const phases: { phase: string; t: number }[] = [];
   let phase = d.phase;
   const tapper = d as unknown as { tapped?: (t: { phraseId?: string; chair?: boolean }) => boolean };
+  // A living memory, as the App plays it: it runs to its natural close (about 22 s, then its
+  // residue) unless the visitor leaves, and then reports back. Seen while it plays: it opens on
+  // the line being looked at.
+  let memoryEndsAt: { id: string; at: number } | null = null;
+  // Where each line is actually written (the first lines are often re-written on the wall the
+  // visitor faces, not their own), and a visitor's habit of glancing at writing that appears
+  // in front of them. The chance is fixed here, before any memory was measured with it:
+  // 0.6 at a desk, 0.4 on a phone (a small screen and a thumb busy walking).
+  const writtenOn = new Map<string, Surface>();
+  for (const id of OPENING_WRITTEN) writtenOn.set(id, PHRASE_BY_ID.get(id)!.surface);
+  const noticeRng = new Rng(seed * 7919 + 13);
+  // (NOTICE=0…1 overrides it, to see how much a result leans on this assumption.)
+  const noticeChance = process.env.NOTICE !== undefined ? Number(process.env.NOTICE) : p.device === 'phone' ? 0.4 : 0.6;
+  let notice: { id: string; until: number } | null = null;
   for (let t = 0; t < seconds; t += dt) {
+    if (memoryEndsAt && t >= memoryEndsAt.at) {
+      d.memoryEnded(memoryEndsAt.id, true, true);
+      memoryEndsAt = null;
+    }
     const f = p.frame(t);
     if (f.tap && tapper.tapped) taps += tapper.tapped(f.tap.chair ? { chair: true } : { phraseId: f.tap.phrase }) ? 1 : 0;
     const facing = facingOf(f.yaw);
+    if (notice && (t >= notice.until || facing !== writtenOn.get(notice.id))) notice = null;
+    const gaze = notice ? notice.id : readable(d, f.gaze, facing, writtenOn);
     const cues: TimedCue[] = d.tick(dt, {
-      x: f.x, z: f.z, yaw: f.yaw, pitch: f.pitch, gazePhraseId: readable(d, f.gaze), gazeChair: f.gazeChair, nearSurface: nearWall(f.x, f.z), kneeling: f.kneeling,
+      x: f.x, z: f.z, yaw: f.yaw, pitch: f.pitch, gazePhraseId: gaze, gazeChair: f.gazeChair && !notice, nearSurface: nearWall(f.x, f.z), kneeling: f.kneeling,
     }, facing);
+    for (const c of cues) {
+      const cue = c.cue;
+      // (A line written again in front of them can be noticed as a new one can.)
+      const id = cue.type === 'write' ? cue.source ?? cue.key : cue.type === 'reveal' || cue.type === 'redraw' ? cue.phraseId : null;
+      if (!id || !PHRASE_BY_ID.has(id)) continue;
+      const surface = cue.type === 'write' ? cue.surface ?? PHRASE_BY_ID.get(id)!.surface : cue.type === 'redraw' ? writtenOn.get(id) ?? PHRASE_BY_ID.get(id)!.surface : PHRASE_BY_ID.get(id)!.surface;
+      writtenOn.set(id, surface);
+      if (surface === facing && !notice && noticeRng.chance(noticeChance)) notice = { id, until: t + dt + noticeRng.range(2, 3) };
+    }
     if (d.phase !== phase) phases.push({ phase: (phase = d.phase), t: +(t + dt).toFixed(1) });
     for (const c of cues) {
       if (c.cue.type === 'stopVoice') interruptions++;
@@ -149,8 +191,19 @@ export function visit(p: Persona, seconds: number, seed: number, dt = 0.1): Visi
         t: +(t + dt).toFixed(1), rule: c.rule, kind: k.kind, recorded: k.recorded, label: k.label,
         responsive: RESPONSIVE.test(c.rule),
         seen: k.kind !== 'text' || !k.surface || k.surface === facing || k.surface === 'floor' || (k.surface === 'ceiling' && f.pitch > 0.4),
-        holdUntil: (c.rule === 'held-silence' || c.rule === 'still-silence') && c.cue.type === 'silence' ? t + dt + c.cue.seconds : undefined,
+        holdUntil:
+          (c.rule === 'held-silence' || c.rule === 'still-silence') && c.cue.type === 'silence'
+            ? t + dt + c.cue.seconds
+            : c.cue.type === 'memory-scene'
+              ? t + dt + Math.min(c.cue.maxHold, 22) + 6
+              : c.cue.type === 'vignette'
+                ? // Its span, then a recovery that is chosen quiet only so long (15 s).
+                  t + dt + vignetteSpan(c.cue.id, c.cue.variant) + 2.7 + 15
+                : undefined,
       });
+      if (c.cue.type === 'memory-scene') memoryEndsAt = { id: c.cue.id, at: t + dt + Math.min(c.cue.maxHold, 22) + 6 };
+      // A vignette plays to its end (its pre-roll, its span, its last sound ringing out).
+      if (c.cue.type === 'vignette') memoryEndsAt = { id: c.cue.id, at: t + dt + vignetteSpan(c.cue.id, c.cue.variant) + 2.7 };
     }
     for (const w of WINDOWS) {
       if (t < w && t + dt >= w) {
@@ -167,13 +220,19 @@ export function visit(p: Persona, seconds: number, seed: number, dt = 0.1): Visi
   return { persona: p.id, seed, devs, interruptions, frames: p.frame, director: d, recognised, phases };
 }
 
-/** What a gaze can rest on: the line if it is written, else a written line on the same wall. */
-function readable(d: Director, id: string | null): string | null {
+/**
+ * What a gaze can rest on: the line, if it is written where the visitor is looking; else a line
+ * that is written on the wall they face; else nothing.
+ */
+function readable(d: Director, id: string | null, facing: Surface, writtenOn: Map<string, Surface>): string | null {
   if (!id) return null;
+  const where = (pid: string) => writtenOn.get(pid) ?? PHRASE_BY_ID.get(pid)?.surface;
+  const home = PHRASE_BY_ID.get(id)?.surface;
   const st = d.visible.get(id);
-  if (st && st.mode === 'shown') return id;
-  const wall = PHRASE_BY_ID.get(id)?.surface;
-  for (const [vid, vs] of d.visible) if (vs.mode === 'shown' && PHRASE_BY_ID.get(vid)?.surface === wall && wall !== 'floor') return vid;
+  // Floor and ceiling writing is read where it is (looking down or up), whatever the facing.
+  if (st && st.mode === 'shown' && (where(id) === facing || home === 'floor' || home === 'ceiling')) return id;
+  if (home === 'floor' || home === 'ceiling') return null;
+  for (const [vid, vs] of d.visible) if (vs.mode === 'shown' && where(vid) === facing) return vid;
   return null;
 }
 
