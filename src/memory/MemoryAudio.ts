@@ -182,8 +182,9 @@ export class MemoryAudio implements AudioSink {
       const p = c.createPanner();
       p.panningModel = 'HRTF';
       p.distanceModel = 'inverse';
-      p.refDistance = 1.5;
-      p.rolloffFactor = 0.8;
+      // A voice falls off as the room's speech does (it stays intelligible a few metres away).
+      p.refDistance = kind === 'voice' ? 2 : 1.5;
+      p.rolloffFactor = kind === 'voice' ? 0.6 : 0.8;
       p.maxDistance = 30;
       p.positionX.setValueAtTime(x, at);
       p.positionY.setValueAtTime(y, at);
@@ -249,6 +250,25 @@ export class MemoryAudio implements AudioSink {
       l.src.stop(t + Math.max(0.02, fade) + 0.02);
     } catch {
       /* already stopped */
+    }
+  }
+
+  /**
+   * A deliberate silence: the memory's own air (its beds) falls to `depth` over 1.2 s, holds for
+   * `seconds`, and comes back over 2.5 s. (A wait for an answer doesn't do this: the room carries
+   * on, and nothing marks what isn't said.)
+   */
+  duckBeds(depth: number, seconds: number): void {
+    const t = this.now;
+    for (const l of this.live) {
+      if (l.kind !== 'bed' || l.at > t) continue;
+      const g = l.gain.gain;
+      const level = g.value;
+      g.cancelScheduledValues(t);
+      g.setValueAtTime(level, t);
+      g.linearRampToValueAtTime(level * depth, t + 1.2);
+      g.setValueAtTime(level * depth, t + 1.2 + Math.max(0, seconds - 1.2));
+      g.linearRampToValueAtTime(level, t + Math.max(1.2, seconds) + 2.5);
     }
   }
 

@@ -128,7 +128,11 @@ export class MemoryDirector {
   claims(phraseId: string | null): boolean {
     if (!phraseId) return false;
     const m = MEMORY_BY_PHRASE.get(phraseId);
-    return !!m && !this.tracks.get(m.id)!.played;
+    if (!m) return false;
+    // A vignette's line answers like any other until its memory could open (a line read early
+    // isn't left unanswered for minutes).
+    if (m.kind === 'vignette' && (this.last ?? 0) < m.earliest) return false;
+    return !this.tracks.get(m.id)!.played;
   }
 
   /** Has any scene played (or is one playing) this visit? */
@@ -147,10 +151,17 @@ export class MemoryDirector {
     return ALL_MEMORIES.some((m) => m.group === 'kitchen' && this.tracks.get(m.id)!.played);
   }
 
-  /** A vignette's line, kept from the room's voices until its vignette has been heard. */
+  /**
+   * A wall line a vignette speaks itself (its approved reading is one of the vignette's lines):
+   * the room doesn't say it first while that vignette may still come this visit. Lines that only
+   * open a vignette are not kept back (that would silence approved readings for whole visits).
+   */
   claimsVoice(phraseId: string): boolean {
-    const m = MEMORY_BY_PHRASE.get(phraseId);
-    return !!m && m.kind === 'vignette' && !this.tracks.get(m.id)!.played;
+    for (const def of VIGNETTE_BY_ID.values()) {
+      if (!def.lines.some((l) => l.phraseId === phraseId)) continue;
+      if (!this.tracks.get(def.id)!.played && this.isAvailable(def.id)) return true;
+    }
+    return false;
   }
 
   /** Its voices are recorded and kept (or no list was given). */

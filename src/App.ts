@@ -593,7 +593,8 @@ export class App {
     const clampIn = (v: THREE.Vector3) => v.set(clamp(v.x, -hw + 0.2, hw - 0.2), v.y, clamp(v.z, -hd + 0.2, hd - 0.2));
     switch (p.at) {
       case 'chair':
-        return [c.x, p.h ?? 0.75, c.z];
+        // Someone sitting on it (h 0.6: lying down, a child in bed).
+        return [c.x, p.h ?? 1.1, c.z];
       case 'left':
       case 'right': {
         // Two people a little ahead of the visitor, on either side: the space between them is
@@ -688,9 +689,11 @@ export class App {
     }
   }
 
-  /** A gap in a vignette: a deliberate silence lets even the memory's air go. */
-  private vignetteGap(kind: GapKind, seconds: number, caption?: string) {
-    if (kind === 'silence') this.audio?.memoryHush(Math.min(0.95, (this.vignette ? VIGNETTE_BY_ID.get(this.vignette.id)?.hush ?? 0.7 : 0.7) + 0.15), 1.2);
+  /**
+   * A gap in a vignette. Pauses, waits and silences are not captioned (an empty caption is what
+   * a deaf visitor has of nothing being said); only a sound that defines a silence is, as a sound.
+   */
+  private vignetteGap(_kind: GapKind, seconds: number, caption?: string) {
     if (caption && !this.captions.speaking) this.captions.show(caption, Math.max(2, seconds * 0.6), true);
   }
 

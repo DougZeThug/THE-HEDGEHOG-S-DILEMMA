@@ -87,7 +87,10 @@ export class VignettePlayer {
       const e = this.score.events[i];
       if (!e) continue;
       if ('fx' in e) this.host.effect(e.fx, d.delay);
-      else if ('gap' in e) this.host.gap?.(e.gap, e.seconds, e.caption);
+      else if ('gap' in e) {
+        if (e.gap === 'silence') this.audio.duckBeds(0.2, e.seconds);
+        this.host.gap?.(e.gap, e.seconds, e.caption);
+      }
     }
   }
 

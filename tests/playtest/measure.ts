@@ -1,4 +1,5 @@
 import { DRAWING_BY_ID } from '../../src/content/drawings';
+import { VIGNETTE_BY_ID } from '../../src/content/vignettes';
 import { Director } from '../../src/state/Director';
 import { OPENING_WRITTEN, OPENING_SPOKEN, OPENING_UNFINISHED } from '../../src/state/OpeningScore';
 import { PHRASE_BY_ID } from '../../src/content/phrases';
@@ -35,9 +36,14 @@ export interface Development {
  * migration, recontext, music, life next door, situations' own ambience, and the room's
  * filler when it is waiting (sounds, writing behind you) — is the room's own life.
  */
-const RESPONSIVE = /^(finish-|accumulate-turn|accumulate-read|encounter:|first-approach|near-|long-near|still-|still-voice|withdraw-|kneel|motif-|tap|respond-line|respond-chair|respond-still|voice-attention|rehear|contribution|sit:residue|sit:listening|withhold)/;
+const RESPONSIVE = /^(finish-|accumulate-turn|accumulate-read|encounter:|first-approach|near-|long-near|still-|still-voice|withdraw-|kneel|motif-|tap|respond-line|respond-chair|respond-still|voice-attention|rehear|contribution|sit:residue|sit:listening|withhold|vignette|echo:)/;
 
 const HALF = 3.2;
+
+const vignetteSpan = (id: string, variant: string) => {
+  const v = VIGNETTE_BY_ID.get(id);
+  return (v?.variants[variant] ?? v?.variants.first)?.span ?? 20;
+};
 
 export function facingOf(yaw: number): Surface {
   const dx = -Math.sin(yaw), dz = -Math.cos(yaw);
@@ -88,6 +94,9 @@ function classify(cue: Cue): { kind: Kind; label: string; recorded: boolean; sur
     case 'memory-scene':
       // It opens on the line being looked at, wherever that is written: always seen.
       return { kind: 'light', label: `memory-scene ${cue.id}`, recorded: false };
+    case 'vignette':
+      // Heard: voices (recorded: only approved vignettes ever play in the room).
+      return { kind: 'voice', label: `vignette ${cue.id}`, recorded: true };
     case 'chairTurn':
     case 'chairNudge':
       return { kind: 'chair', label: cue.type, recorded: false };
@@ -185,9 +194,14 @@ export function visit(p: Persona, seconds: number, seed: number, dt = 0.1): Visi
             ? t + dt + c.cue.seconds
             : c.cue.type === 'memory-scene'
               ? t + dt + Math.min(c.cue.maxHold, 22) + 6
-              : undefined,
+              : c.cue.type === 'vignette'
+                ? // Its span, then a recovery that is chosen quiet only so long (15 s).
+                  t + dt + vignetteSpan(c.cue.id, c.cue.variant) + 2.7 + 15
+                : undefined,
       });
       if (c.cue.type === 'memory-scene') memoryEndsAt = { id: c.cue.id, at: t + dt + Math.min(c.cue.maxHold, 22) + 6 };
+      // A vignette plays to its end (its pre-roll, its span, its last sound ringing out).
+      if (c.cue.type === 'vignette') memoryEndsAt = { id: c.cue.id, at: t + dt + vignetteSpan(c.cue.id, c.cue.variant) + 2.7 };
     }
     for (const w of WINDOWS) {
       if (t < w && t + dt >= w) {
