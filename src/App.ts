@@ -1916,6 +1916,7 @@ export class App {
     $('forget').addEventListener('click', () => {
       this.text.removeContributions();
       this.director.forgetContributions();
+      this.director.forgetVisits();
       forgetVisits();
       this.visits = 0;
       const b = $<HTMLButtonElement>('forget');

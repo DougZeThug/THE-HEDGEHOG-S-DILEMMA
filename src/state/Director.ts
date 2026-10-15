@@ -129,6 +129,17 @@ export class Director {
   memoryPlayed = false;
   /** No voices of the room's own until then: the memory's line has just been offered. */
   private memoryQuietUntil = -Infinity;
+  /**
+   * The aftermath of a memory that was heard or watched: for a while the room's own life (new
+   * writing drifting in, music, voices of its own, a situation's sounds, filler in a lull) waits,
+   * so what happened is not covered over. What the visitor does is still answered. Chosen quiet,
+   * not a stall (docs/reviews/2026-10-emotional-depth.md).
+   */
+  aftermathUntil = -Infinity;
+  aftermath(): boolean {
+    return this.now < this.aftermathUntil;
+  }
+
   /** After a vignette, even the room finishing its own line waits (its quiet is part of it). */
   private vignetteQuietUntil = -Infinity;
 
@@ -277,7 +288,7 @@ export class Director {
       lastContribution: () => d.lastContrib,
       // A situation is a strong thing: it doesn't begin over a meeting, inside a held silence,
       // or while the room is still recovering from something else.
-      attending: () => d.attending() || d.pacing.holding(d.now) || !d.pacing.intenseFree(d.now) || !d.scheduler.majorFree(d.now),
+      attending: () => d.attending() || d.aftermath() || d.pacing.holding(d.now) || !d.pacing.intenseFree(d.now) || !d.scheduler.majorFree(d.now),
     };
   }
 
@@ -419,7 +430,8 @@ export class Director {
       // The turn into a new phase waits for a living memory to end (it would black out the room
       // in the middle of it), and a few seconds more.
       if (phaseChanged) this.pendingPhase = phaseChanged;
-      if (this.pendingPhase && !this.scenes.active && this.now >= this.scenesQuietAt) {
+      // (A phase turns after a memory's aftermath, never inside it.)
+      if (this.pendingPhase && !this.scenes.active && this.now >= this.scenesQuietAt && !this.aftermath()) {
         this.onPhase(this.pendingPhase);
         this.pendingPhase = null;
       }
@@ -432,23 +444,29 @@ export class Director {
       this.ruleDrawings();
       this.ruleFinish();
       this.situations.tick(this.host);
-      this.ruleDriftReveal();
+      // In a memory's aftermath the room's own life waits; what the visitor does is still answered.
+      const quiet = this.aftermath();
+      if (!quiet) this.ruleDriftReveal();
       this.ruleStillness(dt);
       this.ruleApproach();
       this.ruleWithdraw();
       this.ruleEncounters();
-      this.ruleWarmResurface();
-      this.ruleMusic();
-      this.ruleRecontext();
-      this.ruleContaminate();
-      this.ruleDistantLife();
+      if (!quiet) {
+        this.ruleWarmResurface();
+        this.ruleMusic();
+        this.ruleRecontext();
+        this.ruleContaminate();
+        this.ruleDistantLife();
+      }
       this.ruleKneel();
-      this.ruleChairNudge(input);
-      this.ruleVoices();
-      this.ruleRehear();
-      this.ruleHeldSilence();
+      if (!quiet) this.ruleChairNudge(input);
+      if (!quiet) {
+        this.ruleVoices();
+        this.ruleRehear();
+        this.ruleHeldSilence();
+      }
       this.ruleAir();
-      this.ruleRespond();
+      if (!quiet) this.ruleRespond();
     }
     this.pacing.tick(dt, this.now, this.phase, this.engagement.activity(this.now));
 
@@ -509,9 +527,15 @@ export class Director {
     // directly, not through the voice rules that already wait).
     if (this.scenes.active && ((cue.type === 'voice' && (!cue.finish || this.vignettePlaying)) || cue.type === 'sound' || cue.type === 'music')) return false;
     if (cue.type === 'reveal' && this.withheld().includes(cue.phraseId)) return false;
+    // A situation's own sounds wait out a memory's aftermath (those answering the visitor don't).
+    if (this.aftermath() && rule.startsWith('sit:') && !/^sit:(residue|listening)/.test(rule) && (cue.type === 'voice' || cue.type === 'sound' || cue.type === 'music')) {
+      this.queue(this.aftermathUntil - this.now + 1, cue, rule);
+      return false;
+    }
     // The visit's turn, due while a vignette plays or just after one: it waits until it is clear.
     if (rule === 'phase-transform' && cue.type === 'silence' && !this.departing) {
-      const { delay, dark } = this.turnClear(this.vignettePlaying ? 30 : 0);
+      const { delay: d0, dark } = this.turnClear(this.vignettePlaying ? 30 : 0);
+      const delay = Math.max(d0, this.aftermath() ? this.aftermathUntil - this.now + 1 : 0);
       if (delay > 0) {
         const { dim: _d, dimSeconds: _s, ...rest } = cue;
         this.queue(delay, dark ? cue : rest, rule, { major: true, ttl: 30 });
@@ -786,6 +810,7 @@ export class Director {
     const reading = v.gazeId && v.gazeFor > 2.5 && !memoryLine ? PHRASE_BY_ID.get(v.gazeId) : undefined;
     const answerRead = !!reading && this.now - this.lastAccumulateAt > 5 && this.accumulated < 14;
     if (this.now < this.nextAccumulate && !answerRead) return;
+    if (this.aftermath() && !answerRead) return;
     // Someone settled at the chair is with the chair: the walls can wait.
     if (!answerRead && v.near && v.stillFor > 3) return;
     if (this.pacing.holding(this.now) || this.pacing.repeats('text', this.now, 6)) return;
@@ -815,6 +840,8 @@ export class Director {
         rule = 'accumulate-read';
       }
     }
+    // In a memory's aftermath only a line answering the one being read is written.
+    if (this.aftermath() && rule !== 'accumulate-read') return;
     if (!id) id = Director.FIRST_WRITTEN.find(onWall);
     // The first few ordinary lines are written where the visitor is looking, whatever wall
     // they were first written on: the room is filling in front of them.
@@ -1229,8 +1256,8 @@ export class Director {
     const offer = this.scenes.offer({
       now: this.now,
       phase: this.phase,
-      // (Never into a busy room: the line arrives into quiet, or waits.)
-      free: free && !this.pacing.repeats('text', this.now, 8) && !this.pacing.crowded(this.now),
+      // (Never into a busy room: the line arrives into quiet, or waits. Nor into a memory's aftermath.)
+      free: free && !this.aftermath() && !this.pacing.repeats('text', this.now, 8) && !this.pacing.crowded(this.now),
       visibleFacing: (id) => this.visible.has(id) && PHRASE_BY_ID.get(id)?.surface === this.facing,
       departing: this.departing,
       otherMemory: this.memoryAwaited(),
@@ -1292,6 +1319,11 @@ export class Director {
       this.vignetteEnded = { id, at: this.now, dimmed: VIGNETTE_BY_ID.get(id)!.variants.first.events.some((e) => 'fx' in e && e.fx.kind === 'dim') };
     }
     if (counted) {
+      // Its aftermath: longer after a sad one, short after a warm one; a painted memory that was
+      // let go early leaves less.
+      const tone = VIGNETTE_BY_ID.get(id)?.tone;
+      const after = tone === 'sad' ? 35 : tone === 'bittersweet' ? 25 : tone === 'warm' ? 18 : ranToEnd ? 40 : 20;
+      this.aftermathUntil = Math.max(this.aftermathUntil, this.now + after);
       // Staying with a memory is attention, as returning to a line is.
       this.engagement.raise('memory', this.now, id);
       // A moment to come back to the room before anything else.
@@ -1832,6 +1864,15 @@ export class Director {
   }
 
   /** Clears contributions from memory (privacy: "forget what I wrote"). */
+  /**
+   * The visitor asked to be forgotten: the counts the room keeps for this visit (memories heard,
+   * how it was left) go too, so nothing is written back afterwards.
+   */
+  forgetVisits(): void {
+    this.scenes.forgetCounts();
+    this.visits = 1;
+  }
+
   forgetContributions(): void {
     this.lastContrib = null;
     this.situations.drop('erosion');

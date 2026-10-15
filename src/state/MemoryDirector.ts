@@ -132,6 +132,11 @@ export class MemoryDirector {
     for (const m of ALL_MEMORIES) this.tracks.set(m.id, { armed: false, away: 0, left: false, offered: false, requestedUntil: -Infinity, played: false, unseen: 0, notBefore: m.earliest, easyUntil: -Infinity, owed: false, reinked: false });
   }
 
+  /** Forgotten (the visitor asked): what was heard on earlier visits, and this one, no longer counts. */
+  forgetCounts(): void {
+    for (const k of Object.keys(this.counts)) delete this.counts[k];
+  }
+
   /** Which vignettes may speak (their recordings approved); the rest wait, or play voiceless. */
   setAvailable(ids: Set<string> | null): void {
     this.available = ids;

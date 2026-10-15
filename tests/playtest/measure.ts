@@ -27,6 +27,8 @@ export interface Development {
   /** Writing appeared on the wall the visitor was facing (or anything audible). */
   seen: boolean;
   label: string;
+  /** For writing: the surface it appeared on. */
+  surface?: Surface;
   /** For a deliberate held silence: when it ends (the quiet inside it is chosen, not a gap). */
   holdUntil?: number;
 }
@@ -160,6 +162,7 @@ export function visit(p: Persona, seconds: number, seed: number, dt = 0.1): Visi
   // (NOTICE=0…1 overrides it, to see how much a result leans on this assumption.)
   const noticeChance = process.env.NOTICE !== undefined ? Number(process.env.NOTICE) : p.device === 'phone' ? 0.4 : 0.6;
   let notice: { id: string; until: number } | null = null;
+  let lastAftermath = -Infinity;
   for (let t = 0; t < seconds; t += dt) {
     if (memoryEndsAt && t >= memoryEndsAt.at) {
       d.memoryEnded(memoryEndsAt.id, true, true);
@@ -183,12 +186,18 @@ export function visit(p: Persona, seconds: number, seed: number, dt = 0.1): Visi
       if (surface === facing && !notice && noticeRng.chance(noticeChance)) notice = { id, until: t + dt + noticeRng.range(2, 3) };
     }
     if (d.phase !== phase) phases.push({ phase: (phase = d.phase), t: +(t + dt).toFixed(1) });
+    // A memory's aftermath is chosen quiet: the last memory's hold reaches to its end.
+    if (d.aftermathUntil > lastAftermath) {
+      lastAftermath = d.aftermathUntil;
+      const m = [...devs].reverse().find((x) => /^(vignette|memory-scene) /.test(x.label));
+      if (m) m.holdUntil = Math.max(m.holdUntil ?? 0, lastAftermath);
+    }
     for (const c of cues) {
       if (c.cue.type === 'stopVoice') interruptions++;
       const k = classify(c.cue);
       if (!k) continue;
       devs.push({
-        t: +(t + dt).toFixed(1), rule: c.rule, kind: k.kind, recorded: k.recorded, label: k.label,
+        t: +(t + dt).toFixed(1), rule: c.rule, kind: k.kind, recorded: k.recorded, label: k.label, surface: k.surface,
         responsive: RESPONSIVE.test(c.rule),
         seen: k.kind !== 'text' || !k.surface || k.surface === facing || k.surface === 'floor' || (k.surface === 'ceiling' && f.pitch > 0.4),
         holdUntil:
