@@ -84,6 +84,7 @@ section.vigs { display: grid; gap: 14px; padding-top: 14px; border-top: 1px soli
 .score li.ev-gap, .score li.ev-bed, .score li.ev-sound, .score li.ev-effect { color: var(--pencil); font-style: italic }
 .score li.now { background: var(--chip) }
 .score li.ev-line.unrecorded .say::after { content: ' (not recorded yet)'; font: 11px var(--mono); color: var(--unsure); font-style: normal }
+.score li.ev-line.unrecorded.turned-down .say::after { content: ' (every take turned down)' }
 .score li.ev-line.pending .say::after { content: ' (not kept yet)'; font: 11px var(--mono); color: var(--unsure); font-style: normal }
 .readcap { min-height: 2.6em; font: 500 20px/1.25 var(--hand); color: var(--graphite); margin: 0 }
 @media (prefers-reduced-motion: no-preference) { .take { transition: border-color .2s } }
@@ -185,7 +186,7 @@ section.vigs { display: grid; gap: 14px; padding-top: 14px; border-top: 1px soli
       const btn = el('button', 'small', 'Read through'); btn.type = 'button'; h.append(btn);
       const ol = el('ol', 'score');
       const items = s.events.map((e) => {
-        const li = el('li', 'ev-' + e.kind + (e.kind === 'line' && !e.src ? ' unrecorded' : e.kind === 'line' && e.pending ? ' pending' : ''));
+        const li = el('li', 'ev-' + e.kind + (e.kind === 'line' && !e.src ? ' unrecorded' + (e.turnedDown ? ' turned-down' : '') : e.kind === 'line' && e.pending ? ' pending' : ''));
         li.append(el('span', 't', e.at.toFixed(1)));
         const body = el('span');
         if (e.kind === 'line') { body.append(el('span', 'spk', e.who + (e.side ? ` · ${e.side}` : ''))); body.append(el('span', 'say', e.text + (e.end === 'cut' ? ' (cut off)' : ''))); }

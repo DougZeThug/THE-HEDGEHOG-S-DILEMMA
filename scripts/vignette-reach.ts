@@ -1,6 +1,7 @@
 /**
  * How many vignettes a visit meets (docs/vignettes.md): each persona over seeds 1–8 and 600 s,
- * all recordings assumed kept. The personas' scripts end after two to four minutes; here each
+ * with the vignettes visitors can meet now (every line kept, from public/voices/manifest.json;
+ * `ALL=1`: as if all were). The personas' scripts end after two to four minutes; here each
  * keeps going by repeating the middle of its own script (60–240 s), so a ten-minute visit is
  * someone still moving about rather than someone standing frozen where their script ran out.
  *
@@ -8,7 +9,20 @@
  */
 import { PERSONAS, type Persona } from '../tests/playtest/personas';
 import { visit } from '../tests/playtest/measure';
-import { VIGNETTES } from '../src/content/vignettes';
+import { readFileSync } from 'node:fs';
+import { VIGNETTES, VIGNETTE_BY_ID, spokenLines, lineKey } from '../src/content/vignettes';
+import { MemoryDirector } from '../src/state/MemoryDirector';
+
+// What the App does (vignettesAvailable): a vignette plays only once every line it may say is kept.
+const manifest = JSON.parse(readFileSync('public/voices/manifest.json', 'utf8')) as Record<string, string[]>;
+const live = new Set(VIGNETTES.filter((def) => Object.keys(def.variants).flatMap((k) => spokenLines(def, k)).every((l) => manifest[lineKey(def, l)]?.length)).map((d) => d.id));
+if (!process.env.ALL) {
+  const orig = MemoryDirector.prototype.isAvailable;
+  MemoryDirector.prototype.isAvailable = function (id: string) {
+    return orig.call(this, id) && (!VIGNETTE_BY_ID.has(id) || live.has(id));
+  };
+  console.log(`live: ${[...live].join(', ')}`);
+}
 
 const SEEDS = [1, 2, 3, 4, 5, 6, 7, 8];
 const SECONDS = Number(process.env.SECONDS ?? 600);

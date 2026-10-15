@@ -285,3 +285,13 @@ The "ordinary" rule (decision 12) was the cause. 17 of the 36 inputs were direct
 - J's line is "I'm fine." without the exclamation mark.
 
 **Recorded:** two takes per line, at the artist's choice: 72 takes, 1,212 credits billed (2,766 estimated). The speech-to-text check flagged one: G's "Sorry. No. Thank you." was heard with "Sorry" said twice. No take is kept yet, and nothing here is claimed to sound right until the artist has listened.
+
+## Kept
+
+The artist marked the sad takes:
+- **61 kept, 11 turned down.** Eight vignettes have every line kept, so visitors now meet them: B, C, E, F, G, H, I and J. Each version's named reading resolves to a kept take.
+- **D is out:** both takes of "Hiya! …No." were turned down. The artist found the "Hiya!" too happy and excited. The line is now "Hiya. …No.", re-recorded flat and under the breath (two takes, waiting to be heard). D goes live once one is kept.
+- **B, the artist's note.** "Okay, I'll see you tomorrow." replaces "I'll see you tomorrow." Two takes are recorded as a new line (`tomorrow-okay`). B keeps playing the kept "I'll see you tomorrow." until one is kept; then the scene switches to the new line.
+- **These four takes cost 72 credits.**
+
+Applying the marks exposed a bug: the phone preload fetched every vignette voice on arrival, about 1.4 MB. Vignette voices are now fetched only when a vignette is prepared, as the painted memories' sounds are.

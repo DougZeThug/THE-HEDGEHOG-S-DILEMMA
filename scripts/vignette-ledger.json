@@ -1,8 +1,8 @@
 {
   "version": 1,
   "spent": {
-    "credits": 1638,
-    "sttSeconds": 201.90000000000006
+    "credits": 1710,
+    "sttSeconds": 211.35000000000005
   },
   "entries": {
     "charger--charger": {
@@ -16,7 +16,7 @@
       "voice": "young",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:13:37.424Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Have you seen my charger?",
       "wer": 0,
       "spokenTags": []
@@ -32,7 +32,7 @@
       "voice": "sarah",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:13:39.346Z",
-      "review": "pending",
+      "review": "rejected",
       "transcript": "By the toaster",
       "wer": 0,
       "spokenTags": []
@@ -48,7 +48,7 @@
       "voice": "young",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:13:41.385Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "I'll see you tomorrow",
       "wer": 0,
       "spokenTags": []
@@ -64,7 +64,7 @@
       "voice": "sarah",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:13:43.442Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Yeah tomorrow",
       "wer": 0,
       "spokenTags": []
@@ -80,7 +80,7 @@
       "voice": "sarah",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:13:46.401Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Yeah, tomorrow",
       "wer": 0,
       "spokenTags": []
@@ -96,7 +96,7 @@
       "voice": "sarah",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:13:49.240Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Are you angry with me?",
       "wer": 0,
       "spokenTags": []
@@ -112,7 +112,7 @@
       "voice": "restrained",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:13:51.079Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "No",
       "wer": 0,
       "spokenTags": []
@@ -128,7 +128,7 @@
       "voice": "restrained",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:13:52.822Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "No",
       "wer": 0,
       "spokenTags": []
@@ -144,7 +144,7 @@
       "voice": "sarah",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:13:54.457Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Okay",
       "wer": 0,
       "spokenTags": []
@@ -160,7 +160,7 @@
       "voice": "sarah",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:13:56.474Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Hey, it's me",
       "wer": 0,
       "spokenTags": []
@@ -176,7 +176,7 @@
       "voice": "sarah",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:13:58.601Z",
-      "review": "pending",
+      "review": "rejected",
       "transcript": "Hiya. No",
       "wer": 0,
       "spokenTags": []
@@ -192,7 +192,7 @@
       "voice": "sarah",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:14:01.239Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Hey, it's me. Nothing's wrong. I just",
       "wer": 0,
       "spokenTags": []
@@ -208,7 +208,7 @@
       "voice": "bill",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:14:03.917Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "I did your washing up",
       "wer": 0,
       "spokenTags": []
@@ -224,7 +224,7 @@
       "voice": "sarah",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:14:06.156Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "You don't have to keep doing that",
       "wer": 0,
       "spokenTags": []
@@ -240,7 +240,7 @@
       "voice": "sarah",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:14:08.380Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "You don't have to keep doing that",
       "wer": 0,
       "spokenTags": []
@@ -256,7 +256,7 @@
       "voice": "bill",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:14:10.762Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Doing what?",
       "wer": 0,
       "spokenTags": []
@@ -272,7 +272,7 @@
       "voice": "sarah",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:14:12.579Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Thank you",
       "wer": 0,
       "spokenTags": []
@@ -288,7 +288,7 @@
       "voice": "small-voice",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:14:14.859Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Can you stay until I fall asleep?",
       "wer": 0,
       "spokenTags": []
@@ -304,7 +304,7 @@
       "voice": "matilda",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:14:17.081Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Just for a minute",
       "wer": 0,
       "spokenTags": []
@@ -320,7 +320,7 @@
       "voice": "matilda",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:14:19.116Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Just for a minute",
       "wer": 0,
       "spokenTags": []
@@ -336,7 +336,7 @@
       "voice": "small-voice",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:14:20.993Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Promise?",
       "wer": 0,
       "spokenTags": []
@@ -352,7 +352,7 @@
       "voice": "matilda",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:14:23.143Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Oh, I thought you'd be asleep",
       "wer": 0,
       "spokenTags": []
@@ -368,7 +368,7 @@
       "voice": "older-woman",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:14:25.440Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Do you want a bag for that, love?",
       "wer": 0,
       "spokenTags": []
@@ -384,7 +384,7 @@
       "voice": "sarah",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:14:27.814Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Sorry. Sorry. No, thank you",
       "extraWords": [
         "sorry"
@@ -403,7 +403,7 @@
       "voice": "warm",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:14:30.380Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "You should come over sometime",
       "wer": 0,
       "spokenTags": []
@@ -419,7 +419,7 @@
       "voice": "sarah",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:14:33.756Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Yeah, I will",
       "wer": 0,
       "spokenTags": []
@@ -435,7 +435,7 @@
       "voice": "sarah",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:14:35.955Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Yeah, I will",
       "wer": 0,
       "spokenTags": []
@@ -451,7 +451,7 @@
       "voice": "warm",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:14:38.103Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "You always say that",
       "wer": 0,
       "spokenTags": []
@@ -467,7 +467,7 @@
       "voice": "warm",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:14:40.231Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Okay",
       "wer": 0,
       "spokenTags": []
@@ -483,7 +483,7 @@
       "voice": "liam",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:14:42.508Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Is that the last one?",
       "wer": 0,
       "spokenTags": []
@@ -499,7 +499,7 @@
       "voice": "sarah",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:14:44.177Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Have it",
       "wer": 0,
       "spokenTags": []
@@ -515,7 +515,7 @@
       "voice": "liam",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:14:46.134Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Go halves",
       "wer": 0,
       "spokenTags": []
@@ -531,7 +531,7 @@
       "voice": "sarah",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:14:48.017Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Just have it",
       "wer": 0,
       "spokenTags": []
@@ -547,7 +547,7 @@
       "voice": "sarah",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:14:50.099Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Go on then",
       "wer": 0,
       "spokenTags": []
@@ -563,7 +563,7 @@
       "voice": "warm",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:14:52.334Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "You all right? You've gone quiet",
       "wer": 0,
       "spokenTags": []
@@ -579,7 +579,7 @@
       "voice": "sarah",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:14:54.659Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "I'm fine. It's just loud",
       "wer": 0,
       "spokenTags": []
@@ -595,7 +595,7 @@
       "voice": "young",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:13:38.435Z",
-      "review": "pending",
+      "review": "rejected",
       "transcript": "Have you seen my charger?",
       "wer": 0,
       "spokenTags": []
@@ -611,7 +611,7 @@
       "voice": "sarah",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:13:40.252Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "By the toaster",
       "wer": 0,
       "spokenTags": []
@@ -627,7 +627,7 @@
       "voice": "young",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:13:42.254Z",
-      "review": "pending",
+      "review": "rejected",
       "transcript": "I'll see you tomorrow",
       "wer": 0,
       "spokenTags": []
@@ -643,7 +643,7 @@
       "voice": "sarah",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:13:45.214Z",
-      "review": "pending",
+      "review": "rejected",
       "transcript": "Yeah, tomorrow",
       "wer": 0,
       "spokenTags": []
@@ -659,7 +659,7 @@
       "voice": "sarah",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:13:47.368Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Yeah tomorrow",
       "wer": 0,
       "spokenTags": []
@@ -675,7 +675,7 @@
       "voice": "sarah",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:13:50.292Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Are you angry with me?",
       "wer": 0,
       "spokenTags": []
@@ -691,7 +691,7 @@
       "voice": "restrained",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:13:51.953Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "No",
       "wer": 0,
       "spokenTags": []
@@ -707,7 +707,7 @@
       "voice": "restrained",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:13:53.540Z",
-      "review": "pending",
+      "review": "rejected",
       "transcript": "No",
       "wer": 0,
       "spokenTags": []
@@ -723,7 +723,7 @@
       "voice": "sarah",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:13:55.546Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Okay",
       "wer": 0,
       "spokenTags": []
@@ -739,7 +739,7 @@
       "voice": "sarah",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:13:57.560Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Hey, it's me",
       "wer": 0,
       "spokenTags": []
@@ -755,7 +755,7 @@
       "voice": "sarah",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:13:59.728Z",
-      "review": "pending",
+      "review": "rejected",
       "transcript": "Hiya. No",
       "wer": 0,
       "spokenTags": []
@@ -771,7 +771,7 @@
       "voice": "sarah",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:14:02.809Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Hey, it's me. Nothing's wrong. I just",
       "wer": 0,
       "spokenTags": []
@@ -787,7 +787,7 @@
       "voice": "bill",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:14:05.069Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "I did your washing up",
       "wer": 0,
       "spokenTags": []
@@ -803,7 +803,7 @@
       "voice": "sarah",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:14:07.186Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "You don't have to keep doing that",
       "wer": 0,
       "spokenTags": []
@@ -819,7 +819,7 @@
       "voice": "sarah",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:14:09.836Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "You don't have to keep doing that",
       "wer": 0,
       "spokenTags": []
@@ -835,7 +835,7 @@
       "voice": "bill",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:14:11.625Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Doing what?",
       "wer": 0,
       "spokenTags": []
@@ -851,7 +851,7 @@
       "voice": "sarah",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:14:13.607Z",
-      "review": "pending",
+      "review": "rejected",
       "transcript": "Thank you.",
       "wer": 0,
       "spokenTags": []
@@ -867,7 +867,7 @@
       "voice": "small-voice",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:14:16.060Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Can you stay until I fall asleep?",
       "wer": 0,
       "spokenTags": []
@@ -883,7 +883,7 @@
       "voice": "matilda",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:14:17.955Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Just for a minute",
       "wer": 0,
       "spokenTags": []
@@ -899,7 +899,7 @@
       "voice": "matilda",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:14:20.054Z",
-      "review": "pending",
+      "review": "rejected",
       "transcript": "Just for a minute",
       "wer": 0,
       "spokenTags": []
@@ -915,7 +915,7 @@
       "voice": "small-voice",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:14:21.886Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Promise?",
       "wer": 0,
       "spokenTags": []
@@ -931,7 +931,7 @@
       "voice": "matilda",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:14:24.302Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Oh, I thought you'd be asleep",
       "wer": 0,
       "spokenTags": []
@@ -947,7 +947,7 @@
       "voice": "older-woman",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:14:26.546Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Do you want a bag for that, love?",
       "wer": 0,
       "spokenTags": []
@@ -963,7 +963,7 @@
       "voice": "sarah",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:14:29.289Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Sorry. No, thank you",
       "wer": 0,
       "spokenTags": []
@@ -979,7 +979,7 @@
       "voice": "warm",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:14:32.605Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "You should come over sometime",
       "wer": 0,
       "spokenTags": []
@@ -1011,7 +1011,7 @@
       "voice": "sarah",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:14:37.085Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Yeah, I will",
       "wer": 0,
       "spokenTags": []
@@ -1027,7 +1027,7 @@
       "voice": "warm",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:14:39.126Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "You always say that",
       "wer": 0,
       "spokenTags": []
@@ -1043,7 +1043,7 @@
       "voice": "warm",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:14:41.529Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Okay",
       "wer": 0,
       "spokenTags": []
@@ -1059,7 +1059,7 @@
       "voice": "liam",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:14:43.358Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Is that the last one?",
       "wer": 0,
       "spokenTags": []
@@ -1075,7 +1075,7 @@
       "voice": "sarah",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:14:45.254Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Have it",
       "wer": 0,
       "spokenTags": []
@@ -1091,7 +1091,7 @@
       "voice": "liam",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:14:47.069Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Go halves",
       "wer": 0,
       "spokenTags": []
@@ -1107,7 +1107,7 @@
       "voice": "sarah",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:14:48.947Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Just have it",
       "wer": 0,
       "spokenTags": []
@@ -1123,7 +1123,7 @@
       "voice": "sarah",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:14:51.167Z",
-      "review": "pending",
+      "review": "rejected",
       "transcript": "Go on then",
       "wer": 0,
       "spokenTags": []
@@ -1155,8 +1155,75 @@
       "voice": "sarah",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:14:55.875Z",
-      "review": "pending",
+      "review": "rejected",
       "transcript": "I'm fine. It's just loud",
+      "wer": 0,
+      "spokenTags": []
+    },
+    "charger--tomorrow-okay": {
+      "status": "validated",
+      "hash": "232ca31f828375a0",
+      "estimate": 48,
+      "cost": 21,
+      "requestId": "YPUNN1WRVxZIjUYH2n5h",
+      "bytes": 34315,
+      "seconds": 2.14,
+      "voice": "young",
+      "model": "eleven_v4",
+      "generatedAt": "2026-10-15T11:58:27.138Z",
+      "review": "pending",
+      "transcript": "Okay, I'll see you tomorrow",
+      "wer": 0,
+      "spokenTags": []
+    },
+    "charger--tomorrow-okay-b": {
+      "status": "validated",
+      "hash": "963c123ab77820c7",
+      "estimate": 48,
+      "cost": 21,
+      "requestId": "VnKt83kfwN07DQrXLS1T",
+      "bytes": 33061,
+      "seconds": 2.06,
+      "voice": "young",
+      "model": "eleven_v4",
+      "generatedAt": "2026-10-15T11:58:28.276Z",
+      "review": "pending",
+      "transcript": "Okay. I'll see you tomorrow",
+      "wer": 0,
+      "spokenTags": []
+    },
+    "practice--hiya--flat": {
+      "status": "validated",
+      "hash": "168ebd9ac08f5736",
+      "estimate": 34,
+      "cost": 15,
+      "requestId": "pkxjNHCbiGYWTFdWhMAY",
+      "bytes": 43510,
+      "seconds": 2.72,
+      "voice": "sarah",
+      "model": "eleven_v4",
+      "generatedAt": "2026-10-15T11:58:29.475Z",
+      "review": "pending",
+      "transcript": "Hiya. [sighs] No",
+      "events": [
+        "[sighs]"
+      ],
+      "wer": 0,
+      "spokenTags": []
+    },
+    "practice--hiya--flat-b": {
+      "status": "validated",
+      "hash": "c37729022fbb1462",
+      "estimate": 34,
+      "cost": 15,
+      "requestId": "cJQTvIOrmuSvemYmnuXa",
+      "bytes": 40585,
+      "seconds": 2.53,
+      "voice": "sarah",
+      "model": "eleven_v4",
+      "generatedAt": "2026-10-15T11:58:30.798Z",
+      "review": "pending",
+      "transcript": "Hiya. No",
       "wer": 0,
       "spokenTags": []
     }
@@ -1174,6 +1241,14 @@
       "at": "2026-10-15T11:13:36.766Z",
       "credits": 1212,
       "generated": 72,
+      "failed": 0,
+      "queued": 0,
+      "stopped": null
+    },
+    {
+      "at": "2026-10-15T11:58:26.455Z",
+      "credits": 72,
+      "generated": 4,
       "failed": 0,
       "queued": 0,
       "stopped": null

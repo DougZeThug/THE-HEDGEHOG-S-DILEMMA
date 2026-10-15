@@ -187,7 +187,8 @@ const vignettes = vData.vignettes.map((v) => ({
         const take = got?.take;
         return {
           at: e.at, kind: 'line', who: v.speakers[l.speaker]?.who ?? l.speaker, side: e.place?.at, text: l.text, end: e.end ?? null,
-          src: take ? (OUT ? `audio/${basename(take.file)}` : `../public/voices/${take.file}`) : null, pending: !!got?.pending, take: take?.id ?? null, stopAfter: e.stopAfter ?? null,
+          src: take ? (OUT ? `audio/${basename(take.file)}` : `../public/voices/${take.file}`) : null, pending: !!got?.pending,
+          turnedDown: !take && vDir.performances.some((p) => p.vignette === v.id && p.line === e.line && vLedger.entries[p.id]?.review === 'rejected'), take: take?.id ?? null, stopAfter: e.stopAfter ?? null,
         };
       }
       if (e.sfx || e.bed) return { at: e.at, kind: e.bed ? 'bed' : 'sound', text: e.caption ?? (e.bed ? `[the air of the place: ${e.bed}]` : `[${e.sfx}]`) };

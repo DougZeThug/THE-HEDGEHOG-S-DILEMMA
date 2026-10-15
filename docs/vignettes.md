@@ -7,11 +7,11 @@ Small remembered fragments, heard rather than seen: one or two voices, the pause
 - **Opening.** A vignette opens beside a line, not on the line it would only act out. Reading that line for 2.5 s, or touching it, begins it once it may play. The chair's vignette opens from stillness by the chair (8 s within 1.15 m), or kneeling there, once "I wanted you to stay" has been finished.
 - **Spacing.** At least 90 s from any memory's end, and 150 s after one of the same tone. Earliest times: B, D, G, H, I and J from 150 s; C and E from 240 s. C's and D's lines are rarely written, so they may be offered (written alone where the visitor looks). Offers are limited to two a visit, counting the painted memories' offers.
 - **Visitors meet a vignette only once its recordings are kept.** Its voiced lines must all have takes the artist approved on the audition sheet. Until then the room is unchanged, apart from versions that have no voices.
-- **In practice: one or two a visit.** In simulated 10-minute visits (`npx vite-node scripts/vignette-reach.ts`), there were 59 vignettes across 40 visits (8 seeds × 5 personas, all recordings assumed kept, each persona repeating the middle of its script once it runs out):
+- **In practice: one or two a visit.** In simulated 10-minute visits (`npx vite-node scripts/vignette-reach.ts`), with the eight live vignettes, there were 59 vignettes across 40 visits (8 seeds × 5 personas, each persona repeating the middle of its script once it runs out):
   - the chair visitor met F every time, and one more in half the visits;
   - the explorer met two or three, the reader and the phone persona one or two;
   - the still visitor met one in four visits;
-  - C, D and G were never met. Their lines are read for 2.5 s in 1, 4 and 6 of 40 visits. C was offered 4 times, but scripted personas never look at newly written lines, so whether an offer is read is unknown here. D's offer slots go to the bedroom's line first.
+  - C and G were never met. Their lines are read for 2.5 s in 1 and 6 of 40 visits. C was offered 4 times, but scripted personas never look at newly written lines, so whether an offer is read is unknown here.
 - **Interruption.**
   - Turning away or touching the walls never ends one: turning toward a voice is attention.
   - Walking off (more than 3 m from where it began, for 1.5 s, moving or not; back within 2.5 m forgives) finishes the sentence being said, and nothing more is said. Opening the writing field does the same.
@@ -234,7 +234,8 @@ Small remembered fragments, heard rather than seen: one or two voices, the pause
   - A first batch in the old "ordinary" direction: 36 takes, 426 credits. The artist heard it as too happy and expressive.
   - Replaced by the sad direction, two takes per line: 72 takes (the base take and its `-b` seed), 1,212 credits.
   - The two designed voices are saved to the account: `small-voice` from small-voice-1, `older-woman` from older-woman-2.
-  - None is kept yet.
+  - **Kept (the artist's marks):** 61 takes kept, 11 turned down. Eight vignettes have every line kept and are live for visitors: B, C, E, F, G, H, I and J.
+  - **D (practice) is not live.** Both takes of "Hiya! …No." were turned down, and every version of D says it.
 - **Audition.** On the audition sheet, each version has a read-through at its own times. It plays the kept take of each line, or failing that the take generated for it, marked "not kept yet", placed roughly (left, right, through a wall). Then each take is listed to keep or not. Kept takes go in with `--vignettes --approve=…`, and only kept takes reach visitors.
 - **Previews in the room.** `?vignette=<id>` also plays takes not kept yet, from `public/voices/vignette-preview.json`, which `generate-dialogue.mjs --vignettes` writes. That file is read only by previews: what visitors meet still depends on the manifest alone.
 

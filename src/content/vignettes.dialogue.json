@@ -70,7 +70,6 @@
       "seed": 7013,
       "file": "vignettes/charger--charger.mp3",
       "stability": 0.45,
-      "audition": true,
       "scene": {
         "before": "Coat half on, from the hallway, already late:",
         "after": "\"By the toaster.\""
@@ -92,7 +91,8 @@
         "before": "Coat half on, from the hallway, already late:",
         "after": "\"By the toaster.\""
       },
-      "variantOf": "charger--charger"
+      "variantOf": "charger--charger",
+      "retired": true
     },
     {
       "id": "charger--toaster",
@@ -109,7 +109,8 @@
       "scene": {
         "before": "She would think for years about that morning, and how little she looked up. \"Have you seen my charger?\" She was reading, and didn't look up.",
         "after": "\"I'll see you tomorrow.\""
-      }
+      },
+      "retired": true
     },
     {
       "id": "charger--toaster-b",
@@ -122,7 +123,6 @@
       "seed": 7052,
       "file": "vignettes/charger--toaster-b.mp3",
       "stability": 0.25,
-      "audition": true,
       "scene": {
         "before": "She would think for years about that morning, and how little she looked up. \"Have you seen my charger?\" She was reading, and didn't look up.",
         "after": "\"I'll see you tomorrow.\""
@@ -140,7 +140,6 @@
       "seed": 7065,
       "file": "vignettes/charger--tomorrow.mp3",
       "stability": 0.45,
-      "audition": true,
       "scene": {
         "before": "He found it, pulled the door open, already half gone:",
         "after": "\"Yeah. Tomorrow.\""
@@ -162,7 +161,41 @@
         "before": "He found it, pulled the door open, already half gone:",
         "after": "\"Yeah. Tomorrow.\""
       },
-      "variantOf": "charger--tomorrow"
+      "variantOf": "charger--tomorrow",
+      "retired": true
+    },
+    {
+      "id": "charger--tomorrow-okay",
+      "vignette": "charger",
+      "line": "tomorrow-okay",
+      "voice": "young",
+      "text": "Okay, I'll see you tomorrow.",
+      "input": "[softly, unhurried] Okay, I'll see you tomorrow.",
+      "direction": "Gentle, unhurried; an ordinary goodbye. He doesn't know.",
+      "seed": 7401,
+      "file": "vignettes/charger--tomorrow-okay.mp3",
+      "stability": 0.45,
+      "scene": {
+        "before": "He found it, pulled the door open, already half gone:",
+        "after": "\"Yeah. Tomorrow.\""
+      }
+    },
+    {
+      "id": "charger--tomorrow-okay-b",
+      "vignette": "charger",
+      "line": "tomorrow-okay",
+      "voice": "young",
+      "text": "Okay, I'll see you tomorrow.",
+      "input": "[softly, unhurried] Okay, I'll see you tomorrow.",
+      "direction": "Gentle, unhurried; an ordinary goodbye. He doesn't know.",
+      "seed": 7414,
+      "file": "vignettes/charger--tomorrow-okay-b.mp3",
+      "stability": 0.45,
+      "scene": {
+        "before": "He found it, pulled the door open, already half gone:",
+        "after": "\"Yeah. Tomorrow.\""
+      },
+      "variantOf": "charger--tomorrow-okay"
     },
     {
       "id": "charger--yeah--distracted",
@@ -175,7 +208,6 @@
       "seed": 7091,
       "file": "vignettes/charger--yeah--distracted.mp3",
       "stability": 0.25,
-      "audition": true,
       "scene": {
         "before": "She would think for years about that morning, and how little she looked up. \"I'll see you tomorrow.\" Still reading.",
         "after": "The door closed."
@@ -197,7 +229,8 @@
         "before": "She would think for years about that morning, and how little she looked up. \"I'll see you tomorrow.\" Still reading.",
         "after": "The door closed."
       },
-      "variantOf": "charger--yeah--distracted"
+      "variantOf": "charger--yeah--distracted",
+      "retired": true
     },
     {
       "id": "charger--yeah--warm",
@@ -210,7 +243,6 @@
       "seed": 7117,
       "file": "vignettes/charger--yeah--warm.mp3",
       "stability": 0.25,
-      "audition": true,
       "scene": {
         "before": "She would think for years about that morning, and how little she looked up. \"I'll see you tomorrow.\" She looked up and smiled, just for a second.",
         "after": "The door closed."
@@ -227,7 +259,6 @@
       "seed": 7130,
       "file": "vignettes/charger--yeah--warm-b.mp3",
       "stability": 0.25,
-      "audition": true,
       "scene": {
         "before": "She would think for years about that morning, and how little she looked up. \"I'll see you tomorrow.\" She looked up and smiled, just for a second.",
         "after": "The door closed."
@@ -245,7 +276,6 @@
       "seed": 7143,
       "file": "vignettes/back-seat--angry.mp3",
       "stability": 0.25,
-      "audition": true,
       "scene": {
         "before": "Neither of them said what they meant, that whole drive. They had been driving in silence for twenty minutes. Without looking at him:",
         "after": "\"No.\""
@@ -262,7 +292,6 @@
       "seed": 7156,
       "file": "vignettes/back-seat--angry-b.mp3",
       "stability": 0.25,
-      "audition": true,
       "scene": {
         "before": "Neither of them said what they meant, that whole drive. They had been driving in silence for twenty minutes. Without looking at him:",
         "after": "\"No.\""
@@ -280,7 +309,6 @@
       "seed": 7169,
       "file": "vignettes/back-seat--no--tired.mp3",
       "stability": 0.45,
-      "audition": true,
       "scene": {
         "before": "Neither of them said what they meant, that whole drive. He answered without looking away from the road. He wasn't, really. He was just tired.",
         "after": "She waited."
@@ -297,7 +325,6 @@
       "seed": 7182,
       "file": "vignettes/back-seat--no--tired-b.mp3",
       "stability": 0.45,
-      "audition": true,
       "scene": {
         "before": "Neither of them said what they meant, that whole drive. He answered without looking away from the road. He wasn't, really. He was just tired.",
         "after": "She waited."
@@ -333,7 +360,6 @@
       "seed": 7208,
       "file": "vignettes/back-seat--no--quick.mp3",
       "stability": 0.45,
-      "audition": true,
       "scene": {
         "before": "Neither of them said what they meant, that whole drive. He said it too quickly, eyes on the road, and turned the radio down.",
         "after": "She waited."
@@ -355,7 +381,8 @@
         "before": "Neither of them said what they meant, that whole drive. He said it too quickly, eyes on the road, and turned the radio down.",
         "after": "She waited."
       },
-      "variantOf": "back-seat--no--quick"
+      "variantOf": "back-seat--no--quick",
+      "retired": true
     },
     {
       "id": "back-seat--okay",
@@ -368,7 +395,6 @@
       "seed": 7234,
       "file": "vignettes/back-seat--okay.mp3",
       "stability": 0.25,
-      "audition": true,
       "scene": {
         "before": "Neither of them said what they meant, that whole drive. \"No,\" he said, and nothing else.",
         "after": "She turned the radio back up."
@@ -385,7 +411,6 @@
       "seed": 7247,
       "file": "vignettes/back-seat--okay-b.mp3",
       "stability": 0.25,
-      "audition": true,
       "scene": {
         "before": "Neither of them said what they meant, that whole drive. \"No,\" he said, and nothing else.",
         "after": "She turned the radio back up."
@@ -421,7 +446,6 @@
       "seed": 7273,
       "file": "vignettes/practice--hey.mp3",
       "stability": 0.25,
-      "audition": true,
       "scene": {
         "before": "She had been alone in the flat for weeks. She never made the call. Alone in the kitchen, phone in her hand, not dialling yet. Trying out how it would sound:",
         "after": "She tried again."
@@ -438,7 +462,6 @@
       "seed": 7286,
       "file": "vignettes/practice--hey-b.mp3",
       "stability": 0.25,
-      "audition": true,
       "scene": {
         "before": "She had been alone in the flat for weeks. She never made the call. Alone in the kitchen, phone in her hand, not dialling yet. Trying out how it would sound:",
         "after": "She tried again."
@@ -450,8 +473,8 @@
       "vignette": "practice",
       "line": "hiya",
       "voice": "sarah",
-      "text": "Hiya! …No.",
-      "input": "[trying to sound fine] Hiya! [quietly, ashamed] …No.",
+      "text": "Hiya. …No.",
+      "input": "[trying to sound fine] Hiya. [quietly, ashamed] …No.",
       "direction": "The bright version tried once and dropped, ashamed; no comedy.",
       "seed": 7299,
       "file": "vignettes/practice--hiya.mp3",
@@ -460,15 +483,16 @@
       "scene": {
         "before": "She had been alone in the flat for weeks. She never made the call. Trying a different way in, far too cheerful, and catching herself:",
         "after": "She put the phone face down."
-      }
+      },
+      "retired": true
     },
     {
       "id": "practice--hiya-b",
       "vignette": "practice",
       "line": "hiya",
       "voice": "sarah",
-      "text": "Hiya! …No.",
-      "input": "[trying to sound fine] Hiya! [quietly, ashamed] …No.",
+      "text": "Hiya. …No.",
+      "input": "[trying to sound fine] Hiya. [quietly, ashamed] …No.",
       "direction": "The bright version tried once and dropped, ashamed; no comedy.",
       "seed": 7312,
       "file": "vignettes/practice--hiya-b.mp3",
@@ -478,15 +502,16 @@
         "before": "She had been alone in the flat for weeks. She never made the call. Trying a different way in, far too cheerful, and catching herself:",
         "after": "She put the phone face down."
       },
-      "variantOf": "practice--hiya"
+      "variantOf": "practice--hiya",
+      "retired": true
     },
     {
       "id": "practice--hiya-c",
       "vignette": "practice",
       "line": "hiya",
       "voice": "sarah",
-      "text": "Hiya! …No.",
-      "input": "[trying to sound fine] Hiya! [quietly, ashamed] …No.",
+      "text": "Hiya. …No.",
+      "input": "[trying to sound fine] Hiya. [quietly, ashamed] …No.",
       "direction": "The bright version tried once and dropped, ashamed; no comedy.",
       "seed": 7325,
       "file": "vignettes/practice--hiya-c.mp3",
@@ -496,7 +521,43 @@
         "before": "She had been alone in the flat for weeks. She never made the call. Trying a different way in, far too cheerful, and catching herself:",
         "after": "She put the phone face down."
       },
-      "variantOf": "practice--hiya"
+      "variantOf": "practice--hiya",
+      "retired": true
+    },
+    {
+      "id": "practice--hiya--flat",
+      "vignette": "practice",
+      "line": "hiya",
+      "voice": "sarah",
+      "text": "Hiya. …No.",
+      "input": "[quietly, flat] Hiya. [sighs] …No.",
+      "direction": "Under her breath, trying the word out; it sounds wrong even to her, and she gives up. Nothing bright.",
+      "seed": 7427,
+      "file": "vignettes/practice--hiya--flat.mp3",
+      "stability": 0.25,
+      "audition": true,
+      "scene": {
+        "before": "She had been alone in the flat for weeks. She never made the call. Trying a different way in, far too cheerful, and catching herself:",
+        "after": "She put the phone face down."
+      }
+    },
+    {
+      "id": "practice--hiya--flat-b",
+      "vignette": "practice",
+      "line": "hiya",
+      "voice": "sarah",
+      "text": "Hiya. …No.",
+      "input": "[quietly, flat] Hiya. [sighs] …No.",
+      "direction": "Under her breath, trying the word out; it sounds wrong even to her, and she gives up. Nothing bright.",
+      "seed": 7440,
+      "file": "vignettes/practice--hiya--flat-b.mp3",
+      "stability": 0.25,
+      "audition": true,
+      "scene": {
+        "before": "She had been alone in the flat for weeks. She never made the call. Trying a different way in, far too cheerful, and catching herself:",
+        "after": "She put the phone face down."
+      },
+      "variantOf": "practice--hiya--flat"
     },
     {
       "id": "practice--again",
@@ -509,7 +570,6 @@
       "seed": 7338,
       "file": "vignettes/practice--again.mp3",
       "stability": 0.25,
-      "audition": true,
       "scene": {
         "before": "She had been alone in the flat for weeks. She never made the call. Once more, quieter, almost meaning it this time:",
         "after": "She didn't finish. She didn't call."
@@ -526,7 +586,6 @@
       "seed": 7351,
       "file": "vignettes/practice--again-b.mp3",
       "stability": 0.25,
-      "audition": true,
       "scene": {
         "before": "She had been alone in the flat for weeks. She never made the call. Once more, quieter, almost meaning it this time:",
         "after": "She didn't finish. She didn't call."
@@ -544,7 +603,6 @@
       "seed": 7364,
       "file": "vignettes/washing-up--done.mp3",
       "stability": 0.45,
-      "audition": true,
       "scene": {
         "before": "He kept trying to help, and she kept pushing him away. She missed it once he stopped. He had let himself in while she was out, and done the dishes, and was drying his hands when she came in:",
         "after": "\"You don't have to keep doing that.\""
@@ -561,7 +619,6 @@
       "seed": 7377,
       "file": "vignettes/washing-up--done-b.mp3",
       "stability": 0.45,
-      "audition": true,
       "scene": {
         "before": "He kept trying to help, and she kept pushing him away. She missed it once he stopped. He had let himself in while she was out, and done the dishes, and was drying his hands when she came in:",
         "after": "\"You don't have to keep doing that.\""
@@ -579,7 +636,6 @@
       "seed": 7390,
       "file": "vignettes/washing-up--dont--light.mp3",
       "stability": 0.25,
-      "audition": true,
       "scene": {
         "before": "He kept trying to help, and she kept pushing him away. She missed it once he stopped. \"I did your washing up,\" he said, pleased.",
         "after": "\"Doing what?\""
@@ -596,7 +652,6 @@
       "seed": 7403,
       "file": "vignettes/washing-up--dont--light-b.mp3",
       "stability": 0.25,
-      "audition": true,
       "scene": {
         "before": "He kept trying to help, and she kept pushing him away. She missed it once he stopped. \"I did your washing up,\" he said, pleased.",
         "after": "\"Doing what?\""
@@ -614,7 +669,6 @@
       "seed": 7416,
       "file": "vignettes/washing-up--dont--tired.mp3",
       "stability": 0.25,
-      "audition": true,
       "scene": {
         "before": "He kept trying to help, and she kept pushing him away. She missed it once he stopped. \"I did your washing up,\" he said, pleased. She put her bag down.",
         "after": "\"Doing what?\""
@@ -631,7 +685,6 @@
       "seed": 7429,
       "file": "vignettes/washing-up--dont--tired-b.mp3",
       "stability": 0.25,
-      "audition": true,
       "scene": {
         "before": "He kept trying to help, and she kept pushing him away. She missed it once he stopped. \"I did your washing up,\" he said, pleased. She put her bag down.",
         "after": "\"Doing what?\""
@@ -649,7 +702,6 @@
       "seed": 7442,
       "file": "vignettes/washing-up--what.mp3",
       "stability": 0.45,
-      "audition": true,
       "scene": {
         "before": "He kept trying to help, and she kept pushing him away. She missed it once he stopped. \"You don't have to keep doing that,\" she said.",
         "after": "She didn't answer."
@@ -666,7 +718,6 @@
       "seed": 7455,
       "file": "vignettes/washing-up--what-b.mp3",
       "stability": 0.45,
-      "audition": true,
       "scene": {
         "before": "He kept trying to help, and she kept pushing him away. She missed it once he stopped. \"You don't have to keep doing that,\" she said.",
         "after": "She didn't answer."
@@ -702,7 +753,6 @@
       "seed": 7481,
       "file": "vignettes/washing-up--thanks.mp3",
       "stability": 0.25,
-      "audition": true,
       "scene": {
         "before": "He kept trying to help, and she kept pushing him away. She missed it once he stopped. He had gone into the other room. From the doorway:"
       }
@@ -722,7 +772,8 @@
       "scene": {
         "before": "He kept trying to help, and she kept pushing him away. She missed it once he stopped. He had gone into the other room. From the doorway:"
       },
-      "variantOf": "washing-up--thanks"
+      "variantOf": "washing-up--thanks",
+      "retired": true
     },
     {
       "id": "five-minutes--stay",
@@ -735,7 +786,6 @@
       "seed": 7507,
       "file": "vignettes/five-minutes--stay.mp3",
       "stability": 0.25,
-      "audition": true,
       "scene": {
         "before": "A child, alone in the dark, who already knew the answer. The light was off and she was at the door. From under the covers, a bit embarrassed to ask:",
         "after": "\"Just for a minute.\""
@@ -752,7 +802,6 @@
       "seed": 7520,
       "file": "vignettes/five-minutes--stay-b.mp3",
       "stability": 0.25,
-      "audition": true,
       "scene": {
         "before": "A child, alone in the dark, who already knew the answer. The light was off and she was at the door. From under the covers, a bit embarrassed to ask:",
         "after": "\"Just for a minute.\""
@@ -770,7 +819,6 @@
       "seed": 7533,
       "file": "vignettes/five-minutes--minute--fond.mp3",
       "stability": 0.45,
-      "audition": true,
       "scene": {
         "before": "A child, alone in the dark, who already knew the answer. She was so tired. There were still the dishes.",
         "after": "She sat on the edge of the bed."
@@ -787,7 +835,6 @@
       "seed": 7546,
       "file": "vignettes/five-minutes--minute--fond-b.mp3",
       "stability": 0.45,
-      "audition": true,
       "scene": {
         "before": "A child, alone in the dark, who already knew the answer. She was so tired. There were still the dishes.",
         "after": "She sat on the edge of the bed."
@@ -805,7 +852,6 @@
       "seed": 7559,
       "file": "vignettes/five-minutes--minute--distracted.mp3",
       "stability": 0.45,
-      "audition": true,
       "scene": {
         "before": "A child, alone in the dark, who already knew the answer. She was so tired. There were still the dishes, and the phone was ringing downstairs.",
         "after": "She sat on the edge of the bed."
@@ -827,7 +873,8 @@
         "before": "A child, alone in the dark, who already knew the answer. She was so tired. There were still the dishes, and the phone was ringing downstairs.",
         "after": "She sat on the edge of the bed."
       },
-      "variantOf": "five-minutes--minute--distracted"
+      "variantOf": "five-minutes--minute--distracted",
+      "retired": true
     },
     {
       "id": "five-minutes--promise",
@@ -840,7 +887,6 @@
       "seed": 7585,
       "file": "vignettes/five-minutes--promise.mp3",
       "stability": 0.25,
-      "audition": true,
       "scene": {
         "before": "A child, alone in the dark, who already knew the answer. \"Just for a minute,\" she said, and sat on the edge of the bed. Nearly asleep:"
       }
@@ -856,7 +902,6 @@
       "seed": 7598,
       "file": "vignettes/five-minutes--promise-b.mp3",
       "stability": 0.25,
-      "audition": true,
       "scene": {
         "before": "A child, alone in the dark, who already knew the answer. \"Just for a minute,\" she said, and sat on the edge of the bed. Nearly asleep:"
       },
@@ -890,7 +935,6 @@
       "seed": 7624,
       "file": "vignettes/five-minutes--asleep.mp3",
       "stability": 0.45,
-      "audition": true,
       "scene": {
         "before": "A child, alone in the dark, who already knew the answer. Much later, passing the door on her way to bed, she found the child's eyes still open in the dark."
       }
@@ -906,7 +950,6 @@
       "seed": 7637,
       "file": "vignettes/five-minutes--asleep-b.mp3",
       "stability": 0.45,
-      "audition": true,
       "scene": {
         "before": "A child, alone in the dark, who already knew the answer. Much later, passing the door on her way to bed, she found the child's eyes still open in the dark."
       },
@@ -923,7 +966,6 @@
       "seed": 7650,
       "file": "vignettes/a-bag--bag.mp3",
       "stability": 0.45,
-      "audition": true,
       "scene": {
         "before": "It was the first time anyone had been kind to her in days. A small shop on a weekday afternoon. The woman at the till, kindly, as she says it a hundred times a day:",
         "after": "There was a long pause."
@@ -940,7 +982,6 @@
       "seed": 7663,
       "file": "vignettes/a-bag--bag-b.mp3",
       "stability": 0.45,
-      "audition": true,
       "scene": {
         "before": "It was the first time anyone had been kind to her in days. A small shop on a weekday afternoon. The woman at the till, kindly, as she says it a hundred times a day:",
         "after": "There was a long pause."
@@ -958,7 +999,6 @@
       "seed": 7676,
       "file": "vignettes/a-bag--sorry.mp3",
       "stability": 0.25,
-      "audition": true,
       "scene": {
         "before": "It was the first time anyone had been kind to her in days. \"Do you want a bag for that, love?\" She hadn't been listening; she was miles away."
       }
@@ -974,7 +1014,6 @@
       "seed": 7689,
       "file": "vignettes/a-bag--sorry-b.mp3",
       "stability": 0.25,
-      "audition": true,
       "scene": {
         "before": "It was the first time anyone had been kind to her in days. \"Do you want a bag for that, love?\" She hadn't been listening; she was miles away."
       },
@@ -991,7 +1030,6 @@
       "seed": 7702,
       "file": "vignettes/come-over--come.mp3",
       "stability": 0.45,
-      "audition": true,
       "scene": {
         "before": "They stopped asking, in the end. She never went. Outside the supermarket, the first time in a year. It was easy, for five minutes. As they parted:",
         "after": "\"Yeah. I will.\""
@@ -1008,7 +1046,6 @@
       "seed": 7715,
       "file": "vignettes/come-over--come-b.mp3",
       "stability": 0.45,
-      "audition": true,
       "scene": {
         "before": "They stopped asking, in the end. She never went. Outside the supermarket, the first time in a year. It was easy, for five minutes. As they parted:",
         "after": "\"Yeah. I will.\""
@@ -1026,7 +1063,6 @@
       "seed": 7728,
       "file": "vignettes/come-over--will--automatic.mp3",
       "stability": 0.25,
-      "audition": true,
       "scene": {
         "before": "They stopped asking, in the end. She never went. \"You should come over sometime.\"",
         "after": "\"You always say that.\""
@@ -1061,7 +1097,6 @@
       "seed": 7754,
       "file": "vignettes/come-over--will--unsure.mp3",
       "stability": 0.25,
-      "audition": true,
       "scene": {
         "before": "They stopped asking, in the end. She never went. \"You should come over sometime.\"",
         "after": "\"You always say that.\""
@@ -1078,7 +1113,6 @@
       "seed": 7767,
       "file": "vignettes/come-over--will--unsure-b.mp3",
       "stability": 0.25,
-      "audition": true,
       "scene": {
         "before": "They stopped asking, in the end. She never went. \"You should come over sometime.\"",
         "after": "\"You always say that.\""
@@ -1096,7 +1130,6 @@
       "seed": 7780,
       "file": "vignettes/come-over--always.mp3",
       "stability": 0.45,
-      "audition": true,
       "scene": {
         "before": "They stopped asking, in the end. She never went. \"Yeah. I will,\" she said.",
         "after": "She hugged her anyway."
@@ -1113,7 +1146,6 @@
       "seed": 7793,
       "file": "vignettes/come-over--always-b.mp3",
       "stability": 0.45,
-      "audition": true,
       "scene": {
         "before": "They stopped asking, in the end. She never went. \"Yeah. I will,\" she said.",
         "after": "She hugged her anyway."
@@ -1131,7 +1163,6 @@
       "seed": 7806,
       "file": "vignettes/come-over--okay.mp3",
       "stability": 0.45,
-      "audition": true,
       "scene": {
         "before": "They stopped asking, in the end. She never went. \"Yeah. I will,\" she said. A pause. Her friend didn't push any more:",
         "after": "And that was that."
@@ -1148,7 +1179,6 @@
       "seed": 7819,
       "file": "vignettes/come-over--okay-b.mp3",
       "stability": 0.45,
-      "audition": true,
       "scene": {
         "before": "They stopped asking, in the end. She never went. \"Yeah. I will,\" she said. A pause. Her friend didn't push any more:",
         "after": "And that was that."
@@ -1184,7 +1214,6 @@
       "seed": 7845,
       "file": "vignettes/biscuit--last.mp3",
       "stability": 0.45,
-      "audition": true,
       "scene": {
         "before": "Years later, it was the afternoon she kept. Sunday afternoon, mouth half full, reaching into the packet:",
         "after": "\"Have it.\""
@@ -1201,7 +1230,6 @@
       "seed": 7858,
       "file": "vignettes/biscuit--last-b.mp3",
       "stability": 0.45,
-      "audition": true,
       "scene": {
         "before": "Years later, it was the afternoon she kept. Sunday afternoon, mouth half full, reaching into the packet:",
         "after": "\"Have it.\""
@@ -1219,7 +1247,6 @@
       "seed": 7871,
       "file": "vignettes/biscuit--have.mp3",
       "stability": 0.25,
-      "audition": true,
       "scene": {
         "before": "Years later, it was the afternoon she kept. \"Is that the last one?\"",
         "after": "\"Go halves.\""
@@ -1236,7 +1263,6 @@
       "seed": 7884,
       "file": "vignettes/biscuit--have-b.mp3",
       "stability": 0.25,
-      "audition": true,
       "scene": {
         "before": "Years later, it was the afternoon she kept. \"Is that the last one?\"",
         "after": "\"Go halves.\""
@@ -1254,7 +1280,6 @@
       "seed": 7897,
       "file": "vignettes/biscuit--halves.mp3",
       "stability": 0.45,
-      "audition": true,
       "scene": {
         "before": "Years later, it was the afternoon she kept. \"Have it,\" she said.",
         "after": "\"Just have it.\""
@@ -1271,7 +1296,6 @@
       "seed": 7910,
       "file": "vignettes/biscuit--halves-b.mp3",
       "stability": 0.45,
-      "audition": true,
       "scene": {
         "before": "Years later, it was the afternoon she kept. \"Have it,\" she said.",
         "after": "\"Just have it.\""
@@ -1289,7 +1313,6 @@
       "seed": 7923,
       "file": "vignettes/biscuit--just.mp3",
       "stability": 0.25,
-      "audition": true,
       "scene": {
         "before": "Years later, it was the afternoon she kept. \"Go halves,\" he said, holding it out."
       }
@@ -1305,7 +1328,6 @@
       "seed": 7936,
       "file": "vignettes/biscuit--just-b.mp3",
       "stability": 0.25,
-      "audition": true,
       "scene": {
         "before": "Years later, it was the afternoon she kept. \"Go halves,\" he said, holding it out."
       },
@@ -1322,7 +1344,6 @@
       "seed": 7949,
       "file": "vignettes/biscuit--goon.mp3",
       "stability": 0.25,
-      "audition": true,
       "scene": {
         "before": "Years later, it was the afternoon she kept. \"Go halves,\" he said again, holding it out."
       }
@@ -1342,7 +1363,8 @@
       "scene": {
         "before": "Years later, it was the afternoon she kept. \"Go halves,\" he said again, holding it out."
       },
-      "variantOf": "biscuit--goon"
+      "variantOf": "biscuit--goon",
+      "retired": true
     },
     {
       "id": "gone-quiet--quiet",
@@ -1355,7 +1377,6 @@
       "seed": 8001,
       "file": "vignettes/gone-quiet--quiet.mp3",
       "stability": 0.45,
-      "audition": true,
       "scene": {
         "before": "Her own birthday, and she had never felt so alone. Her birthday. She'd gone out to the hallway; the party carried on through the wall. A friend came out after her:",
         "after": "\"I'm fine! It's just loud.\""
@@ -1390,7 +1411,6 @@
       "seed": 8027,
       "file": "vignettes/gone-quiet--fine.mp3",
       "stability": 0.25,
-      "audition": true,
       "scene": {
         "before": "Her own birthday, and she had never felt so alone. Out in the hallway, the party through the wall. \"You alright? You've gone quiet.\"",
         "after": "She went back in."
@@ -1412,7 +1432,8 @@
         "before": "Her own birthday, and she had never felt so alone. Out in the hallway, the party through the wall. \"You alright? You've gone quiet.\"",
         "after": "She went back in."
       },
-      "variantOf": "gone-quiet--fine"
+      "variantOf": "gone-quiet--fine",
+      "retired": true
     }
   ]
 }

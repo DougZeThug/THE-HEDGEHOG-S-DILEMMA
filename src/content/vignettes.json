@@ -46,6 +46,11 @@
           "text": "I'll see you tomorrow."
         },
         {
+          "id": "tomorrow-okay",
+          "speaker": "other",
+          "text": "Okay, I'll see you tomorrow."
+        },
+        {
           "id": "yeah",
           "speaker": "writer",
           "text": "Yeah. Tomorrow."
@@ -428,7 +433,7 @@
         {
           "id": "hiya",
           "speaker": "writer",
-          "text": "Hiya! …No."
+          "text": "Hiya. …No."
         },
         {
           "id": "again",

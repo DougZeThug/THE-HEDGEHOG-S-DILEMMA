@@ -1,19 +1,19 @@
 {
   "vig:charger:charger": [
-    "vignettes/charger--charger.mp3",
-    "vignettes/charger--charger-b.mp3"
+    "vignettes/charger--charger.mp3"
   ],
   "vig:charger:toaster": [
-    "vignettes/charger--toaster.mp3",
     "vignettes/charger--toaster-b.mp3"
   ],
   "vig:charger:tomorrow": [
-    "vignettes/charger--tomorrow.mp3",
-    "vignettes/charger--tomorrow-b.mp3"
+    "vignettes/charger--tomorrow.mp3"
+  ],
+  "vig:charger:tomorrow-okay": [
+    "vignettes/charger--tomorrow-okay.mp3",
+    "vignettes/charger--tomorrow-okay-b.mp3"
   ],
   "vig:charger:yeah": [
     "vignettes/charger--yeah--distracted.mp3",
-    "vignettes/charger--yeah--distracted-b.mp3",
     "vignettes/charger--yeah--warm.mp3",
     "vignettes/charger--yeah--warm-b.mp3"
   ],
@@ -24,8 +24,7 @@
   "vig:back-seat:no": [
     "vignettes/back-seat--no--tired.mp3",
     "vignettes/back-seat--no--tired-b.mp3",
-    "vignettes/back-seat--no--quick.mp3",
-    "vignettes/back-seat--no--quick-b.mp3"
+    "vignettes/back-seat--no--quick.mp3"
   ],
   "vig:back-seat:okay": [
     "vignettes/back-seat--okay.mp3",
@@ -36,8 +35,8 @@
     "vignettes/practice--hey-b.mp3"
   ],
   "vig:practice:hiya": [
-    "vignettes/practice--hiya.mp3",
-    "vignettes/practice--hiya-b.mp3"
+    "vignettes/practice--hiya--flat.mp3",
+    "vignettes/practice--hiya--flat-b.mp3"
   ],
   "vig:practice:again": [
     "vignettes/practice--again.mp3",
@@ -58,8 +57,7 @@
     "vignettes/washing-up--what-b.mp3"
   ],
   "vig:washing-up:thanks": [
-    "vignettes/washing-up--thanks.mp3",
-    "vignettes/washing-up--thanks-b.mp3"
+    "vignettes/washing-up--thanks.mp3"
   ],
   "vig:five-minutes:stay": [
     "vignettes/five-minutes--stay.mp3",
@@ -68,8 +66,7 @@
   "vig:five-minutes:minute": [
     "vignettes/five-minutes--minute--fond.mp3",
     "vignettes/five-minutes--minute--fond-b.mp3",
-    "vignettes/five-minutes--minute--distracted.mp3",
-    "vignettes/five-minutes--minute--distracted-b.mp3"
+    "vignettes/five-minutes--minute--distracted.mp3"
   ],
   "vig:five-minutes:promise": [
     "vignettes/five-minutes--promise.mp3",
@@ -122,15 +119,13 @@
     "vignettes/biscuit--just-b.mp3"
   ],
   "vig:biscuit:goon": [
-    "vignettes/biscuit--goon.mp3",
-    "vignettes/biscuit--goon-b.mp3"
+    "vignettes/biscuit--goon.mp3"
   ],
   "vig:gone-quiet:quiet": [
     "vignettes/gone-quiet--quiet.mp3",
     "vignettes/gone-quiet--quiet-b.mp3"
   ],
   "vig:gone-quiet:fine": [
-    "vignettes/gone-quiet--fine.mp3",
-    "vignettes/gone-quiet--fine-b.mp3"
+    "vignettes/gone-quiet--fine.mp3"
   ]
 }
