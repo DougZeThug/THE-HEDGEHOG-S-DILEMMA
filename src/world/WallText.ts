@@ -117,8 +117,13 @@ function makeTextMaterial(tex: THREE.Texture, hand: Hand, aspect: number, seed: 
         float edge = uReveal * 1.25 - 0.12;
         diffuseColor.a *= 1.0 - smoothstep(edge - 0.1, edge + 0.02, n);
       }
-      // A word gone: it fades to a ghost of itself (graphite never quite rubs out of plaster).
-      if (uGap.z > 0.0) diffuseColor.a *= 1.0 - 0.85 * uGap.z * step(uGap.x, hhR) * step(hhR, uGap.y);
+      // A word gone: rubbed out unevenly, as an eraser leaves graphite on plaster: patches of a
+      // faint smudge, most of it gone (never a clean, even grey).
+      if (uGap.z > 0.0) {
+        float hhBand = step(uGap.x, hhR) * step(hhR, uGap.y);
+        float hhRub = hhFbm(vMapUv * vec2(uAspect * 8.0, 12.0) + uSeed * 1.7);
+        diffuseColor.a *= mix(1.0, 0.03 + 0.22 * smoothstep(0.45, 0.85, hhRub), uGap.z * hhBand);
+      }
       diffuseColor.a *= uOpacity;
       diffuseColor.rgb *= 1.0 - 0.45 * uEmphasis;`,
     );
