@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import dialogue from '../src/content/dialogue.json';
 import { PHRASE_BY_ID } from '../src/content/phrases';
 import {
-  applyBudget, buildManifest, buildVignetteManifest, classifyFailure, emptyLedger, mp3Info, performanceHash, planJobs, runJobs, spokenTags, validateDirection, wordErrorRate,
+  applyBudget, buildManifest, buildVignetteManifest, buildVignettePreview, classifyFailure, emptyLedger, mp3Info, performanceHash, planJobs, runJobs, spokenTags, validateDirection, wordErrorRate,
 } from '../scripts/dialogue-lib.mjs';
 
 const ROOT = join(__dirname, '..');
@@ -280,9 +280,24 @@ describe('the vignettes\' recording direction', () => {
     expect(buildVignetteManifest({}, vdir, ledger)[`vig:${p.vignette}:${p.line}`]).toEqual([p.file]);
   });
 
+  it("the artist's previews hear every take not turned down; the room's manifest still only the kept", () => {
+    const [a, b, c] = vdir.performances;
+    const ledger = emptyLedger();
+    ledger.entries[a.id] = { status: 'validated' };
+    ledger.entries[b.id] = { status: 'needs-review' };
+    ledger.entries[c.id] = { status: 'validated', review: 'rejected' };
+    const files = Object.values(buildVignettePreview(vdir, ledger)).flat();
+    expect(files).toContain(a.file);
+    expect(files).toContain(b.file);
+    expect(files).not.toContain(c.file);
+    expect(Object.keys(buildVignetteManifest({}, vdir, ledger))).toHaveLength(0);
+  });
+
   it('a designed voice not yet saved is never asked for (and costs nothing)', () => {
-    const { jobs, skipped } = planJobs(vdir, emptyLedger());
-    expect(jobs.every((j: { perf: { voice: string } }) => vdir.voices[j.perf.voice].voiceId)).toBe(true);
+    // As before the designs were saved: one of them without its voice ID.
+    const unsaved = { ...vdir, voices: { ...vdir.voices, 'small-voice': { ...vdir.voices['small-voice'], voiceId: null } } };
+    const { jobs, skipped } = planJobs(unsaved, emptyLedger());
+    expect(jobs.every((j: { perf: { voice: string } }) => unsaved.voices[j.perf.voice].voiceId)).toBe(true);
     expect(skipped.some((s: { reason: string }) => /not saved/.test(s.reason))).toBe(true);
   });
 

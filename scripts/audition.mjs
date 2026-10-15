@@ -163,7 +163,17 @@ for (const p of vDir.performances) {
 }
 const phraseSrc = readFileSync(join(ROOT, 'src/content/phrases.ts'), 'utf8');
 const phraseText = new Map([...phraseSrc.matchAll(/p\('([^']+)',\s*("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g)].map((m) => [m[1], m[2].startsWith('"') ? JSON.parse(m[2]) : m[2].slice(1, -1).replace(/\\'/g, "'")]));
-const kept = (vignette, line) => vDir.performances.filter((p) => p.vignette === vignette && p.line === line && vLedger.entries[p.id]?.review === 'approved' && existsSync(join(ROOT, 'public/voices', p.file)));
+// The take a read-through plays for a line: a kept one (of the reading the version asks for, or
+// any), otherwise one generated and not turned down (marked "not kept yet"), so a vignette can be
+// heard as scored before anything is kept.
+const takesOf = (vignette, line) => vDir.performances.filter((p) => p.vignette === vignette && p.line === line && existsSync(join(ROOT, 'public/voices', p.file)) && vLedger.entries[p.id] && vLedger.entries[p.id].review !== 'rejected');
+const ofReading = (p, reading) => !reading || new RegExp(`--${reading}(-[a-z])?\\.mp3$`).test(p.file);
+const readThroughTake = (vignette, line, reading) => {
+  const all = takesOf(vignette, line);
+  const kept = all.filter((p) => vLedger.entries[p.id].review === 'approved');
+  const take = kept.find((p) => ofReading(p, reading)) ?? kept[0] ?? all.find((p) => ofReading(p, reading)) ?? all[0];
+  return take ? { take, pending: vLedger.entries[take.id].review !== 'approved' } : null;
+};
 const vignettes = vData.vignettes.map((v) => ({
   id: v.id, title: v.title, tone: v.tone, intent: v.intent, anchor: v.anchor.phrase ? phraseText.get(v.anchor.phrase) ?? v.anchor.phrase : 'stillness by the chair',
   anchorId: v.anchor.phrase ?? null,
@@ -173,8 +183,12 @@ const vignettes = vData.vignettes.map((v) => ({
     events: s.events.map((e) => {
       if (e.line) {
         const l = v.lines.find((x) => x.id === e.line);
-        const take = kept(v.id, e.line)[0];
-        return { at: e.at, kind: 'line', who: v.speakers[l.speaker]?.who ?? l.speaker, side: e.place?.at, text: l.text, end: e.end ?? null, src: take ? (OUT ? `audio/${basename(take.file)}` : `../public/voices/${take.file}`) : null };
+        const got = readThroughTake(v.id, e.line, e.reading);
+        const take = got?.take;
+        return {
+          at: e.at, kind: 'line', who: v.speakers[l.speaker]?.who ?? l.speaker, side: e.place?.at, text: l.text, end: e.end ?? null,
+          src: take ? (OUT ? `audio/${basename(take.file)}` : `../public/voices/${take.file}`) : null, pending: !!got?.pending, take: take?.id ?? null, stopAfter: e.stopAfter ?? null,
+        };
       }
       if (e.sfx || e.bed) return { at: e.at, kind: e.bed ? 'bed' : 'sound', text: e.caption ?? (e.bed ? `[the air of the place: ${e.bed}]` : `[${e.sfx}]`) };
       if (e.gap) return { at: e.at, kind: 'gap', text: `${e.gap} ${e.seconds} s`, seconds: e.seconds };

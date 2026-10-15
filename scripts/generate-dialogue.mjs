@@ -25,7 +25,7 @@ import { tmpdir } from 'node:os';
 import { execFileSync } from 'node:child_process';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { applyBudget, balanceAllows, readBalance, buildManifest, buildVignetteManifest, emptyLedger, performanceHash, planJobs, runJobs, validateDirection } from './dialogue-lib.mjs';
+import { applyBudget, balanceAllows, readBalance, buildManifest, buildVignetteManifest, buildVignettePreview, emptyLedger, performanceHash, planJobs, runJobs, validateDirection } from './dialogue-lib.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const args = Object.fromEntries(
@@ -71,6 +71,8 @@ function writeManifest() {
   const manifest = existsSync(MANIFEST) ? JSON.parse(readFileSync(MANIFEST, 'utf8')) : {};
   const next = VIGNETTES ? buildVignetteManifest(manifest, direction, ledger, fileExists) : buildManifest(manifest, direction, ledger, fileExists);
   writeFileSync(MANIFEST, JSON.stringify(next, null, 2) + '\n');
+  // The artist's previews hear every take not turned down; visitors only the kept ones (above).
+  if (VIGNETTES) writeFileSync(join(ROOT, 'public/voices/vignette-preview.json'), JSON.stringify(buildVignettePreview(direction, ledger, fileExists), null, 2) + '\n');
   const keys = Object.keys(next).filter((k) => k.startsWith(VIGNETTES ? 'vig:' : 'phrase:'));
   console.log(`manifest: ${keys.length} ${VIGNETTES ? 'vignette lines with kept takes' : 'phrases with recorded performances'}`);
 }

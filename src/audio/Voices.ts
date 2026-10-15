@@ -182,6 +182,26 @@ export class Voices {
     }
   }
 
+  /**
+   * Takes generated but not kept yet, for the artist's previews only (`?vignette=`): read by `raw`
+   * and `filesOf` where the manifest has nothing, never by `hasAsset`, so what visitors meet is
+   * unchanged.
+   */
+  private preview: Record<string, string[]> = {};
+
+  async loadPreview() {
+    try {
+      const r = await fetch(this.base + 'vignette-preview.json', { cache: 'no-cache' });
+      if (r.ok) this.preview = await r.json();
+    } catch {
+      this.preview = {};
+    }
+  }
+
+  private filesFor(key: string): string[] | undefined {
+    return this.manifest[key]?.length ? this.manifest[key] : this.preview[key];
+  }
+
   get assetCount() {
     return Object.values(this.manifest).reduce((n, v) => n + v.length, 0);
   }
@@ -200,7 +220,7 @@ export class Voices {
 
   /** The recordings kept for a key, in manifest order (what `raw`'s take indexes). */
   filesOf(key: string): readonly string[] {
-    return this.manifest[key] ?? [];
+    return this.filesFor(key) ?? [];
   }
 
   /** Per-file gain that brings recordings to a common loudness (they arrive at arbitrary levels). */
@@ -227,14 +247,14 @@ export class Voices {
    * the take asked for, or the first. Kept decoded until `forget` lets it go.
    */
   async raw(key: string, take = 0): Promise<AudioBuffer | null> {
-    const files = this.manifest[key];
+    const files = this.filesFor(key);
     if (!files?.length) return null;
     return this.loadBuffer(files[Math.min(files.length - 1, Math.max(0, take))]);
   }
 
   /** Let a memory's recordings go once it has finished (phones keep little decoded audio). */
   forget(keys: string[]): void {
-    for (const k of keys) for (const f of this.manifest[k] ?? []) this.buffers.delete(f);
+    for (const k of keys) for (const f of this.filesFor(k) ?? []) this.buffers.delete(f);
   }
 
   /** Loudness diagnostics for QA: file → [rms dBFS, peak dBFS, seconds]. */

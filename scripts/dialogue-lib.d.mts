@@ -20,6 +20,7 @@ export function applyBudget(jobs: Job[], budget: number): { run: Job[]; queued: 
 export function mp3Info(buf: Uint8Array | ArrayBuffer): { valid: boolean; frames: number; seconds: number };
 export function classifyFailure(status: number, body: string): { kind: string; code: string; message: string; retry: boolean; stop: boolean };
 export function buildManifest(manifest: Record<string, string[]>, direction: any, ledger: Ledger, fileExists?: (f: string) => boolean): Record<string, string[]>;
+export function buildVignettePreview(direction: any, ledger: Ledger, fileExists?: (f: string) => boolean): Record<string, string[]>;
 export function buildVignetteManifest(manifest: Record<string, string[]>, direction: any, ledger: Ledger, fileExists?: (f: string) => boolean): Record<string, string[]>;
 export function runJobs(o: {
   jobs: Job[]; direction: any; ledger: Ledger; key: string; fetch: (url: string, init?: any) => Promise<any>;

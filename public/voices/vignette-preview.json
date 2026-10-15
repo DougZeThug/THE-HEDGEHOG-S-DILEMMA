@@ -1,0 +1,100 @@
+{
+  "vig:charger:charger": [
+    "vignettes/charger--charger.mp3"
+  ],
+  "vig:charger:toaster": [
+    "vignettes/charger--toaster.mp3"
+  ],
+  "vig:charger:tomorrow": [
+    "vignettes/charger--tomorrow.mp3"
+  ],
+  "vig:charger:yeah": [
+    "vignettes/charger--yeah--distracted.mp3",
+    "vignettes/charger--yeah--warm.mp3"
+  ],
+  "vig:back-seat:angry": [
+    "vignettes/back-seat--angry.mp3"
+  ],
+  "vig:back-seat:no": [
+    "vignettes/back-seat--no--tired.mp3",
+    "vignettes/back-seat--no--quick.mp3"
+  ],
+  "vig:back-seat:okay": [
+    "vignettes/back-seat--okay.mp3"
+  ],
+  "vig:practice:hey": [
+    "vignettes/practice--hey.mp3"
+  ],
+  "vig:practice:hiya": [
+    "vignettes/practice--hiya.mp3"
+  ],
+  "vig:practice:again": [
+    "vignettes/practice--again.mp3"
+  ],
+  "vig:washing-up:done": [
+    "vignettes/washing-up--done.mp3"
+  ],
+  "vig:washing-up:dont": [
+    "vignettes/washing-up--dont--light.mp3",
+    "vignettes/washing-up--dont--tired.mp3"
+  ],
+  "vig:washing-up:what": [
+    "vignettes/washing-up--what.mp3"
+  ],
+  "vig:washing-up:thanks": [
+    "vignettes/washing-up--thanks.mp3"
+  ],
+  "vig:five-minutes:stay": [
+    "vignettes/five-minutes--stay.mp3"
+  ],
+  "vig:five-minutes:minute": [
+    "vignettes/five-minutes--minute--fond.mp3",
+    "vignettes/five-minutes--minute--distracted.mp3"
+  ],
+  "vig:five-minutes:promise": [
+    "vignettes/five-minutes--promise.mp3"
+  ],
+  "vig:five-minutes:asleep": [
+    "vignettes/five-minutes--asleep.mp3"
+  ],
+  "vig:a-bag:bag": [
+    "vignettes/a-bag--bag.mp3"
+  ],
+  "vig:a-bag:sorry": [
+    "vignettes/a-bag--sorry.mp3"
+  ],
+  "vig:come-over:come": [
+    "vignettes/come-over--come.mp3"
+  ],
+  "vig:come-over:will": [
+    "vignettes/come-over--will--automatic.mp3",
+    "vignettes/come-over--will--unsure.mp3"
+  ],
+  "vig:come-over:always": [
+    "vignettes/come-over--always.mp3"
+  ],
+  "vig:come-over:okay": [
+    "vignettes/come-over--okay.mp3"
+  ],
+  "vig:biscuit:last": [
+    "vignettes/biscuit--last.mp3"
+  ],
+  "vig:biscuit:have": [
+    "vignettes/biscuit--have.mp3"
+  ],
+  "vig:biscuit:halves": [
+    "vignettes/biscuit--halves.mp3"
+  ],
+  "vig:biscuit:just": [
+    "vignettes/biscuit--just.mp3"
+  ],
+  "vig:biscuit:goon": [
+    "vignettes/biscuit--goon.mp3"
+  ],
+  "vig:gone-quiet:quiet": [
+    "vignettes/gone-quiet--quiet.mp3"
+  ],
+  "vig:gone-quiet:fine": [
+    "vignettes/gone-quiet--fine.mp3"
+  ]
+}

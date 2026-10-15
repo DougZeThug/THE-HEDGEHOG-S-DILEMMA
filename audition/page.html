@@ -84,6 +84,7 @@ section.vigs { display: grid; gap: 14px; padding-top: 14px; border-top: 1px soli
 .score li.ev-gap, .score li.ev-bed, .score li.ev-sound, .score li.ev-effect { color: var(--pencil); font-style: italic }
 .score li.now { background: var(--chip) }
 .score li.ev-line.unrecorded .say::after { content: ' (not recorded yet)'; font: 11px var(--mono); color: var(--unsure); font-style: normal }
+.score li.ev-line.pending .say::after { content: ' (not kept yet)'; font: 11px var(--mono); color: var(--unsure); font-style: normal }
 .readcap { min-height: 2.6em; font: 500 20px/1.25 var(--hand); color: var(--graphite); margin: 0 }
 @media (prefers-reduced-motion: no-preference) { .take { transition: border-color .2s } }
 </style>
@@ -100,7 +101,7 @@ section.vigs { display: grid; gap: 14px; padding-top: 14px; border-top: 1px soli
   </header>
   <section class="vigs" id="vignettes" aria-labelledby="vig-h">
     <p class="line" id="vig-h">Vignettes: read-throughs</p>
-    <p class="note">Each version of each vignette, as it is scored. "Read through" plays it at its own times: a line with a kept take is heard; one not recorded yet shows its words at its time, in silence, so the pauses and rhythm can be judged before anything is paid for. Readings of each line, once generated, are below with the other takes.</p>
+    <p class="note">Each version of each vignette, as it is scored. "Read through" plays it at its own times: a line with a take is heard (a kept one if there is one; otherwise the take generated for it, marked "not kept yet"); one not recorded yet shows its words at its time, in silence. Voices are placed only roughly here (left, right, through a wall); the room's own sounds and light are described, not played. Readings of each line, once generated, are below with the other takes.</p>
     <div id="vig-list"></div>
   </section>
   <main id="groups"></main>
@@ -143,7 +144,26 @@ section.vigs { display: grid; gap: 14px; padding-top: 14px; border-top: 1px soli
     g.takes.push(t);
   }
 
-  // Vignettes: read-throughs of each version's score.
+  // Vignettes: read-throughs of each version's score. A rough sense of where each voice is (the
+  // room itself places them properly): left and right apart, through a wall muffled and quieter.
+  let vctx = null;
+  const placed = (e) => {
+    const a = new Audio(e.src);
+    try {
+      vctx ??= new AudioContext();
+      if (vctx.state === 'suspended') vctx.resume();
+      let node = vctx.createMediaElementSource(a);
+      if (e.side === 'beyond') {
+        const f = vctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 1600;
+        const g = vctx.createGain(); g.gain.value = 0.4;
+        node.connect(f); f.connect(g); node = g;
+      }
+      const pan = vctx.createStereoPanner();
+      pan.pan.value = e.side === 'left' ? -0.5 : e.side === 'right' ? 0.5 : e.side === 'door' ? 0.3 : 0;
+      node.connect(pan); pan.connect(vctx.destination);
+    } catch { /* played plainly */ }
+    return a;
+  };
   const vigList = document.getElementById('vig-list');
   let reading = null;
   const stopReading = () => {
@@ -165,7 +185,7 @@ section.vigs { display: grid; gap: 14px; padding-top: 14px; border-top: 1px soli
       const btn = el('button', 'small', 'Read through'); btn.type = 'button'; h.append(btn);
       const ol = el('ol', 'score');
       const items = s.events.map((e) => {
-        const li = el('li', 'ev-' + e.kind + (e.kind === 'line' && !e.src ? ' unrecorded' : ''));
+        const li = el('li', 'ev-' + e.kind + (e.kind === 'line' && !e.src ? ' unrecorded' : e.kind === 'line' && e.pending ? ' pending' : ''));
         li.append(el('span', 't', e.at.toFixed(1)));
         const body = el('span');
         if (e.kind === 'line') { body.append(el('span', 'spk', e.who + (e.side ? ` · ${e.side}` : ''))); body.append(el('span', 'say', e.text + (e.end === 'cut' ? ' (cut off)' : ''))); }
@@ -186,7 +206,7 @@ section.vigs { display: grid; gap: 14px; padding-top: 14px; border-top: 1px soli
             items[i].classList.add('now');
             if (e.kind === 'line') {
               cap.textContent = e.text;
-              if (e.src) { const a = new Audio(e.src); reading?.audios.push(a); a.play().catch(() => {}); }
+              if (e.src) { const a = placed(e); reading?.audios.push(a); a.play().catch(() => {}); if (e.stopAfter) reading?.timers.push(setTimeout(() => a.pause(), e.stopAfter * 1000)); }
             } else if (e.kind === 'gap') cap.textContent = '';
           }, e.at * 1000));
         });

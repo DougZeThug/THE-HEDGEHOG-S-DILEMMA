@@ -805,7 +805,8 @@ export class App {
       pv.at ??= wallClock() + 4;
       if (wallClock() >= pv.at) {
         this.previewVignette = null;
-        void this.playVignette(pv.id, pv.variant, true);
+        // A preview hears the takes generated so far, kept or not (visitors only ever the kept).
+        void (this.voices?.loadPreview() ?? Promise.resolve()).then(() => this.playVignette(pv.id, pv.variant, true));
       }
     }
     const v = this.vignette;

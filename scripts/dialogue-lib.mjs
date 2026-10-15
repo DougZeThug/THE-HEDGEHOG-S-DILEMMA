@@ -259,6 +259,21 @@ export function buildVignetteManifest(manifest, direction, ledger, fileExists = 
 }
 
 /**
+ * For the artist's previews only (`?vignette=<id>` in the room): every vignette take generated
+ * and not turned down, under the same `vig:` keys, so a vignette can be heard in place before
+ * anything is kept. The room's own choice of what visitors meet reads the manifest, never this.
+ */
+export function buildVignettePreview(direction, ledger, fileExists = () => true) {
+  const out = {};
+  for (const perf of direction.performances) {
+    const e = ledger.entries[perf.id];
+    if (!e || e.review === 'rejected' || !PRESENT.has(e.status) || !fileExists(perf.file)) continue;
+    (out[`vig:${perf.vignette}:${perf.line}`] ??= []).push(perf.file);
+  }
+  return out;
+}
+
+/**
  * Run generation jobs one at a time. Every outcome is written to the ledger as it
  * happens, so an interrupted run loses nothing and never pays twice.
  */

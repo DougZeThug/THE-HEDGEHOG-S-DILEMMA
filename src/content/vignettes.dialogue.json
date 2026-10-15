@@ -46,15 +46,15 @@
       "stability": 0.5
     },
     "small-voice": {
-      "voiceId": null,
+      "voiceId": "AKwm7X6KQdtIeyGeqsPu",
       "design": "small-voice",
-      "identity": "The kept 'small voice' design (a small young-adult voice), directed as someone remembering being small. Not saved to the account yet: the artist chooses which preview (small-voice-1 has the most movement).",
+      "identity": "The kept 'small voice' design (a small young-adult voice), directed as someone remembering being small. Saved to the account from small-voice-1.",
       "stability": 0.3
     },
     "older-woman": {
-      "voiceId": null,
+      "voiceId": "fpU8yTs54f2kk5I96Hdk",
       "design": "older-woman",
-      "identity": "The kept 'older woman' design, as a stranger (a shop assistant). Not saved to the account yet: older-woman-2 is the more conversational of the two kept.",
+      "identity": "The kept 'older woman' design, as a stranger (a shop assistant). Saved to the account from older-woman-2.",
       "stability": 0.3
     }
   },

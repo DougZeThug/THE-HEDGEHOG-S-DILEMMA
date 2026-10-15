@@ -311,7 +311,7 @@ describe('ending without being heard', () => {
 });
 
 import { readingTake } from '../src/content/vignettes';
-import { voicedGain } from '../src/audio/Voices';
+import { voicedGain, Voices } from '../src/audio/Voices';
 
 describe('after the evaluation', () => {
   it("five minutes' heard-before version is heard once: after that the chair is the room's again", () => {
@@ -347,5 +347,18 @@ describe('after the evaluation', () => {
     };
     const word = voicedGain(make(0.4, 3)), sentence = voicedGain(make(2.8, 3));
     expect(Math.abs(20 * Math.log10(word / sentence))).toBeLessThan(0.5);
+  });
+});
+
+describe('previewing takes not kept yet', () => {
+  it('a preview can play them, but they never make a vignette available to visitors', () => {
+    const v = new Voices({} as never);
+    const inner = v as unknown as { manifest: Record<string, string[]>; preview: Record<string, string[]> };
+    inner.manifest = { 'vig:charger:toaster': ['vignettes/charger--toaster.mp3'] };
+    inner.preview = { 'vig:charger:toaster': ['vignettes/other.mp3'], 'vig:charger:charger': ['vignettes/charger--charger.mp3'] };
+    expect(v.filesOf('vig:charger:charger')).toEqual(['vignettes/charger--charger.mp3']);
+    expect(v.hasAsset('vig:charger:charger')).toBe(false);
+    // A kept take is never replaced by a preview one.
+    expect(v.filesOf('vig:charger:toaster')).toEqual(['vignettes/charger--toaster.mp3']);
   });
 });
