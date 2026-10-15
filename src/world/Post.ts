@@ -93,15 +93,35 @@ export class Post {
   vigLow = 0;
   /** The look's tonal S-curve (0 none); App weights it by the room's light. */
   contrast = 0;
+  /**
+   * Inside a living memory (0..1): the room's own grading (its saturation, its darkness, its
+   * S-curve) lets go of the painting, and the grain is held still with the painting's drawings
+   * (twelve a second) and lighter. The vignette stays: it is what the room and the memory share.
+   */
+  immersed = 0;
+  private readonly roomPass: RenderPass;
+  private readonly outputPass: OutputPass;
 
   constructor(renderer: THREE.WebGLRenderer, scene: THREE.Scene, camera: THREE.Camera, samples: number) {
     const size = renderer.getSize(new THREE.Vector2());
     const rt = new THREE.WebGLRenderTarget(size.x, size.y, { type: THREE.HalfFloatType, samples });
     this.composer = new EffectComposer(renderer, rt);
-    this.composer.addPass(new RenderPass(scene, camera));
-    this.composer.addPass(new OutputPass());
+    this.roomPass = new RenderPass(scene, camera);
+    this.outputPass = new OutputPass();
+    this.composer.addPass(this.roomPass);
+    this.composer.addPass(this.outputPass);
     this.grade = new ShaderPass(GradeShader);
     this.composer.addPass(this.grade);
+  }
+
+  /** A pass drawn over the room, before the grade (the immersion into a living memory). */
+  addOverlay(pass: ShaderPass) {
+    this.composer.insertPass(pass, 2);
+  }
+
+  /** The room isn't seen at all (a living memory covers the whole view): don't draw it. */
+  set roomHidden(hidden: boolean) {
+    this.roomPass.enabled = this.outputPass.enabled = !hidden;
   }
 
   setSamples(n: number) {
@@ -125,15 +145,17 @@ export class Post {
     const darkTarget = Math.max(env.darkness * (0.55 + 0.45 * this.intensityScale), this.depart, this.scoreDark);
     this.cur.dark = approach(this.cur.dark, darkTarget, dt, this.depart > 0 ? 2.5 : 4);
     const u = this.grade.uniforms;
-    u.uSaturation.value = this.cur.sat;
-    u.uDarkness.value = this.cur.dark;
+    const im = this.immersed;
+    u.uSaturation.value = this.cur.sat + (1 - this.cur.sat) * im;
+    u.uDarkness.value = this.cur.dark * (1 - im);
     u.uWhite.value = this.white;
     u.uBlack.value = this.black;
-    u.uTime.value = this.reducedMotion ? 0.5 : time * 0.25;
-    u.uGrain.value = this.reducedMotion ? this.grain * 0.625 : this.grain;
+    const grainTime = im > 0.5 ? Math.floor(time * 12) / 12 : time;
+    u.uTime.value = this.reducedMotion ? 0.5 : grainTime * 0.25;
+    u.uGrain.value = (this.reducedMotion ? this.grain * 0.625 : this.grain) * (1 - 0.6 * im);
     u.uVignette.value = this.vignette;
     u.uVigLow.value = this.vigLow;
-    u.uContrast.value = this.contrast;
+    u.uContrast.value = this.contrast * (1 - im);
   }
 
   render() {

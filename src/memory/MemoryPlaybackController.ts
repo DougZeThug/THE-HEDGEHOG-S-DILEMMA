@@ -49,6 +49,8 @@ export interface PlaybackOptions {
   maxHold: number;
   /** Seconds sound may run on after the image has gone. */
   tail: number;
+  /** A living memory: it authors its own withdrawal (compose.ts). */
+  living?: boolean;
   onState?: (s: Lifecycle, why?: ReleaseReason) => void;
 }
 
@@ -194,7 +196,7 @@ export class MemoryPlaybackController {
     if (this.leave) seek(this.leave, t - this.released);
     const base = this.o.timeline.at(this.pos);
     const env = { ...this.env };
-    const frame: MemoryFrame = { state: this._state, t, position: this.pos, base, env, final: compose(base, env, this.o.weights) };
+    const frame: MemoryFrame = { state: this._state, t, position: this.pos, base, env, final: compose(base, env, this.o.weights, this.o.living) };
     this.last = frame;
     const due = this.dispatch.advance(this.pos, limit);
     if (due.length) this.o.audio?.play(due);
@@ -236,7 +238,7 @@ export class MemoryPlaybackController {
     this.resyncDue = true;
     const base = this.o.timeline.at(p);
     const env = { ...this.env };
-    const frame: MemoryFrame = { state: this._state, t: this._t, position: p, base, env, final: compose(base, env, this.o.weights) };
+    const frame: MemoryFrame = { state: this._state, t: this._t, position: p, base, env, final: compose(base, env, this.o.weights, this.o.living) };
     this.last = frame;
     return frame;
   }
@@ -249,7 +251,7 @@ export class MemoryPlaybackController {
     if (!this.last) return null;
     const base = this.o.timeline.at(this.pos);
     const env = { ...this.env };
-    this.last = { ...this.last, base, env, final: compose(base, env, this.o.weights) };
+    this.last = { ...this.last, base, env, final: compose(base, env, this.o.weights, this.o.living) };
     return this.last;
   }
 

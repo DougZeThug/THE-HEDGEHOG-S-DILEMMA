@@ -74,6 +74,8 @@ export interface Cue {
   stopAfter?: number;
   /** Dry: no room around it (a voice on a phone, held to the ear). */
   dry?: boolean;
+  /** Music only: the place's air, wide (a stereo bed that keeps its stereo), not a point in it. */
+  wide?: boolean;
 }
 
 export interface CueSheet {

@@ -41,6 +41,14 @@ export interface MemoryDef {
   roomDim?: number;
   /** What the picture is, for a screen reader (announced once, when it has formed). */
   describe: (variant: string) => string;
+  /**
+   * A living memory (animated, and entered): its scene's object names in the timeline (`scene`,
+   * `figure:a`, `figure:b`) are added to the schema, and the variants that have a living scene in
+   * the art manifest are drawn by it (src/memory/living/). The others play on the wall as usual.
+   */
+  living?: boolean;
+  /** The white room goes to evening while it is away (inside the memory), lifting as it lets go. */
+  evening?: { at: number; level: number };
 }
 
 export const sheetId = (id: string, variant: string) => `${id}-${variant}`;
@@ -337,4 +345,174 @@ export const DOOR: MemoryDef = {
     : 'The drawn door fills with evening: the landing light through the gap; someone comes to the door and stops, their shadow in the light. Nobody comes in.',
 };
 
-export const MEMORIES: Record<string, MemoryDef> = { cereal: CEREAL, bedroom: BEDROOM, door: DOOR };
+/**
+ * Five More Minutes (docs/reviews/2026-10-woodland.md): two people lying in a summer clearing.
+ * Nothing happens. Then they are gone. Afternoon, about 42 s and a cicada after:
+ *
+ *   0–1.2     the room hushes; then a cicada, beyond the wall, alone
+ *   1–2.5     warm leaf light on the plaster round the line, before anything is drawn
+ *   2.5–6     the graphite, then the colour: the clearing, and the two of them already there,
+ *             still as a painting
+ *   5.5–7     the painting begins to live (the grass, a breath)
+ *   6.5–11    in: the painting spreads across the plaster and the visitor is carried to it,
+ *             square on, until it is all there is
+ *   11–15     breathing; he blinks; a gust, heard first, crosses the clearing; his head settles
+ *   14–15     the air goes still
+ *   15–16.6   her head inclines toward him, barely; her hand moves through the grass, halfway,
+ *             and stops (it could be nothing)
+ *   18–18.7   the rest of the way: a finger's width short (where the sheet draws it)
+ *   19.8–20.3 his hand answers: the sides of their little fingers touch. His next breath is late
+ *   20.3–24.5 held. The cicada over them has fallen quiet (since the hand moved); the air comes
+ *             back at 22
+ *   24.5–25   her hand draws back a few millimetres; the gap stays
+ *   25–26.8   she settles into the grass, her shoulder easing; she blinks
+ *   28        a cut, on one frame: the same clearing, the same view, at dusk, and nobody there
+ *             (the artist's dusk painting; where they lay, the grass only faintly pressed). No
+ *             fade, no sound marks it: the cicada over them sings straight across it, the grass keeps
+ *             moving
+ *   28–35     the empty clearing at dusk, held; the day's cicadas thin, the evening cicadas come in
+ *   35–39     out: carried back, the painting gathers itself to the wall
+ *   39–42.5   the colour goes, the graphite sinks (the empty clearing's); the room is at evening
+ *   42–46     one evening cicada, far off, heard in the white room
+ *
+ * What they might have said, never said (no line is spoken, written or captioned):
+ *   "We should probably go." / "Yeah." / … / "Five more minutes?" (not answered)
+ *
+ * The revisit (empty): the same clearing at dusk, nobody in it, and it stays in the wall.
+ */
+const WOODLAND_SECTIONS: Sections = { active: 6, exit: 35, residue: 42.5, end: 46 };
+/** The cut: the people gone and the evening come, on the same frame. */
+const CUT = 28;
+const EMPTY_SECTIONS: Sections = { active: 6, exit: 20, residue: 25, end: 28 };
+
+export const WOODLAND: MemoryDef = {
+  id: 'woodland',
+  art: 'woodland',
+  variants: ['afternoon', 'empty'],
+  layers: ['scene', 'sketch', 'sketch-after', 'light'],
+  sections: WOODLAND_SECTIONS,
+  markers: [
+    { label: 'music:cicadas', position: 0.05 },
+    { label: 'music:woods', position: 0.05 },
+    { label: 'sfx:grass', position: 15.5 },
+    { label: 'sfx:grass-settle', position: 25 },
+    { label: 'sfx:cicada-last', position: 42 },
+  ],
+  seed: (variant): SheetSeed => {
+    if (variant === 'empty') {
+      const S = EMPTY_SECTIONS;
+      return {
+        tracks: {
+          'window.sketch': [[1.5, 0], [3.5, 1]],
+          'window.reveal': [[2.5, 0], [6, 1]],
+          'window.presence': [[0, 1]],
+          'window.parallax': [[0, 0]],
+          'light.x': [[0, -0.05]],
+          'light.y': [[0, -0.2]],
+          'light.radius': [[0, 0.2], [6, 0.6]],
+          'light.soft': [[0, 0.16]],
+          'light.warmth': [[0, 2800], [20, 2300]],
+          'light.intensity': [[0, 0], [4, 0.35], [20, 0.2], [25, 0]],
+          'light.roomSpill': [[0, 0]],
+          'layer:scene.opacity': [[0, 1]],
+          'layer:sketch.opacity': [[0, 0.9]],
+          'layer:sketch-after.opacity': [[0, 0]],
+          'layer:light.opacity': [[0, 1]],
+        },
+        markers: [
+          { label: 'active', position: S.active },
+          { label: 'exit', position: S.exit },
+          { label: 'residue', position: S.residue },
+          { label: 'end', position: S.end },
+          { label: 'music:cicadas', position: 0.05 },
+          { label: 'music:woods', position: 0.05 },
+        ],
+      };
+    }
+    const S = WOODLAND_SECTIONS;
+    return {
+      tracks: {
+        // The wall: graphite, then colour, round the two of them; taken back after the return
+        // (the graphite then is the empty clearing's: they are never drawn again after the cut).
+        'window.sketch': [[2.5, 0], [4.5, 1], [40.5, 1], [42.5, 0]],
+        'window.reveal': [[3.5, 0], [6, 1], [39, 1], [41.5, 0]],
+        'window.presence': [[0, 1]],
+        'window.parallax': [[0, 0]],
+        // The light finds the people first (painting metres from its centre).
+        'light.x': [[0, -0.05]],
+        'light.y': [[0, -0.24]],
+        'light.radius': [[1, 0.15], [6, 0.55]],
+        'light.soft': [[0, 0.14]],
+        // The afternoon's warmth, then (at the cut) the evening's.
+        'light.warmth': [[0, 4300, 'hold'], [CUT, 2900]],
+        // Warm leaf light on the plaster before anything is drawn; low while inside; it goes last.
+        'light.intensity': [[0, 0], [1, 0], [2.5, 0.55], [6, 0.45], [11, 0.3], [35, 0.2], [39, 0.3], [42.5, 0]],
+        'light.roomSpill': [[0, 0]],
+        'layer:scene.opacity': [[0, 1]],
+        'layer:sketch.opacity': [[0, 0.9, 'hold'], [CUT, 0]],
+        'layer:sketch-after.opacity': [[0, 0, 'hold'], [CUT, 0.9]],
+        'layer:light.opacity': [[0, 1]],
+        // The scene.
+        'scene.life': [[0, 0], [5.5, 0], [7, 1]],
+        'scene.immerse': [[0, 0], [6.5, 0], [11, 1], [35, 1], [39, 0]],
+        'scene.breeze': [[0, 1], [14, 1], [15, 0.15], [21.5, 0.15], [23.5, 1]],
+        // The cut: the afternoon and the two of them until it, then the same place later, empty.
+        'scene.after': [[0, 0, 'hold'], [CUT, 1]],
+        'scene.people': [[0, 1, 'hold'], [CUT, 0]],
+        // Him: a head settling after the gust; his hand answering hers.
+        'figure:a.head': [[0, 0], [13.6, 0], [14.4, -0.03]],
+        'figure:a.hand': [[0, 0], [19.8, 0], [20.3, 1]],
+        'figure:a.breath': [[0, 1]],
+        // Her: an incline toward him; the hand (0 drawn back, 1 where the sheet draws it); settling.
+        'figure:b.head': [[0, 0], [14.8, 0], [16, 0.045], [25, 0.045], [26.5, 0.01]],
+        'figure:b.hand': [[0, 0], [15.5, 0], [16.6, 0.5], [18, 0.5], [18.7, 1], [24.5, 1], [25, 0.88]],
+        'figure:b.shoulder': [[0, 0], [25, 0], [25.8, 1], [26.8, 0.6]],
+        'figure:b.settle': [[0, 0], [25, 0], [26.5, 1]],
+        'figure:b.breath': [[0, 1]],
+      },
+      markers: [
+        { label: 'active', position: S.active },
+        { label: 'exit', position: S.exit },
+        { label: 'residue', position: S.residue },
+        { label: 'end', position: S.end },
+        ...WOODLAND.markers,
+      ],
+    };
+  },
+  cues: (variant) => {
+    const empty = variant === 'empty';
+    const take = empty ? 1 : 0;
+    return {
+      // Outdoors: almost no room at all, a little air.
+      room: [0.4, 3, 0.06],
+      // Synthesised in the engine (src/memory/synthWoods.ts), timed to this timeline: stand-ins,
+      // `review: pending` until the artist has listened. Levels per the sound designer (the
+      // renders are −45 dBFS RMS; pulsed tones read hotter than their RMS).
+      cues: {
+        // The cicada nearest them, in the tree over them, first heard from beyond the wall; a lull
+        // while the hand moves; singing straight across the cut.
+        'music:cicadas': { asset: 'synth:cicadas', take, gainDb: -10, place: { u: -0.3, v: 0.25, d: 1.5 }, fadeOut: 6, caption: '[cicadas, beyond the wall]' },
+        // The rest of the clearing: two more cicadas, the chorus in the trees, the evening
+        // cicadas after the cut, the leaves.
+        'music:woods': { asset: 'synth:woods', take, gainDb: -2, place: { u: 0, v: 0, d: 2 }, wide: true, fadeOut: 6 },
+        'sfx:grass': { asset: 'synth:grass', take: 0, gainDb: -18, place: { u: -0.04, v: -0.28, d: 0.3 }, caption: '[grass, moving]' },
+        'sfx:grass-settle': { asset: 'synth:grass', take: 1, gainDb: -20, place: { u: 0.02, v: -0.24, d: 0.3 } },
+        // One evening cicada, far off, heard from the white room (as through a window).
+        'sfx:cicada-last': { asset: 'synth:cicada-last', take: 0, gainDb: -16, place: { u: 0.2, v: 0.3, d: 6 }, lowpass: 5000, caption: '[an evening cicada, far off]' },
+      },
+    };
+  },
+  sways: [],
+  // An early leaving reverses the way in (about 1.5 s) and lets the rest go after.
+  exit: 3,
+  maxHold: 20,
+  tail: 2,
+  hush: 0.7,
+  living: true,
+  evening: { at: CUT, level: 0.62 },
+  describe: (v) => v === 'empty'
+    ? 'A painting forms in the wall by the words: a clearing in a wood at dusk, a fallen log, a tree, the grass. Nobody is there.'
+    : 'A painting forms in the wall by the words: two young people lying in the grass of a woodland clearing in the late afternoon. It opens until it is all there is. They breathe; her hand moves through the grass toward his and stops just short; his finds it. Then, all at once, it is the same clearing at dusk, and nobody is there. The cicadas go on. Then the room returns.',
+};
+
+export const MEMORIES: Record<string, MemoryDef> = { cereal: CEREAL, bedroom: BEDROOM, door: DOOR, woodland: WOODLAND };

@@ -1,5 +1,6 @@
 import { DRAWING_BY_ID } from '../../src/content/drawings';
 import { VIGNETTE_BY_ID } from '../../src/content/vignettes';
+import { SCENE_MEMORIES } from '../../src/content/memories';
 import { Director } from '../../src/state/Director';
 import { OPENING_WRITTEN, OPENING_SPOKEN, OPENING_UNFINISHED } from '../../src/state/OpeningScore';
 import { PHRASE_BY_ID } from '../../src/content/phrases';
@@ -142,6 +143,11 @@ export const WINDOWS = [15, 30, 60, 90, 180];
  * that is there: if the line it would read hasn't been written yet, it reads the nearest line
  * that has on the same wall, or nothing.
  */
+/** How long a painted memory holds the room: its own span, or about 22 s and its residue. */
+function memorySpan(id: string, maxHold: number): number {
+  return SCENE_MEMORIES.find((m) => m.id === id)?.span ?? Math.min(maxHold, 22) + 6;
+}
+
 export function visit(p: Persona, seconds: number, seed: number, dt = 0.1, past: { visits?: number; memoryCounts?: Record<string, number> } = {}): VisitResult {
   const d = new Director({ seed, ...past });
   d.release({ written: OPENING_WRITTEN, spoken: OPENING_SPOKEN, unfinished: OPENING_UNFINISHED });
@@ -204,20 +210,20 @@ export function visit(p: Persona, seconds: number, seed: number, dt = 0.1, past:
       if (!k) continue;
       devs.push({
         t: +(t + dt).toFixed(1), rule: c.rule, kind: k.kind, recorded: k.recorded, label: k.label, surface: k.surface,
-        endsAt: c.cue.type === 'memory-scene' ? t + dt + Math.min(c.cue.maxHold, 22) + 6 : c.cue.type === 'vignette' ? t + dt + vignetteSpan(c.cue.id, c.cue.variant) + 2.7 : undefined,
+        endsAt: c.cue.type === 'memory-scene' ? t + dt + memorySpan(c.cue.id, c.cue.maxHold) : c.cue.type === 'vignette' ? t + dt + vignetteSpan(c.cue.id, c.cue.variant) + 2.7 : undefined,
         responsive: RESPONSIVE.test(c.rule),
         seen: k.kind !== 'text' || !k.surface || k.surface === facing || k.surface === 'floor' || (k.surface === 'ceiling' && f.pitch > 0.4),
         holdUntil:
           (c.rule === 'held-silence' || c.rule === 'still-silence' || c.rule === 'resonance:table') && c.cue.type === 'silence'
             ? t + dt + c.cue.seconds
             : c.cue.type === 'memory-scene'
-              ? t + dt + Math.min(c.cue.maxHold, 22) + 6
+              ? t + dt + memorySpan(c.cue.id, c.cue.maxHold)
               : c.cue.type === 'vignette'
                 ? // Its span, then a recovery that is chosen quiet only so long (15 s).
                   t + dt + vignetteSpan(c.cue.id, c.cue.variant) + 2.7 + 15
                 : undefined,
       });
-      if (c.cue.type === 'memory-scene') memoryEndsAt = { id: c.cue.id, at: t + dt + Math.min(c.cue.maxHold, 22) + 6 };
+      if (c.cue.type === 'memory-scene') memoryEndsAt = { id: c.cue.id, at: t + dt + memorySpan(c.cue.id, c.cue.maxHold) };
       // A vignette plays to its end (its pre-roll, its span, its last sound ringing out).
       if (c.cue.type === 'vignette') memoryEndsAt = { id: c.cue.id, at: t + dt + vignetteSpan(c.cue.id, c.cue.variant) + 2.7 };
     }

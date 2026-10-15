@@ -7,6 +7,9 @@ import { Lighting, shadowMapSize } from './world/Lighting';
 import { lookFor, parseLook, LOOK_NAMES, LOOKS, type Look, type LookName } from './world/Style';
 import { MemoryLight } from './world/MemoryLight';
 import { MemoryWindow } from './world/MemoryWindow';
+import { Immersion } from './world/living/Immersion';
+import { Inside } from './world/living/Inside';
+import { warmLiving } from './world/living/materials';
 import { MemoryClock } from './memory/clock';
 import type { Lifecycle } from './memory/types';
 import type { LivingMemory } from './memory/runtime';
@@ -98,7 +101,11 @@ export class App {
   private living: { memory: LivingMemory; id: string; key: string; anchor: NonNullable<ReturnType<WallText['anchorOf']>>; bled: boolean; hiddenSince: number | null; held: boolean;
     /** Seconds looking away from it, and watching it; why it was let go. */
     awayFor: number; watched: number; minHold: number; why: string | null;
+    /** Looking away from it now (last attention check); the room gone to evening while it was away. */
+    away: boolean; evening: boolean;
   } | null = null;
+  /** Going into a living memory and back (src/world/living/Inside.ts). */
+  private inside!: Inside;
   private memoryClock = new MemoryClock();
   private memoryGen = 0;
   /**
@@ -218,6 +225,9 @@ export class App {
 
     const samples = this.prefs.quality === 'high' ? 4 : this.prefs.quality === 'medium' ? 2 : 0;
     this.post = new Post(this.renderer, this.scene, this.rig.camera, samples);
+    const immersion = new Immersion(this.memoryWindow.noise);
+    this.post.addOverlay(immersion.pass);
+    this.inside = new Inside(this.rig, this.memoryWindow, immersion, this.post);
     this.setStyle(parseLook(params.get('style')));
     this.applyPrefs();
     this.onResize();
@@ -245,7 +255,11 @@ export class App {
     this.renderer.setRenderTarget(this.post.composer.readBuffer);
     this.renderer.compile(this.scene, this.rig.camera);
     this.renderer.setRenderTarget(null);
+    // A living memory's painting and the way into it: compiled now, kept (never compiled again).
+    warmLiving(this.renderer, this.memoryWindow.noise);
+    immersion.pass.enabled = true;
     this.post.render();
+    immersion.off();
     const enter = $<HTMLButtonElement>('enter');
     enter.disabled = false;
     enter.textContent = this.visits > 0 ? 'go in again' : 'go in';
@@ -423,6 +437,11 @@ export class App {
       load: async (asset, take) => {
         if (asset === 'synth:air') return (await import('./memory/synthAir')).synthAir(a.ctx.sampleRate, 7 + (take ?? 0));
         if (asset.startsWith('synth:')) {
+          const w = await import('./memory/synthWoods');
+          const kind = asset.slice(6) as (typeof w.WOODS_KINDS)[number];
+          if (w.WOODS_KINDS.includes(kind)) return w.synthWoods(a.ctx, kind, take ?? 0);
+        }
+        if (asset.startsWith('synth:')) {
           const { synthSound, SYNTH_KINDS } = await import('./memory/synthSounds');
           const kind = asset.slice(6) as (typeof SYNTH_KINDS)[number];
           return SYNTH_KINDS.includes(kind) ? synthSound(a.ctx, kind, 1 + (take ?? 0)) : null;
@@ -477,7 +496,14 @@ export class App {
     let prepared: Awaited<ReturnType<typeof rt.prepare>>;
     try {
       rt = await this.memoryChunk();
-      prepared = await rt.prepare(id, variant, { renderer: this.renderer, audio: this.memoryAudioHost(), quality: this.prefs.quality });
+      prepared = await rt.prepare(id, variant, {
+        renderer: this.renderer,
+        audio: this.memoryAudioHost(),
+        quality: this.prefs.quality,
+        screen: { width: innerWidth * this.pixelRatio(), height: innerHeight * this.pixelRatio() },
+        noise: this.memoryWindow.noise,
+        reduced: this.prefs.reducedMotion,
+      });
     } catch (e) {
       console.warn('memory could not be prepared', e);
       return false;
@@ -505,6 +531,8 @@ export class App {
     // Anything already drawn on that wall is kept clear of (a painting never lands on a drawing).
     this.memoryWindow.avoid = fixed ? [] : this.drawingsOn(a.group);
     this.memoryWindow.setLayers(prepared.layers, prepared.size, prepared.band);
+    this.memoryWindow.setLiving(prepared.living ? { crop: prepared.living.crop, size: prepared.size } : null);
+    this.inside.begin(hashString(a.key));
     const memory = new rt.LivingMemory(prepared, {
       reduced: this.prefs.reducedMotion,
       gentle: this.prefs.intensity === 'gentle',
@@ -513,7 +541,7 @@ export class App {
         this.memoryState(s);
       },
     });
-    this.living = { memory, id, key: a.key, anchor: a, bled: false, hiddenSince: null, held: false, awayFor: 0, watched: 0, minHold: SCENE_BY_PHRASE.get(phraseId)?.minHold ?? 8, why: null };
+    this.living = { memory, id, key: a.key, anchor: a, bled: false, hiddenSince: null, held: false, awayFor: 0, watched: 0, minHold: SCENE_BY_PHRASE.get(phraseId)?.minHold ?? 8, why: null, away: false, evening: false };
     this.memoryClock.reset();
     // The room hushes round it (and its music stops), until it lets go. For the door the white
     // room itself goes to evening, so the landing's light is the brightest thing there.
@@ -544,9 +572,16 @@ export class App {
     if (s === 'residue' || s === 'complete') {
       // The room comes back as the memory lets go (issued now, never precomputed).
       this.audio?.memoryHush(0, 20);
+      // From evening, if it went there while the visitor was away.
+      if (l.evening) {
+        l.evening = false;
+        this.lighting.liftDim(this.time, 8);
+      }
     }
 
     if (s === 'complete') {
+      // Whoever was carried in is back where they stood.
+      this.inside.end();
       this.memoryWindow.release();
       // Its recordings are let go too (a phone keeps little decoded audio; they load again if it returns).
       const p = l.memory.prepared;
@@ -890,6 +925,7 @@ export class App {
     }
     const f = l.memory.controller.scrub(position);
     this.memoryWindow.update(f.final, this.rig.restingEye, 1);
+    this.drawLiving(l, f, 0);
     return { state: f.state, position: f.position, final: f.final };
   }
 
@@ -911,6 +947,13 @@ export class App {
     const fwd = cam.getWorldDirection(new THREE.Vector3());
     const half = Math.atan2(mesh.scale.x / 2, Math.max(0.1, dist));
     const away = fwd.angleTo(to) > half + THREE.MathUtils.degToRad(10);
+    l.away = away;
+    // Inside it, it is all there is: watched, never looked away from (leaving is a turn: Inside.ts).
+    if (this.inside.eff > 0.02) {
+      l.awayFor = 0;
+      l.watched += dt;
+      return;
+    }
     l.awayFor = away ? l.awayFor + dt : 0;
     if (!away) l.watched += dt;
     if (c.t < l.minHold) {
@@ -958,6 +1001,7 @@ export class App {
       const f = this.studioTick ? l.memory.controller.refresh() : l.memory.controller.frame;
       if (f) {
         this.memoryWindow.update(f.final, this.rig.restingEye, 1 / 60);
+        this.drawLiving(l, f, 0);
         this.bleedMemory(l, f);
       }
       return;
@@ -970,8 +1014,39 @@ export class App {
     const frame = l.memory.step(dt);
     if (frame) {
       this.memoryWindow.update(frame.final, this.rig.restingEye, dt);
+      this.drawLiving(l, frame, dt);
       this.bleedMemory(l, frame);
     }
+  }
+
+  /**
+   * A living memory's frame: how far in (the carry, the settle), then its scene drawn for the
+   * part of the painting on the screen. The window is placed first (its painting's place is
+   * where the visitor is carried to).
+   */
+  private drawLiving(l: NonNullable<App['living']>, f: { t: number; state: Lifecycle; position: number; final: Record<string, number> }, dt: number) {
+    const pl = l.memory.prepared.living;
+    if (!pl) return;
+    const aspect = innerWidth / innerHeight;
+    const focus = aspect < 0.9 ? pl.spec.cover.upright : aspect > 2.0 ? pl.spec.cover.ultra : pl.spec.cover.wide;
+    const sketch = l.memory.prepared.layers.find((x) => x.name === 'sketch')?.texture ?? null;
+    const go = this.inside.step(dt, {
+      immerse: f.final['scene.immerse'] ?? 0,
+      focus,
+      enter: pl.immerse,
+      away: l.away,
+      leavingNaturally: f.state === 'withdrawing' || f.state === 'residue',
+    }, { reduced: this.prefs.reducedMotion, aspect, scene: pl.scene.target.texture, sketch, group: l.anchor.group });
+    // The window was placed before the spread changed: place it again for this frame.
+    this.memoryWindow.update(f.final, this.rig.restingEye, 0);
+    pl.scene.update(this.renderer, f.t, f.final, { view: this.inside.view, parallax: new THREE.Vector2(), mips: this.inside.eff < 0.9 });
+    // The white room goes to evening while the visitor is away inside it.
+    const ev = l.memory.prepared.def.evening;
+    if (ev && !l.evening && f.position >= ev.at && this.inside.eff > 0.9) {
+      l.evening = true;
+      this.lighting.dimToChair(ev.level, 6, this.time);
+    }
+    if (go) this.endLivingMemory('interrupt');
   }
 
   private bakeOldDrawings() {
@@ -1264,7 +1339,8 @@ export class App {
       }
     }
 
-    if (!this.opening) this.rig.enabled = this.mode === 'room';
+    // (Inside a living memory, looking and walking are the memory's: src/world/living/Inside.ts.)
+    if (!this.opening) this.rig.enabled = this.mode === 'room' && !this.inside.locked;
     else if (this.mode !== 'room') this.rig.enabled = false;
     this.rig.update(dt, this.room, this.chair.group.position);
 
@@ -1533,7 +1609,7 @@ export class App {
   // ─────────────────────────────── input ───────────────────────────────
 
   private interact() {
-    if (this.mode !== 'room') return;
+    if (this.mode !== 'room' || this.inside.locked) return;
     const d = this.rig.distanceToChair();
     if (this.rig.kneeling) {
       this.rig.setKneel(false);
@@ -1545,6 +1621,11 @@ export class App {
       return;
     }
     this.attendGaze();
+  }
+
+  /** Looking: the room's, or (inside a living memory) the memory's. */
+  private lookBy(dx: number, dy: number) {
+    if (!this.inside.look(dx, dy)) this.rig.look(dx, dy);
   }
 
   private attendGaze() {
@@ -1617,6 +1698,15 @@ export class App {
         return;
       }
       if (typing() || this.mode !== 'room') return;
+      // Inside a living memory: a new turn or step is the visitor's way out (Inside.ts); the
+      // room's other keys wait.
+      if (this.inside.locked) {
+        if (e.code === 'KeyM') this.setPref('muted', !this.prefs.muted);
+        if (!e.repeat) this.inside.freshKeys.add(e.code);
+        this.rig.keys.add(e.code);
+        if (e.code.startsWith('Arrow') || e.code === 'Tab' || e.code === 'Space') e.preventDefault();
+        return;
+      }
       if (e.code === 'Tab') {
         this.cyclePhrase(e.shiftKey ? -1 : 1);
         e.preventDefault();
@@ -1638,8 +1728,14 @@ export class App {
       this.rig.keys.add(e.code);
       if (e.code.startsWith('Arrow')) e.preventDefault();
     });
-    addEventListener('keyup', (e) => this.rig.keys.delete(e.code));
-    addEventListener('blur', () => this.rig.keys.clear());
+    addEventListener('keyup', (e) => {
+      this.rig.keys.delete(e.code);
+      this.inside.freshKeys.delete(e.code);
+    });
+    addEventListener('blur', () => {
+      this.rig.keys.clear();
+      this.inside.freshKeys.clear();
+    });
 
     // Mouse: pointer lock where possible, drag-to-look otherwise.
     let dragging = false;
@@ -1661,9 +1757,9 @@ export class App {
     });
     canvas.addEventListener('pointermove', (e) => {
       if (this.mode !== 'room') return;
-      if (document.pointerLockElement === canvas) this.rig.look(e.movementX, e.movementY);
+      if (document.pointerLockElement === canvas) this.lookBy(e.movementX, e.movementY);
       else if (dragging && e.pointerType === 'mouse') {
-        this.rig.look((e.clientX - lastX) * 1.2, (e.clientY - lastY) * 1.2);
+        this.lookBy((e.clientX - lastX) * 1.2, (e.clientY - lastY) * 1.2);
         lastX = e.clientX;
         lastY = e.clientY;
       }
@@ -1700,13 +1796,15 @@ export class App {
       if (e.pointerType === 'mouse' || this.mode !== 'room') return;
       canvas.setPointerCapture(e.pointerId);
       touches.set(e.pointerId, { side: e.clientX < innerWidth / 2 ? 'L' : 'R', x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, t: e.timeStamp });
+      // A thumb put down to walk while inside a living memory is a way out (one already down isn't).
+      if (e.clientX < innerWidth / 2 && this.inside.locked) this.inside.freshThumb = true;
     });
     canvas.addEventListener('pointermove', (e) => {
       const t = touches.get(e.pointerId);
       if (!t || this.mode !== 'room') return;
       if (Math.hypot(e.clientX - t.sx, e.clientY - t.sy) > 14) this.dragged = true;
       // A half-screen swipe turns about 65° on a narrow phone, as on a wide screen.
-      if (t.side === 'R') this.rig.look((e.clientX - t.x) * 1.6 * clamp(640 / innerWidth, 1, 1.8), (e.clientY - t.y) * 1.6);
+      if (t.side === 'R') this.lookBy((e.clientX - t.x) * 1.6 * clamp(640 / innerWidth, 1, 1.8), (e.clientY - t.y) * 1.6);
       else {
         // Walking: a thumb pushing up drifts sideways a little; that shouldn't turn the body.
         const dx = e.clientX - t.sx;
@@ -1721,7 +1819,10 @@ export class App {
       const t = touches.get(e.pointerId);
       if (!t) return;
       touches.delete(e.pointerId);
-      if (t.side === 'L') this.rig.touchMove.set(0, 0);
+      if (t.side === 'L') {
+        this.rig.touchMove.set(0, 0);
+        this.inside.freshThumb = false;
+      }
       if (e.type === 'pointerup' && this.mode === 'room' && Math.hypot(e.clientX - t.sx, e.clientY - t.sy) < 14 && e.timeStamp - t.t < 450) this.tapAt(e.clientX, e.clientY);
     };
     canvas.addEventListener('pointerup', endTouch);
@@ -1809,6 +1910,8 @@ export class App {
    * attention (the room is told), and turns and walks the visitor closer to read it.
    */
   private tapAt(x: number, y: number) {
+    // Inside a living memory a touch does nothing (leaving is turning away, or a step).
+    if (this.inside.locked) return;
     const cam = this.rig.camera;
     const ndc = new THREE.Vector2((x / innerWidth) * 2 - 1, -(y / innerHeight) * 2 + 1);
     this.raycaster.setFromCamera(ndc, cam);

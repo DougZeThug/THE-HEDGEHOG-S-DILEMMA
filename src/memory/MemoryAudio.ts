@@ -137,10 +137,12 @@ export class MemoryAudio implements AudioSink {
     src.buffer = buf;
     let from = into + (kind === 'music' ? cue.offset ?? 0 : 0);
     if (kind === 'bed') {
-      // Trim the ends (MP3 priming and padding) so the loop doesn't click.
+      // Trim the ends (MP3 priming and padding) so the loop doesn't click. A bed made in the
+      // engine is seamless where it wraps: trimmed, it would skip a tenth of a second each time.
       src.loop = true;
-      src.loopStart = Math.min(0.05, buf.duration / 4);
-      src.loopEnd = Math.max(src.loopStart + 0.1, buf.duration - 0.05);
+      const made = cue.asset.startsWith('synth:');
+      src.loopStart = made ? 0 : Math.min(0.05, buf.duration / 4);
+      src.loopEnd = made ? buf.duration : Math.max(src.loopStart + 0.1, buf.duration - 0.05);
       from = src.loopStart + (from % Math.max(0.1, src.loopEnd - src.loopStart));
     } else if (from >= buf.duration - 0.05) return;
     const gain = c.createGain();
@@ -184,8 +186,9 @@ export class MemoryAudio implements AudioSink {
       nodes.push(hp);
     }
     let out: AudioNode;
-    if (kind === 'bed') {
-      // A bed is the place's air: wide, leaning toward the window, not a point.
+    if (kind === 'bed' || (kind === 'music' && cue.wide)) {
+      // A bed is the place's air: wide, leaning toward the window, not a point (and music
+      // marked wide is the place's air laid along the timeline).
       const sp = c.createStereoPanner();
       const pan = isSpot(cue.place) ? { left: -0.5, right: 0.5 }[cue.place.at as 'left'] ?? 0 : cue.place.u * 0.6;
       sp.pan.value = Math.max(-1, Math.min(1, pan));

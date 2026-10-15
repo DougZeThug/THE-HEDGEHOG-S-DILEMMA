@@ -31,11 +31,28 @@ export function weightsFor(reducedMotion: boolean, gentle: boolean): Weights {
 const clamp01 = (x: number) => (x < 0 ? 0 : x > 1 ? 1 : x);
 const env1 = (env: Values, k: string, d = 1) => (k in env ? env[k] : d);
 
-/** Compose a frame. `base` keys are `object.prop`; envelope keys are named in behaviours.ts. */
-export function compose(base: Values, env: Values, w: Weights): Values {
+const smooth = (e0: number, e1: number, x: number) => {
+  const t = clamp01((x - e0) / (e1 - e0));
+  return t * t * (3 - 2 * t);
+};
+
+/**
+ * Compose a frame. `base` keys are `object.prop`; envelope keys are named in behaviours.ts.
+ *
+ * A living memory (`living`, docs/reviews/2026-10-woodland.md) authors its own withdrawal (the
+ * way out, then the colour and the graphite), so the dissolve doesn't take its reveal. Let go
+ * early, it leaves in order as the exit envelope falls: the people first, then the way in in
+ * reverse, and the wall's painting last, so the room lands back on it:
+ *
+ *   people   = base × s(0.55, 1, exit)
+ *   immerse  = base × s(0.25, 0.75, exit)      (not × presence: gentle still goes all the way in)
+ *   painting = base × emerge × s(0, 0.35, exit) × presence   (opacity, presence, light)
+ */
+export function compose(base: Values, env: Values, w: Weights, living = false): Values {
   const emerge = env1(env, 'emerge', 0);
-  const dissolve = env1(env, 'dissolve', 0);
-  const exit = env1(env, 'exit');
+  const dissolve = living ? 0 : env1(env, 'dissolve', 0);
+  const exitRaw = env1(env, 'exit');
+  const exit = living ? smooth(0, 0.35, exitRaw) : exitRaw;
   // The dissolve acts through the light's reveal (below), not as a fade of the whole picture.
   const gate = clamp01(emerge * exit * w.presence);
   const out: Values = {};
@@ -54,6 +71,12 @@ export function compose(base: Values, env: Values, w: Weights): Values {
         break;
       case 'parallax':
         out[k] = v * w.parallax;
+        break;
+      case 'immerse':
+        out[k] = clamp01(v * smooth(0.25, 0.75, exitRaw));
+        break;
+      case 'people':
+        out[k] = clamp01(v * smooth(0.55, 1, exitRaw));
         break;
       case 'skew':
         // A hanging thing's sway (the curtain): it is motion, so none under reduced motion.

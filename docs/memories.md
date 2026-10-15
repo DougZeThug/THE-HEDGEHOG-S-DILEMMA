@@ -15,9 +15,26 @@ A line on the wall can open into a memory: the light finds a pencil drawing unde
 | Sound | `src/memory/MemoryAudio.ts`, `cueSheet.ts` | cue sheets on the memory bus; each event once, never on a seek |
 | Renderer | `src/world/MemoryWindow.ts` | the painting multiplied into the lit plaster, plus its light; ink on top |
 | Runtime | `src/memory/runtime.ts` | a lazy chunk (GSAP, Theatre, the controller) that prepares and plays a memory |
-| Art | `public/memories/<id>/<variant>/<layer>.webp` | code-painted stand-ins (`src/memory/paint/`), replaceable |
+| Art | `public/memories/<id>/<variant>/<layer>.webp` | code-painted stand-ins (`src/memory/paint/`), replaceable; the woodland's cut from the artist's references (`scripts/cut-woodland.py`) |
+| Living scene | `src/memory/living/`, `src/world/living/` | a memory that is animated and entered (the woodland): its painting and people drawn into one render target; the way in and out |
 
 The App steps the playing memory once a frame (`App.stepLivingMemory`). GSAP's timelines are paused and seeked; its ticker is put back to sleep after every seek (a test fails otherwise). Theatre's sequence position is set by the controller and read back at once; production never plays a sequence.
+
+## Living memories (animated, and entered)
+
+The woodland ("five more minutes", `docs/reviews/2026-10-woodland.md`) is the first. It runs on the same controller, clock, timeline and sound as the others; what is new:
+
+- **Its scene** (`src/memory/living/LivingScene.ts`): the painting (one plate, barely moved by its maps: depth, how much the breeze moves it, grass or leaves, the sun flecks) and the two people (one cut-out on a fine mesh, deformed by smooth weights evaluated from their anatomy in the art manifest: a chest swelling, a forearm turning at the elbow, a head inclining at the neck). Drawn into one render target, which the wall's window shows as its first layer and the immersion shows on the screen. Drawn on twos (12 a second), only when something it shows changed, and only the part of the painting on the screen.
+- **Their involuntary life** (`performance.ts`, `woodland.ts`): breathing (irregular, per person, a breath held off at the touch), authored blinks, one gust. Pure functions of the memory's time: seekable.
+- **What they do on purpose** is on the timeline, in Studio: `figure:a` / `figure:b` (`head`, `hand`, `shoulder`, `settle`, `breath`) and `scene` (`life`, `immerse`, `breeze`, `after`, `people`, `dusk`, `colour`); see `src/memory/sheets.ts` for each one's meaning.
+- **Going in and back** (`src/world/living/Inside.ts`, `Immersion.ts`): `scene.immerse` 0→1 spreads the painting over the plaster (from its part round the line to all of it, fixed on the wall), carries the visitor square to it, then a screen-space settle makes it all there is; and back, to exactly where they stood. Reduced motion: no carry, a crossfade. While inside, look and walk are the memory's: a new turn backs the move off in proportion, 30° (or a step held 0.35 s) lets it go (it reverses and hands control back half-way out, turned the way they turned). Taps do nothing; Escape pauses.
+- **The cut** (`scene.after`, `scene.people`, held keys): on one frame the same composition later (its own painting) with nobody in it. Never in between; seeking either way is exact.
+- **Its sound** (`src/memory/synthWoods.ts`): not loops but takes laid along its timeline (`music:` cues; `wide` ones keep their stereo).
+- **The revisit** (`empty`) has no living scene: it plays on the wall like any memory.
+
+### Moving the cut, the hold, the touch
+
+In Studio (`?memory&studio`, choose `woodland` / `afternoon`): select `scene` and drag the held keys of `after` and `people` together (they are one frame); move `scene.immerse`'s last two keys and the `exit` marker to change the hold; `figure:b.hand` is her reach (0 drawn back, 1 where the drawing has it), `figure:a.hand` his answer. The synthesised sound is timed in `TIMES` in `synthWoods.ts` (move it with the picture).
 
 ## Authoring in Theatre Studio (development only)
 
@@ -68,3 +85,9 @@ The code-painted stand-ins are re-baked with `npm run bake:memories` (Chromium, 
 - The kitchen radio is `public/music/memory-radio-folk-c.mp3`, a folk waltz the artist chose from four options. The first radio and the other options were turned down; their files are in `audition/music/` for the sheet only.
 - The kitchen's air is made in the engine (`src/memory/synthAir.ts`), not recorded.
 - Every new sound is `review: pending` until the artist has listened on the audition sheet.
+- **The woodland** (in numbers, so nothing is overclaimed):
+  - The people are a cut-out of the artist's character sheet (`02`), scaled 0.64 onto the day painting (`04`), keyed off its ivory, light-matched, with generated grass over their edges and a contact shadow. Every gesture is a warp of that one drawing: her hand travels ≤ 10 sheet px (about 6 painting px, 7–11 screen px at 1920) because the drawing tears beyond that; breathing is 1–2 px; the head turns are ≤ 3°. Whether this reads as people breathing, on your screen, is yours to judge from full-size frames; it is not "convincing human motion" because the numbers move.
+  - Blinks are painted-over lids on the same cut-out.
+  - The pressed grass after the cut is a code-made smoothing of the dusk painting, not drawn.
+  - Every woodland sound is synthesised (the cicadas by day, the evening cicadas after the cut, the leaves, grass, the last evening cicada): stand-ins. A listening mix of the afternoon is rendered to `test-output/review/woodland/woodland-afternoon-mix.wav` (`scratchpad`-free: `npx vite-node` on `renderCicadas`/`renderWoods`); the near cicada and the clearing take about 0.1 s and 1.1 s to render on a desktop (in slices, while the memory prepares): measure on a phone.
+  - Asked for in production (each replaces a stand-in by name): in-place drawn frames for her reach (4–6) and his answer (1–2), her head turn (3–4), his head adjustment (2), blinks (shut, half, per person); a drawn close-up of the hands if a cut to it is ever wanted; the pressed grass painted onto the dusk plate; recorded cicadas in a summer wood by day, and evening cicadas at dusk (1–2 min each), leaves in a light wind, grass and cloth under a hand, and two people breathing close, lying down (only with the artist's approval of any paid generation).

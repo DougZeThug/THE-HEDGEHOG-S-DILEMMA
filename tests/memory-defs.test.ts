@@ -5,6 +5,8 @@ import { MEMORIES, sheetId } from '../src/memory/defs';
 import { memorySchema } from '../src/memory/sheets';
 import { cueKind } from '../src/memory/cueSheet';
 import state from '../src/memory/theatre-state.json';
+import { SYNTH_KINDS } from '../src/memory/synthSounds';
+import { WOODS_KINDS } from '../src/memory/synthWoods';
 
 const ROOT = join(__dirname, '..');
 const manifest = JSON.parse(readFileSync(join(ROOT, 'public/voices/manifest.json'), 'utf8')) as Record<string, string[]>;
@@ -12,7 +14,7 @@ const manifest = JSON.parse(readFileSync(join(ROOT, 'public/voices/manifest.json
 describe('the living memories, as defined and committed', () => {
   for (const def of Object.values(MEMORIES)) {
     it(`${def.id}: every authored prop exists, every layer has art, every sound marker has a cue`, () => {
-      const schema = memorySchema(def.layers);
+      const schema = memorySchema(def.layers, def.living);
       const art = JSON.parse(readFileSync(join(ROOT, 'public/memories', def.art, 'manifest.json'), 'utf8'));
       for (const v of def.variants) {
         const seed = def.seed(v);
@@ -27,9 +29,18 @@ describe('the living memories, as defined and committed', () => {
         const cues = def.cues(v);
         for (const m of seed.markers) if (cueKind(m.label)) expect(cues.cues[m.label], m.label).toBeDefined();
         for (const c of Object.values(cues.cues))
-          if (c.asset.startsWith('synth:')) continue; // made in the engine
+          if (c.asset.startsWith('synth:')) expect(['air', ...SYNTH_KINDS, ...WOODS_KINDS], c.asset).toContain(c.asset.slice(6)); // made in the engine
           else if (c.asset.startsWith('music/')) expect(existsSync(join(ROOT, 'public', c.asset)), c.asset).toBe(true);
           else expect(manifest[c.asset]?.length, c.asset).toBeGreaterThan(0);
+        // A living variant: every file its scene draws, at the sizes it loads.
+        const lm = art.living?.[v];
+        if (def.living && lm) {
+          const files: [string, string[]][] = [[lm.plate, ['', '@low']], [lm.maps, ['']]];
+          if (lm.grade) files.push([lm.grade, ['']]);
+          if (lm.sky) files.push([lm.sky.file, ['']]);
+          if (lm.figures) for (const f of [lm.figures.file, lm.figures.lids, lm.figures.sketch]) files.push([f, ['', '@low']]);
+          for (const [f, sizes] of files) for (const s of sizes) expect(existsSync(join(ROOT, 'public/memories', def.art, `${f}${s}.webp`)), f + s).toBe(true);
+        }
         // And the committed timeline has the sheet (production never plays the fallbacks).
         expect((state as { sheetsById: Record<string, unknown> }).sheetsById[sheetId(def.id, v)]).toBeDefined();
       }

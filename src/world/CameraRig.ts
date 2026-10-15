@@ -144,6 +144,24 @@ export class CameraRig {
     this.lookGoal = null;
   }
 
+  /**
+   * Carried (a living memory taking the visitor to its painting, and back): the body is put
+   * exactly here and the view set at once, without bob or breath, so the move is the memory's
+   * own and seeking it gives the same view. Nothing is left moving.
+   */
+  place(x: number, z: number, yaw: number, pitch: number) {
+    this.goal = null;
+    this.lookGoal = null;
+    this.vel.set(0, 0);
+    this.yawVel = 0;
+    this.pos.set(x, 0, z);
+    this.yaw = yaw;
+    this.pitch = pitch;
+    this.camera.position.set(x, this.eye, z);
+    this.camera.rotation.set(pitch, yaw, 0);
+    this.camera.updateMatrixWorld();
+  }
+
   setKneel(k: boolean) {
     this.kneeling = k;
     if (k) this.cancelAttend();

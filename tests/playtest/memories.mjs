@@ -21,13 +21,19 @@ const BASE = process.env.BASE ?? 'http://localhost:4173/';
 const OUT = process.env.OUT ?? `test-output/review/memories/${process.env.MEMORY ?? 'cereal'}`;
 const PROFILES = (process.env.PROFILES ?? 'desktop,phone').split(',');
 const MEMORY = process.env.MEMORY ?? 'cereal';
-const VARIANT = process.env.VARIANT ?? { cereal: 'first', bedroom: 'morning', door: 'approach' }[MEMORY];
-const PHRASE = { cereal: 'cereal', bedroom: 'happiest-unneeded', door: 'door-open' }[MEMORY];
+const VARIANT = process.env.VARIANT ?? { cereal: 'first', bedroom: 'morning', door: 'approach', woodland: 'afternoon' }[MEMORY];
+const PHRASE = { cereal: 'cereal', bedroom: 'happiest-unneeded', door: 'door-open', woodland: 'more-minutes' }[MEMORY];
 // Stages: [name, sequence position or null for the untouched wall], per memory.
 const STAGES = {
   cereal: [['0-untouched', null], ['1-first-drawing', 1.8], ['2-developing', 3.8], ['3-active', 9], ['4-active-late', 20], ['5-dissolving', 24.5], ['6-drawing-alone', 26.2], ['7-residue', 29]],
   bedroom: [['0-untouched', null], ['1-first-drawing', 2.6], ['2-developing', 5.5], ['3-active', 9], ['4-curtain', 11.4], ['5-active-late', 22], ['6-dissolving', 28.5], ['7-drawing-alone', 30.6]],
   door: [['0-untouched', null], ['1-first-drawing', 1.6], ['2-developing', 3.4], ['3-active', 6.5], ['4-shadow', 11], ['5-weight', 14.3], ['6-dissolving', 19.5], ['7-drawing-alone', 21]],
+  // The woodland (docs/reviews/2026-10-woodland.md): in, the touch, the evening, out.
+  woodland: VARIANT === 'empty'
+    ? [['0-untouched', null], ['1-first-drawing', 2.6], ['2-developing', 5], ['3-active', 12], ['4-dissolving', 22], ['5-drawing-alone', 24.6]]
+    : [['00-untouched', null], ['01-leaf-light', 2.0], ['02-graphite', 3.6], ['03-formed', 6.0], ['04-spreading', 8.0], ['05-carried', 9.8], ['06-inside', 12.0], ['07-reach-halfway', 17.0], ['08-touch', 22.0], ['09-settled', 26.0],
+       // The cut (28 s): the last frame before it and the first after it, then the empty clearing.
+       ['10-last-frame-before-cut', 28 - 1 / 60], ['11-first-frame-after-cut', 28.0], ['12-empty-dusk', 33.0], ['13-returning', 37.0], ['14-wall', 40.0], ['15-white-room', 43.5]],
 }[MEMORY];
 mkdirSync(OUT, { recursive: true });
 

@@ -51,6 +51,11 @@ const FRAG = /* glsl */ `
   uniform vec4 uPool;              // light pool: centre (m), radius (m), softness (m)
   uniform vec4 uReserve;           // the words: centre (m), half size (m)
   uniform float uSeed;
+  // A living memory: the part of the painting this quad shows (painting uv, as it spreads), the
+  // part its first layer (the living scene's render target) holds, and how far it is open.
+  uniform vec4 uCrop;
+  uniform vec4 uView0;
+  uniform float uOpen;
   varying vec2 vUv;
 
   vec3 toLinear(vec3 c) { return mix(c / 12.92, pow((c + 0.055) / 1.055, vec3(2.4)), step(0.04045, c)); }
@@ -69,27 +74,33 @@ const FRAG = /* glsl */ `
 
   void main() {
     vec2 m = (vUv - 0.5) * uSize; // metres from the window's centre
-    float n = texture2D(uNoise, vUv * uSize * 0.9 + uSeed).r;
-    float n2 = texture2D(uNoise, vUv * uSize * 3.1 - uSeed).r;
+    // Where on the painting (the whole of it, unless a living memory shows a part).
+    vec2 P = uCrop.xy + vUv * uCrop.zw;
+    float n = texture2D(uNoise, P * uNominal * 0.9 + uSeed).r;
+    float n2 = texture2D(uNoise, P * uNominal * 3.1 - uSeed).r;
 
     // The pool of the memory's light: what it reaches is what is revealed. The drawing is
     // found a little ahead of the colour (the light finds the pencil first).
-    vec2 mp = (vUv - 0.5) * uNominal;
+    vec2 mp = (P - 0.5) * uNominal;
     float d = length((mp - uPool.xy) / max(uPool.z, 1e-3)) + (n - 0.5) * 0.35 + (n2 - 0.5) * 0.12;
     float soft = uPool.w / max(uPool.z, 1e-3) + 0.05;
     float colourMask = 1.0 - smoothstep(uReveal - soft, uReveal + soft, d);
     float sketchMask = 1.0 - smoothstep(uSketch - soft, uSketch + soft, d);
-    // Never to the window's edge: ragged, inside its rectangle.
+    // Opened across the plaster, the whole of it is found (its edge is the quad's ragged edge).
+    colourMask = max(colourMask, uOpen * step(0.5, uReveal));
+    sketchMask = max(sketchMask, uOpen * step(0.5, uSketch));
+    // Never to the window's edge: ragged, inside its rectangle (wider as a living one spreads:
+    // a brush, not a frame).
     vec2 e = min(vUv, 1.0 - vUv) * uSize;
-    float edge = smoothstep(0.0, 0.06 + 0.05 * n, min(e.x, e.y));
+    float edge = smoothstep(0.0, (0.06 + 0.05 * n) * (1.0 + 2.5 * uOpen), min(e.x, e.y));
 
     vec3 col = vec3(0.0); float cov = 0.0; vec3 light = vec3(0.0); vec4 lead = vec4(0.0);
-    if (uCount > 0) layer(0, texture2D(uL0, vUv + uShift[0] + vec2(uSkew[0] * (1.0 - vUv.y), 0.0)), col, cov, light, lead);
-    if (uCount > 1) layer(1, texture2D(uL1, vUv + uShift[1] + vec2(uSkew[1] * (1.0 - vUv.y), 0.0)), col, cov, light, lead);
-    if (uCount > 2) layer(2, texture2D(uL2, vUv + uShift[2] + vec2(uSkew[2] * (1.0 - vUv.y), 0.0)), col, cov, light, lead);
-    if (uCount > 3) layer(3, texture2D(uL3, vUv + uShift[3] + vec2(uSkew[3] * (1.0 - vUv.y), 0.0)), col, cov, light, lead);
-    if (uCount > 4) layer(4, texture2D(uL4, vUv + uShift[4] + vec2(uSkew[4] * (1.0 - vUv.y), 0.0)), col, cov, light, lead);
-    if (uCount > 5) layer(5, texture2D(uL5, vUv + uShift[5] + vec2(uSkew[5] * (1.0 - vUv.y), 0.0)), col, cov, light, lead);
+    if (uCount > 0) layer(0, texture2D(uL0, (P - uView0.xy) / uView0.zw + uShift[0] + vec2(uSkew[0] * (1.0 - P.y), 0.0)), col, cov, light, lead);
+    if (uCount > 1) layer(1, texture2D(uL1, P + uShift[1] + vec2(uSkew[1] * (1.0 - P.y), 0.0)), col, cov, light, lead);
+    if (uCount > 2) layer(2, texture2D(uL2, P + uShift[2] + vec2(uSkew[2] * (1.0 - P.y), 0.0)), col, cov, light, lead);
+    if (uCount > 3) layer(3, texture2D(uL3, P + uShift[3] + vec2(uSkew[3] * (1.0 - P.y), 0.0)), col, cov, light, lead);
+    if (uCount > 4) layer(4, texture2D(uL4, P + uShift[4] + vec2(uSkew[4] * (1.0 - P.y), 0.0)), col, cov, light, lead);
+    if (uCount > 5) layer(5, texture2D(uL5, P + uShift[5] + vec2(uSkew[5] * (1.0 - P.y), 0.0)), col, cov, light, lead);
 
     // Unstylized (the editor's comparison): the layers as baked, with no mask, noise or reserve.
     float mask = mix(1.0, colourMask, uStylize);
@@ -173,6 +184,14 @@ export class MemoryWindow {
   private fixed: { cx: number; cy: number; w: number } | null = null;
   /** Drawings on the wall to keep clear of (group metres). */
   avoid: { x: number; y: number; w: number; h: number }[] = [];
+  /**
+   * A living memory (docs/reviews/2026-10-woodland.md): the painting is `size` metres on the wall
+   * and fixed there; the quad shows `crop` of it round the line, then (`spread` 0..1) the whole.
+   */
+  private living: { crop: [number, number, number, number]; size: [number, number] } | null = null;
+  spread = 0;
+  /** Where the whole painting is on its wall (group metres), as last placed. */
+  readonly painting = { cx: 0, cy: 0, w: 0, h: 0 };
   /** Where the painting is on its wall now (group metres), and its scale from painting metres. */
   private at = { cx: 0, cy: 0, scale: 1 };
   private eye = new THREE.Vector3();
@@ -210,6 +229,9 @@ export class MemoryWindow {
       uPool: { value: new THREE.Vector4(0, 0, 0.5, 0.1) },
       uReserve: { value: new THREE.Vector4(0, 0, 0, 0) },
       uSeed: { value: 0 },
+      uCrop: { value: new THREE.Vector4(0, 0, 1, 1) },
+      uView0: { value: new THREE.Vector4(0, 0, 1, 1) },
+      uOpen: { value: 0 },
     };
     const mat = new THREE.ShaderMaterial({
       uniforms: this.u,
@@ -254,8 +276,30 @@ export class MemoryWindow {
     this.u.uCount.value = this.layers.length;
   }
 
+  /** A living memory's painting: its size on the wall and the part shown first; null for any other. */
+  setLiving(o: { crop: [number, number, number, number]; size: [number, number] } | null): void {
+    this.living = o;
+    this.spread = 0;
+    if (!o) {
+      (this.u.uCrop.value as THREE.Vector4).set(0, 0, 1, 1);
+      this.u.uOpen.value = 0;
+    }
+  }
+
+  /** The part of the painting the first layer holds (a living scene draws only what is seen). */
+  setView(v: THREE.Vector4): void {
+    (this.u.uView0.value as THREE.Vector4).copy(v);
+  }
+
+  /** The tiling noise its mask uses (shared: the living scene and the immersion use it too). */
+  get noise(): THREE.Texture {
+    return this.u.uNoise.value as THREE.Texture;
+  }
+
   /** Let the memory's textures go (the caller disposes them); back to the neutral dummy. */
   clearLayers(): void {
+    this.setLiving(null);
+    (this.u.uView0.value as THREE.Vector4).set(0, 0, 1, 1);
     this.setLayers([]);
     this.u.uPresence.value = 0;
     this.u.uLight.value.set(0, 0, 0);
@@ -292,10 +336,12 @@ export class MemoryWindow {
     const a = this.placed;
     if (!a) return;
     const v = (k: string, d: number) => (k in final ? final[k] : d);
+    const L = this.living;
     // About as wide as the words (never a panorama, never a postage stamp), its top just above
     // them: the line is written across the painting's pale upper band, the scene lies below it.
-    const w = this.fixed ? this.fixed.w : THREE.MathUtils.clamp(a.w * 0.95, 0.8, 1.3) * v('window.scale', 1);
-    const h = w / this.aspect;
+    // (A living memory's first part is as wide as its crop of the painting.)
+    const w = L ? L.size[0] * L.crop[2] : this.fixed ? this.fixed.w : THREE.MathUtils.clamp(a.w * 0.95, 0.8, 1.3) * v('window.scale', 1);
+    const h = L ? L.size[1] * L.crop[3] : w / this.aspect;
     let cx = a.x + v('window.offsetX', 0);
     // The words sit in the band at the painting's top (never down in the scene): its top is just
     // above them, or higher if they wrap onto more lines than the band holds.
@@ -323,6 +369,11 @@ export class MemoryWindow {
     }
     cx = THREE.MathUtils.clamp(cx, a.minX + w / 2, a.maxX - w / 2);
     cy = THREE.MathUtils.clamp(cy, a.minY + h / 2, a.maxY - h / 2);
+    if (L) {
+      this.placeLiving(L, a, cx, cy);
+      this.reveal(final, v, scale);
+      return;
+    }
     this.mesh.position.set(cx, cy, 0.004);
     this.at.cx = cx;
     this.at.cy = cy;
@@ -373,6 +424,63 @@ export class MemoryWindow {
       // (Authored in the painting's own metres at its bottom edge.)
       skew[i] = -(v(k + 'skew', 0) * scale) / w;
     }
+  }
+
+  /**
+   * A living memory: the whole painting fixed on the wall (its crop where a window would be,
+   * the rest round it, kept inside the wall), and the quad showing the crop → the whole as it spreads.
+   */
+  private placeLiving(L: { crop: [number, number, number, number]; size: [number, number] }, a: NonNullable<MemoryWindow['placed']>, cx: number, cy: number): void {
+    const [W, H] = L.size;
+    const [u0, v0, du, dv] = L.crop;
+    let px = cx - (u0 + du / 2 - 0.5) * W;
+    let py = cy - (v0 + dv / 2 - 0.5) * H;
+    // The whole painting stays on its wall.
+    const keep = (p: number, lo: number, hi: number) => (lo > hi ? (lo + hi) / 2 : THREE.MathUtils.clamp(p, lo, hi));
+    px = keep(px, a.minX + W / 2, a.maxX - W / 2);
+    py = keep(py, a.minY + H / 2, a.maxY - H / 2);
+    this.painting.cx = px;
+    this.painting.cy = py;
+    this.painting.w = W;
+    this.painting.h = H;
+    const s = THREE.MathUtils.clamp(this.spread, 0, 1);
+    const k = s * s * (3 - 2 * s);
+    const rx = u0 * (1 - k), ry = v0 * (1 - k), rw = du + (1 - du) * k, rh = dv + (1 - dv) * k;
+    const mx = px + (rx + rw / 2 - 0.5) * W, my = py + (ry + rh / 2 - 0.5) * H;
+    this.mesh.position.set(mx, my, 0.004);
+    this.mesh.scale.set(rw * W, rh * H, 1);
+    this.u.uSize.value.set(rw * W, rh * H);
+    (this.u.uCrop.value as THREE.Vector4).set(rx, ry, rw, rh);
+    (this.u.uNominal.value as THREE.Vector2).set(W, H);
+    this.u.uOpen.value = k;
+    this.u.uReserve.value.set(a.x - mx, a.y - my, a.w / 2 + 0.02, a.h / 2 + 0.015);
+    this.at.cx = px;
+    this.at.cy = py;
+    this.at.scale = 1;
+  }
+
+  /** The light and the layers of a living memory (no parallax: its scene draws its own depth). */
+  private reveal(final: Values, v: (k: string, d: number) => number, _scale: number): void {
+    this.u.uReveal.value = v('window.reveal', 0) * 1.25;
+    this.u.uSketch.value = v('window.sketch', 0) * 1.25;
+    this.u.uPresence.value = v('window.presence', 1);
+    this.u.uPool.value.set(v('light.x', 0), v('light.y', 0), v('light.radius', 0.45), v('light.soft', 0.12));
+    const k = Math.round(v('light.warmth', 3000) / 25) * 25;
+    if (k !== this.kelvinAt) {
+      this.kelvinAt = k;
+      this.kelvinRgb.copy(kelvin(k));
+    }
+    this.u.uLight.value.copy(this.kelvinRgb).multiplyScalar(v('light.intensity', 0));
+    const opac = this.u.uOpacity.value as number[];
+    const shift = this.u.uShift.value as THREE.Vector2[];
+    const skew = this.u.uSkew.value as number[];
+    for (let i = 0; i < SLOTS; i++) {
+      const l = this.layers[i];
+      opac[i] = l ? v(`layer:${l.name}.opacity`, 1) : 0;
+      shift[i].set(0, 0);
+      skew[i] = 0;
+    }
+    void final;
   }
 
   /** The editor's comparison: 1 = as in the room, 0 = the layers as baked. */

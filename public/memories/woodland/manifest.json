@@ -1,0 +1,218 @@
+{
+  "size": [
+    3.2,
+    1.801
+  ],
+  "band": 0,
+  "pane": null,
+  "register": null,
+  "crop": [
+    0.23,
+    0.09,
+    0.5,
+    0.55
+  ],
+  "plate": [
+    1672,
+    941
+  ],
+  "variants": {
+    "afternoon": [
+      {
+        "name": "scene",
+        "kind": "pigment",
+        "file": "afternoon/scene",
+        "source": "cut from the artist's references"
+      },
+      {
+        "name": "sketch",
+        "kind": "sketch",
+        "file": "afternoon/sketch",
+        "source": "cut from the artist's references"
+      },
+      {
+        "name": "sketch-after",
+        "kind": "sketch",
+        "file": "afternoon/sketch-after",
+        "source": "cut from the artist's references"
+      },
+      {
+        "name": "light",
+        "kind": "light",
+        "file": "afternoon/light",
+        "source": "cut from the artist's references"
+      }
+    ],
+    "empty": [
+      {
+        "name": "scene",
+        "kind": "pigment",
+        "file": "empty/scene",
+        "source": "cut from the artist's references"
+      },
+      {
+        "name": "sketch",
+        "kind": "sketch",
+        "file": "empty/sketch",
+        "source": "cut from the artist's references"
+      },
+      {
+        "name": "sketch-after",
+        "kind": "sketch",
+        "file": "empty/sketch",
+        "source": "cut from the artist's references"
+      },
+      {
+        "name": "light",
+        "kind": "light",
+        "file": "empty/light",
+        "source": "cut from the artist's references"
+      }
+    ]
+  },
+  "living": {
+    "afternoon": {
+      "plate": "afternoon/plate",
+      "maps": "afternoon/maps",
+      "grade": null,
+      "sky": null,
+      "figures": {
+        "file": "afternoon/figures",
+        "lids": "afternoon/lids",
+        "sketch": "afternoon/fsketch",
+        "place": [
+          0.21531,
+          0.19766,
+          0.55443,
+          0.34325
+        ],
+        "pixels": [
+          927,
+          323
+        ],
+        "split": 0.26243,
+        "anatomy": {
+          "chestA": {
+            "c": [
+              0.20718,
+              0.51485
+            ],
+            "r": [
+              0.10359,
+              0.16238
+            ],
+            "angle": -0.42
+          },
+          "chestB": {
+            "c": [
+              0.40401,
+              0.61188
+            ],
+            "r": [
+              0.07942,
+              0.12277
+            ],
+            "angle": -0.3
+          },
+          "headA": {
+            "c": [
+              0.15331,
+              0.83762
+            ],
+            "r": [
+              0.06354,
+              0.16238
+            ],
+            "pivot": [
+              0.16436,
+              0.69901
+            ]
+          },
+          "headB": {
+            "c": [
+              0.34876,
+              0.86931
+            ],
+            "r": [
+              0.0663,
+              0.13861
+            ],
+            "pivot": [
+              0.3674,
+              0.7505
+            ]
+          },
+          "handA": {
+            "elbow": [
+              0.30387,
+              0.50099
+            ],
+            "hand": [
+              0.39917,
+              0.35446
+            ],
+            "radius": 0.04752
+          },
+          "handB": {
+            "elbow": [
+              0.37155,
+              0.48119
+            ],
+            "hand": [
+              0.43923,
+              0.30297
+            ],
+            "radius": 0.05149
+          },
+          "shoulderB": {
+            "c": [
+              0.3453,
+              0.65347
+            ],
+            "r": [
+              0.04834,
+              0.09901
+            ],
+            "angle": -0.3
+          },
+          "settleB": {
+            "c": [
+              0.38674,
+              0.66337
+            ],
+            "r": [
+              0.14503,
+              0.27723
+            ],
+            "angle": -0.25
+          },
+          "hairA": {
+            "c": [
+              0.14848,
+              0.90099
+            ],
+            "r": [
+              0.08287,
+              0.11881
+            ],
+            "angle": -0.0
+          },
+          "hairB": {
+            "c": [
+              0.32459,
+              0.86139
+            ],
+            "r": [
+              0.08978,
+              0.14851
+            ],
+            "angle": -0.2
+          }
+        }
+      },
+      "after": "afternoon/after",
+      "immerse": true
+    },
+    "empty": null
+  }
+}

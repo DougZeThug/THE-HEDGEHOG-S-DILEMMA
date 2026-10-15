@@ -42,9 +42,53 @@ export const LAYER: Schema[string] = {
   depth: [0, 0, 0.06],
 };
 
-/** A memory's objects, given its layers' names (back to front). */
-export function memorySchema(layers: string[]): Schema {
+/**
+ * A living memory's scene (src/memory/living/, docs/reviews/2026-10-woodland.md):
+ *   life     0 still as a painting, 1 alive (the grass, the breathing)
+ *   immerse  0 on the wall, 1 entered: the painting spreads over the plaster, the visitor is
+ *            carried to it, and it becomes all there is
+ *   breeze   the air: 1 the afternoon's, 0 still
+ *   dusk     0 afternoon, 1 the evening's colour and sky
+ *   colour   the people: 1 painted, 0 a drawing
+ *   people   the people: 1 there, 0 gone
+ *   after    0 the afternoon, 1 the same place later, its own painting (a cut: held keys, never
+ *            in between: below one half it is the afternoon)
+ */
+export const SCENE: Schema[string] = {
+  life: [1, 0, 1],
+  immerse: [0, 0, 1],
+  breeze: [1, 0, 1],
+  dusk: [0, 0, 1],
+  colour: [1, 0, 1],
+  people: [1, 0, 1],
+  after: [0, 0, 1],
+};
+
+/**
+ * A person in a living memory. What they do on purpose (their involuntary life, breathing and
+ * blinking, follows from time: src/memory/living/performance.ts):
+ *   head      radians at the neck (a few degrees at most: a flat drawing can't turn far)
+ *   hand      A: 0 resting, 1 moved toward hers; B: 0 drawn back, 1 where the sheet draws it
+ *   shoulder  B: her shoulder easing (0..1)
+ *   settle    B: settling back into the grass (0..1)
+ *   breath    how deep they breathe (1 as they do)
+ */
+export const FIGURE: Schema[string] = {
+  head: [0, -0.06, 0.06],
+  hand: [0, 0, 1],
+  shoulder: [0, 0, 1],
+  settle: [0, 0, 1],
+  breath: [1, 0, 1.5],
+};
+
+/** A memory's objects, given its layers' names (back to front), and the scene if it lives. */
+export function memorySchema(layers: string[], living = false): Schema {
   const s: Schema = { window: WINDOW, light: LIGHT };
   for (const l of layers) s[`layer:${l}`] = LAYER;
+  if (living) {
+    s.scene = SCENE;
+    s['figure:a'] = FIGURE;
+    s['figure:b'] = FIGURE;
+  }
   return s;
 }

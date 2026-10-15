@@ -1,6 +1,7 @@
 import { DRAWINGS, DRAWING_BY_ID } from '../content/drawings';
 import { MemoryDirector, type PendingEcho } from './MemoryDirector';
 import { VIGNETTE_BY_ID, lineKey } from '../content/vignettes';
+import { SCENE_MEMORIES } from '../content/memories';
 import { Rng } from '../core/rng';
 import { EventScheduler } from '../core/scheduler';
 import { clamp, smoothstep } from '../core/math';
@@ -661,15 +662,21 @@ export class Director {
 
   /** Kept for its moment: the reserved lines, and the memory's line until the memory offers it. */
   private reserved(id: string): boolean {
-    // (The door's line belongs beneath the drawn door: never drifted onto a wall before that.)
-    return Director.RESERVED.has(id) || (id === Director.MEMORY.phraseId && !this.memoryOffered) || (id === 'door-open' && !this.scenes.wasOffered('door'));
+    // (The door's line belongs beneath the drawn door, the woodland's to its own offer: never
+    // drifted onto a wall before that.)
+    return Director.RESERVED.has(id) || (id === Director.MEMORY.phraseId && !this.memoryOffered) || this.heldForOffer(id);
   }
 
   private hiddenExcluding(): Set<string> {
     const out = new Set([...this.visible.keys(), ...Director.RESERVED, ...this.withheld()]);
     if (!this.memoryOffered) out.add(Director.MEMORY.phraseId);
-    if (!this.scenes.wasOffered('door')) out.add('door-open');
+    for (const m of SCENE_MEMORIES) if (this.heldForOffer(m.phraseId)) out.add(m.phraseId);
     return out;
+  }
+
+  /** A painted memory's line kept for its offer (`reserved`), not yet offered. */
+  private heldForOffer(id: string): boolean {
+    return SCENE_MEMORIES.some((m) => m.reserved && m.phraseId === id && !this.scenes.wasOffered(m.id));
   }
 
   /** Lines about leaving and staying, kept back while "I wanted you to" is unfinished. */
