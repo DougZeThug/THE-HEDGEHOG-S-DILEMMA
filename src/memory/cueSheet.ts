@@ -7,7 +7,7 @@
  * level, measured offline. Distance and place come from the engine (panner, lowpass, the
  * memory's own small room), never from the recording, so files are generated close and dry.
  */
-export type CueKind = 'sfx' | 'bed' | 'music';
+export type CueKind = 'sfx' | 'bed' | 'music' | 'voice';
 
 export interface Place {
   /** Across the window, −0.5 (left) … 0.5 (right). */
@@ -18,6 +18,27 @@ export interface Place {
   d: number;
 }
 
+/**
+ * A place in the white room rather than in a painting (a vignette has no window): fixed when the
+ * vignette begins, from where the visitor is and which way they face (src/App.ts `spot`).
+ * - `chair`: the chair, at the height of someone sitting on it
+ * - `left`/`right`: beside the visitor, a little ahead (two people, the space between them)
+ * - `close`: just beside the visitor's head (a phone held to the ear)
+ * - `beyond`: past the wall where the memory's line is (another room)
+ * - `door`: the room's door
+ * - `anchor`: the line itself, on its wall
+ */
+export type Spot = 'chair' | 'left' | 'right' | 'close' | 'beyond' | 'door' | 'anchor';
+export interface SpotPlace {
+  at: Spot;
+  /** Metres: how far from the visitor (left/right/close) or beyond the wall. */
+  d?: number;
+  /** Height, metres (default: about where a head is). */
+  h?: number;
+}
+export type AnyPlace = Place | SpotPlace;
+export const isSpot = (p: AnyPlace): p is SpotPlace => 'at' in p;
+
 export interface Cue {
   /** A manifest key (`mem:spoon-bowl`, `vf-laugh-next-room`) or a music file (`music/memory-kitchen.mp3`). */
   asset: string;
@@ -25,9 +46,9 @@ export interface Cue {
   take?: number;
   /** Authored level, dB, applied to the file as recorded. */
   gainDb: number;
-  place: Place;
+  place: AnyPlace;
   /** Moving while it plays (footsteps): place at its end, reached over the clip. */
-  to?: Place;
+  to?: AnyPlace;
   /** Lowpass, Hz (a muffle through a wall, distance); `lowpassTo` sweeps it over the clip. */
   lowpass?: number;
   lowpassTo?: number;
@@ -42,6 +63,16 @@ export interface Cue {
   offset?: number;
   /** What a caption says while it sounds (for visitors who can't hear it). */
   caption?: string;
+  /**
+   * Voices: the words spoken, captioned as speech (not as a sound) for as long as they sound,
+   * and which side the speaker is on, so two people can be told apart in the captions.
+   */
+  text?: string;
+  side?: 'left' | 'right';
+  /** Stop this many seconds into the file (a sentence cut off, a laugh that doesn't finish). */
+  stopAfter?: number;
+  /** Dry: no room around it (a voice on a phone, held to the ear). */
+  dry?: boolean;
 }
 
 export interface CueSheet {
@@ -52,5 +83,5 @@ export interface CueSheet {
 
 export function cueKind(label: string): CueKind | null {
   const k = label.slice(0, label.indexOf(':'));
-  return k === 'sfx' || k === 'bed' || k === 'music' ? k : null;
+  return k === 'sfx' || k === 'bed' || k === 'music' || k === 'voice' ? k : null;
 }

@@ -1,5 +1,6 @@
 import { DRAWINGS, DRAWING_BY_ID } from '../content/drawings';
-import { MemoryDirector } from './MemoryDirector';
+import { MemoryDirector, type PendingEcho } from './MemoryDirector';
+import { VIGNETTE_BY_ID, lineKey } from '../content/vignettes';
 import { Rng } from '../core/rng';
 import { EventScheduler } from '../core/scheduler';
 import { clamp, smoothstep } from '../core/math';
@@ -325,6 +326,8 @@ export class Director {
     if (this.now < this.memoryQuietUntil && !extra.finish && !rule.startsWith('sit:')) return;
     // Nothing talks over a living memory.
     if (this.scenes.active && !extra.finish) return;
+    // A vignette's line is its own: the room doesn't say it first.
+    if (extra.phraseId && !extra.finish && this.scenes.claimsVoice(extra.phraseId)) return;
     // A phrase with recorded performances: choose the one directed for this moment.
     let ranked = extra.phraseId && kind !== 'laugh' && kind !== 'murmur' && kind !== 'breath' && kind !== 'hum' ? rankPerformances(extra.phraseId, this.field.v, kind) : [];
     // Heard before: this time, the reading furthest from the one already heard.
@@ -412,6 +415,7 @@ export class Director {
       if (this.legacy) this.ruleOpening();
       this.ruleMemory();
       this.ruleScenes();
+      this.ruleEchoes();
       this.ruleAccumulate();
       this.ruleDrawings();
       this.ruleFinish();
@@ -460,7 +464,7 @@ export class Director {
   /** A voice that was decided on but never sounded: undo what it was counted for. */
   private lost(cue: Cue, rule: string) {
     // A memory that never found room isn't spent: it waits for the next look.
-    if (cue.type === 'memory-scene') this.scenes.cancel(cue.id, this.now);
+    if (cue.type === 'memory-scene' || cue.type === 'vignette') this.scenes.cancel(cue.id, this.now);
     if (cue.type !== 'voice' || !cue.phraseId) return;
     // A voice that was to write its line as it was heard: the line was marked as there when the
     // voice was queued. Unheard, it was never written, so it isn't there.
@@ -487,6 +491,9 @@ export class Director {
       if (cue.position.kind === 'beyond' && this.situations.claimed('beyond')) return false;
     }
     if (cue.type === 'music' && !rule.startsWith('sit:') && this.situations.claimed('music')) return false;
+    // Nothing sounds over a memory: a situation's laugh or murmur waits too (it is emitted
+    // directly, not through the voice rules that already wait).
+    if (this.scenes.active && ((cue.type === 'voice' && !cue.finish) || cue.type === 'sound' || cue.type === 'music')) return false;
     if (cue.type === 'reveal' && this.withheld().includes(cue.phraseId)) return false;
     // While a living memory plays, the room waits with it: no silence (a dim would darken the
     // painting), no new line revealed or written.
@@ -1102,7 +1109,7 @@ export class Director {
 
   private ruleMemory() {
     // Cereal is the same kitchen: if it has opened this visit, the late light isn't offered.
-    if (this.memoryPlayed || this.departing || this.scenes.anyPlayed) return;
+    if (this.memoryPlayed || this.departing || this.scenes.paintedPlayed || this.scenes.kitchenTaken) return;
     if (this.now < 150 || (this.phase !== 'contradiction' && this.phase !== 'transform')) return;
     const m = Director.MEMORY;
     // Its own hold (below) doesn't keep it waiting.
@@ -1162,8 +1169,19 @@ export class Director {
       departing: this.departing,
       kitchenPlayed: this.memoryPlayed,
       facing: this.facing,
+      phase: this.phase,
+      chairDistance: v.distance,
+      stillFor: v.stillFor,
+      kneeling: v.kneeling,
+      variantCtx: () => ({
+        visits: this.visits,
+        field: { ...this.field.v },
+        motifs: [...this.memory.formed.keys()],
+        withdrew: v.sinceWithdraw < 60,
+      }),
     });
-    if (start) this.queue(0, { type: 'memory-scene', ...start }, 'memory-scene', { major: true, ttl: 3 });
+    if (start?.kind === 'vignette') this.queue(0, { type: 'vignette', id: start.id, phraseId: start.phraseId, variant: start.variant }, 'vignette', { major: true, ttl: 3 });
+    else if (start) this.queue(0, { type: 'memory-scene', id: start.id, phraseId: start.phraseId, variant: start.variant, minHold: start.minHold, maxHold: start.maxHold }, 'memory-scene', { major: true, ttl: 3 });
     if (this.scenes.active) this.pacing.holdFor(this.now, 0.5);
     // A later memory's line is offered as the kitchen-light memory's is: written alone, where
     // the visitor is looking, and the room holds still a moment so a visitor who stays with it
@@ -1213,6 +1231,8 @@ export class Director {
   memoryEnded(id: string, seen: boolean, ranToEnd: boolean): boolean {
     const counted = this.scenes.ended(id, this.now, seen, ranToEnd);
     this.scenesQuietAt = this.now + 6;
+    // After a vignette the room doesn't answer at once with another voice: its quiet is part of it.
+    if (VIGNETTE_BY_ID.has(id)) this.memoryQuietUntil = Math.max(this.memoryQuietUntil, this.now + 20);
     if (counted) {
       // Staying with a memory is attention, as returning to a line is.
       this.engagement.raise('memory', this.now, id);
@@ -1758,6 +1778,61 @@ export class Director {
   depart(): void {
     this.departing = true;
     this.scheduler.cancelWhere(() => true);
+    this.scenes.dropEchoes();
+  }
+
+  /**
+   * What a heard vignette left comes back, later in the visit, when it fits: never over anything,
+   * never while the room holds still, and only where its condition holds (on a wall the visitor
+   * isn't facing; by the chair). One that finds no moment before its time is up doesn't come.
+   */
+  private ruleEchoes() {
+    if (this.departing || this.scenes.active || this.attending()) return;
+    if (!this.scheduler.majorFree(this.now) || this.pacing.holding(this.now) || !this.pacing.intenseFree(this.now) || this.now < this.memoryQuietUntil) return;
+    for (const p of this.scenes.dueEchoes(this.now)) {
+      const cue = this.echoCue(p);
+      if (!cue) continue;
+      this.scenes.echoDone(p);
+      for (const [delay, c, opts] of cue) this.queue(delay, c, `echo:${p.vignette}`, opts);
+      return;
+    }
+  }
+
+  private echoCue(p: PendingEcho): [number, Cue, { major?: boolean; ttl?: number; key?: string }][] | null {
+    const def = VIGNETTE_BY_ID.get(p.vignette);
+    if (!def) return null;
+    const e = p.echo;
+    const anchor = def.anchor.phrase ? PHRASE_BY_ID.get(def.anchor.phrase) : undefined;
+    const w = e.when ?? {};
+    if (w.notFacing && anchor && anchor.surface === this.facing) return null;
+    if (w.facing && w.facing !== this.facing) return null;
+    if (w.nearChair && this.visitor.distance > 1.4) return null;
+    if (e.write) {
+      const walls: Surface[] = ['north', 'east', 'south', 'west'];
+      // Another wall, and not the one being looked at: it is found, not watched being written.
+      const surface = e.write.otherWall ? walls.find((s) => s !== this.facing && s !== anchor?.surface) : undefined;
+      return [[0, {
+        type: 'write', key: `echo:${def.id}:${e.id}`, text: e.write.text, hand: e.write.hand, size: e.write.size,
+        ...(e.write.beside ? { beside: e.write.beside } : {}), ...(surface ? { surface } : {}),
+        purpose: e.write.beside ? 'annotation' : 'recall', ...(e.write.strike && e.write.beside ? { strike: e.write.beside } : {}), ttl: 0,
+      }, { key: `echo:${def.id}:${e.id}` }]];
+    }
+    if (e.voice) {
+      // A voice comes back only if it was recorded and kept.
+      if (!this.scenes.isAvailable(def.id)) return null;
+      const line = def.lines.find((l) => l.id === e.voice!.line);
+      if (!line) return null;
+      const position: VoicePosition = e.voice.place === 'beyond' ? { kind: 'beyond', surface: anchor?.surface ?? this.facing } : { kind: e.voice.place };
+      const tag = `echo:${def.id}:${e.id}`;
+      const laugh = !!e.voice.asLaugh;
+      const out: [number, Cue, { major?: boolean; ttl?: number; key?: string }][] = [[0, {
+        type: 'voice', kind: laugh ? 'laugh' : 'whisper', text: laugh ? null : line.text, caption: e.voice.caption ?? line.text, position, gain: 0.6,
+        assetId: lineKey(def, line), tag,
+      }, { major: true, ttl: 10 }]];
+      if (e.voice.stopAfter) out.push([e.voice.stopAfter, { type: 'stopVoice', tag, fade: 0.6 }, {}]);
+      return out;
+    }
+    return null;
   }
 
   /** Returning within the same session: the room has kept everything. */

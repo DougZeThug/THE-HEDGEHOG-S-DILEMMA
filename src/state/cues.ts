@@ -105,6 +105,8 @@ export type Cue =
   | { type: 'memory'; phraseId: string; attack: number; hold: number; release: number }
   /** A living memory opens round its line (src/memory; the App plays it and reports its end). */
   | { type: 'memory-scene'; id: string; phraseId: string; variant: string; minHold: number; maxHold: number }
+  /** A vignette (src/content/vignettes.ts): its score plays in the App, on the memory clock. */
+  | { type: 'vignette'; id: string; phraseId: string; variant: string }
   /** A drawing drawn on the wall, stroke by stroke (src/content/drawings.ts). */
   | { type: 'draw'; id: string }
   /** Rub out a piece of writing except for one word. */

@@ -5,6 +5,7 @@
  * A line without a memory stays a line: nothing about it says otherwise.
  */
 import type { Phase, Surface } from './types';
+import { VIGNETTES, type Tone } from './vignettes';
 
 export interface SceneMemory {
   id: string;
@@ -37,6 +38,17 @@ export interface SceneMemory {
    */
   arc?: 'first' | 'afterAnother';
   latest?: number;
+  /**
+   * A vignette (src/content/vignettes.ts): heard, not painted. It keeps its distance from other
+   * memories, may open from stillness by the chair rather than a line, and may share a place
+   * with another memory (`group`) or wait until another has been seen (`requires`).
+   */
+  kind?: 'vignette';
+  tone?: Tone;
+  chair?: { within: number; still: number };
+  group?: 'kitchen';
+  requires?: { seen: string };
+  phases?: Phase[];
 }
 
 export const SCENE_MEMORIES: SceneMemory[] = [
@@ -58,3 +70,27 @@ export const SCENE_MEMORIES: SceneMemory[] = [
 ];
 
 export const SCENE_BY_PHRASE = new Map(SCENE_MEMORIES.map((m) => [m.phraseId, m]));
+
+/** The vignettes, as memories the MemoryDirector can open (what they are is in vignettes.ts). */
+export const VIGNETTE_MEMORIES: SceneMemory[] = VIGNETTES.map((v) => ({
+  id: v.id,
+  phraseId: v.anchor.phrase ?? '',
+  earliest: v.earliest,
+  arm: v.arm,
+  commit: v.commit,
+  minHold: v.seenAt ?? 6,
+  maxHold: Math.max(...Object.values(v.variants).map((s) => s.span)),
+  variants: { first: 'first', revisit: [] },
+  lookBack: v.lookBack,
+  kind: 'vignette',
+  tone: v.tone,
+  chair: v.anchor.chair,
+  group: v.group,
+  requires: v.requires,
+  phases: v.phases,
+}));
+
+/** Every memory the Director may open: the painted ones, then the vignettes. */
+export const ALL_MEMORIES: SceneMemory[] = [...SCENE_MEMORIES, ...VIGNETTE_MEMORIES];
+/** By the line that opens it (the chair's vignette has none). */
+export const MEMORY_BY_PHRASE = new Map(ALL_MEMORIES.filter((m) => m.phraseId).map((m) => [m.phraseId, m]));

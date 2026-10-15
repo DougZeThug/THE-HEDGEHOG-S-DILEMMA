@@ -15,14 +15,18 @@ export class Captions {
     return performance.now() < this.wordsUntil;
   }
 
-  show(text: string, seconds: number, sound = false) {
+  /**
+   * `side`: which of two speakers is talking (a vignette's two people), so they can be told
+   * apart without names.
+   */
+  show(text: string, seconds: number, sound = false, side?: 'left' | 'right') {
     if (!this.enabled || !text) return;
     for (const old of [...this.el.children]) {
       old.classList.remove('on');
       setTimeout(() => old.remove(), 900);
     }
     const s = document.createElement('span');
-    s.className = 'cap' + (sound ? ' sound' : '');
+    s.className = 'cap' + (sound ? ' sound' : '') + (side ? ` side-${side}` : '');
     s.textContent = text;
     this.el.appendChild(s);
     requestAnimationFrame(() => s.classList.add('on'));

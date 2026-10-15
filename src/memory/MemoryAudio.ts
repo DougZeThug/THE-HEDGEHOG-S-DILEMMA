@@ -1,6 +1,6 @@
 import type { AudioSink } from './MemoryPlaybackController';
 import type { Due } from './cueDispatch';
-import { cueKind, type Cue, type CueKind, type CueSheet, type Place } from './cueSheet';
+import { cueKind, isSpot, type AnyPlace, type Cue, type CueKind, type CueSheet } from './cueSheet';
 import type { Marker } from './types';
 
 /**
@@ -17,6 +17,10 @@ import type { Marker } from './types';
  * - Music (`music:`) is timeline: a seek or a resume restarts it at the right offset, with a fade.
  * - Nothing new starts while the context isn't running; such an event is simply missed (no late
  *   burst when the tab comes back).
+ * - Voices (`voice:`, a vignette's lines) are one-shots captioned as speech for as long as they
+ *   sound. Interrupted, a voice is cut (0.3 s); paused mid-sentence, the sentence is taken back
+ *   and said again from its start on resume. One that may stop part-way (`stopAfter`) is cut
+ *   there. A voice with no recording yet goes to the host's fallback (previews only).
  */
 export interface MemoryAudioHost {
   ctx: BaseAudioContext;
@@ -27,9 +31,12 @@ export interface MemoryAudioHost {
   impulse(seconds: number, decay: number, seed: number): AudioBuffer;
   /** The room's sound intensity setting (0…1). */
   intensity: number;
-  /** A window-local place → world position. */
-  where(p: Place): [number, number, number];
-  caption?(text: string, seconds: number): void;
+  /** A window-local place (or a place in the room, for a vignette) → world position. */
+  where(p: AnyPlace): [number, number, number];
+  /** A caption: a sound's description, or (`speech`) the words being said, and by whom. */
+  caption?(text: string, seconds: number, speech?: boolean, side?: 'left' | 'right'): void;
+  /** A voice with no recording (previews only): said some other way, `delay` seconds from now. */
+  fallback?(cue: Cue, delay: number): void;
 }
 
 interface Live {
@@ -106,7 +113,11 @@ export class MemoryAudio implements AudioSink {
     const kind = cueKind(label);
     const cue = this.sheet.cues[label];
     const buf = this.buffers.get(label);
-    if (!kind || !cue || !buf) return;
+    if (!kind || !cue) return;
+    if (!buf) {
+      if (kind === 'voice' && into === 0 && !this.released) this.host.fallback?.(cue, Math.max(0, at - this.now));
+      return;
+    }
     if (this.released && kind !== 'sfx') return; // nothing new to stay once the memory lets go
     const c = this.host.ctx;
     const src = c.createBufferSource();
@@ -122,7 +133,7 @@ export class MemoryAudio implements AudioSink {
     const gain = c.createGain();
     // A one-shot is a point in the scene: mono before its panner (a stereo file's own left/right
     // imbalance would otherwise move it away from where it is placed).
-    if (kind === 'sfx') {
+    if (kind === 'sfx' || kind === 'voice') {
       gain.channelCount = 1;
       gain.channelCountMode = 'explicit';
     }
@@ -133,7 +144,13 @@ export class MemoryAudio implements AudioSink {
     const nodes: AudioNode[] = [src, gain];
     let node: AudioNode = gain;
     src.connect(gain);
-    const dur = kind === 'bed' ? Infinity : buf.duration - from;
+    const stop = cue.stopAfter !== undefined && kind !== 'bed' ? Math.max(0.05, cue.stopAfter - from) : Infinity;
+    const dur = kind === 'bed' ? Infinity : Math.min(buf.duration - from, stop);
+    if (Number.isFinite(stop) && stop < buf.duration - from) {
+      // Cut off, not faded: a sentence that stops, but without a click.
+      gain.gain.setValueAtTime(level, at + stop - 0.04);
+      gain.gain.linearRampToValueAtTime(SILENT, at + stop);
+    }
     if (cue.lowpass) {
       const lp = c.createBiquadFilter();
       lp.type = 'lowpass';
@@ -157,7 +174,8 @@ export class MemoryAudio implements AudioSink {
     if (kind === 'bed') {
       // A bed is the place's air: wide, leaning toward the window, not a point.
       const sp = c.createStereoPanner();
-      sp.pan.value = Math.max(-1, Math.min(1, cue.place.u * 0.6));
+      const pan = isSpot(cue.place) ? { left: -0.5, right: 0.5 }[cue.place.at as 'left'] ?? 0 : cue.place.u * 0.6;
+      sp.pan.value = Math.max(-1, Math.min(1, pan));
       out = sp;
     } else {
       const [x, y, z] = this.host.where(cue.place);
@@ -181,11 +199,17 @@ export class MemoryAudio implements AudioSink {
     node.connect(out);
     nodes.push(out);
     out.connect(this.host.out);
-    out.connect(this.room);
+    if (!cue.dry) out.connect(this.room);
     const live: Live = { label, kind, cue, src, gain, nodes, at, from, marker };
     src.onended = () => this.drop(live);
     this.live.add(live);
     src.start(at, from);
+    if (Number.isFinite(stop) && stop < buf.duration - from) src.stop(at + stop + 0.02);
+    if (kind === 'voice') {
+      // The words, for as long as they are said (a sentence that is cut off ends in a dash).
+      if (cue.text && (into === 0 || caption)) this.host.caption?.(cue.text, dur, true, cue.side);
+      return;
+    }
     // A caption says what began, briefly (a bed or music isn't captioned for its whole length).
     // (Also when it starts late or part-way in, after a stall: the caption is what a deaf visitor
     // has of it. Not when it comes back after a pause or a seek.)
@@ -232,6 +256,11 @@ export class MemoryAudio implements AudioSink {
     if (this.released) return;
     this.released = true;
     for (const l of [...this.live]) {
+      if (l.kind === 'voice') {
+        // A sentence already begun is finished at a natural close; interrupted, it is cut.
+        if (mode === 'interrupt') this.fadeOut(l, l.at > this.now + 0.005 ? 0 : 0.3);
+        continue;
+      }
       if (l.kind === 'sfx') {
         if (l.at > this.now + 0.005 && mode === 'interrupt') this.fadeOut(l, 0);
         else if (mode === 'interrupt' && l.cue.cutOnInterrupt) this.fadeOut(l, 0.3);
@@ -262,6 +291,10 @@ export class MemoryAudio implements AudioSink {
       if (l.at > t + 0.005) {
         back.push(l.marker);
         this.fadeOut(l, 0);
+      } else if (l.kind === 'voice') {
+        // Paused mid-sentence: it is said again from the start when the room comes back.
+        back.push(l.marker);
+        this.fadeOut(l, 0.25);
       } else if (l.kind !== 'sfx') {
         this.paused.push({ marker: l.marker, at: this.into(l, t) });
         this.fadeOut(l, 0.4);
@@ -300,7 +333,7 @@ export class MemoryAudio implements AudioSink {
     const t = this.now;
     for (const m of this.markers) {
       const kind = cueKind(m.label);
-      if (m.position > position || kind === 'sfx' || kind === null) continue;
+      if (m.position > position || kind === 'sfx' || kind === 'voice' || kind === null) continue;
       if (kind === 'bed' && [...this.live].some((l) => l.marker === m && l.at <= t)) continue;
       this.start(m, t, position - m.position, 0.3);
     }

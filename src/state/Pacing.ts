@@ -38,6 +38,8 @@ export function devKind(cue: Cue): DevKind | null {
   switch (cue.type) {
     case 'voice':
       return cue.text ? 'voice' : 'sound';
+    case 'vignette':
+      return 'voice';
     case 'sound':
       return 'sound';
     case 'music':

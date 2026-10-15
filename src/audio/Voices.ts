@@ -323,8 +323,12 @@ export class Voices {
     } finally {
       setTimeout(() => this.active--, out.duration * 1000 + 500);
     }
+    if (text) this.busyUntil = Math.max(this.busyUntil, performance.now() / 1000 + out.duration);
     return out;
   }
+
+  /** When (performance.now() seconds) the room's last voice finishes speaking. */
+  busyUntil = 0;
 
   private tagged = new Map<string, GainNode[]>();
   /** Where the most recent voice came from (for inspection and tests). */

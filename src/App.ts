@@ -11,6 +11,9 @@ import { MemoryClock } from './memory/clock';
 import type { Lifecycle } from './memory/types';
 import type { LivingMemory } from './memory/runtime';
 import type { MemoryAudioHost } from './memory/MemoryAudio';
+import { VignettePlayer, type VignetteHost } from './memory/VignettePlayer';
+import { isSpot, type SpotPlace } from './memory/cueSheet';
+import { VIGNETTE_BY_ID, VIGNETTES, vignetteKeys, spokenLines, lineKey, type Effect, type GapKind } from './content/vignettes';
 import { WallText, wallClock, type TextItem } from './world/WallText';
 import { CameraRig } from './world/CameraRig';
 import { Post } from './world/Post';
@@ -38,6 +41,14 @@ import { hashString } from './core/rng';
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
 type Mode = 'threshold' | 'room' | 'settings' | 'contribute' | 'departed';
+
+/** Where a vignette's places in the room are measured from (fixed as it begins). */
+interface SpotFrame {
+  eye: THREE.Vector3;
+  fwd: THREE.Vector3;
+  right: THREE.Vector3;
+  anchor: THREE.Vector3 | null;
+}
 
 export class App {
   renderer!: THREE.WebGLRenderer;
@@ -90,6 +101,17 @@ export class App {
   } | null = null;
   private memoryClock = new MemoryClock();
   private memoryGen = 0;
+  /**
+   * The vignette playing now (src/content/vignettes.ts): heard, not painted. `frame` is where the
+   * visitor was and faced when it began, so its voices stay where they were placed.
+   */
+  private vignette: {
+    player: VignettePlayer; id: string; key: string | null; frame: SpotFrame; hiddenSince: number | null; settingsFor: number; preview: boolean;
+    /** Seconds moving away from where it began; let go before its end (not counted as heard to the end). */
+    leaving: number; cutShort: boolean; uncounted: boolean;
+  } | null = null;
+  private vignetteClock = new MemoryClock();
+  private vignetteGen = 0;
   private prefetched = new Set<string>();
   /** Theatre Studio's ticker, while the Memory Editor is open (development only). */
   studioTick: ((now: number) => void) | null = null;
@@ -164,6 +186,8 @@ export class App {
         return w ? { surface: w.surface, x: w.centre.x, y: w.centre.y, z: w.centre.z } : undefined;
       },
     });
+    // Until the voices' manifest says which are recorded, no vignette speaks.
+    this.director.scenes.setAvailable(new Set());
     for (const [id, st] of this.director.visible) if (st.base) this.text.setShown(id);
     // The hand that wrote what is already there left its marks under it.
     this.room.handMarks(
@@ -284,7 +308,11 @@ export class App {
       this.music = new Music(this.audio);
       this.voices = new Voices(this.audio);
       // What the opening needs comes first.
-      void this.voices.loadManifest().then(() => this.voices!.preload(['sfx:switch', 'sfx:chair-creak', 'sfx:graphite', 'dialogue/crumbs--laughing.mp3']));
+      void this.voices.loadManifest().then(() => {
+        this.voices!.preload(['sfx:switch', 'sfx:chair-creak', 'sfx:graphite', 'dialogue/crumbs--laughing.mp3']);
+        // Vignettes speak only once their voices are recorded and kept (the rest wait, or play voiceless).
+        this.director.scenes.setAvailable(this.vignettesAvailable());
+      });
     } catch (e) {
       console.warn('[hedgehog] audio unavailable; continuing in silence', e);
       this.audio = null;
@@ -389,6 +417,7 @@ export class App {
       },
       // Window-local (u, v across it; d metres behind the wall) → the room.
       where: (p) => {
+        if (isSpot(p)) return this.spotWorld(p);
         mesh.updateWorldMatrix(true, false);
         const w = mesh.localToWorld(new THREE.Vector3(p.u, p.v, -p.d / Math.max(1e-3, mesh.scale.z)));
         return [w.x, w.y, w.z];
@@ -532,6 +561,240 @@ export class App {
   /** Let the playing memory go: gracefully, or (switch, depart, hidden) at once. */
   endLivingMemory(why: 'complete' | 'look-away' | 'walk-away' | 'interrupt' | 'switch' | 'depart' | 'hidden') {
     this.living?.memory.release(why);
+    // A vignette: leaving cuts it; turning to write lets the sentence being said finish (the
+    // writing may be an answer to it), and nothing more is said.
+    if (why === 'depart' || why === 'hidden' || why === 'switch') this.vignette?.player.release('interrupt');
+    else if (why === 'interrupt' && this.vignette) {
+      this.vignette.cutShort = true;
+      this.vignette.player.release('natural');
+    }
+  }
+
+  // ─────────────────────────────── vignettes ───────────────────────────────
+
+  /** Where the visitor is and faces as a vignette begins: its places in the room are fixed from it. */
+  private spotFrame(anchorKey: string | null): SpotFrame {
+    const cam = this.rig.camera;
+    const eye = cam.position.clone();
+    const fwd = cam.getWorldDirection(new THREE.Vector3()).setY(0);
+    if (fwd.lengthSq() < 1e-6) fwd.set(0, 0, -1);
+    fwd.normalize();
+    const right = new THREE.Vector3(-fwd.z, 0, fwd.x);
+    const c = anchorKey ? this.text.centreOf(anchorKey) : null;
+    return { eye, fwd, right, anchor: c ? new THREE.Vector3(c.x, c.y, c.z) : null };
+  }
+
+  /** A place in the room (a vignette's) → world position. */
+  spotWorld(p: SpotPlace): [number, number, number] {
+    const f = this.vignette?.frame ?? this.spotFrame(null);
+    const head = p.h ?? Math.max(1.2, f.eye.y);
+    const c = this.chair.group.position;
+    const hw = this.room.halfW, hd = this.room.halfD;
+    const clampIn = (v: THREE.Vector3) => v.set(clamp(v.x, -hw + 0.2, hw - 0.2), v.y, clamp(v.z, -hd + 0.2, hd - 0.2));
+    switch (p.at) {
+      case 'chair':
+        return [c.x, p.h ?? 0.75, c.z];
+      case 'left':
+      case 'right': {
+        // Two people a little ahead of the visitor, on either side: the space between them is
+        // what is heard (d: how far apart each is from the middle).
+        const s = p.at === 'left' ? -1 : 1;
+        const v = clampIn(f.eye.clone().addScaledVector(f.fwd, 1.3).addScaledVector(f.right, s * (p.d ?? 1.2)));
+        return [v.x, head, v.z];
+      }
+      case 'close': {
+        // Just beside the head, as a phone held to the ear.
+        const v = f.eye.clone().addScaledVector(f.right, p.d ?? 0.3).addScaledVector(f.fwd, 0.05);
+        return [v.x, f.eye.y, v.z];
+      }
+      case 'beyond': {
+        // Past the wall where its line is (or the one ahead): another room.
+        const a = f.anchor ?? f.eye.clone().addScaledVector(f.fwd, 10);
+        const out = new THREE.Vector3(a.x, 0, a.z);
+        const k = Math.abs(out.x) / hw > Math.abs(out.z) / hd ? 'x' : 'z';
+        const v = new THREE.Vector3(clamp(a.x, -hw, hw), head, clamp(a.z, -hd, hd));
+        if (k === 'x') v.x = Math.sign(a.x || 1) * (hw + (p.d ?? 2));
+        else v.z = Math.sign(a.z || 1) * (hd + (p.d ?? 2));
+        return [v.x, v.y, v.z];
+      }
+      case 'door':
+        return [0.9, p.h ?? 1.25, ROOM.halfD - 0.1];
+      case 'anchor': {
+        const a = f.anchor ?? f.eye.clone().addScaledVector(f.fwd, 2);
+        return [a.x, a.y, a.z];
+      }
+    }
+  }
+
+  private vignetteHost(def: { id: string }): VignetteHost | null {
+    const base = this.memoryAudioHost();
+    if (!base || !this.voices) return null;
+    const voices = this.voices;
+    return {
+      ...base,
+      where: (p) => (isSpot(p) ? this.spotWorld(p) : base.where(p)),
+      caption: (text, seconds, speech, side) => {
+        if (speech) this.captions.show(text, Math.max(1.4, seconds), false, side);
+        else if (!this.captions.speaking) this.captions.show(text, Math.max(1.6, seconds), true);
+      },
+      // Not recorded yet (previews only): the words in a voice without words, and the caption.
+      fallback: (cue, delay) => {
+        const text = cue.text ?? '';
+        setTimeout(() => {
+          if (!this.vignette || this.vignette.id !== def.id) return;
+          const from = isSpot(cue.place) ? this.spotWorld(cue.place) : base.where(cue.place);
+          void voices.playLine('whisper', text, { from }, 0.7, undefined, { synth: true, priority: true }).then((p) => {
+            if (p.duration > 0) this.captions.show(text, p.duration, false, cue.side);
+          });
+        }, delay * 1000);
+      },
+      effect: (fx, delay) => {
+        setTimeout(() => {
+          if (this.vignette?.id === def.id) this.vignetteEffect(fx);
+        }, delay * 1000);
+      },
+      gap: (kind, seconds, caption) => this.vignetteGap(kind, seconds, caption),
+      letGo: (mode) => {
+        // Interrupted: the room comes back at once (the light it lent fades on its own).
+        if (mode === 'interrupt') this.lighting.cancelDim();
+      },
+    };
+  }
+
+  /** What the room does during a vignette (never a figure, never a cutscene). */
+  private vignetteEffect(fx: Effect) {
+    const v = this.vignette;
+    const gentle = this.prefs.intensity === 'gentle' ? 0.6 : 1;
+    switch (fx.kind) {
+      case 'sun': {
+        const a = v?.key ? this.text.anchorOfKey(v.key) : null;
+        if (!a || this.memoryLight.active) break;
+        this.memoryLight.reducedMotion = this.prefs.reducedMotion;
+        this.memoryLight.strength = gentle * (fx.strength ?? 1);
+        this.memoryLight.start(a.group, a.x, a.y, a.w, a.h, a.minX, a.maxX, a.maxY, fx, this.time, 0);
+        this.memoryKey = a.key;
+        break;
+      }
+      case 'dim':
+        this.lighting.dimToChair(fx.to, fx.seconds, this.time);
+        break;
+      case 'seat': {
+        const c = this.chair.group.position;
+        this.lighting.leaveResidue(c.x, c.z, fx.amount * gentle, fx.seconds, this.time);
+        break;
+      }
+      default:
+        this.absence(fx);
+    }
+  }
+
+  /** A gap in a vignette: a deliberate silence lets even the memory's air go. */
+  private vignetteGap(kind: GapKind, seconds: number, caption?: string) {
+    if (kind === 'silence') this.audio?.memoryHush(Math.min(0.95, (this.vignette ? VIGNETTE_BY_ID.get(this.vignette.id)?.hush ?? 0.7 : 0.7) + 0.15), 1.2);
+    if (caption && !this.captions.speaking) this.captions.show(caption, Math.max(2, seconds * 0.6), true);
+  }
+
+  /** Effects that leave a trace in the room (src/world/Traces.ts, WallText): stage 3. */
+  private absence(_fx: Effect) {}
+
+  /**
+   * Play a vignette. From the Director (its line was read, or the chair was stayed with), or a
+   * preview (`?vignette=<id>&variant=<v>`, the artist's panel): a preview plays whether or not its
+   * voices are recorded (an unrecorded line is a wordless voice with its caption).
+   */
+  async playVignette(id: string, variant: string, preview = false): Promise<boolean> {
+    const def = VIGNETTE_BY_ID.get(id);
+    if (!def || this.living || this.mode !== 'room') return false;
+    const host = this.vignetteHost(def);
+    if (!host) return false;
+    this.vignette?.player.dispose(0.2);
+    this.vignette = null;
+    const gen = ++this.vignetteGen;
+    const a = def.anchor.phrase ? this.text.anchorOf(def.anchor.phrase, this.gazeId ?? this.lastTappedKey) : null;
+    const frame = this.spotFrame(a?.key ?? null);
+    const player = new VignettePlayer(def, variant, host, hashString(def.id + variant));
+    // Its places are fixed from now (the frame is read while preparing, too).
+    this.vignette = { player, id, key: a?.key ?? null, frame, hiddenSince: null, settingsFor: 0, preview, leaving: 0, cutShort: false, uncounted: false };
+    try {
+      await player.prepare();
+    } catch (e) {
+      console.warn('vignette could not be prepared', e);
+    }
+    if (gen !== this.vignetteGen || this.mode !== 'room' || this.living) {
+      player.dispose(0);
+      if (this.vignette?.player === player) this.vignette = null;
+      return false;
+    }
+    // A voice of the room still speaking: the vignette waits for it (a few seconds at most).
+    const wait = Math.min(4, Math.max(0, (this.voices?.busyUntil ?? 0) - performance.now() / 1000));
+    this.audio?.memoryHush(def.hush, 1.6);
+    if (!preview && this.director.scenes.active?.id !== id) this.director.memoryExternal(id);
+    const sr = this.srRegion();
+    sr.textContent = def.describe;
+    setTimeout(() => {
+      if (this.vignette?.player !== player) return;
+      this.vignetteClock.reset();
+      player.start();
+    }, (wait + 1.2) * 1000);
+    return true;
+  }
+
+  private srRegion(): HTMLElement {
+    let sr = document.getElementById('memory-sr');
+    if (!sr) {
+      sr = document.createElement('div');
+      sr.id = 'memory-sr';
+      sr.className = 'sr-only';
+      sr.setAttribute('aria-live', 'polite');
+      document.body.append(sr);
+    }
+    return sr;
+  }
+
+  private stepVignette() {
+    const v = this.vignette;
+    if (!v) return;
+    const p = v.player;
+    const paused = this.mode === 'settings' || document.hidden;
+    if (paused !== p.isPaused) paused ? p.pause() : p.resume();
+    const dt = this.vignetteClock.tick(performance.now() / 1000, this.audio?.ctx.currentTime ?? 0, this.audio?.ctx.state === 'running', paused);
+    // In settings for long: let it go (its light runs on scene time and wouldn't wait).
+    v.settingsFor = this.mode === 'settings' ? v.settingsFor + 1 / 60 : 0;
+    if (v.settingsFor > 10) {
+      v.uncounted = true;
+      p.release('interrupt');
+    }
+    // Turning away (toward a voice, often) or touching the walls never ends it. Walking off
+    // does: the sentence being said is finished, nothing more is said.
+    const off = this.rig.camera.position.distanceTo(v.frame.eye) > 2.5 && this.rig.moving;
+    v.leaving = off ? v.leaving + dt : 0;
+    if (v.leaving > 3 && p.position > 4 && !p.releasedHow) {
+      v.cutShort = true;
+      p.release('natural');
+    }
+    p.step(dt);
+    if (!p.done) return;
+    this.vignette = null;
+    p.dispose(0.3);
+    this.audio?.memoryHush(0, 3);
+    this.voices?.forget(vignetteKeys(p.def));
+    if (v.preview) return;
+    const counted = this.director.memoryEnded(v.id, p.seen && !v.uncounted, p.releasedHow === 'natural' && !v.cutShort);
+    if (counted) {
+      const counts = readMemoryCounts();
+      counts[v.id] = (counts[v.id] ?? 0) + 1;
+      writeMemoryCounts(counts);
+    }
+  }
+
+  /** Which vignettes may speak: every line of every version recorded and kept by the artist. */
+  private vignettesAvailable(): Set<string> {
+    const out = new Set<string>();
+    for (const def of VIGNETTES) {
+      const lines = new Set(Object.keys(def.variants).flatMap((k) => spokenLines(def, k)));
+      if ([...lines].every((l) => this.voices?.hasAsset(lineKey(def, l)))) out.add(def.id);
+    }
+    return out;
   }
 
   /**
@@ -964,6 +1227,7 @@ export class App {
       if (!this.memoryLight.active) this.memoryKey = null;
     }
     this.stepLivingMemory();
+    this.stepVignette();
     this.text.update(dt, this.time, cam, env, this.gazeId, v.gazeId === gazePhrase ? v.gazeFor : 0);
     this.post.update(dt, env, this.time);
 
@@ -1035,6 +1299,12 @@ export class App {
       case 'erode':
         this.text.erode(cue.key, cue.keep, this.time);
         break;
+      case 'vignette': {
+        void this.playVignette(cue.id, cue.variant).then((ok) => {
+          if (!ok) this.director.memoryFailed(cue.id);
+        });
+        break;
+      }
       case 'memory-scene': {
         void this.playMemory(cue.id, cue.phraseId, cue.variant).then((ok) => {
           if (!ok) this.director.memoryFailed(cue.id);
@@ -1392,7 +1662,21 @@ export class App {
       // Away during the opening: on return, the room is simply there.
       if (document.hidden && this.opening) this.skipOpening();
       // A living memory pauses with the tab; away for more than 10 s, it ends (uncounted).
-      // (Here, not in the frame loop: a background tab runs no frames.)
+      // (Here, not in the frame loop: a background tab runs no frames.) A vignette too; back in
+      // time, the sentence the pause cut is said again from its start.
+      const vg = this.vignette;
+      if (vg && document.hidden) {
+        vg.hiddenSince = performance.now();
+        vg.player.pause();
+      } else if (vg && vg.hiddenSince !== null) {
+        const away = performance.now() - vg.hiddenSince;
+        vg.hiddenSince = null;
+        this.vignetteClock.reset();
+        if (away > 10000) {
+          vg.uncounted = true;
+          vg.player.release('interrupt');
+        }
+      }
       const l = this.living;
       if (l && document.hidden) {
         l.hiddenSince = performance.now();

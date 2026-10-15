@@ -26,6 +26,10 @@ export class CameraRig {
   yaw = 0.06;
   pitch = -0.06;
   private vel = new THREE.Vector2();
+  /** Walking (not just turning or breathing). */
+  get moving(): boolean {
+    return Math.hypot(this.vel.x, this.vel.y) > 0.15;
+  }
   private yawVel = 0;
   private eye = EYE;
   /** Until the visitor first walks, the eye rests here (the opening's), then rises to standing. */
