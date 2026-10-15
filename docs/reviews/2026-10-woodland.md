@@ -538,3 +538,26 @@ A summer clearing in the afternoon is cicadas. The sound designer's structure is
 - **The revisit.** Evening cicadas through it, and a thin day chorus.
 - **Captions.** `[cicadas, beyond the wall]`, `[an evening cicada, far off]`.
 - **Status.** All synthesised stand-ins, `review: pending`: the artist should listen (a mix is written to `test-output/review/woodland/`). Recorded cicadas are on the production list.
+
+## Reviews of the built ending, and what was done
+
+- **Cinematic director and skeptic.** Both find the cut effective rather than theatrical: it is the only hard cut in a work made of dissolves, the frame matches, the sound carries across it, and dusk with absence on one frame is one idea ("later"). What made it feel cued was his blink 0.2 s before it, and the sound playing a gradual sunset just after. Done:
+  - the cut moved to 31.5 s, in a stillness (both of them between breaths), with his late blink gone and her settle ended by 25.9 s; the final gesture keeps its timing, and the hold stays 7 s;
+  - the cicada over them carries on unchanged to 34.8 s, then the day thins and an evening cicada calls twice;
+  - no room dim to evening (it undid itself as the visitor returned);
+  - the pressed grass made findable on a second look, still with no outline;
+  - the words keep a noise-edged bloom of plaster, not a card;
+  - the revisit's light opens to the sky and the tree.
+- **QA and accessibility.** Passed: taps, Escape and pause, keyboard leaving, the hidden tab, reduced motion, the single-frame cut and seeking across it, full cover at 21:9 and 4:3, no console errors, programs and textures at baseline. Done:
+  - a tab hidden for more than 10 s ends the memory uncounted;
+  - 21:9 framing keeps the hands clear of the captions (focus 0.5);
+  - turning: a glance under 8° changes nothing, the full view goes over about 12–22°, and 30° leaves;
+  - reduced motion is fixed per memory, and the visitor is put back;
+  - the scene's render target always makes its mipmaps (black or stale frames otherwise);
+  - the screen-reader description is told in stages, as things happen (the cut is not given away), and `#memory-sr` now exists in the page from the start;
+  - tests for going in and leaving (`tests/inside.test.ts`), and one tautological test fixed.
+- **Left for the artist.**
+  - Whether the evening cicada (a falling call) is the evening insect they remember.
+  - Captions for the cicada falling quiet and for the evening's arrival. A caption at the cut would mark it.
+  - The room's other writing on that wall shows over the painting on the way in and out (the line it opens from is the memory's own; others belong to the room).
+  - Phone swipe-to-leave, hand-back distance and rotation need a real device; so do the frame rate and every sound.

@@ -41,6 +41,8 @@ export interface MemoryDef {
   roomDim?: number;
   /** What the picture is, for a screen reader (announced once, when it has formed). */
   describe: (variant: string) => string;
+  /** What changes later, told to a screen reader at the moment it happens (sequence seconds). */
+  announce?: (variant: string) => { at: number; text: string }[];
   /**
    * A living memory (animated, and entered): its scene's object names in the timeline (`scene`,
    * `figure:a`, `figure:b`) are added to the schema, and the variants that have a living scene in
@@ -512,7 +514,12 @@ export const WOODLAND: MemoryDef = {
   living: true,
   describe: (v) => v === 'empty'
     ? 'A painting forms in the wall by the words: a clearing in a wood at dusk, a fallen log, a tree, the grass. Nobody is there.'
-    : 'A painting forms in the wall by the words: two young people lying in the grass of a woodland clearing in the late afternoon. It opens until it is all there is. They breathe; her hand moves through the grass toward his and stops just short; his finds it. Then, all at once, it is the same clearing at dusk, and nobody is there. The cicadas go on. Then the room returns.',
+    : 'A painting forms in the wall by the words: two young people lying in the grass of a woodland clearing in the late afternoon, cicadas in the trees. It opens until it is all there is.',
+  announce: (v) => v === 'empty' ? [] : [
+    { at: 15.5, text: 'Her hand moves through the grass toward his, and stops just short. His finds it.' },
+    { at: CUT, text: 'The same clearing, at dusk. Nobody is there.' },
+    { at: WOODLAND_SECTIONS.exit, text: 'The painting goes back into the wall.' },
+  ],
 };
 
 export const MEMORIES: Record<string, MemoryDef> = { cereal: CEREAL, bedroom: BEDROOM, door: DOOR, woodland: WOODLAND };

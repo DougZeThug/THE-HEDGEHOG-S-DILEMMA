@@ -101,8 +101,8 @@ export class App {
   private living: { memory: LivingMemory; id: string; key: string; anchor: NonNullable<ReturnType<WallText['anchorOf']>>; bled: boolean; hiddenSince: number | null; held: boolean;
     /** Seconds looking away from it, and watching it; why it was let go. */
     awayFor: number; watched: number; minHold: number; why: string | null;
-    /** Looking away from it now (last attention check). */
-    away: boolean;
+    /** Looking away from it now (last attention check); how many of its later descriptions are told. */
+    away: boolean; told: number;
   } | null = null;
   /** Going into a living memory and back (src/world/living/Inside.ts). */
   private inside!: Inside;
@@ -532,7 +532,7 @@ export class App {
     this.memoryWindow.avoid = fixed ? [] : this.drawingsOn(a.group);
     this.memoryWindow.setLayers(prepared.layers, prepared.size, prepared.band);
     this.memoryWindow.setLiving(prepared.living ? { crop: prepared.living.crop, size: prepared.size } : null);
-    this.inside.begin(hashString(a.key));
+    this.inside.begin(hashString(a.key), this.prefs.reducedMotion);
     const memory = new rt.LivingMemory(prepared, {
       reduced: this.prefs.reducedMotion,
       gentle: this.prefs.intensity === 'gentle',
@@ -541,7 +541,7 @@ export class App {
         this.memoryState(s);
       },
     });
-    this.living = { memory, id, key: a.key, anchor: a, bled: false, hiddenSince: null, held: false, awayFor: 0, watched: 0, minHold: SCENE_BY_PHRASE.get(phraseId)?.minHold ?? 8, why: null, away: false };
+    this.living = { memory, id, key: a.key, anchor: a, bled: false, hiddenSince: null, held: false, awayFor: 0, watched: 0, minHold: SCENE_BY_PHRASE.get(phraseId)?.minHold ?? 8, why: null, away: false, told: 0 };
     this.memoryClock.reset();
     // The room hushes round it (and its music stops), until it lets go. For the door the white
     // room itself goes to evening, so the landing's light is the brightest thing there.
@@ -556,17 +556,7 @@ export class App {
     const l = this.living;
     if (!l) return;
     // What the picture is, for a screen reader (not shown: the captions are for sounds).
-    if (s === 'active') {
-      let sr = document.getElementById('memory-sr');
-      if (!sr) {
-        sr = document.createElement('div');
-        sr.id = 'memory-sr';
-        sr.className = 'sr-only';
-        sr.setAttribute('aria-live', 'polite');
-        document.body.append(sr);
-      }
-      sr.textContent = l.memory.prepared.def.describe(l.memory.prepared.variant);
-    }
+    if (s === 'active') this.srRegion().textContent = l.memory.prepared.def.describe(l.memory.prepared.variant);
     // Letting go early: the room's own light comes back with it (over about 4 s).
     if (s === 'withdrawing' && l.memory.prepared.def.roomDim) this.lighting.dimToChair(l.memory.prepared.def.roomDim, 4, this.time);
     if (s === 'residue' || s === 'complete') {
@@ -584,7 +574,8 @@ export class App {
       l.memory.prepared.dispose();
       this.living = null;
       // Seen: watched past its first moments. It ran to its end if nobody let it go early.
-      const seen = l.watched >= Math.min(l.minHold, 8);
+      // (A tab hidden for long ends it uncounted, as a vignette: it comes back, the same, another time.)
+      const seen = l.why !== 'hidden' && l.watched >= Math.min(l.minHold, 8);
       if (this.director.memoryEnded(l.id, seen, l.why === null || l.why === 'complete') && !this.forgotten) {
         const counts = readMemoryCounts();
         counts[l.id] = (counts[l.id] ?? 0) + 1;
@@ -1035,6 +1026,9 @@ export class App {
     // The window was placed before the spread changed: place it again for this frame.
     this.memoryWindow.update(f.final, this.rig.restingEye, 0);
     pl.scene.update(this.renderer, f.t, f.final, { view: this.inside.view, parallax: new THREE.Vector2() });
+    // What changes later, told to a screen reader when it happens (not before: the cut is not given away).
+    const later = l.memory.prepared.def.announce?.(l.memory.prepared.variant) ?? [];
+    while (l.told < later.length && f.position >= later[l.told].at && f.state !== 'emerging') this.srRegion().textContent = later[l.told++].text;
     if (go) this.endLivingMemory('interrupt');
   }
 

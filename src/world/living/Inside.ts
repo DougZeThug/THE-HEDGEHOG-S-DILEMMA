@@ -36,6 +36,7 @@ export interface InsideFrame {
 }
 
 const LEAVE = 0.52; // radians of a new turn that let it go (30°)
+const YIELD = 0.14; // a glance (under 8°) changes nothing
 const smooth = (e0: number, e1: number, x: number) => {
   const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0)));
   return t * t * (3 - 2 * t);
@@ -76,9 +77,12 @@ export class Inside {
     return this.from !== null && !this.handedBack;
   }
 
-  /** A new memory: nothing carried, nothing decided. */
-  begin(seed: number): void {
+  private reduced = false;
+
+  /** A new memory: nothing carried, nothing decided. Reduced motion is as it was when it began. */
+  begin(seed: number, reduced = false): void {
     this.end();
+    this.reduced = reduced;
     this.decided = this.wallOnly = this.handedBack = this.leaving = false;
     this.vx = this.vy = this.quiet = this.stepHeld = 0;
     this.freshKeys.clear();
@@ -134,7 +138,9 @@ export class Inside {
       }
     }
     // The memory yields as they turn away.
-    this.eff = immerse * (1 - 0.6 * smooth(0, LEAVE, this.turned));
+    // (Past a glance, the full view goes over about 12–22°; at 30° it lets go.)
+    this.eff = immerse * (1 - 0.45 * smooth(YIELD, LEAVE, this.turned));
+    o = { ...o, reduced: this.reduced };
     const e = this.eff;
     const spread = o.reduced ? smooth(0, 0.5, e) : smooth(0, 0.35, e);
     const carry = o.reduced ? 0 : smooth(0.15, 0.85, e);
@@ -175,7 +181,10 @@ export class Inside {
           this.rig.place(a.x, a.z, a.yaw, a.pitch);
           this.from = null;
         }
-      } else if (e <= 1e-3 && f.leavingNaturally) this.from = null;
+      } else if (e <= 1e-3 && f.leavingNaturally) {
+        this.rig.place(this.from.x, this.from.z, this.from.yaw, this.from.pitch);
+        this.from = null;
+      }
     }
 
     // The settle: the painting over the room, then all there is.

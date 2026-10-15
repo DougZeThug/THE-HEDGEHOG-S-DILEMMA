@@ -40,5 +40,5 @@ export const WOODLAND: LivingSpec = {
   handReach: 7,
   settle: { move: [1.5, -3], turn: -0.008 },
   shoulder: [0, 3],
-  cover: { wide: [0.5, 0.5], upright: [0.37, 0.5], ultra: [0.5, 0.62] },
+  cover: { wide: [0.5, 0.5], upright: [0.37, 0.5], ultra: [0.5, 0.5] },
 };

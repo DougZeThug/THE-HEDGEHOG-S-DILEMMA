@@ -20,7 +20,7 @@ describe('their involuntary life, from time alone', () => {
     const xs = Array.from({ length: 600 }, (_, i) => breath(i * 0.1, a));
     // The same t, the same chest, forward or back.
     expect(breath(17.3, a)).toBe(breath(17.3, a));
-    expect([...xs].reverse().reverse()).toEqual(xs);
+    expect(Array.from({ length: 600 }, (_, i) => breath((599 - i) * 0.1, a)).reverse()).toEqual(xs);
     // Breaths in (rising through 0.5) are not evenly spaced.
     const ups: number[] = [];
     for (let i = 1; i < xs.length; i++) if (xs[i - 1] < 0.5 && xs[i] >= 0.5) ups.push(i * 0.1);
