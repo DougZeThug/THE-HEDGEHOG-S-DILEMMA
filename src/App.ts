@@ -727,6 +727,8 @@ export class App {
     this.vignette?.player.dispose(0.2);
     this.vignette = null;
     const gen = ++this.vignetteGen;
+    // A preview shows its line, if the room hasn't written it (so what it leaves there is seen).
+    if (preview && def.anchor.phrase && !this.text.anchorOf(def.anchor.phrase)) this.text.setShown(def.anchor.phrase);
     const a = def.anchor.phrase ? this.text.anchorOf(def.anchor.phrase, this.gazeId ?? this.lastTappedKey) : null;
     const frame = this.spotFrame(a?.key ?? null);
     const player = new VignettePlayer(def, variant, host, hashString(def.id + variant));
@@ -771,8 +773,8 @@ export class App {
   private stepVignette() {
     const pv = this.previewVignette;
     if (pv && this.mode === 'room' && !this.opening && !this.living) {
-      pv.at ??= this.time + 4;
-      if (this.time >= pv.at) {
+      pv.at ??= wallClock() + 4;
+      if (wallClock() >= pv.at) {
         this.previewVignette = null;
         void this.playVignette(pv.id, pv.variant, true);
       }

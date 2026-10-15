@@ -36,6 +36,7 @@ export const wallClock = () => performance.now() / 1000;
 const FRAG_NOISE = /* glsl */ `
 uniform float uLod;
 uniform float uThin;
+uniform vec3 uGap;
 uniform float uWrite;
 uniform float uFresh;
 uniform float uReveal;
