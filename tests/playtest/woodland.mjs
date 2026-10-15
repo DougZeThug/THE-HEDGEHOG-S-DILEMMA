@@ -106,8 +106,9 @@ for (const how of ['turn', 'step']) {
       await page.waitForTimeout(40);
     }
   } else {
+    // (Held long enough for several of software GL's slow frames to see it: on a device, 0.35 s.)
     await page.keyboard.down('KeyW');
-    await page.waitForTimeout(900);
+    await page.waitForTimeout(2500);
     await page.keyboard.up('KeyW');
   }
   const t0 = Date.now();
