@@ -67,6 +67,24 @@ button.small { font: 600 12px var(--mono); padding: 5px 10px; border-radius: 4px
 details > summary { cursor: pointer; font: 600 13px var(--mono); color: var(--pencil) }
 .legend { display: grid; gap: 4px; font-size: 13px; color: var(--pencil); max-width: 75ch }
 .legend b { font-family: var(--mono); font-weight: 600; color: var(--graphite) }
+/* Vignettes: each version a score, read through at its own times. */
+section.vigs { display: grid; gap: 14px; padding-top: 14px; border-top: 1px solid var(--rule) }
+.vig { background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; padding: 14px; display: grid; gap: 10px; min-width: 0 }
+.vig h3 { font: 500 clamp(26px, 5vw, 36px)/1.05 var(--hand); margin: 0 }
+.vig .anchor { font-size: 13px; color: var(--pencil); margin: 0 }
+.vig .intent { margin: 0; text-wrap: pretty }
+.vparts { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr)); gap: 12px }
+.vpart { display: grid; gap: 6px; align-content: start; min-width: 0 }
+.vpart h4 { font: 600 12px var(--mono); text-transform: uppercase; letter-spacing: .08em; color: var(--walnut); margin: 0; display: flex; gap: 8px; align-items: center; justify-content: space-between }
+.score { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; font-size: 14px }
+.score li { display: grid; grid-template-columns: 3.4em 1fr; gap: 8px; padding: 2px 6px; border-radius: 4px }
+.score li .t { font: 12px var(--mono); color: var(--pencil); font-variant-numeric: tabular-nums; padding-top: 2px }
+.score li .spk { display: block; font: 11px var(--mono); color: var(--pencil) }
+.score li .say { display: block; font-size: 15px }
+.score li.ev-gap, .score li.ev-bed, .score li.ev-sound, .score li.ev-effect { color: var(--pencil); font-style: italic }
+.score li.now { background: var(--chip) }
+.score li.ev-line.unrecorded .say::after { content: ' (not recorded yet)'; font: 11px var(--mono); color: var(--unsure); font-style: normal }
+.readcap { min-height: 2.6em; font: 500 20px/1.25 var(--hand); color: var(--graphite); margin: 0 }
 @media (prefers-reduced-motion: no-preference) { .take { transition: border-color .2s } }
 </style>
 
@@ -80,6 +98,11 @@ details > summary { cursor: pointer; font: 600 13px var(--mono); color: var(--pe
     <label class="note"><input type="checkbox" id="show-measures"> show measurements (listen first; numbers can prime the ear)</label>
     <nav id="nav" aria-label="Lines"></nav>
   </header>
+  <section class="vigs" id="vignettes" aria-labelledby="vig-h">
+    <p class="line" id="vig-h">Vignettes: read-throughs</p>
+    <p class="note">Each version of each vignette, as it is scored. "Read through" plays it at its own times: a line with a kept take is heard; one not recorded yet shows its words at its time, in silence, so the pauses and rhythm can be judged before anything is paid for. Readings of each line, once generated, are below with the other takes.</p>
+    <div id="vig-list"></div>
+  </section>
   <main id="groups"></main>
   <div class="cmd">
     <strong>Apply these decisions</strong>
@@ -118,6 +141,62 @@ details > summary { cursor: pointer; font: 600 13px var(--mono); color: var(--pe
     let g = groups.find((x) => x.key === t.group);
     if (!g) groups.push((g = { key: t.group, line: t.line, label: t.groupLabel, takes: [] }));
     g.takes.push(t);
+  }
+
+  // Vignettes: read-throughs of each version's score.
+  const vigList = document.getElementById('vig-list');
+  let reading = null;
+  const stopReading = () => {
+    if (!reading) return;
+    for (const t of reading.timers) clearTimeout(t);
+    for (const a of reading.audios) a.pause();
+    reading.items.forEach((li) => li.classList.remove('now'));
+    reading.btn.textContent = 'Read through';
+    reading.cap.textContent = '';
+    reading = null;
+  };
+  for (const v of DATA.vignettes ?? []) {
+    const box = el('article', 'vig');
+    box.append(el('h3', null, v.title), el('p', 'anchor', `${v.tone} · opens from: ${v.anchor}`), el('p', 'intent', v.intent));
+    const parts = el('div', 'vparts');
+    for (const [name, s] of Object.entries(v.variants)) {
+      const part = el('div', 'vpart');
+      const h = el('h4', null, name === 'first' ? 'first time' : name);
+      const btn = el('button', 'small', 'Read through'); btn.type = 'button'; h.append(btn);
+      const ol = el('ol', 'score');
+      const items = s.events.map((e) => {
+        const li = el('li', 'ev-' + e.kind + (e.kind === 'line' && !e.src ? ' unrecorded' : ''));
+        li.append(el('span', 't', e.at.toFixed(1)));
+        const body = el('span');
+        if (e.kind === 'line') { body.append(el('span', 'spk', e.who + (e.side ? ` · ${e.side}` : ''))); body.append(el('span', 'say', e.text + (e.end === 'cut' ? ' (cut off)' : ''))); }
+        else body.textContent = e.text;
+        li.append(body); ol.append(li); return li;
+      });
+      const cap = el('p', 'readcap');
+      cap.setAttribute('aria-live', 'polite');
+      btn.addEventListener('click', () => {
+        const mine = reading?.btn === btn;
+        stopReading();
+        if (mine) return;
+        reading = { btn, items, cap, timers: [], audios: [] };
+        btn.textContent = 'Stop';
+        s.events.forEach((e, i) => {
+          reading.timers.push(setTimeout(() => {
+            items.forEach((li) => li.classList.remove('now'));
+            items[i].classList.add('now');
+            if (e.kind === 'line') {
+              cap.textContent = e.text;
+              if (e.src) { const a = new Audio(e.src); reading?.audios.push(a); a.play().catch(() => {}); }
+            } else if (e.kind === 'gap') cap.textContent = '';
+          }, e.at * 1000));
+        });
+        reading.timers.push(setTimeout(stopReading, s.span * 1000 + 500));
+      });
+      part.append(h, ol, cap);
+      parts.append(part);
+    }
+    box.append(parts);
+    vigList.append(box);
   }
 
   const nav = document.getElementById('nav');
@@ -201,11 +280,12 @@ details > summary { cursor: pointer; font: 600 13px var(--mono); color: var(--pe
     for (const [k, v] of [['takes', takes.length], ['keep', count('approve')], ['not this', count('reject')], ['unsure', count('unsure')], ['unheard', takes.length - vals.filter(Boolean).length], ...(db ? [['saved for Claude', stored.size]] : [])]) {
       const s = el('span'); s.append(el('b', null, String(v)), ' ' + k); tally.append(s);
     }
-    const ids = (v) => takes.filter((t) => !t.lab && !t.design && decisions[t.id]?.decision === v).map((t) => t.id);
-    const a = ids('approve'), r = ids('reject');
-    document.getElementById('cmd').textContent = a.length || r.length
-      ? `node scripts/generate-dialogue.mjs${a.length ? ' --approve=' + a.join(',') : ''}${r.length ? ' --reject=' + r.join(',') : ''}`
-      : '(mark some takes first)';
+    const ids = (v, vig) => takes.filter((t) => !t.lab && !t.design && !!t.vignette === vig && decisions[t.id]?.decision === v).map((t) => t.id);
+    const command = (vig) => {
+      const a = ids('approve', vig), r = ids('reject', vig);
+      return a.length || r.length ? `node scripts/generate-dialogue.mjs${vig ? ' --vignettes' : ''}${a.length ? ' --approve=' + a.join(',') : ''}${r.length ? ' --reject=' + r.join(',') : ''}` : '';
+    };
+    document.getElementById('cmd').textContent = [command(false), command(true)].filter(Boolean).join('\n') || '(mark some takes first)';
   }
 
   const stored = new Set();

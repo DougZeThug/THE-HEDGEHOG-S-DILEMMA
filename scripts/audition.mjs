@@ -142,6 +142,47 @@ for (const [file, e] of Object.entries(sfxLedger.entries)) {
     m: null, path, src: OUT ? `audio/${basename(file)}` : `../public/voices/${file}`,
   });
 }
+// The vignettes (src/content/vignettes.json): their takes, once generated, as cards to keep or
+// not; and each vignette's scores as read-throughs (its lines at their times, in silence where
+// nothing is recorded yet), so rhythm and pauses can be judged before anything is paid for.
+const vData = JSON.parse(readFileSync(join(ROOT, 'src/content/vignettes.json'), 'utf8'));
+const vDir = existsSync(join(ROOT, 'src/content/vignettes.dialogue.json')) ? JSON.parse(readFileSync(join(ROOT, 'src/content/vignettes.dialogue.json'), 'utf8')) : { performances: [], voices: {} };
+const vLedger = existsSync(join(ROOT, 'scripts/vignette-ledger.json')) ? JSON.parse(readFileSync(join(ROOT, 'scripts/vignette-ledger.json'), 'utf8')) : { entries: {} };
+const vTakes = [];
+for (const p of vDir.performances) {
+  const path = join(ROOT, 'public/voices', p.file);
+  const e = vLedger.entries[p.id];
+  if (!existsSync(path) || !e) continue;
+  const v = vData.vignettes.find((x) => x.id === p.vignette);
+  vTakes.push({
+    id: p.id, group: `vig-${p.vignette}`, groupLabel: `vignette: ${v?.title ?? p.vignette} — each line's readings`, line: v?.title ?? p.vignette,
+    interpretation: p.direction, voice: p.voice, model: p.model ?? vDir.model, stability: p.stability ?? '—', input: p.input, scene: sceneText(p.scene),
+    generation: 2, lab: false, audition: true, vignette: true, status: e.status, review: e.review ?? 'pending', transcript: e.transcript, events: e.events,
+    m: analyse(path, words(p.text).length), path, src: OUT ? `audio/${basename(p.file)}` : `../public/voices/${p.file}`,
+  });
+}
+const phraseSrc = readFileSync(join(ROOT, 'src/content/phrases.ts'), 'utf8');
+const phraseText = new Map([...phraseSrc.matchAll(/p\('([^']+)',\s*("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g)].map((m) => [m[1], m[2].startsWith('"') ? JSON.parse(m[2]) : m[2].slice(1, -1).replace(/\\'/g, "'")]));
+const kept = (vignette, line) => vDir.performances.filter((p) => p.vignette === vignette && p.line === line && vLedger.entries[p.id]?.review === 'approved' && existsSync(join(ROOT, 'public/voices', p.file)));
+const vignettes = vData.vignettes.map((v) => ({
+  id: v.id, title: v.title, tone: v.tone, intent: v.intent, anchor: v.anchor.phrase ? phraseText.get(v.anchor.phrase) ?? v.anchor.phrase : 'stillness by the chair',
+  anchorId: v.anchor.phrase ?? null,
+  speakers: v.speakers,
+  variants: Object.fromEntries(Object.entries(v.variants).map(([name, s]) => [name, {
+    span: s.span,
+    events: s.events.map((e) => {
+      if (e.line) {
+        const l = v.lines.find((x) => x.id === e.line);
+        const take = kept(v.id, e.line)[0];
+        return { at: e.at, kind: 'line', who: v.speakers[l.speaker]?.who ?? l.speaker, side: e.place?.at, text: l.text, end: e.end ?? null, src: take ? (OUT ? `audio/${basename(take.file)}` : `../public/voices/${take.file}`) : null };
+      }
+      if (e.sfx || e.bed) return { at: e.at, kind: e.bed ? 'bed' : 'sound', text: e.caption ?? (e.bed ? `[the air of the place: ${e.bed}]` : `[${e.sfx}]`) };
+      if (e.gap) return { at: e.at, kind: 'gap', text: `${e.gap} ${e.seconds} s`, seconds: e.seconds };
+      return { at: e.at, kind: 'effect', text: e.fx.kind === 'loseWord' ? `the word "${e.fx.word}" fades from the line` : e.fx.kind === 'recede' ? 'the line grows harder to read up close' : e.fx.kind === 'dim' ? 'the room goes down to the chair' : e.fx.kind };
+    }),
+  }])),
+}));
+designTakes.push(...vTakes);
 const nDesigned = designs.designs.length, nLibrary = designTakes.filter((t) => t.id.startsWith('lib-')).length;
 for (const t of designTakes) if (t.group === 'voices') t.groupLabel = `new voices: ${nDesigned} made to order (three previews each), ${nLibrary} from the ElevenLabs library — keep only a few`;
 // The memories' sounds first (what is waiting now), then the new voices: the casting decides who reads everything else.
@@ -149,7 +190,7 @@ designTakes.sort((a, b) => Number(b.group === 'memories') - Number(a.group === '
 takes.unshift(...designTakes);
 
 const tpl = readFileSync(join(ROOT, 'audition/page.html'), 'utf8');
-const data = JSON.stringify({ built: new Date().toISOString(), takes: takes.map(({ path, ...t }) => t) }).replace(/</g, '\\u003c');
+const data = JSON.stringify({ built: new Date().toISOString(), takes: takes.map(({ path, ...t }) => t), vignettes }).replace(/</g, '\\u003c');
 const page = tpl.replace('/*DATA*/', data);
 if (OUT) {
   mkdirSync(join(OUT, 'audio'), { recursive: true });
