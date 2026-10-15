@@ -4,7 +4,7 @@
 // then joined with the memory's own sound (mixed offline: tests/playtest/woodland-audio.ts).
 //
 //   npm run build && npx vite preview --port 4173 &
-//   node tests/playtest/record-woodland.mjs     (FPS=24 W=1280 H=720 PROFILE=desktop|phone)
+//   node tests/playtest/record-woodland.mjs     (FPS=12 W=1280 H=720 PROFILE=desktop|phone)
 import { createRequire } from 'node:module';
 import { mkdirSync, rmSync, existsSync } from 'node:fs';
 import { execSync } from 'node:child_process';
@@ -17,7 +17,8 @@ try {
   ({ chromium, devices } = require(`${execSync('npm root -g').toString().trim()}/playwright`));
 }
 const BASE = process.env.BASE ?? 'http://localhost:4173/';
-const FPS = Number(process.env.FPS ?? 24);
+// 12 a second: the memory's own drawings are on twos (12 a second); encoded at 24.
+const FPS = Number(process.env.FPS ?? 12);
 const PROFILE = process.env.PROFILE ?? 'desktop';
 const W = Number(process.env.W ?? 1280), H = Number(process.env.H ?? 720);
 const VARIANT = process.env.VARIANT ?? 'afternoon';
@@ -64,7 +65,7 @@ await page.evaluate(async () => {
   }
 });
 await page.waitForTimeout(3000);
-const raf = () => page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+const raf = () => page.evaluate(() => new Promise((r) => requestAnimationFrame(r)));
 let k = 0;
 const shot = async () => {
   await page.screenshot({ path: `${frames}/${String(k++).padStart(5, '0')}.jpg`, type: 'jpeg', quality: 92 });
@@ -88,5 +89,5 @@ await browser.close();
 const audio = `${OUT}/woodland-${VARIANT}-audio.wav`;
 const video = `${OUT}/woodland-${VARIANT}-${PROFILE}.mp4`;
 const withAudio = existsSync(audio) ? `-i ${audio} -c:a aac -b:a 192k -shortest` : '';
-execSync(`ffmpeg -y -loglevel error -framerate ${FPS} -i ${frames}/%05d.jpg ${withAudio} -c:v libx264 -pix_fmt yuv420p -crf 18 -movflags +faststart ${video}`);
+execSync(`ffmpeg -y -loglevel error -framerate ${FPS} -i ${frames}/%05d.jpg ${withAudio} -c:v libx264 -r 24 -pix_fmt yuv420p -crf 18 -movflags +faststart ${video}`);
 console.log(JSON.stringify({ video, frames: k, errors }));
