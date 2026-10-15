@@ -15,13 +15,17 @@
  *
  * Direction:  src/content/dialogue.json   (authored)
  * Ledger:     scripts/dialogue-ledger.json (status, hashes, costs, transcripts, review)
+ *
+ * --vignettes: the vignettes' lines (src/content/vignettes.dialogue.json, words from
+ * src/content/vignettes.json; ledger scripts/vignette-ledger.json; files public/voices/vignettes/).
+ * Every take waits for the artist: only approved takes enter the manifest (`vig:` keys).
  */
 import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync, copyFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { execFileSync } from 'node:child_process';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { applyBudget, balanceAllows, readBalance, buildManifest, emptyLedger, performanceHash, planJobs, runJobs, validateDirection } from './dialogue-lib.mjs';
+import { applyBudget, balanceAllows, readBalance, buildManifest, buildVignetteManifest, emptyLedger, performanceHash, planJobs, runJobs, validateDirection } from './dialogue-lib.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const args = Object.fromEntries(
@@ -32,8 +36,9 @@ const args = Object.fromEntries(
 );
 // --lab: experiments for auditioning (scripts/voice-lab.json → audition/lab/), never shipped.
 const LAB = !!args.lab;
-const DIRECTION = join(ROOT, LAB ? 'scripts/voice-lab.json' : 'src/content/dialogue.json');
-const LEDGER = join(ROOT, LAB ? 'scripts/voice-lab-ledger.json' : 'scripts/dialogue-ledger.json');
+const VIGNETTES = !!args.vignettes;
+const DIRECTION = join(ROOT, LAB ? 'scripts/voice-lab.json' : VIGNETTES ? 'src/content/vignettes.dialogue.json' : 'src/content/dialogue.json');
+const LEDGER = join(ROOT, LAB ? 'scripts/voice-lab-ledger.json' : VIGNETTES ? 'scripts/vignette-ledger.json' : 'scripts/dialogue-ledger.json');
 const VOICES = join(ROOT, LAB ? 'audition' : 'public/voices');
 const MANIFEST = join(ROOT, 'public/voices/manifest.json');
 const list = (v) => (typeof v === 'string' ? v.split(',').map((s) => s.trim()).filter(Boolean) : undefined);
@@ -50,7 +55,12 @@ for (const m of src.matchAll(/p\('([^']+)',\s*("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)
   const raw = m[2];
   texts.set(m[1], raw.startsWith('"') ? JSON.parse(raw) : raw.slice(1, -1).replace(/\\'/g, "'"));
 }
-const problems = validateDirection(direction, (id) => texts.get(id));
+// A vignette's lines: their words are in vignettes.json and nowhere else.
+const lines = new Map();
+for (const v of JSON.parse(readFileSync(join(ROOT, 'src/content/vignettes.json'), 'utf8')).vignettes) for (const l of v.lines) lines.set(`${v.id}/${l.id}`, l.text);
+const problems = VIGNETTES
+  ? validateDirection(direction, (_, p) => lines.get(`${p.vignette}/${p.line}`), { ordinary: true })
+  : validateDirection(direction, (id) => texts.get(id));
 if (problems.length) {
   console.error('Direction file problems:\n  ' + problems.join('\n  '));
   process.exit(1);
@@ -59,10 +69,10 @@ if (problems.length) {
 function writeManifest() {
   if (LAB) return;
   const manifest = existsSync(MANIFEST) ? JSON.parse(readFileSync(MANIFEST, 'utf8')) : {};
-  const next = buildManifest(manifest, direction, ledger, fileExists);
+  const next = VIGNETTES ? buildVignetteManifest(manifest, direction, ledger, fileExists) : buildManifest(manifest, direction, ledger, fileExists);
   writeFileSync(MANIFEST, JSON.stringify(next, null, 2) + '\n');
-  const phrases = Object.keys(next).filter((k) => k.startsWith('phrase:'));
-  console.log(`manifest: ${phrases.length} phrases with recorded performances`);
+  const keys = Object.keys(next).filter((k) => k.startsWith(VIGNETTES ? 'vig:' : 'phrase:'));
+  console.log(`manifest: ${keys.length} ${VIGNETTES ? 'vignette lines with kept takes' : 'phrases with recorded performances'}`);
 }
 
 // Review decisions are made by a person who has listened.
@@ -153,7 +163,7 @@ if (!balance.ok) {
 }
 for (const q of queued) ledger.entries[q.perf.id] = { ...(ledger.entries[q.perf.id] ?? {}), status: ledger.entries[q.perf.id]?.status ?? 'queued', queuedReason: 'budget' };
 
-mkdirSync(join(VOICES, LAB ? 'lab' : 'dialogue'), { recursive: true });
+mkdirSync(join(VOICES, LAB ? 'lab' : VIGNETTES ? 'vignettes' : 'dialogue'), { recursive: true });
 /**
  * Cut a spoken lead-in off the start of a take: decode to PCM, find the quietest 10 ms in
  * the 350 ms before the line begins (so the cut never lands inside a breath or a word), cut

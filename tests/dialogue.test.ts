@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import dialogue from '../src/content/dialogue.json';
 import { PHRASE_BY_ID } from '../src/content/phrases';
 import {
-  applyBudget, buildManifest, classifyFailure, emptyLedger, mp3Info, performanceHash, planJobs, runJobs, spokenTags, validateDirection, wordErrorRate,
+  applyBudget, buildManifest, buildVignetteManifest, classifyFailure, emptyLedger, mp3Info, performanceHash, planJobs, runJobs, spokenTags, validateDirection, wordErrorRate,
 } from '../scripts/dialogue-lib.mjs';
 
 const ROOT = join(__dirname, '..');
@@ -252,5 +252,42 @@ describe('the whole spoken corpus is cast', () => {
       expect(direction.performances.some((x: any) => x.id === p.variantOf), p.id).toBe(true);
       if (ledger.entries[p.id]?.review !== 'approved') expect(p.audition, p.id).toBe(true);
     }
+  });
+});
+
+describe('the vignettes\' recording direction', () => {
+  const vdir = JSON.parse(readFileSync('src/content/vignettes.dialogue.json', 'utf8'));
+  const vdata = JSON.parse(readFileSync('src/content/vignettes.json', 'utf8')) as { vignettes: { id: string; lines: { id: string; text: string }[] }[] };
+  const lineText = new Map(vdata.vignettes.flatMap((v) => v.lines.map((l) => [`${v.id}/${l.id}`, l.text] as const)));
+
+  it('says exactly the words written, in ordinary voices (no crying, no whispering)', () => {
+    expect(validateDirection(vdir, (_: string, p: { vignette: string; line: string }) => lineText.get(`${p.vignette}/${p.line}`), { ordinary: true })).toEqual([]);
+    const bad = { ...vdir, performances: [{ ...vdir.performances[0], input: `[whispering] ${vdir.performances[0].text}` }] };
+    expect(validateDirection(bad, (_: string, p: { vignette: string; line: string }) => lineText.get(`${p.vignette}/${p.line}`), { ordinary: true }).join()).toMatch(/ordinary/);
+  });
+
+  it('every line of every vignette has a take directed for it', () => {
+    const directed = new Set(vdir.performances.map((p: { vignette: string; line: string }) => `${p.vignette}/${p.line}`));
+    for (const k of lineText.keys()) expect(directed.has(k), k).toBe(true);
+  });
+
+  it('waits for the artist: a take reaches the room only once kept, never because it validated', () => {
+    const p = vdir.performances.find((x: { voice: string }) => vdir.voices[x.voice].voiceId);
+    const ledger = emptyLedger();
+    ledger.entries[p.id] = { status: 'validated' };
+    expect(buildVignetteManifest({ 'phrase:stay': ['a.mp3'] }, vdir, ledger)).toEqual({ 'phrase:stay': ['a.mp3'] });
+    ledger.entries[p.id].review = 'approved';
+    expect(buildVignetteManifest({}, vdir, ledger)[`vig:${p.vignette}:${p.line}`]).toEqual([p.file]);
+  });
+
+  it('a designed voice not yet saved is never asked for (and costs nothing)', () => {
+    const { jobs, skipped } = planJobs(vdir, emptyLedger());
+    expect(jobs.every((j: { perf: { voice: string } }) => vdir.voices[j.perf.voice].voiceId)).toBe(true);
+    expect(skipped.some((s: { reason: string }) => /not saved/.test(s.reason))).toBe(true);
+  });
+
+  it('a transcript may spell "Okay" as "OK" without the take being marked wrong', () => {
+    expect(wordErrorRate('Okay.', 'OK.')).toBe(0);
+    expect(wordErrorRate('Yeah. Tomorrow.', 'Yea, tomorrow.')).toBe(0);
   });
 });

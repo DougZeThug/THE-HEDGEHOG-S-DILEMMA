@@ -1247,6 +1247,11 @@
           "id": "goon",
           "speaker": "writer",
           "text": "…Go on, then."
+        },
+        {
+          "id": "breathe",
+          "speaker": "other",
+          "text": "Stop. I can't breathe."
         }
       ],
       "variants": {
