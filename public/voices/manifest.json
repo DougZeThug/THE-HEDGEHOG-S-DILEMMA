@@ -258,8 +258,9 @@
   "vig:charger:toaster": [
     "vignettes/charger--toaster-b.mp3"
   ],
-  "vig:charger:tomorrow": [
-    "vignettes/charger--tomorrow.mp3"
+  "vig:charger:tomorrow-okay": [
+    "vignettes/charger--tomorrow-okay.mp3",
+    "vignettes/charger--tomorrow-okay-b.mp3"
   ],
   "vig:charger:yeah": [
     "vignettes/charger--yeah--distracted.mp3",
@@ -282,6 +283,10 @@
   "vig:practice:hey": [
     "vignettes/practice--hey.mp3",
     "vignettes/practice--hey-b.mp3"
+  ],
+  "vig:practice:hiya": [
+    "vignettes/practice--hiya--flat.mp3",
+    "vignettes/practice--hiya--flat-b.mp3"
   ],
   "vig:practice:again": [
     "vignettes/practice--again.mp3",
@@ -334,6 +339,7 @@
   ],
   "vig:come-over:will": [
     "vignettes/come-over--will--automatic.mp3",
+    "vignettes/come-over--will--automatic-b.mp3",
     "vignettes/come-over--will--unsure.mp3",
     "vignettes/come-over--will--unsure-b.mp3"
   ],
@@ -365,7 +371,8 @@
     "vignettes/biscuit--goon.mp3"
   ],
   "vig:gone-quiet:quiet": [
-    "vignettes/gone-quiet--quiet.mp3"
+    "vignettes/gone-quiet--quiet.mp3",
+    "vignettes/gone-quiet--quiet-b.mp3"
   ],
   "vig:gone-quiet:fine": [
     "vignettes/gone-quiet--fine.mp3"

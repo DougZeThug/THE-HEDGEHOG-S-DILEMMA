@@ -41,11 +41,6 @@
           "text": "By the toaster."
         },
         {
-          "id": "tomorrow",
-          "speaker": "other",
-          "text": "I'll see you tomorrow."
-        },
-        {
           "id": "tomorrow-okay",
           "speaker": "other",
           "text": "Okay, I'll see you tomorrow."
@@ -58,7 +53,7 @@
       ],
       "variants": {
         "first": {
-          "span": 16,
+          "span": 16.3,
           "events": [
             {
               "at": 0,
@@ -93,13 +88,13 @@
             },
             {
               "at": 6.0,
-              "line": "tomorrow",
+              "line": "tomorrow-okay",
               "place": {
                 "at": "door"
               }
             },
             {
-              "at": 8.2,
+              "at": 8.5,
               "line": "yeah",
               "place": {
                 "at": "self"
@@ -108,7 +103,7 @@
               "reading": "distracted"
             },
             {
-              "at": 9.8,
+              "at": 10.1,
               "sfx": "door",
               "asset": "sfx:door",
               "place": {
@@ -118,14 +113,14 @@
               "caption": "[a door closes]"
             },
             {
-              "at": 10.6,
+              "at": 10.9,
               "gap": "silence",
               "seconds": 5
             }
           ]
         },
         "again": {
-          "span": 14,
+          "span": 14.8,
           "events": [
             {
               "at": 0,
@@ -160,13 +155,13 @@
             },
             {
               "at": 6.0,
-              "line": "tomorrow",
+              "line": "tomorrow-okay",
               "place": {
                 "at": "door"
               }
             },
             {
-              "at": 7.6,
+              "at": 8.4,
               "sfx": "door",
               "asset": "sfx:door",
               "place": {
@@ -176,7 +171,7 @@
               "caption": "[a door closes]"
             },
             {
-              "at": 8.2,
+              "at": 9.0,
               "gap": "wait",
               "seconds": 5
             }

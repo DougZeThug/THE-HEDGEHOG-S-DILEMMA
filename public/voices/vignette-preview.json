@@ -5,9 +5,6 @@
   "vig:charger:toaster": [
     "vignettes/charger--toaster-b.mp3"
   ],
-  "vig:charger:tomorrow": [
-    "vignettes/charger--tomorrow.mp3"
-  ],
   "vig:charger:tomorrow-okay": [
     "vignettes/charger--tomorrow-okay.mp3",
     "vignettes/charger--tomorrow-okay-b.mp3"

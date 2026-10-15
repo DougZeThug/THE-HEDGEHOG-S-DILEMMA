@@ -295,3 +295,5 @@ The artist marked the sad takes:
 - **These four takes cost 72 credits.**
 
 Applying the marks exposed a bug: the phone preload fetched every vignette voice on arrival, about 1.4 MB. Vignette voices are now fetched only when a vignette is prepared, as the painted memories' sounds are.
+
+Then the artist kept the flat "Hiya. …No." and the "Okay, I'll see you tomorrow." takes, and B now uses the new line. All nine vignettes are live. Reach is unchanged: 59 across 40 simulated visits. C, D and G remain rarely met, because their lines are rarely read; that is the artist's call.

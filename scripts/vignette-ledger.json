@@ -995,7 +995,7 @@
       "voice": "sarah",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:14:34.725Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Yeah, I will",
       "wer": 0,
       "spokenTags": []
@@ -1139,7 +1139,7 @@
       "voice": "warm",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:14:53.382Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "You all right? You've gone quiet",
       "wer": 0,
       "spokenTags": []
@@ -1171,7 +1171,7 @@
       "voice": "young",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:58:27.138Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Okay, I'll see you tomorrow",
       "wer": 0,
       "spokenTags": []
@@ -1187,7 +1187,7 @@
       "voice": "young",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:58:28.276Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Okay. I'll see you tomorrow",
       "wer": 0,
       "spokenTags": []
@@ -1203,7 +1203,7 @@
       "voice": "sarah",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:58:29.475Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Hiya. [sighs] No",
       "events": [
         "[sighs]"
@@ -1222,7 +1222,7 @@
       "voice": "sarah",
       "model": "eleven_v4",
       "generatedAt": "2026-10-15T11:58:30.798Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "Hiya. No",
       "wer": 0,
       "spokenTags": []

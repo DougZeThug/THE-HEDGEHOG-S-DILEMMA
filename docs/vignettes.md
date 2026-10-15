@@ -7,7 +7,7 @@ Small remembered fragments, heard rather than seen: one or two voices, the pause
 - **Opening.** A vignette opens beside a line, not on the line it would only act out. Reading that line for 2.5 s, or touching it, begins it once it may play. The chair's vignette opens from stillness by the chair (8 s within 1.15 m), or kneeling there, once "I wanted you to stay" has been finished.
 - **Spacing.** At least 90 s from any memory's end, and 150 s after one of the same tone. Earliest times: B, D, G, H, I and J from 150 s; C and E from 240 s. C's and D's lines are rarely written, so they may be offered (written alone where the visitor looks). Offers are limited to two a visit, counting the painted memories' offers.
 - **Visitors meet a vignette only once its recordings are kept.** Its voiced lines must all have takes the artist approved on the audition sheet. Until then the room is unchanged, apart from versions that have no voices.
-- **In practice: one or two a visit.** In simulated 10-minute visits (`npx vite-node scripts/vignette-reach.ts`), with the eight live vignettes, there were 59 vignettes across 40 visits (8 seeds × 5 personas, each persona repeating the middle of its script once it runs out):
+- **In practice: one or two a visit.** In simulated 10-minute visits (`npx vite-node scripts/vignette-reach.ts`), with all nine live, there were 59 vignettes across 40 visits (8 seeds × 5 personas, each persona repeating the middle of its script once it runs out):
   - the chair visitor met F every time, and one more in half the visits;
   - the explorer met two or three, the reader and the phone persona one or two;
   - the still visitor met one in four visits;
@@ -41,23 +41,23 @@ Small remembered fragments, heard rather than seen: one or two voices, the pause
 
 - **Opens from:** "Nobody tells you how ordinary it feels." (`ordinary`).
 - **Who:** someone leaving for the day (young); the one who stays (sarah).
-- **First time** (16 s):
+- **First time** (16.3 s):
   - 0.0: *the air of the place (flat)*
   - 0.4: someone leaving for the day (through the wall): “Have you seen my charger?”
   - 2.8: the one who stays (ahead): “By the toaster.”
   - 4.2: *pause, 1.6 s*
-  - 6.0: someone leaving for the day (door): “I'll see you tomorrow.”
-  - 8.2: the one who stays (ahead, read *distracted*): “Yeah. Tomorrow.”
-  - 9.8: *[a door closes]*
-  - 10.6: *silence, 5 s*
-- **Heard before** (14 s):
+  - 6.0: someone leaving for the day (door): “Okay, I'll see you tomorrow.”
+  - 8.5: the one who stays (ahead, read *distracted*): “Yeah. Tomorrow.”
+  - 10.1: *[a door closes]*
+  - 10.9: *silence, 5 s*
+- **Heard before** (14.8 s):
   - 0.0: *the air of the place (flat)*
   - 0.4: someone leaving for the day (through the wall): “Have you seen my charger?”
   - 2.8: the one who stays (ahead): “By the toaster.”
   - 4.2: *pause, 1.6 s*
-  - 6.0: someone leaving for the day (door): “I'll see you tomorrow.”
-  - 7.6: *[a door closes]*
-  - 8.2: *wait, 5 s*
+  - 6.0: someone leaving for the day (door): “Okay, I'll see you tomorrow.”
+  - 8.4: *[a door closes]*
+  - 9.0: *wait, 5 s*
 - **Echo:** 60–180 s after it was heard, “tomorrow” is found written faintly on a wall the visitor isn't facing, as if it had always been there.
 
 ### C. Alone together · sad
@@ -93,7 +93,7 @@ Small remembered fragments, heard rather than seen: one or two voices, the pause
   - 0.0: *the air of the place (room)*
   - 1.0: someone, alone (at the ear): “Hey. It's me.”
   - 2.8: *pause, 2 s*
-  - 4.8: someone, alone (at the ear): “Hiya! …No.”
+  - 4.8: someone, alone (at the ear): “Hiya. …No.”
   - 7.0: *pause, 3 s*
   - 10.0: someone, alone (at the ear): “Hey. It's me. Nothing's wrong. I just—”
   - 13.6: *silence, 4.4 s*
@@ -234,8 +234,9 @@ Small remembered fragments, heard rather than seen: one or two voices, the pause
   - A first batch in the old "ordinary" direction: 36 takes, 426 credits. The artist heard it as too happy and expressive.
   - Replaced by the sad direction, two takes per line: 72 takes (the base take and its `-b` seed), 1,212 credits.
   - The two designed voices are saved to the account: `small-voice` from small-voice-1, `older-woman` from older-woman-2.
-  - **Kept (the artist's marks):** 61 takes kept, 11 turned down. Eight vignettes have every line kept and are live for visitors: B, C, E, F, G, H, I and J.
-  - **D (practice) is not live.** Both takes of "Hiya! …No." were turned down, and every version of D says it.
+  - **Kept (the artist's marks):** all nine vignettes have every line kept, so all nine are live for visitors.
+  - **D's line** is now "Hiya. …No.", re-recorded flat after the artist found "Hiya!" too happy.
+  - **B's leaver** now says "Okay, I'll see you tomorrow." (the artist's note). The old line and its takes are no longer directed or played; the files stay in git history.
 - **Audition.** On the audition sheet, each version has a read-through at its own times. It plays the kept take of each line, or failing that the take generated for it, marked "not kept yet", placed roughly (left, right, through a wall). Then each take is listed to keep or not. Kept takes go in with `--vignettes --approve=…`, and only kept takes reach visitors.
 - **Previews in the room.** `?vignette=<id>` also plays takes not kept yet, from `public/voices/vignette-preview.json`, which `generate-dialogue.mjs --vignettes` writes. That file is read only by previews: what visitors meet still depends on the manifest alone.
 

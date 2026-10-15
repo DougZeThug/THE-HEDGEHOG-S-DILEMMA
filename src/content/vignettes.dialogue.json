@@ -130,41 +130,6 @@
       "variantOf": "charger--toaster"
     },
     {
-      "id": "charger--tomorrow",
-      "vignette": "charger",
-      "line": "tomorrow",
-      "voice": "young",
-      "text": "I'll see you tomorrow.",
-      "input": "[softly, unhurried] I'll see you tomorrow.",
-      "direction": "Gentle, unhurried; an ordinary goodbye. He doesn't know.",
-      "seed": 7065,
-      "file": "vignettes/charger--tomorrow.mp3",
-      "stability": 0.45,
-      "scene": {
-        "before": "He found it, pulled the door open, already half gone:",
-        "after": "\"Yeah. Tomorrow.\""
-      }
-    },
-    {
-      "id": "charger--tomorrow-b",
-      "vignette": "charger",
-      "line": "tomorrow",
-      "voice": "young",
-      "text": "I'll see you tomorrow.",
-      "input": "[softly, unhurried] I'll see you tomorrow.",
-      "direction": "Gentle, unhurried; an ordinary goodbye. He doesn't know.",
-      "seed": 7078,
-      "file": "vignettes/charger--tomorrow-b.mp3",
-      "stability": 0.45,
-      "audition": true,
-      "scene": {
-        "before": "He found it, pulled the door open, already half gone:",
-        "after": "\"Yeah. Tomorrow.\""
-      },
-      "variantOf": "charger--tomorrow",
-      "retired": true
-    },
-    {
       "id": "charger--tomorrow-okay",
       "vignette": "charger",
       "line": "tomorrow-okay",
@@ -535,7 +500,6 @@
       "seed": 7427,
       "file": "vignettes/practice--hiya--flat.mp3",
       "stability": 0.25,
-      "audition": true,
       "scene": {
         "before": "She had been alone in the flat for weeks. She never made the call. Trying a different way in, far too cheerful, and catching herself:",
         "after": "She put the phone face down."
@@ -552,7 +516,6 @@
       "seed": 7440,
       "file": "vignettes/practice--hiya--flat-b.mp3",
       "stability": 0.25,
-      "audition": true,
       "scene": {
         "before": "She had been alone in the flat for weeks. She never made the call. Trying a different way in, far too cheerful, and catching herself:",
         "after": "She put the phone face down."
@@ -1079,7 +1042,6 @@
       "seed": 7741,
       "file": "vignettes/come-over--will--automatic-b.mp3",
       "stability": 0.25,
-      "audition": true,
       "scene": {
         "before": "They stopped asking, in the end. She never went. \"You should come over sometime.\"",
         "after": "\"You always say that.\""
@@ -1393,7 +1355,6 @@
       "seed": 8014,
       "file": "vignettes/gone-quiet--quiet-b.mp3",
       "stability": 0.45,
-      "audition": true,
       "scene": {
         "before": "Her own birthday, and she had never felt so alone. Her birthday. She'd gone out to the hallway; the party carried on through the wall. A friend came out after her:",
         "after": "\"I'm fine! It's just loud.\""
