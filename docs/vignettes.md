@@ -226,7 +226,7 @@ Small remembered fragments, heard rather than seen: one or two voices, the pause
 
 ## Recording
 
-- **Direction.** Ordinary acting: distracted, defensive, amused, tired, plain. No crying, whispering or breaking voices; the direction validator refuses those tags here. One voice per take; the other person is unspoken scene context.
+- **Direction.** Sad, like the wall lines the artist kept: quiet and held back, close to tears where it fits, whispered where close. The other speakers are subdued and tired. Nothing bright, amused or laughing: the validator refuses those tags. One voice per take; the other person is unspoken scene context, opening with a sad framing.
 - **Casting.** The writer is `sarah` by default. The others vary: `liam`, `restrained`, `bill`, `matilda`, `warm` and `young`. The kept designs are used only for the child (`small-voice`) and the shop assistant (`older-woman`). The room's intimate voice never appears inside a memory.
 - **Takes.** 78 in all, two or three readings or seeds where a line turns. A version can ask for a reading by name (`reading` on a line); the approved file whose name ends `--<reading>` is used, or any kept reading if that one wasn't. Dry run: `node scripts/generate-dialogue.mjs --vignettes --dry-run --budget=5000` plans 71 takes, about 1,838 credits estimated (recent v4 runs have billed well under their estimates; the default budget is lower and queues the rest). The 7 takes in the two designed voices wait until those voices are saved to the account.
 - **Level.** Lines are levelled in the engine to −24 dBFS RMS over their voiced frames, peaks ≤ −3 dBFS, so a score's gains are relative to one voice speaking normally.

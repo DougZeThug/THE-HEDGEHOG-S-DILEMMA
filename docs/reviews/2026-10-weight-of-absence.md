@@ -134,7 +134,7 @@ Six specialists reviewed the plan and the draft scripts (A–I) before anything 
     - A cut line ends in a dash.
     - No caption narrates a silence. During a wait, the last spoken caption stays on screen, dimmed, until the vignette ends.
     - Sounds that define a silence are captioned as sounds.
-12. **Directions.** The vignette directions ban crying, whispering and voice-cracking tags. The vignettes are where the room learns to sound ordinary.
+12. **Directions.** The vignette directions ban crying, whispering and voice-cracking tags. The vignettes are where the room learns to sound ordinary. *(Overruled by the artist after the first listen; see below.)*
 13. **Fixes taken from the reviews into the core:**
     - Nothing sounds over a memory, situations included.
     - A vignette's line is answered normally until its memory could open.
@@ -260,3 +260,28 @@ Two other changes:
   - C was offered 4 times. The scripted personas never look at newly written lines, so the simulation can't say whether an offer is read; in the browser an offer is written where the visitor is looking.
   - D's offer slots go to the bedroom's line, which is offered first.
 - This is reported as it is. The artist decides whether rarely met memories are a loss or the point. The anchor reads per line are measured in the same harness (see `docs/vignettes.md`).
+
+## After the first listen
+
+The artist heard the first batch: one take per line, 36 takes, 426 credits. Their verdict: "the reads need more emotion, parts are too happy and expressive."
+
+The "ordinary" rule (decision 12) was the cause. 17 of the 36 inputs were directed bright, for example `[calling out]`, `[teasing]`, `[fond, amused]`, `[brightly]` and `[laughing softly]`. On the wall lines, the artist has kept whispered, tearful and quietly sad reads, and turned down warm, amused and laughing ones.
+
+**The artist chose "like the wall lines"**:
+- audibly sad, quiet and held back, close to tears where it fits, and whispered where close;
+- the other speakers subdued and tired, never bright.
+
+**What changed in the direction:**
+- The validator now refuses bright, amused or laughing tags (`BRIGHT_TAGS`) instead of tears and whispers.
+- Every line was re-directed.
+- Each scene's unspoken context opens with a sad framing, for example "Years later, it was the afternoon she kept." B's leaver doesn't hear it: he mustn't know.
+- The writer's lines are at stability 0.25 (as the kept wall takes); the other speakers at 0.45, so they don't overplay.
+
+**The sound designer's fixes before recording:**
+- the whispered one-word lines are voiced ("Okay.", "Promise?"), so they survive the word check;
+- C's "No." is tired rather than sad, so her sadness has something to sit against;
+- E's "You don't have to keep doing that." is too firm, so "Doing what?" has something to answer;
+- "all right" counts as "alright" in the transcript check;
+- J's line is "I'm fine." without the exclamation mark.
+
+**Recorded:** two takes per line, at the artist's choice.
