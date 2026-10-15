@@ -70,7 +70,7 @@ Small remembered fragments, heard rather than seen: one or two voices, the pause
   - 6.0: someone leaving for the day (door): “Okay, I'll see you tomorrow.”
   - 8.4: *[a door closes]*
   - 9.0: *wait, 5 s*
-- **Echo:** 60–180 s after it was heard, “tomorrow” is found written faintly on a wall the visitor isn't facing, as if it had always been there.
+- **Echo:** 60–180 s after it was heard, “tomorrow” is found written faintly on the south wall, beneath the room's drawn door (or beside its line, if that is there), while the visitor is facing another wall: found, never seen being written. The goodbye leaves its word where someone once came to the door and stopped (`atDoor`; docs/reviews/2026-10-emotional-depth.md).
 
 ### C. Alone together · sad
 

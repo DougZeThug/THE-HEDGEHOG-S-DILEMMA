@@ -38,6 +38,16 @@ Later additions, which leave these numbers unchanged:
 - **Drawings** (`ruleDrawings`): one drawing is drawn while its line is looked at (a `draw` cue, counted as writing). It is never drawn during a hold, or within 4 s of other writing.
 - **Light as a motif.** The long held silence and the turn to the last phase carry a `dim`. When the turn comes inside the held silence, it adds no silence of its own: that silence and its dark are the turn.
 
+## After a memory, and the room's own life (October 2026)
+
+Measured with `npx vite-node scripts/journey.ts` (5 personas × 8 seeds × 600 s; `RETURN=1` for a second visit). The reasoning and the rejected options are in `docs/reviews/2026-10-emotional-depth.md`; the numbers before and after are in `docs/reviews/emotional-depth/`.
+
+- **One thing of the room's own at a time.** Drift, accumulation, stray and recontext writing, music, distant life, chair nudges, the room's voices and situations' sounds are spaced at least 2.5 s apart by the scheduler (`room` events; kept, never dropped). The rules take turns: the one that last went waits behind the others. Before, several could fire in the same tick (four at once at 251 s in one still visit).
+- **The aftermath.** After a memory that was heard or watched, the room's own life waits 25 s (12 s if it was let go early). What the visitor does is still answered. The room's sound comes back over about 20 s instead of 3.5 s, and the drone's chord and the swells outside wait it out. Then the room comes back one thing at a time, 10 s apart, for 30 s. The kitchen-light memory waits it out too.
+  - Quiet after a memory (median): 6.2 s → 25 s.
+  - The room's own events in the 30 s after: 3.6 → 0.9.
+- **"The table."** Once cereal or the biscuit has been heard, on this visit or before, the one held silence of the visit waits for the visitor to be still within 2.5 m of the chair (until 300 s). It comes there, drawing the light in to the chair, and lifts when they move away. On a second visit it came in 23 of 40 simulated visits, to the visitor who sits, reads or stands at the chair on a phone, and never to the explorer or the visitor who stays apart.
+
 ## What it is now
 
 - **Engagement** (`src/state/Engagement.ts`). What a visitor does becomes signals: reading a line, coming back to one after looking away, touching writing or the chair, approaching, staying with the chair, kneeling, looking around, crossing the room, pausing on purpose, writing. Attending to the writing counts for more than moving about. The visit's *depth* grows from these, and slowly by itself.
