@@ -60,8 +60,12 @@ export function words(s) {
     .map((w) => SAME_WORD[w] ?? w);
 }
 
-/** Directions the vignettes never use: they are where the room learns to sound ordinary. */
-export const BANNED_TAGS = /\[[^\]]*(whisper|crying|cries|sob|tears|voice cracking|breaking|trembling)[^\]]*\]/i;
+/**
+ * Directions the vignettes never use. The artist heard the first takes ("too happy and
+ * expressive") and asked for them to sound like the wall lines they kept: quiet, sad, held back,
+ * whispered where close. Nothing bright, amused or laughing.
+ */
+export const BRIGHT_TAGS = /\[[^\]]*(laugh|bright|cheer|teas|amused|happ|playful|excited|pleased|calling out|casual|generous)[^\]]*\]/i;
 
 /** Word error rate of a transcript against the authored text. */
 export function wordErrorRate(reference, hypothesis) {
@@ -97,7 +101,7 @@ export function spokenTags(perf, transcript) {
 /**
  * Validate an authored direction file. Returns a list of problems (empty = valid).
  * `phraseText(phraseId, perf)` gives the authored words a take must say (for a vignette's take,
- * from its vignette and line). `opts.ordinary`: refuse crying and whispering directions.
+ * from its vignette and line). `opts.sad`: refuse bright, amused or laughing directions.
  */
 export function validateDirection(direction, phraseText, opts = {}) {
   const problems = [];
@@ -117,7 +121,7 @@ export function validateDirection(direction, phraseText, opts = {}) {
     if ((p.input.match(/\[/g) ?? []).length > MAX_TAGS) problems.push(`${p.id}: more than ${MAX_TAGS} audio tags`);
     if (p.scene && !SCENE_MODELS.has(p.model ?? direction.model)) problems.push(`${p.id}: scene context needs a model that accepts it`);
     if (!/^(dialogue|lab|vignettes)\/[a-z0-9-]+\.mp3$/.test(p.file)) problems.push(`${p.id}: bad file name`);
-    if (opts.ordinary && BANNED_TAGS.test(p.input)) problems.push(`${p.id}: crying or whispering direction (the vignettes sound ordinary)`);
+    if (opts.sad && BRIGHT_TAGS.test(p.input)) problems.push(`${p.id}: too bright for a vignette (the artist's direction)`);
   }
   return problems;
 }

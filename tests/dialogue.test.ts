@@ -260,10 +260,13 @@ describe('the vignettes\' recording direction', () => {
   const vdata = JSON.parse(readFileSync('src/content/vignettes.json', 'utf8')) as { vignettes: { id: string; lines: { id: string; text: string }[] }[] };
   const lineText = new Map(vdata.vignettes.flatMap((v) => v.lines.map((l) => [`${v.id}/${l.id}`, l.text] as const)));
 
-  it('says exactly the words written, in ordinary voices (no crying, no whispering)', () => {
-    expect(validateDirection(vdir, (_: string, p: { vignette: string; line: string }) => lineText.get(`${p.vignette}/${p.line}`), { ordinary: true })).toEqual([]);
-    const bad = { ...vdir, performances: [{ ...vdir.performances[0], input: `[whispering] ${vdir.performances[0].text}` }] };
-    expect(validateDirection(bad, (_: string, p: { vignette: string; line: string }) => lineText.get(`${p.vignette}/${p.line}`), { ordinary: true }).join()).toMatch(/ordinary/);
+  it('says exactly the words written, never brightly (the artist: sad, like the wall lines kept)', () => {
+    expect(validateDirection(vdir, (_: string, p: { vignette: string; line: string }) => lineText.get(`${p.vignette}/${p.line}`), { sad: true })).toEqual([]);
+    const bad = { ...vdir, performances: [{ ...vdir.performances[0], input: `[laughing] ${vdir.performances[0].text}` }] };
+    expect(validateDirection(bad, (_: string, p: { vignette: string; line: string }) => lineText.get(`${p.vignette}/${p.line}`), { sad: true }).join()).toMatch(/too bright/);
+    // Whispered and close to tears is allowed now.
+    const close = { ...vdir, performances: [{ ...vdir.performances[0], input: `[whispering, close to tears] ${vdir.performances[0].text}` }] };
+    expect(validateDirection(close, (_: string, p: { vignette: string; line: string }) => lineText.get(`${p.vignette}/${p.line}`), { sad: true })).toEqual([]);
   });
 
   it('every line of every vignette has a take directed for it', () => {

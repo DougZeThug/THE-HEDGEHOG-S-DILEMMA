@@ -59,7 +59,7 @@ for (const m of src.matchAll(/p\('([^']+)',\s*("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)
 const lines = new Map();
 for (const v of JSON.parse(readFileSync(join(ROOT, 'src/content/vignettes.json'), 'utf8')).vignettes) for (const l of v.lines) lines.set(`${v.id}/${l.id}`, l.text);
 const problems = VIGNETTES
-  ? validateDirection(direction, (_, p) => lines.get(`${p.vignette}/${p.line}`), { ordinary: true })
+  ? validateDirection(direction, (_, p) => lines.get(`${p.vignette}/${p.line}`), { sad: true })
   : validateDirection(direction, (id) => texts.get(id));
 if (problems.length) {
   console.error('Direction file problems:\n  ' + problems.join('\n  '));
