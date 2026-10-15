@@ -330,3 +330,40 @@ describe('replay and duplicates', () => {
     for (const t of ours) expect(['silence', 'lift']).toContain(t);
   });
 });
+
+describe('review fixes', () => {
+  it('the door is outside the two-new-lines cap: after it, two ordinary memories may still be offered', async () => {
+    const { MemoryDirector } = await import('../src/state/MemoryDirector');
+    const m = new MemoryDirector();
+    m.setAvailable(new Set(['practice', 'a-bag', 'back-seat']));
+    const state = (now: number, o = {}) => ({ now, phase: 'contradiction', free: true, visibleFacing: () => false, departing: false, otherMemory: false, facing: 'north', darkEnded: 130, ...o });
+    // Another memory first (the door comes only after one).
+    m.tapped('happiest-unneeded');
+    m.update({ now: 251, visible: (id: string) => id === 'happiest-unneeded', gazeId: null, gazeFor: 0, free: true, otherMemory: false, departing: false });
+    m.ended('bedroom', 280, true, true);
+    const offered: string[] = [];
+    for (let t = 410; t < 900 && offered.length < 3; t += 1) {
+      const o = m.offer(state(t));
+      if (o) offered.push(o.id);
+    }
+    expect(offered[0]).toBe('door');
+    expect(offered.length).toBe(3);
+  });
+
+  it('a held silence let go early is followed by its exhale from then, not from its planned end', async () => {
+    const { Pacing } = await import('../src/state/Pacing');
+    const p = new Pacing();
+    p.note(100, { type: 'silence', depth: 0.92, seconds: 40 }, 'resonance:table');
+    expect(p.intenseFree(117)).toBe(false);
+    p.release(110);
+    expect(p.holding(111)).toBe(false);
+    expect(p.intenseFree(115)).toBe(false);
+    expect(p.intenseFree(117)).toBe(true);
+    // What a voice inside it is owed stays.
+    const q = new Pacing();
+    q.note(100, { type: 'silence', depth: 0.92, seconds: 40 }, 'resonance:table');
+    q.note(105, { type: 'voice', kind: 'line', text: 'x', position: { kind: 'chair' } } as never, 'encounter:x:1');
+    q.release(110);
+    expect(q.intenseFree(117)).toBe(false);
+  });
+});

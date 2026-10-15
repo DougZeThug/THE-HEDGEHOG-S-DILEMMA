@@ -284,7 +284,7 @@ export class MemoryDirector {
       // door, written beneath the room's drawn door — is outside that: it is found there later).
       if (!m.offer.wall && this.offersMade + (s.kitchenOffered ? 1 : 0) >= 2) continue;
       t.offered = true;
-      this.offersMade++;
+      if (!m.offer.wall) this.offersMade++;
       this.lastOfferAt = s.now;
       return point(m, t, false);
     }
