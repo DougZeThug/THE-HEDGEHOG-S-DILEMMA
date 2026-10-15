@@ -217,7 +217,7 @@ Small remembered fragments, heard rather than seen: one or two voices, the pause
   - 0.0: *[a party, through the wall]*
   - 1.6: *[laughter, through the wall]*
   - 4.6: a friend from the party (right): “You alright? You've gone quiet.”
-  - 7.0: the one whose party it is (ahead): “I'm fine! It's just loud.”
+  - 7.0: the one whose party it is (ahead): “I'm fine. It's just loud.”
 - **Heard before** (14 s):
   - 0.0: *[a party, through the wall]*
   - 1.6: *[laughter, through the wall]*

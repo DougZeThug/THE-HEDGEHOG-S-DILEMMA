@@ -53,6 +53,7 @@ export function words(s) {
     .toLowerCase()
     .replace(/[’‘]/g, "'")
     .replace(/\[[^\]]*\]|\([^)]*\)/g, ' ')
+    .replace(/\ball right\b/g, 'alright')
     .replace(/[^a-z0-9' ]+/g, ' ')
     .split(/\s+/)
     .map((w) => w.replace(/^'+|'+$/g, ''))

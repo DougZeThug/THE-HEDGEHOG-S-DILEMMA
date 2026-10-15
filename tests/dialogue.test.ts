@@ -306,6 +306,7 @@ describe('the vignettes\' recording direction', () => {
 
   it('a transcript may spell "Okay" as "OK" without the take being marked wrong', () => {
     expect(wordErrorRate('Okay.', 'OK.')).toBe(0);
+    expect(wordErrorRate("You alright? You've gone quiet.", "You all right? You've gone quiet")).toBe(0);
     expect(wordErrorRate('Yeah. Tomorrow.', 'Yea, tomorrow.')).toBe(0);
   });
 });
