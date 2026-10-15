@@ -1,0 +1,10 @@
+| persona | encounters / visit | quiet after a memory (median s) | room events ≤30 s after (mean) | consequences (perceived) | left the chair | imposed quiet 30–300 s | most own events in 20 s | held silences the room broke into |
+|---|---|---|---|---|---|---|---|---|
+| still | 1.13 | 6 | 3.56 | 0 (0) | — 8 | 35% | 7 | 4/8 |
+| explorer | 3.13 | 11.4 | 3.80 | 2 (2) | — 8 | 27% | 7 | 0/8 |
+| chair | 1.88 | 6.2 | 3.80 | 16 (16) | — 8 | 41% | 7 | 5/8 |
+| reader | 2.88 | 9 | 3.04 | 0 (0) | — 8 | 43% | 6 | 7/8 |
+| phone | 2.00 | 6 | 3.81 | 16 (0) | — 8 | 24% | 7 | 0/8 |
+| all | 2.20 | 6.2 | 3.58 | 34 (18) | | 34% | 7 | 16/40 |
+
+consequences by rule (fired, perceived): {"echo:charger":[2,2],"sit:residue":[32,16]}

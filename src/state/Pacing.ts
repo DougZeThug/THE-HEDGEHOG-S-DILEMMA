@@ -72,6 +72,8 @@ export class Pacing {
   lastDev = 0;
   lastIntense = -Infinity;
   private recoverUntil = -Infinity;
+  /** The part of it owed to voices, music and situations (not to a silence). */
+  private recoverOther = -Infinity;
   /** A deliberate held silence: nothing is to interrupt it. */
   private holdUntil = -Infinity;
   /** Seconds spent stalled (waiting with nothing happening) so far — for the inspector and tests. */
@@ -88,10 +90,22 @@ export class Pacing {
     if (kind !== 'silence' || rule === 'withhold' || rule === 'held-silence') this.lastDev = t;
     if (intense && kind !== 'silence') {
       this.lastIntense = t;
-      this.recoverUntil = Math.max(this.recoverUntil, t + (kind === 'voice' ? RECOVERY.voice : RECOVERY.other));
+      this.recoverOther = Math.max(this.recoverOther, t + (kind === 'voice' ? RECOVERY.voice : RECOVERY.other));
+      this.recoverUntil = Math.max(this.recoverUntil, this.recoverOther);
     }
     // A deep silence, or the room deliberately not speaking, is held: nothing breaks into it.
     if (cue.type === 'silence' && (cue.depth >= 0.7 || rule === 'withhold')) this.holdUntil = Math.max(this.holdUntil, t + cue.seconds);
+    // And a moment for the room's tone to come back from a deep one before music or a voice of its own.
+    if (cue.type === 'silence' && cue.depth >= 0.7) this.recoverUntil = Math.max(this.recoverUntil, t + cue.seconds + 6);
+  }
+
+  /**
+   * A held silence let go early (the visitor moved away): it ends now, and its exhale follows
+   * from now (not from its planned end); what a voice or music is still owed stays.
+   */
+  release(t: number) {
+    this.holdUntil = Math.min(this.holdUntil, t);
+    this.recoverUntil = Math.max(this.recoverOther, t + 6);
   }
 
   /** How long quiet may last before it reads as waiting. Active visitors are answered sooner. */

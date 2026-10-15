@@ -19,7 +19,7 @@ import { CameraRig } from './world/CameraRig';
 import { Post } from './world/Post';
 import { FONTS_TO_LOAD } from './world/textures';
 import { ROOM } from './world/layout';
-import { Director } from './state/Director';
+import { Director, returnYaw } from './state/Director';
 import type { Cue, VoicePosition } from './state/cues';
 import type { Surface } from './content/types';
 import { PHRASES } from './content/phrases';
@@ -31,7 +31,7 @@ import { Voices, type VoicePlacement, type Played } from './audio/Voices';
 import { openingScore, levelsAt, stageAt, ROOM_LEVELS, OPENING_WRITTEN, OPENING_SPOKEN, OPENING_UNFINISHED, type Score, type Levels, type Stage, type ScoreEvent } from './state/OpeningScore';
 import VOICE_TIMINGS from './content/voice-timings.json';
 import { Captions } from './ui/Captions';
-import { loadPrefs, savePrefs, readVisits, writeVisits, forgetVisits, readOpeningSeen, writeOpeningSeen, readMemoryCounts, writeMemoryCounts, type Prefs } from './ui/prefs';
+import { loadPrefs, savePrefs, readVisits, writeVisits, forgetVisits, readOpeningSeen, writeOpeningSeen, readMemoryCounts, writeMemoryCounts, readTrace, writeTrace, type Prefs } from './ui/prefs';
 import { SCENE_BY_PHRASE } from './content/memories';
 import { LocalInterpreter } from './interpret/LocalInterpreter';
 import type { Interpreter } from './interpret/Interpreter';
@@ -136,6 +136,8 @@ export class App {
   lookName: LookName = 'reference';
   look: Look = lookFor('reference');
   /** The opening while it plays: its score, when it started (wall clock), what has been done. */
+  /** The visitor asked to be forgotten: nothing of this visit is written from then on. */
+  private forgotten = false;
   private opening: { score: Score; start: number; fired: Set<number>; skip?: { at: number; from: Levels } } | null = null;
   /** When the room was handed to the Director (scene time), for hints and the inspector. */
   private handoffAt = Infinity;
@@ -186,9 +188,11 @@ export class App {
     this.scene.background = new THREE.Color(0xf3f2ef);
     this.rig = new CameraRig(innerWidth / innerHeight);
     const forced = params.get('situations')?.split(',').map((s) => s.trim()).filter(Boolean);
+    const trace = this.visits > 0 ? readTrace() : null;
     this.director = new Director({
       seed,
       visits: this.visits + 1,
+      trace,
       memoryCounts: readMemoryCounts(),
       situations: forced,
       // Where each piece of writing is, for situations that relate place to memory.
@@ -199,6 +203,10 @@ export class App {
     });
     // Until the voices' manifest says which are recorded, no vignette speaks.
     this.director.scenes.setAvailable(new Set());
+    // How the last visit left the chair, set in the dark before anything is seen: the only change
+    // to it on return (docs/reviews/2026-10-emotional-depth.md).
+    const yaw = returnYaw(trace, this.chair.baseYaw);
+    if (yaw !== null) this.chair.group.rotation.y = yaw;
     for (const [id, st] of this.director.visible) if (st.base) this.text.setShown(id);
     // The hand that wrote what is already there left its marks under it.
     this.room.handMarks(
@@ -535,7 +543,7 @@ export class App {
     if (s === 'withdrawing' && l.memory.prepared.def.roomDim) this.lighting.dimToChair(l.memory.prepared.def.roomDim, 4, this.time);
     if (s === 'residue' || s === 'complete') {
       // The room comes back as the memory lets go (issued now, never precomputed).
-      this.audio?.memoryHush(0, 3.5);
+      this.audio?.memoryHush(0, 20);
     }
 
     if (s === 'complete') {
@@ -547,11 +555,12 @@ export class App {
       this.living = null;
       // Seen: watched past its first moments. It ran to its end if nobody let it go early.
       const seen = l.watched >= Math.min(l.minHold, 8);
-      if (this.director.memoryEnded(l.id, seen, l.why === null || l.why === 'complete')) {
+      if (this.director.memoryEnded(l.id, seen, l.why === null || l.why === 'complete') && !this.forgotten) {
         const counts = readMemoryCounts();
         counts[l.id] = (counts[l.id] ?? 0) + 1;
         writeMemoryCounts(counts);
       }
+      this.ambience?.hold(this.time + Math.max(12, this.director.aftermathLeft()));
     }
   }
 
@@ -840,14 +849,16 @@ export class App {
     if (!p.done) return;
     this.vignette = null;
     p.dispose(0.3);
-    this.audio?.memoryHush(0, 3);
+    // (The room's sound comes back slowly, over about 20 s: no swell after a memory.)
+    this.audio?.memoryHush(0, 20);
     this.voices?.forget(vignetteKeys(p.def));
     if (v.preview) {
       this.director.memoryPreviewEnded(v.id);
       return;
     }
     const counted = this.director.memoryEnded(v.id, p.seen && !v.uncounted, p.releasedHow === 'natural' && !v.cutShort);
-    if (counted) {
+    this.ambience?.hold(this.time + Math.max(12, this.director.aftermathLeft()));
+    if (counted && !this.forgotten) {
       const counts = readMemoryCounts();
       counts[v.id] = (counts[v.id] ?? 0) + 1;
       writeMemoryCounts(counts);
@@ -973,6 +984,11 @@ export class App {
       idle(next);
     };
     idle(next);
+  }
+
+  /** One word for the next visit about how this one left the chair; nothing after a forget. */
+  private keepTrace() {
+    if (!this.forgotten) writeTrace(this.director.leaving());
   }
 
   private beginOpening() {
@@ -1411,8 +1427,16 @@ export class App {
         break;
       }
       case 'silence':
-        this.audio?.silence(cue.depth * (this.prefs.intensity === 'gentle' ? 0.8 : 1), cue.seconds);
+        // A silence dimmed for its whole length (at the chair): its sound starts back a few seconds
+        // before its light does (heard, then seen).
+        if (cue.dim !== undefined && cue.dimSeconds === cue.seconds) this.audio?.silence(cue.depth * (this.prefs.intensity === 'gentle' ? 0.8 : 1), Math.max(1, cue.seconds - 8), 1.4, 2.5);
+        else this.audio?.silence(cue.depth * (this.prefs.intensity === 'gentle' ? 0.8 : 1), cue.seconds);
         if (cue.dim !== undefined) this.lighting.dimToChair(this.prefs.intensity === 'gentle' ? Math.max(cue.dim, 0.5) : cue.dim, Math.min(cue.seconds, cue.dimSeconds ?? 11), this.time);
+        break;
+      case 'lift':
+        // The room is heard coming back first; its light follows two seconds later.
+        this.audio?.lift(cue.seconds);
+        this.lighting.liftDim(this.time + 2, cue.seconds);
         break;
       case 'chairNudge':
         this.chair.nudge(cue.dx, cue.dz, cue.dyaw);
@@ -1728,7 +1752,13 @@ export class App {
       // (Not the tap that went in: a moment's grace against a double tap.)
       if (o && wallClock() - o.start > 1.2 && stageAt(o.score, wallClock() - o.start) === 'title') this.advanceTitle();
     });
+    // A tab closed without leaving: how the visit left the chair is kept all the same.
+    addEventListener('pagehide', () => {
+      if (this.mode === 'room' || this.mode === 'settings' || this.mode === 'contribute') this.keepTrace();
+    });
     document.addEventListener('visibilitychange', () => {
+      // (A phone may discard a hidden tab without pagehide: this is the last sure moment.)
+      if (document.hidden && (this.mode === 'room' || this.mode === 'settings' || this.mode === 'contribute')) this.keepTrace();
       // Away during the opening: on return, the room is simply there.
       if (document.hidden && this.opening) this.skipOpening();
       // A living memory pauses with the tab; away for more than 10 s, it ends (uncounted).
@@ -1916,8 +1946,11 @@ export class App {
     $('forget').addEventListener('click', () => {
       this.text.removeContributions();
       this.director.forgetContributions();
+      this.director.forgetVisits();
       forgetVisits();
       this.visits = 0;
+      // Nothing of this visit is kept from here on (its counts, how it left).
+      this.forgotten = true;
       const b = $<HTMLButtonElement>('forget');
       b.textContent = 'forgotten';
       b.disabled = true;
@@ -2083,6 +2116,7 @@ export class App {
     void this.wakeLock?.release().catch(() => {});
     this.wakeLock = null;
     const line = this.director.departureLine();
+    this.keepTrace();
     this.director.depart();
     this.leaving = wallClock();
     this.voices?.stopSpeech();

@@ -38,6 +38,36 @@ Later additions, which leave these numbers unchanged:
 - **Drawings** (`ruleDrawings`): one drawing is drawn while its line is looked at (a `draw` cue, counted as writing). It is never drawn during a hold, or within 4 s of other writing.
 - **Light as a motif.** The long held silence and the turn to the last phase carry a `dim`. When the turn comes inside the held silence, it adds no silence of its own: that silence and its dark are the turn.
 
+## After a memory, and the room's own life (October 2026)
+
+Measured with `npx vite-node scripts/journey.ts` (5 personas × 8 seeds × 600 s; `RETURN=1` for a second visit). The reasoning, the rejected options and the evaluation of the result are in `docs/reviews/2026-10-emotional-depth.md`; before and after are in `docs/reviews/emotional-depth/`.
+
+Settings (not results):
+- The room's own things (drift, accumulation, stray and recontext writing, music, distant life, chair nudges, its voices, situations' sounds) are spaced by the scheduler 4–7 s apart, the gap drawn each time from a seeded draw. Kept, not dropped. A phase turn never waits for that gap, but the next of the room's own waits the gap after it.
+- After a memory that was heard or watched, the room's own life waits 25 s (12 s if it was let go early). Anything of its own that falls due then waits until a few seconds after. The room comes back slowly, then less slowly (gaps of 12–16 s, 8–11 s, 6–8 s), never on a pulse.
+  - What the visitor does is still answered.
+  - The room's sound comes back over about 20 s instead of 3.5 s. Outside swells and the drone's chord change wait 30–45 s.
+  - The kitchen-light memory waits it out too.
+- Inside a held silence, and while the visitor stays with the kitchen-light line, nothing of the room's own comes; situations' sounds wait until 6 s after a hold. After a deep silence, music or a voice of the room's own waits 6 s more. The turn into the last phase keeps 15 s clear of the held silence.
+- **"The table."** Once cereal or the biscuit has been heard, on this visit or before, the one held silence of the visit waits for the visitor to be still within 2.5 m of the chair and looking at it, at least 45 s after any memory. It waits up to 45 s past its usual moment, or two minutes while they are with the chair; otherwise it comes as it always has. It comes there, its light drawn in to the chair, and its sound starts back a few seconds before its light. If they walk off past 3 m, it lifts 1.5 s later: sound over 10 s, light 2 s after. If the visit turned to its last phase inside it, it holds at least 14 s from the turn.
+
+Measured, before → after (first visits, 40):
+- Quiet after a memory: median 6.2 s → 25 s (the setting).
+- The room's own events in the 30 s after a memory: 3.6 → 0.8.
+- Held silences the room's own sounds broke into: 16 of 40 → 0 of 40.
+- Most of the room's own cues in any 20 s: 7 → 6.
+- Share of 30–300 s in imposed quiet: 34% → 36%.
+- "The table" on a second visit: 7 of 40, all to the visitor who sits by the chair, looking at it. It needs a meal heard first, and on first visits the scripted visitors who sit by the chair never hear one, so they never get it.
+- Reach (not significant at 40 visits; the skeptic measured swings of about ±50% from any pacing change):
+
+  | | before | after |
+  |---|---|---|
+  | Gone quiet | 14 | 11 |
+  | Practice | 1 | 5 |
+  | the door | 0 | 1 |
+  | the bedroom | 9 | 4 |
+  | charger (B) | 2 | 0 |
+
 ## What it is now
 
 - **Engagement** (`src/state/Engagement.ts`). What a visitor does becomes signals: reading a line, coming back to one after looking away, touching writing or the chair, approaching, staying with the chair, kneeling, looking around, crossing the room, pausing on purpose, writing. Attending to the writing counts for more than moving about. The visit's *depth* grows from these, and slowly by itself.

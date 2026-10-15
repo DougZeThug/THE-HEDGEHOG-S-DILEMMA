@@ -193,7 +193,7 @@
             "text": "tomorrow",
             "hand": "faint",
             "size": "s",
-            "otherWall": true
+            "atDoor": true
           }
         }
       ],

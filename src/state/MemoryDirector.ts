@@ -127,9 +127,27 @@ export class MemoryDirector {
   private lastPointAt = -Infinity;
   private lastVignetteEnded = -Infinity;
 
+  private counts: Record<string, number>;
   /** `counts`: how many times each memory has been seen on earlier visits (persisted). */
-  constructor(private counts: Record<string, number> = {}) {
+  constructor(counts: Record<string, number> = {}) {
+    // (Its own copy: the caller's record is never changed under it.)
+    this.counts = { ...counts };
     for (const m of ALL_MEMORIES) this.tracks.set(m.id, { armed: false, away: 0, left: false, offered: false, requestedUntil: -Infinity, played: false, unseen: 0, notBefore: m.earliest, easyUntil: -Infinity, owed: false, reinked: false });
+  }
+
+  /** Forgotten (the visitor asked): what was heard on earlier visits, and this one, no longer counts. */
+  forgetCounts(): void {
+    for (const k of Object.keys(this.counts)) delete this.counts[k];
+  }
+
+  /** Heard or watched, on this visit or before. */
+  heard(id: string): boolean {
+    return (this.counts[id] ?? 0) > 0;
+  }
+
+  /** Its line has been offered this visit (until then the room keeps it back). */
+  wasOffered(id: string): boolean {
+    return !!this.tracks.get(id)?.offered;
   }
 
   /** Which vignettes may speak (their recordings approved); the rest wait, or play voiceless. */
@@ -227,13 +245,15 @@ export class MemoryDirector {
     const point = <T extends SceneMemory>(m: T, t: Track, reink: boolean): OfferPick => {
       this.points++;
       this.lastPointAt = s.now;
-      // For a while, a shorter look at it begins it (an offer: 20 s; a line written again for an owed one: 30 s).
-      t.easyUntil = s.now + (reink && t.owed ? 30 : 20);
+      // For a while, a shorter look at it begins it (an offer: 20 s; a line written again for an owed
+      // one: 30 s; a line written in its own place, found later: from then on).
+      t.easyUntil = m.offer?.wall ? Infinity : s.now + (reink && t.owed ? 30 : 20);
       return reink ? { ...m, reink: true } : m;
     };
     // Owed vignettes first (read when they couldn't play), then memories never heard on any visit.
     const owed = (m: SceneMemory) => this.tracks.get(m.id)!.owed && m.kind === 'vignette';
-    const rank = (m: SceneMemory) => (owed(m) ? 0 : (this.counts[m.id] ?? 0) === 0 ? 1 : 2);
+    // (The door, once it may come, before other offers: it has a place of its own and is otherwise never found.)
+    const rank = (m: SceneMemory) => (owed(m) ? 0 : m.offer?.wall ? 0.5 : (this.counts[m.id] ?? 0) === 0 ? 1 : 2);
     const order = [...ALL_MEMORIES].sort((a, b) => rank(a) - rank(b));
     for (const m of order) {
       const t = this.tracks.get(m.id)!;
@@ -246,7 +266,6 @@ export class MemoryDirector {
       if (!m.offer || t.offered || !m.offer.phases.includes(s.phase as never)) continue;
       if (s.now - this.lastEnded < m.offer.apart) continue;
       if (!this.arcAllows(m, s.now, !!s.kitchenPlayed)) continue;
-      if (m.offer.wall && s.facing !== m.offer.wall) continue;
       if (m.kind === 'vignette') {
         // Offered only if it can play, keeps its distance, and the visit hasn't had two offers.
         if (!this.isAvailable(m.id) || !this.vignetteAllows(m, s)) continue;
@@ -261,10 +280,11 @@ export class MemoryDirector {
         t.reinked = true;
         return point(m, t, true);
       }
-      // New lines written alone: two a visit at most, of any memory.
-      if (this.offersMade + (s.kitchenOffered ? 1 : 0) >= 2) continue;
+      // New lines written alone: two a visit at most, of any memory (one with its own place — the
+      // door, written beneath the room's drawn door — is outside that: it is found there later).
+      if (!m.offer.wall && this.offersMade + (s.kitchenOffered ? 1 : 0) >= 2) continue;
       t.offered = true;
-      this.offersMade++;
+      if (!m.offer.wall) this.offersMade++;
       this.lastOfferAt = s.now;
       return point(m, t, false);
     }
@@ -273,10 +293,10 @@ export class MemoryDirector {
 
   /**
    * A vignette could open at the chair soon (the room's own voice there waits): its line finished,
-   * nearly its time, not yet heard, recorded.
+   * nearly its time, not yet heard, recorded. With `distance`: and the visitor is near enough for it.
    */
-  claimsChair(now = Infinity, finished: (id: string) => boolean = () => true): boolean {
-    return ALL_MEMORIES.some((m) => m.chair && !this.tracks.get(m.id)!.played && this.isAvailable(m.id) && !(m.maxSeen !== undefined && (this.counts[m.id] ?? 0) >= m.maxSeen) && now >= m.earliest - 30 && (!m.afterFinished || finished(m.afterFinished)));
+  claimsChair(now = Infinity, finished: (id: string) => boolean = () => true, distance = 0): boolean {
+    return ALL_MEMORIES.some((m) => m.chair && distance <= m.chair.within && !this.tracks.get(m.id)!.played && this.isAvailable(m.id) && !(m.maxSeen !== undefined && (this.counts[m.id] ?? 0) >= m.maxSeen) && now >= m.earliest - 30 && (!m.afterFinished || finished(m.afterFinished)));
   }
 
   /** A preview played and ended: the room goes on; nothing is counted or left behind. */
@@ -305,7 +325,7 @@ export class MemoryDirector {
       if (m.offer?.wall && s.facing !== undefined && s.facing !== m.offer.wall) continue;
       const looking = s.gazeId === m.phraseId;
       // Just pointed at, or owed and pointed at again: a shorter look is enough.
-      const need = m.kind === 'vignette' && s.now <= t.easyUntil ? Math.min(EASY_LOOK, m.arm) : m.arm;
+      const need = (m.kind === 'vignette' || !!m.offer?.wall) && s.now <= t.easyUntil ? Math.min(EASY_LOOK, m.arm) : m.arm;
       if (looking && s.gazeFor >= need && !t.armed) {
         t.armed = true;
         t.away = 0;

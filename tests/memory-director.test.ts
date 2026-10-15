@@ -125,13 +125,14 @@ describe('later memories are offered, not hidden', () => {
     expect(m.offer(offerState({ now: 200, phase: 'familiar', darkEnded: 130 }))).toBeNull();
     expect(m.offer(offerState({ now: 200, darkEnded: 130 }))?.id).toBe('bedroom');
     expect(m.offer(offerState({ now: 201, darkEnded: 130 }))).toBeNull(); // once
-    // The door: not before another memory, and only facing its drawing's wall.
+    // The door: not before another memory; then written beneath its drawing whichever way the
+    // visitor faces (found there later), and begun only facing that wall.
     expect(m.offer(offerState({ now: 250, facing: 'south' }))).toBeNull();
     m.tapped('happiest-unneeded');
     m.update(base({ now: 251, visible: (id) => id === 'happiest-unneeded' }));
     m.ended('bedroom', 280, true, true);
-    expect(m.offer(offerState({ now: 410, facing: 'north' }))).toBeNull();
-    expect(m.offer(offerState({ now: 410, facing: 'south' }))?.id).toBe('door');
+    expect(m.offer(offerState({ now: 410, facing: 'north' }))?.id).toBe('door');
+    expect(m.update(base({ now: 420, facing: 'north', gazeId: 'door-open', gazeFor: 5, visible: () => true }))).toBeNull();
   });
 
   it('cereal belongs to the start: never after another memory, never late', () => {

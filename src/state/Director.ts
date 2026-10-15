@@ -65,6 +65,8 @@ export interface DirectorOptions {
   memoryCounts?: Record<string, number>;
   /** Where each phrase is (world metres, chair at origin). Situations need it to relate place and writing. */
   geometry?: (phraseId: string) => PhraseGeometry | undefined;
+  /** How the last visit left the chair (`hh.trace.v1`): the chair is turned before the room opens (App). */
+  trace?: 'close' | null;
   /** Force a repertoire of situations (for inspection and tests). */
   situations?: string[];
   /**
@@ -78,6 +80,22 @@ const SURFACES: Surface[] = ['north', 'east', 'south', 'west'];
 /** Lines with several directed readings, kept for their own meetings and a second hearing. */
 const KEPT_READINGS = new Set(['stay', 'love-go-away', 'happy-then']);
 
+/**
+ * What the room does of its own accord, not in answer to the visitor (spaced, one at a time).
+ * (Not the kitchen light or a drawing: those answer a look.)
+ */
+export const ROOM_OWN = /^(drift|accumulate$|stray|resurface|recontext|music$|distant-life|chair-nudge|voice$|rehear$|return$|air$|link$|sit:(?!residue|listening))/;
+
+/**
+ * The chair on return (docs/reviews/2026-10-emotional-depth.md): after a visit that stayed close,
+ * it is turned away from where the visitor comes in. Null: leave it.
+ */
+export function returnYaw(leaving: 'close' | null, base: number): number | null {
+  return leaving === 'close' ? base + CLOSE_TURN : null;
+}
+/** How far it is turned (radians), seen in the returning opening's chair-only frame. */
+export const CLOSE_TURN = 1.9;
+
 export class Director {
   readonly visitor = new VisitorModel();
   readonly memory = new Memory();
@@ -86,7 +104,23 @@ export class Director {
   readonly engagement = new Engagement();
   readonly pacing = new Pacing();
   readonly selector = new PhraseSelector();
-  readonly scheduler = new EventScheduler<{ cue: Cue; rule: string }>(7);
+  // The room's own things are spaced 4–7 s apart, never at a fixed pulse (its own seeded draw, so
+  // the visit's other choices are unchanged by it).
+  readonly scheduler = new EventScheduler<{ cue: Cue; rule: string }>(7, () => this.roomGap());
+  private gapRng = new Rng(1);
+  private releaseStep = 0;
+  /**
+   * The gap before the room's next own event. After a memory's aftermath the room comes back
+   * slowly and then less slowly (12–16 s, 8–11, 6–8), never on a pulse; otherwise 4–7 s.
+   */
+  private roomGap(): number {
+    const since = this.now - this.aftermathUntil;
+    if (since >= 0 && since < 45 && this.releaseStep < 3) {
+      const [a, b] = [[12, 16], [8, 11], [6, 8]][this.releaseStep++];
+      return this.gapRng.range(a, b);
+    }
+    return this.gapRng.range(4, 7);
+  }
   readonly rng: Rng;
   readonly visible = new Map<string, VisibleState>();
   readonly log: TimedCue[] = [];
@@ -129,6 +163,21 @@ export class Director {
   memoryPlayed = false;
   /** No voices of the room's own until then: the memory's line has just been offered. */
   private memoryQuietUntil = -Infinity;
+  /**
+   * The aftermath of a memory that was heard or watched: for a while the room's own life (new
+   * writing drifting in, music, voices of its own, a situation's sounds, filler in a lull) waits,
+   * so what happened is not covered over. What the visitor does is still answered. Chosen quiet,
+   * not a stall (docs/reviews/2026-10-emotional-depth.md).
+   */
+  aftermathUntil = -Infinity;
+  aftermath(): boolean {
+    return this.now < this.aftermathUntil;
+  }
+  /** Seconds of it left (0 when there is none). */
+  aftermathLeft(): number {
+    return Math.max(0, this.aftermathUntil - this.now);
+  }
+
   /** After a vignette, even the room finishing its own line waits (its quiet is part of it). */
   private vignetteQuietUntil = -Infinity;
 
@@ -153,6 +202,8 @@ export class Director {
   private airDone = false;
   /** When the long held silence ends (the turn to the last phase doesn't break into it). */
   private heldSilenceUntil = -Infinity;
+  /** When the held silence could first have come (it may wait a little for the chair). */
+  private heldDueAt: number | null = null;
   private pendingPhase: Phase | null = null;
   /** A few seconds after a living memory ends, before the room turns a phase. */
   private scenesQuietAt = -Infinity;
@@ -193,6 +244,7 @@ export class Director {
 
   constructor(opts: DirectorOptions) {
     this.rng = new Rng(opts.seed);
+    this.gapRng = new Rng(opts.seed * 7919 + 101);
     this.seed = opts.seed;
     this.scenes = new MemoryDirector(opts.memoryCounts ?? {});
     this.visits = opts.visits ?? 1;
@@ -213,10 +265,8 @@ export class Director {
     this.host = this.makeHost();
     this.env = this.computeEnv();
     // Returning visitors find a room that remembers being visited.
-    if (this.visits > 1) {
-      this.reveal('remember-me', 7, 'return', 'emerge', 8);
-      if (this.visits > 2) this.queue(16, { type: 'chairNudge', dx: 0.05, dz: -0.03, dyaw: 0.12 }, 'return');
-    }
+    // (When the last visit stayed close, the chair, turned away, is the only sign: nothing asks.)
+    if (this.visits > 1 && opts.trace !== 'close') this.reveal('remember-me', 7, 'return', 'emerge', 8);
   }
 
   /** Seeded choice of which situations this visit can hold: three of the four, plus erosion if the visitor writes. */
@@ -277,7 +327,7 @@ export class Director {
       lastContribution: () => d.lastContrib,
       // A situation is a strong thing: it doesn't begin over a meeting, inside a held silence,
       // or while the room is still recovering from something else.
-      attending: () => d.attending() || d.pacing.holding(d.now) || !d.pacing.intenseFree(d.now) || !d.scheduler.majorFree(d.now),
+      attending: () => d.attending() || d.aftermath() || d.pacing.holding(d.now) || !d.pacing.intenseFree(d.now) || !d.scheduler.majorFree(d.now),
     };
   }
 
@@ -314,7 +364,8 @@ export class Director {
   }
 
   private queue(delay: number, cue: Cue, rule: string, opts: { major?: boolean; key?: string; ttl?: number; priority?: number } = {}) {
-    this.scheduler.schedule(this.now + delay, { cue, rule }, opts);
+    // The room's own events never come together (a burst reads as a machine): spaced by the scheduler.
+    this.scheduler.schedule(this.now + delay, { cue, rule }, { ...opts, room: ROOM_OWN.test(rule), group: rule, marks: rule.startsWith('phase-') });
   }
 
   private reveal(id: string, delay: number, rule: string, mode: 'emerge' | 'still' = 'emerge', seconds = 9) {
@@ -419,7 +470,9 @@ export class Director {
       // The turn into a new phase waits for a living memory to end (it would black out the room
       // in the middle of it), and a few seconds more.
       if (phaseChanged) this.pendingPhase = phaseChanged;
-      if (this.pendingPhase && !this.scenes.active && this.now >= this.scenesQuietAt) {
+      // (A phase turns after a memory's aftermath, never inside it, nor while the visitor stays
+      // with the kitchen-light line: the room waits with them.)
+      if (this.pendingPhase && !this.scenes.active && this.now >= this.scenesQuietAt && !this.aftermath() && !this.memoryAwaited()) {
         this.onPhase(this.pendingPhase);
         this.pendingPhase = null;
       }
@@ -432,23 +485,32 @@ export class Director {
       this.ruleDrawings();
       this.ruleFinish();
       this.situations.tick(this.host);
-      this.ruleDriftReveal();
+      // In a memory's aftermath, and inside a held silence, the room's own life waits; what the
+      // visitor does is still answered. (That the room's own things never come together is the
+      // scheduler's: they are spaced 4–7 s apart.)
+      const quiet = this.aftermath() || this.now < this.heldSilenceUntil;
+      if (!quiet) this.ruleDriftReveal();
       this.ruleStillness(dt);
       this.ruleApproach();
       this.ruleWithdraw();
       this.ruleEncounters();
-      this.ruleWarmResurface();
-      this.ruleMusic();
-      this.ruleRecontext();
-      this.ruleContaminate();
-      this.ruleDistantLife();
+      if (!quiet) {
+        this.ruleWarmResurface();
+        this.ruleMusic();
+        this.ruleRecontext();
+        this.ruleContaminate();
+        this.ruleDistantLife();
+      }
       this.ruleKneel();
-      this.ruleChairNudge(input);
-      this.ruleVoices();
-      this.ruleRehear();
+      if (!quiet) {
+        this.ruleChairNudge(input);
+        this.ruleVoices();
+        this.ruleRehear();
+      }
       this.ruleHeldSilence();
       this.ruleAir();
-      this.ruleRespond();
+      if (!quiet) this.ruleRespond();
+      this.ruleTableLift();
     }
     this.pacing.tick(dt, this.now, this.phase, this.engagement.activity(this.now));
 
@@ -464,6 +526,10 @@ export class Director {
         continue;
       }
       const tc = { t: +this.now.toFixed(2), cue, rule };
+      if (rule === 'resonance:table' && cue.type === 'silence') {
+        this.tableFrom = this.now;
+        this.tableUntil = this.now + cue.seconds;
+      }
       out.push(tc);
       this.pacing.note(this.now, cue, rule);
       // The inspector log never keeps a visitor's own words.
@@ -477,6 +543,12 @@ export class Director {
   private lost(cue: Cue, rule: string) {
     // A memory that never found room isn't spent: it waits for the next look.
     if (cue.type === 'memory-scene' || cue.type === 'vignette') this.scenes.cancel(cue.id, this.now);
+    if (cue.type === 'memory') this.memoryPlayed = false;
+    // The held silence that never sounded: the visit still has it.
+    if (cue.type === 'silence' && (rule === 'held-silence' || rule === 'resonance:table')) {
+      this.heldSilenceDone = false;
+      this.heldSilenceUntil = -Infinity;
+    }
     if (cue.type !== 'voice' || !cue.phraseId) return;
     // A line the room was finishing, unheard: it is still unfinished.
     if (cue.finish) this.unfinished.add(cue.phraseId);
@@ -509,9 +581,29 @@ export class Director {
     // directly, not through the voice rules that already wait).
     if (this.scenes.active && ((cue.type === 'voice' && (!cue.finish || this.vignettePlaying)) || cue.type === 'sound' || cue.type === 'music')) return false;
     if (cue.type === 'reveal' && this.withheld().includes(cue.phraseId)) return false;
+    // A situation's own sounds wait out a memory's aftermath (those answering the visitor don't).
+    if (this.aftermath() && rule.startsWith('sit:') && !/^sit:(residue|listening)/.test(rule) && (cue.type === 'voice' || cue.type === 'sound' || cue.type === 'music')) {
+      this.queue(this.aftermathUntil - this.now + 1, cue, rule);
+      return false;
+    }
+    // Nothing of the room's own comes in a memory's aftermath, or while the room is holding (a
+    // held silence; the visitor staying with the kitchen-light line), even if it was decided
+    // before: it waits until after (and the scheduler spaces what was waiting).
+    if (ROOM_OWN.test(rule) && !rule.startsWith('sit:') && (this.aftermath() || this.pacing.holding(this.now))) {
+      // (After an aftermath, the first a few seconds after it.)
+      const after = this.aftermath() ? this.aftermathUntil + this.gapRng.range(3, 6) : this.pacing.heldUntil + 1;
+      this.queue(Math.max(after, this.now + 1) - this.now, cue, rule);
+      return false;
+    }
+    // Nor do they break into a held silence (a laugh on a timer, landing in the middle of it): after it, and its exhale.
+    if (this.pacing.holding(this.now) && rule.startsWith('sit:') && !/^sit:(residue|listening)/.test(rule) && (cue.type === 'voice' || cue.type === 'sound' || cue.type === 'music')) {
+      this.queue(this.pacing.heldUntil - this.now + 6, cue, rule);
+      return false;
+    }
     // The visit's turn, due while a vignette plays or just after one: it waits until it is clear.
     if (rule === 'phase-transform' && cue.type === 'silence' && !this.departing) {
-      const { delay, dark } = this.turnClear(this.vignettePlaying ? 30 : 0);
+      const { delay: d0, dark } = this.turnClear(this.vignettePlaying ? 30 : 0);
+      const delay = Math.max(d0, this.aftermath() ? this.aftermathUntil - this.now + 1 : 0);
       if (delay > 0) {
         const { dim: _d, dimSeconds: _s, ...rest } = cue;
         this.queue(delay, dark ? cue : rest, rule, { major: true, ttl: 30 });
@@ -569,12 +661,14 @@ export class Director {
 
   /** Kept for its moment: the reserved lines, and the memory's line until the memory offers it. */
   private reserved(id: string): boolean {
-    return Director.RESERVED.has(id) || (id === Director.MEMORY.phraseId && !this.memoryOffered);
+    // (The door's line belongs beneath the drawn door: never drifted onto a wall before that.)
+    return Director.RESERVED.has(id) || (id === Director.MEMORY.phraseId && !this.memoryOffered) || (id === 'door-open' && !this.scenes.wasOffered('door'));
   }
 
   private hiddenExcluding(): Set<string> {
     const out = new Set([...this.visible.keys(), ...Director.RESERVED, ...this.withheld()]);
     if (!this.memoryOffered) out.add(Director.MEMORY.phraseId);
+    if (!this.scenes.wasOffered('door')) out.add('door-open');
     return out;
   }
 
@@ -786,6 +880,7 @@ export class Director {
     const reading = v.gazeId && v.gazeFor > 2.5 && !memoryLine ? PHRASE_BY_ID.get(v.gazeId) : undefined;
     const answerRead = !!reading && this.now - this.lastAccumulateAt > 5 && this.accumulated < 14;
     if (this.now < this.nextAccumulate && !answerRead) return;
+    if (this.aftermath() && !answerRead) return;
     // Someone settled at the chair is with the chair: the walls can wait.
     if (!answerRead && v.near && v.stillFor > 3) return;
     if (this.pacing.holding(this.now) || this.pacing.repeats('text', this.now, 6)) return;
@@ -815,6 +910,8 @@ export class Director {
         rule = 'accumulate-read';
       }
     }
+    // In a memory's aftermath only a line answering the one being read is written.
+    if ((this.aftermath() || this.now < this.heldSilenceUntil) && rule !== 'accumulate-read') return;
     if (!id) id = Director.FIRST_WRITTEN.find(onWall);
     // The first few ordinary lines are written where the visitor is looking, whatever wall
     // they were first written on: the room is filling in front of them.
@@ -1122,11 +1219,48 @@ export class Director {
    */
   private ruleHeldSilence() {
     if (this.heldSilenceDone || this.now < 120 || (this.phase !== 'contradiction' && this.phase !== 'transform')) return;
-    if (this.pacing.sinceDev(this.now) < 8 || !this.scheduler.majorFree(this.now) || this.attending() || this.visitor.speed > 0.5) return;
+    const v = this.visitor;
+    // "The table" (docs/reviews/2026-10-emotional-depth.md): once a meal shared at a table has been
+    // heard (cereal, or the last biscuit; this visit or before), the room's one held silence waits
+    // for the visitor to be alone with the chair — still, within 2.5 m, looking at it — and comes
+    // there: the room goes under and draws in to the chair, and lifts when they walk away. Never as
+    // a memory's tail (45 s clear of one: F ends at the chair too). It waits for them at most
+    // 45 s past when it would have come (two minutes while they are with the chair); then, or for
+    // anyone else, it comes as it always has.
+    const table = this.scenes.heard('cereal') || this.scenes.heard('biscuit');
+    const atChair = v.distance <= 2.5 && v.stillFor >= 8 && v.gazeChairFor >= 3 && this.now - this.scenes.lastEnded >= 45
+      && !this.scenes.claimsChair(this.now, (id) => !this.unfinished.has(id), v.distance);
+    if (this.pacing.sinceDev(this.now) < 8 || !this.scheduler.majorFree(this.now) || this.attending() || v.speed > 0.5) return;
+    if (this.aftermath()) return;
+    this.heldDueAt ??= this.now;
+    // (While they are there with the chair, it keeps waiting for its moment, up to two minutes.)
+    const withChair = v.distance <= 2.5 && v.gazeChairFor >= 3;
+    if (table && !atChair && this.now < this.heldDueAt + (withChair ? 120 : 45)) return;
     this.heldSilenceDone = true;
     const seconds = this.rng.range(30, 42);
     this.heldSilenceUntil = this.now + seconds;
-    this.queue(0, { type: 'silence', depth: 0.92, seconds, dim: 0.15, dimSeconds: 16 }, 'held-silence', { major: true, ttl: 10 });
+    const there = table && atChair;
+    this.queue(0, { type: 'silence', depth: 0.92, seconds, dim: 0.15, dimSeconds: there ? seconds : 16 }, there ? 'resonance:table' : 'held-silence', { major: true, ttl: 10 });
+  }
+
+  /** The held silence at the chair: while the visitor stays it lasts; moving away lifts it. */
+  private tableUntil = -Infinity;
+  private tableFrom = -Infinity;
+  private ruleTableLift() {
+    // (Only once the silence has really begun: set when it sounds, in the dispatch.)
+    if (this.now >= this.tableUntil) return;
+    const v = this.visitor;
+    // (Not a proximity switch: walking away past 3 m, not stepping round the chair to see it;
+    // and a breath after they cross it, not on the step.)
+    if (v.distance <= 3) return;
+    // If the visit turned to its last phase inside this silence, that silence was the turn: it
+    // keeps at least the turn's own 14 s before it lets go.
+    const turnInside = this.transformAt >= this.tableFrom && this.transformAt < this.now;
+    const at = Math.max(this.now + 1.5, turnInside ? this.transformAt + 14 : -Infinity);
+    this.tableUntil = -Infinity;
+    this.heldSilenceUntil = at;
+    this.pacing.release(at);
+    this.queue(at - this.now, { type: 'lift', seconds: 10 }, 'resonance:table-lift');
   }
 
   /**
@@ -1149,7 +1283,8 @@ export class Director {
     if (this.now < 150 || (this.phase !== 'contradiction' && this.phase !== 'transform')) return;
     const m = Director.MEMORY;
     // Its own hold (below) doesn't keep it waiting.
-    const free = this.scheduler.majorFree(this.now) && (!this.pacing.holding(this.now) || this.pacing.heldUntil <= this.memoryHoldTo);
+    // (Never in another memory's aftermath, offered or begun.)
+    const free = this.scheduler.majorFree(this.now) && !this.aftermath() && (!this.pacing.holding(this.now) || this.pacing.heldUntil <= this.memoryHoldTo);
     if (!this.visible.has(m.phraseId)) {
       // Not in the quiet a vignette leaves behind (the light offered there would answer it).
       if (this.memoryOffered || !free || this.now < this.memoryQuietUntil || this.pacing.repeats('text', this.now, 8) || this.withheld().includes(m.phraseId)) return;
@@ -1229,8 +1364,8 @@ export class Director {
     const offer = this.scenes.offer({
       now: this.now,
       phase: this.phase,
-      // (Never into a busy room: the line arrives into quiet, or waits.)
-      free: free && !this.pacing.repeats('text', this.now, 8) && !this.pacing.crowded(this.now),
+      // (Never into a busy room: the line arrives into quiet, or waits. Nor into a memory's aftermath.)
+      free: free && !this.aftermath() && !this.pacing.repeats('text', this.now, 8) && !this.pacing.crowded(this.now),
       visibleFacing: (id) => this.visible.has(id) && PHRASE_BY_ID.get(id)?.surface === this.facing,
       departing: this.departing,
       otherMemory: this.memoryAwaited(),
@@ -1292,6 +1427,9 @@ export class Director {
       this.vignetteEnded = { id, at: this.now, dimmed: VIGNETTE_BY_ID.get(id)!.variants.first.events.some((e) => 'fx' in e && e.fx.kind === 'dim') };
     }
     if (counted) {
+      // Its aftermath (shorter if it was let go early).
+      this.aftermathUntil = Math.max(this.aftermathUntil, this.now + (ranToEnd ? 25 : 12));
+      this.releaseStep = 0;
       // Staying with a memory is attention, as returning to a line is.
       this.engagement.raise('memory', this.now, id);
       // A moment to come back to the room before anything else.
@@ -1703,8 +1841,10 @@ export class Director {
       // clear of a vignette just ended (25 s; 45 after one that dimmed the room), so the turn isn't
       // heard as that memory's tail; after a dimming one within 90 s it comes without its dark
       // (that memory was the dark).
-      const { delay, dark } = this.turnClear(2);
-      if (this.now + delay > this.heldSilenceUntil)
+      const { delay: d0, dark } = this.turnClear(2);
+      // (Just after the held silence, not a second one in its exhale: 15 s clear of it.)
+      const delay = this.now + d0 > this.heldSilenceUntil ? Math.max(d0, this.heldSilenceUntil + 15 - this.now) : d0;
+      if (this.now + d0 > this.heldSilenceUntil)
         this.queue(delay, { type: 'silence', depth: 0.7, seconds: 14, ...(dark ? { dim: 0.15, dimSeconds: 11 } : {}) }, 'phase-transform', { major: true, ttl: 30 });
       const late = this.selector.select(this.ctx(), { tiers: ['transform'], exclude: this.hiddenExcluding() });
       if (late) this.reveal(late.id, 10, 'phase-transform', 'emerge', 14);
@@ -1832,6 +1972,15 @@ export class Director {
   }
 
   /** Clears contributions from memory (privacy: "forget what I wrote"). */
+  /**
+   * The visitor asked to be forgotten: the counts the room keeps for this visit (memories heard,
+   * how it was left) go too, so nothing is written back afterwards.
+   */
+  forgetVisits(): void {
+    this.scenes.forgetCounts();
+    this.visits = 1;
+  }
+
   forgetContributions(): void {
     this.lastContrib = null;
     this.situations.drop('erosion');
@@ -1840,6 +1989,15 @@ export class Director {
   }
 
   // ───────────────────────────── leaving ─────────────────────────────
+
+  /**
+   * Whether this visit stayed close to the chair (knelt there, or stayed by it a while): the one
+   * word kept for the next visit (docs/reviews/2026-10-emotional-depth.md).
+   */
+  leaving(): 'close' | null {
+    const v = this.visitor;
+    return v.kneelTime >= 8 || v.approaches.some((a) => a.dwell >= 25 || (a.leftAt === null && v.t - a.enteredAt >= 25)) ? 'close' : null;
+  }
 
   departureLine(): string {
     const m = this.memory.dominant() ?? 'default';
@@ -1886,6 +2044,16 @@ export class Director {
       // The one behind them first (a wall beside can be at the edge of the view).
       const opposite: Partial<Record<Surface, Surface>> = { north: 'south', south: 'north', east: 'west', west: 'east' };
       const behind = opposite[this.facing];
+      // Beside the room's drawn door (B's "tomorrow"): found there, never watched being written.
+      if (e.write.atDoor) {
+        if (this.facing === 'south') return null;
+        // (Under the drawing alone, never beside the door's own line: two lines together read as a caption.)
+        return [[0, {
+          type: 'write', key: `echo:${def.id}:${e.id}`, text: e.write.text, hand: e.write.hand, size: e.write.size,
+          under: 'ghost-door', surface: 'south',
+          purpose: 'recall', ttl: 0, found: true,
+        }, { key: `echo:${def.id}:${e.id}` }]];
+      }
       const surface = e.write.otherWall
         ? behind && behind !== anchor?.surface ? behind : walls.find((s) => s !== this.facing && s !== anchor?.surface)
         : undefined;
@@ -1925,10 +2093,7 @@ export class Director {
       bias: (x) => (x.id === 'glad-came' || x.id === 'remember-me' ? 0.6 : 0),
     });
     if (p) this.reveal(p.id, 6, 'return', 'emerge', 10);
-    if (this.chairNudges < 2) {
-      this.chairNudges++;
-      this.queue(1, { type: 'chairNudge', dx: this.rng.range(-0.05, 0.05), dz: this.rng.range(-0.05, 0.05), dyaw: this.rng.range(-0.15, 0.15) }, 'return');
-    }
+    // (No random nudge: the chair keeps the pose the trace gave it.)
   }
 
   snapshot() {

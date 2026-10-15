@@ -94,6 +94,8 @@ export class VisitorModel {
   gazeFor = 0;
   gazeChair = false;
   gazeChairFor = 0;
+  /** Seconds the chair has been out of the view (more than ~50° from where they face). */
+  chairOutOfViewFor = 0;
   totalChairGaze = 0;
   gazeTotals = new Map<string, number>();
   /** Every phrase's history of being met: the same words, encountered again. */
@@ -240,6 +242,11 @@ export class VisitorModel {
       this.gazeChairFor += dt;
       this.totalChairGaze += dt;
     } else this.gazeChairFor = 0;
+    {
+      const fx = -Math.sin(inp.yaw), fz = -Math.cos(inp.yaw), n = Math.hypot(inp.x, inp.z);
+      const inView = n < 0.6 || (fx * -inp.x + fz * -inp.z) / n > Math.cos((50 * Math.PI) / 180);
+      this.chairOutOfViewFor = inView ? 0 : this.chairOutOfViewFor + dt;
+    }
     this.gazeChair = inp.gazeChair;
   }
 

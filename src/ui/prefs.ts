@@ -82,10 +82,31 @@ export function readMemoryCounts(): Record<string, number> {
 export function writeMemoryCounts(c: Record<string, number>) {
   safeSet(MEMORY_COUNTS, JSON.stringify(c));
 }
+const TRACE = 'hh.trace.v1';
+/**
+ * How the last visit ended, as one word the room can answer on a return (docs/reviews/
+ * 2026-10-emotional-depth.md): nothing about where anyone stood, what they wrote or what they did,
+ * only the kind of leaving. Versioned; anything unexpected reads as nothing.
+ */
+export type Leaving = 'close';
+export function readTrace(): Leaving | null {
+  try {
+    const v = JSON.parse(safeGet(TRACE) ?? 'null');
+    return v && v.v === 1 && v.leaving === 'close' ? v.leaving : null;
+  } catch {
+    return null;
+  }
+}
+export function writeTrace(leaving: Leaving | null) {
+  safeSet(TRACE, leaving ? JSON.stringify({ v: 1, leaving }) : null);
+}
+
+/** Everything the room remembers about having been visited (preferences aside). */
 export function forgetVisits() {
   safeSet(VISITS, null);
   safeSet(MEMORY_COUNTS, null);
   safeSet('hh.opening-seen', null);
+  safeSet(TRACE, null);
 }
 
 const OPENING_SEEN = 'hh.opening-seen';

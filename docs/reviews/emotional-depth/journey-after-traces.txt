@@ -1,0 +1,278 @@
+
+# still seed 7
+   2.6  accumulate               write “We ate cereal for dinner and”
+   8.7  accumulate               reveal sandwich
+  32.1  sit:next-room            (laughter, through the wall)
+  97.1  stray                    write “There's nothing wrong with b”
+ 107.2  sit:next-room            (laughter, through the wall)
+ 120.1  phase-contradiction      reveal afraid-leave
+ 120.1  held-silence             silence 0.92
+ 161.1  memory-offer             write “the light in the kitchen at ”
+ 169.2  memory-offer             write “I was happiest when nobody n”
+ 172.7  accumulate               reveal alone-with-you
+ 178.8  stray                    write “Hold on. Not so tight.”
+ 184.7  sit:humming              (humming)
+ 224.7  drift                    reveal look-at-me
+ 231.5  recontext                reveal easier-without
+ 231.5  recontext                write “I was afraid you'd leave.”
+ 236.8  stray                    write “Did I say it wrong?”
+ 242.9  accumulate               reveal good-day
+ 285.2  sit:humming              music tender
+ 296.8  memory-offer             redraw alone-with-you
+ 302.1  phase-transform          silence 0.7
+ 310.1  phase-transform          reveal not-the-same
+ 316.1  accumulate               reveal summer
+ 322.5  stray-held               write “I wanted you to stay.”
+ 345.2  accumulate               reveal far-enough
+ 350.3  drift                    reveal before-woke
+ 356.5  resurface                write “We ate cereal for dinner and”
+ 361.4  recontext                reveal lonely-birthday
+ 361.4  recontext                write “I wanted you to stay.”
+ 367.6  chair-nudge              chairNudge
+ 421.4  accumulate               reveal alone
+ 427.3  drift                    reveal dog
+ 433.3  distant-life             “No — the other one.”
+ 440.2  stray                    write “You understood me once, comp”
+ 444.9  music                    music memory
+ 450.6  accumulate               reveal together
+ 487.3  accumulate               reveal w-almost
+ 493.2  drift                    reveal warm-night
+ 499.5  resurface                write “We ate cereal for dinner and”
+ 505.5  stray                    write “Some days the room is enormo”
+ 547.3  drift                    reveal size-of-room
+ 552.8  resurface                write “We ate cereal for dinner and”
+ 558.2  music                    music memory
+ 564.6  stray                    write “What did you mean by that?”
+ 569.7  accumulate               reveal love-go-away
+
+# explorer seed 3
+   2.6  accumulate               write “We ate cereal for dinner and”
+  12.6  accumulate               reveal sandwich
+  30.5  accumulate               reveal summer
+  68.4  sit:next-room            (laughter, through the wall)
+  81.8  drift                    reveal you-were-right
+  88.7  music                    music memory
+  93.6  stray                    write “Please don't come any closer”
+ 120.1  held-silence             silence 0.92
+ 156.8  phase-transform          reveal not-the-same
+ 162.2  stray-held               write “That was a good day.”
+ 177.4  memory-offer             write “the light in the kitchen at ”
+ 180.0  memory                   memory kitchen-light
+ 206.8  chair-nudge              chairNudge
+ 257.9  accumulate               reveal home
+ 263.4  drift                    reveal warm-night
+ 270.2  resurface                write “half a sandwich and the whol”
+ 275.9  recontext                reveal lonely-birthday
+ 275.9  recontext                write “I wanted you to stay.”
+ 282.4  stray                    write “Are you angry with me?”
+ 315.6  vignette                 vignette biscuit
+ 352.8  distant-life             “hey.”
+ 365.9  music                    music uneasy
+ 376.6  stray                    write “far enough to miss you”
+ 383.3  resurface                write “I remember your laugh.”
+ 389.3  accumulate               reveal still-there
+ 394.0  recontext                reveal two-cups
+ 394.0  recontext                write “I remember your laugh.”
+ 400.6  drift                    reveal happiest-unneeded
+ 453.0  memory-offer             write “the door, slightly open”
+ 455.4  distant-life             “No — the other one.”
+ 460.9  resurface                write “half a sandwich and the whol”
+ 467.0  music                    music memory
+ 472.5  stray                    write “There's nothing wrong with b”
+ 476.8  accumulate               reveal alone-with-you
+ 482.0  vignette                 vignette come-over
+ 536.8  accumulate               reveal forgot-voice
+ 550.9  stray                    write “We were terrible at board ga”
+ 561.9  resurface                write “half a sandwich and the whol”
+
+# chair seed 2
+  26.6  drift                    reveal together
+  34.3  phase-contradiction      reveal afraid-leave
+  54.5  sit:next-room            (laughter, through the wall)
+  74.6  air                      air closer
+ 114.6  accumulate               reveal laugh-breathe
+ 121.6  drift                    reveal need-no-one
+ 125.8  recontext                reveal lonely-birthday
+ 125.8  recontext                write “I wanted you to stay.”
+ 130.8  stray                    write “Please don't come any closer”
+ 135.6  sit:next-room            (laughter, through the wall)
+ 143.7  held-silence             silence 0.92
+ 185.4  vignette                 vignette five-minutes
+ 242.3  memory-offer             write “the light in the kitchen at ”
+ 244.8  music                    music memory
+ 252.4  phase-transform          reveal kept-company
+ 262.3  phase-transform          silence 0.7
+ 277.3  accumulate               reveal good-day
+ 284.1  stray-held               write “You made me laugh so hard I ”
+ 290.3  chair-nudge              chairNudge
+ 327.7  drift                    reveal board-games
+ 333.5  stray                    write “Did I say it wrong?”
+ 344.1  memory-offer             write “the door, slightly open”
+ 361.1  sit:humming              music tender
+ 406.2  drift                    reveal alone-ok
+ 412.3  distant-life             “I'll be right back.”
+ 416.4  stray                    write “Are you still there?”
+ 422.4  accumulate               reveal summer
+ 432.3  music                    music tender
+ 475.8  vignette                 vignette gone-quiet
+ 516.5  stray                    write “Hold on. Not so tight.”
+ 531.5  distant-life             “Come here.”
+ 540.0  music                    music tender
+ 546.9  drift                    reveal bus-late
+ 590.6  drift                    reveal this-bit
+ 597.0  distant-life             “shh. it’s alright.”
+
+# reader seed 2
+  14.0  accumulate               reveal sandwich
+  22.0  memory-scene             memory-scene cereal
+  75.1  phase-contradiction      reveal afraid-leave
+  87.8  accumulate               reveal laugh-breathe
+  87.8  accumulate               reveal good-day
+  98.8  drift                    reveal angry-cake
+ 106.2  stray                    write “I wanted to be left alone wi”
+ 147.9  drift                    reveal closer
+ 153.1  music                    music memory
+ 160.1  recontext                reveal lonely-birthday
+ 160.1  recontext                write “I wanted you to stay.”
+ 164.3  stray                    write “Please don't come any closer”
+ 172.4  held-silence             silence 0.92
+ 194.1  phase-transform          reveal dog
+ 220.2  drift                    reveal not-so-tight
+ 224.6  stray-held               write “We ate cereal for dinner and”
+ 234.5  sit:humming              (humming)
+ 250.7  vignette                 vignette biscuit
+ 310.7  accumulate               reveal summer
+ 326.4  drift                    reveal some-good
+ 336.6  stray                    write “Did I say it wrong?”
+ 342.9  sit:humming              music tender
+ 396.6  memory-offer             write “the door, slightly open”
+ 399.0  stray                    write “There's nothing wrong with b”
+ 459.0  distant-life             “shh. it’s alright.”
+ 463.5  stray                    write “I love you. Go away.”
+ 469.6  music                    music uneasy
+ 514.0  distant-life             “I'll be right back.”
+ 518.4  accumulate               reveal arm-dead
+ 525.0  drift                    reveal board-games
+ 530.9  stray                    write “Whose idea was the tent?”
+ 537.2  music                    music uneasy
+ 585.0  memory-offer             write “I was happiest when nobody n”
+ 587.6  memory-scene             memory-scene bedroom
+
+# phone seed 1
+  10.1  accumulate               reveal sandwich
+  17.8  accumulate               reveal good-day
+  23.8  accumulate               reveal summer
+  45.7  sit:next-room            (laughter, through the wall)
+  85.8  drift                    reveal arm-dead
+ 120.8  sit:next-room            (laughter, through the wall)
+ 128.9  held-silence             silence 0.92
+ 156.8  phase-transform          reveal some-good
+ 164.9  memory-offer             write “the light in the kitchen at ”
+ 233.5  memory-offer             write “I was happiest when nobody n”
+ 236.1  memory-scene             memory-scene bedroom
+ 289.1  drift                    reveal dog
+ 302.0  recontext                reveal ordinary
+ 302.0  recontext                write “I think I was happy then.”
+ 310.7  music                    music memory
+ 318.6  accumulate               reveal laugh-breathe
+ 324.1  chair-nudge              chairNudge
+ 373.1  accumulate               reveal home
+ 378.9  drift                    reveal not-so-tight
+ 384.0  recontext                reveal dont-want-understood
+ 384.0  recontext                write “Why didn't you understand?”
+ 389.4  stray-held               write “I wanted you to stay.”
+ 401.3  sit:humming              music tender
+ 444.0  memory-offer             redraw good-day
+ 449.4  distant-life             (two voices, next door)
+ 453.5  stray                    write “You laughed at the wrong bit”
+ 456.4  vignette                 vignette five-minutes
+ 513.1  music                    music memory
+ 527.2  recontext                reveal lonely-birthday
+ 527.2  recontext                write “I wanted you to stay.”
+ 538.0  stray                    write “The bus was late and so were”
+ 545.0  drift                    reveal alone-ok
+ 587.2  distant-life             “I'll be right back.”
+ 593.2  accumulate               reveal rain-carpark
+ 598.0  drift                    reveal if-closer
+
+# chair seed 2
+   7.1  return                   reveal remember-me
+  26.6  drift                    reveal together
+  34.3  phase-contradiction      reveal afraid-leave
+  54.5  sit:next-room            (laughter, through the wall)
+  74.6  air                      air closer
+ 114.6  accumulate               reveal laugh-breathe
+ 118.8  drift                    reveal need-no-one
+ 123.8  recontext                reveal lonely-birthday
+ 123.8  recontext                write “I wanted you to stay.”
+ 128.6  stray                    write “Please don't come any closer”
+ 133.6  sit:next-room            (laughter, through the wall)
+ 150.1  memory-offer             write “the light in the kitchen at ”
+ 152.6  vignette                 vignette five-minutes
+ 215.2  drift                    reveal love-go-away
+ 219.6  phase-transform          reveal wrote-walls
+ 228.8  stray-held               write “You made me laugh so hard I ”
+ 229.5  phase-transform          silence 0.7
+ 243.6  accumulate               reveal alone
+ 254.7  resonance:table          silence 0.92
+ 295.8  memory-offer             redraw laugh-breathe
+ 298.2  stray                    write “Hold on. Not so tight.”
+ 302.8  chair-nudge              chairNudge
+ 332.9  sit:humming              music tender
+ 365.9  distant-life             “shh. it’s alright.”
+ 370.0  stray                    write “There's nothing wrong with b”
+ 388.2  chair-nudge              reveal moving-chair
+ 408.3  drift                    reveal not-going
+ 419.1  memory-offer             redraw this-bit
+ 420.7  vignette                 vignette practice
+ 466.4  distant-life             “shh. it’s alright.”
+ 481.4  accumulate               reveal diagonal
+ 489.9  drift                    reveal kitchen-floor
+ 496.8  stray                    write “The bus was late and so were”
+ 547.2  distant-life             “Come here.”
+ 553.6  stray                    write “Whose idea was the tent?”
+ 558.8  music                    music warm
+ 565.7  drift                    reveal size-of-room
+ 597.0  drift                    reveal easier-without
+
+# chair seed 5
+   7.1  return                   reveal remember-me
+  27.1  drift                    reveal look-at-me
+  36.7  phase-contradiction      reveal afraid-leave
+  59.9  sit:next-room            (laughter, through the wall)
+ 102.6  drift                    reveal dont-look
+ 108.0  recontext                reveal lonely-birthday
+ 108.7  recontext                write “I wanted you to stay.”
+ 114.5  music                    music tender
+ 119.7  stray                    write “The bus was late and so were”
+ 141.9  air                      air far-enough
+ 147.3  sit:next-room            (laughter, through the wall)
+ 150.1  memory-offer             write “the light in the kitchen at ”
+ 152.6  vignette                 vignette five-minutes
+ 209.5  drift                    reveal this-bit
+ 219.6  phase-transform          reveal dog
+ 234.2  stray-held               write “You made me laugh so hard I ”
+ 235.2  phase-transform          silence 0.7
+ 249.3  accumulate               reveal sandwich
+ 254.3  stray                    write “I wanted to be left alone wi”
+ 262.3  resonance:table          silence 0.92
+ 293.7  memory-offer             redraw laugh-breathe
+ 296.1  stray                    write “There's nothing wrong with b”
+ 302.9  chair-nudge              chairNudge
+ 314.3  distant-life             “Come here.”
+ 319.4  accumulate               reveal jumper
+ 325.6  sit:humming              music tender
+ 330.5  drift                    reveal alone
+ 385.6  distant-life             “Come here.”
+ 390.6  drift                    reveal together
+ 413.6  stray                    write “Whose idea was the tent?”
+ 418.5  music                    music memory
+ 425.1  chair-nudge              reveal moving-chair
+ 445.6  memory-offer             write “the door, slightly open”
+ 485.1  drift                    reveal love-go-away
+ 491.6  stray                    write “Did I say it wrong?”
+ 509.4  distant-life             “No — the other one.”
+ 516.4  music                    music memory
+ 569.4  drift                    reveal laugh-film
+ 593.1  drift                    reveal kitchen-floor
+ 597.4  stray                    write “Are you angry with me?”

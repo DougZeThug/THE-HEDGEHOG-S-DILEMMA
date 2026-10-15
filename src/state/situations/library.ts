@@ -261,13 +261,14 @@ export const residue: SituationDef = {
     }
     if (st.stage === 'knelt') {
       if (v.distance > 1.6) {
-        c.emit(0, { type: 'glow', x: d.kx, z: d.kz, amount: 0.6, seconds: 40 });
+        c.emit(0, { type: 'glow', x: d.kx, z: d.kz, amount: 0.4, seconds: 40 });
         d.leftAt = h.now;
         c.go('away');
       }
       return;
     }
-    if (st.stage === 'away' && h.now - d.leftAt >= 60 && v.distance < 2.0) {
+    // (Turned while it is out of their view: found turned, never seen turning.)
+    if (st.stage === 'away' && h.now - d.leftAt >= 60 && v.distance < 2.0 && v.chairOutOfViewFor >= 1) {
       c.emit(0, { type: 'chairTurn', x: d.kx, z: d.kz, amount: 0.6 });
       c.end();
     }
