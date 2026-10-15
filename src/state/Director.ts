@@ -521,6 +521,17 @@ export class Director {
     // While a living memory plays, the room waits with it: no silence (a dim would darken the
     // painting), no new line revealed or written.
     if (this.scenes.active && (cue.type === 'silence' || cue.type === 'reveal' || (cue.type === 'write' && rule !== 'memory-offer'))) return false;
+    if (this.scenes.active) {
+      // Nor anything else that would move or appear. What the room had decided on (a drawing, words
+      // in the air, the kitchen's light, a line rubbed out or let go) waits until the memory has
+      // gone (it is already counted as done, so dropping it would lose it); a passing flash, glow,
+      // nudge of the chair or link between lines simply doesn't happen.
+      if (cue.type === 'draw' || cue.type === 'air' || cue.type === 'memory' || cue.type === 'erode' || cue.type === 'hide') {
+        this.queue(4, cue, rule, { major: cue.type === 'air' || cue.type === 'memory' });
+        return false;
+      }
+      if (cue.type === 'flash' || cue.type === 'glow' || cue.type === 'chairNudge' || cue.type === 'chairTurn' || cue.type === 'link' || (cue.type === 'redraw' && rule !== 'memory-offer')) return false;
+    }
     if (cue.type === 'reveal') {
       const cur = this.visible.get(cue.phraseId);
       if (cur && cur.mode === 'shown') return false;

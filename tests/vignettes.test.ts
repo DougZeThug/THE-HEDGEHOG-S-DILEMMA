@@ -238,6 +238,12 @@ describe('the Director and its vignettes', () => {
     // Not even the room finishing its own unfinished line: that waits, still unfinished.
     const fin = { type: 'voice', kind: 'tender', text: 'I wanted you to stay.', caption: '', position: { kind: 'surface', phraseId: 'stay' }, gain: 0.5, phraseId: 'stay', finish: true };
     expect(accept(fin, 'finish-look')).toBe(false);
+    // Nothing moves or appears either: a drawing waits (it is already counted as drawn); a flash is let go.
+    const pending = () => (d as unknown as { scheduler: { pending(): { payload: { cue: { type: string } } }[] } }).scheduler.pending().map((e) => e.payload.cue.type);
+    expect(accept({ type: 'draw', id: 'cups' }, 'draw:cups')).toBe(false);
+    expect(pending()).toContain('draw');
+    expect(accept({ type: 'flash', kind: 'warm', amount: 0.3, seconds: 2 }, 'flash')).toBe(false);
+    expect(pending()).not.toContain('flash');
   });
 
   it('a line the vignette speaks itself is not said by the room first; lines that only open one are', () => {

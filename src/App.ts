@@ -540,6 +540,9 @@ export class App {
 
     if (s === 'complete') {
       this.memoryWindow.release();
+      // Its recordings are let go too (a phone keeps little decoded audio; they load again if it returns).
+      const p = l.memory.prepared;
+      this.voices?.forget(Object.values(p.def.cues(p.variant).cues).map((c) => c.asset).filter((a) => a.startsWith('mem:')));
       l.memory.prepared.dispose();
       this.living = null;
       // Seen: watched past its first moments. It ran to its end if nobody let it go early.
