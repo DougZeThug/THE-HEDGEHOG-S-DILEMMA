@@ -284,4 +284,4 @@ The "ordinary" rule (decision 12) was the cause. 17 of the 36 inputs were direct
 - "all right" counts as "alright" in the transcript check;
 - J's line is "I'm fine." without the exclamation mark.
 
-**Recorded:** two takes per line, at the artist's choice.
+**Recorded:** two takes per line, at the artist's choice: 72 takes, 1,212 credits billed (2,766 estimated). The speech-to-text check flagged one: G's "Sorry. No. Thank you." was heard with "Sorry" said twice. No take is kept yet, and nothing here is claimed to sound right until the artist has listened.
