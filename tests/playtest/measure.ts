@@ -27,6 +27,8 @@ export interface Development {
   /** Writing appeared on the wall the visitor was facing (or anything audible). */
   seen: boolean;
   label: string;
+  /** For a memory: when it ends (its last sound, or its painting gone). */
+  endsAt?: number;
   /** For writing: the surface it appeared on. */
   surface?: Surface;
   /** For a deliberate held silence: when it ends (the quiet inside it is chosen, not a gap). */
@@ -138,8 +140,8 @@ export const WINDOWS = [15, 30, 60, 90, 180];
  * that is there: if the line it would read hasn't been written yet, it reads the nearest line
  * that has on the same wall, or nothing.
  */
-export function visit(p: Persona, seconds: number, seed: number, dt = 0.1): VisitResult {
-  const d = new Director({ seed });
+export function visit(p: Persona, seconds: number, seed: number, dt = 0.1, past: { visits?: number; memoryCounts?: Record<string, number> } = {}): VisitResult {
+  const d = new Director({ seed, ...past });
   d.release({ written: OPENING_WRITTEN, spoken: OPENING_SPOKEN, unfinished: OPENING_UNFINISHED });
   const devs: Development[] = [];
   let interruptions = 0;
@@ -198,10 +200,11 @@ export function visit(p: Persona, seconds: number, seed: number, dt = 0.1): Visi
       if (!k) continue;
       devs.push({
         t: +(t + dt).toFixed(1), rule: c.rule, kind: k.kind, recorded: k.recorded, label: k.label, surface: k.surface,
+        endsAt: c.cue.type === 'memory-scene' ? t + dt + Math.min(c.cue.maxHold, 22) + 6 : c.cue.type === 'vignette' ? t + dt + vignetteSpan(c.cue.id, c.cue.variant) + 2.7 : undefined,
         responsive: RESPONSIVE.test(c.rule),
         seen: k.kind !== 'text' || !k.surface || k.surface === facing || k.surface === 'floor' || (k.surface === 'ceiling' && f.pitch > 0.4),
         holdUntil:
-          (c.rule === 'held-silence' || c.rule === 'still-silence') && c.cue.type === 'silence'
+          (c.rule === 'held-silence' || c.rule === 'still-silence' || c.rule === 'resonance:table') && c.cue.type === 'silence'
             ? t + dt + c.cue.seconds
             : c.cue.type === 'memory-scene'
               ? t + dt + Math.min(c.cue.maxHold, 22) + 6
@@ -246,7 +249,7 @@ function readable(d: Director, id: string | null, facing: Surface, writtenOn: Ma
 }
 
 /** Developments that count as something happening (a dip in the room tone alone does not — unless it is the room deliberately holding back). */
-const DELIBERATE = new Set(['withhold', 'held-silence', 'still-silence']);
+const DELIBERATE = new Set(['withhold', 'held-silence', 'still-silence', 'resonance:table']);
 export const meaningful = (x: Development) => x.kind !== 'silence' || DELIBERATE.has(x.rule);
 /** …and that the visitor could actually see or hear. */
 export const perceptible = (x: Development) => meaningful(x) && x.seen;

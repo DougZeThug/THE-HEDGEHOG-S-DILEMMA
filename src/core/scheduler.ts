@@ -11,6 +11,8 @@ export interface ScheduledEvent<T> {
   at: number;
   payload: T;
   major: boolean;
+  /** Of the room's own accord (not answering the visitor): spaced by `roomGap`. */
+  room: boolean;
   priority: number;
   /** Drop the event if it cannot fire before this time. */
   expires?: number;
@@ -19,6 +21,7 @@ export interface ScheduledEvent<T> {
 
 export interface ScheduleOptions {
   major?: boolean;
+  room?: boolean;
   priority?: number;
   /** Seconds after `at` the event may still fire if deferred. */
   ttl?: number;
@@ -30,11 +33,13 @@ export class EventScheduler<T> {
   private queue: ScheduledEvent<T>[] = [];
   private nextId = 1;
   private lastMajorAt = -Infinity;
+  private lastRoomAt = -Infinity;
   private cooldowns = new Map<string, number>();
   /** Events that expired (could not fire in time) on the last tick. */
   expired: T[] = [];
 
-  constructor(public majorGap = 7) {}
+  /** Never two of the room's own events at once: the next is kept until this many seconds have passed. */
+  constructor(public majorGap = 7, public roomGap = 2.5) {}
 
   schedule(at: number, payload: T, opts: ScheduleOptions = {}): number {
     if (opts.key) this.cancelKey(opts.key);
@@ -43,6 +48,7 @@ export class EventScheduler<T> {
       at,
       payload,
       major: !!opts.major,
+      room: !!opts.room,
       priority: opts.priority ?? 0,
       expires: opts.ttl !== undefined ? at + opts.ttl : undefined,
       key: opts.key,
@@ -109,6 +115,13 @@ export class EventScheduler<T> {
           continue;
         }
         this.lastMajorAt = now;
+      }
+      if (ev.room) {
+        if (now - this.lastRoomAt < this.roomGap) {
+          keep.push(ev);
+          continue;
+        }
+        this.lastRoomAt = now;
       }
       out.push(ev.payload);
     }

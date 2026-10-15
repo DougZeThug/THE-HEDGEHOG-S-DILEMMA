@@ -52,6 +52,9 @@ export interface ApproachRecord {
   enteredAt: number;
   leftAt: number | null;
   dwell: number;
+  /** They stopped there (still 2 s), and looked at the chair (1.5 s): not just passing. */
+  paused: boolean;
+  looked: boolean;
 }
 
 export class VisitorModel {
@@ -160,7 +163,7 @@ export class VisitorModel {
       this.near = true;
       this.nearSince = this.t;
       this.lastApproachAt = this.t;
-      this.approaches.push({ enteredAt: this.t, leftAt: null, dwell: 0 });
+      this.approaches.push({ enteredAt: this.t, leftAt: null, dwell: 0, paused: false, looked: false });
       this.armedWithdraw = false;
     } else if (this.near && this.distance > BANDS.near + 0.25) {
       this.near = false;
@@ -240,6 +243,13 @@ export class VisitorModel {
       this.gazeChairFor += dt;
       this.totalChairGaze += dt;
     } else this.gazeChairFor = 0;
+    if (this.near) {
+      const rec = this.approaches[this.approaches.length - 1];
+      if (rec) {
+        if (this.stillFor >= 2) rec.paused = true;
+        if (this.gazeChairFor >= 1.5) rec.looked = true;
+      }
+    }
     this.gazeChair = inp.gazeChair;
   }
 

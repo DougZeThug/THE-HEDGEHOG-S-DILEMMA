@@ -143,6 +143,12 @@ export class Ambience {
     this.started = true;
   }
 
+  /** After a memory: nothing passes outside and the drone keeps its chord until `until` (room time). */
+  hold(until: number) {
+    this.nextSwell = Math.max(this.nextSwell, until + 4);
+    this.nextChord = Math.max(this.nextChord, until + 8);
+  }
+
   update(_dt: number, env: Environment, t: number) {
     if (!this.started) return;
     const a = this.a;

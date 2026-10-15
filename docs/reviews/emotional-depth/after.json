@@ -1,0 +1,971 @@
+{
+ "seconds": 600,
+ "seeds": [
+  1,
+  2,
+  3,
+  4,
+  5,
+  6,
+  7,
+  8
+ ],
+ "journeys": [
+  {
+   "persona": "still",
+   "seed": 1,
+   "encounters": [
+    "bedroom",
+    "washing-up"
+   ],
+   "quietAfter": [
+    25.2,
+    25
+   ],
+   "diluted": [
+    2,
+    1
+   ],
+   "consequences": [],
+   "leaving": "apart"
+  },
+  {
+   "persona": "still",
+   "seed": 2,
+   "encounters": [
+    "back-seat",
+    "a-bag"
+   ],
+   "quietAfter": [
+    25,
+    25
+   ],
+   "diluted": [
+    1,
+    1
+   ],
+   "consequences": [],
+   "leaving": "apart"
+  },
+  {
+   "persona": "still",
+   "seed": 3,
+   "encounters": [
+    "practice"
+   ],
+   "quietAfter": [
+    25
+   ],
+   "diluted": [
+    1
+   ],
+   "consequences": [],
+   "leaving": "apart"
+  },
+  {
+   "persona": "still",
+   "seed": 4,
+   "encounters": [
+    "a-bag"
+   ],
+   "quietAfter": [
+    25
+   ],
+   "diluted": [
+    1
+   ],
+   "consequences": [],
+   "leaving": "apart"
+  },
+  {
+   "persona": "still",
+   "seed": 5,
+   "encounters": [
+    "practice"
+   ],
+   "quietAfter": [
+    40
+   ],
+   "diluted": [
+    0
+   ],
+   "consequences": [],
+   "leaving": "apart"
+  },
+  {
+   "persona": "still",
+   "seed": 6,
+   "encounters": [
+    "bedroom",
+    "washing-up",
+    "come-over"
+   ],
+   "quietAfter": [
+    25.2,
+    25,
+    25
+   ],
+   "diluted": [
+    2,
+    1,
+    1
+   ],
+   "consequences": [],
+   "leaving": "apart"
+  },
+  {
+   "persona": "still",
+   "seed": 7,
+   "encounters": [
+    "practice"
+   ],
+   "quietAfter": [
+    25
+   ],
+   "diluted": [
+    1
+   ],
+   "consequences": [],
+   "leaving": "apart"
+  },
+  {
+   "persona": "still",
+   "seed": 8,
+   "encounters": [
+    "bedroom"
+   ],
+   "quietAfter": [
+    25.2
+   ],
+   "diluted": [
+    2
+   ],
+   "consequences": [],
+   "leaving": "apart"
+  },
+  {
+   "persona": "explorer",
+   "seed": 1,
+   "encounters": [
+    "cereal",
+    "biscuit",
+    "come-over"
+   ],
+   "quietAfter": [
+    32.1,
+    25.2,
+    25
+   ],
+   "diluted": [
+    0,
+    1,
+    1
+   ],
+   "consequences": [],
+   "leaving": null
+  },
+  {
+   "persona": "explorer",
+   "seed": 2,
+   "encounters": [
+    "come-over",
+    "biscuit"
+   ],
+   "quietAfter": [
+    37.3,
+    25
+   ],
+   "diluted": [
+    0,
+    1
+   ],
+   "consequences": [],
+   "leaving": null
+  },
+  {
+   "persona": "explorer",
+   "seed": 3,
+   "encounters": [
+    "biscuit",
+    "door",
+    "come-over"
+   ],
+   "quietAfter": [
+    25,
+    25,
+    25
+   ],
+   "diluted": [
+    1,
+    1,
+    1
+   ],
+   "consequences": [],
+   "leaving": null
+  },
+  {
+   "persona": "explorer",
+   "seed": 4,
+   "encounters": [
+    "cereal",
+    "come-over",
+    "biscuit"
+   ],
+   "quietAfter": [
+    32.1,
+    35.3,
+    30.4
+   ],
+   "diluted": [
+    0,
+    0,
+    0
+   ],
+   "consequences": [],
+   "leaving": null
+  },
+  {
+   "persona": "explorer",
+   "seed": 5,
+   "encounters": [
+    "biscuit",
+    "door",
+    "come-over"
+   ],
+   "quietAfter": [
+    25,
+    25,
+    29.4
+   ],
+   "diluted": [
+    1,
+    1,
+    1
+   ],
+   "consequences": [],
+   "leaving": null
+  },
+  {
+   "persona": "explorer",
+   "seed": 6,
+   "encounters": [
+    "come-over",
+    "biscuit"
+   ],
+   "quietAfter": [
+    25,
+    25.3
+   ],
+   "diluted": [
+    1,
+    1
+   ],
+   "consequences": [],
+   "leaving": null
+  },
+  {
+   "persona": "explorer",
+   "seed": 7,
+   "encounters": [
+    "come-over",
+    "biscuit"
+   ],
+   "quietAfter": [
+    37.3,
+    25
+   ],
+   "diluted": [
+    0,
+    1
+   ],
+   "consequences": [],
+   "leaving": null
+  },
+  {
+   "persona": "explorer",
+   "seed": 8,
+   "encounters": [
+    "come-over",
+    "biscuit"
+   ],
+   "quietAfter": [
+    46.8,
+    35
+   ],
+   "diluted": [
+    0,
+    0
+   ],
+   "consequences": [],
+   "leaving": null
+  },
+  {
+   "persona": "chair",
+   "seed": 1,
+   "encounters": [
+    "five-minutes"
+   ],
+   "quietAfter": [
+    25.2
+   ],
+   "diluted": [
+    1
+   ],
+   "consequences": [
+    {
+     "rule": "sit:residue",
+     "t": 42.5,
+     "perceived": true
+    },
+    {
+     "rule": "sit:residue",
+     "t": 102.6,
+     "perceived": true
+    }
+   ],
+   "leaving": "close"
+  },
+  {
+   "persona": "chair",
+   "seed": 2,
+   "encounters": [
+    "five-minutes",
+    "gone-quiet"
+   ],
+   "quietAfter": [
+    25.2,
+    30.3
+   ],
+   "diluted": [
+    1,
+    0
+   ],
+   "consequences": [
+    {
+     "rule": "sit:residue",
+     "t": 42.5,
+     "perceived": true
+    },
+    {
+     "rule": "sit:residue",
+     "t": 102.6,
+     "perceived": true
+    }
+   ],
+   "leaving": "close"
+  },
+  {
+   "persona": "chair",
+   "seed": 3,
+   "encounters": [
+    "five-minutes"
+   ],
+   "quietAfter": [
+    25.2
+   ],
+   "diluted": [
+    2
+   ],
+   "consequences": [
+    {
+     "rule": "sit:residue",
+     "t": 42.5,
+     "perceived": true
+    },
+    {
+     "rule": "sit:residue",
+     "t": 102.6,
+     "perceived": true
+    }
+   ],
+   "leaving": "close"
+  },
+  {
+   "persona": "chair",
+   "seed": 4,
+   "encounters": [
+    "five-minutes",
+    "gone-quiet"
+   ],
+   "quietAfter": [
+    25.2,
+    25
+   ],
+   "diluted": [
+    1,
+    1
+   ],
+   "consequences": [
+    {
+     "rule": "sit:residue",
+     "t": 42.5,
+     "perceived": true
+    },
+    {
+     "rule": "sit:residue",
+     "t": 102.6,
+     "perceived": true
+    }
+   ],
+   "leaving": "close"
+  },
+  {
+   "persona": "chair",
+   "seed": 5,
+   "encounters": [
+    "five-minutes",
+    "gone-quiet"
+   ],
+   "quietAfter": [
+    35.3,
+    25
+   ],
+   "diluted": [
+    0,
+    1
+   ],
+   "consequences": [
+    {
+     "rule": "sit:residue",
+     "t": 42.5,
+     "perceived": true
+    },
+    {
+     "rule": "sit:residue",
+     "t": 102.6,
+     "perceived": true
+    }
+   ],
+   "leaving": "close"
+  },
+  {
+   "persona": "chair",
+   "seed": 6,
+   "encounters": [
+    "five-minutes",
+    "gone-quiet"
+   ],
+   "quietAfter": [
+    25.2,
+    25
+   ],
+   "diluted": [
+    1,
+    1
+   ],
+   "consequences": [
+    {
+     "rule": "sit:residue",
+     "t": 42.5,
+     "perceived": true
+    },
+    {
+     "rule": "sit:residue",
+     "t": 102.6,
+     "perceived": true
+    }
+   ],
+   "leaving": "close"
+  },
+  {
+   "persona": "chair",
+   "seed": 7,
+   "encounters": [
+    "five-minutes",
+    "biscuit",
+    "back-seat"
+   ],
+   "quietAfter": [
+    25.2,
+    25,
+    21.4
+   ],
+   "diluted": [
+    1,
+    1,
+    0
+   ],
+   "consequences": [
+    {
+     "rule": "sit:residue",
+     "t": 42.5,
+     "perceived": true
+    },
+    {
+     "rule": "sit:residue",
+     "t": 102.6,
+     "perceived": true
+    }
+   ],
+   "leaving": "close"
+  },
+  {
+   "persona": "chair",
+   "seed": 8,
+   "encounters": [
+    "five-minutes",
+    "gone-quiet"
+   ],
+   "quietAfter": [
+    25.2,
+    35.7
+   ],
+   "diluted": [
+    2,
+    0
+   ],
+   "consequences": [
+    {
+     "rule": "sit:residue",
+     "t": 42.5,
+     "perceived": true
+    },
+    {
+     "rule": "sit:residue",
+     "t": 102.6,
+     "perceived": true
+    }
+   ],
+   "leaving": "close"
+  },
+  {
+   "persona": "reader",
+   "seed": 1,
+   "encounters": [
+    "biscuit"
+   ],
+   "quietAfter": [
+    26
+   ],
+   "diluted": [
+    1
+   ],
+   "consequences": [],
+   "leaving": null
+  },
+  {
+   "persona": "reader",
+   "seed": 2,
+   "encounters": [
+    "cereal",
+    "practice",
+    "biscuit"
+   ],
+   "quietAfter": [
+    25.1,
+    25.2,
+    25
+   ],
+   "diluted": [
+    2,
+    1,
+    1
+   ],
+   "consequences": [
+    {
+     "rule": "resonance:table",
+     "t": 134.7,
+     "perceived": true
+    }
+   ],
+   "leaving": null
+  },
+  {
+   "persona": "reader",
+   "seed": 3,
+   "encounters": [
+    "cereal",
+    "biscuit",
+    "bedroom"
+   ],
+   "quietAfter": [
+    25.1,
+    25.2,
+    1.4
+   ],
+   "diluted": [
+    2,
+    1,
+    0
+   ],
+   "consequences": [
+    {
+     "rule": "resonance:table",
+     "t": 134.7,
+     "perceived": true
+    }
+   ],
+   "leaving": null
+  },
+  {
+   "persona": "reader",
+   "seed": 4,
+   "encounters": [
+    "cereal",
+    "biscuit",
+    "practice"
+   ],
+   "quietAfter": [
+    25.1,
+    32.1,
+    25
+   ],
+   "diluted": [
+    2,
+    0,
+    1
+   ],
+   "consequences": [
+    {
+     "rule": "resonance:table",
+     "t": 134.7,
+     "perceived": true
+    }
+   ],
+   "leaving": null
+  },
+  {
+   "persona": "reader",
+   "seed": 5,
+   "encounters": [
+    "cereal",
+    "practice",
+    "biscuit"
+   ],
+   "quietAfter": [
+    25.1,
+    25.2,
+    25
+   ],
+   "diluted": [
+    2,
+    1,
+    1
+   ],
+   "consequences": [
+    {
+     "rule": "resonance:table",
+     "t": 137.3,
+     "perceived": true
+    }
+   ],
+   "leaving": null
+  },
+  {
+   "persona": "reader",
+   "seed": 6,
+   "encounters": [
+    "cereal",
+    "gone-quiet",
+    "biscuit"
+   ],
+   "quietAfter": [
+    25.1,
+    25,
+    30.1
+   ],
+   "diluted": [
+    2,
+    1,
+    0
+   ],
+   "consequences": [
+    {
+     "rule": "resonance:table",
+     "t": 134.7,
+     "perceived": true
+    }
+   ],
+   "leaving": null
+  },
+  {
+   "persona": "reader",
+   "seed": 7,
+   "encounters": [
+    "cereal",
+    "biscuit",
+    "door"
+   ],
+   "quietAfter": [
+    25.1,
+    35.5,
+    26
+   ],
+   "diluted": [
+    1,
+    0,
+    1
+   ],
+   "consequences": [
+    {
+     "rule": "resonance:table",
+     "t": 134.7,
+     "perceived": true
+    }
+   ],
+   "leaving": null
+  },
+  {
+   "persona": "reader",
+   "seed": 8,
+   "encounters": [
+    "cereal",
+    "biscuit",
+    "come-over",
+    "door"
+   ],
+   "quietAfter": [
+    27.7,
+    41.4,
+    25,
+    25
+   ],
+   "diluted": [
+    1,
+    0,
+    1,
+    1
+   ],
+   "consequences": [
+    {
+     "rule": "resonance:table",
+     "t": 141.8,
+     "perceived": true
+    }
+   ],
+   "leaving": null
+  },
+  {
+   "persona": "phone",
+   "seed": 1,
+   "encounters": [
+    "bedroom",
+    "five-minutes"
+   ],
+   "quietAfter": [
+    26.3,
+    25
+   ],
+   "diluted": [
+    1,
+    1
+   ],
+   "consequences": [
+    {
+     "rule": "sit:residue",
+     "t": 119.2,
+     "perceived": false
+    },
+    {
+     "rule": "sit:residue",
+     "t": 179.3,
+     "perceived": false
+    }
+   ],
+   "leaving": "close"
+  },
+  {
+   "persona": "phone",
+   "seed": 2,
+   "encounters": [
+    "five-minutes",
+    "door"
+   ],
+   "quietAfter": [
+    25,
+    25
+   ],
+   "diluted": [
+    1,
+    1
+   ],
+   "consequences": [
+    {
+     "rule": "sit:residue",
+     "t": 119.2,
+     "perceived": false
+    },
+    {
+     "rule": "sit:residue",
+     "t": 179.3,
+     "perceived": false
+    }
+   ],
+   "leaving": "close"
+  },
+  {
+   "persona": "phone",
+   "seed": 3,
+   "encounters": [
+    "bedroom",
+    "door"
+   ],
+   "quietAfter": [
+    25,
+    60.5
+   ],
+   "diluted": [
+    2,
+    0
+   ],
+   "consequences": [
+    {
+     "rule": "sit:residue",
+     "t": 119.2,
+     "perceived": false
+    },
+    {
+     "rule": "sit:residue",
+     "t": 179.3,
+     "perceived": false
+    }
+   ],
+   "leaving": "close"
+  },
+  {
+   "persona": "phone",
+   "seed": 4,
+   "encounters": [
+    "come-over",
+    "five-minutes"
+   ],
+   "quietAfter": [
+    25,
+    25
+   ],
+   "diluted": [
+    1,
+    1
+   ],
+   "consequences": [
+    {
+     "rule": "sit:residue",
+     "t": 119.2,
+     "perceived": false
+    },
+    {
+     "rule": "sit:residue",
+     "t": 179.3,
+     "perceived": false
+    }
+   ],
+   "leaving": "close"
+  },
+  {
+   "persona": "phone",
+   "seed": 5,
+   "encounters": [
+    "come-over",
+    "five-minutes"
+   ],
+   "quietAfter": [
+    25,
+    25
+   ],
+   "diluted": [
+    1,
+    1
+   ],
+   "consequences": [
+    {
+     "rule": "sit:residue",
+     "t": 119.2,
+     "perceived": false
+    },
+    {
+     "rule": "sit:residue",
+     "t": 179.3,
+     "perceived": false
+    }
+   ],
+   "leaving": "close"
+  },
+  {
+   "persona": "phone",
+   "seed": 6,
+   "encounters": [
+    "come-over"
+   ],
+   "quietAfter": [
+    25
+   ],
+   "diluted": [
+    2
+   ],
+   "consequences": [
+    {
+     "rule": "sit:residue",
+     "t": 119.2,
+     "perceived": false
+    },
+    {
+     "rule": "sit:residue",
+     "t": 179.3,
+     "perceived": false
+    }
+   ],
+   "leaving": "close"
+  },
+  {
+   "persona": "phone",
+   "seed": 7,
+   "encounters": [
+    "bedroom",
+    "five-minutes"
+   ],
+   "quietAfter": [
+    25,
+    25
+   ],
+   "diluted": [
+    1,
+    1
+   ],
+   "consequences": [
+    {
+     "rule": "sit:residue",
+     "t": 119.2,
+     "perceived": false
+    },
+    {
+     "rule": "sit:residue",
+     "t": 179.3,
+     "perceived": false
+    }
+   ],
+   "leaving": "close"
+  },
+  {
+   "persona": "phone",
+   "seed": 8,
+   "encounters": [
+    "bedroom",
+    "come-over",
+    "five-minutes"
+   ],
+   "quietAfter": [
+    30.5,
+    25,
+    35
+   ],
+   "diluted": [
+    0,
+    2,
+    0
+   ],
+   "consequences": [
+    {
+     "rule": "sit:residue",
+     "t": 119.2,
+     "perceived": false
+    },
+    {
+     "rule": "sit:residue",
+     "t": 179.3,
+     "perceived": false
+    }
+   ],
+   "leaving": "close"
+  }
+ ]
+}

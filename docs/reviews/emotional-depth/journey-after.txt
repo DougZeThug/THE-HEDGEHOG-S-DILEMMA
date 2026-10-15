@@ -1,0 +1,22 @@
+| persona | encounters / visit | quiet after a memory (median s) | room events ≤30 s after (mean) | consequences (perceived) | left the chair |
+|---|---|---|---|---|---|
+| still | 1.50 | 25 | 1.17 | 0 (0) | apart 8 |
+| explorer | 2.50 | 25.2 | 0.60 | 0 (0) | — 8 |
+| chair | 1.88 | 25.2 | 0.87 | 16 (16) | close 8 |
+| reader | 2.88 | 25.1 | 1.00 | 7 (7) | — 8 |
+| phone | 2.00 | 25 | 1.00 | 16 (0) | close 8 |
+| all | 2.15 | 25.1 | 0.91 | 39 (23) | |
+
+consequences by rule (fired, perceived): {"sit:residue":[32,16],"resonance:table":[7,7]}
+
+## Second visit (cereal and the biscuit heard before): RETURN=1
+| persona | encounters / visit | quiet after a memory (median s) | room events ≤30 s after (mean) | consequences (perceived) | left the chair |
+|---|---|---|---|---|---|
+| still | 1.00 | 25 | 1.50 | 0 (0) | apart 8 |
+| explorer | 2.50 | 25 | 0.95 | 1 (1) | — 8 |
+| chair | 2.00 | 26 | 0.50 | 23 (23) | close 8 |
+| reader | 2.63 | 25.1 | 0.86 | 8 (8) | — 8 |
+| phone | 2.38 | 25 | 0.84 | 24 (8) | close 8 |
+| all | 2.10 | 25 | 0.87 | 56 (40) | |
+
+consequences by rule (fired, perceived): {"echo:charger":[1,1],"sit:residue":[32,16],"resonance:table":[23,23]}

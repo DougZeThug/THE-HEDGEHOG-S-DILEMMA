@@ -125,7 +125,7 @@ export interface Echo {
   after: [number, number];
   when?: { notFacing?: boolean; nearChair?: boolean; facing?: Surface };
   /** Written on a wall (in another hand, faint), or heard (a line, or a sound). */
-  write?: { text: string; hand: 'faint' | 'pencil' | 'pen'; size: 'xs' | 's'; beside?: string; otherWall?: boolean; strike?: boolean };
+  write?: { text: string; hand: 'faint' | 'pencil' | 'pen'; size: 'xs' | 's'; beside?: string; otherWall?: boolean; strike?: boolean; atDoor?: boolean };
   voice?: { line: string; place: 'chair' | 'beyond' | 'behind'; stopAfter?: number; caption?: string; asLaugh?: boolean };
 }
 

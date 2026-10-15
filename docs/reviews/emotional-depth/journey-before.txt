@@ -1,0 +1,10 @@
+| persona | encounters / visit | quiet after a memory (median s) | room events ≤30 s after (mean) | consequences (perceived) |
+|---|---|---|---|---|
+| still | 1.13 | 6 | 3.56 | 0 (0) |
+| explorer | 3.13 | 11.4 | 3.80 | 2 (2) |
+| chair | 1.88 | 6.2 | 3.80 | 16 (16) |
+| reader | 2.88 | 9 | 3.04 | 0 (0) |
+| phone | 2.00 | 6 | 3.81 | 16 (0) |
+| all | 2.20 | 6.2 | 3.58 | 34 (18) |
+
+consequences by rule (fired, perceived): {"echo:charger":[2,2],"sit:residue":[32,16]}

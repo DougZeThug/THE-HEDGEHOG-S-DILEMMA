@@ -84,6 +84,8 @@ export type Cue =
    * `dimSeconds` (the room's own light, the sky and the fixture down to `dim`), as at the start of the visit.
    */
   | { type: 'silence'; depth: number; seconds: number; dim?: number; dimSeconds?: number }
+  /** A held silence ends early (the visitor moved away): the room's sound and light come back. */
+  | { type: 'lift'; seconds: number }
   | { type: 'chairNudge'; dx: number; dz: number; dyaw: number }
   /** Turn the chair a fraction of the way toward a point (chair-relative metres). */
   | { type: 'chairTurn'; x: number; z: number; amount: number }
