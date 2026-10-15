@@ -107,7 +107,9 @@ describe('the vignettes, as written', () => {
     expect(chooseVariant(car, { ...base, seen: 0 })).toBe('first');
     expect(chooseVariant(car, { ...base, seen: 0, motifs: ['distance'] })).toBe('pause');
     const party = VIGNETTES.find((v) => v.id === 'gone-quiet')!;
-    expect(chooseVariant(party, { ...base, seen: 0, withdrew: true })).toBe('nobody');
+    // "Nobody even asks" is the second time: never a first meeting, whatever the visitor did.
+    expect(chooseVariant(party, { ...base, seen: 0, withdrew: true })).toBe('first');
+    expect(chooseVariant(party, { ...base, seen: 1 })).toBe('nobody');
   });
 
   it('its everyday sounds are made in the engine: real samples, within level, nothing a phone can\'t play', () => {
@@ -192,6 +194,12 @@ describe('when a vignette opens', () => {
     const k = new MemoryDirector();
     const withKitchen = [offer(k, 400, true), offer(k, 401, true), offer(k, 402, true)].filter(Boolean).map((x) => x!.id);
     expect(withKitchen.filter((id) => VIGNETTE_MEMORIES.some((v) => v.id === id)).length).toBeLessThanOrEqual(1);
+    // Far enough apart that only the cap can refuse: the third vignette offer never comes.
+    const c = new MemoryDirector();
+    c.setAvailable(null);
+    const all = [400, 540, 680, 820, 960].map((t) => offer(c, t)).filter(Boolean).map((x) => x!.id);
+    // (The bedroom's offer counts too: two in all, and none after.)
+    expect(all.filter((id) => VIGNETTE_MEMORIES.some((v) => v.id === id)).length + all.filter((id) => id === 'bedroom').length).toBe(2);
   });
 
   it('what it leaves comes back later only if it was heard, and never after the visitor has gone', () => {
@@ -238,7 +246,7 @@ describe('the Director and its vignettes', () => {
   });
 });
 
-import { wordBand, recedeAt } from '../src/world/WallText';
+import { wordBand, recedeStep, type RecedeState } from '../src/world/WallText';
 
 describe('what a vignette leaves on the walls', () => {
   it("a lost word's band runs from halfway into the gap before it to halfway into the gap after", () => {
@@ -255,17 +263,86 @@ describe('what a vignette leaves on the walls', () => {
     expect(wordBand(words, 4, 3)[1]).toBeGreaterThan(1);
   });
 
-  it('receding writing is whole from across the room and withdraws as one comes close', () => {
-    expect(recedeAt(1, 4)).toBe(0);
-    expect(recedeAt(1, 3.2)).toBe(0);
-    expect(recedeAt(1, 2.2)).toBeGreaterThan(0.3);
-    expect(recedeAt(1, 1.2)).toBe(1);
-    expect(recedeAt(0.5, 1)).toBe(0.5);
+  it('receding writing answers being come close to: a beat, a withdrawal, a slow and reluctant return', () => {
+    let r: RecedeState = { amount: 1, k: 0, near: 0, far: 0, away: false, once: false };
+    const walk = (dist: number, secs: number) => {
+      for (let t = 0; t < secs; t += 0.05) r = recedeStep(r, dist, 0.05);
+      return r.k;
+    };
+    expect(walk(2, 10)).toBe(0); // reading from 2 m: whole
+    expect(walk(1.4, 0.5)).toBe(0); // not at once
+    expect(walk(1.4, 2.5)).toBeGreaterThan(0.4); // the first time slowly
+    expect(walk(1.4, 10)).toBeGreaterThan(0.95);
+    expect(walk(2.3, 10)).toBeGreaterThan(0.95); // a step back is not enough
+    expect(walk(3, 1.4)).toBeGreaterThan(0.95); // nor a moment further
+    expect(walk(3, 3)).toBeLessThan(0.6);
+    walk(3, 20);
+    walk(1.4, 0.6);
+    expect(walk(1.4, 2)).toBeGreaterThan(0.75); // afterwards it goes more readily
   });
 
   it("J's return takes 'loneliest' from its line, which is there to lose it", () => {
     const party = VIGNETTES.find((v) => v.id === 'gone-quiet')!;
     const lose = party.variants.nobody.events.find((e) => 'fx' in e && e.fx.kind === 'loseWord');
     expect(lose && 'fx' in lose && lose.fx.kind === 'loseWord' && PHRASE_BY_ID.get(lose.fx.phraseId)!.text.split(/\s+/)).toContain(lose && 'fx' in lose && lose.fx.kind === 'loseWord' ? lose.fx.word : '');
+  });
+});
+
+describe('ending without being heard', () => {
+  it('a vignette unseen twice is spent for the visit, but not counted and leaves nothing behind', () => {
+    const m = new MemoryDirector();
+    read(m, 'ordinary', 160);
+    expect(m.ended('charger', 170, false, false)).toBe(false);
+    read(m, 'ordinary', 210);
+    expect(m.ended('charger', 220, false, false)).toBe(false);
+    expect(m.dueEchoes(400)).toHaveLength(0);
+    expect(read(m, 'ordinary', 400)).toBeNull();
+  });
+
+  it("the chair's claim on the room's kneeling voice starts only when its vignette could", () => {
+    const m = new MemoryDirector();
+    expect(m.claimsChair(30)).toBe(false);
+    expect(m.claimsChair(200, (id) => id !== 'stay')).toBe(false);
+    expect(m.claimsChair(200)).toBe(true);
+  });
+});
+
+import { readingTake } from '../src/content/vignettes';
+import { voicedGain } from '../src/audio/Voices';
+
+describe('after the evaluation', () => {
+  it("five minutes' heard-before version is heard once: after that the chair is the room's again", () => {
+    const m = new MemoryDirector({ 'five-minutes': 2 });
+    m.setAvailable(new Set());
+    expect(m.update(state({ now: 200, chairDistance: 0.8, stillFor: 9 }))).toBeNull();
+    expect(m.claimsChair(200)).toBe(false);
+  });
+
+  it('a version asks for a reading by name; any kept reading stands in if that one was not kept', () => {
+    const files = ['vignettes/back-seat--no--tired.mp3', 'vignettes/back-seat--no--quick-b.mp3'];
+    expect(readingTake(files, 'quick')).toBe(1);
+    expect(readingTake(files, 'tired')).toBe(0);
+    expect(readingTake(files, 'fond')).toBeUndefined();
+    const def = VIGNETTES.find((v) => v.id === 'back-seat')!;
+    const sheet = toCueSheet(def, def.variants.first, undefined, (k) => (k === 'vig:back-seat:no' ? files : []));
+    const no = Object.entries(sheet.cues).find(([k]) => k.startsWith('voice:no@'))![1];
+    expect(no.take).toBe(1);
+  });
+
+  it("the one remembering is heard straight ahead, never at one ear (only the rehearsed call is held to it)", () => {
+    for (const v of VIGNETTES)
+      for (const s of Object.values(v.variants))
+        for (const e of s.events) if ('line' in e && e.place.at === 'close') expect(v.id).toBe('practice');
+  });
+
+  it('spoken lines are levelled by the voiced part: a short word with silence round it is not boosted for the silence', () => {
+    const rate = 8000;
+    const make = (voiced: number, total: number) => {
+      const d = new Float32Array(rate * total);
+      for (let i = 0; i < rate * voiced; i++) d[i] = 0.1 * Math.sin(i * 0.3);
+      return { sampleRate: rate, getChannelData: () => d } as unknown as AudioBuffer;
+    };
+    const word = voicedGain(make(0.4, 3)), sentence = voicedGain(make(2.8, 3));
+    expect(Math.abs(20 * Math.log10(word / sentence))).toBeLessThan(0.5);
   });
 });

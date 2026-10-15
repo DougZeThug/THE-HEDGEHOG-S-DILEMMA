@@ -32,13 +32,14 @@ const report = { at: new Date().toISOString(), runs: [] };
 let failed = 0;
 
 async function open(profile, id, variant) {
+  // (id null: no preview; the test starts one itself, as the Director would.)
   const opts = profile === 'phone' ? { ...devices['iPhone 13'], deviceScaleFactor: 1 } : { viewport: { width: 1280, height: 800 } };
   const ctx = await browser.newContext({ ...opts, reducedMotion: process.env.REDUCED ? 'reduce' : 'no-preference' });
   const page = await ctx.newPage();
   const errors = [];
   page.on('pageerror', (e) => errors.push(String(e)));
   page.on('console', (m) => m.type() === 'error' && !/Failed to load resource/.test(m.text()) && errors.push(m.text()));
-  await page.goto(`${BASE}?seed=7&vignette=${id}&variant=${variant}`);
+  await page.goto(id ? `${BASE}?seed=7&vignette=${id}&variant=${variant}` : `${BASE}?seed=7`);
   await page.waitForFunction(() => !document.getElementById('enter').disabled, null, { timeout: 120000 });
   await page.click('#enter');
   await page.waitForFunction(() => (window.__hedgehog.score?.t ?? 0) > 2, null, { timeout: 60000 });
@@ -76,6 +77,9 @@ for (const def of DATA.vignettes) {
       const s1 = await state(page);
       const caps = await page.evaluate(() => window.__caps);
       const spoken = caps.filter((c) => !/sound/.test(c.cls)).map((c) => c.text);
+      const sounds = caps.filter((c) => /sound/.test(c.cls)).map((c) => c.text);
+      // Every scored sound that carries a caption (a door closing, the till) is captioned.
+      const scoredSounds = score.events.filter((e) => (e.sfx || e.bed) && e.caption).map((e) => e.caption);
       const lines = score.events.filter((e) => e.line).map((e) => {
         const t = def.lines.find((l) => l.id === e.line).text;
         return e.end === 'cut' && !/[—-]$/.test(t) ? t.replace(/[.…]+$/, '') + '—' : t;
@@ -85,6 +89,7 @@ for (const def of DATA.vignettes) {
       if (s1.programs !== s0.programs) problems.push(`programs ${s0.programs} → ${s1.programs}`);
       if (s1.textures > s0.textures + 2) problems.push(`textures ${s0.textures} → ${s1.textures}`);
       if (JSON.stringify(spoken) !== JSON.stringify(lines)) problems.push(`captions ${JSON.stringify(spoken)} ≠ ${JSON.stringify(lines)}`);
+      for (const c of scoredSounds) if (!sounds.includes(c)) problems.push(`sound caption missing: ${c}`);
       const run = { id: def.id, variant, profile, problems, captions: caps.map((c) => c.text) };
       report.runs.push(run);
       console.log(`${problems.length ? '✗' : '✓'} ${def.id}/${variant} ${profile}${problems.length ? ': ' + problems.join('; ') : ''}`);
@@ -94,10 +99,12 @@ for (const def of DATA.vignettes) {
   }
 }
 
-// Interruptions, on one: a hidden tab mid-line pauses it; back after 12 s, it has ended uncounted.
-// Leaving mid-line leaves nothing sounding.
+// Interruptions, on one, begun as the Director begins it (counted, unlike a preview): a hidden
+// tab mid-line pauses it; back after 12 s, it has ended uncounted. Leaving mid-line leaves nothing
+// sounding.
 if (!ONLY || ONLY.includes('charger')) {
-  const { ctx, page, errors } = await open('desktop', 'charger', 'first');
+  const { ctx, page, errors } = await open('desktop', null);
+  await page.evaluate(() => window.__hedgehog.playVignette('charger', 'first'));
   await page.waitForFunction(() => (window.__hedgehog.vignette?.player.position ?? 0) > 3, null, { timeout: 40000 });
   const hide = (hidden) => page.evaluate((h) => {
     Object.defineProperty(document, 'hidden', { value: h, configurable: true });
@@ -117,6 +124,7 @@ if (!ONLY || ONLY.includes('charger')) {
   const counts = await page.evaluate(() => JSON.parse(localStorage.getItem('hh.memories') ?? '{}'));
   if (counts.charger) problems.push('counted as heard');
   console.log(`${problems.length ? '✗' : '✓'} hidden tab mid-line${problems.length ? ': ' + problems.join('; ') : ''}`);
+  report.runs.push({ id: 'charger', variant: 'first', profile: 'desktop', check: 'hidden tab mid-line', problems });
   if (problems.length) failed++;
   await ctx.close();
   const b = await open('desktop', 'charger', 'first');
@@ -127,6 +135,7 @@ if (!ONLY || ONLY.includes('charger')) {
   const p2 = gone.playing ? ['still playing after leaving'] : [];
   if (b.errors.length || errors.length) p2.push(`errors: ${[...errors, ...b.errors].join(' | ')}`);
   console.log(`${p2.length ? '✗' : '✓'} leaving mid-line${p2.length ? ': ' + p2.join('; ') : ''}`);
+  report.runs.push({ id: 'charger', variant: 'first', profile: 'desktop', check: 'leaving mid-line', problems: p2 });
   if (p2.length) failed++;
   await b.ctx.close();
 }

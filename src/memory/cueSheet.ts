@@ -24,11 +24,12 @@ export interface Place {
  * - `chair`: the chair, at the height of someone sitting on it
  * - `left`/`right`: beside the visitor, a little ahead (two people, the space between them)
  * - `close`: just beside the visitor's head (a phone held to the ear)
+ * - `self`: a step in front of the visitor, straight ahead (the one remembering: their own voice, centred)
  * - `beyond`: past the wall where the memory's line is (another room)
  * - `door`: the room's door
  * - `anchor`: the line itself, on its wall
  */
-export type Spot = 'chair' | 'left' | 'right' | 'close' | 'beyond' | 'door' | 'anchor';
+export type Spot = 'chair' | 'left' | 'right' | 'close' | 'self' | 'beyond' | 'door' | 'anchor';
 export interface SpotPlace {
   at: Spot;
   /** Metres: how far from the visitor (left/right/close) or beyond the wall. */

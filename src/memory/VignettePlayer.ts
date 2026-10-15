@@ -23,6 +23,8 @@ export interface VignetteHost extends MemoryAudioHost {
   gap?(kind: GapKind, seconds: number, caption?: string): void;
   /** The vignette is letting go: effects still to come are cancelled; lingering ones may stay. */
   letGo?(mode: 'natural' | 'interrupt'): void;
+  /** A key's recordings (to pick a line's reading by name). */
+  filesOf?(key: string): readonly string[];
 }
 
 const TAIL = 1.5;
@@ -44,7 +46,7 @@ export class VignettePlayer {
     this.score = def.variants[variant] ?? def.variants.first;
     this.markers = scoreMarkers(this.score);
     this.dispatch = new CueDispatch(this.markers, 0.3);
-    this.audio = new MemoryAudio(host, toCueSheet(def, this.score), this.markers, seed);
+    this.audio = new MemoryAudio(host, toCueSheet(def, this.score, undefined, (k) => host.filesOf?.(k) ?? []), this.markers, seed);
   }
 
   prepare(): Promise<void> {
@@ -64,9 +66,16 @@ export class VignettePlayer {
     return this.paused;
   }
 
-  /** It has finished, or let go and had its moment to ring out. */
+  /**
+   * It has finished, or let go and had its moment to ring out. Let go gracefully (walking off,
+   * turning to write, its own end), it is done only once the sentence being said has been said.
+   */
   get done(): boolean {
-    if (this.releasedAt !== null) return this.position >= this.releasedAt + (this.mode === 'interrupt' ? 0.6 : TAIL);
+    if (this.releasedAt !== null) {
+      if (this.mode === 'interrupt') return this.position >= this.releasedAt + 0.6;
+      const speaking = this.audio.voicesUntil > this.host.ctx.currentTime + 0.05;
+      return this.position >= this.releasedAt + TAIL && (!speaking || this.position >= this.releasedAt + 15);
+    }
     return this.started && this.position >= this.score.span + TAIL;
   }
 
@@ -104,12 +113,19 @@ export class VignettePlayer {
     }
   }
 
+  /**
+   * Back from a pause. A sentence the pause cut is said again from its start: the score goes back
+   * to just before it, so everything after it keeps its place (nothing is said over it).
+   */
   resume(): void {
     if (!this.paused) return;
     this.paused = false;
     this.audio.resume();
-    // A moment of the room first, then the sentence the pause cut, from its start.
-    if (this.releasedAt === null) this.audio.play(this.again.map((marker) => ({ marker, delay: 0.6 })));
+    if (this.again.length && this.releasedAt === null) {
+      const from = Math.max(0, Math.min(...this.again.map((m) => m.position)) - 0.6);
+      this.position = from;
+      this.dispatch.seek(from);
+    }
     this.again = [];
   }
 

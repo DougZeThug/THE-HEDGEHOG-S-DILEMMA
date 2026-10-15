@@ -37,6 +37,8 @@ export interface MemoryAudioHost {
   caption?(text: string, seconds: number, speech?: boolean, side?: 'left' | 'right'): void;
   /** A voice with no recording (previews only): said some other way, `delay` seconds from now. */
   fallback?(cue: Cue, delay: number): void;
+  /** A gain that brings a recording to a common level (spoken lines; 1 if absent). */
+  level?(asset: string, buf: AudioBuffer): number;
 }
 
 interface Live {
@@ -95,6 +97,17 @@ export class MemoryAudio implements AudioSink {
     return this.live.size;
   }
 
+  /** Context time the last voice now scheduled or sounding will have finished (0: none). */
+  get voicesUntil(): number {
+    let end = 0;
+    for (const l of this.live) {
+      if (l.kind !== 'voice' || !l.src.buffer) continue;
+      const len = Math.min(l.src.buffer.duration - l.from, l.cue.stopAfter !== undefined ? l.cue.stopAfter - l.from : Infinity);
+      end = Math.max(end, l.at + len);
+    }
+    return end;
+  }
+
   private get now() {
     return this.host.ctx.currentTime;
   }
@@ -137,7 +150,7 @@ export class MemoryAudio implements AudioSink {
       gain.channelCount = 1;
       gain.channelCountMode = 'explicit';
     }
-    const level = Math.pow(10, cue.gainDb / 20) * (0.55 + 0.45 * this.host.intensity);
+    const level = Math.pow(10, cue.gainDb / 20) * (0.55 + 0.45 * this.host.intensity) * (kind === 'voice' ? this.host.level?.(cue.asset, buf) ?? 1 : 1);
     const fadeIn = fade ?? cue.fadeIn ?? 0;
     gain.gain.setValueAtTime(fadeIn > 0 ? 0 : level, at);
     if (fadeIn > 0) gain.gain.linearRampToValueAtTime(level, at + fadeIn);

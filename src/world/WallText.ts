@@ -122,7 +122,7 @@ function makeTextMaterial(tex: THREE.Texture, hand: Hand, aspect: number, seed: 
       if (uGap.z > 0.0) {
         float hhBand = step(uGap.x, hhR) * step(hhR, uGap.y);
         float hhRub = hhFbm(vMapUv * vec2(uAspect * 8.0, 12.0) + uSeed * 1.7);
-        diffuseColor.a *= mix(1.0, 0.03 + 0.22 * smoothstep(0.45, 0.85, hhRub), uGap.z * hhBand);
+        diffuseColor.a *= mix(1.0, 0.08 + 0.2 * smoothstep(0.45, 0.85, hhRub), uGap.z * hhBand);
       }
       diffuseColor.a *= uOpacity;
       diffuseColor.rgb *= 1.0 - 0.45 * uEmphasis;`,
@@ -177,7 +177,7 @@ export interface TextItem {
   /** One word going (or gone), as a vignette leaves it: its band of the hand's time. */
   gap?: { lo: number; hi: number; gone: number; target: number; rate: number };
   /** Harder to read the closer one comes (0–1), and how far it is receding now. */
-  recede?: { amount: number; k: number };
+  recede?: RecedeState;
 }
 
 /**
@@ -192,11 +192,34 @@ export function wordBand(words: [number, number][], duration: number, k: number)
 }
 
 /**
- * How much receding writing withdraws at distance `dist` (m): nothing beyond 3.2 m, all of
- * `amount` by 1.2 m.
+ * Receding writing (E's line, once E has been heard) answers being come close to, rather than
+ * fading with distance: whole beyond 2.2 m; someone within 1.7 m for 0.6 s and it withdraws
+ * (over about 2 s; the very first time slower, so it is watched leaving); it comes back only once
+ * they have stepped back past 2.6 m for 1.5 s, and slowly.
  */
-export function recedeAt(amount: number, dist: number): number {
-  return amount * smoothstep(3.2, 1.2, dist);
+export interface RecedeState {
+  amount: number;
+  k: number;
+  near: number;
+  far: number;
+  away: boolean;
+  /** It has withdrawn before (the first withdrawal is the slow one). */
+  once: boolean;
+}
+
+export function recedeStep(r: RecedeState, dist: number, dt: number): RecedeState {
+  const near = dist < 1.7 ? r.near + dt : 0;
+  const far = dist > 2.6 ? r.far + dt : 0;
+  let away = r.away, once = r.once;
+  if (!away && near >= 0.6) away = true;
+  if (away && far >= 1.5) {
+    away = false;
+    once = true;
+  }
+  const target = away ? r.amount : 0;
+  const tau = target > r.k ? (once ? 0.8 : 3) : 2;
+  const k = target + (r.k - target) * Math.exp(-dt / tau);
+  return { ...r, near, far, away, once, k };
 }
 
 /** Where the hand is (its own seconds) at wall-clock time `now`. */
@@ -834,7 +857,7 @@ export class WallText {
   /** The line becomes harder to read as one comes close (for the rest of the visit, or until `amount` 0). */
   recede(key: string, amount: number): void {
     const it = this.items.get(key);
-    if (it) it.recede = { amount, k: it.recede?.k ?? 0 };
+    if (it) it.recede = { amount, k: it.recede?.k ?? 0, near: 0, far: 0, away: it.recede?.away ?? false, once: it.recede?.once ?? false };
   }
 
   erode(key: string, keep: string, now: number): boolean {
@@ -945,8 +968,7 @@ export class WallText {
       // returns it, more slowly than it went.
       let recede = 0;
       if (it.recede) {
-        const k = recedeAt(it.recede.amount, dist);
-        it.recede.k = approach(it.recede.k, k, dt, k > it.recede.k ? 1.2 : 2.5);
+        it.recede = recedeStep(it.recede, dist, dt);
         recede = it.recede.k;
         it.emphasis *= 1 - recede;
       }
@@ -973,8 +995,8 @@ export class WallText {
           it.uniforms.uWrite.value = 2;
         }
       }
-      it.uniforms.uReveal.value = it.vis * (1 - 0.3 * recede);
-      it.uniforms.uOpacity.value = clamp(base * legible * Math.min(it.shy, 1 - 0.8 * recede) * env.textContrast * (1 + it.emphasis * 0.3), 0, 1);
+      it.uniforms.uReveal.value = it.vis * (1 - 0.55 * recede);
+      it.uniforms.uOpacity.value = clamp(base * legible * Math.min(it.shy, 1 - 0.5 * recede) * env.textContrast * (1 + it.emphasis * 0.3), 0, 1);
       it.uniforms.uEmphasis.value = it.emphasis;
     }
     for (const ln of [...this.lines.values()]) {

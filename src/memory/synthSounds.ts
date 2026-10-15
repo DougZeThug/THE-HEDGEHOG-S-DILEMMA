@@ -5,7 +5,7 @@
  * from the vignette's cue sheet, as for every memory sound (src/memory/cueSheet.ts).
  *
  * Beds (`road`, `fridge`) are seamless loops normalised to about −45 dBFS RMS, as `synthAir` is;
- * one-shots peak at about −12 dBFS. Everything sits above 120 Hz, where a phone can play it.
+ * one-shots peak at about −12 dBFS. What carries each sound sits above 200 Hz, where a phone can play it.
  * Seeded: the same sound every time.
  */
 export type SynthKind = 'road' | 'indicator' | 'fridge' | 'till' | 'drip' | 'rustle';
@@ -84,11 +84,14 @@ export function render(kind: SynthKind, rate: number, seed = 1): Float32Array {
     case 'road': {
       // A car at night, from inside: a low road roar (what a phone keeps of it) and tyre hiss
       // that swells a little now and then, never on a beat.
-      const x = band(noise(len(17)), 120, 700);
+      // The roar is kept above 250 Hz (a phone's speaker plays nothing much lower), with a second,
+      // lower band only for headphones.
+      const x = band(noise(len(17)), 250, 900);
+      const low = band(noise(len(17)), 120, 300);
       const hiss = band(noise(len(17)), 1200, 3500);
       for (let i = 0; i < x.length; i++) {
         const t = i / rate;
-        x[i] = x[i] * (1 + 0.15 * Math.sin(t * 0.7 + 1.3)) + hiss[i] * 0.18 * (1 + 0.3 * Math.sin(t * 0.43));
+        x[i] = (x[i] + low[i] * 0.5) * (1 + 0.15 * Math.sin(t * 0.7 + 1.3)) + hiss[i] * 0.22 * (1 + 0.3 * Math.sin(t * 0.43));
       }
       return toRms(loop(x, 1), -45);
     }
@@ -99,11 +102,15 @@ export function render(kind: SynthKind, rate: number, seed = 1): Float32Array {
       return toPeak(x, -12);
     }
     case 'fridge': {
-      // A shop's chiller: a mains hum's upper harmonics, a compressor's band, a little air.
-      const x = band(noise(len(17)), 300, 2500);
+      // A shop's chiller: a 50 Hz mains hum is heard by its harmonics (200–600 Hz, what a phone
+      // plays), two of them a hair apart so it slowly beats, a compressor's band, a little air.
+      const x = band(noise(len(17)), 400, 2500);
+      const h = [[200, 0.22, 0], [300, 0.4, 0.4], [400, 0.3, 1.1], [401, 0.2, 2], [500, 0.14, 0.7], [600, 0.08, 2.6]];
       for (let i = 0; i < x.length; i++) {
         const t = i / rate;
-        x[i] = x[i] * 0.35 + 0.5 * Math.sin(2 * Math.PI * 150 * t) + 0.3 * Math.sin(2 * Math.PI * 300 * t + 0.4) + 0.12 * Math.sin(2 * Math.PI * 450 * t + 1.1);
+        let v = x[i] * 0.35;
+        for (const [f, a, p] of h) v += a * Math.sin(2 * Math.PI * f * t + p);
+        x[i] = v;
       }
       return toRms(loop(x, 1), -45);
     }

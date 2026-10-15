@@ -5,10 +5,10 @@
       "id": "charger",
       "title": "The charger",
       "tone": "sad",
-      "intent": "The last thing said to someone was about a charger, said without looking up; nobody knew it was the last thing.",
+      "intent": "An ordinary goodbye on an ordinary morning, said without looking up.",
       "speakers": {
         "other": {
-          "voice": "liam",
+          "voice": "young",
           "who": "someone leaving for the day"
         },
         "writer": {
@@ -77,7 +77,7 @@
               "at": 2.8,
               "line": "toaster",
               "place": {
-                "at": "close"
+                "at": "self"
               },
               "dry": true
             },
@@ -97,9 +97,10 @@
               "at": 8.2,
               "line": "yeah",
               "place": {
-                "at": "close"
+                "at": "self"
               },
-              "dry": true
+              "dry": true,
+              "reading": "distracted"
             },
             {
               "at": 9.8,
@@ -143,7 +144,7 @@
               "at": 2.8,
               "line": "toaster",
               "place": {
-                "at": "close"
+                "at": "self"
               },
               "dry": true
             },
@@ -196,7 +197,8 @@
           }
         }
       ],
-      "describe": "An ordinary morning, heard: someone looking for a charger, leaving for the day."
+      "describe": "An ordinary morning, heard: someone looking for a charger, leaving for the day.",
+      "coldOpen": true
     },
     {
       "id": "back-seat",
@@ -214,7 +216,7 @@
         }
       },
       "anchor": {
-        "phrase": "angry-with-me"
+        "phrase": "didnt-know-say"
       },
       "earliest": 240,
       "arm": 2.5,
@@ -277,7 +279,8 @@
               "place": {
                 "at": "right",
                 "d": 0.5
-              }
+              },
+              "reading": "quick"
             },
             {
               "at": 5.4,
@@ -288,7 +291,8 @@
                 "d": 0.4,
                 "h": 0.9
               },
-              "gainDb": -16
+              "gainDb": -16,
+              "caption": "[the indicator ticking]"
             },
             {
               "at": 5.4,
@@ -341,7 +345,8 @@
               "place": {
                 "at": "right",
                 "d": 0.5
-              }
+              },
+              "reading": "tired"
             },
             {
               "at": 8.0,
@@ -352,7 +357,8 @@
                 "d": 0.4,
                 "h": 0.9
               },
-              "gainDb": -16
+              "gainDb": -16,
+              "caption": "[the indicator ticking]"
             },
             {
               "at": 9.6,
@@ -401,9 +407,9 @@
         }
       },
       "anchor": {
-        "phrase": "keep-calling"
+        "phrase": "this-bit"
       },
-      "earliest": 240,
+      "earliest": 150,
       "arm": 2.5,
       "commit": 1,
       "lookBack": false,
@@ -413,13 +419,6 @@
         0.04
       ],
       "hush": 0.5,
-      "offer": {
-        "phases": [
-          "contradiction",
-          "transform"
-        ],
-        "apart": 120
-      },
       "lines": [
         {
           "id": "hey",
@@ -482,8 +481,7 @@
               "place": {
                 "at": "close"
               },
-              "dry": true,
-              "end": "trail"
+              "dry": true
             },
             {
               "at": 13.6,
@@ -521,7 +519,14 @@
         }
       },
       "rules": [],
-      "describe": "Someone alone, close by, trying out how to begin a phone call."
+      "describe": "Someone alone, close by, trying out how to begin a phone call.",
+      "offer": {
+        "phases": [
+          "contradiction",
+          "transform"
+        ],
+        "apart": 120
+      }
     },
     {
       "id": "washing-up",
@@ -598,9 +603,10 @@
               "at": 3.2,
               "line": "dont",
               "place": {
-                "at": "close"
+                "at": "self"
               },
-              "dry": true
+              "dry": true,
+              "reading": "light"
             },
             {
               "at": 5.6,
@@ -662,9 +668,10 @@
               "at": 3.2,
               "line": "dont",
               "place": {
-                "at": "close"
+                "at": "self"
               },
-              "dry": true
+              "dry": true,
+              "reading": "tired"
             },
             {
               "at": 5.6,
@@ -759,14 +766,14 @@
       ],
       "variants": {
         "first": {
-          "span": 28,
+          "span": 29,
           "events": [
             {
               "at": 0,
               "fx": {
                 "kind": "dim",
-                "to": 0.5,
-                "seconds": 24
+                "to": 0.35,
+                "seconds": 27.5
               }
             },
             {
@@ -779,7 +786,7 @@
               "fadeOut": 4
             },
             {
-              "at": 3.5,
+              "at": 4.5,
               "line": "stay",
               "place": {
                 "at": "chair",
@@ -787,16 +794,17 @@
               }
             },
             {
-              "at": 6.4,
+              "at": 7.4,
               "line": "minute",
               "place": {
                 "at": "right",
                 "d": 0.7,
                 "h": 1.1
-              }
+              },
+              "reading": "fond"
             },
             {
-              "at": 8.6,
+              "at": 9.6,
               "line": "promise",
               "place": {
                 "at": "chair",
@@ -804,12 +812,12 @@
               }
             },
             {
-              "at": 9.6,
+              "at": 10.6,
               "gap": "wait",
               "seconds": 6
             },
             {
-              "at": 13.0,
+              "at": 14.0,
               "sfx": "creak",
               "asset": "sfx:chair-creak",
               "place": {
@@ -820,12 +828,12 @@
               "caption": "[the chair creaks]"
             },
             {
-              "at": 16.0,
+              "at": 17.0,
               "gap": "silence",
               "seconds": 5
             },
             {
-              "at": 22.0,
+              "at": 23.0,
               "line": "asleep",
               "place": {
                 "at": "door"
@@ -834,14 +842,14 @@
           ]
         },
         "again": {
-          "span": 16,
+          "span": 17.5,
           "events": [
             {
               "at": 0,
               "fx": {
                 "kind": "dim",
                 "to": 0.5,
-                "seconds": 12
+                "seconds": 17
               }
             },
             {
@@ -873,7 +881,8 @@
         }
       },
       "rules": [],
-      "describe": "The room goes down to the chair alone, as a bedroom does at night."
+      "describe": "The room goes down to the chair alone, as a bedroom does at night.",
+      "maxSeen": 2
     },
     {
       "id": "a-bag",
@@ -937,7 +946,8 @@
                 "d": 0.8,
                 "h": 1.0
               },
-              "gainDb": -14
+              "gainDb": -14,
+              "caption": "[the till beeps]"
             },
             {
               "at": 3.2,
@@ -956,7 +966,7 @@
               "at": 8.6,
               "line": "sorry",
               "place": {
-                "at": "close"
+                "at": "self"
               },
               "dry": true
             },
@@ -969,7 +979,8 @@
                 "d": 0.8,
                 "h": 1.0
               },
-              "gainDb": -14
+              "gainDb": -14,
+              "caption": "[the till beeps]"
             }
           ]
         },
@@ -994,7 +1005,8 @@
                 "d": 0.8,
                 "h": 1.0
               },
-              "gainDb": -14
+              "gainDb": -14,
+              "caption": "[the till beeps]"
             },
             {
               "at": 3.2,
@@ -1018,7 +1030,8 @@
                 "d": 0.8,
                 "h": 1.0
               },
-              "gainDb": -14
+              "gainDb": -14,
+              "caption": "[the till beeps]"
             }
           ]
         }
@@ -1042,7 +1055,7 @@
         }
       },
       "anchor": {
-        "phrase": "not-going"
+        "phrase": "good-day"
       },
       "earliest": 150,
       "arm": 2.5,
@@ -1101,9 +1114,10 @@
               "at": 3.0,
               "line": "will",
               "place": {
-                "at": "close"
+                "at": "self"
               },
-              "dry": true
+              "dry": true,
+              "reading": "automatic"
             },
             {
               "at": 4.4,
@@ -1144,9 +1158,10 @@
               "at": 3.0,
               "line": "will",
               "place": {
-                "at": "close"
+                "at": "self"
               },
-              "dry": true
+              "dry": true,
+              "reading": "unsure"
             },
             {
               "at": 4.4,
@@ -1182,12 +1197,6 @@
                 1
               ]
             }
-          },
-          "variant": "okay"
-        },
-        {
-          "when": {
-            "withdrew": true
           },
           "variant": "okay"
         }
@@ -1247,11 +1256,6 @@
           "id": "goon",
           "speaker": "writer",
           "text": "…Go on, then."
-        },
-        {
-          "id": "breathe",
-          "speaker": "other",
-          "text": "Stop. I can't breathe."
         }
       ],
       "variants": {
@@ -1276,7 +1280,7 @@
                 "d": 0.7,
                 "h": 0.9
               },
-              "gainDb": -8,
+              "gainDb": -12,
               "caption": "[a biscuit packet]"
             },
             {
@@ -1291,7 +1295,7 @@
               "at": 3.1,
               "line": "have",
               "place": {
-                "at": "close"
+                "at": "self"
               },
               "dry": true
             },
@@ -1307,7 +1311,7 @@
               "at": 6.0,
               "line": "just",
               "place": {
-                "at": "close"
+                "at": "self"
               },
               "dry": true
             }
@@ -1334,7 +1338,7 @@
                 "d": 0.7,
                 "h": 0.9
               },
-              "gainDb": -8,
+              "gainDb": -12,
               "caption": "[a biscuit packet]"
             },
             {
@@ -1349,7 +1353,7 @@
               "at": 3.1,
               "line": "have",
               "place": {
-                "at": "close"
+                "at": "self"
               },
               "dry": true
             },
@@ -1365,7 +1369,7 @@
               "at": 6.0,
               "line": "goon",
               "place": {
-                "at": "close"
+                "at": "self"
               },
               "dry": true
             }
@@ -1382,8 +1386,8 @@
       "intent": "Present but invisible at a party; the second time, nobody even asks.",
       "speakers": {
         "friend": {
-          "voice": "young",
-          "who": "a friend at the party"
+          "voice": "warm",
+          "who": "a friend from the party"
         },
         "writer": {
           "voice": "sarah",
@@ -1423,24 +1427,28 @@
               "at": 0,
               "bed": "party",
               "asset": "vf-two-voices",
-              "gainDb": 26,
+              "gainDb": 19,
               "take": 1,
               "fadeIn": 1.5,
               "fadeOut": 0.4,
-              "lowpass": 3200,
-              "caption": "[a party, people talking]"
+              "lowpass": 1200,
+              "caption": "[a party, through the wall]",
+              "place": {
+                "at": "beyond",
+                "d": 1.2
+              }
             },
             {
               "at": 1.6,
               "sfx": "laughter",
               "asset": "vf-laugh-next-room",
               "place": {
-                "at": "left",
+                "at": "beyond",
                 "d": 1.6
               },
               "gainDb": -2,
-              "lowpass": 3600,
-              "caption": "[people laughing at something]"
+              "lowpass": 1400,
+              "caption": "[laughter, through the wall]"
             },
             {
               "at": 4.6,
@@ -1454,7 +1462,7 @@
               "at": 7.0,
               "line": "fine",
               "place": {
-                "at": "close"
+                "at": "self"
               },
               "dry": true
             }
@@ -1467,35 +1475,41 @@
               "at": 0,
               "bed": "party",
               "asset": "vf-two-voices",
-              "gainDb": 26,
+              "gainDb": 19,
               "take": 1,
               "fadeIn": 1.5,
               "fadeOut": 0.4,
-              "lowpass": 3200,
-              "caption": "[a party, people talking]"
+              "lowpass": 1200,
+              "caption": "[a party, through the wall]",
+              "place": {
+                "at": "beyond",
+                "d": 1.2
+              }
             },
             {
               "at": 1.6,
               "sfx": "laughter",
               "asset": "vf-laugh-next-room",
               "place": {
-                "at": "left",
+                "at": "beyond",
                 "d": 1.6
               },
               "gainDb": -2,
-              "lowpass": 3600,
-              "caption": "[people laughing at something]"
+              "lowpass": 1400,
+              "caption": "[laughter, through the wall]"
             },
             {
               "at": 7.5,
               "sfx": "laughter2",
               "asset": "vf-laugh-next-room",
               "place": {
-                "at": "right",
-                "d": 1.8
+                "at": "beyond",
+                "d": 2.2
               },
-              "gainDb": -4,
-              "lowpass": 3400
+              "gainDb": 5,
+              "lowpass": 1300,
+              "take": 1,
+              "caption": "[laughter, further off]"
             },
             {
               "at": 8.5,
@@ -1503,7 +1517,7 @@
                 "kind": "loseWord",
                 "phraseId": "lonely-birthday",
                 "word": "loneliest",
-                "seconds": 7
+                "seconds": 5.5
               }
             }
           ]
@@ -1518,15 +1532,9 @@
             ]
           },
           "variant": "nobody"
-        },
-        {
-          "when": {
-            "withdrew": true
-          },
-          "variant": "nobody"
         }
       ],
-      "describe": "A crowded party, heard from inside it."
+      "describe": "A party heard through a wall, from the hallway outside it."
     }
   ]
 }

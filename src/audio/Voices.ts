@@ -85,6 +85,32 @@ function normaliseGain(buf: AudioBuffer, partial = false): number {
   return Math.min(partial ? Math.sqrt(full) : full, ceiling / peak, 16);
 }
 
+/**
+ * Gain to bring spoken words to -24 dBFS RMS measured over the frames where someone is speaking
+ * (20 ms frames within 30 dB of the loudest), peaks no higher than -3 dBFS. For a vignette's
+ * lines: a one-word "No." and a sentence with breaths around it come out at the same level, so
+ * the authored `gainDb` of a score means the same thing on every take.
+ */
+export function voicedGain(buf: AudioBuffer): number {
+  const d = buf.getChannelData(0);
+  const n = Math.max(1, Math.round(buf.sampleRate * 0.02));
+  const frames: number[] = [];
+  let peak = 0;
+  for (let i = 0; i + n <= d.length; i += n) {
+    let s = 0;
+    for (let j = i; j < i + n; j++) {
+      s += d[j] * d[j];
+      peak = Math.max(peak, Math.abs(d[j]));
+    }
+    frames.push(s / n);
+  }
+  const loud = Math.max(0, ...frames);
+  if (!loud || !peak) return 1;
+  const voiced = frames.filter((f) => f >= loud * 1e-3);
+  const rms = Math.sqrt(voiced.reduce((a, f) => a + f, 0) / voiced.length);
+  return Math.min(Math.pow(10, -24 / 20) / rms, Math.pow(10, -3 / 20) / peak, 16);
+}
+
 /** Authored relative level of each performance file, in dB. */
 const LEVEL_DB = new Map<string, number>((dialogue.performances as { file: string; levelDb?: number }[]).map((p) => [p.file, p.levelDb ?? 0]));
 
@@ -162,6 +188,19 @@ export class Voices {
 
   hasAsset(key: string) {
     return !!this.manifest[key]?.length;
+  }
+
+  private voiced = new WeakMap<AudioBuffer, number>();
+  /** `voicedGain` of a decoded recording, measured once. */
+  voicedLevel(buf: AudioBuffer): number {
+    let g = this.voiced.get(buf);
+    if (g === undefined) this.voiced.set(buf, (g = voicedGain(buf)));
+    return g;
+  }
+
+  /** The recordings kept for a key, in manifest order (what `raw`'s take indexes). */
+  filesOf(key: string): readonly string[] {
+    return this.manifest[key] ?? [];
   }
 
   /** Per-file gain that brings recordings to a common loudness (they arrive at arbitrary levels). */

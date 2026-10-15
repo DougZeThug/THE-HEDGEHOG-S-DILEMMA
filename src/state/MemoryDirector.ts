@@ -226,9 +226,17 @@ export class MemoryDirector {
     return null;
   }
 
-  /** A vignette may still open at the chair this visit (the room's own voice there waits). */
-  claimsChair(): boolean {
-    return ALL_MEMORIES.some((m) => m.chair && !this.tracks.get(m.id)!.played && this.isAvailable(m.id));
+  /**
+   * A vignette could open at the chair soon (the room's own voice there waits): its line finished,
+   * nearly its time, not yet heard, recorded.
+   */
+  claimsChair(now = Infinity, finished: (id: string) => boolean = () => true): boolean {
+    return ALL_MEMORIES.some((m) => m.chair && !this.tracks.get(m.id)!.played && this.isAvailable(m.id) && !(m.maxSeen !== undefined && (this.counts[m.id] ?? 0) >= m.maxSeen) && now >= m.earliest - 30 && (!m.afterFinished || finished(m.afterFinished)));
+  }
+
+  /** A preview played and ended: the room goes on; nothing is counted or left behind. */
+  previewEnded(id: string): void {
+    if (this.active?.id === id) this.active = null;
   }
 
   update(s: SceneState): SceneStart | null {
@@ -279,6 +287,7 @@ export class MemoryDirector {
     if (m.phases && s.phase && !m.phases.includes(s.phase as never)) return false;
     if (m.group === 'kitchen' && s.kitchenPlayed) return false;
     if (m.requires && !((this.counts[m.requires.seen] ?? 0) > 0)) return false;
+    if (m.maxSeen !== undefined && (this.counts[m.id] ?? 0) >= m.maxSeen) return false;
     return true;
   }
 
@@ -373,6 +382,9 @@ export class MemoryDirector {
     }
     this.cooldownUntil = now + (ranToEnd ? 60 : 45);
     this.lastEnded = now;
+    // A vignette unseen a second time: spent for this visit, but not heard (nothing counted, and
+    // nothing left to come back). (A painting withdrawn twice counts: it was there to be seen.)
+    if (!seen && VIGNETTE_BY_ID.has(id)) return false;
     this.counts[id] = (this.counts[id] ?? 0) + 1;
     const def = VIGNETTE_BY_ID.get(id);
     if (def) {

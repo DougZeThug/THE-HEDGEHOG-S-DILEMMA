@@ -13,7 +13,7 @@
  */
 import DATA from './vignettes.json';
 import type { Phase, Surface } from './types';
-import type { AnyPlace, Cue, CueSheet, SpotPlace } from '../memory/cueSheet';
+import type { Cue, CueSheet, SpotPlace } from '../memory/cueSheet';
 import type { Marker } from '../memory/types';
 
 export type Tone = 'sad' | 'bittersweet' | 'warm';
@@ -31,6 +31,16 @@ export interface VLine {
   text: string;
   /** The line is an existing wall phrase: its approved readings can be used. */
   phraseId?: string;
+}
+
+/**
+ * Which of a key's recordings is the reading asked for: the first file named `…--<reading>.mp3`
+ * or `…--<reading>-b.mp3`. Undefined if none was kept (any reading of the line will do then).
+ */
+export function readingTake(files: readonly string[], reading: string): number | undefined {
+  const re = new RegExp(`--${reading.replace(/[^a-z0-9-]/gi, '')}(-[a-z])?\\.mp3$`);
+  const i = files.findIndex((f) => re.test(f));
+  return i < 0 ? undefined : i;
 }
 
 /**
@@ -60,14 +70,20 @@ export type ScoreEvent =
       line: string;
       place: SpotPlace;
       gainDb?: number;
-      /** How the line ends: said through, cut off (`stopAfter` s into the file), or trailing away. */
-      end?: 'complete' | 'cut' | 'trail';
+      /** How the line ends: said through, or cut off (`stopAfter` s into the file). */
+      end?: 'complete' | 'cut';
       stopAfter?: number;
       lowpass?: number;
       highpass?: number;
       dry?: boolean;
       /** Which reading (an index into the line's approved takes). */
       take?: number;
+      /**
+       * Which reading by name (the `--<reading>` of its recording, e.g. `quick` or `tired`): the
+       * version decides how the line is said. Takes of another reading are used only if none of
+       * this one was kept.
+       */
+      reading?: string;
     }
   | { at: number; sfx: string; asset: string; take?: number; place: SpotPlace; gainDb: number; lowpass?: number; caption?: string; stopAfter?: number }
   | { at: number; bed: string; asset: string; take?: number; gainDb: number; place?: SpotPlace; fadeIn?: number; fadeOut?: number; lowpass?: number; caption?: string }
@@ -142,6 +158,10 @@ export interface VignetteDef {
   requires?: { seen: string };
   /** Only once this unfinished line has been finished (the chair's vignette waits for "stay"). */
   afterFinished?: string;
+  /** Begins at once, with no settling hush (the room cuts into it). */
+  coldOpen?: boolean;
+  /** Heard this many times (over all visits), it no longer comes (F's heard-before version is heard once). */
+  maxSeen?: number;
   /**
    * Its line is offered (written alone where the visitor looks, the room holding still), as the
    * bedroom's and the door's are, if it hasn't been met by then: for lines the room rarely writes.
@@ -210,18 +230,28 @@ export function labelOf(e: ScoreEvent, i: number): string {
 }
 
 /** The score's sounds as a cue sheet for MemoryAudio (lines: their recordings, placed). */
-export function toCueSheet(def: VignetteDef, score: Score, keyOf: (line: VLine) => string = (l) => lineKey(def, l)): CueSheet {
+export function toCueSheet(
+  def: VignetteDef,
+  score: Score,
+  keyOf: (line: VLine) => string = (l) => lineKey(def, l),
+  /** A key's recordings, to find a named reading among them. */
+  filesOf: (key: string) => readonly string[] = () => [],
+): CueSheet {
   const cues: Record<string, Cue> = {};
-  const side = (p: AnyPlace) => ('at' in p && (p.at === 'left' || p.at === 'right') ? p.at : undefined);
+  // Captions tell two people apart by who speaks (the first speaker's lines lean left, the
+  // second's right), wherever each is placed; one voice alone is centred.
+  const order: string[] = Object.keys(def.speakers);
+  const side = (speaker: string): 'left' | 'right' | undefined => (order.length < 2 ? undefined : order.indexOf(speaker) === 0 ? 'left' : 'right');
   score.events.forEach((e, i) => {
     const label = labelOf(e, i);
     if ('line' in e) {
       const line = def.lines.find((l) => l.id === e.line);
       if (!line) return;
       const cut = e.end === 'cut';
+      const asset = keyOf(line);
       cues[label] = {
-        asset: keyOf(line), take: e.take, gainDb: e.gainDb ?? 0, place: e.place, lowpass: e.lowpass, highpass: e.highpass, dry: e.dry,
-        stopAfter: e.stopAfter, text: cut && !/[—-]$/.test(line.text) ? `${line.text.replace(/[.…]+$/, '')}—` : line.text, side: side(e.place), cutOnInterrupt: true,
+        asset, take: e.take ?? (e.reading ? readingTake(filesOf(asset), e.reading) : undefined), gainDb: e.gainDb ?? 0, place: e.place, lowpass: e.lowpass, highpass: e.highpass, dry: e.dry,
+        stopAfter: e.stopAfter, text: cut && !/[—-]$/.test(line.text) ? `${line.text.replace(/[.…]+$/, '')}—` : line.text, side: side(line.speaker), cutOnInterrupt: true,
       };
     } else if ('sfx' in e) {
       cues[label] = { asset: e.asset, take: e.take, gainDb: e.gainDb, place: e.place, lowpass: e.lowpass, caption: e.caption, stopAfter: e.stopAfter };

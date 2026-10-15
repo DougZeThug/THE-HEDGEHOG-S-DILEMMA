@@ -164,6 +164,42 @@ describe('a vignette, played', () => {
     expect(s.ctx.sources.filter((x) => x.buffer?.duration === 1.8)).toHaveLength(1);
   });
 
+  it('back from a pause, nothing is said over the sentence said again (the rest of the score keeps its place)', async () => {
+    const s = setup();
+    const p = new VignettePlayer(DEF, 'first', s.host);
+    await p.prepare();
+    p.start();
+    run(p, s.ctx, 3.4); // "By the toaster." has begun (3.0–4.2)
+    p.pause();
+    run(p, s.ctx, 3);
+    p.resume();
+    run(p, s.ctx, 9);
+    const spans = s.ctx.sources.filter((x) => !x.loop).map((x) => [x.startAt![0], x.stopAt ?? x.startAt![0] + x.buffer!.duration - x.startAt![1]] as const);
+    // The cut first saying stops at the pause; every other pair is apart.
+    const heard = spans.filter(([a, b]) => b - a > 0.3);
+    for (let i = 0; i < heard.length; i++)
+      for (let j = i + 1; j < heard.length; j++) {
+        const [a1, b1] = heard[i], [a2, b2] = heard[j];
+        expect(Math.min(b1, b2) - Math.max(a1, a2), `${i}/${j}`).toBeLessThanOrEqual(0.3);
+      }
+    expect(s.ctx.sources.filter((x) => x.buffer?.duration === 1.2).length).toBe(2);
+  });
+
+  it('let go gracefully mid-sentence, it is done only once the sentence has been said', async () => {
+    const s = setup();
+    const p = new VignettePlayer(DEF, 'first', s.host);
+    await p.prepare();
+    p.start();
+    run(p, s.ctx, 0.8); // "Have you seen my charger?" (1.8 s) has begun
+    p.release('natural');
+    run(p, s.ctx, 1.0);
+    expect(p.done).toBe(false);
+    run(p, s.ctx, 1.4);
+    expect(p.done).toBe(true);
+    const ask = s.ctx.sources[0];
+    expect(ask.stopAt).toBeNull();
+  });
+
   it('a voice not recorded yet goes to the fallback (previews), with its words', async () => {
     const s = setup(['vig:test:answer']);
     const p = new VignettePlayer(DEF, 'first', s.host);

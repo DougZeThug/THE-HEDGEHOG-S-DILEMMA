@@ -109,6 +109,8 @@ export class App {
     player: VignettePlayer; id: string; key: string | null; frame: SpotFrame; hiddenSince: number | null; settingsFor: number; preview: boolean;
     /** Seconds moving away from where it began; let go before its end (not counted as heard to the end). */
     leaving: number; cutShort: boolean; uncounted: boolean;
+    /** When settings were opened over it (wall-clock seconds), or null. */
+    settingsSince: number | null;
   } | null = null;
   private vignetteClock = new MemoryClock();
   private vignetteGen = 0;
@@ -622,6 +624,11 @@ export class App {
         const v = f.eye.clone().addScaledVector(f.right, p.d ?? 0.3).addScaledVector(f.fwd, 0.05);
         return [v.x, f.eye.y, v.z];
       }
+      case 'self': {
+        // The one remembering: a step ahead, centred (neither ear), at head height.
+        const v = clampIn(f.eye.clone().addScaledVector(f.fwd, p.d ?? 0.7));
+        return [v.x, f.eye.y, v.z];
+      }
       case 'beyond': {
         // Past the wall where its line is (or the one ahead): another room.
         const a = f.anchor ?? f.eye.clone().addScaledVector(f.fwd, 10);
@@ -648,9 +655,15 @@ export class App {
     return {
       ...base,
       where: (p) => (isSpot(p) ? this.spotWorld(p) : base.where(p)),
+      filesOf: (k) => voices.filesOf(k),
+      // Spoken lines arrive at whatever level they were generated; brought level here, so a
+      // score's gains are relative to one voice speaking normally.
+      level: (asset, buf) => (asset.startsWith('vig:') || asset.startsWith('phrase:') ? voices.voicedLevel(buf) : 1),
+      // A vignette's sounds are scored: one that marks a silence (a door closing) is captioned
+      // beneath the words still on screen, never dropped.
       caption: (text, seconds, speech, side) => {
-        if (speech) this.captions.show(text, Math.max(1.4, seconds), false, side);
-        else if (!this.captions.speaking) this.captions.show(text, Math.max(1.6, seconds), true);
+        if (speech) this.captions.show(text, Math.max(1.4, seconds), false, side, true);
+        else this.captions.show(text, Math.max(1.6, seconds), true, undefined, true);
       },
       // Not recorded yet (previews only): the words in a voice without words, and the caption.
       fallback: (cue, delay) => {
@@ -670,8 +683,8 @@ export class App {
       },
       gap: (kind, seconds, caption) => this.vignetteGap(kind, seconds, caption),
       letGo: (mode) => {
-        // Interrupted: the room comes back at once (the light it lent fades on its own).
-        if (mode === 'interrupt') this.lighting.cancelDim();
+        // Interrupted: the room's light comes back (over a few seconds, never a jump).
+        if (mode === 'interrupt') this.lighting.liftDim(this.time);
       },
     };
   }
@@ -691,7 +704,8 @@ export class App {
         break;
       }
       case 'dim':
-        this.lighting.dimToChair(fx.to, fx.seconds, this.time);
+        // Gentle intensity keeps half the room's light, as the held silence's dark does.
+        this.lighting.dimToChair(this.prefs.intensity === 'gentle' ? Math.max(fx.to, 0.5) : fx.to, fx.seconds, this.time);
         break;
       default:
         this.absence(fx);
@@ -706,6 +720,16 @@ export class App {
     // Waiting for an answer: the unanswered line stays on screen, dimmed, through the wait.
     if (kind === 'wait') setTimeout(() => this.captions.linger(seconds), 300);
     if (caption && !this.captions.speaking) this.captions.show(caption, Math.max(2, seconds * 0.6), true);
+    // A chosen silence: the white room's own sound goes further down too, for its length, so what
+    // is left is nearly nothing (a pause or a wait leaves the room as it was).
+    const v = this.vignette;
+    if (kind === 'silence' && v) {
+      const hush = v.player.def.hush;
+      this.audio?.memoryHush(Math.min(0.95, hush + 0.35), 1.2);
+      setTimeout(() => {
+        if (this.vignette === v && !v.player.releasedHow) this.audio?.memoryHush(hush, 2);
+      }, Math.max(0.5, seconds - 1) * 1000);
+    }
   }
 
   /** What a vignette leaves on the walls: a word gone, a line that withdraws as one comes close. */
@@ -726,6 +750,8 @@ export class App {
     if (!host) return false;
     this.vignette?.player.dispose(0.2);
     this.vignette = null;
+    // A hint on screen goes (on a phone it sits where the vignette's words will be).
+    $('hint').classList.remove('on');
     const gen = ++this.vignetteGen;
     // A preview shows its line, if the room hasn't written it (so what it leaves there is seen).
     if (preview && def.anchor.phrase && !this.text.anchorOf(def.anchor.phrase)) this.text.setShown(def.anchor.phrase);
@@ -733,7 +759,7 @@ export class App {
     const frame = this.spotFrame(a?.key ?? null);
     const player = new VignettePlayer(def, variant, host, hashString(def.id + variant));
     // Its places are fixed from now (the frame is read while preparing, too).
-    this.vignette = { player, id, key: a?.key ?? null, frame, hiddenSince: null, settingsFor: 0, preview, leaving: 0, cutShort: false, uncounted: false };
+    this.vignette = { player, id, key: a?.key ?? null, frame, hiddenSince: null, settingsFor: 0, preview, leaving: 0, cutShort: false, uncounted: false, settingsSince: null };
     try {
       await player.prepare();
     } catch (e) {
@@ -746,15 +772,18 @@ export class App {
     }
     // A voice of the room still speaking: the vignette waits for it (a few seconds at most).
     const wait = Math.min(4, Math.max(0, (this.voices?.busyUntil ?? 0) - performance.now() / 1000));
-    this.audio?.memoryHush(def.hush, 1.6);
-    if (!preview && this.director.scenes.active?.id !== id) this.director.memoryExternal(id);
+    // A cold open (B) cuts straight in: no settling hush first.
+    const pre = def.coldOpen ? 0.05 : 1.2;
+    this.audio?.memoryHush(def.hush, def.coldOpen ? 0.2 : 1.6);
+    // The room waits with it (a preview too, though a preview is never counted).
+    if (this.director.scenes.active?.id !== id) this.director.memoryExternal(id);
     const sr = this.srRegion();
     sr.textContent = def.describe;
     setTimeout(() => {
       if (this.vignette?.player !== player) return;
       this.vignetteClock.reset();
       player.start();
-    }, (wait + 1.2) * 1000);
+    }, (wait + pre) * 1000);
     return true;
   }
 
@@ -782,20 +811,24 @@ export class App {
     const v = this.vignette;
     if (!v) return;
     const p = v.player;
-    const paused = this.mode === 'settings' || document.hidden;
+    // (Paused until the sound is running again too: a sentence said into a suspended context is lost.)
+    const paused = this.mode === 'settings' || document.hidden || (!!this.audio && this.audio.ctx.state !== 'running');
     if (paused !== p.isPaused) paused ? p.pause() : p.resume();
     const dt = this.vignetteClock.tick(performance.now() / 1000, this.audio?.ctx.currentTime ?? 0, this.audio?.ctx.state === 'running', paused);
-    // In settings for long: let it go (its light runs on scene time and wouldn't wait).
-    v.settingsFor = this.mode === 'settings' ? v.settingsFor + 1 / 60 : 0;
-    if (v.settingsFor > 10) {
+    // In settings, or with the sound stopped (a phone's call, a locked screen), for long: let it go
+    // (its light runs on scene time and wouldn't wait).
+    const held = this.mode === 'settings' || (!!this.audio && this.audio.ctx.state !== 'running');
+    v.settingsSince = held ? v.settingsSince ?? wallClock() : null;
+    if (v.settingsSince !== null && wallClock() - v.settingsSince > 10 && !p.releasedHow) {
       v.uncounted = true;
       p.release('interrupt');
     }
     // Turning away (toward a voice, often) or touching the walls never ends it. Walking off
-    // does: the sentence being said is finished, nothing more is said.
-    const off = this.rig.camera.position.distanceTo(v.frame.eye) > 2.5 && this.rig.moving;
-    v.leaving = off ? v.leaving + dt : 0;
-    if (v.leaving > 3 && p.position > 4 && !p.releasedHow) {
+    // does (well away from where it began, for a moment, whether still moving or not): the
+    // sentence being said is finished, nothing more is said. Coming back within 2.5 m forgives.
+    const dist = this.rig.camera.position.distanceTo(v.frame.eye);
+    v.leaving = dist > 3 ? v.leaving + dt : dist < 2.5 ? 0 : v.leaving;
+    if (v.leaving > 1.5 && p.position > 4 && !p.releasedHow) {
       v.cutShort = true;
       p.release('natural');
     }
@@ -805,7 +838,10 @@ export class App {
     p.dispose(0.3);
     this.audio?.memoryHush(0, 3);
     this.voices?.forget(vignetteKeys(p.def));
-    if (v.preview) return;
+    if (v.preview) {
+      this.director.memoryPreviewEnded(v.id);
+      return;
+    }
     const counted = this.director.memoryEnded(v.id, p.seen && !v.uncounted, p.releasedHow === 'natural' && !v.cutShort);
     if (counted) {
       const counts = readMemoryCounts();
@@ -1191,18 +1227,20 @@ export class App {
         this.room.setLit(0.08 + 0.92 * m ** 1.5, m);
         this.text.airShadowLight = this.lighting.score.key / ROOM_LEVELS.key;
         const since = this.time - this.handoffAt;
-        // (No hint while a memory is forming or playing: it waits.)
-        if (!this.hintShown && since > 4 && !(this.touch && this.dragged) && !this.living) this.showHint();
+        // (No hint while a memory is forming or playing, painted or heard: it waits. On a phone a
+        // hint would sit where a vignette's captions are.)
+        const remembering = !!this.living || !!this.vignette;
+        if (!this.hintShown && since > 4 && !(this.touch && this.dragged) && !remembering) this.showHint();
         // Someone exploring only by eye, still sitting where the opening left them, may not know
         // they can get up: told once, never moved for them.
-        if (!this.touch && !this.walkHintShown && since > 25 && this.rig.seated && this.mode === 'room' && !this.living) {
+        if (!this.touch && !this.walkHintShown && since > 25 && this.rig.seated && this.mode === 'room' && !remembering) {
           this.walkHintShown = true;
           const h = $('hint');
           h.textContent = '↑ or W to walk · Esc to pause';
           h.classList.add('on');
           setTimeout(() => h.classList.remove('on'), 5500);
         }
-        if (this.touch && this.mode === 'room' && !this.touchHintShown && since > 12 && !this.touched && !this.living) this.showTouchHint();
+        if (this.touch && this.mode === 'room' && !this.touchHintShown && since > 12 && !this.touched && !remembering) this.showTouchHint();
       }
     }
 

@@ -63,7 +63,7 @@
       "id": "charger--charger",
       "vignette": "charger",
       "line": "charger",
-      "voice": "liam",
+      "voice": "young",
       "text": "Have you seen my charger?",
       "input": "[calling out] Have you seen my charger?",
       "direction": "Ordinary hurry, nothing in it.",
@@ -80,7 +80,7 @@
       "id": "charger--charger-b",
       "vignette": "charger",
       "line": "charger",
-      "voice": "liam",
+      "voice": "young",
       "text": "Have you seen my charger?",
       "input": "[calling out] Have you seen my charger?",
       "direction": "Ordinary hurry, nothing in it.",
@@ -108,7 +108,7 @@
       "audition": true,
       "scene": {
         "before": "\"Have you seen my charger?\" She was reading, and didn't look up.",
-        "after": "\"It's not by the toaster.\""
+        "after": "\"I'll see you tomorrow.\""
       }
     },
     {
@@ -125,7 +125,7 @@
       "audition": true,
       "scene": {
         "before": "\"Have you seen my charger?\" She was reading, and didn't look up.",
-        "after": "\"It's not by the toaster.\""
+        "after": "\"I'll see you tomorrow.\""
       },
       "variantOf": "charger--toaster"
     },
@@ -133,7 +133,7 @@
       "id": "charger--tomorrow",
       "vignette": "charger",
       "line": "tomorrow",
-      "voice": "liam",
+      "voice": "young",
       "text": "I'll see you tomorrow.",
       "input": "[casually] I'll see you tomorrow.",
       "direction": "A throwaway, not a goodbye.",
@@ -150,7 +150,7 @@
       "id": "charger--tomorrow-b",
       "vignette": "charger",
       "line": "tomorrow",
-      "voice": "liam",
+      "voice": "young",
       "text": "I'll see you tomorrow.",
       "input": "[casually] I'll see you tomorrow.",
       "direction": "A throwaway, not a goodbye.",
@@ -329,7 +329,7 @@
       "voice": "restrained",
       "text": "No.",
       "input": "[quickly] No.",
-      "direction": "Too quick to be believed.",
+      "direction": "Before she's finished asking.",
       "seed": 7208,
       "file": "vignettes/back-seat--no--quick.mp3",
       "stability": 0.3,
@@ -346,7 +346,7 @@
       "voice": "restrained",
       "text": "No.",
       "input": "[quickly] No.",
-      "direction": "Too quick to be believed.",
+      "direction": "Before she's finished asking.",
       "seed": 7221,
       "file": "vignettes/back-seat--no--quick-b.mp3",
       "stability": 0.3,
@@ -371,7 +371,7 @@
       "audition": true,
       "scene": {
         "before": "\"No,\" he said, and nothing else.",
-        "after": "She looked out of the window."
+        "after": "She turned the radio back up."
       }
     },
     {
@@ -388,7 +388,7 @@
       "audition": true,
       "scene": {
         "before": "\"No,\" he said, and nothing else.",
-        "after": "She looked out of the window."
+        "after": "She turned the radio back up."
       },
       "variantOf": "back-seat--okay"
     },
@@ -406,7 +406,7 @@
       "audition": true,
       "scene": {
         "before": "\"No,\" he said, and nothing else.",
-        "after": "She looked out of the window."
+        "after": "She turned the radio back up."
       },
       "variantOf": "back-seat--okay"
     },
@@ -451,7 +451,7 @@
       "line": "hiya",
       "voice": "sarah",
       "text": "Hiya! …No.",
-      "input": "[too bright] Hiya! …No.",
+      "input": "[too bright] Hiya! [flat] …No.",
       "direction": "The one joke: embarrassment, not comedy.",
       "seed": 7299,
       "file": "vignettes/practice--hiya.mp3",
@@ -468,7 +468,7 @@
       "line": "hiya",
       "voice": "sarah",
       "text": "Hiya! …No.",
-      "input": "[too bright] Hiya! …No.",
+      "input": "[too bright] Hiya! [flat] …No.",
       "direction": "The one joke: embarrassment, not comedy.",
       "seed": 7312,
       "file": "vignettes/practice--hiya-b.mp3",
@@ -486,7 +486,7 @@
       "line": "hiya",
       "voice": "sarah",
       "text": "Hiya! …No.",
-      "input": "[too bright] Hiya! …No.",
+      "input": "[too bright] Hiya! [flat] …No.",
       "direction": "The one joke: embarrassment, not comedy.",
       "seed": 7325,
       "file": "vignettes/practice--hiya-c.mp3",
@@ -698,13 +698,13 @@
       "voice": "sarah",
       "text": "…Thank you.",
       "input": "…Thank you.",
-      "direction": "Late, meant, too far away to be heard properly.",
+      "direction": "Plain; meant; a little late.",
       "seed": 7481,
       "file": "vignettes/washing-up--thanks.mp3",
       "stability": 0.3,
       "audition": true,
       "scene": {
-        "before": "He had gone into the other room. Much later, from the doorway, quietly:"
+        "before": "He had gone into the other room. From the doorway:"
       }
     },
     {
@@ -714,13 +714,13 @@
       "voice": "sarah",
       "text": "…Thank you.",
       "input": "…Thank you.",
-      "direction": "Late, meant, too far away to be heard properly.",
+      "direction": "Plain; meant; a little late.",
       "seed": 7494,
       "file": "vignettes/washing-up--thanks-b.mp3",
       "stability": 0.3,
       "audition": true,
       "scene": {
-        "before": "He had gone into the other room. Much later, from the doorway, quietly:"
+        "before": "He had gone into the other room. From the doorway:"
       },
       "variantOf": "washing-up--thanks"
     },
@@ -885,14 +885,14 @@
       "line": "asleep",
       "voice": "matilda",
       "text": "Oh— I thought you'd be asleep.",
-      "input": "[softly] Oh— I thought you'd be asleep.",
+      "input": "[surprised] Oh— I thought you'd be asleep.",
       "direction": "Caught leaving; surprised, gentle.",
       "seed": 7624,
       "file": "vignettes/five-minutes--asleep.mp3",
       "stability": 0.3,
       "audition": true,
       "scene": {
-        "before": "Much later, passing the door on her way to bed, she found his eyes still open in the dark."
+        "before": "Much later, passing the door on her way to bed, she found the child's eyes still open in the dark."
       }
     },
     {
@@ -901,14 +901,14 @@
       "line": "asleep",
       "voice": "matilda",
       "text": "Oh— I thought you'd be asleep.",
-      "input": "[softly] Oh— I thought you'd be asleep.",
+      "input": "[surprised] Oh— I thought you'd be asleep.",
       "direction": "Caught leaving; surprised, gentle.",
       "seed": 7637,
       "file": "vignettes/five-minutes--asleep-b.mp3",
       "stability": 0.3,
       "audition": true,
       "scene": {
-        "before": "Much later, passing the door on her way to bed, she found his eyes still open in the dark."
+        "before": "Much later, passing the door on her way to bed, she found the child's eyes still open in the dark."
       },
       "variantOf": "five-minutes--asleep"
     },
@@ -960,7 +960,7 @@
       "stability": 0.3,
       "audition": true,
       "scene": {
-        "before": "\"Do you want a bag for that, love?\" For a moment she couldn't answer."
+        "before": "\"Do you want a bag for that, love?\" She hadn't been listening; she was miles away."
       }
     },
     {
@@ -976,7 +976,7 @@
       "stability": 0.3,
       "audition": true,
       "scene": {
-        "before": "\"Do you want a bag for that, love?\" For a moment she couldn't answer."
+        "before": "\"Do you want a bag for that, love?\" She hadn't been listening; she was miles away."
       },
       "variantOf": "a-bag--sorry"
     },
@@ -986,7 +986,7 @@
       "line": "come",
       "voice": "warm",
       "text": "You should come over sometime.",
-      "input": "[warmly] You should come over sometime.",
+      "input": "You should come over sometime.",
       "direction": "Means it.",
       "seed": 7702,
       "file": "vignettes/come-over--come.mp3",
@@ -1003,7 +1003,7 @@
       "line": "come",
       "voice": "warm",
       "text": "You should come over sometime.",
-      "input": "[warmly] You should come over sometime.",
+      "input": "You should come over sometime.",
       "direction": "Means it.",
       "seed": 7715,
       "file": "vignettes/come-over--come-b.mp3",
@@ -1179,14 +1179,14 @@
       "line": "last",
       "voice": "liam",
       "text": "Is that the last one?",
-      "input": "[mouth full] Is that the last one?",
+      "input": "[teasing] Is that the last one?",
       "direction": "Easy, a little greedy, affectionate.",
       "seed": 7845,
       "file": "vignettes/biscuit--last.mp3",
       "stability": 0.3,
       "audition": true,
       "scene": {
-        "before": "Sunday afternoon, the biscuit packet between them, nearly empty:",
+        "before": "Sunday afternoon, mouth half full, reaching into the packet:",
         "after": "\"Have it.\""
       }
     },
@@ -1196,14 +1196,14 @@
       "line": "last",
       "voice": "liam",
       "text": "Is that the last one?",
-      "input": "[mouth full] Is that the last one?",
+      "input": "[teasing] Is that the last one?",
       "direction": "Easy, a little greedy, affectionate.",
       "seed": 7858,
       "file": "vignettes/biscuit--last-b.mp3",
       "stability": 0.3,
       "audition": true,
       "scene": {
-        "before": "Sunday afternoon, the biscuit packet between them, nearly empty:",
+        "before": "Sunday afternoon, mouth half full, reaching into the packet:",
         "after": "\"Have it.\""
       },
       "variantOf": "biscuit--last"
@@ -1345,45 +1345,10 @@
       "variantOf": "biscuit--goon"
     },
     {
-      "id": "biscuit--breathe",
-      "vignette": "biscuit",
-      "line": "breathe",
-      "voice": "liam",
-      "text": "Stop. I can't breathe.",
-      "input": "[laughing helplessly] Stop. I can't breathe.",
-      "direction": "Trial only: real helpless laughter, or nothing. The artist decides whether the room ever laughs here.",
-      "seed": 7975,
-      "file": "vignettes/biscuit--breathe.mp3",
-      "stability": 0.3,
-      "audition": true,
-      "scene": {
-        "before": "She'd done the voice again, the one for the neighbour's dog, and he'd completely lost it:"
-      },
-      "trial": true
-    },
-    {
-      "id": "biscuit--breathe-b",
-      "vignette": "biscuit",
-      "line": "breathe",
-      "voice": "liam",
-      "text": "Stop. I can't breathe.",
-      "input": "[laughing helplessly] Stop. I can't breathe.",
-      "direction": "Trial only: real helpless laughter, or nothing. The artist decides whether the room ever laughs here.",
-      "seed": 7988,
-      "file": "vignettes/biscuit--breathe-b.mp3",
-      "stability": 0.3,
-      "audition": true,
-      "scene": {
-        "before": "She'd done the voice again, the one for the neighbour's dog, and he'd completely lost it:"
-      },
-      "variantOf": "biscuit--breathe",
-      "trial": true
-    },
-    {
       "id": "gone-quiet--quiet",
       "vignette": "gone-quiet",
       "line": "quiet",
-      "voice": "young",
+      "voice": "warm",
       "text": "You alright? You've gone quiet.",
       "input": "[leaning in] You alright? You've gone quiet.",
       "direction": "Kind, casual, half-shouting over the noise.",
@@ -1392,7 +1357,7 @@
       "stability": 0.3,
       "audition": true,
       "scene": {
-        "before": "Her birthday party, the kitchen packed, everyone laughing at something she'd missed. Leaning in close, over the music:",
+        "before": "Her birthday. She'd gone out to the hallway; the party carried on through the wall. A friend came out after her:",
         "after": "\"I'm fine! It's just loud.\""
       }
     },
@@ -1400,7 +1365,7 @@
       "id": "gone-quiet--quiet-b",
       "vignette": "gone-quiet",
       "line": "quiet",
-      "voice": "young",
+      "voice": "warm",
       "text": "You alright? You've gone quiet.",
       "input": "[leaning in] You alright? You've gone quiet.",
       "direction": "Kind, casual, half-shouting over the noise.",
@@ -1409,7 +1374,7 @@
       "stability": 0.3,
       "audition": true,
       "scene": {
-        "before": "Her birthday party, the kitchen packed, everyone laughing at something she'd missed. Leaning in close, over the music:",
+        "before": "Her birthday. She'd gone out to the hallway; the party carried on through the wall. A friend came out after her:",
         "after": "\"I'm fine! It's just loud.\""
       },
       "variantOf": "gone-quiet--quiet"
@@ -1420,15 +1385,15 @@
       "line": "fine",
       "voice": "sarah",
       "text": "I'm fine! It's just loud.",
-      "input": "[too brightly] I'm fine! It's just loud.",
+      "input": "[brightly] I'm fine! It's just loud.",
       "direction": "Bright, too quick; fine.",
       "seed": 8027,
       "file": "vignettes/gone-quiet--fine.mp3",
       "stability": 0.3,
       "audition": true,
       "scene": {
-        "before": "\"You alright? You've gone quiet.\"",
-        "after": "She laughed with everyone else."
+        "before": "Out in the hallway, the party through the wall. \"You alright? You've gone quiet.\"",
+        "after": "She went back in."
       }
     },
     {
@@ -1437,15 +1402,15 @@
       "line": "fine",
       "voice": "sarah",
       "text": "I'm fine! It's just loud.",
-      "input": "[too brightly] I'm fine! It's just loud.",
+      "input": "[brightly] I'm fine! It's just loud.",
       "direction": "Bright, too quick; fine.",
       "seed": 8040,
       "file": "vignettes/gone-quiet--fine-b.mp3",
       "stability": 0.3,
       "audition": true,
       "scene": {
-        "before": "\"You alright? You've gone quiet.\"",
-        "after": "She laughed with everyone else."
+        "before": "Out in the hallway, the party through the wall. \"You alright? You've gone quiet.\"",
+        "after": "She went back in."
       },
       "variantOf": "gone-quiet--fine"
     }

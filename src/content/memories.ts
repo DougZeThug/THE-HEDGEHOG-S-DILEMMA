@@ -50,6 +50,8 @@ export interface SceneMemory {
   requires?: { seen: string };
   phases?: Phase[];
   afterFinished?: string;
+  /** Heard this many times (over all visits), it no longer comes. */
+  maxSeen?: number;
 }
 
 export const SCENE_MEMORIES: SceneMemory[] = [
@@ -90,6 +92,7 @@ export const VIGNETTE_MEMORIES: SceneMemory[] = VIGNETTES.map((v) => ({
   requires: v.requires,
   phases: v.phases,
   afterFinished: v.afterFinished,
+  maxSeen: v.maxSeen,
   offer: v.offer,
 }));
 

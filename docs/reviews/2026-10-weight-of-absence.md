@@ -140,3 +140,122 @@ Six specialists reviewed the plan and the draft scripts (A–I) before anything 
     - A vignette's line is answered normally until its memory could open.
     - Only lines a vignette speaks itself are kept from the room's voices.
     - `ruleKneel` stays silent while F may still come.
+
+## Finished: QA, evaluation and fixes
+
+`qa-accessibility` tested the build. Then the creative director, sound designer, interaction designer and cinematic director evaluated it from captures, engine traces and the captioned previews. No recording exists yet, so nobody has heard a vignette: everything below concerns the scripts, timing, placement, light and selection, not how anything sounds.
+
+### QA (fixed before the evaluation)
+
+- **A graceful end cut the sentence being said.** It now waits for the voice (at most 15 s).
+- **A pause replayed audio already heard.** Resuming now rewinds to the interrupted sentence.
+- **F's dim was never lifted when F was interrupted.**
+- **Captions.**
+  - A vignette's sound captions hid its words; they now show alongside.
+  - Speech is on a light backing.
+  - The waiting line is readable (0.85, italic).
+  - The side follows who speaks, not where they stand.
+- **Spent and claimed vignettes.** A vignette unseen twice is now spent for the visit. The chair's claim on the kneeling voice begins only when F could.
+- **Previews are registered with the Director**, so the room waits with them.
+- **Time in settings is measured by the wall clock.**
+- **J's `withdrew` version was unreachable**, so it was removed.
+- **Browser harness:** 29/29 on desktop and phone, plus the hidden-tab and leaving checks.
+
+### What the evaluators found, and what was done
+
+**Openings (interaction designer, skeptic's rule).**
+- **H** opened on `not-going`, which is its own subject. It now opens beside `good-day`.
+- **D** opened on `keep-calling`, the line it acts out. It now opens beside `this-bit` (from 150 s), and is still offered.
+- **C** now opens beside `didnt-know-say`, not on "Are you angry with me?", which it speaks.
+- **H's `withdrew` rule was a mirror.** It was cut: H's second version follows having heard it, or a lonely room.
+
+**Interruption.**
+- Walking off was measured as "moving" (`rig.moving`), so a visitor who stepped away and stood still never ended a vignette.
+- It now ends at more than 3 m from where it began for 1.5 s, moving or not, and coming back within 2.5 m forgives.
+- Audio suspended for more than 10 s (a call, a locked phone) lets it go, uncounted, as settings already did.
+
+**Direction and scenes (creative director, sound designer).** These changed in the direction file:
+- the shop's context ("She hadn't been listening; she was miles away.");
+- C's "She turned the radio back up.";
+- J's `[brightly]` and its hallway setting;
+- "Before she's finished asking.";
+- F's door line `[surprised]`;
+- B's next line as context;
+- H without `[warmly]`;
+- I's `[teasing]` Sunday afternoon;
+- D's `[too bright] Hiya! [flat] …No.`;
+- E's "Thank you" directed plainly.
+
+Two other changes:
+- **B's leaver is recast** (`young`), so B and I don't sound like one couple. J's friend is `warm`.
+- **B's intent** no longer implies a death.
+
+**I's trial laugh line is cut** (creative director and sound designer). It acted out a line the room already says.
+
+**Readings and places.**
+- **Readings by name.** Lines with two readings now choose theirs per version, by reading name (`reading` on the line, matched to the approved file), for example C's quick "No." first and the tired one on return. If that reading isn't kept, any kept reading stands in.
+- **A new `self` place.** The writer's own lines were placed `close` (at one ear, like a phone). They are now `self`: a step ahead, centred. Only D, the rehearsed call, keeps the ear.
+
+**Level.**
+- Recordings arrive at arbitrary levels, so a score's gains meant nothing.
+- Vignette and phrase lines are now brought to −24 dBFS RMS **over the voiced frames only**, peaks ≤ −3 dBFS. A one-word "No." is no longer boosted for the silence round it.
+
+**J, reframed (sound designer).** The party was a party in the room. It is now heard **through a wall**, from the hallway:
+- lowpassed at about 1.2 kHz, placed beyond the wall;
+- the laughter further off and captioned "[laughter, through the wall]".
+
+**Silence.**
+- A deliberate silence now also takes the white room's own sound further down for its length.
+- A pause and a wait leave the room's sound as it was.
+- Captions now cover the sounds that mark a pause or a wait: the indicator in C, the till in G, J's laughter.
+
+**Synthesised sounds.**
+- The road and the fridge carried most of their energy below what a phone plays. They were re-voiced above 200 Hz (the hum heard by its 200–600 Hz harmonics, slowly beating).
+- The biscuit packet is 4 dB lower.
+
+**Offers.**
+- The kitchen-light offer now respects the quiet a vignette leaves.
+- The offer cap counts every memory's offers.
+
+**Light and rhythm (cinematic director).**
+- **The visit's turn landed on vignettes' tails.** The transform's deep dark came 1–20 s after a vignette, so the chair visitor got three darks in about 100 s, and the warm one (I) cut straight to the dark. Now:
+  - the turn waits until 25 s after any vignette (45 s after F);
+  - after F, within 90 s, it comes without its dark: F was the dark;
+  - checked over 40 simulated visits: the closest is now 26 s after a vignette.
+- **Recede read as a distance fade.** It is now an answer:
+  - whole beyond 2.2 m;
+  - within 1.7 m for 0.6 s it withdraws (slowly the first time, so it is seen leaving), with more of it in the ink breaking up and less in an even fade;
+  - it comes back only after stepping back past 2.6 m for 1.5 s, over about 5 s.
+- **F's light came back before the parent spoke.**
+  - The lift now starts just after "Oh—".
+  - The dark is held 1 s longer before the child speaks.
+  - F's first dim is deeper (0.35, the opening's chair-alone frame); gentle intensity keeps it at 0.5.
+  - The heard-before version's light returns after the room's air.
+- **J's word** now goes over 5.5 s, gone on the frame the party stops. The rubbed-out ghost keeps a little more graphite (floor 0.08), so the patches survive from across the room.
+- **"tomorrow"** is found on the wall behind the visitor, not an adjacent one at the edge of the view.
+- **B is a cold open:** no settling hush, the room cuts straight in on "Have you seen my charger?".
+- **F's heard-before version** is heard once. After that the chair belongs to the room again.
+- **The hint is held back during a vignette.** On a phone it sat where the captions are.
+
+### Not done, and why
+
+- **A visible eraser smear across J's lost word, seen from 4 m.** It needs alpha outside the glyphs' coverage, and the band comes from the time channel, which is empty between strokes. This needs the technical artist's design; the skeptic's question (is a blank stronger?) stays open.
+- **F's dim runs on scene time** while its voices run on the audio clock. They diverge only below 10 fps; a real low-end phone should be checked first.
+- **Re-timing lines from their measured lengths.** It waits for recordings: the scores are timed for the planned reads.
+- **"tomorrow" at size m on touch.** The Director doesn't know the device; left as found.
+
+### Reach (measured, not tuned)
+
+`npx vite-node scripts/vignette-reach.ts`: 5 personas × 8 seeds × 600 s, all recordings assumed kept. The personas' scripts end after 2–4 minutes, so here each repeats the middle of its own script.
+
+- **59 vignettes in 40 visits**, about 1.5 a visit:
+  - chair visitor: 12 (F every visit);
+  - explorer: 19;
+  - reader: 11;
+  - phone: 15;
+  - still visitor: 2.
+- **Never met: C, D and G.**
+  - Their anchor lines are read for 2.5 s in only 1, 4 and 6 of the 40 visits.
+  - C was offered 4 times. The scripted personas never look at newly written lines, so the simulation can't say whether an offer is read; in the browser an offer is written where the visitor is looking.
+  - D's offer slots go to the bedroom's line, which is offered first.
+- This is reported as it is. The artist decides whether rarely met memories are a loss or the point. The anchor reads per line are measured in the same harness (see `docs/vignettes.md`).

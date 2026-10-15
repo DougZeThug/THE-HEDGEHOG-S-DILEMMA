@@ -123,6 +123,12 @@ export class Lighting {
     this.dimming = { from: this.mood, to: Math.min(to, this.mood), start: now, seconds };
   }
 
+  /** A dim let go early (a vignette interrupted): the room's light comes back over 4 s, from where it is. */
+  liftDim(now: number) {
+    if (!this.dimming) return;
+    this.dimming = { from: this.mood, to: this.mood, start: now, seconds: 4 };
+  }
+
   /** Back to the room's own light at once (returning after leaving). */
   cancelDim() {
     this.dimming = null;
