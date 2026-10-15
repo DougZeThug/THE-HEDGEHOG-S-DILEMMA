@@ -181,6 +181,17 @@ Underneath the room's general behaviour there is a second layer: a few authored 
 
 Situations live in `src/state/situations/`: `Situation.ts` holds the runner, and `library.ts` holds the five episodes as small state machines. A situation claims the channels it uses (sound beyond the walls, voices at the chair, music), and the general rules keep out of its way. Any situation can be forced for inspection with `?situations=next-room,humming`.
 
+## Vignettes
+
+Small remembered fragments, heard rather than seen. Each is one or two voices and the pauses between them: someone asking for a charger on their way out; a question asked in a car at night and answered too quickly; a phone call rehearsed and never made; a child asking someone to stay until they fall asleep; a shop assistant's ordinary kindness; an invitation that will never be taken up; the last biscuit; a party where nobody notices you've gone quiet. Most are sad, two bittersweet, one warm.
+
+They open beside a line on the wall (read it, or touch it), or from stillness at the chair. They keep their distance from the other memories, and visitors meet them only once their recordings have been kept. Some come back differently: on a return visit, or when the visitor has been keeping their distance. A few leave something:
+- a word goes from a line;
+- a line becomes harder to read the closer one comes;
+- a single word is found later on another wall.
+
+The room stays plain while they play: no figures, no cutscene. Turning away never ends one; walking off lets the sentence finish. The catalogue is in `docs/vignettes.md` and the decisions in `docs/reviews/2026-10-weight-of-absence.md`. `?vignette=<id>&variant=<name>` previews one.
+
 ## Architecture
 
 ```
@@ -327,6 +338,7 @@ node scripts/generate-dialogue.mjs --approve=… --reject=…           # after 
 - **Visual verification** was done in headless Chromium with software rendering (about 10 fps, so behaviour over time was checked with the engine's fast-forward and the opening on its own wall clock). Real-GPU performance, how the light-up looks on an OLED phone, and whether the handwriting *reads as a hand* at full frame rate still need a human eye.
 - **Not yet heard by the artist:** the new switch and graphite sounds (in the opening now), and two music pilots (on the audition sheet only, not in the room). Music is never in the opening or under a voice.
 - **Deferred, on purpose:** writing in the air (at most once a visit, after review), the light as a motif later in the visit, and a contact-shadow decal for the chair (see the review).
+- **Vignettes** are written, scored and playable as captioned previews, but none is recorded yet: visitors don't meet them until their takes are generated (dry run only, about 1,931 credits estimated) and kept by the artist. Two designed voices (the child, the shop assistant) still need saving to the account. Their reach was measured in simulation, not with people.
 - **Speech/microphone input** is intentionally not implemented.
 - **Remote AI interpretation** exists only as a typed interface plus a strict validator.
 
