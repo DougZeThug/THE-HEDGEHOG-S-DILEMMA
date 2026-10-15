@@ -13,6 +13,10 @@ export interface ScheduledEvent<T> {
   major: boolean;
   /** Of the room's own accord (not answering the visitor): spaced by `roomGap`. */
   room: boolean;
+  /** Its source (a rule): cues of the one that last went are part of that one event, not spaced from it. */
+  group?: string;
+  /** Never held for the room's gap, but the room's next own event waits the gap after it. */
+  marks?: boolean;
   priority: number;
   /** Drop the event if it cannot fire before this time. */
   expires?: number;
@@ -22,6 +26,8 @@ export interface ScheduledEvent<T> {
 export interface ScheduleOptions {
   major?: boolean;
   room?: boolean;
+  group?: string;
+  marks?: boolean;
   priority?: number;
   /** Seconds after `at` the event may still fire if deferred. */
   ttl?: number;
@@ -34,12 +40,17 @@ export class EventScheduler<T> {
   private nextId = 1;
   private lastMajorAt = -Infinity;
   private lastRoomAt = -Infinity;
+  private lastRoomGroup: string | undefined;
   private cooldowns = new Map<string, number>();
   /** Events that expired (could not fire in time) on the last tick. */
   expired: T[] = [];
 
-  /** Never two of the room's own events at once: the next is kept until this many seconds have passed. */
-  constructor(public majorGap = 7, public roomGap = 2.5) {}
+  /** The gap after one of the room's own events before the next (a number, or drawn each time). */
+  private nextRoomGap: number;
+  /** Never two of the room's own events at once: the next is kept until the gap has passed. */
+  constructor(public majorGap = 7, private roomGap: number | (() => number) = 2.5) {
+    this.nextRoomGap = typeof roomGap === 'number' ? roomGap : 0;
+  }
 
   schedule(at: number, payload: T, opts: ScheduleOptions = {}): number {
     if (opts.key) this.cancelKey(opts.key);
@@ -49,6 +60,8 @@ export class EventScheduler<T> {
       payload,
       major: !!opts.major,
       room: !!opts.room,
+      group: opts.group,
+      marks: !!opts.marks,
       priority: opts.priority ?? 0,
       expires: opts.ttl !== undefined ? at + opts.ttl : undefined,
       key: opts.key,
@@ -109,19 +122,21 @@ export class EventScheduler<T> {
         this.expired.push(ev.payload);
         continue;
       }
-      if (ev.major) {
-        if (!this.majorFree(now)) {
-          if (ev.expires === undefined || now <= ev.expires) keep.push(ev);
-          continue;
-        }
-        this.lastMajorAt = now;
+      // (Both spacings are checked before either is spent: one held back takes no slot.)
+      // (Within the gap, a cue of the rule that last went is part of that same event.)
+      const inGap = now - this.lastRoomAt < this.nextRoomGap;
+      const sameEvent = ev.room && inGap && ev.group !== undefined && ev.group === this.lastRoomGroup;
+      if ((ev.major && !this.majorFree(now)) || (ev.room && inGap && !sameEvent)) {
+        keep.push(ev);
+        continue;
       }
-      if (ev.room) {
-        if (now - this.lastRoomAt < this.roomGap) {
-          keep.push(ev);
-          continue;
-        }
+      if (ev.major) this.lastMajorAt = now;
+      // (An event's later cue keeps the next one waiting from there.)
+      if (ev.room && sameEvent) this.lastRoomAt = now;
+      if ((ev.room && !sameEvent) || (ev.marks && !ev.room)) {
         this.lastRoomAt = now;
+        this.lastRoomGroup = ev.group;
+        this.nextRoomGap = typeof this.roomGap === 'number' ? this.roomGap : this.roomGap();
       }
       out.push(ev.payload);
     }

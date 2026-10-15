@@ -120,6 +120,8 @@ export interface VisitResult {
   recognised: Record<number, Recognised>;
   /** When each phase opened. */
   phases: { phase: string; t: number }[];
+  /** Seconds, from 30 s to 300 s, the room held back its own life (an aftermath or a hold). */
+  imposedQuiet: number;
 }
 
 export interface Recognised {
@@ -165,7 +167,9 @@ export function visit(p: Persona, seconds: number, seed: number, dt = 0.1, past:
   const noticeChance = process.env.NOTICE !== undefined ? Number(process.env.NOTICE) : p.device === 'phone' ? 0.4 : 0.6;
   let notice: { id: string; until: number } | null = null;
   let lastAftermath = -Infinity;
+  let imposedQuiet = 0;
   for (let t = 0; t < seconds; t += dt) {
+    if (t >= 30 && t < 300 && (d.aftermath() || d.pacing.holding(d.now))) imposedQuiet += dt;
     if (memoryEndsAt && t >= memoryEndsAt.at) {
       d.memoryEnded(memoryEndsAt.id, true, true);
       memoryEndsAt = null;
@@ -229,7 +233,7 @@ export function visit(p: Persona, seconds: number, seed: number, dt = 0.1, past:
       }
     }
   }
-  return { persona: p.id, seed, devs, interruptions, frames: p.frame, director: d, recognised, phases };
+  return { persona: p.id, seed, devs, interruptions, frames: p.frame, director: d, recognised, phases, imposedQuiet };
 }
 
 /**

@@ -325,7 +325,7 @@ export class MemoryDirector {
       if (m.offer?.wall && s.facing !== undefined && s.facing !== m.offer.wall) continue;
       const looking = s.gazeId === m.phraseId;
       // Just pointed at, or owed and pointed at again: a shorter look is enough.
-      const need = (m.kind === 'vignette' || !m.lookBack) && s.now <= t.easyUntil ? Math.min(EASY_LOOK, m.arm) : m.arm;
+      const need = (m.kind === 'vignette' || !!m.offer?.wall) && s.now <= t.easyUntil ? Math.min(EASY_LOOK, m.arm) : m.arm;
       if (looking && s.gazeFor >= need && !t.armed) {
         t.armed = true;
         t.away = 0;

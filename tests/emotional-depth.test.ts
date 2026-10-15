@@ -3,7 +3,7 @@
  * that the mechanisms behave as decided; whether any of it is felt is for visitors to say.
  */
 import { describe, it, expect, beforeAll } from 'vitest';
-import { Director, returnYaw } from '../src/state/Director';
+import { Director, returnYaw, ROOM_OWN, CLOSE_TURN } from '../src/state/Director';
 import { EventScheduler } from '../src/core/scheduler';
 import { VIGNETTE_BY_ID } from '../src/content/vignettes';
 import { PERSONAS, type Persona } from './playtest/personas';
@@ -16,8 +16,6 @@ import type { TimedCue } from '../src/state/cues';
 const base: VisitorInput = { x: 0, z: 2.4, yaw: 0, pitch: 0, gazePhraseId: null, gazeChair: false, nearSurface: null, kneeling: false };
 const looped = (p: Persona): Persona => ({ ...p, frame: (t) => p.frame(t < 240 ? t : 60 + ((t - 240) % 180)) });
 const isMemory = (d: Development) => /^(vignette|memory-scene) /.test(d.label);
-/** What the room does of its own accord (as the Director spaces it). */
-const ROOM_OWN = /^(drift|accumulate$|stray|resurface|recontext|music$|distant-life|chair-nudge|voice$|return$|phase-|air$|draw$|link$|memory$|sit:(?!residue|listening))/;
 
 /** Drive a Director with a script, returning every cue with its rule. */
 function drive(d: Director, script: (t: number) => Partial<VisitorInput> & { facing?: Surface }, from: number, seconds: number, dt = 0.1) {
@@ -93,15 +91,39 @@ describe('never two of the room’s own things at once', () => {
     expect(s.tick(3.6)).toEqual(['b']);
   });
 
-  it('in every persona’s visit, the room’s own events are at least 2.5 s apart', () => {
+  it('a major one held back for the room’s gap takes no major slot, and is not lost', () => {
+    const s = new EventScheduler<string>(7, 2.5);
+    s.schedule(1, 'room', { room: true });
+    s.schedule(2, 'major room', { room: true, major: true, ttl: 4 });
+    expect(s.tick(1)).toEqual(['room']);
+    expect(s.tick(2)).toEqual([]);
+    expect(s.tick(3.6)).toEqual(['major room']);
+    // A drawn gap: never a fixed pulse.
+    let n = 0;
+    const j = new EventScheduler<number>(7, () => [4, 6.5, 5][n++ % 3]);
+    for (let i = 0; i < 4; i++) j.schedule(0, i, { room: true });
+    const at: number[] = [];
+    for (let t = 0; t < 20; t += 0.5) if (j.tick(t).length) at.push(t);
+    expect(at).toEqual([0, 4, 10.5, 15.5]);
+  });
+
+  it('in every persona’s visit, the room’s own events are at least 4 s apart, and never on a fixed pulse', () => {
     for (const p of PERSONAS) {
       for (const seed of [1, 4]) {
         const own = visit(looped(p), 600, seed).devs.filter((d) => ROOM_OWN.test(d.rule));
         for (let i = 1; i < own.length; i++) {
-          // (One event's several cues — a phase's silence and its line — share a rule and a moment.)
-          if (own[i].rule === own[i - 1].rule && own[i].t === own[i - 1].t) continue;
-          expect(own[i].t - own[i - 1].t, `${p.id}:${seed} ${own[i - 1].rule} → ${own[i].rule} at ${own[i].t}`).toBeGreaterThanOrEqual(2.4);
+          // (One event's several cues — a line revealed and then written beside — share a rule.)
+          if (own[i].rule === own[i - 1].rule) continue;
+          expect(own[i].t - own[i - 1].t, `${p.id}:${seed} ${own[i - 1].rule} → ${own[i].rule} at ${own[i].t}`).toBeGreaterThanOrEqual(3.9);
         }
+        // (No gap between different things repeats more than a few times: no pulse.)
+        const gaps = new Map<string, number>();
+        for (let i = 1; i < own.length; i++) {
+          if (own[i].rule === own[i - 1].rule) continue;
+          const g = (own[i].t - own[i - 1].t).toFixed(1);
+          gaps.set(g, (gaps.get(g) ?? 0) + 1);
+        }
+        expect(Math.max(0, ...gaps.values()), `${p.id}:${seed}`).toBeLessThanOrEqual(4);
       }
     }
   });
@@ -138,18 +160,40 @@ describe('resonance: "the table"', () => {
     // Six seconds more by the chair, then walking off.
     const after = drive(d, (t) => (t < at + 6 ? { x: 0.3, z: 1.2 } : { x: 0.3 + (t - at - 6) * 0.8, z: 1.2 }), at + 0.1, 30);
     expect(after.filter((c) => c.rule === 'resonance:table-lift').length).toBe(1);
-    expect(after.find((c) => c.rule === 'resonance:table-lift')!.cue).toEqual({ type: 'lift', seconds: 4 });
+    expect(after.find((c) => c.rule === 'resonance:table-lift')!.cue).toEqual({ type: 'lift', seconds: 10 });
     const later = drive(d, sitter, at + 30, 300);
     expect(later.some((c) => c.rule === 'resonance:table' || c.rule === 'held-silence')).toBe(false);
   });
 
-  it('someone who never comes near the chair is not followed: after 300 s the ordinary one may come', () => {
+  it('stepping round the chair to see it is closeness, not leaving: it holds', () => {
+    const d = new Director({ seed: 5, memoryCounts: { cereal: 2 }, visits: 3 });
+    d.release();
+    let at = -1;
+    for (let t = 0; t < 300 && at < 0; t += 0.1) if (drive(d, sitter, t, 0.1).some((c) => c.rule === 'resonance:table')) at = t;
+    // Walking a half circle round it at 1.3 m, briskly.
+    const round = drive(d, (t) => { const a = (t - at) * 0.5; return { x: 1.3 * Math.sin(a), z: 1.3 * Math.cos(a) }; }, at + 0.1, 6);
+    expect(round.some((c) => c.rule === 'resonance:table-lift')).toBe(false);
+  });
+
+  it('only to someone looking at the chair: with their back to it, the held silence comes as it always has', () => {
     const d = new Director({ seed: 5, memoryCounts: { biscuit: 1 }, visits: 2 });
     d.release();
-    const cues = drive(d, () => ({ x: 2.6, z: 2.6, facing: 'east' as Surface }), 0, 420);
+    const cues = drive(d, (t) => (t < 150 ? { x: 2.6, z: 2.6, facing: 'east' as Surface } : { x: 0.3, z: 1.2, gazeChair: false }), 0, 420);
     expect(cues.some((c) => c.rule === 'resonance:table')).toBe(false);
-    const held = cues.filter((c) => c.rule === 'held-silence');
-    for (const h of held) expect(h.t).toBeGreaterThanOrEqual(300);
+  });
+
+  it('someone who never comes near the chair is not followed: it waits for them 45 s at most, then comes as always', () => {
+    const at = (memoryCounts: Record<string, number>) => {
+      const d = new Director({ seed: 5, memoryCounts, visits: 2 });
+      d.release();
+      const cues = drive(d, () => ({ x: 2.6, z: 2.6, facing: 'east' as Surface }), 0, 420);
+      expect(cues.some((c) => c.rule === 'resonance:table')).toBe(false);
+      return cues.find((c) => c.rule === 'held-silence')?.t;
+    };
+    const plain = at({}), withMeal = at({ biscuit: 1 });
+    expect(plain).toBeDefined();
+    expect(withMeal).toBeDefined();
+    expect(withMeal! - plain!).toBeLessThanOrEqual(50);
   });
 });
 
@@ -181,23 +225,16 @@ describe('resonance: "tomorrow"', () => {
 });
 
 describe('absence: how the visitor left the chair', () => {
-  it('the five personas are told apart by what they did, not by chance', () => {
+  it('staying close is told by what the visitor did: kneeling, or staying by the chair', () => {
     const kinds = Object.fromEntries(PERSONAS.map((p) => [p.id, visit(looped(p), 600, 1).director.leaving()]));
-    expect(kinds.still).toBe('apart');
     expect(kinds.chair).toBe('close');
-    // The explorer and the reader pass the chair without stopping by it: nothing in particular.
+    expect(kinds.still).toBe(null);
     expect(kinds.explorer).toBe(null);
     expect(kinds.reader).toBe(null);
-    expect(kinds.phone).not.toBe('retreat');
-  });
-
-  it('a retreat is stopping, looking at the chair and going within seconds; walking past is not', () => {
-    const retreat = simulate((t) => (t < 10 ? { x: 0, z: 2.6 } : t < 16 ? { x: 0, z: 0.9, gazeChair: true } : { x: 0, z: 3 }), 40).d;
-    expect(retreat.leaving()).toBe('retreat');
-    const past = simulate((t) => ({ x: -3 + t * 0.4, z: 0.6 }), 16).d;
-    expect(past.leaving()).not.toBe('retreat');
-    const knelt = simulate((t) => ({ x: 0, z: 0.8, kneeling: t > 5 && t < 15 }), 30).d;
-    expect(knelt.leaving()).toBe('close');
+    // A look and a step back, or walking past, is not closeness.
+    expect(simulate((t) => (t < 10 ? { x: 0, z: 2.6 } : t < 16 ? { x: 0, z: 0.9, gazeChair: true } : { x: 0, z: 3 }), 40).d.leaving()).toBe(null);
+    expect(simulate((t) => ({ x: -3 + t * 0.4, z: 0.6 }), 16).d.leaving()).toBe(null);
+    expect(simulate((t) => ({ x: 0, z: 0.8, kneeling: t > 5 && t < 15 }), 30).d.leaving()).toBe('close');
   });
 });
 
@@ -213,15 +250,17 @@ describe('return: one word kept, and forgotten on asking', () => {
 
   it('only how the visit left the chair is stored, versioned, and nothing else about it', async () => {
     const { writeTrace, readTrace } = await import('../src/ui/prefs');
-    writeTrace('retreat');
-    expect(store.get('hh.trace.v1')).toBe(JSON.stringify({ v: 1, leaving: 'retreat' }));
-    expect(readTrace()).toBe('retreat');
+    writeTrace('close');
+    expect(store.get('hh.trace.v1')).toBe(JSON.stringify({ v: 1, leaving: 'close' }));
+    expect(readTrace()).toBe('close');
     // Anything else (an older version, a hand-edited value) is ignored.
     store.set('hh.trace.v1', JSON.stringify({ v: 2, leaving: 'close' }));
     expect(readTrace()).toBe(null);
     store.set('hh.trace.v1', '{not json');
     expect(readTrace()).toBe(null);
     store.set('hh.trace.v1', JSON.stringify({ v: 1, leaving: 'I wrote this' }));
+    expect(readTrace()).toBe(null);
+    store.set('hh.trace.v1', JSON.stringify({ v: 1, leaving: 'retreat' }));
     expect(readTrace()).toBe(null);
     writeTrace(null);
     expect(store.has('hh.trace.v1')).toBe(false);
@@ -241,11 +280,16 @@ describe('return: one word kept, and forgotten on asking', () => {
     expect(d.scenes.heard('biscuit')).toBe(false);
   });
 
-  it('the chair on return: turned away after closeness, facing them after a retreat, as it was otherwise', () => {
-    expect(returnYaw('close', 0.22)).toBeCloseTo(1.12, 5);
-    expect(returnYaw('retreat', 0.22)).toBe(0);
-    expect(returnYaw('apart', 0.22)).toBe(null);
+  it('the chair on return: turned away after closeness, as it was otherwise; and then nothing asks', () => {
+    expect(returnYaw('close', 0.22)).toBeCloseTo(0.22 + CLOSE_TURN, 5);
     expect(returnYaw(null, 0.22)).toBe(null);
+    const asked = (trace: 'close' | null) => {
+      const d = new Director({ seed: 3, visits: 2, trace });
+      d.release();
+      return drive(d, () => ({}), 0, 20).some((c) => c.cue.type === 'reveal' && c.cue.phraseId === 'remember-me');
+    };
+    expect(asked(null)).toBe(true);
+    expect(asked('close')).toBe(false);
   });
 
   it('a return no longer nudges the chair at random: nothing moves it in the visit’s first minutes', () => {
@@ -280,7 +324,7 @@ describe('replay and duplicates', () => {
   it('the new gestures move nothing (reduced motion has nothing to scale) and need no caption', () => {
     const d = new Director({ seed: 5, memoryCounts: { biscuit: 1 }, visits: 2 });
     d.release();
-    const cues = drive(d, (t) => (t < 150 ? { x: 2.6, z: 2.6 } : t < 220 ? { x: 0.3, z: 1.2 } : { x: 3, z: 3 }), 0, 260);
+    const cues = drive(d, (t) => (t < 150 ? { x: 2.6, z: 2.6 } : t < 220 ? { x: 0.3, z: 1.2, gazeChair: true } : { x: 3, z: 3 }), 0, 260);
     const ours = cues.filter((c) => /^resonance:/.test(c.rule)).map((c) => c.cue.type);
     expect(ours.length).toBeGreaterThan(0);
     for (const t of ours) expect(['silence', 'lift']).toContain(t);

@@ -188,9 +188,11 @@ export class App {
     this.scene.background = new THREE.Color(0xf3f2ef);
     this.rig = new CameraRig(innerWidth / innerHeight);
     const forced = params.get('situations')?.split(',').map((s) => s.trim()).filter(Boolean);
+    const trace = this.visits > 0 ? readTrace() : null;
     this.director = new Director({
       seed,
       visits: this.visits + 1,
+      trace,
       memoryCounts: readMemoryCounts(),
       situations: forced,
       // Where each piece of writing is, for situations that relate place to memory.
@@ -203,7 +205,7 @@ export class App {
     this.director.scenes.setAvailable(new Set());
     // How the last visit left the chair, set in the dark before anything is seen: the only change
     // to it on return (docs/reviews/2026-10-emotional-depth.md).
-    const yaw = this.visits > 0 ? returnYaw(readTrace(), this.chair.baseYaw) : null;
+    const yaw = returnYaw(trace, this.chair.baseYaw);
     if (yaw !== null) this.chair.group.rotation.y = yaw;
     for (const [id, st] of this.director.visible) if (st.base) this.text.setShown(id);
     // The hand that wrote what is already there left its marks under it.
@@ -558,7 +560,7 @@ export class App {
         counts[l.id] = (counts[l.id] ?? 0) + 1;
         writeMemoryCounts(counts);
       }
-      this.ambience?.hold(this.time + this.director.aftermathLeft());
+      this.ambience?.hold(this.time + Math.max(12, this.director.aftermathLeft()));
     }
   }
 
@@ -855,7 +857,7 @@ export class App {
       return;
     }
     const counted = this.director.memoryEnded(v.id, p.seen && !v.uncounted, p.releasedHow === 'natural' && !v.cutShort);
-    this.ambience?.hold(this.time + this.director.aftermathLeft());
+    this.ambience?.hold(this.time + Math.max(12, this.director.aftermathLeft()));
     if (counted && !this.forgotten) {
       const counts = readMemoryCounts();
       counts[v.id] = (counts[v.id] ?? 0) + 1;
@@ -1425,13 +1427,16 @@ export class App {
         break;
       }
       case 'silence':
-        this.audio?.silence(cue.depth * (this.prefs.intensity === 'gentle' ? 0.8 : 1), cue.seconds);
+        // A silence dimmed for its whole length (at the chair): its sound starts back a few seconds
+        // before its light does (heard, then seen).
+        if (cue.dim !== undefined && cue.dimSeconds === cue.seconds) this.audio?.silence(cue.depth * (this.prefs.intensity === 'gentle' ? 0.8 : 1), Math.max(1, cue.seconds - 8), 1.4, 2.5);
+        else this.audio?.silence(cue.depth * (this.prefs.intensity === 'gentle' ? 0.8 : 1), cue.seconds);
         if (cue.dim !== undefined) this.lighting.dimToChair(this.prefs.intensity === 'gentle' ? Math.max(cue.dim, 0.5) : cue.dim, Math.min(cue.seconds, cue.dimSeconds ?? 11), this.time);
         break;
       case 'lift':
-        // (A time constant: about 3 of them to come back.)
-        this.audio?.lift(cue.seconds / 3);
-        this.lighting.liftDim(this.time);
+        // The room is heard coming back first; its light follows two seconds later.
+        this.audio?.lift(cue.seconds);
+        this.lighting.liftDim(this.time + 2, cue.seconds);
         break;
       case 'chairNudge':
         this.chair.nudge(cue.dx, cue.dz, cue.dyaw);
@@ -1749,9 +1754,11 @@ export class App {
     });
     // A tab closed without leaving: how the visit left the chair is kept all the same.
     addEventListener('pagehide', () => {
-      if (this.mode === 'room' || this.mode === 'settings') this.keepTrace();
+      if (this.mode === 'room' || this.mode === 'settings' || this.mode === 'contribute') this.keepTrace();
     });
     document.addEventListener('visibilitychange', () => {
+      // (A phone may discard a hidden tab without pagehide: this is the last sure moment.)
+      if (document.hidden && (this.mode === 'room' || this.mode === 'settings' || this.mode === 'contribute')) this.keepTrace();
       // Away during the opening: on return, the room is simply there.
       if (document.hidden && this.opening) this.skipOpening();
       // A living memory pauses with the tab; away for more than 10 s, it ends (uncounted).

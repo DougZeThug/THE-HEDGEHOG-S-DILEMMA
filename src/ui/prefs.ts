@@ -88,11 +88,11 @@ const TRACE = 'hh.trace.v1';
  * 2026-10-emotional-depth.md): nothing about where anyone stood, what they wrote or what they did,
  * only the kind of leaving. Versioned; anything unexpected reads as nothing.
  */
-export type Leaving = 'close' | 'retreat' | 'apart';
+export type Leaving = 'close';
 export function readTrace(): Leaving | null {
   try {
     const v = JSON.parse(safeGet(TRACE) ?? 'null');
-    return v && v.v === 1 && (v.leaving === 'close' || v.leaving === 'retreat' || v.leaving === 'apart') ? v.leaving : null;
+    return v && v.v === 1 && v.leaving === 'close' ? v.leaving : null;
   } catch {
     return null;
   }

@@ -92,6 +92,14 @@ export class Pacing {
     }
     // A deep silence, or the room deliberately not speaking, is held: nothing breaks into it.
     if (cue.type === 'silence' && (cue.depth >= 0.7 || rule === 'withhold')) this.holdUntil = Math.max(this.holdUntil, t + cue.seconds);
+    // And a moment for the room's tone to come back from a deep one before music or a voice of its own.
+    if (cue.type === 'silence' && cue.depth >= 0.7) this.recoverUntil = Math.max(this.recoverUntil, t + cue.seconds + 6);
+  }
+
+  /** A held silence let go early (the visitor moved away): it ends now, and its exhale follows. */
+  release(t: number) {
+    this.holdUntil = Math.min(this.holdUntil, t);
+    this.recoverUntil = Math.max(this.recoverUntil, t + 6);
   }
 
   /** How long quiet may last before it reads as waiting. Active visitors are answered sooner. */

@@ -91,6 +91,42 @@ Five specialists reviewed the plan, then the skeptic challenged the draft reconc
      - apart → unchanged.
 7. **Privacy.** Forget also clears this visit's in-memory counts.
 
+## Evaluating the result (QA, creative director, cinematic director, sound designer, skeptic)
+
+The first build (976eca6) was tested and evaluated. Their findings, and what the main session did with them:
+
+- **Spacing became a machine of its own** (skeptic, creative director, cinematic director).
+  - The per-tick gate, the rotation of the room's rules and the 10 s re-entry after an aftermath produced a 2.5 s ladder and an exact 10.0 s pulse: 77 gaps of exactly 10 s in 40 visits.
+  - **Done.** All three are gone; one seeded, jittered scheduler gap (4–7 s) remains. After an aftermath the gaps shorten from 12–16 s through 8–11 s to 6–8 s. A rule's several cues count as one event. A phase turn is never held, but it does count for the gap.
+  - The scheduler also spent the major slot on an event it then held back (skeptic, QA). Fixed and tested.
+- **Held silences were broken by the room itself** (sound designer, creative director). Next-room laughter landed 10–21 s into "the table" in 7 of 7 first visits; a line about silence was spoken 7 s into the silence.
+  - **Done.** Nothing of the room's own comes during a hold, and situations' sounds wait until 6 s after one. Music and the room's voices wait 6 s after a deep silence. The phase turn keeps 15 s clear of it.
+  - Held silences the room broke into: 16 of 40 visits → 0 of 40.
+  - The sound designer asked for a 10 s exhale and the skeptic for none (imposed quiet was creeping up: 34% → 42%). Resolved at 6 s; imposed quiet is now 36%, and the journey reports it.
+- **"The table" reached people with their back to the chair, or came as F's tail** (creative director, who checked view angles: 0 of 7 first-visit tables reached a visitor looking at the chair).
+  - **Done.** It needs the chair looked at for 3 s, and comes at least 45 s after any memory. Its "perceived" count now requires the chair in view and no sound anywhere in it.
+  - The skeptic said it cost other visitors their held silence, deferred to 300 s. **Done.** It waits at most 45 s past its moment (two minutes while the visitor is with the chair).
+  - The skeptic also wanted the cereal/biscuit condition removed, giving the chair silence to everyone. **Rejected.** The brief asks for authored threads between memories, and the creative director keeps it. Its cause is invisible by design: it is a resonance, not a cue.
+  - Result: on second visits 7 of 40, all perceived (before the fix, 22 with 6 perceived). Rare, and true.
+- **The lift was a proximity switch** (creative director, cinematic director, sound designer, QA).
+  - **Done.** It lifts only past 3 m, not on speed, and 1.5 s after they cross. Sound returns over 10 s on an even-loudness ramp; light follows 2 s later over 10 s. At the silence's natural end, sound starts back about 4 s before light.
+  - QA found the silence could sound after its own lift, and that a lift could swallow the turn into the last phase. **Done.** The silence's state is set when it sounds, not when it is queued. A held silence that never sounded is given back to the visit. A lift inside the turn waits for the turn's 14 s.
+- **The kitchen light could be lost** after the visitor stayed with its line (QA). **Done.** A light that never sounded is not spent.
+- **"Tomorrow" was written on the north wall** once the door had been offered: the `beside: 'door-open'` placement fell back to the line's authored home (QA). Writing it beside the door's line would also have read as a caption (creative director). **Done.** It is always beneath the drawn door.
+- **Return.**
+  - "Retreat → facing them" was a 12.6° change that no visitor could notice and no persona produced, and as defined it would label a curious first approach (all reviewers). **Done.** Cut; the trace stores `close` or nothing.
+  - "Close" at 64° read as set aside, not turned away (cinematic director, skeptic). **Done.** Turned 1.9 rad (about 120° from facing the visitor). It is the artist's angle to choose: `CLOSE_TURN` in `src/state/Director.ts`.
+  - The return also asked "Do you remember me?" on top of the pose (creative director). **Done.** It does not ask when the chair has been turned.
+  - The README no longer spells out what the pose means.
+  - The trace is also kept when a phone hides the tab, and while the visitor is writing (QA).
+- **Residue turn seen happening** (cinematic director, skeptic). Its guard was the centre ray. **Done.** It needs the chair out of the view (more than about 50° off) for 1 s.
+- **The bedroom also got the 1.5 s easy look** (skeptic): unrecorded scope creep. **Done.** Limited to the door.
+- **Not done:**
+  - B's offer path (creative director). B and "tomorrow" stay rare. Adding an offer did nothing measurable in the offer order without reordering the others, and reach at n=40 is noise.
+  - The longer chair-alone beat on a return with a trace (cinematic director): the opening score is protected.
+  - The residue glow, at 0.4 barely different from 0.6 (cinematic director): cut it if it is unnoticed on a real screen.
+  - The door's priority costs the bedroom: in 40 visits the bedroom went 9 → 4 and the door 0 → 1. That trade is the artist's.
+
 ## Not done and why
 - **The door is offered more but still opened rarely in simulation.** No scripted persona reads a line on the south wall. Whether real visitors find it there needs real visits.
 - **Phones.** Whether the held silence at the chair is felt on a phone needs the artist with a phone. The vent layer is in its range; the hum is not.

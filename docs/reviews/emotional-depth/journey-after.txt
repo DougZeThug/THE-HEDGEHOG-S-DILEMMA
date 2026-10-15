@@ -1,22 +1,22 @@
-| persona | encounters / visit | quiet after a memory (median s) | room events ≤30 s after (mean) | consequences (perceived) | left the chair |
-|---|---|---|---|---|---|
-| still | 1.50 | 25 | 1.17 | 0 (0) | apart 8 |
-| explorer | 2.50 | 25.2 | 0.60 | 0 (0) | — 8 |
-| chair | 1.88 | 25.2 | 0.87 | 16 (16) | close 8 |
-| reader | 2.88 | 25.1 | 1.00 | 7 (7) | — 8 |
-| phone | 2.00 | 25 | 1.00 | 16 (0) | close 8 |
-| all | 2.15 | 25.1 | 0.91 | 39 (23) | |
+| persona | encounters / visit | quiet after a memory (median s) | room events ≤30 s after (mean) | consequences (perceived) | left the chair | imposed quiet 30–300 s | most own events in 20 s | held silences the room broke into |
+|---|---|---|---|---|---|---|---|---|
+| still | 1.13 | 25 | 0.67 | 0 (0) | — 8 | 32% | 6 | 0/8 |
+| explorer | 2.63 | 25 | 0.81 | 0 (0) | — 8 | 33% | 5 | 0/8 |
+| chair | 1.88 | 25.2 | 1.07 | 16 (16) | close 8 | 45% | 5 | 0/8 |
+| reader | 2.88 | 25.1 | 0.70 | 0 (0) | — 8 | 48% | 6 | 0/8 |
+| phone | 2.00 | 25 | 0.88 | 16 (0) | close 8 | 23% | 6 | 0/8 |
+| all | 2.10 | 25 | 0.82 | 32 (16) | | 36% | 6 | 0/40 |
 
-consequences by rule (fired, perceived): {"sit:residue":[32,16],"resonance:table":[7,7]}
+consequences by rule (fired, perceived): {"sit:residue":[32,16]}
 
 ## Second visit (cereal and the biscuit heard before): RETURN=1
-| persona | encounters / visit | quiet after a memory (median s) | room events ≤30 s after (mean) | consequences (perceived) | left the chair |
-|---|---|---|---|---|---|
-| still | 1.00 | 25 | 1.50 | 0 (0) | apart 8 |
-| explorer | 2.50 | 25 | 0.95 | 1 (1) | — 8 |
-| chair | 2.00 | 26 | 0.50 | 23 (23) | close 8 |
-| reader | 2.63 | 25.1 | 0.86 | 8 (8) | — 8 |
-| phone | 2.38 | 25 | 0.84 | 24 (8) | close 8 |
-| all | 2.10 | 25 | 0.87 | 56 (40) | |
+| persona | encounters / visit | quiet after a memory (median s) | room events ≤30 s after (mean) | consequences (perceived) | left the chair | imposed quiet 30–300 s | most own events in 20 s | held silences the room broke into |
+|---|---|---|---|---|---|---|---|---|
+| still | 1.63 | 25 | 0.85 | 0 (0) | — 8 | 40% | 7 | 0/8 |
+| explorer | 2.50 | 25 | 0.80 | 0 (0) | — 8 | 32% | 7 | 0/8 |
+| chair | 2.00 | 25.2 | 0.56 | 23 (23) | close 8 | 48% | 6 | 0/8 |
+| reader | 2.63 | 25.1 | 0.86 | 0 (0) | — 8 | 49% | 7 | 0/8 |
+| phone | 1.88 | 25.2 | 0.87 | 16 (0) | close 8 | 38% | 7 | 0/8 |
+| all | 2.13 | 25.1 | 0.79 | 39 (23) | | 42% | 7 | 0/40 |
 
-consequences by rule (fired, perceived): {"echo:charger":[1,1],"sit:residue":[32,16],"resonance:table":[23,23]}
+consequences by rule (fired, perceived): {"sit:residue":[32,16],"resonance:table":[7,7]}

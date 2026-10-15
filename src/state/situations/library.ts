@@ -267,8 +267,8 @@ export const residue: SituationDef = {
       }
       return;
     }
-    // (Turned while they are not looking at it: found turned, never seen turning.)
-    if (st.stage === 'away' && h.now - d.leftAt >= 60 && v.distance < 2.0 && v.gazeChairFor === 0) {
+    // (Turned while it is out of their view: found turned, never seen turning.)
+    if (st.stage === 'away' && h.now - d.leftAt >= 60 && v.distance < 2.0 && v.chairOutOfViewFor >= 1) {
       c.emit(0, { type: 'chairTurn', x: d.kx, z: d.kz, amount: 0.6 });
       c.end();
     }

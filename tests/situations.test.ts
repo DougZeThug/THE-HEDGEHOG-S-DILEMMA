@@ -58,6 +58,8 @@ const isVoice = (c: Cue): c is Extract<Cue, { type: 'voice' }> => c.type === 'vo
 describe('situation: the next room', () => {
   it('follow the laughter, find a memory, and later the memory returns without it', () => {
     const v = new Visit(['next-room']);
+    // (No vignette recorded: F, at the chair, would otherwise take the moment this waits for.)
+    v.d.scenes.setAvailable(new Set());
     const first = v.run(240, { x: 0, z: 2.4 }, (c) => isVoice(c.cue) && c.cue.tag === 'next-room');
     expect(first).toBeTruthy();
     const wall = (first!.cue as Extract<Cue, { type: 'voice' }>).position as { kind: 'beyond'; surface: Surface };
@@ -168,7 +170,9 @@ describe('situation: residue', () => {
     v.run(30, { x: 0, z: 2.6 });
     expect(v.cues.some((c) => c.cue.type === 'chairTurn')).toBe(false);
     v.run(40, { x: 0, z: 2.6 });
-    const turn = v.run(10, { x: 0, z: 1.5 }, (c) => c.cue.type === 'chairTurn');
+    // Near again, looking at it: it is not seen turning. Then with it out of view: found turned.
+    expect(v.run(10, { x: 0, z: 1.5 }, (c) => c.cue.type === 'chairTurn')).toBeUndefined();
+    const turn = v.run(10, { x: 0, z: 1.5, yaw: Math.PI }, (c) => c.cue.type === 'chairTurn');
     expect(turn).toBeTruthy();
     const ct = turn!.cue as Extract<Cue, { type: 'chairTurn' }>;
     expect([ct.x, ct.z].map((n) => +n.toFixed(1))).toEqual([0.3, 0.9]);

@@ -165,6 +165,12 @@ export class AudioEngine {
     this.duckUntil = 0;
     const p = this.duck.gain;
     p.cancelScheduledValues(t);
+    if (seconds >= 0.5) {
+      // A slow return, even in loudness all the way (no jump in its first second).
+      p.setValueAtTime(Math.max(p.value, 0.03), t);
+      p.exponentialRampToValueAtTime(1, t + seconds);
+      return;
+    }
     p.setValueAtTime(p.value, t);
     p.setTargetAtTime(1, t, Math.max(0.01, seconds));
   }
