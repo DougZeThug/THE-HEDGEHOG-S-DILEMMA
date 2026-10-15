@@ -111,7 +111,7 @@ describe('the ending: a cut, on one frame', () => {
   useInitialState(state as never);
   const def = MEMORIES.woodland;
   const src = sheetSource(sheetId('woodland', 'afternoon'), memorySchema(def.layers, true), { sections: def.sections, markers: def.markers });
-  const CUT = 28;
+  const CUT = 31.5;
 
   it('the afternoon and the two of them until it; the same place later, empty, from it', () => {
     const before = src.at(CUT - 1 / 60);
@@ -150,7 +150,7 @@ describe('the ending: a cut, on one frame', () => {
     const c = new MemoryPlaybackController({ timeline: src, weights: FULL, reduced: false, entrance: 2, sways: [], exit: def.exit, maxHold: 60, tail: 0, living: true });
     c.start();
     let prev = 1, flips = 0, halfway = 0;
-    for (let t = 0; t < 34; t += 1 / 60) {
+    for (let t = 0; t < 37; t += 1 / 60) {
       const f = c.step(1 / 60)!;
       const p = f.final['scene.people'];
       if (p !== prev) flips++;
@@ -172,17 +172,21 @@ describe('the woodland, heard', () => {
   it('the cicada over them falls quiet while the hand moves, and sings straight across the cut', () => {
     const [x] = renderCicadas(0);
     expect(energy(x, 16, 24.5)).toBeLessThan(energy(x, 11, 14) * 0.01);
-    // Across the cut (28 s): sounding just before and just after, no gap.
-    expect(energy(x, 27, 28)).toBeGreaterThan(energy(x, 11, 14) * 0.2);
-    expect(energy(x, 28, 29)).toBeGreaterThan(energy(x, 11, 14) * 0.2);
+    // Across the cut (31.5 s): sounding just before and just after, unchanged.
+    expect(energy(x, 30.5, 31.5)).toBeGreaterThan(energy(x, 11, 14) * 0.2);
+    expect(energy(x, 31.5, 32.5)).toBeGreaterThan(energy(x, 11, 14) * 0.2);
+    expect(energy(x, 32.5, 33.5) / energy(x, 30.5, 31.5)).toBeGreaterThan(0.5);
     expect(x.length).toBe(Math.ceil(TIMES.length * RATE));
   });
   it('the clearing carries on across the cut (no hole, no swell, on that second)', async () => {
     const [l, r] = await renderWoods(0);
     const e = (a: number, b: number) => energy(l, a, b) + energy(r, a, b);
-    const before = e(27, 28), after = e(28, 29);
-    expect(after / before).toBeGreaterThan(0.5);
-    expect(after / before).toBeLessThan(2);
+    const before = e(30.5, 31.5);
+    // The afternoon carries on unchanged a few seconds past the cut (the picture says later first).
+    for (const [a, b] of [[31.5, 32.5], [32.5, 33.5], [33.5, 34.5]]) {
+      expect(e(a, b) / before).toBeGreaterThan(0.6);
+      expect(e(a, b) / before).toBeLessThan(1.6);
+    }
   });
   it("a cicada's phrase swells in and falls away, never a gated tone", () => {
     const x = new Float32Array(8 * RATE);

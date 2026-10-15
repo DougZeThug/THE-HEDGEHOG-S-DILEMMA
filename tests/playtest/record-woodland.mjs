@@ -23,7 +23,7 @@ const W = Number(process.env.W ?? 1280), H = Number(process.env.H ?? 720);
 const VARIANT = process.env.VARIANT ?? 'afternoon';
 const OUT = process.env.OUT ?? 'test-output/review/woodland/film';
 const PRE = 2; // seconds of the room before it begins
-const END = Number(process.env.END ?? (VARIANT === 'empty' ? 28 : 46.5));
+const END = Number(process.env.END ?? (VARIANT === 'empty' ? 28 : 50));
 const frames = `${OUT}/frames-${PROFILE}-${VARIANT}`;
 rmSync(frames, { recursive: true, force: true });
 mkdirSync(frames, { recursive: true });

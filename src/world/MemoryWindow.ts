@@ -56,6 +56,7 @@ const FRAG = /* glsl */ `
   uniform vec4 uCrop;
   uniform vec4 uView0;
   uniform float uOpen;
+  uniform float uSoftReserve;
   varying vec2 vUv;
 
   vec3 toLinear(vec3 c) { return mix(c / 12.92, pow((c + 0.055) / 1.055, vec3(2.4)), step(0.04045, c)); }
@@ -92,7 +93,7 @@ const FRAG = /* glsl */ `
     // Never to the window's edge: ragged, inside its rectangle (wider as a living one spreads:
     // a brush, not a frame).
     vec2 e = min(vUv, 1.0 - vUv) * uSize;
-    float edge = smoothstep(0.0, (0.06 + 0.05 * n) * (1.0 + 2.5 * uOpen), min(e.x, e.y));
+    float edge = smoothstep(0.0, (0.06 + 0.05 * n) * (1.0 + 0.6 * uOpen), min(e.x, e.y) + (n2 - 0.5) * 0.08 * uOpen);
 
     vec3 col = vec3(0.0); float cov = 0.0; vec3 light = vec3(0.0); vec4 lead = vec4(0.0);
     if (uCount > 0) layer(0, texture2D(uL0, (P - uView0.xy) / uView0.zw + uShift[0] + vec2(uSkew[0] * (1.0 - P.y), 0.0)), col, cov, light, lead);
@@ -114,9 +115,14 @@ const FRAG = /* glsl */ `
 
     // Bare plaster round the words, feathered over 2–3 cm with a rough edge.
     vec2 r = abs(m - uReserve.xy) - uReserve.zw;
-    float rd = max(r.x, r.y) + (n2 - 0.5) * 0.02;
-    float reserve = 1.0 - smoothstep(-0.005, 0.03, rd);
-    pigCov *= 1.0 - mix(0.0, 0.85, reserve * uStylize);
+    // (A living memory's painting keeps its words in a bloom of plaster, not a card: a wider,
+    // noise-edged reserve, the painting faintly there behind them.)
+    float bloom = step(0.5, uSoftReserve);
+    float rd = max(r.x, r.y) + (n2 - 0.5) * mix(0.02, 0.07, bloom) + (n - 0.5) * 0.06 * bloom;
+    float reserve = (1.0 - smoothstep(-0.005, mix(0.03, 0.11, bloom), rd)) * mix(1.0, 0.7, bloom);
+    // (A living memory's painting, opened across the plaster, lies under its words as image 3:
+    // no card of bare plaster round them.)
+    pigCov *= 1.0 - mix(0.0, 0.85, reserve * uStylize * (1.0 - uOpen));
 
     vec3 pigment = toLinear(col / max(cov, 1e-3));
     vec3 lit = toLinear(min(light, vec3(1.0))) * shade * uLight * mask * edge * uPresence;
@@ -232,6 +238,7 @@ export class MemoryWindow {
       uCrop: { value: new THREE.Vector4(0, 0, 1, 1) },
       uView0: { value: new THREE.Vector4(0, 0, 1, 1) },
       uOpen: { value: 0 },
+      uSoftReserve: { value: 0 },
     };
     const mat = new THREE.ShaderMaterial({
       uniforms: this.u,
@@ -280,6 +287,7 @@ export class MemoryWindow {
   setLiving(o: { crop: [number, number, number, number]; size: [number, number] } | null): void {
     this.living = o;
     this.spread = 0;
+    this.u.uSoftReserve.value = o ? 1 : 0;
     if (!o) {
       (this.u.uCrop.value as THREE.Vector4).set(0, 0, 1, 1);
       this.u.uOpen.value = 0;

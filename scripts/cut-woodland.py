@@ -340,9 +340,9 @@ def pressed(dusk_rgb):
     n = (n - n.min()) / max(1e-6, n.max() - n.min())
     m = blur(m, 16) * (0.55 + 0.9 * n)
     m = np.clip(m, 0, 1)
-    flat = blur(dusk_rgb, 2.2)
-    out = dusk_rgb * (1 - 0.35 * m[..., None]) + flat * (0.35 * m[..., None])
-    return out * (1 - 0.07 * m[..., None])
+    flat = blur(dusk_rgb, 2.6)
+    out = dusk_rgb * (1 - 0.6 * m[..., None]) + flat * (0.6 * m[..., None])
+    return out * (1 - 0.13 * m[..., None])
 
 
 def sketch_layer(poster_rgb, fig_lines):

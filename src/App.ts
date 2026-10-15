@@ -101,8 +101,8 @@ export class App {
   private living: { memory: LivingMemory; id: string; key: string; anchor: NonNullable<ReturnType<WallText['anchorOf']>>; bled: boolean; hiddenSince: number | null; held: boolean;
     /** Seconds looking away from it, and watching it; why it was let go. */
     awayFor: number; watched: number; minHold: number; why: string | null;
-    /** Looking away from it now (last attention check); the room gone to evening while it was away. */
-    away: boolean; evening: boolean;
+    /** Looking away from it now (last attention check). */
+    away: boolean;
   } | null = null;
   /** Going into a living memory and back (src/world/living/Inside.ts). */
   private inside!: Inside;
@@ -541,7 +541,7 @@ export class App {
         this.memoryState(s);
       },
     });
-    this.living = { memory, id, key: a.key, anchor: a, bled: false, hiddenSince: null, held: false, awayFor: 0, watched: 0, minHold: SCENE_BY_PHRASE.get(phraseId)?.minHold ?? 8, why: null, away: false, evening: false };
+    this.living = { memory, id, key: a.key, anchor: a, bled: false, hiddenSince: null, held: false, awayFor: 0, watched: 0, minHold: SCENE_BY_PHRASE.get(phraseId)?.minHold ?? 8, why: null, away: false };
     this.memoryClock.reset();
     // The room hushes round it (and its music stops), until it lets go. For the door the white
     // room itself goes to evening, so the landing's light is the brightest thing there.
@@ -572,11 +572,6 @@ export class App {
     if (s === 'residue' || s === 'complete') {
       // The room comes back as the memory lets go (issued now, never precomputed).
       this.audio?.memoryHush(0, 20);
-      // From evening, if it went there while the visitor was away.
-      if (l.evening) {
-        l.evening = false;
-        this.lighting.liftDim(this.time, 8);
-      }
     }
 
     if (s === 'complete') {
@@ -1039,13 +1034,7 @@ export class App {
     }, { reduced: this.prefs.reducedMotion, aspect, scene: pl.scene.target.texture, sketch, group: l.anchor.group });
     // The window was placed before the spread changed: place it again for this frame.
     this.memoryWindow.update(f.final, this.rig.restingEye, 0);
-    pl.scene.update(this.renderer, f.t, f.final, { view: this.inside.view, parallax: new THREE.Vector2(), mips: this.inside.eff < 0.9 });
-    // The white room goes to evening while the visitor is away inside it.
-    const ev = l.memory.prepared.def.evening;
-    if (ev && !l.evening && f.position >= ev.at && this.inside.eff > 0.9) {
-      l.evening = true;
-      this.lighting.dimToChair(ev.level, 6, this.time);
-    }
+    pl.scene.update(this.renderer, f.t, f.final, { view: this.inside.view, parallax: new THREE.Vector2() });
     if (go) this.endLivingMemory('interrupt');
   }
 

@@ -28,10 +28,10 @@ export const RATE = 24000;
 
 /** The afternoon's sound timeline (seconds from the memory's start; the picture's are in defs.ts). */
 export const TIMES = {
-  length: 44,
+  length: 47.5,
   /** The near cicada's phrases: first heard beyond the wall; a lull while the hand moves; one
-   *  phrase carrying straight across the cut (28 s); the last ones into the evening. */
-  near: [[1.2, 6.6], [8.2, 14.3], [25.4, 31.6], [33.2, 38.2]] as [number, number][],
+   *  long phrase from after she settles, carrying straight across the cut (31.5 s). */
+  near: [[1.2, 6.6], [8.2, 14.3], [25.4, 34.8]] as [number, number][],
   inside: [6.5, 11] as [number, number],
   chorusFrom: 2.5,
   /** The two either side: also quiet while the hand moves. */
@@ -39,18 +39,19 @@ export const TIMES = {
   /** The touch: the chorus draws back a little. */
   touch: [19.8, 21.8] as [number, number],
   /**
-   * After the cut (28 s), the evening, gradually: the day's chorus thins, the evening cicadas
-   * come in (their first call at 29.5). Nothing marks the cut itself.
+   * After the cut (31.5 s) the sound stays the afternoon's while the cicada over them finishes its
+   * phrase (to 34.8): the picture says later before the sound does. Then the day thins, and an
+   * evening cicada calls, once, and once more. Nothing marks the cut itself.
    */
-  dusk: [28.5, 34] as [number, number],
-  evening: [29.5, 33.2, 36.4] as number[],
+  dusk: [34.8, 38.5] as [number, number],
+  evening: [35.8, 38.6] as number[],
   /** The air goes still (scene.breeze), and comes back. */
   breeze: [[0, 1], [14, 1], [15, 0.15], [21.5, 0.15], [23.5, 1]] as [number, number][],
-  /** Going (from 35): the chorus first, the leaves, the two either side, the near one last. */
-  chorusOut: [35.5, 38] as [number, number],
-  leavesOut: [35.5, 37.5] as [number, number],
-  midOut: [36.5, 38.5] as [number, number],
-  nearOut: [37.5, 39.5] as [number, number],
+  /** Going (from 38.5): the chorus first, the leaves, the two either side, the near one last. */
+  chorusOut: [39, 41.5] as [number, number],
+  leavesOut: [39, 41] as [number, number],
+  midOut: [40, 42] as [number, number],
+  nearOut: [41, 43] as [number, number],
 };
 const EMPTY = { length: 26, out: [20, 24] as [number, number], evening: [1.5, 6.5, 11.8, 16.4] };
 
@@ -251,7 +252,7 @@ export function renderCicadas(take: number): Float32Array[] {
   const len = empty ? EMPTY.length : TIMES.length;
   const x = new Float32Array(Math.ceil(len * RATE));
   const T = TIMES;
-  const level = (t: number) => (empty ? 0.7 * fadeOut(t, EMPTY.out) : (0.5 + 0.5 * smooth(T.inside[0], T.inside[1], t)) * (1 - 0.35 * smooth(T.dusk[0], T.dusk[1], t)) * fadeOut(t, T.nearOut));
+  const level = (t: number) => (empty ? 0.7 * fadeOut(t, EMPTY.out) : (0.5 + 0.5 * smooth(T.inside[0], T.inside[1], t)) * fadeOut(t, T.nearOut));
   const list = empty ? [[1.5, 7.5], [10, 15.5]] as [number, number][] : T.near;
   list.forEach(([a, b], i) => cicada(x, { ...NEAR, seed: NEAR.seed + i }, a, b, level));
   normalise([x], -45);

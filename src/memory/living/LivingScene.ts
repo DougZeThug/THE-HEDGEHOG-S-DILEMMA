@@ -154,7 +154,7 @@ export class LivingScene {
    * `view` is the part of the painting to draw (what is on the screen); `parallax` the visitor's
    * small looks (painting uv at depth 1). Returns whether it drew.
    */
-  update(renderer: THREE.WebGLRenderer, t: number, v: Values, o: { view: THREE.Vector4; parallax: THREE.Vector2; mips: boolean; tap?: THREE.Vector4 }): boolean {
+  update(renderer: THREE.WebGLRenderer, t: number, v: Values, o: { view: THREE.Vector4; parallax: THREE.Vector2; tap?: THREE.Vector4 }): boolean {
     if (this.disposed) return false;
     const tq = Math.floor(t * FPS) / FPS;
     const viewMoved = !this.lastView.equals(o.view);
@@ -194,7 +194,6 @@ export class LivingScene {
     c.bottom = o.view.y;
     c.top = o.view.y + o.view.w;
     c.updateProjectionMatrix();
-    this.target.texture.generateMipmaps = o.mips;
     const prev = renderer.getRenderTarget();
     renderer.setRenderTarget(this.target);
     renderer.render(this.scene, c);

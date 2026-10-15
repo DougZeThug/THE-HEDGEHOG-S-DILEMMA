@@ -31,9 +31,9 @@ const STAGES = {
   // The woodland (docs/reviews/2026-10-woodland.md): in, the touch, the evening, out.
   woodland: VARIANT === 'empty'
     ? [['0-untouched', null], ['1-first-drawing', 2.6], ['2-developing', 5], ['3-active', 12], ['4-dissolving', 22], ['5-drawing-alone', 24.6]]
-    : [['00-untouched', null], ['01-leaf-light', 2.0], ['02-graphite', 3.6], ['03-formed', 6.0], ['04-spreading', 8.0], ['05-carried', 9.8], ['06-inside', 12.0], ['07-reach-halfway', 17.0], ['08-touch', 22.0], ['09-settled', 26.0],
-       // The cut (28 s): the last frame before it and the first after it, then the empty clearing.
-       ['10-last-frame-before-cut', 28 - 1 / 60], ['11-first-frame-after-cut', 28.0], ['12-empty-dusk', 33.0], ['13-returning', 37.0], ['14-wall', 40.0], ['15-white-room', 43.5]],
+    : [['00-untouched', null], ['01-leaf-light', 2.0], ['02-graphite', 3.6], ['03-formed', 6.0], ['04-spreading', 8.0], ['05-carried', 9.8], ['06-inside', 12.0], ['07-reach-halfway', 17.0], ['08-touch', 22.0], ['09-stillness', 29.0],
+       // The cut (31.5 s): the last frame before it and the first after it, then the empty clearing.
+       ['10-last-frame-before-cut', 31.5 - 1 / 60], ['11-first-frame-after-cut', 31.5], ['12-empty-dusk', 36.5], ['13-returning', 40.5], ['14-wall', 43.5], ['15-white-room', 47.0]],
 }[MEMORY];
 mkdirSync(OUT, { recursive: true });
 

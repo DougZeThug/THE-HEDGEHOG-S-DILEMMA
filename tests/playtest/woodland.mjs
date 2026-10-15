@@ -53,14 +53,14 @@ async function room() {
 const pose = (page) => page.evaluate(() => ({ x: +window.__hedgehog.rig.pos.x.toFixed(3), z: +window.__hedgehog.rig.pos.z.toFixed(3), yaw: +window.__hedgehog.rig.yaw.toFixed(3), locked: window.__hedgehog.inside.locked, eff: +window.__hedgehog.inside.eff.toFixed(3), state: window.__hedgehog.living?.memory.state ?? null, pos: +(window.__hedgehog.living?.memory.controller.position ?? -1).toFixed(2) }));
 const report = {};
 
-// 1. The cut, played: every drawn frame either side of 28 s, as the renderer drew it (whether the
+// 1. The cut, played: every drawn frame either side of 31.5 s, as the renderer drew it (whether the
 // people were drawn, and which painting). Software GL is slow, so frames are seconds apart here;
 // what matters is that no drawn frame has one without the other.
 {
   const { page, errors } = await room();
   const start = await pose(page);
   await page.evaluate(() => window.__hedgehog.playMemory('woodland', 'more-minutes', 'afternoon'));
-  await page.evaluate(() => window.__hedgehog.heldAt(27.0));
+  await page.evaluate(() => window.__hedgehog.heldAt(30.5));
   await page.waitForTimeout(600);
   await page.evaluate(() => {
     const a = window.__hedgehog;
@@ -70,23 +70,23 @@ const report = {};
       if (!a.living) return;
       const pos = a.living.memory.controller.position;
       a.__cut.push({ pos: +pos.toFixed(3), people: sc.m.people.uniforms.uPeople.value, drawn: sc.people.visible, after: sc.m.plate.uniforms.uAfter.value, immerse: +a.inside.eff.toFixed(3) });
-      if (pos < 31) requestAnimationFrame(probe);
+      if (pos < 34) requestAnimationFrame(probe);
     };
     requestAnimationFrame(probe);
     a.heldAt(null);
   });
-  await page.waitForFunction(() => (window.__hedgehog.living?.memory.controller.position ?? 99) > 30, null, { timeout: 120000 });
+  await page.waitForFunction(() => (window.__hedgehog.living?.memory.controller.position ?? 99) > 33.5, null, { timeout: 120000 });
   await page.screenshot({ path: `${OUT}/played-after-cut.png` });
   const frames = await page.evaluate(() => window.__hedgehog.__cut);
   const mixed = frames.filter((f) => (f.drawn && f.people > 0) !== (f.after < 0.5));
   // Then on, through the return, to the room: back where they stood.
   await page.evaluate(() => {
-    window.__hedgehog.heldAt(34.8);
+    window.__hedgehog.heldAt(38.3);
     window.__hedgehog.heldAt(null);
   });
   await page.waitForFunction(() => !window.__hedgehog.living, null, { timeout: 180000 });
   const end = await pose(page);
-  report.cut = { frames: frames.length, mixed: mixed.length, around: frames.filter((f) => f.pos > 27.5 && f.pos < 28.6), start, end, restored: Math.abs(start.x - end.x) < 1e-3 && Math.abs(start.z - end.z) < 1e-3 && Math.abs(start.yaw - end.yaw) < 1e-3, errors };
+  report.cut = { frames: frames.length, mixed: mixed.length, around: frames.filter((f) => f.pos > 30.9 && f.pos < 32.2), start, end, restored: Math.abs(start.x - end.x) < 1e-3 && Math.abs(start.z - end.z) < 1e-3 && Math.abs(start.yaw - end.yaw) < 1e-3, errors };
   await page.close();
 }
 

@@ -32,8 +32,8 @@ export const WOODLAND: LivingSpec = {
     b: { period: 3.9, jitter: 0.18, inhale: 0.42, rest: 0.1, depth: 0.22, seed: 23 },
   },
   swell: 0.035,
-  // Two for him, one for her, by hand, never on the beats.
-  blinks: { a: [12.2, 27.6], b: [26.8] },
+  // Two for him, one for her, by hand, never on the beats (and none near the cut: it falls on stillness).
+  blinks: { a: [12.2, 23.0], b: [25.6] },
   // One gust, heard first (its sound leads by 0.4 s), crossing left to right.
   gusts: [{ at: 13.0, cross: 1.8, strength: 1 }],
   handBack: 0.075,
