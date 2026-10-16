@@ -605,3 +605,19 @@ Before vs. now on the same stills (share travelling ≥ 2 px in half a second):
 | 12 s | 0.0% | 7.6% |
 | The gust (13.5 s) | 0.0% | 13.7% |
 | The calm (18 s) | 0.0% | 6.1% |
+
+**QA on the built change** (code and unit tests; the browser checks were run before it: programs 22→22, textures back to baseline, the cut on one frame, leaving works). Fixed:
+- **Reduced motion:** seeds now hide under it, as the falling leaves already did, and the motes' wander and rise scale with it.
+- **Before the painting comes alive:** the sky's drift and the motes' wander start with `scene.life`.
+- **Gust travel:** the grass's displacement eases off at ~12 painting px and the flowers' at ~14. In a gust it had reached ~23 px.
+- **The puppet mesh:** 4 sheet px at the faces and hands, 12 elsewhere. It is 6 and 18 on the low tier (tested: under half the vertices).
+- **Motes after the cut:** they take the evening's even light, not the afternoon's sun flecks.
+- **Every device agrees:**
+  - the start positions of motes, seeds and leaves are hashed on the CPU;
+  - the shader's hash only sees small arguments;
+  - no reversed `smoothstep`;
+  - no `atan(0, 0)`.
+- **The tap ripple** scales with reduced motion again (latent: nothing passes a tap yet).
+- **Tests:** the tautology is removed. Added a uniform-budget test, and scene tests (fewer vertices on low, fewer motes under reduced, everything disposed, safe twice).
+
+Not fixed: her look toward him is not in the screen reader's announcements, on purpose; the touch stays the only thing named.

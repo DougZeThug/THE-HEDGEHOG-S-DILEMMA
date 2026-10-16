@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { DEFORMERS, livingCamera, livingMaterials, livingTarget, type LivingMaterials } from '../../world/living/materials';
-import { blinkDrawing, breath, windDrift, windResponse } from './performance';
+import { blinkDrawing, breath, hash01, windDrift, windResponse } from './performance';
 import type { LivingSpec } from './woodland';
 import type { Values } from '../types';
 
@@ -65,7 +65,7 @@ const FPS = 12;
  * The puppet's mesh: the body finer where faces and hands are (an eye is ~20 sheet px), her forearm
  * a patch of its own (`part` 1), one draw.
  */
-function puppet(limb: [number, number, number, number]): THREE.BufferGeometry {
+function puppet(limb: [number, number, number, number], low: boolean): THREE.BufferGeometry {
   const fine = (a: number, b: number, lo: number, hi: number, f: number, c: number) => {
     const out: number[] = [];
     for (let x = a; x < b; ) {
@@ -76,8 +76,11 @@ function puppet(limb: [number, number, number, number]): THREE.BufferGeometry {
     return out;
   };
   // Sheet px (y down) → figure uv (y up).
-  const us = fine(0, SHEET.x, 120, 760, 3, 12).map((x) => x / SHEET.x);
-  const vs = fine(0, SHEET.y, 0, 200, 3, 10).map((y) => 1 - y / SHEET.y);
+  // (Every 4 sheet px across the faces and hands, 12 elsewhere; on the low tier 6 and 18: the
+  // phone's painting is smaller on its screen.)
+  const [f, c] = low ? [6, 18] : [4, 12];
+  const us = fine(0, SHEET.x, 120, 760, f, c).map((x) => x / SHEET.x);
+  const vs = fine(0, SHEET.y, 0, 200, f, c).map((y) => 1 - y / SHEET.y);
   const pos: number[] = [];
   const uv: number[] = [];
   const part: number[] = [];
@@ -148,13 +151,14 @@ function flowerStrips(heads: [number, number, number][], plate: [number, number]
  * What is in the air: motes (`stem` = kind 0, index, size px), seeds (1) and leaves (2) at their
  * times. Each a quad round its centre (`position` its corner, ±1; the shader places it).
  */
-function airborne(items: [number, number, number, number][]): THREE.BufferGeometry {
+function airborne(items: { stem: [number, number, number, number]; home: [number, number] }[]): THREE.BufferGeometry {
   const pos: number[] = [];
   const uv: number[] = [];
   const stem: number[] = [];
+  const home: number[] = [];
   const idx: number[] = [];
   items.forEach((it, k) => {
-    for (const [x, y] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) pos.push(x, y, 0), uv.push((x + 1) / 2, (y + 1) / 2), stem.push(...it);
+    for (const [x, y] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) pos.push(x, y, 0), uv.push((x + 1) / 2, (y + 1) / 2), stem.push(...it.stem), home.push(...it.home);
     const a = k * 4;
     idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2);
   });
@@ -162,6 +166,7 @@ function airborne(items: [number, number, number, number][]): THREE.BufferGeomet
   g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
   g.setAttribute('stem', new THREE.Float32BufferAttribute(stem, 4));
+  g.setAttribute('home', new THREE.Float32BufferAttribute(home, 2));
   g.setIndex(idx);
   return g;
 }
@@ -195,7 +200,7 @@ export class LivingScene {
   constructor(
     private readonly art: LivingArt,
     private readonly spec: LivingSpec,
-    o: { width: number; height: number; noise: THREE.Texture; reduced: boolean },
+    o: { width: number; height: number; noise: THREE.Texture; reduced: boolean; low?: boolean },
   ) {
     this.m = livingMaterials(o.noise);
     this.target = livingTarget(o.width, o.height);
@@ -220,10 +225,13 @@ export class LivingScene {
     (pu.uCloudBox.value as THREE.Vector4).set(...(cl?.box ?? [0, 0, 0, 0]));
     (pu.uCloud.value as THREE.Vector2).set(cl?.pad ?? 0, 0);
     // What is in the air (as authored in the spec): motes, two seeds, a leaf in each gust.
-    const items: [number, number, number, number][] = [];
-    for (let i = 0; i < spec.air.motes; i++) items.push([0, i, 3 + (i % 3) * 1.2, 0]);
-    spec.air.seeds.forEach((t, i) => items.push([1, 101 + i, 13, t]));
-    spec.air.leaves.forEach((t, i) => items.push([2, 201 + i, 8, t]));
+    // (Where each starts is hashed here, not on the GPU, so every device agrees.)
+    const items: { stem: [number, number, number, number]; home: [number, number] }[] = [];
+    const h = (n: number, k: number) => hash01(n, 7919 + k);
+    for (let i = 0; i < spec.air.motes; i++) items.push({ stem: [0, i, 3 + (i % 3) * 1.2, 0], home: [h(i, 0), 0.36 + 0.48 * h(i, 1)] });
+    // Seeds cross high, from the left; leaves fall from the canopy on the left.
+    spec.air.seeds.forEach((t, i) => items.push({ stem: [1, 41 + i, 13, t], home: [0.08 + 0.2 * h(41 + i, 0), 0.62 + 0.18 * h(41 + i, 1)] }));
+    spec.air.leaves.forEach((t, i) => items.push({ stem: [2, 45 + i, 8, t], home: [0.14 + 0.12 * h(45 + i, 0), 0.8 + 0.08 * h(45 + i, 1)] }));
     this.air = airborne(items);
     const airMesh = new THREE.Mesh(this.air, this.m.air);
     airMesh.frustumCulled = false;
@@ -232,6 +240,7 @@ export class LivingScene {
     const au = this.m.air.uniforms;
     au.uPlate.value = art.plate;
     au.uMaps.value = art.maps;
+    au.uAfterPlate.value = art.after ?? art.plate;
     (au.uPx.value as THREE.Vector2).set(1 / art.size[0], 1 / art.size[1]);
     au.uCount.value = o.reduced ? Math.round(spec.air.motes / 3) : spec.air.motes;
     if (art.flowers) {
@@ -247,7 +256,7 @@ export class LivingScene {
     this.reduced = o.reduced;
     const f = art.figures;
     if (f) {
-      this.grid = puppet(f.limb.box);
+      this.grid = puppet(f.limb.box, !!o.low);
       this.people = new THREE.Mesh(this.grid, this.m.people);
       this.people.frustumCulled = false;
       this.people.renderOrder = 1;
@@ -357,7 +366,9 @@ export class LivingScene {
     if (this.art.clouds) {
       const c = this.art.clouds;
       const width = (c.box[2] * this.art.size[0]) / (1 - c.pad);
-      (pu.uCloud.value as THREE.Vector2).y = ((after ? DRIFT.after : DRIFT.day) * tq * (this.reduced ? 0.5 : 1)) / width;
+      // (From when the painting comes alive: `scene.life` rises over 5.5–7 s.)
+      const alive = Math.max(0, tq - this.spec.alive);
+      (pu.uCloud.value as THREE.Vector2).y = ((after ? DRIFT.after : DRIFT.day) * alive * (this.reduced ? 0.5 : 1)) / width;
     }
     (pu.uParallax.value as THREE.Vector2).copy(o.parallax);
     if (this.people) this.pose(tq, val);
@@ -405,7 +416,7 @@ export class LivingScene {
     for (const [name, h] of Object.entries(s.hair)) {
       const at = this.at.get(name);
       if (!at) continue;
-      const w = windResponse(t, at.x, h.hz, h.zeta, s.gusts, still) * (this.reduced ? 0.25 : 1) * life;
+      const w = windResponse(t, at.x, h.hz, h.zeta, s.gusts, still);
       this.bone(name, { x: h.amp[0] * w, y: h.amp[1] * w });
     }
     // His hand: toward hers along his forearm; once, a twitch at the wrist.

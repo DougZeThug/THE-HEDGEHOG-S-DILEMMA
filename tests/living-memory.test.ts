@@ -10,6 +10,9 @@ import { MEMORIES, sheetId } from '../src/memory/defs';
 import { MemoryPlaybackController } from '../src/memory/MemoryPlaybackController';
 import { renderCicadas, renderWoods, renderGrass, renderLast, cicada, RATE, TIMES } from '../src/memory/synthWoods';
 import state from '../src/memory/theatre-state.json';
+import manifest from '../public/memories/woodland/manifest.json';
+import { LivingScene, type LivingArt } from '../src/memory/living/LivingScene';
+import { DEFORMERS, livingMaterials } from '../src/world/living/materials';
 
 // The woodland memory (docs/reviews/2026-10-woodland.md): its people's involuntary life, the
 // rules it composes by, the way into it, and its ending: a cut, on one frame.
@@ -80,7 +83,6 @@ describe('the air, which moves everything (one wind, seekable)', () => {
         if (t > 0) err = Math.max(err, Math.abs(y - windResponse(t + dt, 0.3, hz, z, G)));
       }
       expect(err).toBeLessThan(0.06);
-      expect(windResponse(17.3, 0.3, hz, z, G)).toBe(windResponse(17.3, 0.3, hz, z, G));
     }
   });
   it('what it carries has moved by the integral of it', () => {
@@ -239,5 +241,57 @@ describe('the woodland, heard', () => {
     for (const v of g) pk = Math.max(pk, Math.abs(v));
     expect(pk).toBeCloseTo(10 ** (-12 / 20), 3);
     expect(renderLast()[0].length / RATE).toBeLessThan(7);
+  });
+});
+
+describe('the scene, as built (no GL: what it would draw and let go)', () => {
+  const lm = manifest.living.afternoon;
+  const tex = () => new THREE.Texture();
+  const art = (): LivingArt => ({
+    plate: tex(),
+    maps: tex(),
+    grade: null,
+    after: tex(),
+    sky: null,
+    flowers: { texture: tex(), heads: lm.flowers.heads as [number, number, number][] },
+    clouds: { mask: tex(), day: tex(), after: tex(), box: lm.clouds.box as [number, number, number, number], pad: lm.clouds.pad },
+    figures: { ...(lm.figures as unknown as NonNullable<LivingArt['figures']>), texture: tex(), lids: tex() },
+    size: manifest.plate as [number, number],
+  });
+  const make = (o: { reduced?: boolean; low?: boolean } = {}) =>
+    new LivingScene(art(), SPEC, { width: 64, height: 36, noise: tex(), reduced: !!o.reduced, low: o.low });
+
+  it('every deformer the manifest names fits, and the shared program stays inside WebGL2\'s vertex uniforms', () => {
+    expect(lm.figures.deformers.length).toBeLessThanOrEqual(DEFORMERS);
+    // Vertex stage vec4s: the deformers, the wind, the drift (floats pad to a vec4 each), the
+    // matrices, and a margin for the scalars.
+    expect(DEFORMERS * 4 + 16 + 16 + 8 + 16).toBeLessThanOrEqual(256);
+  });
+
+  it('the puppet is lighter on the low tier, and fewer motes under reduced motion', () => {
+    const verts = (s: LivingScene) => ((s as unknown as { grid: THREE.BufferGeometry }).grid.getAttribute('position').count);
+    const full = make(), low = make({ low: true });
+    expect(verts(low)).toBeLessThan(verts(full) * 0.5);
+    expect(verts(full)).toBeLessThan(20000);
+    full.dispose();
+    low.dispose();
+    const m = livingMaterials(tex());
+    make({ reduced: true });
+    expect(m.air.uniforms.uCount.value).toBeLessThanOrEqual(Math.ceil(SPEC.air.motes / 3));
+    make();
+    expect(m.air.uniforms.uCount.value).toBe(SPEC.air.motes);
+  });
+
+  it('lets go of everything it made (twice is safe), and leaves the shared materials holding nothing', () => {
+    const s = make();
+    const geos = ['grid', 'strips', 'air', 'quad'].map((k) => (s as unknown as Record<string, THREE.BufferGeometry>)[k]);
+    let freed = 0;
+    for (const g of geos) g.addEventListener('dispose', () => freed++);
+    s.dispose();
+    s.dispose();
+    expect(freed).toBe(4);
+    const m = livingMaterials(tex());
+    for (const mat of [m.plate, m.people, m.flowers, m.air])
+      for (const k of ['uPlate', 'uFigures', 'uFlowers', 'uClouds', 'uSkyMask']) expect(mat.uniforms[k].value).toBe(m.empty);
   });
 });

@@ -253,7 +253,7 @@ export async function prepare(id: string, variant: string, host: RuntimeHost): P
         size: manifest.plate ?? [1672, 941],
       };
       const size = targetSize(host);
-      scene = new LivingScene(art, SPECS[def.id] ?? WOODLAND_SPEC, { ...size, noise: host.noise!, reduced: !!host.reduced });
+      scene = new LivingScene(art, SPECS[def.id] ?? WOODLAND_SPEC, { ...size, noise: host.noise!, reduced: !!host.reduced, low: host.quality === 'low' });
       living = { scene, spec: SPECS[def.id] ?? WOODLAND_SPEC, immerse: lm.immerse, crop: manifest.crop ?? [0, 0, 1, 1], aspect: manifest.size[0] / manifest.size[1] };
       loaded.unshift({ texture: scene.target.texture, bitmap: null as unknown as ImageBitmap, name: 'scene', kind: 'pigment' });
     } catch (e) {

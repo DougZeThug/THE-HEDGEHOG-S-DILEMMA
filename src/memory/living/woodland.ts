@@ -38,6 +38,8 @@ export interface LivingSpec {
   settle: { move: [number, number]; turn: number };
   /** Her shoulder's small lift at `figure:b.shoulder` 1 (sheet pixels). */
   shoulder: [number, number];
+  /** When the painting is alive (s: the middle of `scene.life`'s rise; the sky drifts from then). */
+  alive: number;
   /** What is in the air: how many motes, when each seed starts across, when each leaf falls (s). */
   air: { motes: number; seeds: number[]; leaves: number[] };
   /** The painting u (and v) kept at the screen's centre when it covers the view. */
@@ -85,6 +87,7 @@ export const WOODLAND: LivingSpec = {
   },
   // Motes only in the light (at most ~30 seen at once); two seeds; one leaf in each afternoon gust.
   air: { motes: 40, seeds: [11.3, 26.0], leaves: [12.9, 27.2] },
+  alive: 6.25,
   settle: { move: [1.5, -3], turn: -0.008 },
   shoulder: [0, 3],
   cover: { wide: [0.5, 0.5], upright: [0.37, 0.5], ultra: [0.5, 0.5] },

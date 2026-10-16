@@ -65,7 +65,8 @@ const VERT = /* glsl */ `
   uniform vec4 uD[${DEFORMERS * 4}];
   attribute float part;      // 0 the body, 1 her forearm
   attribute vec4 stem;       // a flower: how far up its stem (0 root .. 1 head), how far it swings (px), its root's x, a phase
-                             // a mote, a seed, a leaf: which (0, 1, 2), its seed, its size (px), when (s)
+                             // a mote, a seed, a leaf: which (0, 1, 2), its index, its size (px), when (s)
+  attribute vec2 home;       // a mote, a seed, a leaf: where it starts (painting uv, hashed on the CPU)
   uniform vec2 uPx;          // one plate pixel, in uv
   uniform float uDrift[16];  // how far the air has carried something light by now (plate px), across the painting
   uniform float uAfter;
@@ -82,7 +83,8 @@ const VERT = /* glsl */ `
     int i = int(min(floor(f), 14.0));
     return mix(uDrift[i], uDrift[i + 1], f - float(i));
   }
-  float h1(float n) { return fract(sin(n * 127.1) * 43758.5453); }
+  // (Small arguments only: n is at most ~50, so every GPU reduces the sine the same way.)
+  float h1(float n) { return fract(sin(n * 12.9898 + 78.233) * 43758.5453); }
 
   void main() {
     vUv = uv;
@@ -95,12 +97,13 @@ const VERT = /* glsl */ `
       float show = 1.0, spin = 1.0;
       if (kind < 0.5) {
         // A mote: hanging in the light, drifting with the air, sinking slowly, wandering.
-        vec2 home = vec2(h1(n), 0.36 + 0.48 * h1(n + 7.0));
-        vec2 wander = vec2(sin(uTime * (0.21 + 0.2 * h1(n + 3.0)) + n), cos(uTime * (0.17 + 0.15 * h1(n + 5.0)) + n * 1.7)) * vec2(9.0, 6.0);
-        vec2 p = home / uPx + wander + vec2(driftAt(home.x) * 0.5, uTime * (1.0 + h1(n + 9.0)));
+        // (Its wander and rise are as much as the air moves things: less under reduced motion,
+        // none before the painting comes alive.)
+        vec2 wander = vec2(sin(uTime * (0.21 + 0.2 * h1(n + 3.0)) + n), cos(uTime * (0.17 + 0.15 * h1(n + 5.0)) + n * 1.7)) * vec2(9.0, 6.0) * uMotion;
+        vec2 p = home / uPx + wander + vec2(driftAt(home.x) * 0.5, uTime * (1.0 + h1(n + 9.0)) * uMotion);
         at = fract(p * uPx);
         // Fade where it wraps (never pops at an edge), and only so many of them.
-        show = smoothstep(0.0, 0.05, at.x) * smoothstep(1.0, 0.95, at.x) * smoothstep(0.3, 0.36, at.y) * smoothstep(0.9, 0.84, at.y);
+        show = smoothstep(0.0, 0.05, at.x) * (1.0 - smoothstep(0.95, 1.0, at.x)) * smoothstep(0.3, 0.36, at.y) * (1.0 - smoothstep(0.84, 0.9, at.y));
         show *= step(n, uCount - 0.5);
         // After the cut, a few of them still there, in the evening (the air carries on).
         if (uAfter > 0.5) show *= step(n, 14.5) * 0.45;
@@ -111,11 +114,11 @@ const VERT = /* glsl */ `
         // A seed or a leaf, crossing in its own few seconds.
         float age = uTime - t0;
         float life = kind < 1.5 ? 3.2 : 2.1;
-        show = step(0.0, age) * step(age, life) * smoothstep(0.0, 0.3, age) * smoothstep(life, life - 0.3, age) * (1.0 - uAfter);
-        // (No falling leaves under reduced motion.)
-        if (kind > 1.5) show *= step(0.5, uMotion);
+        show = step(0.0, age) * step(age, life) * smoothstep(0.0, 0.3, age) * (1.0 - smoothstep(life - 0.3, life, age)) * (1.0 - uAfter);
+        // (No seeds or falling leaves under reduced motion: they cross the frame.)
+        show *= step(0.5, uMotion);
         // (Seeds cross high, from the left; leaves fall from the canopy on the left.)
-        vec2 from = kind < 1.5 ? vec2(0.08 + 0.2 * h1(n), 0.62 + 0.18 * h1(n + 2.0)) : vec2(0.14 + 0.12 * h1(n), 0.8 + 0.08 * h1(n + 2.0));
+        vec2 from = home;
         if (kind < 1.5) {
           // The seed: carried right on the gust, rising and falling.
           at = from + vec2(age * 0.11 + driftAt(from.x) * uPx.x * 0.3, 0.012 * sin(age * 2.2 + n)) ;
@@ -144,6 +147,7 @@ const VERT = /* glsl */ `
       // A flower: bent on its stem about its root, as the air takes it (and a flutter of its own).
       float b = pow(stem.x, 1.5);
       float dx = (windAt(stem.z).y * stem.y + 0.9 * sin(uTime * 2.3 + stem.w) * stem.x) * b * uMotion;
+      dx = 14.0 * dx / sqrt(196.0 + dx * dx);
       vec2 at = position.xy + vec2(dx, -0.3 * abs(dx) * b) * uPx;
       vScene = at;
       vDest = at;
@@ -223,6 +227,8 @@ const FRAG = /* glsl */ `
       float near = smoothstep(0.6 * plateH, 0.81 * plateH, py) * (1.0 - 0.5 * smoothstep(0.91 * plateH, plateH, py));
       float clump = sin(uTime * 3.4 + texture2D(uNoise, uv * vec2(0.7, 0.45) + 0.31).r * 6.2831);
       float grass = w.x * (2.5 + 8.0 * near) + clump * (0.6 + 1.8 * near);
+      // (A gust bends it further, but never past ~12 px: a smooth field this long doesn't tear.)
+      grass = 12.0 * grass / sqrt(144.0 + grass * grass);
       // The leaves: their edges against the sky most (the map's sway is larger there).
       float leaves = w.z * 5.0 * m.g;
       float dx = mix(leaves, grass * clamp(m.g * 5.0, 0.0, 1.0), m.b) * uMotion;
@@ -230,7 +236,7 @@ const FRAG = /* glsl */ `
       if (uTap.w > 0.0) {
         vec2 r = (uv - uTap.xy) * vec2(1.78, 1.0);
         float k = exp(-dot(r, r) / 0.0012) * exp(-uTap.z / 0.6) * uTap.w;
-        d += normalize(r + 1e-5) * k * 2.0 * sin(uTap.z * 9.0);
+        d += normalize(r + 1e-5) * k * 2.0 * sin(uTap.z * 9.0) * uMotion;
       }
       vec2 at = uv + d * uPx;
       // The cut: the same composition, later (its own painting), on one frame.
@@ -262,22 +268,24 @@ const FRAG = /* glsl */ `
       if (vMote.x < 0.5) {
         // A mote: soft, warm, seen only where the sun is (the painted light under it), and less
         // against what is already bright.
+        // (After the cut the afternoon's sun flecks are gone: an even evening light.)
         vec4 m = texture2D(uMaps, vScene);
-        float bg = dot(texture2D(uPlate, vScene).rgb, vec3(0.3, 0.59, 0.11));
-        float lit = (0.3 + 0.7 * smoothstep(0.05, 0.4, m.a)) * (1.0 - 0.5 * bg);
+        float bg = dot((uAfter > 0.5 ? texture2D(uAfterPlate, vScene) : texture2D(uPlate, vScene)).rgb, vec3(0.3, 0.59, 0.11));
+        float sun = uAfter > 0.5 ? 0.35 : smoothstep(0.05, 0.4, m.a);
+        float lit = (0.3 + 0.7 * sun) * (1.0 - 0.5 * bg);
         float a = exp(-r * r * 5.0) * vMote.y * lit * vMote.z * 0.9;
         gl_FragColor = vec4(vec3(1.0, 0.95, 0.8) * a, 0.0);
       } else if (vMote.x < 1.5) {
         // A seed: a little puff of white threads.
-        float ang = atan(q.y, q.x);
-        float threads = pow(abs(cos(ang * 4.0 + vMote.w)), 14.0) * smoothstep(1.0, 0.15, r);
+        float ang = atan(q.y, q.x + 1e-6);
+        float threads = pow(abs(cos(ang * 4.0 + vMote.w)), 14.0) * (1.0 - smoothstep(0.15, 1.0, r));
         float a = clamp(exp(-r * r * 14.0) + exp(-r * r * 3.0) * 0.25 + threads * 0.7, 0.0, 1.0) * vMote.y;
         gl_FragColor = vec4(vec3(0.97, 0.96, 0.9) * a, a * 0.85);
       } else {
         // A leaf: a pointed oval, darker along its middle, its two sides as it turns over.
-        float leaf = smoothstep(1.0, 0.85, length(vec2(q.x * 1.0, q.y * 0.55)) + abs(q.x) * 0.25);
+        float leaf = 1.0 - smoothstep(0.85, 1.0, length(vec2(q.x, q.y * 0.55)) + abs(q.x) * 0.25);
         vec3 col = mix(vec3(0.33, 0.42, 0.14), vec3(0.55, 0.6, 0.22), step(0.0, vMote.z));
-        col *= 1.0 - 0.25 * smoothstep(0.12, 0.0, abs(q.x));
+        col *= 1.0 - 0.25 * (1.0 - smoothstep(0.0, 0.12, abs(q.x)));
         float a = leaf * vMote.y;
         gl_FragColor = vec4(col * a, a);
       }
