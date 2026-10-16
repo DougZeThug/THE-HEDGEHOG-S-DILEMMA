@@ -64,21 +64,6 @@ export function breath(t: number, p: BreathProfile): number {
   return 0;
 }
 
-/**
- * How closed the eyes are (0 open, 1 shut) at `t`, for blinks authored at `times` (seconds).
- * A blink: ~55 ms down, ~40 ms shut, ~110 ms up (the upswing is the slower one).
- */
-export function blink(t: number, times: readonly number[]): number {
-  let v = 0;
-  for (const b of times) {
-    const x = t - b;
-    if (x < 0 || x > 0.205) continue;
-    const c = x < 0.055 ? ease(x / 0.055) : x < 0.095 ? 1 : 1 - ease((x - 0.095) / 0.11);
-    v = Math.max(v, c);
-  }
-  return v;
-}
-
 export interface Gust {
   /** When its front enters the frame on the left (s). */
   at: number;
@@ -103,4 +88,121 @@ export function gust(t: number, gusts: readonly Gust[]): { strength: number; fro
     if (env * g.strength > best.strength) best = { strength: env * g.strength, front: x };
   }
   return best;
+}
+
+/**
+ * The air as a force, at painting `x` (0 left .. 1 right): the steady breeze (a few slow sines at
+ * incommensurate rates, travelling left to right) plus the gusts, each arriving at `x` as its front
+ * crosses. Signed: positive bends things to the right (the gusts come from the left).
+ */
+export interface Breeze {
+  /** Hz, relative strength, phase (radians), and how far it travels across the frame per second (frames). */
+  waves: { f: number; a: number; p: number }[];
+  /** The breeze's lean (its mean force: things lean a little right, as the painting's grass does). */
+  lean: number;
+}
+
+export const BREEZE: Breeze = {
+  waves: [
+    { f: 0.11, a: 0.45, p: 0.7 },
+    { f: 0.23, a: 0.35, p: 2.1 },
+    { f: 0.41, a: 0.2, p: 4.4 },
+    // (The flutter: what makes it air and not a tide.)
+    { f: 0.73, a: 0.16, p: 1.3 },
+  ],
+  lean: 0.15,
+};
+
+/** A gust's envelope (in crossings, as `gust`'s), in straight pieces. */
+const KNOTS: [number, number][] = [0, 1 / 6, 2 / 6, 3 / 6, 4 / 6, 5 / 6, 1]
+  .map((u): [number, number] => [0.25 * u, ease(u)])
+  .concat([1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i): [number, number] => [0.25 + 1.35 * (i / 10), 1 - ease(i / 10)]));
+
+/** Seconds a gust's front takes from the left edge to `x`. */
+const arrive = (g: Gust, x: number) => g.at + x * g.cross;
+
+/** The air's force at `t`, at `x`, scaled by `still` (0..1: the breeze can die down). */
+export function windForce(t: number, x: number, gusts: readonly Gust[], still = 1, b: Breeze = BREEZE): number {
+  let f = b.lean;
+  for (const w of b.waves) f += w.a * Math.sin(2 * Math.PI * w.f * (t - x * 2.2) + w.p);
+  f *= still;
+  for (const g of gusts) f += gust(t - x * g.cross, [g]).strength * 1.6;
+  return f;
+}
+
+/**
+ * How something on a spring answers that air (a stem, a lock of hair, a shirt's hem): natural
+ * frequency `hz`, damping ratio `zeta` (0.2 springy .. 0.9 heavy), at `x`. Closed form (each of the
+ * breeze's sines answered with its own gain and lag, each gust as a few steps up and down answered
+ * by the spring's step response), so it is the same at `t` however `t` was reached: seekable, like
+ * everything else here. Returns the deflection in units of the force (1 = bent as far as a steady
+ * force of 1 would hold it).
+ */
+export function windResponse(t: number, x: number, hz: number, zeta: number, gusts: readonly Gust[], still = 1, b: Breeze = BREEZE): number {
+  const wn = 2 * Math.PI * hz;
+  let y = b.lean * still;
+  for (const w of b.waves) {
+    const r = w.f / hz;
+    const gain = 1 / Math.hypot(1 - r * r, 2 * zeta * r);
+    const lag = Math.atan2(2 * zeta * r, 1 - r * r);
+    y += still * w.a * gain * Math.sin(2 * Math.PI * w.f * (t - x * 2.2) + w.p - lag);
+  }
+  const wd = wn * Math.sqrt(Math.max(1e-4, 1 - zeta * zeta));
+  // The spring's answer to a unit ramp of force begun τ ago (exact).
+  const ramp = (tau: number) =>
+    tau <= 0 ? 0 : tau - (2 * zeta) / wn + Math.exp(-zeta * wn * tau) * (((2 * zeta) / wn) * Math.cos(wd * tau) + ((2 * zeta * zeta - 1) / wd) * Math.sin(wd * tau));
+  for (const g of gusts) {
+    const tau = t - arrive(g, x);
+    if (tau <= 0 || tau > g.cross * 1.6 + 10 / (zeta * wn)) continue;
+    // The gust's force (`gust`'s envelope) as straight pieces through its curve; the answer to
+    // each change of slope is a ramp's.
+    const s = g.strength * 1.6;
+    let prev = 0;
+    for (let i = 0; i < KNOTS.length - 1; i++) {
+      const [u0, f0] = KNOTS[i], [u1, f1] = KNOTS[i + 1];
+      const slope = (s * (f1 - f0)) / ((u1 - u0) * g.cross);
+      y += (slope - prev) * ramp(tau - u0 * g.cross);
+      prev = slope;
+    }
+    y -= prev * ramp(tau - 1.6 * g.cross);
+  }
+  return y;
+}
+
+/**
+ * Where the air has carried something light by `t` (a mote, a seed), in frames of drift: the
+ * integral of the breeze (closed form) plus each gust's push. Horizontal only; the caller adds its
+ * own fall and wander.
+ */
+export function windDrift(t: number, x: number, gusts: readonly Gust[], b: Breeze = BREEZE): number {
+  let d = b.lean * t;
+  for (const w of b.waves) {
+    const om = 2 * Math.PI * w.f;
+    d += (w.a / om) * (Math.cos(w.p - om * x * 2.2) - Math.cos(om * (t - x * 2.2) + w.p));
+  }
+  for (const g of gusts) {
+    const tau = t - arrive(g, x);
+    if (tau <= 0) continue;
+    // The area under its envelope so far (in crossings): up over a quarter, down over 1.35.
+    const u = tau / g.cross;
+    const area = (span: number, v: number) => (span * (v - Math.sin(Math.PI * v) / Math.PI)) / 2; // ∫ ease over v of span
+    const up = 0.25, down = 1.35;
+    const a = u < up ? area(up, u / up) : area(up, 1) + (u < up + down ? down * Math.min(1, (u - up) / down) - area(down, Math.min(1, (u - up) / down)) : down - area(down, 1));
+    d += g.strength * 1.6 * g.cross * a;
+  }
+  return d;
+}
+
+/**
+ * How closed the eyes are, drawn as an animator draws a blink on twos: open, half, shut, half,
+ * open. Returns 0, 0.5 or 1 (the half lid and the shut lid are their own drawings).
+ */
+export function blinkDrawing(t: number, times: readonly number[]): 0 | 0.5 | 1 {
+  for (const b of times) {
+    const x = t - b;
+    if (x < 0 || x >= 0.25) continue;
+    // Each drawing held two frames (1/12 s): half, shut, half.
+    return x < 1 / 12 ? 0.5 : x < 2 / 12 ? 1 : 0.5;
+  }
+  return 0;
 }

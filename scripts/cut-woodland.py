@@ -22,10 +22,12 @@ the runtime reads the same numbers this file cuts with):
     plate      the painting (opaque)
     maps       quarter size, lossless: R depth (0 far .. 1 near), G how much the breeze moves it
                (smooth: never a per-pixel phase), B grass (1) or leaves (0), A the sun flecks
-    figures    the two people, unmixed from the sheet's ivory, light-matched to where they lie,
-               with the clearing's grass over their lower edges and a contact shadow under them
-    lids       their eyes shut, for the blinks (alpha: where an eye is)
-    fsketch    the people as graphite (kept for the artist: not drawn since the ending became a cut)
+    figures    the two people (an atlas: the body, then her forearm on its own row), unmixed from
+               the sheet's ivory, light-matched to where they lie, with the clearing's grass over
+               their lower edges and a contact shadow under them; under the forearm, the grass
+               beside it mirrored, so it can slide back
+    lids       an atlas: their eyelids shut, half shut (blinks are drawn on twos), and her sleeve
+               (where her forearm goes under it)
     after      the same clearing later: the real dusk painting (01), nobody there, the grass
                where they lay still faintly pressed (no shape of them: a smoothing, a shade)
   On the wall, after the cut:
@@ -50,6 +52,10 @@ METRES = 3.2  # the whole painting's width on the wall (half the wall, 16:9 like
 # Where the sheet's top panel lies on the plate: sheet (x, y) -> plate (X0 + S x, Y0 + S y).
 FIG_CROP = (0, 0, 1448, 505)
 FIG_S = 0.64
+# Their texture is finer than they're placed (a phone's low tier enlarges the painting ~1.8×).
+FIG_T = 0.8
+# Atlas rows are stacked top to bottom with this many transparent pixels between them.
+GUTTER = 4
 FIG_X0, FIG_Y0 = 360, 432
 IVORY = np.array([249, 244, 234], np.float32) / 255
 
@@ -60,21 +66,54 @@ BODY = [(60, 120), (120, 100), (150, 50), (220, 25), (300, 45), (320, 110), (400
 # The lower contour (sheet px), where grass from the clearing lies over them.
 FIG_UNDER = [(70, 215), (110, 262), (170, 300), (240, 345), (300, 385), (360, 410), (430, 440), (500, 470), (590, 482), (680, 494), (780, 500), (880, 502), (940, 488), (985, 470), (1002, 440), (1040, 400), (1120, 412), (1180, 425), (1260, 428), (1320, 422), (1380, 410)]
 
-# Their anatomy on the sheet (read off zoomed crops): what the shader turns, swells and moves.
-ANATOMY = {
-    'chestA': {'c': (300, 245), 'r': (150, 82), 'angle': 0.42},
-    'chestB': {'c': (585, 196), 'r': (115, 62), 'angle': 0.30},
-    'headA': {'c': (222, 82), 'r': (92, 82), 'pivot': (238, 152)},
-    'headB': {'c': (505, 66), 'r': (96, 70), 'pivot': (532, 126)},
-    'handA': {'elbow': (440, 252), 'hand': (578, 326), 'radius': 24},
-    'handB': {'elbow': (538, 262), 'hand': (636, 352), 'radius': 26},
-    'shoulderB': {'c': (500, 175), 'r': (70, 50), 'angle': 0.3},
-    'settleB': {'c': (560, 170), 'r': (210, 140), 'angle': 0.25},
-    'hairA': {'c': (215, 50), 'r': (120, 60), 'angle': 0.0},
-    'hairB': {'c': (470, 70), 'r': (130, 75), 'angle': 0.2},
-}
-A_EYES = [(213, 86), (253, 82)]
-B_EYES = [(502, 68), (541, 58)]
+A_EYES = [(213, 87), (252, 80)]
+B_EYES = [(502, 69), (539, 58)]
+
+# Her forearm and hand: their own part (it slides back along itself toward the elbow, under her
+# sleeve, and turns a little: docs/reviews/2026-10-woodland.md). Keyed by skin inside this.
+LIMB_B = [(508, 249), (552, 253), (600, 280), (650, 312), (700, 345), (705, 392), (650, 392), (600, 340), (560, 312), (520, 280), (505, 255)]
+LIMB_B_ELBOW = (528, 250)
+LIMB_B_HAND = (650, 352)
+# Where her sleeve is round the elbow (the forearm goes under it).
+SLEEVE_BOX = (470, 168, 620, 262)
+
+# What the puppet moves, as soft ellipses on the sheet (px, y down): centre, radii, angle, how soft
+# the rim (a fraction of the radius: 1 = the whole ellipse a slope), the pivot it turns about, and
+# which part it moves ('body' or 'limb'). The runtime sets each one's turn, swell and move.
+DEFORMERS = [
+    # Breath: the chests (a swell along their short axis, and a rise).
+    ('chestA', (300, 245), (150, 82), 0.42, 0.6, None, 'body'),
+    ('chestB', (585, 196), (115, 62), 0.30, 0.6, None, 'body'),
+    # Heads: a roll at the neck, a lift with each breath.
+    ('headA', (222, 82), (92, 82), 0.0, 0.45, (238, 152), 'body'),
+    ('headB', (505, 66), (96, 70), 0.0, 0.45, (532, 126), 'body'),
+    # Faces: the features sliding inside the head (a turn's start, not a rotation).
+    ('faceA', (234, 96), (36, 40), 0.1, 1.0, None, 'body'),
+    ('faceB', (521, 82), (32, 40), 0.2, 1.0, None, 'body'),
+    # Eyes: the irises looking about (the eye's outline stays).
+    ('eyeA1', A_EYES[0], (10, 6), 0.0, 0.85, None, 'body'),
+    ('eyeA2', A_EYES[1], (10, 6), -0.15, 0.85, None, 'body'),
+    ('eyeB1', B_EYES[0], (10, 6), -0.25, 0.85, None, 'body'),
+    ('eyeB2', B_EYES[1], (10, 6), -0.3, 0.85, None, 'body'),
+    # Hair, its loose ends only (the rest lies on the grass).
+    ('hairA1', (232, 26), (58, 18), 0.0, 0.9, (232, 60), 'body'),
+    ('hairA2', (148, 70), (30, 42), 0.3, 0.9, (190, 80), 'body'),
+    ('hairA3', (290, 50), (26, 22), -0.4, 0.9, (260, 70), 'body'),
+    ('hairB1', (415, 92), (32, 58), 0.2, 0.9, (460, 90), 'body'),
+    ('hairB2', (600, 95), (22, 42), 0.0, 0.9, (575, 95), 'body'),
+    ('hairB3', (512, 18), (48, 12), -0.1, 0.9, (512, 40), 'body'),
+    # His hand in the grass (it answers hers; it twitches once while hers is stopped).
+    ('handA', (572, 334), (44, 26), 0.6, 0.6, (545, 318), 'body'),
+    # Her hand on her stomach (it rides her breath; lifts a little).
+    ('palmB', (700, 226), (34, 20), -0.3, 0.7, (735, 222), 'body'),
+    # Her crossed foot (it rocks at the ankle).
+    ('footB', (1312, 385), (98, 62), -0.15, 0.5, (1226, 380), 'body'),
+    # Her shoulder and her settling back into the grass.
+    ('shoulderB', (500, 175), (70, 50), 0.3, 0.7, None, 'body'),
+    ('settleB', (560, 170), (210, 140), 0.25, 0.7, None, 'body'),
+    # Her forearm: all of it, rigidly (the ellipse covers the part).
+    ('forearmB', (600, 310), (200, 200), 0.0, 0.01, LIMB_B_ELBOW, 'limb'),
+]
 SPLIT = 380  # sheet x between A and B (eyes left of it are A's)
 
 # Plate polygons (plate px).
@@ -86,6 +125,12 @@ STONE_L = [(0, 560), (80, 575), (200, 628), (272, 680), (250, 702), (150, 690), 
 ROCK_BR = [(1228, 862), (1330, 840), (1450, 850), (1520, 900), (1545, 941), (1220, 941)]
 MOUNTAIN = [(840, 200), (850, 160), (960, 150), (1040, 135), (1100, 145), (1130, 200)]
 SKY_BOX = (700, 0, 1272, 232)  # the canopy's gap
+# The drifting sky: the gap and its surroundings (plate px: x0, y0, x1, y1), and how much is
+# painted beyond its left edge for the clouds to drift in from (they drift right, ~2 px/s).
+CLOUD_BOX = (680, 0, 1310, 240)
+CLOUD_PAD = 110
+# The near flowers that sway on their own stems: at most this many, the largest heads near us.
+FLOWERS = 22
 
 # The wall shows this part of the painting round the line first (painting uv, y up), then it spreads.
 CROP = [0.23, 0.09, 0.5, 0.55]
@@ -155,10 +200,78 @@ def resize(a, w, h):
 # The people
 
 
+def limb_mask(straight, a):
+    """Her forearm and hand (sheet scale, soft): skin inside LIMB_B, cleaned to one solid shape."""
+    h, w = a.shape
+    r, g, b = straight[..., 0], straight[..., 1], straight[..., 2]
+    lum = 0.3 * r + 0.59 * g + 0.11 * b
+    # (Skin is redder than the sunlit grass beside it: the yellow blades have r ≈ g.)
+    skin = (r - b > 0.17) & (r > g + 0.07) & (lum > 0.42) & (lum < 0.9) & (g - b > 0.05)
+    m = (skin & (poly_mask((w, h), [LIMB_B]) > 0.5)).astype(np.float32)
+    # Close the gaps between fingers' shading, then open away the specks in the grass.
+    im = img(m)
+    im = im.filter(ImageFilter.MaxFilter(5)).filter(ImageFilter.MinFilter(5))
+    im = im.filter(ImageFilter.MinFilter(5)).filter(ImageFilter.MaxFilter(5))
+    m = arr(im) * (poly_mask((w, h), [LIMB_B]) > 0.5)
+    # Keep the one big shape.
+    lab, n = components(m > 0.5)
+    if n:
+        sizes = np.bincount(lab.ravel())[1:]
+        m = (lab == (1 + int(np.argmax(sizes)))).astype(np.float32)
+    return np.clip(blur(m, 0.7) * 1.15, 0, 1) * (a > 0.2)
+
+
+def components(m):
+    """4-connected components of a boolean mask."""
+    from collections import deque
+    h, w = m.shape
+    lab = np.zeros((h, w), np.int32)
+    n = 0
+    for y0, x0 in zip(*np.nonzero(m)):
+        if lab[y0, x0]:
+            continue
+        n += 1
+        q = deque([(y0, x0)])
+        lab[y0, x0] = n
+        while q:
+            y, x = q.popleft()
+            for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                yy, xx = y + dy, x + dx
+                if 0 <= yy < h and 0 <= xx < w and m[yy, xx] and not lab[yy, xx]:
+                    lab[yy, xx] = n
+                    q.append((yy, xx))
+    return lab, n
+
+
+def reflect_fill(rgb, a, hole, usable):
+    """Fill `hole` with what lies beside it, mirrored across its nearest usable edge (grass beside
+    a forearm continues under it as grass, its blades mirrored, not smeared)."""
+    h, w = hole.shape
+    edge = usable & ~hole & (blur(hole.astype(np.float32), 1.2) > 0.02)
+    ey, ex = np.nonzero(edge)
+    hy, hx = np.nonzero(hole)
+    out_rgb, out_a = rgb.copy(), a.copy()
+    if not len(ey):
+        return out_rgb, out_a
+    for i in range(0, len(hy), 2048):
+        py, px = hy[i:i + 2048, None], hx[i:i + 2048, None]
+        d = (py - ey[None]) ** 2 + (px - ex[None]) ** 2
+        k = np.argmin(d, 1)
+        by, bx = ey[k], ex[k]
+        sy = np.clip(2 * by - py[:, 0], 0, h - 1)
+        sx = np.clip(2 * bx - px[:, 0], 0, w - 1)
+        bad = hole[sy, sx]
+        sy, sx = np.where(bad, by, sy), np.where(bad, bx, sx)
+        out_rgb[py[:, 0], px[:, 0]] = rgb[sy, sx]
+        out_a[py[:, 0], px[:, 0]] = a[sy, sx]
+    return out_rgb, out_a
+
+
 def figures(sheet, plate):
-    """The two people, cut from the sheet, unmixed, occluded, shadowed, light-matched, at the
-    size they are drawn on the plate. Returns (premultiplied RGBA at plate scale, straight sheet
-    RGB, sheet alpha)."""
+    """The two people, cut from the sheet, unmixed, occluded, shadowed, light-matched, at their
+    texture's scale (FIG_T of the sheet). Returns (body premultiplied RGBA, her forearm
+    premultiplied RGBA, her sleeve (where the forearm goes under), straight sheet RGB, sheet
+    alpha)."""
     top = arr(sheet.crop(FIG_CROP))
     h, w = top.shape[:2]
     d = np.sqrt(((top - IVORY) ** 2).sum(-1))
@@ -209,48 +322,91 @@ def figures(sheet, plate):
     cut = arr(blades.filter(ImageFilter.GaussianBlur(0.7)))
     a = np.clip(a * (1 - cut * 0.95), 0, 1)
 
-    # Light-match: the plate's own light where they lie (low frequency), relative to its mean there.
-    th, tw = round(h * FIG_S), round(w * FIG_S)
-    under = arr(plate)[FIG_Y0:FIG_Y0 + th, FIG_X0:FIG_X0 + tw]
-    lum = (under * [0.3, 0.59, 0.11]).sum(-1)
-    body_small = resize(poly_mask((w, h), [BODY]), tw, th)
-    ref = (lum * body_small).sum() / max(body_small.sum(), 1)
-    match = np.clip(blur(lum, 40 * FIG_S) / ref, 0.85, 1.10)
+    # Her forearm: its own part; under it, the grass beside it, mirrored (never her shirt or skin).
+    limb = limb_mask(straight, a)
+    hole = blur((limb > 0.05).astype(np.float32), 1.0) > 0.05
+    r_, g_, b_ = straight[..., 0], straight[..., 1], straight[..., 2]
+    lum_s = 0.3 * r_ + 0.59 * g_ + 0.11 * b_
+    skin = (r_ - b_ > 0.15) & (r_ > g_ + 0.03) & (lum_s > 0.4)
+    cream = (lum_s > 0.62) & (r_ - b_ < 0.14)
+    body_rgb, body_a = reflect_fill(straight, a, hole, (a > 0.6) & ~skin & ~cream)
+    body_rgb = blur(body_rgb, 0.4) * hole[..., None] + body_rgb * (1 - hole[..., None])
+    x0, y0, x1, y1 = SLEEVE_BOX
+    sleeve = np.zeros((h, w), np.float32)
+    sleeve[y0:y1, x0:x1] = (cream & ~(limb > 0.5))[y0:y1, x0:x1]
+    sleeve = np.clip(blur(sleeve, 1.0) * 1.4, 0, 1)
 
-    # To the plate's scale, premultiplied, softened a little (the sheet's line is finer than the plate's).
-    pm = np.dstack([straight * a[..., None], a])
-    small = np.clip(resize(pm, tw, th), 0, 1)
-    small = blur(small, 0.55)
-    small[..., :3] *= match[..., None]
+    # Light-match: the plate's own light where they lie (low frequency), relative to its mean there.
+    ph, pw = round(h * FIG_S), round(w * FIG_S)
+    th, tw = round(h * FIG_T), round(w * FIG_T)
+    under = arr(plate)[FIG_Y0:FIG_Y0 + ph, FIG_X0:FIG_X0 + pw]
+    lum = (under * [0.3, 0.59, 0.11]).sum(-1)
+    body_small = resize(poly_mask((w, h), [BODY]), pw, ph)
+    ref = (lum * body_small).sum() / max(body_small.sum(), 1)
+    match = resize(np.clip(blur(lum, 40 * FIG_S) / ref, 0.85, 1.10), tw, th)
+
+    def small_of(rgb_, a_):
+        # To the texture's scale, premultiplied, softened a little (the sheet's line is finer than the plate's).
+        pm = np.dstack([rgb_ * a_[..., None], a_])
+        out_ = np.clip(resize(pm, tw, th), 0, 1)
+        out_ = blur(out_, 0.55 * FIG_T / FIG_S)
+        out_[..., :3] *= match[..., None]
+        return out_
+
+    small = small_of(body_rgb, body_a)
+    arm = small_of(straight, a * limb)
 
     # A contact shadow on the grass under them: away from the light (upper right), soft.
     body = resize(poly_mask((w, h), [BODY]), tw, th)
-    sh = np.roll(np.roll(body, 5, 0), -4, 1)
-    sh = blur(sh, 9) * (1 - body * 0.6)
+    k = FIG_T / FIG_S
+    sh = np.roll(np.roll(body, round(5 * k), 0), -round(4 * k), 1)
+    sh = blur(sh, 9 * k) * (1 - body * 0.6)
     sh_a = np.clip(sh * 0.3, 0, 0.3)
     sh_col = np.array([0.10, 0.13, 0.06])
     sa = small[..., 3]
     out = np.empty_like(small)
     out[..., :3] = small[..., :3] + sh_col * sh_a[..., None] * (1 - sa[..., None])
     out[..., 3] = sa + sh_a * (1 - sa)
-    return out, straight, a
+    return out, arm, resize(sleeve, tw, th), straight, a
 
 
 def lids(straight, a):
-    """Closed eyelids at plate scale: the skin above each eye drawn over it, with a lash line."""
-    out = straight.copy()
+    """Their eyelids at texture scale, two drawings: shut, and half (the upper lid halfway down,
+    the lash line across the middle of the eye). Returns (shut, half), premultiplied RGBA."""
     h, w = straight.shape[:2]
-    m_all = np.zeros((h, w), np.float32)
-    for (ex, ey) in A_EYES + B_EYES:
-        skin = np.median(straight[ey - 16:ey - 9, ex - 10:ex + 10].reshape(-1, 3), 0)
-        m = ellipse_weight(w, h, ex, ey, 11, 7.5, 0, 0.5)
-        out = out * (1 - m[..., None]) + skin * m[..., None]
-        lash = ellipse_weight(w, h, ex, ey + 2, 10, 1.6, 0.08, 0.6) * 0.85
-        out = out * (1 - lash[..., None]) + np.array([0.24, 0.16, 0.12]) * lash[..., None]
-        m_all = np.maximum(m_all, ellipse_weight(w, h, ex, ey, 13, 9, 0, 0.4))
-    th, tw = round(h * FIG_S), round(w * FIG_S)
-    pm = np.dstack([out * m_all[..., None], m_all])
-    return np.clip(resize(pm, tw, th), 0, 1)
+    th, tw = round(h * FIG_T), round(w * FIG_T)
+    y = np.mgrid[0:h, 0:w][0].astype(np.float32)
+    outs = []
+    for half in (False, True):
+        out = straight.copy()
+        m_all = np.zeros((h, w), np.float32)
+        for (ex, ey) in A_EYES + B_EYES:
+            skin = np.median(straight[ey + 6:ey + 12, ex - 8:ex + 8].reshape(-1, 3), 0)  # the cheek (above is hair)
+            m = ellipse_weight(w, h, ex, ey, 11, 7.5, 0, 0.5)
+            if half:
+                m = m * smooth(ey + 1.5, ey - 0.5, y)
+            out = out * (1 - m[..., None]) + skin * m[..., None]
+            lash = ellipse_weight(w, h, ex, ey + (0 if half else 2), 10, 1.6, 0.08, 0.6) * 0.85
+            out = out * (1 - lash[..., None]) + np.array([0.24, 0.16, 0.12]) * lash[..., None]
+            cover = ellipse_weight(w, h, ex, ey, 13, 9, 0, 0.4)
+            if half:
+                cover = cover * smooth(ey + 3.5, ey + 1.5, y)
+            m_all = np.maximum(m_all, cover)
+        pm = np.dstack([out * m_all[..., None], m_all])
+        outs.append(np.clip(resize(pm, tw, th), 0, 1))
+    return outs[0], outs[1]
+
+
+def stack(rows):
+    """Atlas rows, top to bottom, GUTTER transparent pixels between them."""
+    w = rows[0].shape[1]
+    gap = np.zeros((GUTTER, w, rows[0].shape[2]), np.float32)
+    out = []
+    for i, r in enumerate(rows):
+        if i:
+            out.append(gap)
+        out.append(r)
+    return np.concatenate(out, 0)
 
 
 def graphite_of(rgb, strength, lo=0.18, hi=0.75):
@@ -295,7 +451,12 @@ def plate_maps(day):
     grass = smooth(560, 941, y) * 0.95 + 0.08
     grass = grass * smooth(420, 480, y)
     sway = np.maximum(canopy, grass) * (1 - still) * (1 - np.clip(sky * 1.5 + mountain, 0, 1))
-    sway = blur(sway, 10)
+    # Hardly at all within ~25 px of the two of them (blades would slide under his trousers).
+    ph, pw = round(FIG_CROP[3] * FIG_S), round(FIG_CROP[2] * FIG_S)
+    near = np.zeros((H, W), np.float32)
+    near[FIG_Y0:FIG_Y0 + ph, FIG_X0:FIG_X0 + pw] = resize(poly_mask((FIG_CROP[2], FIG_CROP[3]), [BODY]), pw, ph)
+    near = np.clip(blur(near, 14) * 3, 0, 1)
+    sway = blur(sway, 10) * (1 - 0.9 * near)
     kind = smooth(400, 480, y)
     # The painted sun flecks (high-passed light), for the dapple.
     flecks = np.clip((lum - blur(lum, 14)) * 6.0, 0, 1) * smooth(0.45, 0.7, lum)
@@ -364,6 +525,107 @@ def sketch_layer(poster_rgb, fig_lines):
 # ---------------------------------------------------------------------------------------------
 
 
+def sky_mask(day):
+    """Where the sky (and its clouds) shows through the canopy's gap, soft: not the leaves, not
+    the mountain, not the far trees."""
+    d = arr(day)
+    r, g, b = d[..., 0], d[..., 1], d[..., 2]
+    lum = 0.3 * r + 0.59 * g + 0.11 * b
+    y = np.mgrid[0:H, 0:W][0]
+    blue = (b > g - 0.01) & (b > r - 0.12) & (lum > 0.55)
+    cloud = (lum > 0.68) & (r >= g - 0.02) & (g >= b - 0.06) & (r - b < 0.3) & (g - b < 0.2)
+    leaf = (g > b + 0.06) & (g > r - 0.08) & (lum < 0.75)
+    m = (blue | cloud) & ~leaf & (lum > 0.45) & (y < 215)
+    # The mountain by its own colour (its ridge as painted), and its polygon.
+    ridge = (y > 120) & (lum < 0.72) & (b >= r - 0.03)
+    m = m & ~ridge & (poly_mask((W, H), [MOUNTAIN]) < 0.5)
+    x0, y0, x1, y1 = CLOUD_BOX
+    box = np.zeros((H, W), bool)
+    box[y0:y1, x0:x1] = True
+    m = (m & box).astype(np.float32)
+    # Close pinholes in the clouds, keep the leaves' edges.
+    im = img(m).filter(ImageFilter.MaxFilter(3)).filter(ImageFilter.MinFilter(3))
+    return blur(arr(im), 0.6)
+
+
+def clouds(plate_rgb, mask):
+    """The sky in the gap as its own layer, filled where the leaves and mountain hide it (so it can
+    drift behind them) and painted on CLOUD_PAD px further left (where it drifts in from)."""
+    x0, y0, x1, y1 = CLOUD_BOX
+    rgb = plate_rgb[y0:y1, x0:x1]
+    m = mask[y0:y1, x0:x1]
+    pad = CLOUD_PAD
+    rgb = np.concatenate([np.zeros((rgb.shape[0], pad, 3), np.float32), rgb], 1)
+    m = np.concatenate([np.zeros((m.shape[0], pad), np.float32), m], 1)
+    sure = (m > 0.6).astype(np.float32)
+    # Behind the leaves, the plain sky of that height: each row's own colour (its median where it
+    # shows, the nearest row's where it doesn't, softened down the rows), so what drifts out from
+    # behind a leaf is sky, never a grey average.
+    rows = np.zeros((rgb.shape[0], 3), np.float32)
+    seen = np.zeros(rgb.shape[0], bool)
+    for i in range(rgb.shape[0]):
+        k = sure[i] > 0.5
+        if k.sum() > 8:
+            rows[i] = np.median(rgb[i][k], 0)
+            seen[i] = True
+    idx = np.nonzero(seen)[0]
+    for i in range(rgb.shape[0]):
+        if not seen[i]:
+            rows[i] = rows[idx[np.argmin(np.abs(idx - i))]]
+    rows = np.stack([blur(np.tile(rows[:, c:c + 1], (1, 8)), 6)[:, 0] for c in range(3)], 1)
+    plain = np.broadcast_to(rows[:, None, :], rgb.shape)
+    # Near what shows, its own colour carried a few pixels in (no seam at a leaf's edge).
+    num = blur(rgb * sure[..., None], 4)
+    den = blur(sure, 4)[..., None]
+    near = np.clip(den * 3, 0, 1)
+    fill = plain * (1 - near) + (num / np.maximum(den, 1e-4)) * near
+    out = rgb * sure[..., None] + fill * (1 - sure[..., None])
+    return np.clip(out, 0, 1)
+
+
+def flower_heads(day):
+    """The near flowers' heads (plate px): centre and radius, the largest FLOWERS of them, and a
+    soft mask of them all. Keyed by colour only near each head (the sunlit grass is as yellow)."""
+    d = arr(day)
+    r, g, b = d[..., 0], d[..., 1], d[..., 2]
+    y = np.mgrid[0:H, 0:W][0]
+    yel = (r > 0.68) & (g > 0.58) & (r > g + 0.03) & (b < 0.62) & (r - b > 0.2) & (y > 600)
+    m = blur(yel.astype(np.float32), 2.0) > 0.12
+    # Not where the two of them lie (the flowers are drawn over them).
+    ph, pw = round(FIG_CROP[3] * FIG_S), round(FIG_CROP[2] * FIG_S)
+    under = np.zeros((H, W), np.float32)
+    under[FIG_Y0:FIG_Y0 + ph, FIG_X0:FIG_X0 + pw] = resize(poly_mask((FIG_CROP[2], FIG_CROP[3]), [FIG_POLY]), pw, ph)
+    m &= blur(under, 6) < 0.05
+    lab, n = components(m)
+    heads = []
+    for i in range(1, n + 1):
+        ys, xs = np.nonzero(lab == i)
+        if len(ys) < 150 or len(ys) > 2200:
+            continue
+        hh, ww = ys.max() - ys.min() + 1, xs.max() - xs.min() + 1
+        if max(hh, ww) > 70 or max(hh, ww) > 2.2 * min(hh, ww):
+            continue
+        heads.append((len(ys), float(xs.mean()), float(ys.mean()), 0.5 * max(hh, ww) + 3, i))
+    heads.sort(reverse=True)
+    heads = heads[:FLOWERS]
+    mask = np.zeros((H, W), np.float32)
+    for _, cx, cy, rad, i in heads:
+        own = (lab == i).astype(np.float32)
+        own = arr(img(own).filter(ImageFilter.MaxFilter(5)))
+        mask = np.maximum(mask, own)
+    mask = np.clip(blur(mask, 1.0) * 1.3, 0, 1)
+    return [(cx, cy, rad) for _, cx, cy, rad, _ in heads], mask
+
+
+def under_flowers(plate_rgb, mask):
+    """The grass behind the flower heads: the grass 38 px below each, cloned up (a blurred fill
+    shows on grass this fine)."""
+    y = np.mgrid[0:H, 0:W][0][..., None]
+    src = np.where(y < H - 38, np.roll(plate_rgb, -38, 0), np.roll(plate_rgb, 38, 0))
+    k = np.clip(blur(mask, 2.0) * 1.6, 0, 1)[..., None]
+    return plate_rgb * (1 - k) + src * k
+
+
 def save(a, path, sizes, lossless=False, q=90):
     """`a`: HxWx{3,4} floats (RGBA premultiplied is stored straight, as WebP wants)."""
     os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -395,17 +657,17 @@ def main():
     dusk = dusk.transform(dusk.size, Image.AFFINE, (1, 0, -2, 0, 1, 0), resample=Image.BICUBIC)
 
     maps, sky, lum = plate_maps(day)
-    fig, straight, fa = figures(sheet, day)
+    fig, arm, sleeve, straight, fa = figures(sheet, day)
     th, tw = fig.shape[:2]
-    lid = lids(straight, fa)
+    shut, half = lids(straight, fa)
+    # The people as they are first drawn (the forearm over the body), at the plate's scale.
+    ph, pw = round(FIG_CROP[3] * FIG_S), round(FIG_CROP[2] * FIG_S)
+    posed = np.clip(resize(arm + fig * (1 - arm[..., 3:4]), pw, ph), 0, 1)
     lines = ink_lines(straight) * (fa > 0.5)
-    fig_lines = np.clip(resize(np.maximum(lines, graphite_of(straight, 0.6) * fa), tw, th), 0, 1)
-    graphite = np.array([0.30, 0.30, 0.32])
-    fsk_a = smooth(0.1, 0.8, fig_lines) * 0.95
-    fsketch = np.dstack([graphite * fsk_a[..., None], fsk_a])
-    poster = flatten(day, fig)
+    fig_lines = np.clip(resize(np.maximum(lines, graphite_of(straight, 0.6) * fa), pw, ph), 0, 1)
+    poster = flatten(day, posed)
     lines_plate = np.zeros((H, W), np.float32)
-    lines_plate[FIG_Y0:FIG_Y0 + th, FIG_X0:FIG_X0 + tw] = fig_lines
+    lines_plate[FIG_Y0:FIG_Y0 + ph, FIG_X0:FIG_X0 + pw] = fig_lines
 
     a = os.path.join(OUT, 'afternoon')
     e = os.path.join(OUT, 'empty')
@@ -415,11 +677,19 @@ def main():
     light = np.clip(maps[..., 3] * 1.4 + 0.25 * smooth(0.55, 0.8, lum) * smooth(400, 520, np.mgrid[0:H, 0:W][0]), 0, 1)
     save(np.dstack([light, light, light]), os.path.join(a, 'light.webp'), WALL)
     # The living scene.
-    save(arr(day), os.path.join(a, 'plate.webp'), LIVE, q=92)
+    heads, fmask = flower_heads(day)
+    save(under_flowers(arr(day), fmask), os.path.join(a, 'plate.webp'), LIVE, q=92)
+    save(np.dstack([arr(day) * fmask[..., None], fmask]), os.path.join(a, 'flowers.webp'), LIVE, q=92)
+    smask = sky_mask(day)
+    x0, y0, x1, y1 = CLOUD_BOX
+    save(np.dstack([smask[y0:y1, x0:x1]] * 3), os.path.join(a, 'sky-mask.webp'), {'': W}, lossless=True)
+    save(clouds(arr(day), smask), os.path.join(a, 'clouds.webp'), {'': W}, q=90)
+    save(clouds(arr(dusk), smask), os.path.join(a, 'clouds-after.webp'), {'': W}, q=90)
     save(maps.clip(0, 1), os.path.join(a, 'maps.webp'), {'': W // 4}, lossless=True)
-    save(fig, os.path.join(a, 'figures.webp'), LIVE, q=92)
-    save(lid, os.path.join(a, 'lids.webp'), LIVE, q=92)
-    save(fsketch, os.path.join(a, 'fsketch.webp'), LIVE, q=90)
+    # Atlases (rows top to bottom): the body, her forearm; her lids shut, half, and her sleeve.
+    save(stack([fig, arm]), os.path.join(a, 'figures.webp'), LIVE, q=92)
+    occ = np.dstack([sleeve, sleeve, sleeve, sleeve])
+    save(stack([shut, half, occ]), os.path.join(a, 'lids.webp'), LIVE, q=92)
     # After the cut: the same place at dusk, nobody there.
     after = pressed(arr(dusk))
     save(after, os.path.join(a, 'after.webp'), LIVE, q=92)
@@ -438,31 +708,42 @@ def main():
     def fr(r):
         return [round(r[0] / FIG_CROP[2], 5), round(r[1] / FIG_CROP[3], 5)]
 
-    anatomy = {}
-    for k, v in ANATOMY.items():
-        o = {}
-        for f, val in v.items():
-            if f in ('c', 'pivot', 'elbow', 'hand'):
-                o[f] = fuv(val)
-            elif f == 'r':
-                o[f] = fr(val)
-            elif f == 'angle':
-                o[f] = -val  # y flipped
-            else:
-                o[f] = round(val / FIG_CROP[3], 5)  # a radius, in figure heights
-        anatomy[k] = o
-    place = [FIG_X0 / W, 1 - (FIG_Y0 + th) / H, tw / W, th / H]
+    deformers = []
+    for name, c, r, angle, edge, pivot, part in DEFORMERS:
+        deformers.append({'name': name, 'c': fuv(c), 'r': fr(r), 'angle': -angle, 'edge': edge,
+                          'pivot': fuv(pivot or c), 'part': part})
+    ex, ey = LIMB_B_ELBOW
+    hx, hy = LIMB_B_HAND
+    ln = math.hypot(hx - ex, hy - ey)
+    ys, xs = np.nonzero(arm[..., 3] > 0.01)
+    pad = 6
+    box = [(xs.min() - pad) / tw, 1 - (ys.max() + pad) / th, (xs.max() + pad) / tw, 1 - (ys.min() - pad) / th]
+    limb = {
+        # The part's extent (figure uv: u0, v0, u1, v1); along it, toward the elbow (figure uv, unit in sheet px).
+        'box': [round(float(v), 5) for v in box],
+        'axis': [round((ex - hx) / ln, 5), round(-(ey - hy) / ln, 5)],
+    }
+    place = [FIG_X0 / W, 1 - (FIG_Y0 + ph) / H, pw / W, ph / H]
     living = {
         'afternoon': {
             # (No gradual dusk: the evening arrives with the cut, as its own painting. `grade` and
             # `sky` (dusk_parts, dusk_sky) stay available to a scene whose light should change.)
             'plate': 'afternoon/plate', 'maps': 'afternoon/maps', 'grade': None, 'sky': None,
             'figures': {
-                'file': 'afternoon/figures', 'lids': 'afternoon/lids', 'sketch': 'afternoon/fsketch',
-                'place': [round(v, 5) for v in place], 'pixels': [tw, th], 'split': round(SPLIT / FIG_CROP[2], 5),
-                'anatomy': anatomy,
+                'file': 'afternoon/figures', 'lids': 'afternoon/lids',
+                # Each atlas row's height and the gap between rows (texture pixels).
+                'pixels': [tw, th], 'gutter': GUTTER,
+                'place': [round(v, 5) for v in place], 'split': round(SPLIT / FIG_CROP[2], 5),
+                'deformers': deformers, 'limb': limb,
             },
             'after': 'afternoon/after',
+            # The near flowers on their stems (painting uv, y up: head centre, radius as a
+            # fraction of the width), their heads (cut out of the plate, which has grass there).
+            'flowers': {'file': 'afternoon/flowers', 'heads': [[round(cx / W, 5), round(1 - cy / H, 5), round(rad / W, 5)] for cx, cy, rad in heads]},
+            # The sky in the gap, drifting behind the leaves: where it shows (painting uv box),
+            # and the layers (the afternoon's, the evening's), each CLOUD_PAD px wider on the left.
+            'clouds': {'mask': 'afternoon/sky-mask', 'file': 'afternoon/clouds', 'after': 'afternoon/clouds-after',
+                       'box': [x0 / W, 1 - y1 / H, (x1 - x0) / W, (y1 - y0) / H], 'pad': round(CLOUD_PAD / (x1 - x0 + CLOUD_PAD), 5)},
             'immerse': True,
         },
         # The revisit stays in the wall, as any memory: the dusk painting, still.

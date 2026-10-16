@@ -7,7 +7,7 @@ import { memorySchema } from './sheets';
 import { sheetSource } from './theatre';
 import type { Lifecycle, MemoryFrame, ReleaseReason } from './types';
 import type { WindowLayer, LayerKind } from '../world/MemoryWindow';
-import { LivingScene, type LivingArt } from './living/LivingScene';
+import { LivingScene, type FigureArt, type LivingArt } from './living/LivingScene';
 import { WOODLAND as WOODLAND_SPEC, type LivingSpec } from './living/woodland';
 
 /**
@@ -46,15 +46,11 @@ interface LivingManifest {
   /** The same composition later, nobody there (the cut). */
   after?: string | null;
   sky: { file: string; box: [number, number, number, number] } | null;
-  figures: {
-    file: string;
-    lids: string;
-    sketch: string;
-    place: [number, number, number, number];
-    pixels: [number, number];
-    split: number;
-    anatomy: LivingArt['figures'] extends infer F ? (F extends { anatomy: infer A } ? A : never) : never;
-  } | null;
+  figures: (Omit<FigureArt, 'texture' | 'lids'> & { file: string; lids: string }) | null;
+  /** The near flowers' heads and where they are (painting uv). */
+  flowers?: { file: string; heads: [number, number, number][] } | null;
+  /** The sky in the gap, drifting: where it shows, the afternoon's and the evening's layers (one size). */
+  clouds?: { mask: string; file: string; after: string; box: [number, number, number, number]; pad: number } | null;
   immerse: boolean;
 }
 
@@ -180,7 +176,9 @@ function livingFiles(lm: LivingManifest, suffix: string): { file: string; suffix
   if (lm.grade) out.push({ file: lm.grade, suffix: '' });
   if (lm.after) out.push({ file: lm.after, suffix });
   if (lm.sky) out.push({ file: lm.sky.file, suffix: '' });
-  if (lm.figures) out.push({ file: lm.figures.file, suffix }, { file: lm.figures.lids, suffix }, { file: lm.figures.sketch, suffix });
+  if (lm.figures) out.push({ file: lm.figures.file, suffix }, { file: lm.figures.lids, suffix });
+  if (lm.flowers) out.push({ file: lm.flowers.file, suffix });
+  if (lm.clouds) out.push({ file: lm.clouds.mask, suffix: '' }, { file: lm.clouds.file, suffix: '' }, { file: lm.clouds.after, suffix: '' });
   return out;
 }
 
@@ -230,15 +228,18 @@ export async function prepare(id: string, variant: string, host: RuntimeHost): P
         extra.push(r);
         return r.texture;
       };
-      const [plate, maps, grade, sky, fig, lids, fsk, after] = await Promise.all([
+      const [plate, maps, grade, sky, fig, lids, after, flowers, skyMask, clouds, cloudsAfter] = await Promise.all([
         one(lm.plate),
         one(lm.maps, { data: true, sfx: '' }),
         lm.grade ? one(lm.grade, { data: true, sfx: '' }) : Promise.resolve(null),
         lm.sky ? one(lm.sky.file, { sfx: '' }) : Promise.resolve(null),
         lm.figures ? one(lm.figures.file) : Promise.resolve(null),
         lm.figures ? one(lm.figures.lids) : Promise.resolve(null),
-        lm.figures ? one(lm.figures.sketch) : Promise.resolve(null),
         lm.after ? one(lm.after) : Promise.resolve(null),
+        lm.flowers ? one(lm.flowers.file) : Promise.resolve(null),
+        lm.clouds ? one(lm.clouds.mask, { data: true, sfx: '' }) : Promise.resolve(null),
+        lm.clouds ? one(lm.clouds.file, { sfx: '' }) : Promise.resolve(null),
+        lm.clouds ? one(lm.clouds.after, { sfx: '' }) : Promise.resolve(null),
       ]);
       const art: LivingArt = {
         plate,
@@ -246,7 +247,9 @@ export async function prepare(id: string, variant: string, host: RuntimeHost): P
         grade,
         after,
         sky: sky && lm.sky ? { texture: sky, box: lm.sky.box } : null,
-        figures: lm.figures && fig && lids && fsk ? { texture: fig, lids, sketch: fsk, place: lm.figures.place, pixels: lm.figures.pixels, split: lm.figures.split, anatomy: lm.figures.anatomy } : null,
+        flowers: flowers && lm.flowers ? { texture: flowers, heads: lm.flowers.heads } : null,
+        clouds: lm.clouds && skyMask && clouds && cloudsAfter ? { mask: skyMask, day: clouds, after: cloudsAfter, box: lm.clouds.box, pad: lm.clouds.pad } : null,
+        figures: lm.figures && fig && lids ? { ...lm.figures, texture: fig, lids } : null,
         size: manifest.plate ?? [1672, 941],
       };
       const size = targetSize(host);

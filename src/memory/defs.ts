@@ -458,20 +458,36 @@ export const WOODLAND: MemoryDef = {
         // The scene.
         'scene.life': [[0, 0], [5.5, 0], [7, 1]],
         'scene.immerse': [[0, 0], [6.5, 0], [11, 1], [38.5, 1], [42.5, 0]],
-        'scene.breeze': [[0, 1], [14, 1], [15, 0.15], [21.5, 0.15], [23.5, 1]],
+        // The air: never still (it is what makes the place a place), quieter while her hand moves,
+        // back after; steady and gustless into the cut and across it; the evening's calm after.
+        'scene.breeze': [[0, 0.6], [5.5, 0.6], [11, 1], [14, 1], [15, 0.35], [21.5, 0.35], [23.5, 1], [29.3, 0.5], [34, 0.5], [36, 0.3]],
         // The cut: the afternoon and the two of them until it, then the same place later, empty.
         'scene.after': [[0, 0, 'hold'], [CUT, 1]],
         'scene.people': [[0, 1, 'hold'], [CUT, 0]],
-        // Him: a head settling after the gust; his hand answering hers.
+        // Him (docs/reviews/2026-10-woodland.md, the beat sheet): a flex of the hand in the grass;
+        // the leaf falling at the gust: his eyes go first, then his face; back, settling.
+        'figure:a.fingers': [[0, 0], [11.8, 0], [11.95, 1], [12.3, 0], [17.0, 0], [17.12, 1], [17.5, 0]],
+        'figure:a.eyes': [[0, 0], [12.8, 0], [12.95, -1], [14.3, -1], [14.6, 0]],
+        'figure:a.look': [[0, 0], [13.0, 0], [13.5, -0.6], [14.3, -0.6], [14.9, 0]],
         'figure:a.head': [[0, 0], [13.6, 0], [14.4, -0.03]],
+        // His hand answering hers.
         'figure:a.hand': [[0, 0], [19.8, 0], [20.3, 1]],
         'figure:a.breath': [[0, 1]],
-        // Her: an incline toward him; the hand (0 drawn back, 1 where the sheet draws it); settling.
+        // Her: the foot rocking (it stops before her hand moves; again after, until the stillness);
+        // two taps on her stomach; her eyes following the seed in the air.
+        'figure:b.foot': [[0, 0], [10.5, 0], [11.2, 1], [14.4, 1], [14.8, 0], [26.6, 0], [27, 0.8], [29, 0.8], [29.3, 0]],
+        'figure:b.fingers': [[0, 0], [11.95, 0], [12.03, 1], [12.12, 0], [12.22, 1], [12.32, 0]],
+        'figure:b.eyes': [[0, 0], [11.9, 0], [12.1, 0.6], [12.8, -0.3], [13.2, 0], [26.3, 0], [26.45, -1], [28.5, -1], [28.8, 0]],
+        // An incline toward him while the hand moves (neither of them looking); after the touch,
+        // she looks at him (he doesn't see), and back.
         'figure:b.head': [[0, 0], [14.8, 0], [16, 0.045], [25, 0.045], [25.9, 0.01]],
+        'figure:b.look': [[0, 0], [26.5, 0], [27, -1], [28.4, -1], [28.9, 0]],
+        // The hand (0 drawn back, 1 where the sheet draws it); settling.
         'figure:b.hand': [[0, 0], [15.5, 0], [16.6, 0.5], [18, 0.5], [18.7, 1], [24.5, 1], [25, 0.88]],
         'figure:b.shoulder': [[0, 0], [24.6, 0], [25.2, 1], [25.9, 0.6]],
         'figure:b.settle': [[0, 0], [24.8, 0], [25.9, 1]],
-        'figure:b.breath': [[0, 1]],
+        // Her breath goes shallow while her hand is out; one deeper breath as she settles.
+        'figure:b.breath': [[0, 1], [15.5, 1], [16.5, 0.5], [20.3, 0.5], [21, 1], [24.4, 1], [24.6, 1.4], [25.4, 1]],
       },
       markers: [
         { label: 'active', position: S.active },

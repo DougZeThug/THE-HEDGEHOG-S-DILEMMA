@@ -68,14 +68,23 @@ export const SCENE: Schema[string] = {
  * A person in a living memory. What they do on purpose (their involuntary life, breathing and
  * blinking, follows from time: src/memory/living/performance.ts):
  *   head      radians at the neck (a few degrees at most: a flat drawing can't turn far)
+ *   look      the face turning (−1 toward the left of the picture .. 1 toward the right): the
+ *             features slide within the head, the far side narrows (a turn, not a rotation)
+ *   eyes      where the eyes look (−1 left .. 1 right; they lead the head by a drawing)
  *   hand      A: 0 resting, 1 moved toward hers; B: 0 drawn back, 1 where the sheet draws it
+ *   fingers   A: his fingers flexing in the grass; B: her fingers lifting off her stomach (0..1)
+ *   foot      B: her crossed foot rocking (0 still .. 1 rocking as she does)
  *   shoulder  B: her shoulder easing (0..1)
  *   settle    B: settling back into the grass (0..1)
  *   breath    how deep they breathe (1 as they do)
  */
 export const FIGURE: Schema[string] = {
   head: [0, -0.06, 0.06],
+  look: [0, -1, 1],
+  eyes: [0, -1, 1],
   hand: [0, 0, 1],
+  fingers: [0, 0, 1],
+  foot: [0, 0, 1],
   shoulder: [0, 0, 1],
   settle: [0, 0, 1],
   breath: [1, 0, 1.5],

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import * as THREE from 'three';
-import { breath, blink, gust, hash01 } from '../src/memory/living/performance';
+import { breath, blinkDrawing, gust, hash01, windForce, windResponse, windDrift } from '../src/memory/living/performance';
 import { WOODLAND as SPEC } from '../src/memory/living/woodland';
 import { compose, FULL } from '../src/memory/compose';
 import { coverQuad, squareToQuad, visiblePart } from '../src/world/living/Immersion';
@@ -44,11 +44,17 @@ describe('their involuntary life, from time alone', () => {
     expect(missed).toBeGreaterThan(0);
   });
 
-  it('a blink is quick, shut for a moment, and only where authored', () => {
+  it('a blink is drawn on twos (half, shut, half), only where authored, never across the reach or before the cut', () => {
     const at = SPEC.blinks.a[0];
-    expect(blink(at - 0.01, SPEC.blinks.a)).toBe(0);
-    expect(blink(at + 0.07, SPEC.blinks.a)).toBe(1);
-    expect(blink(at + 0.3, SPEC.blinks.a)).toBe(0);
+    expect(blinkDrawing(at - 0.01, SPEC.blinks.a)).toBe(0);
+    expect(blinkDrawing(at + 0.04, SPEC.blinks.a)).toBe(0.5);
+    expect(blinkDrawing(at + 0.12, SPEC.blinks.a)).toBe(1);
+    expect(blinkDrawing(at + 0.2, SPEC.blinks.a)).toBe(0.5);
+    expect(blinkDrawing(at + 0.3, SPEC.blinks.a)).toBe(0);
+    for (const b of [...SPEC.blinks.a, ...SPEC.blinks.b]) {
+      expect(b < 15.5 || b > 20.3).toBe(true);
+      expect(b < 29.3 || b > 31.5).toBe(true);
+    }
   });
 
   it('the gust crosses the clearing left to right and settles', () => {
@@ -57,6 +63,36 @@ describe('their involuntary life, from time alone', () => {
     expect(b.front).toBeGreaterThan(a.front);
     expect(gust(g.at + g.cross * 3, SPEC.gusts).strength).toBe(0);
     expect(hash01(3, 7)).toBe(hash01(3, 7));
+  });
+});
+
+describe('the air, which moves everything (one wind, seekable)', () => {
+  const G = SPEC.gusts;
+  it('a spring answers it as a spring would, however its time was reached', () => {
+    for (const [hz, z] of [[0.7, 0.5], [1.2, 0.3], [0.45, 0.6]]) {
+      // Simulated from long before (steady), step by step, against the closed form.
+      let y = 0, v = 0, err = 0;
+      const wn = 2 * Math.PI * hz, dt = 1 / 500;
+      for (let t = -60; t < 36; t += dt) {
+        const a = wn * wn * (windForce(t, 0.3, G) - y) - 2 * z * wn * v;
+        v += a * dt;
+        y += v * dt;
+        if (t > 0) err = Math.max(err, Math.abs(y - windResponse(t + dt, 0.3, hz, z, G)));
+      }
+      expect(err).toBeLessThan(0.06);
+      expect(windResponse(17.3, 0.3, hz, z, G)).toBe(windResponse(17.3, 0.3, hz, z, G));
+    }
+  });
+  it('what it carries has moved by the integral of it', () => {
+    let p = 0;
+    for (let t = 0; t < 35; t += 1 / 1000) p += windForce(t + 1 / 2000, 0.6, G) / 1000;
+    expect(Math.abs(p - windDrift(35, 0.6, G))).toBeLessThan(0.01);
+  });
+  it('three gusts: none while her hand moves, none in the stillness before the cut, one over the empty grass', () => {
+    expect(G.length).toBe(3);
+    for (let t = 15.6; t < 24; t += 0.05) expect(gust(t, G).strength).toBe(0);
+    for (let t = 29.4; t < 31.5; t += 0.05) expect(gust(t, G).strength).toBe(0);
+    expect(gust(34, G).strength).toBeGreaterThan(0);
   });
 });
 
@@ -182,8 +218,9 @@ describe('the woodland, heard', () => {
     const [l, r] = await renderWoods(0);
     const e = (a: number, b: number) => energy(l, a, b) + energy(r, a, b);
     const before = e(30.5, 31.5);
-    // The afternoon carries on unchanged a few seconds past the cut (the picture says later first).
-    for (const [a, b] of [[31.5, 32.5], [32.5, 33.5], [33.5, 34.5]]) {
+    // The afternoon carries on unchanged past the cut (the picture says later first), until the
+    // gust over the empty grass (heard from 33.0 s).
+    for (const [a, b] of [[31.5, 32.5], [32.0, 33.0]]) {
       expect(e(a, b) / before).toBeGreaterThan(0.6);
       expect(e(a, b) / before).toBeLessThan(1.6);
     }

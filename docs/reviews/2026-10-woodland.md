@@ -561,3 +561,47 @@ A summer clearing in the afternoon is cicadas. The sound designer's structure is
   - Captions for the cicada falling quiet and for the evening's arrival. A caption at the cut would mark it.
   - The room's other writing on that wall shows over the painting on the way in and out (the line it opens from is the memory's own; others belong to the room).
   - Phone swipe-to-leave, hand-back distance and rotation need a real device; so do the frame rate and every sound.
+
+## The artist's note on the film: "still images with occasional animations"
+
+The artist watched the review film and said it "doesn't really look like an animation, more like still images with occasional animations like blinking layered on top". Measured, they were right: `tests/playtest/motion.py` (block matching, the share of the frame that travels ≥ 2 px in half a second) read 0.0% in every second from 6 to 31 s. The plate moved 1–2 painting px, the breath 1 px, the hand 7–11 px, three blinks in 30 s.
+
+The artist chose: a 2D puppet built from the images already supplied (with a shot list of in-place drawings for later), and a locked camera with a living scene (wind through the grass, flowers and leaves, clouds, moving light, pollen and seeds).
+
+Reviewed before building: the cinematic director (motion budget and rhythm), the technical artist (what can move without tearing, at these images' resolution), then the skeptic on both.
+
+- **Cinematic director:** motion should follow attention. Dense passages at 11–14.3 s and 25.9–29.3 s, calm around the reach, idle movement used as acting. Her look toward him belongs *after* the touch (26.4–28.6 s), so the touch stays deniable. The figures go still from 29.3 s, but the air keeps moving across the cut, with the same phase on both sides. Three gusts as punctuation, not many. A beat sheet with seconds.
+- **Technical artist:** anything that moves more than about 3 px must be its own geometry:
+  - flowers as bent strips;
+  - the sky as a translating layer behind fixed leaves;
+  - her forearm as a cut part with grass filled in under it.
+  The second-row heads on the sheet don't register with the lying pose (eye spacing 39 vs 29 px, eye line −16° vs −35°, mirrored ear), so there is no swap or morph. Drop the sun shafts, the cloth flutter and the finger sub-parts. Particles go through the same program. A drifting noise dapple reads as a screensaver; displace the painted flecks instead.
+- **Skeptic:** the calm at under 2% of the frame recreates the complaint during the scene's most important 9 s. Stillness should be lower amplitude, never no coverage, and coupling (one wind moving everything) matters more than particles. Use a roll and the irises for her look; play his finger beat as a whole-hand twitch.
+
+**Decided:**
+- **Motion floor and coupling:**
+  - The breeze never goes below 0.35. It is 0.5 into the cut and across it, and 0.3 in the evening calm.
+  - One `windForce`, answered in closed form by every spring-like thing and integrated for everything carried. Nothing has its own clock.
+- **Gusts:** three, at 13.0, 26.8 and 33.4 s (the last over the empty grass). There are none from 15.6 to 24 s or from 29.4 s to the cut (tested).
+- **What was dropped:**
+  - sun shafts;
+  - cloth flutter;
+  - finger sub-parts (his 17.1 s beat is a twitch of the whole hand at the wrist);
+  - head swaps;
+  - a leaf after the cut.
+- **Puppet amplitudes:**
+  - breath: a swell of 0.07/0.09 and a rise of 6 sheet px;
+  - hair ends: 2–3 sheet px per unit of wind;
+  - her look: a roll of 0.12 rad with the face sliding 3 px and the irises 3 px;
+  - her forearm: an 18 px slide plus a 0.05 rad turn;
+  - her foot: ±0.07 rad at 0.8 Hz.
+- **The air:** 40 motes, at most a third under reduced motion; 2 seeds; 2 leaves. About 15 motes carry on into the dusk, dimmed.
+- **The beat sheet:** in the seed tracks (`src/memory/defs.ts`). Blinks are by hand in `woodland.ts`: none across the reach, none from 29.3 s.
+
+Before vs. now on the same stills (share travelling ≥ 2 px in half a second):
+
+| Passage | Before | Now |
+|---|---|---|
+| 12 s | 0.0% | 7.6% |
+| The gust (13.5 s) | 0.0% | 13.7% |
+| The calm (18 s) | 0.0% | 6.1% |

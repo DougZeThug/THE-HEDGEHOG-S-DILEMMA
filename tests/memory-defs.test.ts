@@ -38,7 +38,10 @@ describe('the living memories, as defined and committed', () => {
           const files: [string, string[]][] = [[lm.plate, ['', '@low']], [lm.maps, ['']]];
           if (lm.grade) files.push([lm.grade, ['']]);
           if (lm.sky) files.push([lm.sky.file, ['']]);
-          if (lm.figures) for (const f of [lm.figures.file, lm.figures.lids, lm.figures.sketch]) files.push([f, ['', '@low']]);
+          if (lm.figures) for (const f of [lm.figures.file, lm.figures.lids]) files.push([f, ['', '@low']]);
+          if (lm.after) files.push([lm.after, ['', '@low']]);
+          if (lm.flowers) files.push([lm.flowers.file, ['', '@low']]);
+          if (lm.clouds) for (const f of [lm.clouds.mask, lm.clouds.file, lm.clouds.after]) files.push([f, ['']]);
           for (const [f, sizes] of files) for (const s of sizes) expect(existsSync(join(ROOT, 'public/memories', def.art, `${f}${s}.webp`)), f + s).toBe(true);
         }
         // And the committed timeline has the sheet (production never plays the fallbacks).
