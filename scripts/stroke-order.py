@@ -38,8 +38,6 @@ MANIFEST = os.path.join(ROOT, 'public', 'memories', 'woodland', 'manifest.json')
 W, H = 1672, 941
 # The painting's part round the words (painting uv, y up), from the cutter: the drawing starts here.
 CROP = (0.23, 0.09, 0.5, 0.55)
-# Where the two of them lie (plate px: x0, y0, x1, y1).
-PEOPLE = (360, 432, 1287, 755)
 
 
 def darkness():
@@ -50,6 +48,22 @@ def darkness():
         return np.clip((paper - g) / max(paper - g.min(), 1e-3), 0, 1), 'the artist\'s pencil drawing'
     a = np.asarray(Image.open(SKETCH).convert('RGBA').resize((W, H), Image.LANCZOS), np.float32)[..., 3] / 255
     return a, 'the graphite cut from the painting (a stand-in)'
+
+
+def people():
+    """Where the two of them are (0..1, soft): their own cut-out (the puppet's body), where it lies
+    on the painting. (The words are written over them: without this they would be drawn first.)"""
+    with open(MANIFEST) as f:
+        fig = json.load(f)['living']['afternoon']['figures']
+    atlas = Image.open(os.path.join(ROOT, 'public', 'memories', 'woodland', fig['file'] + '.webp')).convert('RGBA')
+    body = atlas.crop((0, 0, fig['pixels'][0], fig['pixels'][1])).split()[3]
+    x0, y0, w, h = fig['place']  # painting uv, y up
+    pw, ph = round(w * W), round(h * H)
+    m = np.zeros((H, W), np.float32)
+    px, py = round(x0 * W), round((1 - y0 - h) * H)
+    m[py:py + ph, px:px + pw] = np.asarray(body.resize((pw, ph), Image.LANCZOS), np.float32)[:H - py, :W - px] / 255
+    m = cv2.dilate((m > 0.3).astype(np.uint8), np.ones((9, 9), np.uint8)).astype(np.float32)
+    return cv2.GaussianBlur(m, (0, 0), 6)
 
 
 def soft_noise(rng, sigma):
@@ -67,10 +81,8 @@ def main():
     reach /= reach.max()
     # How dark the mark is, a little smoothed (a line's light edge before its dark middle).
     weight = np.clip(cv2.GaussianBlur(dark, (0, 0), 1.5) / 0.8, 0, 1)
-    people = np.zeros((H, W), np.float32)
-    people[PEOPLE[1]:PEOPLE[3], PEOPLE[0]:PEOPLE[2]] = 1
-    people = cv2.GaussianBlur(people, (0, 0), 40)
-    R = 0.6 * reach + 0.16 * weight + 0.14 * soft_noise(rng, 30) + 0.3 * people
+    found = people()
+    R = 0.6 * reach + 0.16 * weight + 0.14 * soft_noise(rng, 30) + 0.62 * found
     # (All of it within the drawing's time: the latest line at 1.)
     R = (R - R[lines].min()) / (R[lines].max() - R[lines].min() + 1e-6) if lines.any() else R / R.max()
     R = np.clip(R, 0, 1)

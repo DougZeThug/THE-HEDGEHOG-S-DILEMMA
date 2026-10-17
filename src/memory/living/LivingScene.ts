@@ -60,8 +60,6 @@ export interface Closeup {
   /** Whose breathing lifts the chest, and where it is (centre, radii: frame uv), or null. */
   breath: 'a' | 'b' | null;
   chest: [number, number, number, number] | null;
-  /** Its pixels. */
-  size: [number, number];
 }
 
 /** The drawing shown for `scene.cel` = `k`: its cell, or −1 the first drawing (one not drawn yet holds the one before). */
@@ -73,6 +71,8 @@ export function celOf(c: Pick<Closeup, 'cells'>, k: number): number {
 
 /** How far a close-up's chest swells at a full breath (a fraction of its distance from the middle: ~2–3 px). */
 const SWELL = 0.012;
+/** A close-up's own pixels (scripts/closeups.py): its grass moves as far on every tier. */
+const FRAME_PX = new THREE.Vector2(1 / 1920, 1 / 1080);
 
 export interface LivingArt {
   plate: THREE.Texture;
@@ -454,7 +454,7 @@ export class LivingScene {
       }
       (fu.uChest.value as THREE.Vector4).set(...(cu.chest ?? [0, 0, 0, 0]));
       fu.uBreathe.value = cu.breath ? SWELL * (cu.breath === 'a' ? this.breathA : this.breathB) : 0;
-      (fu.uPx.value as THREE.Vector2).set(1 / cu.size[0], 1 / cu.size[1]);
+      (fu.uPx.value as THREE.Vector2).copy(FRAME_PX);
     } else {
       for (const o of this.wide) if (o !== this.people) o.visible = true;
     }

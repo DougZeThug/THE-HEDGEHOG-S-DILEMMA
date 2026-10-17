@@ -60,7 +60,7 @@ interface LivingManifest {
    * the air may move the grass, so a map: decoded straight) and, if any drawing differs from it,
    * `<file>-cels` (the rest, an atlas of the part that changes).
    */
-  closeups?: (Omit<Closeup, 'base' | 'cels' | 'size'> & { file: string; names: string[]; standin?: boolean })[];
+  closeups?: (Omit<Closeup, 'base' | 'cels'> & { file: string; names: string[]; standin?: boolean })[];
   immerse: boolean;
 }
 
@@ -273,8 +273,7 @@ export async function prepare(id: string, variant: string, host: RuntimeHost): P
           ]);
           for (const r of [b, cels]) if (r.status === 'fulfilled' && r.value) extra.push(r.value);
           if (b.status !== 'fulfilled' || cels.status !== 'fulfilled') return null;
-          const img = b.value.bitmap;
-          return { ...c, base: b.value.texture, cels: cels.value?.texture ?? null, size: [img.width, img.height] };
+          return { ...c, base: b.value.texture, cels: cels.value?.texture ?? null };
         }),
       );
       const art: LivingArt = {

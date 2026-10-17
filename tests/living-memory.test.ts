@@ -242,7 +242,7 @@ describe('the close-ups: the artist\'s drawings, cut on keys', () => {
 
   it('the shot is chosen before it is drawn; turned from a close-up, it is the wide for the rest of that shot', () => {
     const tex = () => new THREE.Texture();
-    const cu: Closeup = { base: tex(), cels: tex(), cells: [-1, 0, null, 1], grid: [2, 1], rect: [0.2, 0.3, 0.4, 0.5], focus: [0.4, 0.6], breath: 'a', chest: [0.5, 0.1, 0.3, 0.2], size: [1920, 1080] };
+    const cu: Closeup = { base: tex(), cels: tex(), cells: [-1, 0, null, 1], grid: [2, 1], rect: [0.2, 0.3, 0.4, 0.5], focus: [0.4, 0.6], breath: 'a', chest: [0.5, 0.1, 0.3, 0.2] };
     const lm = manifest.living.afternoon;
     const s = new LivingScene(
       { plate: tex(), maps: tex(), grade: null, after: null, sky: null, flowers: null, clouds: null, size: manifest.plate as [number, number], closeups: [cu, null],
