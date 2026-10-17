@@ -137,12 +137,14 @@ for (const how of ['turn', 'step']) {
   await page.waitForTimeout(800);
   const shot = () => page.evaluate(() => window.__hedgehog.living?.memory.prepared.living?.scene.shot ?? -1);
   const turned = () => page.evaluate(() => +((window.__hedgehog.inside.turned * 180) / Math.PI).toFixed(1));
+  // (Software GL draws a frame every second or so: wait for two to have been drawn.)
+  const drawn = () => page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
   const look = async (px) => {
     for (let i = 0; i < px / 20; i++) {
       await page.evaluate(() => window.__hedgehog.lookBy(20, 0));
-      await page.waitForTimeout(60);
+      await drawn();
     }
-    await page.waitForTimeout(400);
+    await drawn();
   };
   const at = { start: await shot() };
   await look(80);
