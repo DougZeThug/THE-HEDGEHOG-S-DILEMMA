@@ -5,6 +5,9 @@
 //
 //   npm run build && npx vite preview --port 4173 &
 //   node tests/playtest/record-woodland.mjs     (FPS=12 W=1280 H=720 PROFILE=desktop|phone)
+//
+// Slow under software GL (seconds a frame): it can be recorded in parts, START to END seconds
+// (START=0 END=27, then START=27, which joins the film when it reaches the end).
 import { createRequire } from 'node:module';
 import { mkdirSync, rmSync, existsSync } from 'node:fs';
 import { execSync } from 'node:child_process';
@@ -24,9 +27,11 @@ const W = Number(process.env.W ?? 1280), H = Number(process.env.H ?? 720);
 const VARIANT = process.env.VARIANT ?? 'afternoon';
 const OUT = process.env.OUT ?? 'test-output/review/woodland/film';
 const PRE = 2; // seconds of the room before it begins
-const END = Number(process.env.END ?? (VARIANT === 'empty' ? 28 : 53));
+const LAST = VARIANT === 'empty' ? 28 : 53;
+const START = Number(process.env.START ?? 0);
+const END = Number(process.env.END ?? LAST);
 const frames = `${OUT}/frames-${PROFILE}-${VARIANT}`;
-rmSync(frames, { recursive: true, force: true });
+if (START === 0) rmSync(frames, { recursive: true, force: true });
 mkdirSync(frames, { recursive: true });
 
 const browser = await chromium.launch({
@@ -66,18 +71,23 @@ await page.evaluate(async () => {
 });
 await page.waitForTimeout(3000);
 const raf = () => page.evaluate(() => new Promise((r) => requestAnimationFrame(r)));
-let k = 0;
+let k = START > 0 ? Math.round((PRE + START) * FPS) : 0;
 const shot = async () => {
   await page.screenshot({ path: `${frames}/${String(k++).padStart(5, '0')}.jpg`, type: 'jpeg', quality: 92 });
 };
 // The room, before.
-for (let i = 0; i < PRE * FPS; i++) {
+for (let i = 0; START === 0 && i < PRE * FPS; i++) {
   await raf();
   await shot();
 }
 await page.evaluate((v) => window.__hedgehog.playMemory('woodland', 'more-minutes', v), VARIANT);
+// (A later part: the way in held through first, so the visitor is where they would be.)
+for (let t = 0; t < START; t += 0.5) {
+  await page.evaluate((p) => window.__hedgehog.heldAt(p), t);
+  await raf();
+}
 const t0 = Date.now();
-for (let i = 0; i < END * FPS; i++) {
+for (let i = Math.round(START * FPS); i < END * FPS; i++) {
   const t = i / FPS;
   await page.evaluate((p) => window.__hedgehog.heldAt(p), t);
   await raf();
@@ -85,6 +95,10 @@ for (let i = 0; i < END * FPS; i++) {
   if (i % (FPS * 2) === 0) console.log(`${t.toFixed(1)} s (${((Date.now() - t0) / 1000).toFixed(0)} s elapsed)`);
 }
 await browser.close();
+if (END < LAST) {
+  console.log(JSON.stringify({ part: [START, END], frames: k, errors }));
+  process.exit(0);
+}
 // Join the frames with the sound.
 const audio = `${OUT}/woodland-${VARIANT}-audio.wav`;
 const video = `${OUT}/woodland-${VARIANT}-${PROFILE}.mp4`;
