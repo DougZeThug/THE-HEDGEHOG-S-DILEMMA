@@ -31,7 +31,8 @@ const LAST = VARIANT === 'empty' ? 28 : 53;
 const START = Number(process.env.START ?? 0);
 const END = Number(process.env.END ?? LAST);
 const frames = `${OUT}/frames-${PROFILE}-${VARIANT}`;
-if (START === 0) rmSync(frames, { recursive: true, force: true });
+// (A whole film starts clean; a part writes over its own frames only, so parts can run at once.)
+if (START === 0 && END === LAST) rmSync(frames, { recursive: true, force: true });
 mkdirSync(frames, { recursive: true });
 
 const browser = await chromium.launch({
@@ -73,7 +74,8 @@ await page.waitForTimeout(3000);
 const raf = () => page.evaluate(() => new Promise((r) => requestAnimationFrame(r)));
 let k = START > 0 ? Math.round((PRE + START) * FPS) : 0;
 const shot = async () => {
-  await page.screenshot({ path: `${frames}/${String(k++).padStart(5, '0')}.jpg`, type: 'jpeg', quality: 92 });
+  // (Generous: under load, software GL can take most of a minute for a frame.)
+  await page.screenshot({ path: `${frames}/${String(k++).padStart(5, '0')}.jpg`, type: 'jpeg', quality: 92, timeout: 180000 });
 };
 // The room, before.
 for (let i = 0; START === 0 && i < PRE * FPS; i++) {
