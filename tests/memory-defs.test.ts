@@ -42,6 +42,24 @@ describe('the living memories, as defined and committed', () => {
           if (lm.after) files.push([lm.after, ['', '@low']]);
           if (lm.flowers) files.push([lm.flowers.file, ['', '@low']]);
           if (lm.clouds) for (const f of [lm.clouds.mask, lm.clouds.file, lm.clouds.after]) files.push([f, ['']]);
+          if (lm.order) files.push([lm.order, ['']]);
+          // The close-ups: each one's first drawing and (if any drawing differs from it) the rest.
+          const closeups = (lm.closeups ?? []) as { file: string; names: string[]; cells: (number | null)[]; grid: [number, number] }[];
+          for (const c of closeups) {
+            files.push([`${c.file}-base`, ['', '@low']]);
+            if (c.grid[0] > 0) files.push([`${c.file}-cels`, ['', '@low']]);
+            expect(c.cells.length, c.file).toBe(c.names.length);
+            expect(c.cells[0], c.file).toBe(-1);
+          }
+          // The timeline asks only for close-ups there are, and only for drawings each one lists.
+          const shots = (seed.tracks['scene.shot'] ?? []) as [number, number][];
+          const cels = (seed.tracks['scene.cel'] ?? []) as [number, number][];
+          const at = (keys: [number, number][], t: number) => keys.filter((k) => k[0] <= t + 1e-9).at(-1)?.[1] ?? 0;
+          for (const [t, shot] of shots) expect(shot, `scene.shot at ${t}`).toBeLessThanOrEqual(closeups.length);
+          for (const [t, cel] of cels) {
+            const shot = at(shots, t);
+            if (shot > 0) expect(cel, `scene.cel at ${t}`).toBeLessThan(closeups[shot - 1].names.length);
+          }
           for (const [f, sizes] of files) for (const s of sizes) expect(existsSync(join(ROOT, 'public/memories', def.art, `${f}${s}.webp`)), f + s).toBe(true);
         }
         // And the committed timeline has the sheet (production never plays the fallbacks).

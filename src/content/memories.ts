@@ -68,7 +68,7 @@ export const SCENE_MEMORIES: SceneMemory[] = [
   // (it takes a first visit's late place; the bedroom comes on a visit after it). Nothing painted
   // comes after it in that visit. A return visit meets the clearing again, empty, kept in the wall.
   {
-    id: 'woodland', phraseId: 'more-minutes', earliest: 200, arc: 'afterAnother', arm: 2.5, commit: 1.0, minHold: 12, maxHold: 38.5, span: 50,
+    id: 'woodland', phraseId: 'more-minutes', earliest: 200, arc: 'afterAnother', arm: 2.5, commit: 1.0, minHold: 12, maxHold: 42.5, span: 53,
     variants: { first: 'afternoon', revisit: ['empty'] }, lookBack: false, offer: { phases: ['contradiction', 'transform'], apart: 120 }, reserved: true, last: true,
   },
   // Peace with a cost: the longest, once the room has begun to contradict itself.

@@ -45,6 +45,7 @@ const smooth = (e0: number, e1: number, x: number) => {
  * reverse, and the wall's painting last, so the room lands back on it:
  *
  *   people   = base × s(0.55, 1, exit)
+ *   shot     = the wide (0) as soon as it is let go
  *   immerse  = base × s(0.25, 0.75, exit)      (not × presence: gentle still goes all the way in)
  *   painting = base × emerge × s(0, 0.35, exit) × presence   (opacity, presence, light)
  */
@@ -73,10 +74,20 @@ export function compose(base: Values, env: Values, w: Weights, living = false): 
         out[k] = v * w.parallax;
         break;
       case 'immerse':
+      case 'approach':
         out[k] = clamp01(v * smooth(0.25, 0.75, exitRaw));
         break;
       case 'people':
         out[k] = clamp01(v * smooth(0.55, 1, exitRaw));
+        break;
+      case 'shot':
+        // Which shot (0 the wide painting, n a close-up): held keys, never between; let go
+        // early, it cuts straight back to the wide (the way out is the wide's).
+        out[k] = exitRaw < 0.999 ? 0 : Math.round(v);
+        break;
+      case 'cel':
+        // Which drawing (held keys): a whole one, never between.
+        out[k] = Math.round(v);
         break;
       case 'skew':
         // A hanging thing's sway (the curtain): it is motion, so none under reduced motion.

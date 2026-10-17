@@ -630,7 +630,119 @@
         ],
         "pad": 0.14865
       },
-      "immerse": true
+      "leaves": "afternoon/leaves",
+      "immerse": true,
+      "order": "afternoon/order",
+      "closeups": [
+        {
+          "file": "afternoon/c4",
+          "names": [
+            "c4-start",
+            "c4-eyes",
+            "c4-mid",
+            "c4-end"
+          ],
+          "breath": "a",
+          "cells": [
+            -1,
+            null,
+            null,
+            null
+          ],
+          "grid": [
+            0,
+            0
+          ],
+          "rect": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "focus": [
+            0.5303,
+            0.7
+          ],
+          "chest": [
+            0.4697,
+            0.32,
+            0.2122,
+            0.22
+          ],
+          "standin": true
+        },
+        {
+          "file": "afternoon/c5",
+          "names": [
+            "c5-start",
+            "c5-eyes",
+            "c5-mid",
+            "c5-end",
+            "c5-end-half",
+            "c5-end-shut"
+          ],
+          "breath": "b",
+          "cells": [
+            -1,
+            null,
+            null,
+            null,
+            null,
+            null
+          ],
+          "grid": [
+            0,
+            0
+          ],
+          "rect": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "focus": [
+            0.4678,
+            0.75
+          ],
+          "chest": [
+            0.5125,
+            0.38,
+            0.2042,
+            0.2
+          ],
+          "standin": true
+        },
+        {
+          "file": "afternoon/c6",
+          "names": [
+            "c6-start",
+            "c6-mid",
+            "c6-end"
+          ],
+          "breath": null,
+          "cells": [
+            -1,
+            null,
+            null
+          ],
+          "grid": [
+            0,
+            0
+          ],
+          "rect": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "focus": [
+            0.4997,
+            0.5
+          ],
+          "chest": null,
+          "standin": true
+        }
+      ]
     },
     "empty": null
   }

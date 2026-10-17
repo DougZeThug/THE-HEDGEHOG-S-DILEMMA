@@ -45,14 +45,22 @@ export const LAYER: Schema[string] = {
 /**
  * A living memory's scene (src/memory/living/, docs/reviews/2026-10-woodland.md):
  *   life     0 still as a painting, 1 alive (the grass, the breathing)
+ *   approach the way in as one move, 0..1 (key it straight: it is shaped in Inside.ts): until
+ *            they are taken in only their body drifts toward the wall, their look their own
  *   immerse  0 on the wall, 1 entered: the painting spreads over the plaster, the visitor is
  *            carried to it, and it becomes all there is
+ *   push     the crossing's depth: negative while arriving (nearer things smaller), 0 the
+ *            composition as painted (nearer things grow faster than far ones as it goes to 0)
  *   breeze   the air: 1 the afternoon's, 0 still
  *   dusk     0 afternoon, 1 the evening's colour and sky
  *   colour   the people: 1 painted, 0 a drawing
  *   people   the people: 1 there, 0 gone
  *   after    0 the afternoon, 1 the same place later, its own painting (a cut: held keys, never
  *            in between: below one half it is the afternoon)
+ *   shot     0 the wide painting, 1.. a close-up (the artist's drawings): held keys, so every
+ *            change is a cut
+ *   cel      which of the close-up's drawings (0 its first, in the order scripts/closeups.py lists
+ *            them): held keys, every change a cut; one not drawn yet holds the one before
  */
 export const SCENE: Schema[string] = {
   life: [1, 0, 1],
@@ -62,6 +70,10 @@ export const SCENE: Schema[string] = {
   colour: [1, 0, 1],
   people: [1, 0, 1],
   after: [0, 0, 1],
+  shot: [0, 0, 3],
+  cel: [0, 0, 7],
+  approach: [0, 0, 1],
+  push: [0, -0.2, 0.2],
 };
 
 /**

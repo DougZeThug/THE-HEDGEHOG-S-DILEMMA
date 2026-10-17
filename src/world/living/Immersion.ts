@@ -14,6 +14,8 @@ import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
  * the plaster (multiplied into the room); further in, and the deeper the immersion, it is the
  * painting itself.
  */
+const LEAVES = 5;
+
 const ImmersionShader = {
   uniforms: {
     tDiffuse: { value: null as THREE.Texture | null },
@@ -35,6 +37,15 @@ const ImmersionShader = {
     uZoom: { value: new THREE.Vector3(0.5, 0.5, 1) },
     /** The part of the painting the render target holds (x0, y0, w, h). */
     uView: { value: new THREE.Vector4(0, 0, 1, 1) },
+    /**
+     * The leaves the view passes through at the crossing (the painting's own canopy, cut out: an
+     * atlas of two), close to the lens and out of focus: where (screen uv), how big (screen
+     * heights), turned; how present, which cell, how blurred.
+     */
+    uLeaves: { value: null as THREE.Texture | null },
+    uLeaf: { value: Array.from({ length: LEAVES }, () => new THREE.Vector4(0, 0, 0, 0)) },
+    uLeafB: { value: Array.from({ length: LEAVES }, () => new THREE.Vector4(0, 0, 0, 0)) },
+    uScreen: { value: 16 / 9 },
   },
   vertexShader: /* glsl */ `
     varying vec2 vUv;
@@ -46,6 +57,10 @@ const ImmersionShader = {
     uniform float uShow, uSolid, uAspect, uEdge, uSeed;
     uniform vec3 uZoom;
     uniform vec4 uView;
+    uniform sampler2D uLeaves;
+    uniform vec4 uLeaf[${LEAVES}];
+    uniform vec4 uLeafB[${LEAVES}];
+    uniform float uScreen;
     varying vec2 vUv;
     void main(){
       vec4 room = texture2D(tDiffuse, vUv);
@@ -70,6 +85,17 @@ const ImmersionShader = {
       vec3 c = mix(room.rgb, painted, colour * uShow);
       // The graphite the light finds first, just inside the colour's edge.
       c *= 1.0 - g.a * lead * uShow * 0.75;
+      // Leaves passing close to the lens (premultiplied, out of focus).
+      for (int i = 0; i < ${LEAVES}; i++) {
+        vec4 L = uLeaf[i], B = uLeafB[i];
+        if (B.x <= 0.0) continue;
+        vec2 d = (vUv - L.xy) * vec2(uScreen, 1.0) / L.z;
+        float cr = cos(L.w), sr = sin(L.w);
+        vec2 r = vec2(cr * d.x - sr * d.y, sr * d.x + cr * d.y) + 0.5;
+        if (r.x < 0.0 || r.y < 0.0 || r.x > 1.0 || r.y > 1.0) continue;
+        vec4 lf = texture2D(uLeaves, vec2((B.y + r.x) * 0.5, r.y), B.z);
+        c = c * (1.0 - lf.a * B.x) + lf.rgb * B.x;
+      }
       gl_FragColor = vec4(c, room.a);
     }
   `,
@@ -94,6 +120,8 @@ export class Immersion {
     this.u.uShow.value = 0;
     this.u.uScene.value = null;
     this.u.uSketch.value = null;
+    this.u.uLeaves.value = null;
+    for (const b of this.u.uLeafB.value as THREE.Vector4[]) b.x = 0;
     this.pass.enabled = false;
   }
 
@@ -101,7 +129,7 @@ export class Immersion {
    * One frame. `wall`: the painting's corners on the screen (screen uv; 00, 10, 11, 01), or null
    * if the wall's quad is behind the eye. `immerse` 0..1. `aspect`: the screen's (w / h).
    */
-  set(o: { scene: THREE.Texture; sketch: THREE.Texture | null; wall: THREE.Vector2[] | null; immerse: number; show: number; aspect: number; paint: number; focus: [number, number]; zoom: THREE.Vector3; view: THREE.Vector4; seed: number }): void {
+  set(o: { scene: THREE.Texture; sketch: THREE.Texture | null; wall: THREE.Vector2[] | null; immerse: number; show: number; aspect: number; paint: number; focus: [number, number]; zoom: THREE.Vector3; view: THREE.Vector4; seed: number; leaves?: THREE.Texture | null; crossing?: number }): void {
     const u = this.u;
     if (o.show <= 0 || (!o.wall && o.immerse <= 0)) {
       this.off();
@@ -125,6 +153,32 @@ export class Immersion {
     u.uEdge.value = 0.06 - 0.048 * k;
     const h = squareToQuad(this.quad);
     (u.uH.value as THREE.Matrix3).copy(h.invert());
+    this.passLeaves(o.leaves ?? null, o.crossing ?? 0, o.aspect, o.seed);
+  }
+
+  /**
+   * The leaves at the crossing (0..1: from the room going to the painting being all there is).
+   * Each starts near the middle, small, grows and slides out past the screen's edge as the view
+   * moves through it, its own moment, its own way; darker and softer the nearer.
+   */
+  private passLeaves(tex: THREE.Texture | null, k: number, aspect: number, seed: number): void {
+    const L = this.u.uLeaf.value as THREE.Vector4[];
+    const B = this.u.uLeafB.value as THREE.Vector4[];
+    this.u.uLeaves.value = tex;
+    this.u.uScreen.value = aspect;
+    for (let i = 0; i < LEAVES; i++) {
+      // (Quick: each passes in under half a second; never covering most of the frame at once.)
+      const p = tex ? clamp01((k - i * 0.11) / 0.38) : 0;
+      if (p <= 0 || p >= 1) {
+        B[i].x = 0;
+        continue;
+      }
+      // Directions round the frame, edge-on more than top and bottom (we pass between branches).
+      const ang = [3.6, 5.6, 0.5, 2.4, 4.4][i] + (seed - 0.5) * 0.4;
+      const reach = 0.12 + 0.95 * p ** 1.7;
+      L[i].set(0.5 + (Math.cos(ang) * reach) / Math.max(aspect, 1) * 0.9, 0.5 + Math.sin(ang) * reach * 0.8, 0.3 + 1.3 * p * p, ang * 0.7 + p * 0.6);
+      B[i].set(Math.sin(Math.PI * p) * 0.8, i % 2, 2.5 + 4.5 * p, 0);
+    }
   }
 
   /** The painting's corners on the screen now (for the window's crossfade, tests and captures). */

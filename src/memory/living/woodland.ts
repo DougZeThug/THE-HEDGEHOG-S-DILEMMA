@@ -46,27 +46,32 @@ export interface LivingSpec {
   cover: { wide: [number, number]; upright: [number, number]; ultra: [number, number] };
 }
 
-/** Blinks, by hand (docs/reviews/2026-10-woodland.md): none across the reach, none near the cut. */
+/**
+ * Blinks, by hand (docs/reviews/2026-10-woodland.md): in the wides only (the close-ups are their
+ * own drawings), never in the stillness before the cut.
+ */
 const BLINKS = {
-  a: [9.8, 11.6, 13.0, 14.5, 23.2, 27.4, 27.72, 29.0],
-  b: [10.4, 13.4, 21.9, 25.6, 28.4],
+  a: [12.3, 14.6],
+  b: [13.0, 31.6],
 };
 
 export const WOODLAND: LivingSpec = {
   breath: {
     // He breathes slower and deeper; his breath is missed when their hands touch (20 s).
-    a: { period: 4.7, jitter: 0.14, inhale: 0.38, rest: 0.16, depth: 0.18, seed: 11, held: [{ at: 20.0, span: 1.6 }] },
-    b: { period: 3.9, jitter: 0.18, inhale: 0.42, rest: 0.1, depth: 0.22, seed: 23 },
+    // (Both at rest between breaths at the cut, 34.5 s: his breath waits while she is on screen
+    // (24.6), hers as she settles in the second wide (27.3); tested.)
+    a: { period: 4.7, jitter: 0.14, inhale: 0.38, rest: 0.16, depth: 0.18, seed: 11, held: [{ at: 20.0, span: 1.6 }, { at: 24.6, span: 2.7 }] },
+    b: { period: 3.9, jitter: 0.18, inhale: 0.42, rest: 0.1, depth: 0.22, seed: 23, held: [{ at: 27.3, span: 2.8 }] },
   },
   chest: { a: { swell: 0.07, rise: 6 }, b: { swell: 0.09, rise: 6 } },
   headLift: 1.6,
   blinks: BLINKS,
-  // Three, as punctuation (heard 0.4 s before they're seen): one in the afternoon's play, one
-  // after the touch, one over the empty grass where they lay.
+  // Three, as punctuation (heard 0.4 s before they're seen): one in the first wide, one in the
+  // second (gone before the stillness), one over the empty grass where they lay.
   gusts: [
     { at: 13.0, cross: 1.6, strength: 1 },
-    { at: 26.8, cross: 1.6, strength: 0.7 },
-    { at: 33.4, cross: 2.2, strength: 0.5 },
+    { at: 30.4, cross: 1.4, strength: 0.6 },
+    { at: 36.6, cross: 2.2, strength: 0.5 },
   ],
   reach: { slide: 18, turn: 0.05 },
   forearmA: [0.881, -0.473],
@@ -86,7 +91,8 @@ export const WOODLAND: LivingSpec = {
     hairB3: { amp: [2.6, 0.8], hz: 1.6, zeta: 0.3 },
   },
   // Motes only in the light (at most ~30 seen at once); two seeds; one leaf in each afternoon gust.
-  air: { motes: 40, seeds: [11.3, 26.0], leaves: [12.9, 27.2] },
+  // (No seed in the second wide: it is the stillest shot.)
+  air: { motes: 40, seeds: [11.3], leaves: [12.9, 30.4] },
   alive: 6.25,
   settle: { move: [1.5, -3], turn: -0.008 },
   shoulder: [0, 3],

@@ -41,8 +41,43 @@ export interface FigureArt {
   limb: { box: [number, number, number, number]; axis: [number, number] };
 }
 
+/**
+ * A close-up (scripts/closeups.py): the artist's drawings, held, cut on the timeline's keys
+ * (`scene.cel`), never mixed between.
+ */
+export interface Closeup {
+  /** Its first drawing (its alpha: where the air may move the grass). */
+  base: THREE.Texture;
+  /** Its later drawings, cut to the part of the frame that changes (an atlas), or null. */
+  cels: THREE.Texture | null;
+  /** Each drawing, as `scene.cel` counts them: its cell in the atlas, −1 the first drawing, null not drawn yet (the one before holds). */
+  cells: (number | null)[];
+  /** The atlas's columns and rows, and the part of the frame its cells cover (x0, y0, w, h: frame uv). */
+  grid: [number, number];
+  rect: [number, number, number, number];
+  /** What stays at the screen's centre when it covers an upright screen (frame uv). */
+  focus: [number, number];
+  /** Whose breathing lifts the chest, and where it is (centre, radii: frame uv), or null. */
+  breath: 'a' | 'b' | null;
+  chest: [number, number, number, number] | null;
+  /** Its pixels. */
+  size: [number, number];
+}
+
+/** The drawing shown for `scene.cel` = `k`: its cell, or −1 the first drawing (one not drawn yet holds the one before). */
+export function celOf(c: Pick<Closeup, 'cells'>, k: number): number {
+  let i = Math.max(0, Math.min(c.cells.length - 1, Math.round(k)));
+  while (i > 0 && c.cells[i] === null) i--;
+  return c.cells[i] ?? -1;
+}
+
+/** How far a close-up's chest swells at a full breath (a fraction of its distance from the middle: ~2–3 px). */
+const SWELL = 0.012;
+
 export interface LivingArt {
   plate: THREE.Texture;
+  /** The close-ups, by shot (`scene.shot` 1 is the first); null: it couldn't be had (its shot is the wide). */
+  closeups?: (Closeup | null)[];
   /** The near flowers' heads (cut from the plate) and where they are (painting uv: x, y, radius as a fraction of the width). */
   flowers: { texture: THREE.Texture; heads: [number, number, number][] } | null;
   /** The sky in the canopy's gap, drifting: where it shows, the afternoon's and the evening's, their box and left margin. */
@@ -186,6 +221,15 @@ export class LivingScene {
   private readonly people: THREE.Mesh | null;
   private readonly strips: THREE.BufferGeometry | null = null;
   private readonly air: THREE.BufferGeometry;
+  private readonly frame: THREE.Mesh;
+  private readonly wide: THREE.Object3D[] = [];
+  /** The close-up shown now (0: the wide), the one the timeline asks for, and whether it gave way. */
+  private shot = 0;
+  private asked = 0;
+  private gaveWay = false;
+  /** How far each of them has breathed in now (A, B). */
+  private breathA = 0;
+  private breathB = 0;
   private drawnAt = -1;
   private readonly lastView = new THREE.Vector4(-1, -1, -1, -1);
   private readonly lastParallax = new THREE.Vector2(9, 9);
@@ -218,6 +262,13 @@ export class LivingScene {
     const plate = new THREE.Mesh(this.quad, this.m.plate);
     plate.frustumCulled = false;
     this.scene.add(plate);
+    this.wide.push(plate);
+    // A close-up's frame, over the painting's square (shown alone while its shot is on).
+    this.frame = new THREE.Mesh(this.quad, this.m.frame);
+    this.frame.frustumCulled = false;
+    this.frame.renderOrder = 5;
+    this.frame.visible = false;
+    this.scene.add(this.frame);
     const cl = art.clouds;
     pu.uSkyMask.value = cl?.mask ?? this.m.empty;
     pu.uClouds.value = cl?.day ?? this.m.empty;
@@ -237,6 +288,7 @@ export class LivingScene {
     airMesh.frustumCulled = false;
     airMesh.renderOrder = 3;
     this.scene.add(airMesh);
+    this.wide.push(airMesh);
     const au = this.m.air.uniforms;
     au.uPlate.value = art.plate;
     au.uMaps.value = art.maps;
@@ -249,6 +301,7 @@ export class LivingScene {
       fl.frustumCulled = false;
       fl.renderOrder = 2;
       this.scene.add(fl);
+      this.wide.push(fl);
       const fu = this.m.flowers.uniforms;
       fu.uFlowers.value = art.flowers.texture;
       (fu.uPx.value as THREE.Vector2).set(1 / art.size[0], 1 / art.size[1]);
@@ -261,6 +314,7 @@ export class LivingScene {
       this.people.frustumCulled = false;
       this.people.renderOrder = 1;
       this.scene.add(this.people);
+      this.wide.push(this.people);
       const u = this.m.people.uniforms;
       u.uFigures.value = f.texture;
       u.uLids.value = f.lids;
@@ -325,7 +379,13 @@ export class LivingScene {
     const viewMoved = !this.lastView.equals(o.view);
     const lookMoved = this.lastParallax.distanceToSquared(o.parallax) > 1e-10;
     const tapping = !!o.tap && o.tap.w > 0 && o.tap.z < 2;
-    const state = `${(v['scene.after'] ?? 0) >= 0.5 ? 1 : 0}|${(v['scene.people'] ?? 1) > 0.001 ? 1 : 0}`;
+    // (The shot as chosen for this frame.)
+    const shot = this.shot;
+    const cu = shot > 0 ? this.art.closeups?.[shot - 1] ?? null : null;
+    // Its drawing now: a new one is drawn on its own frame (a cut), not at the next drawing.
+    const cel = cu ? celOf(cu, v['scene.cel'] ?? 0) : -1;
+    // (The push moves at the screen's rate, as the view does, not on twos.)
+    const state = `${(v['scene.after'] ?? 0) >= 0.5 ? 1 : 0}|${(v['scene.people'] ?? 1) > 0.001 ? 1 : 0}|${shot}|${cel}|${(v['scene.push'] ?? 0).toFixed(4)}`;
     if (tq === this.drawnAt && !viewMoved && !lookMoved && !tapping && state === this.lastState) return false;
     this.lastState = state;
     this.drawnAt = tq;
@@ -345,9 +405,12 @@ export class LivingScene {
       this.wind[i].set(r(SPRINGS.grass), r(SPRINGS.flower), r(SPRINGS.leaves), r(SPRINGS.leaves, 0.3));
     }
     for (let i = 0; i < 16; i++) this.drift[i] = windDrift(tq, i / 15, this.spec.gusts) * 6 * motion;
-    for (const mat of [this.m.plate, this.m.people, this.m.flowers, this.m.air]) {
+    // The crossing's push (none under reduced motion): nearer things grow faster as it arrives.
+    const push = this.reduced ? 0 : val('scene.push', 0);
+    for (const mat of [this.m.plate, this.m.people, this.m.flowers, this.m.air, this.m.frame]) {
       const u = mat.uniforms;
       u.uTime.value = tq;
+      (u.uPush.value as THREE.Vector3).set(0.5, 0.45, push);
       (u.uDrift.value as number[]).splice(0, 16, ...this.drift);
       u.uMotion.value = motion;
       (u.uWind.value as THREE.Vector4[]).forEach((w, i) => w.copy(this.wind[i]));
@@ -372,6 +435,29 @@ export class LivingScene {
     }
     (pu.uParallax.value as THREE.Vector2).copy(o.parallax);
     if (this.people) this.pose(tq, val);
+    // A close-up shows its drawings alone (the camera locked on them); the wide shows everything else.
+    this.frame.visible = !!cu;
+    if (cu) {
+      for (const o of this.wide) o.visible = false;
+      const fu = this.m.frame.uniforms;
+      fu.uFrame.value = cu.base;
+      fu.uCels.value = cu.cels ?? this.m.empty;
+      const [cols, rows] = cu.grid;
+      if (cel >= 0 && cu.cels && cols > 0 && rows > 0) {
+        const c = cel % cols, r = Math.floor(cel / cols);
+        // (The atlas's first row is at its top.)
+        (fu.uCel.value as THREE.Vector4).set(c / cols, (rows - r - 1) / rows, 1 / cols, 1 / rows);
+        (fu.uCelRect.value as THREE.Vector4).set(...cu.rect);
+      } else {
+        (fu.uCel.value as THREE.Vector4).set(0, 0, 0, 0);
+        (fu.uCelRect.value as THREE.Vector4).set(0, 0, 1, 1);
+      }
+      (fu.uChest.value as THREE.Vector4).set(...(cu.chest ?? [0, 0, 0, 0]));
+      fu.uBreathe.value = cu.breath ? SWELL * (cu.breath === 'a' ? this.breathA : this.breathB) : 0;
+      (fu.uPx.value as THREE.Vector2).set(1 / cu.size[0], 1 / cu.size[1]);
+    } else {
+      for (const o of this.wide) if (o !== this.people) o.visible = true;
+    }
     // The view: an orthographic window onto the painting's uv.
     const c = this.camera;
     c.left = o.view.x;
@@ -386,6 +472,26 @@ export class LivingScene {
     return true;
   }
 
+  /**
+   * Which shot is on now (chosen before `update`, so the view frames it from its first frame):
+   * the timeline's, except that a close-up is only for someone inside (seen on the wall it is
+   * the wide), gives way to the wide for the rest of its shot once they turn from it, and is the
+   * wide if it couldn't be had: never a wait, never a face shrunk onto the wall.
+   */
+  choose(v: Values, o: { inside: boolean; turned: boolean }): number {
+    const closeups = this.art.closeups ?? [];
+    const asked = Math.max(0, Math.min(closeups.length, Math.round(v['scene.shot'] ?? 0)));
+    if (asked !== this.asked) this.asked = asked, (this.gaveWay = false);
+    if (asked > 0 && o.inside && o.turned) this.gaveWay = true;
+    this.shot = this.gaveWay || !o.inside || !closeups[asked - 1] ? 0 : asked;
+    return this.shot;
+  }
+
+  /** A close-up, by shot (1 is the first), if it is there. */
+  closeup(shot: number): Closeup | null {
+    return this.art.closeups?.[shot - 1] ?? null;
+  }
+
   /** The people at `t`: their breathing, blinks and hair (from time) and what they do (authored). */
   private pose(t: number, val: (k: string, d: number) => number): void {
     const u = this.m.people.uniforms;
@@ -394,6 +500,8 @@ export class LivingScene {
     const k = (this.reduced ? 0.5 : 1) * life;
     const ba = breath(t, s.breath.a) * k * val('figure:a.breath', 1);
     const bb = breath(t, s.breath.b) * k * val('figure:b.breath', 1);
+    this.breathA = ba;
+    this.breathB = bb;
     // Breath: the chest swells along its short axis and rises; the head and her resting hand ride it.
     const chest = (name: string, c: { swell: number; rise: number }, b: number) => {
       const i = this.slot.get(name);
@@ -450,8 +558,8 @@ export class LivingScene {
     this.grid?.dispose();
     this.strips?.dispose();
     this.air.dispose();
-    for (const mat of [this.m.plate, this.m.people, this.m.flowers, this.m.air]) {
-      for (const k of ['uPlate', 'uAfterPlate', 'uMaps', 'uGrade', 'uSky', 'uFigures', 'uLids', 'uFlowers', 'uSkyMask', 'uClouds', 'uCloudsAfter']) mat.uniforms[k].value = this.m.empty;
+    for (const mat of [this.m.plate, this.m.people, this.m.flowers, this.m.air, this.m.frame]) {
+      for (const k of ['uPlate', 'uAfterPlate', 'uMaps', 'uGrade', 'uSky', 'uFigures', 'uLids', 'uFlowers', 'uSkyMask', 'uClouds', 'uCloudsAfter', 'uFrame', 'uCels']) mat.uniforms[k].value = this.m.empty;
       mat.uniforms.uAfter.value = 0;
     }
   }

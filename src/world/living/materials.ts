@@ -25,6 +25,9 @@ import * as THREE from 'three';
  *    their colour going to graphite, the light moving on them.
  *  - The near flowers (`uKind` 2): strips bent about their roots in the grass.
  *  - What is in the air (`uKind` 3): motes seen in the light, seeds, a falling leaf.
+ *  - A close-up (`uKind` 4): the artist's drawings (scripts/closeups.py): its first drawing, and
+ *    over the part that changes, the drawing of now (held, cut on the timeline's keys, never
+ *    mixed); the chest breathing and the grass in the air, both the engine's.
  */
 
 const COMMON = /* glsl */ `
@@ -36,6 +39,14 @@ const COMMON = /* glsl */ `
   // painting, left to right: x the grass, y a flower on its stem, z the leaves, w the leaves a
   // moment ago (their light follows them).
   uniform vec4 uWind[16];
+  // The crossing's push (src/world/living/Inside.ts): about (x, y), how much nearer things grow
+  // than far ones as the view arrives (0: the composition as painted).
+  uniform vec3 uPush;
+
+  // A layer at depth d (0 far .. 1 near), pushed.
+  vec2 pushed(vec2 p, float d) {
+    return uPush.xy + (p - uPush.xy) * (1.0 + uPush.z * (d - 0.4));
+  }
 
   vec4 windAt(float x) {
     float f = clamp(x, 0.0, 1.0) * 15.0;
@@ -90,7 +101,7 @@ const VERT = /* glsl */ `
     vUv = uv;
     vPart = part;
     vMote = vec4(0.0);
-    if (uKind > 2.5) {
+    if (uKind > 2.5 && uKind < 3.5) {
       // Something light in the air (painting uv), a pure function of time.
       float kind = stem.x, n = stem.y, size = stem.z, t0 = stem.w;
       vec2 at;
@@ -128,6 +139,7 @@ const VERT = /* glsl */ `
           spin = cos(age * 5.3 + n);
         }
       }
+      at = pushed(at, 0.7);
       vScene = at;
       vDest = at;
       vMote = vec4(kind, show, spin, n);
@@ -137,7 +149,8 @@ const VERT = /* glsl */ `
       gl_Position = projectionMatrix * modelViewMatrix * vec4(at + corner, 0.0, 1.0);
       return;
     }
-    if (uKind < 0.5) {
+    if (uKind < 0.5 || uKind > 3.5) {
+      // The plate, or a close-up's frame: the painting's square.
       vScene = uv;
       vDest = uv;
       gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
@@ -148,7 +161,7 @@ const VERT = /* glsl */ `
       float b = pow(stem.x, 1.5);
       float dx = (windAt(stem.z).y * stem.y + 0.9 * sin(uTime * 2.3 + stem.w) * stem.x) * b * uMotion;
       dx = 14.0 * dx / sqrt(196.0 + dx * dx);
-      vec2 at = position.xy + vec2(dx, -0.3 * abs(dx) * b) * uPx;
+      vec2 at = pushed(position.xy + vec2(dx, -0.3 * abs(dx) * b) * uPx, 0.95);
       vScene = at;
       vDest = at;
       gl_Position = projectionMatrix * modelViewMatrix * vec4(at, 0.0, 1.0);
@@ -174,7 +187,7 @@ const VERT = /* glsl */ `
     }
     vec2 f = (p + d) / uSheet;
     vDest = f;
-    vScene = uPlace.xy + f * uPlace.zw;
+    vScene = pushed(uPlace.xy + f * uPlace.zw, 0.6);
     gl_Position = projectionMatrix * modelViewMatrix * vec4(vScene, 0.0, 1.0);
   }
 `;
@@ -184,6 +197,12 @@ const FRAG = /* glsl */ `
   uniform sampler2D uPlate, uMaps, uGrade, uSky, uAfterPlate;
   uniform float uAfter;      // 0 the afternoon, 1 the same place later (a cut: never between)
   uniform sampler2D uFigures, uLids, uFlowers, uSkyMask, uClouds, uCloudsAfter;
+  uniform sampler2D uFrame;  // a close-up: its first drawing (alpha: where the air may move its grass)
+  uniform sampler2D uCels;   // its later drawings, cut to the part that changes (an atlas)
+  uniform vec4 uCel;         // the drawing now in that atlas: its corner, its size (atlas uv); none: size 0
+  uniform vec4 uCelRect;     // the part of the frame it covers: x0, y0, w, h (frame uv)
+  uniform vec4 uChest;       // the chest that breathes: centre, radii (frame uv); none: radii 0
+  uniform float uBreathe;    // how far it has risen now (a fraction of its size)
   uniform vec4 uCloudBox;    // where the drifting sky is: x0, y0, w, h (painting uv)
   uniform vec2 uCloud;       // its layers' left margin (a fraction of their width), how far it has drifted (the same)
   uniform vec2 uFigRows;     // an atlas row's height and pitch (fractions of the atlas): figures
@@ -214,8 +233,14 @@ const FRAG = /* glsl */ `
 
   void main() {
     if (uKind < 0.5) {
-      vec4 m0 = texture2D(uMaps, vUv);
-      vec2 uv = vUv + uParallax * (m0.r - 0.4);
+      // (The push: each point shows what is there at its own depth, nearer things larger.)
+      vec2 base = vUv;
+      if (uPush.z != 0.0) {
+        float dz = texture2D(uMaps, vUv).r;
+        base = uPush.xy + (vUv - uPush.xy) / (1.0 + uPush.z * (dz - 0.4));
+      }
+      vec4 m0 = texture2D(uMaps, base);
+      vec2 uv = base + uParallax * (m0.r - 0.4);
       vec4 m = texture2D(uMaps, uv);
       vec4 w = windAt(uv.x);
       // The grass: a long wave crossing it (strongest in the near grass, whose tips stand above
@@ -258,6 +283,33 @@ const FRAG = /* glsl */ `
       if (uDuskSky > 0.0 && all(greaterThan(sk, vec2(0.0))) && all(lessThan(sk, vec2(1.0)))) {
         vec4 s = texture2D(uSky, sk);
         c = c * (1.0 - s.a * uDuskSky) + s.rgb * uDuskSky;
+      }
+      gl_FragColor = vec4(c, 1.0);
+      return;
+    }
+    if (uKind > 3.5) {
+      // A close-up. The breath: the chest swells toward the eye (a few pixels at its middle).
+      vec2 uv = vUv;
+      if (uChest.z > 0.0) {
+        vec2 q = (uv - uChest.xy) / uChest.zw;
+        float e = 1.0 - smoothstep(0.0, 1.0, dot(q, q));
+        uv = uChest.xy + (uv - uChest.xy) * (1.0 - uBreathe * e);
+      }
+      // The grass in the air (where the drawing says it may move: never near what changes).
+      float g = texture2D(uFrame, uv).a;
+      if (g > 0.0) {
+        vec4 w = windAt(uv.x);
+        float clump = sin(uTime * 3.4 + texture2D(uNoise, uv * vec2(0.7, 0.45) + 0.31).r * 6.2831);
+        float dx = (w.x * 4.0 + clump * 1.2) * g * uMotion;
+        dx = 6.0 * dx / sqrt(36.0 + dx * dx);
+        uv += vec2(dx, -0.25 * abs(dx)) * uPx;
+      }
+      vec3 c = texture2D(uFrame, uv).rgb;
+      // The drawing of now, over the part that changes (premultiplied, as decoded).
+      vec2 cq = (uv - uCelRect.xy) / uCelRect.zw;
+      if (uCel.z > 0.0 && all(greaterThan(cq, vec2(0.0))) && all(lessThan(cq, vec2(1.0)))) {
+        vec4 cel = texture2D(uCels, uCel.xy + cq * uCel.zw);
+        c = c * (1.0 - cel.a) + cel.rgb;
       }
       gl_FragColor = vec4(c, 1.0);
       return;
@@ -327,6 +379,8 @@ export interface LivingMaterials {
   flowers: THREE.ShaderMaterial;
   /** Motes, seeds, a leaf, in the air (`uKind` 3). */
   air: THREE.ShaderMaterial;
+  /** A close-up's drawings (`uKind` 4). */
+  frame: THREE.ShaderMaterial;
   /** One transparent texel, for any map not given yet. */
   empty: THREE.DataTexture;
 }
@@ -339,6 +393,7 @@ function uniforms(noise: THREE.Texture, empty: THREE.Texture): Record<string, TH
     uNoise: { value: noise },
     uTime: { value: 0 },
     uWind: { value: Array.from({ length: 16 }, () => new THREE.Vector4()) },
+    uPush: { value: new THREE.Vector3(0.5, 0.5, 0) },
     uDrift: { value: new Array(16).fill(0) },
     uCount: { value: 40 },
     uMotion: { value: 1 },
@@ -355,6 +410,12 @@ function uniforms(noise: THREE.Texture, empty: THREE.Texture): Record<string, TH
     uSkyMask: { value: empty },
     uClouds: { value: empty },
     uCloudsAfter: { value: empty },
+    uFrame: { value: empty },
+    uCels: { value: empty },
+    uCel: { value: new THREE.Vector4(0, 0, 0, 0) },
+    uCelRect: { value: new THREE.Vector4(0, 0, 1, 1) },
+    uChest: { value: new THREE.Vector4(0, 0, 0, 0) },
+    uBreathe: { value: 0 },
     uCloudBox: { value: new THREE.Vector4(0, 0, 0, 0) },
     uCloud: { value: new THREE.Vector2(0, 0) },
     uFigRows: { value: new THREE.Vector2(1, 1) },
@@ -403,7 +464,9 @@ export function livingMaterials(noise: THREE.Texture): LivingMaterials {
   flowers.uniforms.uKind.value = 2;
   const air = material(uniforms(noise, empty));
   air.uniforms.uKind.value = 3;
-  made = { plate, people, flowers, air, empty };
+  const frame = material(uniforms(noise, empty));
+  frame.uniforms.uKind.value = 4;
+  made = { plate, people, flowers, air, frame, empty };
   return made;
 }
 

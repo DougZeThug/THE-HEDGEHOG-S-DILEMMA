@@ -28,32 +28,35 @@ export const RATE = 24000;
 
 /** The afternoon's sound timeline (seconds from the memory's start; the picture's are in defs.ts). */
 export const TIMES = {
-  length: 47.5,
-  /** The near cicada's phrases: first heard beyond the wall; a lull while the hand moves; one
-   *  long phrase from after she settles, carrying straight across the cut (31.5 s). */
-  near: [[1.2, 6.6], [8.2, 14.3], [25.4, 34.8]] as [number, number][],
-  inside: [6.5, 11] as [number, number],
+  length: 50.5,
+  /** The cut (the picture's: defs.ts): nothing in the sound starts or stops on it. */
+  cut: 34.5,
+  /** The near cicada's phrases: first heard beyond the wall; through the first wide; a lull for
+   *  the close-ups (he looks at her, she notices, their hands); one long phrase from the second
+   *  wide, carrying straight across the cut (34.5 s). (Never within 0.7 s of a cut.) */
+  near: [[1.2, 6.6], [8.2, 15.8], [29.5, 37.8]] as [number, number][],
+  inside: [6.5, 10.5] as [number, number],
   chorusFrom: 2.5,
-  /** The two either side: also quiet while the hand moves. */
-  midQuiet: [15.2, 25.8] as [number, number],
-  /** The touch: the chorus draws back a little. */
-  touch: [19.8, 21.8] as [number, number],
+  /** The two either side: also quiet through the close-ups. */
+  midQuiet: [15.6, 29.3] as [number, number],
+  /** Her hand shifting in the grass: the chorus draws back a little. */
+  touch: [26.1, 27.3] as [number, number],
   /**
-   * After the cut (31.5 s) the sound stays the afternoon's while the cicada over them finishes its
-   * phrase (to 34.8): the picture says later before the sound does. Then the day thins, and an
+   * After the cut (34.5 s) the sound stays the afternoon's while the cicada over them finishes its
+   * phrase (to 37.8): the picture says later before the sound does. Then the day thins, and an
    * evening cicada calls, once, and once more. Nothing marks the cut itself.
    */
-  dusk: [34.8, 38.5] as [number, number],
-  evening: [35.8, 38.6] as number[],
-  /** The air goes still (scene.breeze), and comes back. */
-  breeze: [[0, 1], [14, 1], [15, 0.15], [21.5, 0.15], [23.5, 1]] as [number, number][],
-  /** Going (from 38.5): the chorus first, the leaves, the two either side, the near one last. */
-  chorusOut: [39, 41.5] as [number, number],
-  leavesOut: [39, 41] as [number, number],
-  midOut: [40, 42] as [number, number],
-  nearOut: [41, 43] as [number, number],
+  dusk: [37.8, 41.5] as [number, number],
+  evening: [38.8, 41.6] as number[],
+  /** The air (scene.breeze): the afternoon's, steadier into the cut, the evening's calm. */
+  breeze: [[0, 0.6], [5.5, 0.6], [10.5, 1], [28.5, 1], [32.0, 0.5], [37, 0.5], [39, 0.3]] as [number, number][],
+  /** Going (from 42.5): the chorus first, the leaves, the two either side, the near one last. */
+  chorusOut: [43, 45.5] as [number, number],
+  leavesOut: [43, 45] as [number, number],
+  midOut: [44, 46] as [number, number],
+  nearOut: [45, 47] as [number, number],
 };
-const EMPTY = { length: 26, out: [20, 24] as [number, number], evening: [1.5, 6.5, 11.8, 16.4] };
+const EMPTY = { length: 22, out: [16, 20] as [number, number], evening: [1.5, 6.5, 11.8] };
 
 // ─────────────────────────────── helpers ───────────────────────────────
 
@@ -260,6 +263,21 @@ export function renderCicadas(take: number): Float32Array[] {
 }
 
 /** The clearing's air: two cicadas either side, the trees' chorus, the evening's, the leaves (stereo). */
+/**
+ * Nothing begins or ends on the cut: a phrase that would start just after it starts before it
+ * instead (already sounding across), and one that would end just before it carries on past.
+ */
+function steady(ph: [number, number][], empty: boolean): [number, number][] {
+  if (empty) return ph;
+  const c = TIMES.cut;
+  return ph.map(([a, b]): [number, number] => {
+    // (A phrase takes a couple of seconds to swell in and to fall away.)
+    if (a > c - 4.5 && a < c + 3) a = c - 4.5;
+    if (b > c - 3 && b < c + 3.5) b = c + 3.5;
+    return [a, Math.max(b, a + 2)];
+  });
+}
+
 export async function renderWoods(take: number): Promise<Float32Array[]> {
   const empty = take === 1;
   const len = empty ? EMPTY.length : TIMES.length;
@@ -275,7 +293,7 @@ export async function renderWoods(take: number): Promise<Float32Array[]> {
   const midLevel = (t: number) => (0.4 + 0.6 * opened(t)) * (empty ? 1 : quiet(t, T.midQuiet, 0.6)) * day(t) * going(t, T.midOut);
   for (const [k, c] of [[0, MID_L], [1, MID_R]] as [number, Cicada][]) {
     mid.fill(0);
-    for (const [a, b] of phrases(c.seed, 2, len - 1, [4, 9], [2, 6])) cicada(mid, c, a, b, midLevel);
+    for (const [a, b] of steady(phrases(c.seed, 2, len - 1, [4, 9], [2, 6]), empty)) cicada(mid, c, a, b, midLevel);
     smear(mid, 40, 5 + k);
     const [gl, gr] = k === 0 ? [0.8, 0.25] : [0.3, 0.75];
     for (let i = 0; i < n; i++) (L[i] += mid[i] * gl), (R[i] += mid[i] * gr);

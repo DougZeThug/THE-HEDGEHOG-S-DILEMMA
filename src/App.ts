@@ -531,7 +531,7 @@ export class App {
     // Anything already drawn on that wall is kept clear of (a painting never lands on a drawing).
     this.memoryWindow.avoid = fixed ? [] : this.drawingsOn(a.group);
     this.memoryWindow.setLayers(prepared.layers, prepared.size, prepared.band);
-    this.memoryWindow.setLiving(prepared.living ? { crop: prepared.living.crop, size: prepared.size } : null);
+    this.memoryWindow.setLiving(prepared.living ? { crop: prepared.living.crop, size: prepared.size, order: prepared.living.order } : null);
     this.inside.begin(hashString(a.key), this.prefs.reducedMotion);
     const memory = new rt.LivingMemory(prepared, {
       reduced: this.prefs.reducedMotion,
@@ -565,6 +565,9 @@ export class App {
     }
 
     if (s === 'complete') {
+      // (A living memory that was never entered, only seen on its wall, hasn't been seen: it is
+      // offered again. Interaction review, 2026-10-17.)
+      const entered = this.inside.entered || !l.memory.prepared.living?.immerse;
       // Whoever was carried in is back where they stood.
       this.inside.end();
       this.memoryWindow.release();
@@ -575,7 +578,7 @@ export class App {
       this.living = null;
       // Seen: watched past its first moments. It ran to its end if nobody let it go early.
       // (A tab hidden for long ends it uncounted, as a vignette: it comes back, the same, another time.)
-      const seen = l.why !== 'hidden' && l.watched >= Math.min(l.minHold, 8);
+      const seen = l.why !== 'hidden' && l.watched >= Math.min(l.minHold, 8) && entered;
       if (this.director.memoryEnded(l.id, seen, l.why === null || l.why === 'complete') && !this.forgotten) {
         const counts = readMemoryCounts();
         counts[l.id] = (counts[l.id] ?? 0) + 1;
@@ -1014,7 +1017,12 @@ export class App {
     const pl = l.memory.prepared.living;
     if (!pl) return;
     const aspect = innerWidth / innerHeight;
-    const focus = aspect < 0.9 ? pl.spec.cover.upright : aspect > 2.0 ? pl.spec.cover.ultra : pl.spec.cover.wide;
+    // The shot on now, chosen first so the view frames it from its first frame. A close-up only
+    // for someone inside; turned 14° from it, or seen on the wall alone, it is the wide
+    // (interaction review, 2026-10-17). It keeps its own subject central on an upright screen.
+    const shot = pl.scene.choose(f.final, { inside: this.inside.locked && this.inside.eff > 0.98, turned: this.inside.turned > 0.244 });
+    const shown = shot > 0 ? pl.scene.closeup(shot) : null;
+    const focus = aspect < 0.9 ? shown?.focus ?? pl.spec.cover.upright : aspect > 2.0 ? pl.spec.cover.ultra : pl.spec.cover.wide;
     const sketch = l.memory.prepared.layers.find((x) => x.name === 'sketch')?.texture ?? null;
     const go = this.inside.step(dt, {
       immerse: f.final['scene.immerse'] ?? 0,
@@ -1022,13 +1030,18 @@ export class App {
       enter: pl.immerse,
       away: l.away,
       leavingNaturally: f.state === 'withdrawing' || f.state === 'residue',
-    }, { reduced: this.prefs.reducedMotion, aspect, scene: pl.scene.target.texture, sketch, group: l.anchor.group });
+      approach: 'scene.approach' in f.final ? f.final['scene.approach'] : undefined,
+    }, { reduced: this.prefs.reducedMotion, aspect, scene: pl.scene.target.texture, sketch, group: l.anchor.group, leaves: pl.leaves });
     // The window was placed before the spread changed: place it again for this frame.
     this.memoryWindow.update(f.final, this.rig.restingEye, 0);
     pl.scene.update(this.renderer, f.t, f.final, { view: this.inside.view, parallax: new THREE.Vector2() });
     // What changes later, told to a screen reader when it happens (not before: the cut is not given away).
     const later = l.memory.prepared.def.announce?.(l.memory.prepared.variant) ?? [];
-    while (l.told < later.length && f.position >= later[l.told].at && f.state !== 'emerging') this.srRegion().textContent = later[l.told++].text;
+    while (l.told < later.length && f.position >= later[l.told].at && f.state !== 'emerging') {
+      const line = later[l.told++];
+      // (What only happens inside, the close-ups, isn't told if they stayed at the wall.)
+      if (!line.inside || this.inside.entered) this.srRegion().textContent = line.text;
+    }
     if (go) this.endLivingMemory('interrupt');
   }
 
@@ -1722,6 +1735,7 @@ export class App {
 
     // Mouse: pointer lock where possible, drag-to-look otherwise.
     let dragging = false;
+    let dragInside = false;
     let lastX = 0, lastY = 0, downX = 0, downY = 0, downT = 0;
     let lockWanted = false;
     canvas.addEventListener('pointerdown', (e) => {
@@ -1735,6 +1749,7 @@ export class App {
           return;
         }
         dragging = true;
+        dragInside = this.inside.locked;
         canvas.setPointerCapture(e.pointerId);
       }
     });
@@ -1742,7 +1757,8 @@ export class App {
       if (this.mode !== 'room') return;
       if (document.pointerLockElement === canvas) this.lookBy(e.movementX, e.movementY);
       else if (dragging && e.pointerType === 'mouse') {
-        this.lookBy((e.clientX - lastX) * 1.2, (e.clientY - lastY) * 1.2);
+        // (A drag begun before a living memory took the view isn't a turn away from it.)
+        if (!this.inside.locked || dragInside) this.lookBy((e.clientX - lastX) * 1.2, (e.clientY - lastY) * 1.2);
         lastX = e.clientX;
         lastY = e.clientY;
       }
@@ -1772,13 +1788,13 @@ export class App {
     });
 
     // Touch: left half walks (vertical) and turns (horizontal); right half looks; tap goes to things.
-    const touches = new Map<number, { side: 'L' | 'R'; x: number; y: number; sx: number; sy: number; t: number }>();
+    const touches = new Map<number, { side: 'L' | 'R'; x: number; y: number; sx: number; sy: number; t: number; inside: boolean }>();
     canvas.addEventListener('pointerdown', (e) => {
       // Touching the room while writing means: keep it to yourself after all.
       if (this.mode === 'contribute' && !$<HTMLInputElement>('contribute-input').value.trim()) this.closeContribute();
       if (e.pointerType === 'mouse' || this.mode !== 'room') return;
       canvas.setPointerCapture(e.pointerId);
-      touches.set(e.pointerId, { side: e.clientX < innerWidth / 2 ? 'L' : 'R', x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, t: e.timeStamp });
+      touches.set(e.pointerId, { side: e.clientX < innerWidth / 2 ? 'L' : 'R', x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, t: e.timeStamp, inside: this.inside.locked });
       // A thumb put down to walk while inside a living memory is a way out (one already down isn't).
       if (e.clientX < innerWidth / 2 && this.inside.locked) this.inside.freshThumb = true;
     });
@@ -1787,7 +1803,10 @@ export class App {
       if (!t || this.mode !== 'room') return;
       if (Math.hypot(e.clientX - t.sx, e.clientY - t.sy) > 14) this.dragged = true;
       // A half-screen swipe turns about 65° on a narrow phone, as on a wide screen.
-      if (t.side === 'R') this.lookBy((e.clientX - t.x) * 1.6 * clamp(640 / innerWidth, 1, 1.8), (e.clientY - t.y) * 1.6);
+      // (A drag begun before a living memory took the view isn't a turn away from it.)
+      if (t.side === 'R') {
+        if (!this.inside.locked || t.inside) this.lookBy((e.clientX - t.x) * 1.6 * clamp(640 / innerWidth, 1, 1.8), (e.clientY - t.y) * 1.6);
+      }
       else {
         // Walking: a thumb pushing up drifts sideways a little; that shouldn't turn the body.
         const dx = e.clientX - t.sx;

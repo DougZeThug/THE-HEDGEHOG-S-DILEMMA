@@ -626,6 +626,27 @@ def under_flowers(plate_rgb, mask):
     return plate_rgb * (1 - k) + src * k
 
 
+def leaves_atlas(day, sky):
+    """Two clusters of the canopy's own leaves (where they are against the sky), as cut-outs: the
+    leaves the view passes through at the crossing, close to the lens, out of focus (an atlas of
+    two 256² cells; premultiplied; darkened: backlit, near)."""
+    d = arr(day)
+    cells = []
+    for (x0, y0, x1, y1) in [(650, 0, 870, 200), (980, 10, 1170, 170)]:
+        rgb = d[y0:y1, x0:x1]
+        r, g, b = rgb[..., 0], rgb[..., 1], rgb[..., 2]
+        lum = 0.3 * r + 0.59 * g + 0.11 * b
+        leaf = smooth(0.02, 0.1, g - b) * smooth(0.85, 0.7, lum) * (1 - sky[y0:y1, x0:x1])
+        h, w = leaf.shape
+        yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
+        v = np.clip(1 - (((xx - w / 2) / (w / 2)) ** 2 + ((yy - h / 2) / (h / 2)) ** 2), 0, 1) ** 0.6
+        a = np.clip(leaf * v * 1.3, 0, 1)
+        col = rgb * 0.45 + np.array([0.02, 0.05, 0.01])
+        cell = np.dstack([col * a[..., None], a])
+        cells.append(np.clip(resize(cell, 256, 256), 0, 1))
+    return np.concatenate(cells, 1)
+
+
 def save(a, path, sizes, lossless=False, q=90):
     """`a`: HxWx{3,4} floats (RGBA premultiplied is stored straight, as WebP wants)."""
     os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -681,6 +702,7 @@ def main():
     save(under_flowers(arr(day), fmask), os.path.join(a, 'plate.webp'), LIVE, q=92)
     save(np.dstack([arr(day) * fmask[..., None], fmask]), os.path.join(a, 'flowers.webp'), LIVE, q=92)
     smask = sky_mask(day)
+    save(leaves_atlas(day, smask), os.path.join(a, 'leaves.webp'), {'': W}, q=90)
     x0, y0, x1, y1 = CLOUD_BOX
     save(np.dstack([smask[y0:y1, x0:x1]] * 3), os.path.join(a, 'sky-mask.webp'), {'': W}, lossless=True)
     save(clouds(arr(day), smask), os.path.join(a, 'clouds.webp'), {'': W}, q=90)
@@ -744,6 +766,8 @@ def main():
             # and the layers (the afternoon's, the evening's), each CLOUD_PAD px wider on the left.
             'clouds': {'mask': 'afternoon/sky-mask', 'file': 'afternoon/clouds', 'after': 'afternoon/clouds-after',
                        'box': [x0 / W, 1 - y1 / H, (x1 - x0) / W, (y1 - y0) / H], 'pad': round(CLOUD_PAD / (x1 - x0 + CLOUD_PAD), 5)},
+            # The leaves passed through at the crossing (an atlas of two cells).
+            'leaves': 'afternoon/leaves',
             'immerse': True,
         },
         # The revisit stays in the wall, as any memory: the dusk painting, still.
@@ -760,6 +784,16 @@ def main():
         'variants': {v: [layer(v, 'scene', 'pigment'), layer(v, 'sketch', 'sketch'), dict(layer(v, 'sketch-after', 'sketch'), file=f'{v}/sketch-after' if v == 'afternoon' else 'empty/sketch'), layer(v, 'light', 'light')] for v in ('afternoon', 'empty')},
         'living': living,
     }
+    # The close-ups (scripts/closeups.py) and the drawing's order (scripts/stroke-order.py)
+    # are made by their own scripts: kept as they are.
+    try:
+        with open(os.path.join(OUT, 'manifest.json')) as f:
+            before = json.load(f)['living']['afternoon']
+        for k in ('closeups', 'order'):
+            if before.get(k):
+                living['afternoon'][k] = before[k]
+    except (OSError, KeyError, ValueError, TypeError):
+        pass
     with open(os.path.join(OUT, 'manifest.json'), 'w') as f:
         json.dump(manifest, f, indent=2)
         f.write('\n')

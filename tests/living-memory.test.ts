@@ -11,7 +11,7 @@ import { MemoryPlaybackController } from '../src/memory/MemoryPlaybackController
 import { renderCicadas, renderWoods, renderGrass, renderLast, cicada, RATE, TIMES } from '../src/memory/synthWoods';
 import state from '../src/memory/theatre-state.json';
 import manifest from '../public/memories/woodland/manifest.json';
-import { LivingScene, type LivingArt } from '../src/memory/living/LivingScene';
+import { LivingScene, celOf, type Closeup, type LivingArt } from '../src/memory/living/LivingScene';
 import { DEFORMERS, livingMaterials } from '../src/world/living/materials';
 
 // The woodland memory (docs/reviews/2026-10-woodland.md): its people's involuntary life, the
@@ -39,6 +39,13 @@ describe('their involuntary life, from time alone', () => {
     expect(same / 600).toBeLessThan(0.25);
   });
 
+  it('at the cut both are between breaths (still for more than half a second before it)', () => {
+    for (const p of [SPEC.breath.a, SPEC.breath.b]) {
+      const at = breath(34.5, p);
+      for (let t = 33.9; t <= 34.5; t += 0.02) expect(Math.abs(breath(t, p) - at)).toBeLessThan(0.02);
+    }
+  });
+
   it("his breath is held off when their hands touch (a missed breath, not a sigh)", () => {
     const held = SPEC.breath.a.held![0];
     const free = { ...SPEC.breath.a, held: [] };
@@ -47,7 +54,7 @@ describe('their involuntary life, from time alone', () => {
     expect(missed).toBeGreaterThan(0);
   });
 
-  it('a blink is drawn on twos (half, shut, half), only where authored, never across the reach or before the cut', () => {
+  it('a blink is drawn on twos (half, shut, half), only where authored, only in the wides, never before the cut', () => {
     const at = SPEC.blinks.a[0];
     expect(blinkDrawing(at - 0.01, SPEC.blinks.a)).toBe(0);
     expect(blinkDrawing(at + 0.04, SPEC.blinks.a)).toBe(0.5);
@@ -55,8 +62,10 @@ describe('their involuntary life, from time alone', () => {
     expect(blinkDrawing(at + 0.2, SPEC.blinks.a)).toBe(0.5);
     expect(blinkDrawing(at + 0.3, SPEC.blinks.a)).toBe(0);
     for (const b of [...SPEC.blinks.a, ...SPEC.blinks.b]) {
-      expect(b < 15.5 || b > 20.3).toBe(true);
-      expect(b < 29.3 || b > 31.5).toBe(true);
+      // In the first wide (to 16.5 s) or the second (from 28.5 s), and not in its last 2 s;
+      // nothing in the first second after a cut.
+      expect(b < 16.3 || (b > 28.5 && b < 32.5)).toBe(true);
+      for (const cut of [10.5, 28.5]) expect(b < cut || b > cut + 1).toBe(true);
     }
   });
 
@@ -90,11 +99,12 @@ describe('the air, which moves everything (one wind, seekable)', () => {
     for (let t = 0; t < 35; t += 1 / 1000) p += windForce(t + 1 / 2000, 0.6, G) / 1000;
     expect(Math.abs(p - windDrift(35, 0.6, G))).toBeLessThan(0.01);
   });
-  it('three gusts: none while her hand moves, none in the stillness before the cut, one over the empty grass', () => {
+  it('three gusts: one in each wide, none in the close-ups or the stillness before the cut, one over the empty grass', () => {
     expect(G.length).toBe(3);
-    for (let t = 15.6; t < 24; t += 0.05) expect(gust(t, G).strength).toBe(0);
-    for (let t = 29.4; t < 31.5; t += 0.05) expect(gust(t, G).strength).toBe(0);
-    expect(gust(34, G).strength).toBeGreaterThan(0);
+    for (let t = 15.6; t < 30.3; t += 0.05) expect(gust(t, G).strength).toBe(0);
+    for (let t = 32.7; t < 34.5; t += 0.05) expect(gust(t, G).strength).toBe(0);
+    expect(gust(31.0, G).strength).toBeGreaterThan(0);
+    expect(gust(37.5, G).strength).toBeGreaterThan(0);
   });
 });
 
@@ -149,7 +159,7 @@ describe('the ending: a cut, on one frame', () => {
   useInitialState(state as never);
   const def = MEMORIES.woodland;
   const src = sheetSource(sheetId('woodland', 'afternoon'), memorySchema(def.layers, true), { sections: def.sections, markers: def.markers });
-  const CUT = 31.5;
+  const CUT = 34.5;
 
   it('the afternoon and the two of them until it; the same place later, empty, from it', () => {
     const before = src.at(CUT - 1 / 60);
@@ -188,7 +198,7 @@ describe('the ending: a cut, on one frame', () => {
     const c = new MemoryPlaybackController({ timeline: src, weights: FULL, reduced: false, entrance: 2, sways: [], exit: def.exit, maxHold: 60, tail: 0, living: true });
     c.start();
     let prev = 1, flips = 0, halfway = 0;
-    for (let t = 0; t < 37; t += 1 / 60) {
+    for (let t = 0; t < 40; t += 1 / 60) {
       const f = c.step(1 / 60)!;
       const p = f.final['scene.people'];
       if (p !== prev) flips++;
@@ -201,28 +211,101 @@ describe('the ending: a cut, on one frame', () => {
   });
 });
 
+describe('the close-ups: the artist\'s drawings, cut on keys', () => {
+  // (The committed timeline: the state was set for the cut's tests, above.)
+  const def = MEMORIES.woodland;
+  const src = sheetSource(sheetId('woodland', 'afternoon'), memorySchema(def.layers, true), { sections: def.sections, markers: def.markers });
+
+  it('a drawing not made yet holds the one before; the first is the base itself', () => {
+    const c = { cells: [-1, 0, null, 1, null, 2] };
+    expect([0, 1, 2, 3, 4, 5].map((k) => celOf(c, k))).toEqual([-1, 0, 0, 1, 1, 2]);
+    expect(celOf(c, 9)).toBe(2);
+    expect(celOf({ cells: [-1, null, null] }, 2)).toBe(-1); // a stand-in: its one drawing, held
+  });
+
+  it('each change is a whole drawing (a cut), and nothing changes in a shot\'s first 0.9 s', () => {
+    const starts = [16.5, 20.5, 25.1];
+    for (let i = 0; i < 3; i++) {
+      const end = i < 2 ? starts[i + 1] : 28.5;
+      let prev = src.at(starts[i])['scene.cel'], first = Infinity;
+      expect(prev).toBe(0);
+      for (let t = starts[i]; t < end - 1e-6; t += 1 / 120) {
+        const v = src.at(t);
+        expect(Number.isInteger(v['scene.cel'])).toBe(true);
+        expect(v['scene.shot']).toBe(i + 1);
+        if (v['scene.cel'] !== prev) first = Math.min(first, t - starts[i]);
+        prev = v['scene.cel'];
+      }
+      expect(first).toBeGreaterThanOrEqual(0.9);
+    }
+  });
+
+  it('the shot is chosen before it is drawn; turned from a close-up, it is the wide for the rest of that shot', () => {
+    const tex = () => new THREE.Texture();
+    const cu: Closeup = { base: tex(), cels: tex(), cells: [-1, 0, null, 1], grid: [2, 1], rect: [0.2, 0.3, 0.4, 0.5], focus: [0.4, 0.6], breath: 'a', chest: [0.5, 0.1, 0.3, 0.2], size: [1920, 1080] };
+    const lm = manifest.living.afternoon;
+    const s = new LivingScene(
+      { plate: tex(), maps: tex(), grade: null, after: null, sky: null, flowers: null, clouds: null, size: manifest.plate as [number, number], closeups: [cu, null],
+        figures: { ...(lm.figures as unknown as NonNullable<LivingArt['figures']>), texture: tex(), lids: tex() } },
+      SPEC, { width: 64, height: 36, noise: tex(), reduced: false },
+    );
+    const gl = { getRenderTarget: () => null, setRenderTarget: () => {}, render: () => {} } as unknown as THREE.WebGLRenderer;
+    const m = livingMaterials(tex());
+    const draw = (t: number, v: Record<string, number>) => s.update(gl, t, v, { view: new THREE.Vector4(0, 0, 1, 1), parallax: new THREE.Vector2() });
+    const inside = { inside: true, turned: false };
+    expect(s.choose({ 'scene.shot': 1, 'scene.cel': 1 }, inside)).toBe(1);
+    draw(17, { 'scene.shot': 1, 'scene.cel': 1 });
+    expect(m.frame.uniforms.uFrame.value).toBe(cu.base);
+    expect((m.frame.uniforms.uCel.value as THREE.Vector4).toArray()).toEqual([0, 0, 0.5, 1]);
+    // Its third drawing isn't made: the second holds. Its fourth: the atlas's second cell.
+    s.choose({ 'scene.shot': 1, 'scene.cel': 2 }, inside);
+    draw(17.5, { 'scene.shot': 1, 'scene.cel': 2 });
+    expect((m.frame.uniforms.uCel.value as THREE.Vector4).toArray()).toEqual([0, 0, 0.5, 1]);
+    s.choose({ 'scene.shot': 1, 'scene.cel': 3 }, inside);
+    draw(18, { 'scene.shot': 1, 'scene.cel': 3 });
+    expect((m.frame.uniforms.uCel.value as THREE.Vector4).toArray()).toEqual([0.5, 0, 0.5, 1]);
+    // Breathing (his), on the chest.
+    expect(m.frame.uniforms.uBreathe.value).toBeGreaterThanOrEqual(0);
+    expect((m.frame.uniforms.uChest.value as THREE.Vector4).toArray()).toEqual(cu.chest);
+    // Turned away: the wide, and it stays the wide until the next shot.
+    expect(s.choose({ 'scene.shot': 1, 'scene.cel': 3 }, { inside: true, turned: true })).toBe(0);
+    expect(s.choose({ 'scene.shot': 1, 'scene.cel': 3 }, inside)).toBe(0);
+    // A close-up that couldn't be had is the wide.
+    expect(s.choose({ 'scene.shot': 2, 'scene.cel': 0 }, inside)).toBe(0);
+    expect(s.choose({ 'scene.shot': 0 }, inside)).toBe(0);
+    expect(s.choose({ 'scene.shot': 1, 'scene.cel': 0 }, inside)).toBe(1);
+    // Not inside (seen on the wall, or not yet in, as on a jump straight into the shot): the
+    // wide, until they are.
+    expect(s.choose({ 'scene.shot': 1, 'scene.cel': 0 }, { inside: false, turned: false })).toBe(0);
+    expect(s.choose({ 'scene.shot': 1, 'scene.cel': 0 }, inside)).toBe(1);
+    s.dispose();
+    expect(m.frame.uniforms.uFrame.value).toBe(m.empty);
+    expect(m.frame.uniforms.uCels.value).toBe(m.empty);
+  });
+});
+
 describe('the woodland, heard', () => {
   const energy = (x: Float32Array, a: number, b: number) => {
     let e = 0;
     for (let i = Math.floor(a * RATE); i < Math.floor(b * RATE); i++) e += x[i] * x[i];
     return e / ((b - a) * RATE);
   };
-  it('the cicada over them falls quiet while the hand moves, and sings straight across the cut', () => {
+  it('the cicada over them falls quiet for the close-ups, and sings straight across the cut', () => {
     const [x] = renderCicadas(0);
-    expect(energy(x, 16, 24.5)).toBeLessThan(energy(x, 11, 14) * 0.01);
-    // Across the cut (31.5 s): sounding just before and just after, unchanged.
-    expect(energy(x, 30.5, 31.5)).toBeGreaterThan(energy(x, 11, 14) * 0.2);
-    expect(energy(x, 31.5, 32.5)).toBeGreaterThan(energy(x, 11, 14) * 0.2);
-    expect(energy(x, 32.5, 33.5) / energy(x, 30.5, 31.5)).toBeGreaterThan(0.5);
+    expect(energy(x, 17, 28)).toBeLessThan(energy(x, 11, 14) * 0.01);
+    // Across the cut (34.5 s): sounding just before and just after, unchanged.
+    expect(energy(x, 33.5, 34.5)).toBeGreaterThan(energy(x, 11, 14) * 0.2);
+    expect(energy(x, 34.5, 35.5)).toBeGreaterThan(energy(x, 11, 14) * 0.2);
+    expect(energy(x, 35.5, 36.5) / energy(x, 33.5, 34.5)).toBeGreaterThan(0.5);
     expect(x.length).toBe(Math.ceil(TIMES.length * RATE));
   });
   it('the clearing carries on across the cut (no hole, no swell, on that second)', async () => {
     const [l, r] = await renderWoods(0);
     const e = (a: number, b: number) => energy(l, a, b) + energy(r, a, b);
-    const before = e(30.5, 31.5);
-    // The afternoon carries on unchanged past the cut (the picture says later first), until the
-    // gust over the empty grass (heard from 33.0 s).
-    for (const [a, b] of [[31.5, 32.5], [32.0, 33.0]]) {
+    const before = e(33.5, 34.5);
+    // The afternoon carries on unchanged past the cut (the picture says later first): its first
+    // second (the gust over the empty grass is heard from ~35.5 s).
+    for (const [a, b] of [[34.5, 35.5]]) {
       expect(e(a, b) / before).toBeGreaterThan(0.6);
       expect(e(a, b) / before).toBeLessThan(1.6);
     }

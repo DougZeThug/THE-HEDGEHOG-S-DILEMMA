@@ -28,12 +28,12 @@ const STAGES = {
   cereal: [['0-untouched', null], ['1-first-drawing', 1.8], ['2-developing', 3.8], ['3-active', 9], ['4-active-late', 20], ['5-dissolving', 24.5], ['6-drawing-alone', 26.2], ['7-residue', 29]],
   bedroom: [['0-untouched', null], ['1-first-drawing', 2.6], ['2-developing', 5.5], ['3-active', 9], ['4-curtain', 11.4], ['5-active-late', 22], ['6-dissolving', 28.5], ['7-drawing-alone', 30.6]],
   door: [['0-untouched', null], ['1-first-drawing', 1.6], ['2-developing', 3.4], ['3-active', 6.5], ['4-shadow', 11], ['5-weight', 14.3], ['6-dissolving', 19.5], ['7-drawing-alone', 21]],
-  // The woodland (docs/reviews/2026-10-woodland.md): in, the touch, the evening, out.
+  // The woodland (docs/reviews/2026-10-woodland.md): the artist's eight shots.
   woodland: VARIANT === 'empty'
-    ? [['0-untouched', null], ['1-first-drawing', 2.6], ['2-developing', 5], ['3-active', 12], ['4-dissolving', 22], ['5-drawing-alone', 24.6]]
-    : [['00-untouched', null], ['01-leaf-light', 2.0], ['02-graphite', 3.6], ['03-formed', 6.0], ['04-spreading', 8.0], ['05-carried', 9.8], ['06-inside', 12.0], ['07-reach-halfway', 17.0], ['08-touch', 22.0], ['09-stillness', 29.0],
-       // The cut (31.5 s): the last frame before it and the first after it, then the empty clearing.
-       ['10-last-frame-before-cut', 31.5 - 1 / 60], ['11-first-frame-after-cut', 31.5], ['12-empty-dusk', 36.5], ['13-returning', 40.5], ['14-wall', 43.5], ['15-white-room', 47.0]],
+    ? [['0-untouched', null], ['1-first-drawing', 2.6], ['2-developing', 5], ['3-active', 10], ['4-dissolving', 18], ['5-drawing-alone', 20.6]]
+    : [['00-untouched', null], ['01-pencil', 2.5], ['02-pencil-more', 4.5], ['03-colour', 6.5], ['04-carried', 8.5], ['05-crossing', 9.6], ['06-wide', 12.0], ['07-close-him', 18.0], ['08-close-her', 23.0], ['09-hands', 27.0], ['10-wide-again', 31.0],
+       // The cut (34.5 s): the last frame before it and the first after it, then the empty clearing.
+       ['11-last-frame-before-cut', 34.5 - 1 / 60], ['12-first-frame-after-cut', 34.5], ['13-empty-dusk', 39.5], ['14-returning', 44.5], ['15-wall', 47.5], ['16-white-room', 51.0]],
 }[MEMORY];
 mkdirSync(OUT, { recursive: true });
 
@@ -96,6 +96,20 @@ for (const profile of PROFILES) {
     const st = await page.evaluate((p) => window.__hedgehog.heldAt(p), pos);
     await page.waitForTimeout(name.includes('residue') || name.includes('alone') ? 3000 : 1200);
     await page.screenshot({ path: `${OUT}/${profile}-${name}.png` });
+    // A living scene drawn black (nothing reached its target) is a failure, whatever the frame.
+    const blank = await page.evaluate(() => {
+      const a = window.__hedgehog;
+      const sc = a.living?.memory.prepared.living?.scene;
+      if (!sc) return false;
+      const T = sc.target, b = new Uint8Array(4);
+      let most = 0;
+      for (let i = 1; i < 6; i++) for (let j = 1; j < 6; j++) {
+        a.renderer.readRenderTargetPixels(T, Math.floor((T.width * i) / 6), Math.floor((T.height * j) / 6), 1, 1, b);
+        most = Math.max(most, b[0], b[1], b[2]);
+      }
+      return most < 8;
+    });
+    if (blank) errors.push(`the living scene is blank at ${name}`);
     shots.push(`${name} (${st.state} @ ${st.position})`);
   }
   const programs1 = await page.evaluate(() => window.__hedgehog.renderer.info.programs.length);

@@ -162,6 +162,18 @@ export class CameraRig {
     this.camera.updateMatrixWorld();
   }
 
+  /**
+   * Drawn along (a living memory's way in, before it takes them): the body put here, the look
+   * left alone (still theirs, as is a turn toward what they tapped). No walking meanwhile.
+   */
+  drift(x: number, z: number) {
+    this.goal = null;
+    this.vel.set(0, 0);
+    this.pos.set(x, 0, z);
+    this.camera.position.set(x, this.eye, z);
+    this.camera.updateMatrixWorld();
+  }
+
   setKneel(k: boolean) {
     this.kneeling = k;
     if (k) this.cancelAttend();

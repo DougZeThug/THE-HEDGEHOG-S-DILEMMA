@@ -7,10 +7,11 @@ import { Immersion, projectQuad, visiblePart } from './Immersion';
 
 /**
  * Going into a living memory, and coming back (docs/reviews/2026-10-woodland.md). The memory's
- * timeline says how far in (`scene.immerse`, 0..1); this turns that into one continuous move:
+ * timeline says how far along the way in they are (`scene.approach`: one move, the body drifting
+ * toward the wall while the drawing forms, then carried on, square to it) and how far in
+ * (`scene.immerse`, 0..1):
  *
  *   0    → 0.35  the painting spreads over the plaster, from its part round the line to all of it
- *   0.15 → 0.85  the visitor is carried to it, square on, to where it just fills the view
  *   0.72 → 1     the last of the plaster goes: the painting is all there is (a screen-space settle,
  *                which also lifts it off the room's light and the other writing on that wall)
  *
@@ -33,10 +34,28 @@ export interface InsideFrame {
   away: boolean;
   /** Withdrawing after a natural close (carried back to where they stood). */
   leavingNaturally: boolean;
+  /**
+   * The way in as one move (the timeline's `scene.approach`, 0..1, straight; shaped here): until
+   * they are taken in, only their body drifts toward the wall (their look their own); after, the
+   * same move carries them on and turns them square to it. Without it nobody is carried (the view
+   * still becomes the painting's).
+   */
+  approach?: number;
+}
+
+/** How far along the way in (0..1) for `scene.approach` (0..1): slow to start, slow to arrive. */
+export function approachCurve(a: number): number {
+  const x = Math.min(1, Math.max(0, a));
+  return Math.pow(x * x * (3 - 2 * x), 1.3);
 }
 
 const LEAVE = 0.52; // radians of a new turn that let it go (30°)
 const YIELD = 0.14; // a glance (under 8°) changes nothing
+// How fast the way in may catch up after a look away held it (of the whole way, a second: about
+// twice its own fastest), and how long a step is held, or a look away lasts, before it counts.
+const CATCH_UP = 0.35;
+const HELD = 0.35;
+const LOOKED_AWAY = 0.5;
 const smooth = (e0: number, e1: number, x: number) => {
   const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0)));
   return t * t * (3 - 2 * t);
@@ -48,6 +67,18 @@ export class Inside {
   /** The view's part of the painting (painting uv): what the living scene must draw. */
   readonly view = new THREE.Vector4(0, 0, 1, 1);
   private from: { x: number; z: number; yaw: number; pitch: number } | null = null;
+  /** Where they stood before anything (the way back ends here), and where the carry began. */
+  private origin: { x: number; z: number; yaw: number; pitch: number } | null = null;
+  private start: { x: number; z: number; yaw: number; pitch: number } | null = null;
+  /** How far along the way in they are (0..1), and were when taken in (the lean's share of it). */
+  private lean = 0;
+  private pLock = 0;
+  private leanStopped = false;
+  /** Before it takes them: a step held, a look away (seconds). */
+  private leanStep = 0;
+  private awayFor = 0;
+  /** They were taken in (the painting was all there is, at least half way). */
+  entered = false;
   private decided = false;
   private wallOnly = false;
   private handedBack = false;
@@ -84,6 +115,9 @@ export class Inside {
     this.end();
     this.reduced = reduced;
     this.decided = this.wallOnly = this.handedBack = this.leaving = false;
+    this.origin = this.start = null;
+    this.lean = this.pLock = this.leanStep = this.awayFor = 0;
+    this.leanStopped = this.entered = false;
     this.vx = this.vy = this.quiet = this.stepHeld = 0;
     this.freshKeys.clear();
     this.freshThumb = false;
@@ -99,8 +133,8 @@ export class Inside {
     return true;
   }
 
-  /** How far they have turned away from it (pitch counts half: looking down into the grass is natural). */
-  private get turned(): number {
+  /** How far they have turned away from it (radians; pitch counts half: looking down into the grass is natural). */
+  get turned(): number {
     return Math.hypot(this.vx, this.vy * 0.5);
   }
 
@@ -108,12 +142,15 @@ export class Inside {
    * One frame. Returns 'leave' when the visitor has let it go (the caller releases the memory as
    * an interruption).
    */
-  step(dt: number, f: InsideFrame, o: { reduced: boolean; aspect: number; scene: THREE.Texture; sketch: THREE.Texture | null; group: THREE.Object3D }): 'leave' | null {
+  step(dt: number, f: InsideFrame, o: { reduced: boolean; aspect: number; scene: THREE.Texture; sketch: THREE.Texture | null; group: THREE.Object3D; leaves?: THREE.Texture | null }): 'leave' | null {
     let out: 'leave' | null = null;
+    if (!this.decided) this.awayFor = f.away ? this.awayFor + dt : 0;
     if (!this.decided && f.immerse > 0) {
       this.decided = true;
-      // Only someone looking at it is taken in; otherwise it stays on the wall.
-      this.wallOnly = !f.enter || f.away;
+      // Decided once, when it would take them (the skeptic's review, 2026-10-17): someone
+      // looking at it then is taken in (a glance away a moment ago doesn't count), unless they
+      // walked off; otherwise it stays on the wall.
+      this.wallOnly = !f.enter || this.awayFor >= LOOKED_AWAY || this.leanStopped;
     }
     const immerse = this.wallOnly ? 0 : f.immerse;
     // Turning: held keys turn at the room's rate; quiet, the turn springs back.
@@ -143,7 +180,6 @@ export class Inside {
     o = { ...o, reduced: this.reduced };
     const e = this.eff;
     const spread = o.reduced ? smooth(0, 0.5, e) : smooth(0, 0.35, e);
-    const carry = o.reduced ? 0 : smooth(0.15, 0.85, e);
     const settle = o.reduced ? 1 : smooth(0.8, 1, e);
     const show = o.reduced ? smooth(0.4, 1, e) : smooth(0.72, 0.92, e);
     this.window.spread = spread;
@@ -155,9 +191,32 @@ export class Inside {
     this.proxy.scale.set(p.w, p.h, 1);
     this.proxy.updateMatrixWorld();
 
-    // Carried in (and back).
+    // Shot 1, the lean (the artist's shot list; the interaction, cinematic and skeptic's reviews,
+    // 2026-10-17): while the drawing forms, they drift toward the wall along the way in, their
+    // look their own. Looking away holds it where it is (looking back, it goes on, catching up
+    // gently, never a lurch); holding a step lets it go for good (it stays on the wall, and they
+    // are free). Taken in, the same move carries on: one unbroken approach.
+    const want = f.approach === undefined || o.reduced ? 0 : approachCurve(f.approach);
+    if (!this.decided && want > 0 && !this.from && !this.handedBack && !this.leanStopped) {
+      const k = this.rig.keys;
+      const walking = ['KeyW', 'KeyS', 'KeyA', 'KeyD', 'ArrowUp', 'ArrowDown'].some((c) => k.has(c)) || this.rig.touchMove.length() > 0.3;
+      this.leanStep = walking ? this.leanStep + dt : 0;
+      if (this.leanStep >= HELD) this.leanStopped = true;
+      else if (!f.away && !walking) {
+        if (!this.origin) this.origin = { x: this.rig.pos.x, z: this.rig.pos.z, yaw: this.rig.yaw, pitch: this.rig.pitch };
+        const t = this.toward(f.focus, o.aspect, this.origin);
+        const a = this.origin;
+        // (Held at a position, as the editor and a capture hold it, it is where the curve is.)
+        this.lean = dt > 0 ? Math.min(want, this.lean + CATCH_UP * dt) : want;
+        this.rig.drift(a.x + (t.x - a.x) * this.lean, a.z + (t.z - a.z) * this.lean);
+      }
+    }
+
+    // Taken in (from where the lean left them), and back (to where they first stood).
     if (e > 0 && !this.from && !this.handedBack && !o.reduced) {
-      this.from = { x: this.rig.pos.x, z: this.rig.pos.z, yaw: this.rig.yaw, pitch: this.rig.pitch };
+      this.start = { x: this.rig.pos.x, z: this.rig.pos.z, yaw: this.rig.yaw, pitch: this.rig.pitch };
+      this.from = this.origin ?? this.start;
+      this.pLock = this.lean;
       this.rig.cancelAttend();
     }
     if (o.reduced && e > 0 && !this.from && !this.handedBack) {
@@ -171,12 +230,29 @@ export class Inside {
         this.rig.yaw -= this.vx;
         this.rig.pitch = Math.max(-1.2, Math.min(1.2, this.rig.pitch - this.vy * 0.5));
         this.from = null;
-      } else if (!o.reduced) {
-        const t = this.target(f.focus, o.aspect);
+      } else if (!o.reduced && f.approach !== undefined) {
+        // One move: on along the way in (backing off a little as they turn), square to it by its
+        // end; on the way back, past where they were taken, turning back to how they stood.
         const a = this.from;
-        const yaw = a.yaw + angleDiff(a.yaw, t.yaw) * carry;
-        this.rig.place(a.x + (t.x - a.x) * carry, a.z + (t.z - a.z) * carry, yaw, a.pitch + (t.pitch - a.pitch) * carry);
-        if (e <= 1e-3 && f.leavingNaturally) {
+        const s0 = this.start ?? a;
+        const t = this.toward(f.focus, o.aspect, a);
+        const yieldK = 1 - 0.45 * smooth(YIELD, LEAVE, this.turned);
+        const aim = want >= this.pLock ? this.pLock + (want - this.pLock) * yieldK : want;
+        // (Behind the curve after a held look, it catches up; backing off or going back, it follows.)
+        this.lean = aim > this.lean && dt > 0 ? Math.min(aim, this.lean + CATCH_UP * dt) : aim;
+        const pos = this.lean;
+        let yaw: number, pitch: number;
+        if (pos >= this.pLock) {
+          const q = this.pLock < 0.999 ? smooth(0, 1, (pos - this.pLock) / (1 - this.pLock)) : 1;
+          yaw = s0.yaw + angleDiff(s0.yaw, t.yaw) * q;
+          pitch = s0.pitch + (t.pitch - s0.pitch) * q;
+        } else {
+          const q = this.pLock > 1e-3 ? pos / this.pLock : 0;
+          yaw = a.yaw + angleDiff(a.yaw, s0.yaw) * q;
+          pitch = a.pitch + (s0.pitch - a.pitch) * q;
+        }
+        this.rig.place(a.x + (t.x - a.x) * pos, a.z + (t.z - a.z) * pos, yaw, pitch);
+        if (want <= 1e-3 && f.leavingNaturally) {
           // Back exactly where they stood.
           this.rig.place(a.x, a.z, a.yaw, a.pitch);
           this.from = null;
@@ -201,6 +277,10 @@ export class Inside {
       zoom: this.zoom,
       view: this.view,
       seed: this.seed,
+      // The crossing: leaves close to the lens as the room goes (none under reduced motion).
+      leaves: o.reduced ? null : o.leaves ?? null,
+      // (Not on the way back: that would be a rewind.)
+      crossing: o.reduced || f.leavingNaturally ? 0 : smooth(0.7, 1, e),
     });
     // What the scene must draw: the painting's part on the screen (all of it on the wall).
     if (this.immersion.pass.enabled && show > 0.5) visiblePart(this.immersion.screenToPainting, this.zoom, this.view);
@@ -208,12 +288,26 @@ export class Inside {
     this.immersion.u.uView.value.copy(this.view);
     this.window.setView(this.view);
     this.post.immersed = show * settle;
+    if (show * settle >= 0.5 && !this.wallOnly) this.entered = true;
     this.post.roomHidden = show >= 0.999 && settle >= 0.999;
     return out;
   }
 
+  /**
+   * Where the way in ends, from `from`: square to the wall in front of the focus, the painting just
+   * filling the view, or (if they stood nearer than that) at their own distance: never backwards.
+   */
+  private toward(focus: [number, number], aspect: number, from: { x: number; z: number }): { x: number; z: number; yaw: number; pitch: number } {
+    const t = this.target(focus, aspect);
+    const da = (from.x - t.wall.x) * t.normal.x + (from.z - t.wall.z) * t.normal.z;
+    if (da >= t.d) return t;
+    const d = Math.max(0.45, da);
+    const eye = this.rig.eyeHeight;
+    return { x: t.wall.x + t.normal.x * d, z: t.wall.z + t.normal.z * d, yaw: t.yaw, pitch: Math.atan2(t.wall.y - eye, d) };
+  }
+
   /** Where the visitor is carried: square to the wall, the focus at the view's centre, the painting just filling it. */
-  private target(focus: [number, number], aspect: number): { x: number; z: number; yaw: number; pitch: number } {
+  private target(focus: [number, number], aspect: number): { x: number; z: number; yaw: number; pitch: number; wall: THREE.Vector3; normal: THREE.Vector3; d: number } {
     const p = this.window.painting;
     const pt = new THREE.Vector3(p.cx + (focus[0] - 0.5) * p.w, p.cy + (focus[1] - 0.5) * p.h, 0);
     this.proxy.parent!.localToWorld(pt);
@@ -224,7 +318,7 @@ export class Inside {
     const h = 2 * Math.atan(Math.tan(v / 2) * aspect);
     const d = Math.max(0.45, Math.min(p.h / (2 * Math.tan(v / 2)), p.w / (2 * Math.tan(h / 2))) * 1.04);
     const eye = this.rig.eyeHeight;
-    return { x: pt.x + n.x * d, z: pt.z + n.z * d, yaw: Math.atan2(n.x, n.z), pitch: Math.atan2(pt.y - eye, d) };
+    return { x: pt.x + n.x * d, z: pt.z + n.z * d, yaw: Math.atan2(n.x, n.z), pitch: Math.atan2(pt.y - eye, d), wall: pt, normal: n, d };
   }
 
   /** It has ended (or was switched off): whoever was carried is put back, and the room is the room. */

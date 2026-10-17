@@ -57,6 +57,10 @@ const FRAG = /* glsl */ `
   uniform vec4 uView0;
   uniform float uOpen;
   uniform float uSoftReserve;
+  // A living memory drawn stroke by stroke (scripts/stroke-order.py): when each line is drawn (r)
+  // and when the colour reaches each point (g), against the sketch's and the reveal's progress.
+  uniform sampler2D uOrder;
+  uniform float uOrdered;
   varying vec2 vUv;
 
   vec3 toLinear(vec3 c) { return mix(c / 12.92, pow((c + 0.055) / 1.055, vec3(2.4)), step(0.04045, c)); }
@@ -87,6 +91,14 @@ const FRAG = /* glsl */ `
     float soft = uPool.w / max(uPool.z, 1e-3) + 0.05;
     float colourMask = 1.0 - smoothstep(uReveal - soft, uReveal + soft, d);
     float sketchMask = 1.0 - smoothstep(uSketch - soft, uSketch + soft, d);
+    if (uOrdered > 0.5) {
+      // Each line appears along its stroke, in order; the colour follows as a wash, its edge
+      // broken by the paper's grain. (uSketch and uReveal run to 1.25 for the pool: 1 is all.)
+      vec2 o = texture2D(uOrder, P).rg;
+      sketchMask = clamp((uSketch / 1.25 - o.r) / 0.012 + 0.5, 0.0, 1.0);
+      float g = o.g + (n2 - 0.5) * 0.05;
+      colourMask = smoothstep(g - 0.04, g + 0.04, uReveal / 1.25);
+    }
     // Opened across the plaster, the whole of it is found (its edge is the quad's ragged edge).
     colourMask = max(colourMask, uOpen * step(0.5, uReveal));
     sketchMask = max(sketchMask, uOpen * step(0.5, uSketch));
@@ -194,7 +206,7 @@ export class MemoryWindow {
    * A living memory (docs/reviews/2026-10-woodland.md): the painting is `size` metres on the wall
    * and fixed there; the quad shows `crop` of it round the line, then (`spread` 0..1) the whole.
    */
-  private living: { crop: [number, number, number, number]; size: [number, number] } | null = null;
+  private living: { crop: [number, number, number, number]; size: [number, number]; order?: THREE.Texture | null } | null = null;
   spread = 0;
   /** Where the whole painting is on its wall (group metres), as last placed. */
   readonly painting = { cx: 0, cy: 0, w: 0, h: 0 };
@@ -238,6 +250,8 @@ export class MemoryWindow {
       uCrop: { value: new THREE.Vector4(0, 0, 1, 1) },
       uView0: { value: new THREE.Vector4(0, 0, 1, 1) },
       uOpen: { value: 0 },
+      uOrder: { value: this.dummy },
+      uOrdered: { value: 0 },
       uSoftReserve: { value: 0 },
     };
     const mat = new THREE.ShaderMaterial({
@@ -284,10 +298,12 @@ export class MemoryWindow {
   }
 
   /** A living memory's painting: its size on the wall and the part shown first; null for any other. */
-  setLiving(o: { crop: [number, number, number, number]; size: [number, number] } | null): void {
+  setLiving(o: { crop: [number, number, number, number]; size: [number, number]; order?: THREE.Texture | null } | null): void {
     this.living = o;
     this.spread = 0;
     this.u.uSoftReserve.value = o ? 1 : 0;
+    this.u.uOrder.value = o?.order ?? this.dummy;
+    this.u.uOrdered.value = o?.order ? 1 : 0;
     if (!o) {
       (this.u.uCrop.value as THREE.Vector4).set(0, 0, 1, 1);
       this.u.uOpen.value = 0;

@@ -77,6 +77,14 @@ Each layer is a WebP (or PNG) in `public/memories/<id>/<variant>/`: `<layer>.web
 
 The code-painted stand-ins are re-baked with `npm run bake:memories` (Chromium, offline; the painters never ship). A new memory's first timeline is written with `npm run memories:seed`, which never touches a sheet already in the state unless forced.
 
+### The woodland's close-ups and pencil
+
+The woodland is eight shots (`docs/reviews/2026-10-woodland.md`). Its three close-ups (4 him, 5 her, 6 their hands) are the artist's drawings, held and cut, never morphed. The kit (`references/woodland/kit/README.md`) names each drawing and how to make it.
+
+- Drop the drawings into `references/woodland/drawings/` under their names and run `python3 scripts/closeups.py` (add `--flip DIR` for a flipbook GIF of each shot to check the takes match). It lines each drawing up with its shot's start, refuses one that won't line up, and writes `<shot>-base` and `<shot>-cels` with the manifest entry. A drawing not made yet holds the one before; a shot without its start is the sheet's panel, held.
+- The timeline says which close-up (`scene.shot`) and which of its drawings (`scene.cel`, counting from 0 in the kit's order): held keys, each change a cut. Retime a look or a blink by dragging its key.
+- A pencil drawing of the composition (`references/woodland/drawings/pencil.png`) replaces the stand-in graphite: run `python3 scripts/stroke-order.py` (when each line appears on the plaster and the colour after it), then `python3 scripts/cut-woodland.py` if the graphite layer itself should be the drawing.
+
 ## Checks
 
 - `npx vitest run`: the controller, behaviours (and GSAP's ticker staying asleep), cue dispatch, memory audio, the Theatre adapter, and that every authored prop, layer and sound exists.
@@ -95,4 +103,6 @@ The code-painted stand-ins are re-baked with `npm run bake:memories` (Chromium, 
   - The near flowers, the drifting sky and the moving light are cut from or derived from the artist's paintings; the motes, seeds and falling leaves are drawn in the shader (procedural, not painted).
   - The pressed grass after the cut is a code-made smoothing of the dusk painting, not drawn.
   - Every woodland sound is synthesised (the cicadas by day, the evening cicadas after the cut, the leaves, grass, the last evening cicada): stand-ins. A listening mix of the afternoon is rendered to `test-output/review/woodland/woodland-afternoon-mix.wav` (`scratchpad`-free: `npx vite-node` on `renderCicadas`/`renderWoods`); the near cicada and the clearing take about 0.1 s and 1.1 s to render on a desktop (in slices, while the memory prepares): measure on a phone.
-  - Asked for in production (each replaces a stand-in by name), drawn in place at the top panel's scale and pose: her reach (4–6 drawings of the forearm and hand, the fingers at contact) and his answer (1–2), her head turning toward him (3), his look aside (2), blinks (shut, half, per person), her foot rocking (2), breath shapes for both shirts; a drawn close-up of the hands if a cut to it is ever wanted; the pressed grass painted onto the dusk plate; recorded cicadas in a summer wood by day, and evening cicadas at dusk (1–2 min each), leaves in a light wind, grass and cloth under a hand, and two people breathing close, lying down (only with the artist's approval of any paid generation).
+  - The three close-ups are stand-ins until the artist's drawings come: each is the character sheet's own close-up panel, held, with only the engine's breath (~2–3 px at the chest) and the grass moving. None of the acting (his look, hers, her blink, her hand) happens until the drawings exist.
+  - The pencil on the plaster in shot 1 is a stand-in: an edge filter of the painting, and it reads as one. It appears out from the words, light marks first, the two of them last.
+  - Asked for in production (each replaces a stand-in by name): the drawings in the kit (13 for the close-ups, and `pencil.png`); the pressed grass painted onto the dusk plate; recorded cicadas in a summer wood by day, and evening cicadas at dusk (1–2 min each), leaves in a light wind, grass and cloth under a hand, and two people breathing close, lying down (only with the artist's approval of any paid generation).

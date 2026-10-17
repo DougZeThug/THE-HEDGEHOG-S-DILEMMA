@@ -7,7 +7,7 @@ import { memorySchema } from './sheets';
 import { sheetSource } from './theatre';
 import type { Lifecycle, MemoryFrame, ReleaseReason } from './types';
 import type { WindowLayer, LayerKind } from '../world/MemoryWindow';
-import { LivingScene, type FigureArt, type LivingArt } from './living/LivingScene';
+import { LivingScene, type Closeup, type FigureArt, type LivingArt } from './living/LivingScene';
 import { WOODLAND as WOODLAND_SPEC, type LivingSpec } from './living/woodland';
 
 /**
@@ -51,6 +51,16 @@ interface LivingManifest {
   flowers?: { file: string; heads: [number, number, number][] } | null;
   /** The sky in the gap, drifting: where it shows, the afternoon's and the evening's layers (one size). */
   clouds?: { mask: string; file: string; after: string; box: [number, number, number, number]; pad: number } | null;
+  /** When each pencil line is drawn and the colour comes (scripts/stroke-order.py), one size. */
+  order?: string | null;
+  /** The leaves passed through at the crossing (an atlas of two), one size. */
+  leaves?: string | null;
+  /**
+   * The close-ups, by shot (scripts/closeups.py): `<file>-base` (its first drawing; alpha: where
+   * the air may move the grass, so a map: decoded straight) and, if any drawing differs from it,
+   * `<file>-cels` (the rest, an atlas of the part that changes).
+   */
+  closeups?: (Omit<Closeup, 'base' | 'cels' | 'size'> & { file: string; names: string[]; standin?: boolean })[];
   immerse: boolean;
 }
 
@@ -79,6 +89,10 @@ export interface PreparedLiving {
   crop: [number, number, number, number];
   /** The painting's aspect (w / h). */
   aspect: number;
+  /** When each pencil line is drawn on the wall and the colour comes, or null (the light finds it). */
+  order: THREE.Texture | null;
+  /** The leaves passed through at the crossing (mipmapped: they are drawn out of focus), or null. */
+  leaves: THREE.Texture | null;
 }
 
 export interface Prepared {
@@ -179,6 +193,12 @@ function livingFiles(lm: LivingManifest, suffix: string): { file: string; suffix
   if (lm.figures) out.push({ file: lm.figures.file, suffix }, { file: lm.figures.lids, suffix });
   if (lm.flowers) out.push({ file: lm.flowers.file, suffix });
   if (lm.clouds) out.push({ file: lm.clouds.mask, suffix: '' }, { file: lm.clouds.file, suffix: '' }, { file: lm.clouds.after, suffix: '' });
+  if (lm.order) out.push({ file: lm.order, suffix: '' });
+  if (lm.leaves) out.push({ file: lm.leaves, suffix: '' });
+  for (const c of lm.closeups ?? []) {
+    out.push({ file: `${c.file}-base`, suffix });
+    if (c.grid[0] > 0) out.push({ file: `${c.file}-cels`, suffix });
+  }
   return out;
 }
 
@@ -228,7 +248,7 @@ export async function prepare(id: string, variant: string, host: RuntimeHost): P
         extra.push(r);
         return r.texture;
       };
-      const [plate, maps, grade, sky, fig, lids, after, flowers, skyMask, clouds, cloudsAfter] = await Promise.all([
+      const [plate, maps, grade, sky, fig, lids, after, flowers, skyMask, clouds, cloudsAfter, order] = await Promise.all([
         one(lm.plate),
         one(lm.maps, { data: true, sfx: '' }),
         lm.grade ? one(lm.grade, { data: true, sfx: '' }) : Promise.resolve(null),
@@ -240,8 +260,25 @@ export async function prepare(id: string, variant: string, host: RuntimeHost): P
         lm.clouds ? one(lm.clouds.mask, { data: true, sfx: '' }) : Promise.resolve(null),
         lm.clouds ? one(lm.clouds.file, { sfx: '' }) : Promise.resolve(null),
         lm.clouds ? one(lm.clouds.after, { sfx: '' }) : Promise.resolve(null),
+        lm.order ? one(lm.order, { data: true, sfx: '' }) : Promise.resolve(null),
       ]);
+      // (The leaves are mipmapped, unlike the scene's layers: they are drawn out of focus.)
+      const leaves = lm.leaves ? await loadLayer(url(lm.leaves, '')).then((r) => (extra.push(r), r.texture)) : null;
+      // A close-up that can't be had is the wide for its shot (the memory still plays).
+      const closeups = await Promise.all(
+        (lm.closeups ?? []).map(async (c): Promise<Closeup | null> => {
+          const [b, cels] = await Promise.allSettled([
+            loadLayer(url(`${c.file}-base`), { living: true, data: true }),
+            c.grid[0] > 0 ? loadLayer(url(`${c.file}-cels`), { living: true }) : Promise.resolve(null),
+          ]);
+          for (const r of [b, cels]) if (r.status === 'fulfilled' && r.value) extra.push(r.value);
+          if (b.status !== 'fulfilled' || cels.status !== 'fulfilled') return null;
+          const img = b.value.bitmap;
+          return { ...c, base: b.value.texture, cels: cels.value?.texture ?? null, size: [img.width, img.height] };
+        }),
+      );
       const art: LivingArt = {
+        closeups,
         plate,
         maps,
         grade,
@@ -254,7 +291,7 @@ export async function prepare(id: string, variant: string, host: RuntimeHost): P
       };
       const size = targetSize(host);
       scene = new LivingScene(art, SPECS[def.id] ?? WOODLAND_SPEC, { ...size, noise: host.noise!, reduced: !!host.reduced, low: host.quality === 'low' });
-      living = { scene, spec: SPECS[def.id] ?? WOODLAND_SPEC, immerse: lm.immerse, crop: manifest.crop ?? [0, 0, 1, 1], aspect: manifest.size[0] / manifest.size[1] };
+      living = { scene, spec: SPECS[def.id] ?? WOODLAND_SPEC, immerse: lm.immerse, crop: manifest.crop ?? [0, 0, 1, 1], aspect: manifest.size[0] / manifest.size[1], order, leaves };
       loaded.unshift({ texture: scene.target.texture, bitmap: null as unknown as ImageBitmap, name: 'scene', kind: 'pigment' });
     } catch (e) {
       // The living scene couldn't be made: the wall's poster instead, as any memory.

@@ -42,7 +42,7 @@ export interface MemoryDef {
   /** What the picture is, for a screen reader (announced once, when it has formed). */
   describe: (variant: string) => string;
   /** What changes later, told to a screen reader at the moment it happens (sequence seconds). */
-  announce?: (variant: string) => { at: number; text: string }[];
+  announce?: (variant: string) => { at: number; text: string; inside?: boolean }[];
   /**
    * A living memory (animated, and entered): its scene's object names in the timeline (`scene`,
    * `figure:a`, `figure:b`) are added to the schema, and the variants that have a living scene in
@@ -347,45 +347,57 @@ export const DOOR: MemoryDef = {
 
 /**
  * Five More Minutes (docs/reviews/2026-10-woodland.md): two people lying in a summer clearing.
- * Nothing happens. Then they are gone. Afternoon, about 46 s and a cicada after:
+ * Nothing happens. Then they are gone. The artist's shot list (2026-10-17), about 50 s and a
+ * cicada after:
  *
- *   0–1.2     the room hushes; then a cicada, beyond the wall, alone
- *   1–2.5     warm leaf light on the plaster round the line, before anything is drawn
- *   2.5–6     the graphite, then the colour: the clearing, and the two of them already there,
- *             still as a painting
- *   5.5–7     the painting begins to live (the grass, a breath)
- *   6.5–11    in: the painting spreads across the plaster and the visitor is carried to it,
- *             square on, until it is all there is
- *   11–15     breathing; he blinks; a gust, heard first, crosses the clearing; his head settles
- *   14–15     the air goes still
- *   15–16.6   her head inclines toward him, barely; her hand moves through the grass, halfway,
- *             and stops (it could be nothing)
- *   18–18.7   the rest of the way: a finger's width short (where the sheet draws it)
- *   19.8–20.3 his hand answers: the sides of their little fingers touch. His next breath is late
- *   20.3–24.5 held. The cicada over them has fallen quiet (since the hand moved); the air comes
- *             back at 22; he blinks
- *   24.5–25   her hand draws back a few millimetres; the gap stays
- *   24.8–25.9 she settles into the grass, her shoulder easing; she blinks
- *   25.9–31.5 nothing but their breathing, the grass, the air, the cicada over them singing again
- *   31.5      a cut, on one frame, in that stillness (as they both rest between breaths): the same
- *             clearing, the same view, at dusk, and nobody there (the artist's dusk painting; where
- *             they lay, the grass a little flattened). No fade; no sound marks it: the cicada over
- *             them sings straight across it, the grass keeps moving
- *   31.5–38.5 the empty clearing at dusk, held. For a few seconds the sound is still the
- *             afternoon's; then the day thins and, once, and once more, an evening cicada
- *   38.5–42.5 out: carried back, the painting gathers itself to the wall
- *   42.5–46   the colour goes, the graphite sinks (the empty clearing's)
- *   45.5–49.5 one evening cicada, far off, heard in the white room
+ *   0–6       1 the room remembers: a cicada beyond the wall (1.2); warm leaf light on the plaster
+ *             (1.4); the pencil finds the clearing from the line outward from 2.0 (light lines
+ *             first, the two of them last), while the visitor drifts toward the wall (their look
+ *             their own; a look away holds it, a step held lets it go; they are taken in if they
+ *             are looking at it when it would take them)
+ *   4.4–10.5  2 crossing in: the colour follows the strokes as a wash, the painting begins to live
+ *             (5.5–7), spreads across the plaster, and the same move carries them on, square to
+ *             it; nearer things settle into place after farther ones; through leaves close to the
+ *             lens it is all there is (9.8)
+ *   10.5–16.5 3 an ordinary afternoon: the wide, both looking up; breathing, blinks, a gust (13),
+ *             her crossed foot rocking a while; cicadas
+ *   16.5–20.5 4 cut: close on him (the artist's drawings): his eyes go to her (17.5), then his
+ *             head, a little (18.0)
+ *   20.5–25.1 5 cut: close on her: her eyes (21.75), a pause, a small turn of her head toward him
+ *             (23.0); a slow blink (23.75)
+ *   25.1–28.5 6 cut: their hands in the grass; hers shifts a little nearer (26.0); the fingers
+ *             stay apart.
+ *             (The cicada over them, and the two either side, are quiet through the close-ups.)
+ *   28.5–34.5 7 the wide again, both looking up, settled (nothing in its first second); the cicada
+ *             over them again (29.5); one soft gust and a leaf (30.4); one blink (31.6); still
+ *             from 32, both between breaths at the cut
+ *   34.5      8 a cut, on one frame, in that stillness: the same clearing, the same view, at dusk,
+ *             and nobody there. No sound marks it: the cicada over them sings straight across it,
+ *             the grass keeps moving
+ *   34.5–42.5 the empty clearing at dusk, held; a gust crosses the grass where they lay (36.6);
+ *             the day thins and, once, and once more, an evening cicada
+ *   42.5–46.5 out: carried back, the painting gathers itself to the wall
+ *   46–49.5   the colour goes, the graphite sinks (the empty clearing's)
+ *   48.5–52.5 one evening cicada, far off, heard in the white room
  *
  * What they might have said, never said (no line is spoken, written or captioned):
  *   "We should probably go." / "Yeah." / … / "Five more minutes?" (not answered)
  *
  * The revisit (empty): the same clearing at dusk, nobody in it, and it stays in the wall.
  */
-const WOODLAND_SECTIONS: Sections = { active: 6, exit: 38.5, residue: 46, end: 49.5 };
+const WOODLAND_SECTIONS: Sections = { active: 6, exit: 42.5, residue: 49.5, end: 53 };
 /** The cut: the people gone and the evening come, on the same frame. */
-const CUT = 31.5;
-const EMPTY_SECTIONS: Sections = { active: 6, exit: 20, residue: 25, end: 28 };
+const CUT = 34.5;
+/**
+ * The artist's shot list (2026-10-17): 1 the room remembers (the pencil, the lean), 2 crossing
+ * in, 3 the wide afternoon, 4 he looks toward her, 5 she notices, 6 their hands, 7 the wide
+ * again, 8 the cut to the same place empty at dusk. The close-ups are the artist's drawings,
+ * held and cut on keys (`scene.shot` which close-up, `scene.cel` which of its drawings, in the
+ * order scripts/closeups.py lists them); everything else is the living painting.
+ */
+const SHOTS = { closeHim: 16.5, closeHer: 20.5, hands: 25.1, wideAgain: 28.5 };
+// (The revisit stays on the wall, still: a short hold, its stillness the answer.)
+const EMPTY_SECTIONS: Sections = { active: 6, exit: 16, residue: 21, end: 24 };
 
 export const WOODLAND: MemoryDef = {
   id: 'woodland',
@@ -396,9 +408,9 @@ export const WOODLAND: MemoryDef = {
   markers: [
     { label: 'music:cicadas', position: 0.05 },
     { label: 'music:woods', position: 0.05 },
-    { label: 'sfx:grass', position: 15.5 },
-    { label: 'sfx:grass-settle', position: 24.8 },
-    { label: 'sfx:cicada-last', position: 45.5 },
+    // Her hand shifting in the grass (shot 6: 0.9 s in).
+    { label: 'sfx:grass', position: 26.0 },
+    { label: 'sfx:cicada-last', position: 48.5 },
   ],
   seed: (variant): SheetSeed => {
     if (variant === 'empty') {
@@ -414,8 +426,8 @@ export const WOODLAND: MemoryDef = {
           'light.y': [[0, -0.2], [6, -0.05]],
           'light.radius': [[0, 0.2], [6, 1.2]],
           'light.soft': [[0, 0.16]],
-          'light.warmth': [[0, 2800], [20, 2300]],
-          'light.intensity': [[0, 0], [4, 0.35], [20, 0.2], [25, 0]],
+          'light.warmth': [[0, 2800], [16, 2300]],
+          'light.intensity': [[0, 0], [4, 0.35], [16, 0.2], [21, 0]],
           'light.roomSpill': [[0, 0]],
           'layer:scene.opacity': [[0, 1]],
           'layer:sketch.opacity': [[0, 0.9]],
@@ -433,12 +445,19 @@ export const WOODLAND: MemoryDef = {
       };
     }
     const S = WOODLAND_SECTIONS;
+    const C = SHOTS;
+    // (A drawing's time, on twos.)
+    const d = 1 / 12;
     return {
       tracks: {
-        // The wall: graphite, then colour, round the two of them; taken back after the return
-        // (the graphite then is the empty clearing's: they are never drawn again after the cut).
-        'window.sketch': [[2.5, 0], [4.5, 1], [44, 1], [46, 0]],
-        'window.reveal': [[3.5, 0], [6, 1], [42.5, 1], [45, 0]],
+        // Shot 1, the room remembers: the pencil finds the clearing on the plaster stroke by
+        // stroke (scripts/stroke-order.py), while the visitor drifts toward the wall (the lean,
+        // their look their own); shot 2: the colour follows the strokes as a wash, the painting
+        // spreads, they are carried in, and through the leaves it is all there is.
+        // (The cicada first, beyond the wall (1.2 s); then the light (1.4); then the first stroke
+        // (2.0); the two of them are found last, ~4.2–5.2: cinematic review.)
+        'window.sketch': [[2.0, 0], [6.0, 1], [47.5, 1], [49.5, 0]],
+        'window.reveal': [[4.4, 0], [8.6, 1], [46, 1], [48.5, 0]],
         'window.presence': [[0, 1]],
         'window.parallax': [[0, 0]],
         // The light finds the people first (painting metres from its centre).
@@ -449,7 +468,7 @@ export const WOODLAND: MemoryDef = {
         // The afternoon's warmth, then (at the cut) the evening's.
         'light.warmth': [[0, 4300, 'hold'], [CUT, 2900]],
         // Warm leaf light on the plaster before anything is drawn; low while inside; it goes last.
-        'light.intensity': [[0, 0], [1, 0], [2.5, 0.55], [6, 0.45], [11, 0.3], [38.5, 0.2], [42.5, 0.3], [46, 0]],
+        'light.intensity': [[0, 0], [1.4, 0], [2.6, 0.5], [6, 0.45], [10.5, 0.3], [42.5, 0.2], [46.5, 0.3], [49.5, 0]],
         'light.roomSpill': [[0, 0]],
         'layer:scene.opacity': [[0, 1]],
         'layer:sketch.opacity': [[0, 0.9, 'hold'], [CUT, 0]],
@@ -457,37 +476,44 @@ export const WOODLAND: MemoryDef = {
         'layer:light.opacity': [[0, 1]],
         // The scene.
         'scene.life': [[0, 0], [5.5, 0], [7, 1]],
-        'scene.immerse': [[0, 0], [6.5, 0], [11, 1], [38.5, 1], [42.5, 0]],
-        // The air: never still (it is what makes the place a place), quieter while her hand moves,
-        // back after; steady and gustless into the cut and across it; the evening's calm after.
-        'scene.breeze': [[0, 0.6], [5.5, 0.6], [11, 1], [14, 1], [15, 0.35], [21.5, 0.35], [23.5, 1], [29.3, 0.5], [34, 0.5], [36, 0.3]],
+        // The way in, one move (shaped in Inside.ts): from the cicada, slowly; the body only until
+        // they are taken in (~6.2 s); square to the wall and all there is by 9.8; still by 10.5.
+        // Back: the plaster re-forms first (nothing moves), then the slow way back.
+        'scene.approach': [[1.2, 0, 'linear'], [10.5, 1], [S.exit + 1, 1, 'linear'], [S.exit + 5, 0]],
+        'scene.immerse': [[0, 0], [6.2, 0], [9.8, 1], [S.exit, 1], [S.exit + 1, 0.72], [S.exit + 5, 0]],
+        // The crossing: nearer things settle into place a little after farther ones.
+        // (Small: the one painting stretches at its trunks' edges past ~10 px.)
+        'scene.push': [[7.6, 0], [8.8, -0.015], [10.4, 0]],
+        // The air: never still; steady and gustless into the cut and across it; the evening's calm.
+        'scene.breeze': [[0, 0.6], [5.5, 0.6], [10.5, 1], [C.wideAgain, 1], [32.0, 0.5], [37, 0.5], [39, 0.3]],
         // The cut: the afternoon and the two of them until it, then the same place later, empty.
         'scene.after': [[0, 0, 'hold'], [CUT, 1]],
         'scene.people': [[0, 1, 'hold'], [CUT, 0]],
-        // Him (docs/reviews/2026-10-woodland.md, the beat sheet): a flex of the hand in the grass;
-        // the leaf falling at the gust: his eyes go first, then his face; back, settling.
-        'figure:a.fingers': [[0, 0], [11.8, 0], [11.95, 1], [12.3, 0], [17.0, 0], [17.12, 1], [17.5, 0]],
-        'figure:a.eyes': [[0, 0], [12.8, 0], [12.95, -1], [14.3, -1], [14.6, 0]],
-        'figure:a.look': [[0, 0], [13.0, 0], [13.5, -0.6], [14.3, -0.6], [14.9, 0]],
-        'figure:a.head': [[0, 0], [13.6, 0], [14.4, -0.03]],
-        // His hand answering hers.
-        'figure:a.hand': [[0, 0], [19.8, 0], [20.3, 1]],
+        // The close-ups (cuts): him, her, their hands; then the wide again.
+        'scene.shot': [[0, 0, 'hold'], [C.closeHim, 1, 'hold'], [C.closeHer, 2, 'hold'], [C.hands, 3, 'hold'], [C.wideAgain, 0]],
+        // Which of the close-up's drawings: him (start, eyes, mid, end): his eyes go to her a
+        // second in; half a second later his head, through its breakdown (three drawings' time)
+        // to where it lands. Her (start, eyes, mid, end, half-shut, shut): her eyes 1.25 s in; a
+        // pause; her head, the same way; half a second after it lands, a slow blink (half, shut,
+        // shut, half). Their hands (start, mid, end): 0.9 s in hers shifts (its breakdown four
+        // drawings' time), then rests, the fingers apart. Nothing in a shot's first second; every
+        // change a cut, on the drawings' twos (cinematic and skeptic's reviews, 2026-10-17).
+        'scene.cel': [
+          [0, 0, 'hold'],
+          [C.closeHim, 0, 'hold'], [C.closeHim + 12 * d, 1, 'hold'], [C.closeHim + 18 * d, 2, 'hold'], [C.closeHim + 21 * d, 3, 'hold'],
+          [C.closeHer, 0, 'hold'], [C.closeHer + 15 * d, 1, 'hold'], [C.closeHer + 30 * d, 2, 'hold'], [C.closeHer + 33 * d, 3, 'hold'],
+          [C.closeHer + 39 * d, 4, 'hold'], [C.closeHer + 40 * d, 5, 'hold'], [C.closeHer + 42 * d, 4, 'hold'], [C.closeHer + 43 * d, 3, 'hold'],
+          [C.hands, 0, 'hold'], [C.hands + 11 * d, 1, 'hold'], [C.hands + 15 * d, 2, 'hold'],
+          [C.wideAgain, 0],
+        ],
+        // Him and her, in the wide: looking up, breathing, unhurried. Her crossed foot rocks a
+        // while in the first wide; still in the second.
         'figure:a.breath': [[0, 1]],
-        // Her: the foot rocking (it stops before her hand moves; again after, until the stillness);
-        // two taps on her stomach; her eyes following the seed in the air.
-        'figure:b.foot': [[0, 0], [10.5, 0], [11.2, 1], [14.4, 1], [14.8, 0], [26.6, 0], [27, 0.8], [29, 0.8], [29.3, 0]],
-        'figure:b.fingers': [[0, 0], [11.95, 0], [12.03, 1], [12.12, 0], [12.22, 1], [12.32, 0]],
-        'figure:b.eyes': [[0, 0], [11.9, 0], [12.1, 0.6], [12.8, -0.3], [13.2, 0], [26.3, 0], [26.45, -1], [28.5, -1], [28.8, 0]],
-        // An incline toward him while the hand moves (neither of them looking); after the touch,
-        // she looks at him (he doesn't see), and back.
-        'figure:b.head': [[0, 0], [14.8, 0], [16, 0.045], [25, 0.045], [25.9, 0.01]],
-        'figure:b.look': [[0, 0], [26.5, 0], [27, -1], [28.4, -1], [28.9, 0]],
-        // The hand (0 drawn back, 1 where the sheet draws it); settling.
-        'figure:b.hand': [[0, 0], [15.5, 0], [16.6, 0.5], [18, 0.5], [18.7, 1], [24.5, 1], [25, 0.88]],
-        'figure:b.shoulder': [[0, 0], [24.6, 0], [25.2, 1], [25.9, 0.6]],
-        'figure:b.settle': [[0, 0], [24.8, 0], [25.9, 1]],
-        // Her breath goes shallow while her hand is out; one deeper breath as she settles.
-        'figure:b.breath': [[0, 1], [15.5, 1], [16.5, 0.5], [20.3, 0.5], [21, 1], [24.4, 1], [24.6, 1.4], [25.4, 1]],
+        'figure:b.breath': [[0, 1]],
+        'figure:b.foot': [[0, 0], [11, 0], [11.6, 0.8], [14.4, 0.8], [15.0, 0]],
+        // Her hand a little further from his in the first wide than in the second (it moved, in
+        // the close-up of their hands).
+        'figure:b.hand': [[0, 0.55, 'hold'], [C.wideAgain, 1]],
       },
       markers: [
         { label: 'active', position: S.active },
@@ -514,8 +540,8 @@ export const WOODLAND: MemoryDef = {
         // The rest of the clearing: two more cicadas, the chorus in the trees, the evening
         // cicadas after the cut, the leaves.
         'music:woods': { asset: 'synth:woods', take, gainDb: -2, place: { u: 0, v: 0, d: 2 }, wide: true, fadeOut: 6 },
-        'sfx:grass': { asset: 'synth:grass', take: 0, gainDb: -18, place: { u: -0.04, v: -0.28, d: 0.3 }, caption: '[grass, moving]' },
-        'sfx:grass-settle': { asset: 'synth:grass', take: 1, gainDb: -20, place: { u: 0.02, v: -0.24, d: 0.3 } },
+        // (No caption: it would sit over their fingertips in the close-up of their hands.)
+        'sfx:grass': { asset: 'synth:grass', take: 0, gainDb: -20, place: { u: -0.04, v: -0.28, d: 0.3 } },
         // One evening cicada, far off, heard from the white room (as through a window).
         'sfx:cicada-last': { asset: 'synth:cicada-last', take: 0, gainDb: -16, place: { u: 0.2, v: 0.3, d: 6 }, lowpass: 5000, caption: '[an evening cicada, far off]' },
       },
@@ -530,9 +556,13 @@ export const WOODLAND: MemoryDef = {
   living: true,
   describe: (v) => v === 'empty'
     ? 'A painting forms in the wall by the words: a clearing in a wood at dusk, a fallen log, a tree, the grass. Nobody is there.'
-    : 'A painting forms in the wall by the words: two young people lying in the grass of a woodland clearing in the late afternoon, cicadas in the trees. It opens until it is all there is.',
+    : 'A pencil drawing forms in the wall by the words: a clearing in a wood, two young people lying in the grass.',
+  // (Short, at least 3.5 s apart; the close-ups only if they were taken in: interaction review.)
   announce: (v) => v === 'empty' ? [] : [
-    { at: 15.5, text: 'Her hand moves through the grass toward his, and stops just short. His finds it.' },
+    { at: 10.5, text: 'It opens until it is all there is: a summer afternoon, cicadas in the trees.' },
+    { at: SHOTS.closeHim, text: 'He turns his head toward her.', inside: true },
+    { at: SHOTS.closeHer, text: 'She notices, and turns a little.', inside: true },
+    { at: SHOTS.hands, text: 'Their hands, close. They don\'t touch.', inside: true },
     { at: CUT, text: 'The same clearing, at dusk. Nobody is there.' },
     { at: WOODLAND_SECTIONS.exit, text: 'The painting goes back into the wall.' },
   ],
