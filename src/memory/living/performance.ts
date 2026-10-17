@@ -91,6 +91,20 @@ export function gust(t: number, gusts: readonly Gust[]): { strength: number; fro
 }
 
 /**
+ * The gusts as they are at painting `x` (each arrives there as its front crosses), and where the
+ * strongest one's front is across the frame (0 left .. 1 right): what is heard of them follows
+ * what is seen (cinematic review, 2026-10-17: heard over the middle of the clearing, a moment early).
+ */
+export function gustAt(t: number, x: number, gusts: readonly Gust[]): { strength: number; front: number } {
+  let best = { strength: 0, front: -1 };
+  for (const g of gusts) {
+    const s = gust(t - x * g.cross, [g]).strength;
+    if (s > best.strength) best = { strength: s, front: (t - g.at) / g.cross };
+  }
+  return best;
+}
+
+/**
  * The air as a force, at painting `x` (0 left .. 1 right): the steady breeze (a few slow sines at
  * incommensurate rates, travelling left to right) plus the gusts, each arriving at `x` as its front
  * crosses. Signed: positive bends things to the right (the gusts come from the left).

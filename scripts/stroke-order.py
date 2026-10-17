@@ -36,8 +36,11 @@ SKETCH = os.path.join(ROOT, 'public', 'memories', 'woodland', 'afternoon', 'sket
 OUT = os.path.join(ROOT, 'public', 'memories', 'woodland', 'afternoon', 'order.webp')
 MANIFEST = os.path.join(ROOT, 'public', 'memories', 'woodland', 'manifest.json')
 W, H = 1672, 941
-# The painting's part round the words (painting uv, y up), from the cutter: the drawing starts here.
-CROP = (0.23, 0.09, 0.5, 0.55)
+# Where the memory's line is written on the painting (painting uv, y up): across the top of the
+# part the wall shows first (the cutter's crop, 0.23, 0.09, 0.5, 0.55), just under its edge. The
+# drawing starts here, at the words (cinematic review, 2026-10-17: from the crop's centre, the
+# first marks came 150–250 px below and right of them).
+WORDS = (0.48, 0.61)
 
 
 def darkness():
@@ -63,7 +66,8 @@ def people():
     px, py = round(x0 * W), round((1 - y0 - h) * H)
     m[py:py + ph, px:px + pw] = np.asarray(body.resize((pw, ph), Image.LANCZOS), np.float32)[:H - py, :W - px] / 255
     m = cv2.dilate((m > 0.3).astype(np.uint8), np.ones((9, 9), np.uint8)).astype(np.float32)
-    return cv2.GaussianBlur(m, (0, 0), 6)
+    # (Soft round them: no hard-edged island of late colour where they lay.)
+    return cv2.GaussianBlur(m, (0, 0), 18)
 
 
 def soft_noise(rng, sigma):
@@ -76,7 +80,7 @@ def main():
     lines = cv2.GaussianBlur(dark, (0, 0), 0.8) > 0.22
     rng = np.random.default_rng(11)
     yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
-    ox, oy = (CROP[0] + CROP[2] / 2) * W, (1 - (CROP[1] + CROP[3] / 2)) * H
+    ox, oy = WORDS[0] * W, (1 - WORDS[1]) * H
     reach = np.hypot(xx - ox, yy - oy)
     reach /= reach.max()
     # How dark the mark is, a little smoothed (a line's light edge before its dark middle).
@@ -97,8 +101,9 @@ def main():
     # Soft fronts, not the nearest line's patch: a wash spreads; its edge is broken a little.
     G = cv2.GaussianBlur(G.astype(np.float32), (0, 0), 22) + 0.08 * (soft_noise(rng, 18) - 0.5)
     G = (G - G.min()) / (G.max() - G.min() + 1e-6) * 0.94
-    # Never before its line (a lag after the pencil, whatever the wash's own order).
-    G = np.maximum(G, R + 0.06)
+    # Never before its line (a lag after the pencil, whatever the wash's own order; against the
+    # line's time softened, so the wash keeps a soft front).
+    G = np.maximum(G, cv2.GaussianBlur(R.astype(np.float32), (0, 0), 8) + 0.06)
     rgb = np.dstack([R, G, np.zeros_like(G)])
     Image.fromarray((rgb * 255 + 0.5).astype(np.uint8), 'RGB').save(OUT, 'WEBP', lossless=True, method=6)
     with open(MANIFEST) as f:

@@ -11,9 +11,11 @@ import { Immersion, projectQuad, visiblePart } from './Immersion';
  * toward the wall while the drawing forms, then carried on, square to it) and how far in
  * (`scene.immerse`, 0..1):
  *
- *   0    → 0.35  the painting spreads over the plaster, from its part round the line to all of it
- *   0.72 → 1     the last of the plaster goes: the painting is all there is (a screen-space settle,
- *                which also lifts it off the room's light and the other writing on that wall)
+ *   0    → 0.5   (a painting not drawn in order) it spreads over the plaster, from its part round
+ *                the line to all of it
+ *   0.3  → 0.7   the painting on the wall becomes the painting's own light, at its place
+ *   0.68 → 1     it opens out to cover the view: the painting is all there is (a screen-space
+ *                settle, which also lifts it off the room's light and the other writing on that wall)
  *
  * and back, the same way, to exactly where they stood. Under reduced motion nobody is carried:
  * the painting spreads, then the view crossfades to it.
@@ -115,6 +117,12 @@ export class Inside {
     return this.from !== null && !this.handedBack;
   }
 
+  /** The memory is moving them (drifting them toward the wall, or carrying them): not their own walk. */
+  get carrying(): boolean {
+    return this.locked || this.drifted;
+  }
+  private drifted = false;
+
   /** Taken all the way in (whatever they are doing with their look): what a close-up is for. */
   get taken(): boolean {
     return this.locked && this.immersed > 0.98;
@@ -191,9 +199,11 @@ export class Inside {
     this.eff = immerse * (1 - 0.45 * smooth(YIELD, LEAVE, this.turned));
     o = { ...o, reduced: this.reduced };
     const e = this.eff;
-    const spread = o.reduced ? smooth(0, 0.5, e) : smooth(0, 0.35, e);
-    const settle = o.reduced ? 1 : smooth(0.8, 1, e);
-    const show = o.reduced ? smooth(0.4, 1, e) : smooth(0.72, 0.92, e);
+    // (The painting's own light comes up at its place over the wall's, then it opens out to all
+    // there is: the light grows, then the frame. Cinematic review, 2026-10-17.)
+    const spread = smooth(0, 0.5, e);
+    const show = o.reduced ? smooth(0.4, 1, e) : smooth(0.3, 0.7, e);
+    const settle = o.reduced ? 1 : smooth(0.68, 1, e);
     this.window.spread = spread;
 
     // The whole painting, where it is on its wall.
@@ -210,6 +220,7 @@ export class Inside {
     // waits and goes on from where they stop; a step back held lets it go for good (it stays on
     // the wall, and they are free). Taken in, the same move carries on: one unbroken approach.
     const want = f.approach === undefined || o.reduced ? 0 : approachCurve(f.approach);
+    this.drifted = false;
     if (!this.decided && (f.approach ?? 0) > 0 && !this.from && !this.handedBack && !this.leanStopped) {
       const k = this.rig.keys, thumb = this.rig.touchMove;
       // (The left thumb's sideways push turns; only its up and down walk. A walk easing to a stop,
@@ -226,6 +237,7 @@ export class Inside {
         this.lean = f.held ? want : Math.min(want, this.lean + CATCH_UP * dt);
         const t = this.along(f.focus, o.aspect, this.anchor, this.lean);
         this.rig.drift(t.x, t.z);
+        this.drifted = true;
       }
     }
 

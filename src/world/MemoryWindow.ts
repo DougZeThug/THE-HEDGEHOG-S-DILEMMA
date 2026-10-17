@@ -61,6 +61,9 @@ const FRAG = /* glsl */ `
   // and when the colour reaches each point (g), against the sketch's and the reveal's progress.
   uniform sampler2D uOrder;
   uniform float uOrdered;
+  // How strongly a living memory's pigment sinks into the plaster (a faded fresco, never a hole:
+  // the dusk painting multiplied in at full strength is a black stain).
+  uniform float uSunk;
   varying vec2 vUv;
 
   vec3 toLinear(vec3 c) { return mix(c / 12.92, pow((c + 0.055) / 1.055, vec3(2.4)), step(0.04045, c)); }
@@ -91,17 +94,20 @@ const FRAG = /* glsl */ `
     float soft = uPool.w / max(uPool.z, 1e-3) + 0.05;
     float colourMask = 1.0 - smoothstep(uReveal - soft, uReveal + soft, d);
     float sketchMask = 1.0 - smoothstep(uSketch - soft, uSketch + soft, d);
+    // The light's own pool (where it falls, whatever is revealed yet).
+    float pool = 1.0 - smoothstep(1.0 - soft, 1.0 + soft, d);
     if (uOrdered > 0.5) {
-      // Each line appears along its stroke, in order; the colour follows as a wash, its edge
-      // broken by the paper's grain. (uSketch and uReveal run to 1.25 for the pool: 1 is all.)
+      // Each line appears in order (out from the words); the colour follows as a wash, its edge
+      // broken by the paper's grain, soft. (uSketch and uReveal run to 1.25 for the pool: 1 is all.)
       vec2 o = texture2D(uOrder, P).rg;
       sketchMask = clamp((uSketch / 1.25 - o.r) / 0.012 + 0.5, 0.0, 1.0);
       float g = o.g + (n2 - 0.5) * 0.05;
-      colourMask = smoothstep(g - 0.04, g + 0.04, uReveal / 1.25);
+      colourMask = smoothstep(g - 0.08, g + 0.08, uReveal / 1.25);
     }
-    // Opened across the plaster, the whole of it is found (its edge is the quad's ragged edge).
-    colourMask = max(colourMask, uOpen * step(0.5, uReveal));
-    sketchMask = max(sketchMask, uOpen * step(0.5, uSketch));
+    // Opened across the plaster, the whole of it is found (its edge is the quad's ragged edge;
+    // one drawn in order has its order for an edge).
+    colourMask = max(colourMask, uOpen * step(0.5, uReveal) * (1.0 - uOrdered));
+    sketchMask = max(sketchMask, uOpen * step(0.5, uSketch) * (1.0 - uOrdered));
     // Never to the window's edge: ragged, inside its rectangle (wider as a living one spreads:
     // a brush, not a frame).
     vec2 e = min(vUv, 1.0 - vUv) * uSize;
@@ -117,13 +123,16 @@ const FRAG = /* glsl */ `
 
     // Unstylized (the editor's comparison): the layers as baked, with no mask, noise or reserve.
     float mask = mix(1.0, colourMask, uStylize);
+    // (Drawn in order, its light is on the plaster before anything is drawn: the room remembers
+    // the light first. Otherwise the light reveals as the colour does.)
+    float lightMask = max(mask, uOrdered * mix(1.0, pool, uStylize));
     float smask = mix(1.0, sketchMask, uStylize);
     // Graphite is found by the light first; colour follows. Lead over colour, premultiplied.
     float cA = cov * mask, lA = lead.a * smask;
     vec3 premul = lead.rgb * smask + col * mask * (1.0 - lA);
     cov = lA + cA * (1.0 - lA);
     col = premul;
-    float pigCov = clamp(cov, 0.0, 1.0) * edge * uPresence;
+    float pigCov = clamp(cov, 0.0, 1.0) * edge * uPresence * uSunk;
 
     // Bare plaster round the words, feathered over 2–3 cm with a rough edge.
     vec2 r = abs(m - uReserve.xy) - uReserve.zw;
@@ -137,7 +146,7 @@ const FRAG = /* glsl */ `
     pigCov *= 1.0 - mix(0.0, 0.85, reserve * uStylize * (1.0 - uOpen));
 
     vec3 pigment = toLinear(col / max(cov, 1e-3));
-    vec3 lit = toLinear(min(light, vec3(1.0))) * shade * uLight * mask * edge * uPresence;
+    vec3 lit = toLinear(min(light, vec3(1.0))) * shade * uLight * lightMask * edge * uPresence;
 
     // dst × (cover × pigment / plaster + (1 − cover)) + dst × light (see the blend below).
     gl_FragColor = vec4(pigCov * pigment / uPlaster + lit, 1.0 - pigCov);
@@ -190,6 +199,8 @@ export function kelvin(k: number): THREE.Vector3 {
 
 /** Furthest a layer may shift, metres: a breath of depth in the plaster, not a hole in it. */
 const MAX_SHIFT = 0.02;
+/** How strongly a living memory's painting sinks into the plaster (cinematic review, 2026-10-17). */
+const SUNK = 0.72;
 
 export class MemoryWindow {
   readonly mesh: THREE.Mesh;
@@ -253,6 +264,7 @@ export class MemoryWindow {
       uOrder: { value: this.dummy },
       uOrdered: { value: 0 },
       uSoftReserve: { value: 0 },
+      uSunk: { value: 1 },
     };
     const mat = new THREE.ShaderMaterial({
       uniforms: this.u,
@@ -302,6 +314,7 @@ export class MemoryWindow {
     this.living = o;
     this.spread = 0;
     this.u.uSoftReserve.value = o ? 1 : 0;
+    this.u.uSunk.value = o ? SUNK : 1;
     this.u.uOrder.value = o?.order ?? this.dummy;
     this.u.uOrdered.value = o?.order ? 1 : 0;
     if (!o) {
@@ -452,9 +465,11 @@ export class MemoryWindow {
 
   /**
    * A living memory: the whole painting fixed on the wall (its crop where a window would be,
-   * the rest round it, kept inside the wall), and the quad showing the crop → the whole as it spreads.
+   * the rest round it, kept inside the wall), and the quad showing the crop → the whole as it
+   * spreads. One drawn in order shows the whole of it from the start: its order is its edge (the
+   * pencil out from the words, the colour as a wash), never a straight one.
    */
-  private placeLiving(L: { crop: [number, number, number, number]; size: [number, number] }, a: NonNullable<MemoryWindow['placed']>, cx: number, cy: number): void {
+  private placeLiving(L: { crop: [number, number, number, number]; size: [number, number]; order?: THREE.Texture | null }, a: NonNullable<MemoryWindow['placed']>, cx: number, cy: number): void {
     const [W, H] = L.size;
     const [u0, v0, du, dv] = L.crop;
     let px = cx - (u0 + du / 2 - 0.5) * W;
@@ -467,7 +482,7 @@ export class MemoryWindow {
     this.painting.cy = py;
     this.painting.w = W;
     this.painting.h = H;
-    const s = THREE.MathUtils.clamp(this.spread, 0, 1);
+    const s = L.order ? 1 : THREE.MathUtils.clamp(this.spread, 0, 1);
     const k = s * s * (3 - 2 * s);
     const rx = u0 * (1 - k), ry = v0 * (1 - k), rw = du + (1 - du) * k, rh = dv + (1 - dv) * k;
     const mx = px + (rx + rw / 2 - 0.5) * W, my = py + (ry + rh / 2 - 0.5) * H;

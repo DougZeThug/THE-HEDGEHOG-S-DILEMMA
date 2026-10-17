@@ -23,6 +23,11 @@ export interface VisitorInput {
   /** Nearest surface if close to one (within ~1.1 m), else null. */
   nearSurface: Surface | null;
   kneeling: boolean;
+  /**
+   * Moved by a memory (its way in, its carry), not by themselves: not counted as walking or
+   * looking (the room must not take the memory's own move for the visitor's restlessness).
+   */
+  carried?: boolean;
 }
 
 /**
@@ -124,7 +129,7 @@ export class VisitorModel {
     }
     const dx = inp.x - this.x;
     const dz = inp.z - this.z;
-    const step = Math.hypot(dx, dz);
+    const step = inp.carried ? 0 : Math.hypot(dx, dz);
     this.x = inp.x;
     this.z = inp.z;
     this.movedDistance += step;
@@ -134,7 +139,7 @@ export class VisitorModel {
     let dyaw = inp.yaw - this.lastYaw;
     while (dyaw > Math.PI) dyaw -= Math.PI * 2;
     while (dyaw < -Math.PI) dyaw += Math.PI * 2;
-    const look = Math.abs(dyaw) + Math.abs(inp.pitch - this.lastPitch);
+    const look = inp.carried ? 0 : Math.abs(dyaw) + Math.abs(inp.pitch - this.lastPitch);
     this.lastYaw = inp.yaw;
     this.lastPitch = inp.pitch;
     this.lookActivity = approach(this.lookActivity, dt > 0 ? look / dt : 0, dt, 0.6);

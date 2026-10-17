@@ -460,8 +460,11 @@ export const WOODLAND: MemoryDef = {
         // spreads, they are carried in, and through the leaves it is all there is.
         // (The cicada first, beyond the wall (1.2 s); then the light (1.4); then the first stroke
         // (2.0); the two of them are found last, ~4.2–5.2: cinematic review.)
-        'window.sketch': [[2.0, 0], [6.0, 1], [47.5, 1], [49.5, 0]],
-        'window.reveal': [[4.4, 0], [8.6, 1], [46, 1], [48.5, 0]],
+        // (The colour washes in by 7.4, before the painting's own light comes up over it; on the
+        // way back it washes out by 47.8, and the empty clearing in pencil is alone a while, then
+        // sinks: cinematic and creative reviews, 2026-10-17.)
+        'window.sketch': [[2.0, 0], [6.0, 1], [49.8, 1], [51.3, 0]],
+        'window.reveal': [[4.4, 0], [7.4, 1], [45.8, 1], [47.8, 0]],
         'window.presence': [[0, 1]],
         'window.parallax': [[0, 0]],
         // The light finds the people first (painting metres from its centre).
@@ -481,10 +484,11 @@ export const WOODLAND: MemoryDef = {
         // The scene.
         'scene.life': [[0, 0], [5.5, 0], [7, 1]],
         // The way in, one move (shaped in Inside.ts): from the cicada, slowly; the body only until
-        // they are taken in (~6.2 s); square to the wall and all there is by 9.8; still by 10.5.
-        // Back: the plaster re-forms first (nothing moves), then the slow way back.
+        // they are taken in (~6.2 s); the painting's own light up over it 7.3–8.7, then opening out
+        // to all there is by 9.8; still by 10.5. Back: steadily (never a jolt), the plaster
+        // re-forming as they are carried back.
         'scene.approach': [[1.2, 0, 'linear'], [10.5, 1], [S.exit + 1, 1, 'linear'], [S.exit + 5, 0]],
-        'scene.immerse': [[0, 0], [6.2, 0], [9.8, 1], [S.exit, 1], [S.exit + 1, 0.72], [S.exit + 5, 0]],
+        'scene.immerse': [[0, 0, 'hold'], [6.2, 0, 'linear'], [9.8, 1, 'hold'], [S.exit, 1, 'linear'], [S.exit + 2, 0.72, 'linear'], [S.exit + 5, 0]],
         // The crossing: nearer things settle into place a little after farther ones.
         // (Small: the one painting stretches at its trunks' edges past ~10 px.)
         'scene.push': [[7.6, 0], [8.8, -0.015], [10.4, 0]],
@@ -498,15 +502,15 @@ export const WOODLAND: MemoryDef = {
         // Which of the close-up's drawings: him (start, eyes, mid, end): his eyes go to her a
         // second in; half a second later his head, through its breakdown (three drawings' time)
         // to where it lands. Her (start, eyes, mid, end, half-shut, shut): her eyes 1.25 s in; a
-        // pause; her head, the same way; half a second after it lands, a slow blink (half, shut,
-        // shut, half). Their hands (start, mid, end): 0.9 s in hers shifts (its breakdown four
+        // pause; her head, the same way; half a second after it lands, a slow blink (half for two
+        // drawings, shut for three, half for two: slower than the wides' blinks). Their hands (start, mid, end): 0.9 s in hers shifts (its breakdown four
         // drawings' time), then rests, the fingers apart. Nothing in a shot's first second; every
         // change a cut, on the drawings' twos (cinematic and skeptic's reviews, 2026-10-17).
         'scene.cel': [
           [0, 0, 'hold'],
           [C.closeHim, 0, 'hold'], [C.closeHim + 12 * d, 1, 'hold'], [C.closeHim + 18 * d, 2, 'hold'], [C.closeHim + 21 * d, 3, 'hold'],
           [C.closeHer, 0, 'hold'], [C.closeHer + 15 * d, 1, 'hold'], [C.closeHer + 30 * d, 2, 'hold'], [C.closeHer + 33 * d, 3, 'hold'],
-          [C.closeHer + 39 * d, 4, 'hold'], [C.closeHer + 40 * d, 5, 'hold'], [C.closeHer + 42 * d, 4, 'hold'], [C.closeHer + 43 * d, 3, 'hold'],
+          [C.closeHer + 39 * d, 4, 'hold'], [C.closeHer + 41 * d, 5, 'hold'], [C.closeHer + 44 * d, 4, 'hold'], [C.closeHer + 46 * d, 3, 'hold'],
           [C.hands, 0, 'hold'], [C.hands + 11 * d, 1, 'hold'], [C.hands + 15 * d, 2, 'hold'],
           [C.wideAgain, 0],
         ],
@@ -562,13 +566,13 @@ export const WOODLAND: MemoryDef = {
     ? 'A painting forms in the wall by the words: a clearing in a wood at dusk, a fallen log, a tree, the grass. Nobody is there.'
     : 'A pencil drawing forms in the wall by the words: a clearing in a wood, two young people lying in the grass.',
   // (Short, at least 3.5 s apart; the close-ups only while shown, and only what is seen in them,
-  // stand-ins or drawings: interaction and QA reviews.)
+  // stand-ins or drawings, never what the shot means: interaction, QA and creative reviews.)
   announce: (v) => v === 'empty' ? [] : [
     { at: 10.5, text: 'It opens until it is all there is: a summer afternoon, cicadas in the trees.', inside: true },
     { at: 10.5, text: 'The painting comes alive on the wall: a summer afternoon, cicadas in the trees.', wall: true },
-    { at: SHOTS.closeHim, text: 'Close on him; he looks toward her.', shot: 1 },
-    { at: SHOTS.closeHer, text: 'Close on her; she looks back at him.', shot: 2 },
-    { at: SHOTS.hands, text: 'Their hands in the grass, close. They don\'t touch.', shot: 3 },
+    { at: SHOTS.closeHim, text: 'His face, close, turned toward her.', shot: 1 },
+    { at: SHOTS.closeHer, text: 'Her face, close, turned toward him.', shot: 2 },
+    { at: SHOTS.hands, text: 'Their hands in the grass, a little apart.', shot: 3 },
     { at: CUT, text: 'The same clearing, at dusk. Nobody is there.' },
     { at: WOODLAND_SECTIONS.exit, text: 'The painting goes back into the wall.' },
   ],

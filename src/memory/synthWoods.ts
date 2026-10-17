@@ -1,4 +1,7 @@
-import { gust } from './living/performance';
+import { gustAt } from './living/performance';
+
+/** A gust as it is heard: over the middle of the clearing, a moment before it is seen there. */
+const heard = (t: number) => gustAt(t + 0.15, 0.5, WOODLAND.gusts);
 import { WOODLAND } from './living/woodland';
 
 /**
@@ -326,7 +329,7 @@ export async function renderWoods(take: number): Promise<Float32Array[]> {
     biquad(ch, 'lowpass', 7500, 0.7);
   }
   const chorusLv = control(n, (t) => {
-    const g = gust(t + 0.4, WOODLAND.gusts).strength;
+    const g = heard(t).strength;
     // The wind carries it; it draws back at the touch; it thins in the evening; it goes first.
     let lv = day(t) * Math.pow(10, (3 * g) / 20);
     lv *= empty ? 1 : 1 - 0.5 * (1 - quiet(t, T.touch, 0.4));
@@ -375,12 +378,12 @@ export async function renderWoods(take: number): Promise<Float32Array[]> {
   }
   const leaves = [new Float32Array(n), new Float32Array(n)];
   const air = control(n, (t) => {
-    const gs = gust(t + 0.4, WOODLAND.gusts);
+    const gs = heard(t);
     return (0.15 * (empty ? 0.6 : curve(T.breeze, t)) + Math.pow(gs.strength, 1.5)) * (empty ? 0.6 : 0.25 + 0.75 * opened(t)) * going(t, T.leavesOut);
   });
   // From the left as the front comes in, toward the right as it passes.
   const panEnv = control(n, (t) => {
-    const gs = gust(t + 0.4, WOODLAND.gusts);
+    const gs = heard(t);
     return Math.min(1, Math.max(-1, gs.strength > 0.01 ? gs.front * 1.6 - 0.8 : 0));
   });
   for (let i = 0; i < n; i++) {

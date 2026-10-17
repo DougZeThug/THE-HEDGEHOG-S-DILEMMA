@@ -66,12 +66,14 @@ export const WOODLAND: LivingSpec = {
   chest: { a: { swell: 0.07, rise: 6 }, b: { swell: 0.09, rise: 6 } },
   headLift: 1.6,
   blinks: BLINKS,
-  // Three, as punctuation (heard 0.4 s before they're seen): one in the first wide, one in the
-  // second (gone before the stillness), one over the empty grass where they lay.
+  // Three, as punctuation, quick across the clearing (heard as they are seen): one in the first
+  // wide, settled ~2 s before the cut to him; one in the second, settled ~3 s before the dusk cut
+  // (its stillness is the cut's); one over the empty grass where they lay. (Cinematic review,
+  // 2026-10-17: they were seen 1–3 s after they were heard, and rang on into the stillness.)
   gusts: [
-    { at: 13.0, cross: 1.6, strength: 1 },
-    { at: 30.4, cross: 1.4, strength: 0.6 },
-    { at: 36.6, cross: 2.2, strength: 0.5 },
+    { at: 12.0, cross: 1.0, strength: 1 },
+    { at: 29.0, cross: 1.0, strength: 0.6 },
+    { at: 36.6, cross: 1.2, strength: 0.5 },
   ],
   reach: { slide: 18, turn: 0.05 },
   forearmA: [0.881, -0.473],
@@ -92,7 +94,7 @@ export const WOODLAND: LivingSpec = {
   },
   // Motes only in the light (at most ~30 seen at once); two seeds; one leaf in each afternoon gust.
   // (No seed in the second wide: it is the stillest shot.)
-  air: { motes: 40, seeds: [11.3], leaves: [12.9, 30.4] },
+  air: { motes: 40, seeds: [11.3], leaves: [12.6, 29.6] },
   alive: 6.25,
   settle: { move: [1.5, -3], turn: -0.008 },
   shoulder: [0, 3],

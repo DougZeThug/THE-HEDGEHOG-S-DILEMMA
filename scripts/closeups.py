@@ -97,7 +97,7 @@ SHOTS = {
 STANDIN = {
     'c4': {'panel': (540, 542, 800, 783), 'face': (0.55, 0.3), 'at': 0.38, 'chest': (0.45, 0.68, 0.35, 0.22)},
     'c5': {'panel': (802, 542, 1076, 783), 'face': (0.45, 0.25), 'at': 0.62, 'chest': (0.52, 0.62, 0.32, 0.2)},
-    'c6': {'panel': (1096, 534, 1422, 755), 'face': (0.5, 0.5), 'fill': True, 'chest': None},
+    'c6': {'panel': (1096, 534, 1422, 755), 'face': (0.56, 0.8), 'fill': True, 'chest': None},
 }
 # The sheet's top panel: the two of them lying in a long bed of grass, drawn by the same hand (its
 # grass, enlarged to the close-ups' scale, is what the stand-ins' grass is grown from).

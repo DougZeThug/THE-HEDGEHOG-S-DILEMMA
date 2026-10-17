@@ -208,7 +208,8 @@ function airborne(items: { stem: [number, number, number, number]; home: [number
 }
 
 /** The kinds of things the air moves, as springs (Hz, damping): see `windResponse`. */
-const SPRINGS = { grass: [0.7, 0.5], flower: [1.2, 0.3], leaves: [0.45, 0.6] } as const;
+// (The canopy stiff enough to settle with its gust, not ring on after it: cinematic review.)
+const SPRINGS = { grass: [0.7, 0.5], flower: [1.2, 0.3], leaves: [0.8, 0.7] } as const;
 /** How fast the sky drifts (plate px a second): the afternoon's, the evening's. */
 const DRIFT = { day: 2, after: 1.4 };
 

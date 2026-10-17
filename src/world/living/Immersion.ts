@@ -9,10 +9,11 @@ import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
  * projected), then, as `immerse` rises, spreading out from there until it covers the view, and
  * back again. One continuous homography: the wall's painting becomes the world without a cut.
  *
- * Its edge is ragged and soft (the noise the wall's mask uses), and inside the edge the graphite
- * underdrawing shows first, as on the wall (image 3). Near the edge the painting is pigment in
- * the plaster (multiplied into the room); further in, and the deeper the immersion, it is the
- * painting itself.
+ * Its edge is ragged and soft (the noise the wall's mask uses), and light: the painting, then
+ * the graphite underdrawing just inside the edge, then the plaster (image 3). As it shows, the
+ * wall's painting (pigment in the plaster) becomes the painting's own light, at its place, over a
+ * second and more; only then does it open out (cinematic and creative reviews, 2026-10-17: the
+ * painting's light grows, then its frame; never a pop).
  */
 const LEAVES = 5;
 
@@ -24,10 +25,8 @@ const ImmersionShader = {
     uNoise: { value: null as THREE.Texture | null },
     /** Screen uv → painting uv (a homography). */
     uH: { value: new THREE.Matrix3() },
-    /** How much of the overlay shows at all (0 = the room untouched). */
+    /** How much of the overlay shows at all (0 = the room untouched, 1 = the painting's own light). */
     uShow: { value: 0 },
-    /** 0 = pigment in plaster everywhere, 1 = the painting itself inside its edge. */
-    uSolid: { value: 0 },
     /** The painting's aspect (w / h), for an edge the same width on all sides. */
     uAspect: { value: 16 / 9 },
     /** How wide the ragged edge is, in painting heights. */
@@ -54,7 +53,7 @@ const ImmersionShader = {
   fragmentShader: /* glsl */ `
     uniform sampler2D tDiffuse, uScene, uSketch, uNoise;
     uniform mat3 uH;
-    uniform float uShow, uSolid, uAspect, uEdge, uSeed;
+    uniform float uShow, uAspect, uEdge, uSeed;
     uniform vec3 uZoom;
     uniform vec4 uView;
     uniform sampler2D uLeaves;
@@ -78,11 +77,9 @@ const ImmersionShader = {
       vec2 qc = clamp(uZoom.xy + (q - uZoom.xy) / uZoom.z, 0.0, 1.0);
       vec3 p = texture2D(uScene, (qc - uView.xy) / uView.zw).rgb;
       vec4 g = texture2D(uSketch, qc);
-      // Pigment into plaster (relative to the plaster's display white), or the painting itself.
-      vec3 multiplied = room.rgb * min(p / 0.93, vec3(1.15));
-      float solid = uSolid * smoothstep(uEdge * 0.8, uEdge * 3.0, e);
-      vec3 painted = mix(multiplied, p, solid);
-      vec3 c = mix(room.rgb, painted, colour * uShow);
+      // The painting's own light over the room (the wall's painting under it, at its place, until
+      // it opens out), its edge into the plaster.
+      vec3 c = mix(room.rgb, p, colour * uShow);
       // The graphite the light finds first, just inside the colour's edge.
       c *= 1.0 - g.a * lead * uShow * 0.75;
       // Leaves passing close to the lens (premultiplied, out of focus).
@@ -147,7 +144,6 @@ export class Immersion {
     const full = coverQuad(o.aspect, o.paint, o.focus);
     const from = o.wall ?? full.map((p) => p.clone().sub(new THREE.Vector2(0.5, 0.5)).multiplyScalar(0.3).add(new THREE.Vector2(0.5, 0.5)));
     for (let i = 0; i < 4; i++) this.quad[i].copy(from[i]).lerp(full[i], k);
-    u.uSolid.value = clamp01((o.immerse - 0.05) / 0.45);
     // The ragged edge is a brush while it grows, and narrows into the overscan as it settles
     // (never a strip of plaster left at the screen's edge once inside).
     u.uEdge.value = 0.06 - 0.048 * k;

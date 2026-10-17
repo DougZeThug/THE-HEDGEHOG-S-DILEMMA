@@ -1309,7 +1309,8 @@ export class App {
     const dt = Math.min(0.1, this.clock.getDelta());
     this.time += dt;
     this.fps = this.fps * 0.95 + (1 / Math.max(dt, 1e-3)) * 0.05;
-    const running = this.mode === 'room' || this.mode === 'contribute';
+    // (A memory held at a position, as the editor and a capture hold it, holds the room too.)
+    const running = (this.mode === 'room' || this.mode === 'contribute') && !this.living?.held;
 
     // The opening holds light, image, sound and what the visitor may do; afterwards the room
     // is the Director's. Hints only once the room is theirs, and only if they haven't found out.
@@ -1363,6 +1364,7 @@ export class App {
         gazeChair: this.gazeChair,
         nearSurface: this.room.nearWall(this.rig.pos.x, this.rig.pos.z),
         kneeling: this.rig.kneeling,
+        carried: this.inside.carrying,
       };
       const cues = this.director.tick(dt, input, this.room.facing(this.rig.yaw));
       for (const c of cues) this.apply(c.cue);

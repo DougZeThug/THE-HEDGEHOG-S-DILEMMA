@@ -506,6 +506,18 @@ def pressed(dusk_rgb):
     return out * (1 - 0.13 * m[..., None])
 
 
+def pencil_layer(path):
+    """The artist's own pencil drawing of the composition (graphite on white paper), as the wall's
+    graphite layer: how dark the pencil is, laid as graphite (stand-in: `sketch_layer`, an edge
+    filter of the painting)."""
+    g = np.asarray(Image.open(path).convert('L').resize((W, H), Image.LANCZOS), np.float32) / 255
+    paper = np.percentile(g, 90)
+    e = np.clip((paper - g) / max(paper - g.min(), 1e-3), 0, 1)
+    e = smooth(0.05, 0.85, e) * 0.9
+    graphite = np.array([0.33, 0.33, 0.35])
+    return np.dstack([graphite * e[..., None], e])
+
+
 def sketch_layer(poster_rgb, fig_lines):
     """Graphite with a hierarchy: the people's linework first, then the trees' and the log's
     contours, the near grass faint, the clearing fainter."""
@@ -694,7 +706,10 @@ def main():
     e = os.path.join(OUT, 'empty')
     # The wall's layers.
     save(np.dstack([poster, np.ones((H, W))]), os.path.join(a, 'scene.webp'), WALL)
-    save(sketch_layer(poster, lines_plate), os.path.join(a, 'sketch.webp'), WALL)
+    # (The artist's pencil drawing where there is one: references/woodland/drawings/pencil.png.)
+    pencil = os.path.join(REF, 'drawings', 'pencil.png')
+    pencil_after = os.path.join(REF, 'drawings', 'pencil-after.png')
+    save(pencil_layer(pencil) if os.path.exists(pencil) else sketch_layer(poster, lines_plate), os.path.join(a, 'sketch.webp'), WALL)
     light = np.clip(maps[..., 3] * 1.4 + 0.25 * smooth(0.55, 0.8, lum) * smooth(400, 520, np.mgrid[0:H, 0:W][0]), 0, 1)
     save(np.dstack([light, light, light]), os.path.join(a, 'light.webp'), WALL)
     # The living scene.
@@ -715,11 +730,11 @@ def main():
     # After the cut: the same place at dusk, nobody there.
     after = pressed(arr(dusk))
     save(after, os.path.join(a, 'after.webp'), LIVE, q=92)
-    save(sketch_layer(after, np.zeros((H, W), np.float32)), os.path.join(a, 'sketch-after.webp'), WALL)
+    save(pencil_layer(pencil_after) if os.path.exists(pencil_after) else sketch_layer(after, np.zeros((H, W), np.float32)), os.path.join(a, 'sketch-after.webp'), WALL)
     # The revisit: the dusk painting itself, nobody in it.
     save(np.dstack([arr(dusk), np.ones((H, W))]), os.path.join(e, 'scene.webp'), WALL)
     dl = (arr(dusk) * [0.3, 0.59, 0.11]).sum(-1)
-    save(sketch_layer(arr(dusk), np.zeros((H, W), np.float32)), os.path.join(e, 'sketch.webp'), WALL)
+    save(pencil_layer(pencil_after) if os.path.exists(pencil_after) else sketch_layer(arr(dusk), np.zeros((H, W), np.float32)), os.path.join(e, 'sketch.webp'), WALL)
     dlight = np.clip((dl - blur(dl, 14)) * 4.0, 0, 1) * smooth(0.35, 0.6, dl) * 0.6
     save(np.dstack([dlight, dlight, dlight]), os.path.join(e, 'light.webp'), WALL)
 

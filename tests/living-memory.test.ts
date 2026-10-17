@@ -99,11 +99,21 @@ describe('the air, which moves everything (one wind, seekable)', () => {
     for (let t = 0; t < 35; t += 1 / 1000) p += windForce(t + 1 / 2000, 0.6, G) / 1000;
     expect(Math.abs(p - windDrift(35, 0.6, G))).toBeLessThan(0.01);
   });
-  it('three gusts: one in each wide, none in the close-ups or the stillness before the cut, one over the empty grass', () => {
+  it('three gusts: one in each wide, settled (as seen, everywhere across the clearing) before the cut to him and well before the dusk cut; one over the empty grass', () => {
     expect(G.length).toBe(3);
-    for (let t = 15.6; t < 30.3; t += 0.05) expect(gust(t, G).strength).toBe(0);
-    for (let t = 32.7; t < 34.5; t += 0.05) expect(gust(t, G).strength).toBe(0);
-    expect(gust(31.0, G).strength).toBeGreaterThan(0);
+    // What each gust adds to anything on a spring (grass, flowers, the canopy, locks of hair).
+    const springs = [[0.7, 0.5], [1.2, 0.3], [0.8, 0.7], [1.3, 0.35], [0.9, 0.45], [1.6, 0.3]];
+    const seen = (t: number, g: (typeof G)[number]) => {
+      let m = 0;
+      for (let x = 0; x <= 1.0001; x += 0.1) for (const [hz, z] of springs) m = Math.max(m, Math.abs(windResponse(t, x, hz, z, [g]) - windResponse(t, x, hz, z, [])));
+      return m;
+    };
+    const peak = (g: (typeof G)[number]) => Math.max(...Array.from({ length: 160 }, (_, i) => seen(g.at + i * 0.05, g)));
+    for (const [g, cut, calm] of [[G[0], 16.5, 1.8], [G[1], 34.5, 2.5]] as const) {
+      const p = peak(g);
+      for (let t = cut - calm; t < cut; t += 0.05) expect(seen(t, g), `${t.toFixed(2)} s`).toBeLessThan(0.08 * p);
+    }
+    expect(gust(29.5, G).strength).toBeGreaterThan(0);
     expect(gust(37.5, G).strength).toBeGreaterThan(0);
   });
 });
