@@ -738,7 +738,20 @@
           "chest": null,
           "standin": true
         }
-      ]
+      ],
+      "orderClocks": {
+        "drawn": [
+          2.0,
+          6.0,
+          "soft"
+        ],
+        "coloured": [
+          5.4,
+          7.6,
+          "linear"
+        ],
+        "lag": 0.4
+      }
     },
     "empty": null
   }

@@ -836,7 +836,7 @@ def main():
     try:
         with open(os.path.join(OUT, 'manifest.json')) as f:
             before = json.load(f)['living']['afternoon']
-        for k in ('closeups', 'order'):
+        for k in ('closeups', 'order', 'orderClocks'):
             if before.get(k):
                 living['afternoon'][k] = before[k]
     except (OSError, KeyError, ValueError, TypeError):

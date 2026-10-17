@@ -4,7 +4,18 @@ import { WOODLAND } from './living/woodland';
 
 /** A gust as it is heard: the leaves over the middle of the clearing as they sway with it, a
  *  moment before they are seen to. */
-const heard = (t: number) => gustSway(t + 0.4, 0.5, WOODLAND.gusts);
+export const heard = (t: number) => gustSway(t + 0.4, 0.5, WOODLAND.gusts);
+
+/**
+ * Where the leaves are heard across (−1 left .. 1 right): from the left as a gust's front comes
+ * in, toward the right as it passes, back to the middle as it dies away (by its strength: never a
+ * jump; QA, 2026-10-17).
+ */
+export function leavesPan(t: number): number {
+  const gs = heard(t);
+  const k = Math.min(1, gs.strength / 0.15);
+  return Math.min(1, Math.max(-1, gs.front * 1.6 - 0.8)) * k * k * (3 - 2 * k);
+}
 
 /**
  * The woodland memory's sound, made in the engine (docs/reviews/2026-10-woodland.md): stand-ins
@@ -385,10 +396,7 @@ export async function renderWoods(take: number): Promise<Float32Array[]> {
     return (0.15 * (empty ? 0.6 : curve(T.breeze, t)) + Math.pow(gs.strength, 1.5)) * (empty ? 0.6 : 0.25 + 0.75 * opened(t)) * going(t, T.leavesOut);
   });
   // From the left as the front comes in, toward the right as it passes.
-  const panEnv = control(n, (t) => {
-    const gs = heard(t);
-    return Math.min(1, Math.max(-1, gs.strength > 0.01 ? gs.front * 1.6 - 0.8 : 0));
-  });
+  const panEnv = control(n, leavesPan);
   for (let i = 0; i < n; i++) {
     const lv = at64(air, i) * (1 + 0.6 * flutter[i] * fk * 0.35);
     const pan = at64(panEnv, i);

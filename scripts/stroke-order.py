@@ -148,6 +148,9 @@ def main():
     with open(MANIFEST) as f:
         manifest = json.load(f)
     manifest['living']['afternoon']['order'] = 'afternoon/order'
+    # (The clocks it was timed on: tests/memory-defs.test.ts holds them to the committed timeline,
+    # so a timeline moved without running this again is found.)
+    manifest['living']['afternoon']['orderClocks'] = {'drawn': list(DRAWN), 'coloured': list(COLOURED), 'lag': LAG}
     with open(MANIFEST, 'w') as f:
         json.dump(manifest, f, indent=2)
         f.write('\n')

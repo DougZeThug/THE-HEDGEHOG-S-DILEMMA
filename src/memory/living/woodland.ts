@@ -51,10 +51,11 @@ export interface LivingSpec {
  * own drawings), never in the stillness before the cut.
  */
 const BLINKS = {
-  // (The first wide is 10.5–15 s, the second 27–34.5: one each in the first, settled a second
-  // before the cut to him; hers in the second, before its stillness.)
+  // (The first wide is 10.5–15 s, the second 27–34.5: his in the first, after the gust, settled a
+  // second before the cut to him; hers in the second, before its stillness. The first wide holds
+  // a gust, a leaf and her foot already: QA, 2026-10-17.)
   a: [13.4],
-  b: [11.9, 31.6],
+  b: [31.6],
 };
 
 export const WOODLAND: LivingSpec = {
@@ -73,8 +74,10 @@ export const WOODLAND: LivingSpec = {
   // second wide: it is the longest and the stillest shot, and the dusk cut's stillness is its own.
   // (Cinematic review, 2026-10-17: they were seen 1–3 s after they were heard, and rang on into
   // the stillness; the skeptic's second review: a gust opening shot 7 made its return an event.)
+  // (The first crosses in 0.8 s, so that, the canopy's slow sway and all, it has settled 0.8 s
+  // before the cut to him: QA, 2026-10-17.)
   gusts: [
-    { at: 11.5, cross: 1.0, strength: 1 },
+    { at: 11.5, cross: 0.8, strength: 1 },
     { at: 36.6, cross: 1.2, strength: 0.5 },
   ],
   reach: { slide: 18, turn: 0.05 },

@@ -722,9 +722,31 @@ The cinematic and creative directors watched the review film (desktop, the after
 - **The canopy, taken.** It sways at 0.45 Hz, damping 0.6, again. What is heard of a gust is the canopy's own sway over the middle of the clearing, 0.4 s before it is seen (`gustSway`; tested: peak 0.4 s early, full strength for a full gust, nothing in the second wide).
 - **A, taken in the skeptic's form, after checking.** The crossing's frames, probed after the first fixes, still showed "I wanted you to" across the two of them at 6.5–7.5 s.
   - Each piece of the room's writing under the painting now goes to a trace (15%) as the colour reaches it: the order map is read once, and the wall's own colour edge is used. It comes back as the colour leaves.
-  - The memory's own line keeps its bloom of plaster. While the pencil draws, graphite stays with graphite.
+  - The memory's own line was left out, believed kept in a bloom of plaster; QA found it isn't (below). While the pencil draws, graphite stays with graphite.
 - **Found in the same frames:** at 6.5 s his body was a white, figure-shaped gap in the painting.
   - The cause: the colour started at the words, the words lie over the two of them, and the colour was held for their lines, which are drawn last. A floor in the order map's own units held it to 7.2 s.
   - Now, once the drawing is whole (its last line ~5.0 s), the colour comes at 5.4 s, out from the two of them. The drawing finds them last; the colour begins with them.
   - The floor is in real seconds (at least 0.4 s after a line) on the timeline's two clocks. A test keeps the script's copy of them the same.
   - Also, the order map's earliest values were 0, which the wall shows half drawn and half coloured before anything has happened. They now start at 0.02 (pencil) and 0.12 (colour).
+
+**QA on the built changes** (`qa-accessibility`, commit 5ad9eed). These held:
+- The suites pass, and no shader program is compiled after entry.
+- The sprig respects reduced motion, wall-only visitors and the way back.
+- `colourAt` reads the order map the right way up (checked against an independent decode in Chromium).
+- The order map keeps to the timeline's clocks: the last line is drawn by 4.96 s, the first colour shows at 5.44 s, and the colour reaches about 5.5% of the painting each 0.1 s.
+- The sound leads the canopy by 0.4 s, and nothing in the sound is within 0.7 s of a cut.
+
+Fixed:
+- [P1] **Let go early, the room's writing stayed hidden on bare plaster for about 2 s after the painting had gone, then snapped back.** The wash followed only the colour, which an early let-go leaves where it was. It now also follows the painting's presence (`washOf` in `src/world/living/wash.ts`); tested through a real controller let go at 7 s and at 20 s.
+- [P2] **A line half over the painting stayed at full strength, and a long line went all at once.** The writing is now judged at five points across its box, those off the painting uncoloured.
+- **The memory's own line** sat over the painting at full strength: a painting drawn in order lies under its words with no bloom of plaster round them (`uOpen` 1). It now washes like the rest, so the painting has no writing on it, as in image 3, and the words come back to the white wall after it.
+- [P2] **Let go mid-pass, the sprig was cut in one frame.** It now stops where it is and goes in 0.2 s. It also follows reduced motion as it is now, not as it was when the memory began, and so does the falling leaf.
+- [P2] **The leaves' sound jumped from right to centre as each gust died.** The pan is now weighted by the gust's strength; the largest step is 0.019 a block (tested).
+- [P2] **Tests that passed for the wrong reason.**
+  - The sound's lead is now tested through the sound's own `heard`.
+  - The calm before the cut to him had been relaxed to 0.5 s to fit; the first gust now crosses in 0.8 s (the director's "1.0 s or less"), so the cut has a real 0.8 s of calm, under 4% by the cut itself.
+  - The order map's clocks are written to the manifest by the script and tested against the committed timeline, the one that plays.
+  - The sprig is now tested in the way-in harness.
+  - The memories playtest now fails on a program compiled after entry or on growth.
+- [P2] **The order map's reading failed silently.** It now falls back to a page canvas and warns.
+- **Simplified:** `gustAt` deleted (no callers). Her blink in the first wide is gone: in 4.5 s it already holds a gust, a leaf and her foot.

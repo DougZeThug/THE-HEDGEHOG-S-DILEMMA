@@ -9,6 +9,7 @@ import { MemoryLight } from './world/MemoryLight';
 import { MemoryWindow } from './world/MemoryWindow';
 import { Immersion } from './world/living/Immersion';
 import { Inside } from './world/living/Inside';
+import { washOf } from './world/living/wash';
 import { warmLiving } from './world/living/materials';
 import { MemoryClock } from './memory/clock';
 import type { Lifecycle } from './memory/types';
@@ -137,6 +138,8 @@ export class App {
   studioTick: ((now: number) => void) | null = null;
   private memoryRuntime: Promise<typeof import('./memory/runtime')> | null = null;
   private memoryKey: string | null = null;
+  /** How far the memory's light washes its line this frame. */
+  private lightWash = 0;
   /** The piece of writing last touched (the memory's light falls where the visitor touched). */
   private lastTappedKey: string | null = null;
   /** How dark the chair's contact with the floor is, at full light (the look sets it). */
@@ -1043,7 +1046,8 @@ export class App {
     }, { reduced: this.prefs.reducedMotion, aspect, scene: pl.scene.target.texture, sketch, group: l.anchor.group, leaves: pl.leaves });
     // The window was placed before the spread changed: place it again for this frame.
     this.memoryWindow.update(f.final, this.rig.restingEye, 0);
-    this.washUnderPainting(l, f.final['window.reveal'] ?? 0);
+    this.washUnderPainting(l, f.final);
+    pl.scene.reduced = this.prefs.reducedMotion;
     pl.scene.update(this.renderer, f.t, f.final, { view: this.inside.view, parallax: new THREE.Vector2() });
     // What changes later, told to a screen reader when it happens (not before: the cut is not given away).
     const later = l.memory.prepared.def.announce?.(l.memory.prepared.variant) ?? [];
@@ -1058,24 +1062,21 @@ export class App {
   }
 
   /**
-   * The room's writing under a living memory's painting (all but its own line, which keeps its
-   * bloom of plaster): graphite with graphite while the pencil draws; each piece goes to a trace
-   * as the colour reaches it, and comes back as the colour leaves (the skeptic's second review,
-   * 2026-10-17: the kitchen's light washes its own line so).
+   * The room's writing under a living memory's painting, its own line too (`washOf`: each piece
+   * goes to a trace as the colour reaches it, and comes back as the colour leaves or the painting
+   * goes; the skeptic's second review and QA, 2026-10-17).
    */
-  private washUnderPainting(l: NonNullable<App['living']>, reveal: number) {
+  private washUnderPainting(l: NonNullable<App['living']>, final: Record<string, number>) {
     const colourAt = l.memory.prepared.living?.colourAt;
-    const p = this.memoryWindow.painting;
-    if (!colourAt || p.w <= 0 || p.h <= 0) return;
+    if (!colourAt) return;
+    const reveal = final['window.reveal'] ?? 0, presence = final['window.presence'] ?? 1;
     for (const it of this.text.items.values()) {
-      if (it.key === l.key) continue;
       const a = this.text.anchorOfKey(it.key);
       if (!a || a.group !== l.anchor.group) continue;
-      const u = (a.x - p.cx) / p.w + 0.5, v = (a.y - p.cy) / p.h + 0.5;
-      if (u < 0 || u > 1 || v < 0 || v > 1) continue;
-      // (The wall's own edge for the colour: src/world/MemoryWindow.ts.)
-      const g = colourAt(u, v);
-      this.text.wash(it.key, 0.85 * THREE.MathUtils.smoothstep(reveal, g - 0.08, g + 0.08));
+      const w = washOf(a, this.memoryWindow.painting, colourAt, reveal, presence);
+      if (w <= 0 && !l.washed.has(it.key)) continue;
+      // (Its own line may be in the memory's light as well: the more washed of the two.)
+      this.text.wash(it.key, it.key === this.memoryKey ? Math.max(w, this.lightWash) : w);
       l.washed.add(it.key);
     }
   }
@@ -1414,10 +1415,12 @@ export class App {
     // The chair's contact with the floor is there as the light on it is: none in the dark.
     (this.chair.contact.material as THREE.MeshBasicMaterial).opacity = this.chairContact * Math.min(1, this.lighting.keyLevel);
     (this.chair.seatShade.material as THREE.MeshBasicMaterial).opacity = this.chairContact * Math.min(1, this.lighting.panelLevel);
+    this.lightWash = 0;
     if (this.memoryKey) {
       // The light washes the words out a little (to about half their strength), then gives them back.
       const m = this.memoryLight.update(this.time);
-      this.text.wash(this.memoryKey, 0.35 * m);
+      this.lightWash = 0.35 * m;
+      this.text.wash(this.memoryKey, this.lightWash);
       if (!this.memoryLight.active) this.memoryKey = null;
     }
     this.stepLivingMemory();

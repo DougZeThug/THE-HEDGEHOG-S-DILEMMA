@@ -12,19 +12,29 @@ const ROOT = join(__dirname, '..');
 const manifest = JSON.parse(readFileSync(join(ROOT, 'public/voices/manifest.json'), 'utf8')) as Record<string, string[]>;
 
 describe('the living memories, as defined and committed', () => {
-  it("the woodland's pencil and colour clocks are the order map's (scripts/stroke-order.py)", () => {
+  it("the woodland's pencil and colour clocks: the order map was timed on the timeline that plays", () => {
+    // What plays (the committed timeline), as [start, end, ease] of each track's first segment.
+    type Key = { position: number; handles: number[] };
+    const sheet = (state as unknown as { sheetsById: Record<string, { sequence: { tracksByObject: Record<string, { trackData: Record<string, { keyframes: Key[] }>; trackIdByPropPath: Record<string, string> }> } }> }).sheetsById['woodland-afternoon'];
+    const committed = (prop: string) => {
+      const o = sheet.sequence.tracksByObject.window;
+      const [a, b] = o.trackData[o.trackIdByPropPath[`["${prop}"]`]].keyframes;
+      // (A straight segment leaves its key with the handle (1/3, 1/3).)
+      return [a.position, b.position, Math.abs(a.handles[3] - 1 / 3) < 1e-6 ? 'linear' : 'soft'];
+    };
+    // What the baked map was timed on (scripts/stroke-order.py writes it to the manifest).
+    const art = JSON.parse(readFileSync(join(ROOT, 'public/memories/woodland/manifest.json'), 'utf8'));
+    const clocks = art.living.afternoon.orderClocks as { drawn: unknown[]; coloured: unknown[] };
+    expect(clocks.drawn).toEqual(committed('sketch'));
+    expect(clocks.coloured).toEqual(committed('reveal'));
+    // And the script's own copy, so running it again keeps them.
     const py = readFileSync(join(ROOT, 'scripts/stroke-order.py'), 'utf8');
     const clock = (name: string) => {
       const [, a, b, ease] = py.match(new RegExp(`^${name} = \\(([\\d.]+), ([\\d.]+), '(\\w+)'\\)`, 'm'))!;
       return [Number(a), Number(b), ease];
     };
-    const seed = MEMORIES.woodland.seed('afternoon');
-    const keys = (k: string) => {
-      const [a, b] = seed.tracks[k];
-      return [a[0], b[0], a[2] === 'linear' ? 'linear' : 'soft'];
-    };
-    expect(clock('DRAWN')).toEqual(keys('window.sketch'));
-    expect(clock('COLOURED')).toEqual(keys('window.reveal'));
+    expect(clock('DRAWN')).toEqual(committed('sketch'));
+    expect(clock('COLOURED')).toEqual(committed('reveal'));
   });
   for (const def of Object.values(MEMORIES)) {
     it(`${def.id}: every authored prop exists, every layer has art, every sound marker has a cue`, () => {

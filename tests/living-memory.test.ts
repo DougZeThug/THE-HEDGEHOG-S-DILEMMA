@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import * as THREE from 'three';
-import { CANOPY, breath, blinkDrawing, gust, gustSway, hash01, windForce, windResponse, windDrift } from '../src/memory/living/performance';
+import { CANOPY, breath, blinkDrawing, gust, hash01, windForce, windResponse, windDrift } from '../src/memory/living/performance';
+import { WASH, washOf } from '../src/world/living/wash';
 import { WOODLAND as SPEC } from '../src/memory/living/woodland';
 import { compose, FULL } from '../src/memory/compose';
 import { coverQuad, squareToQuad, visiblePart } from '../src/world/living/Immersion';
@@ -8,7 +9,7 @@ import { useInitialState, sheetSource } from '../src/memory/theatre';
 import { memorySchema } from '../src/memory/sheets';
 import { BREEZE_KEYS, CUT as CUT_AT, MEMORIES, SHOTS, sheetId } from '../src/memory/defs';
 import { MemoryPlaybackController } from '../src/memory/MemoryPlaybackController';
-import { renderCicadas, renderWoods, renderGrass, renderLast, cicada, RATE, TIMES } from '../src/memory/synthWoods';
+import { renderCicadas, renderWoods, renderGrass, renderLast, cicada, heard, leavesPan, RATE, TIMES } from '../src/memory/synthWoods';
 import state from '../src/memory/theatre-state.json';
 import manifest from '../public/memories/woodland/manifest.json';
 import { LivingScene, celOf, type Closeup, type LivingArt } from '../src/memory/living/LivingScene';
@@ -109,8 +110,11 @@ describe('the air, which moves everything (one wind, seekable)', () => {
       return m;
     };
     const peak = (g: (typeof G)[number]) => Math.max(...Array.from({ length: 160 }, (_, i) => seen(g.at + i * 0.05, g)));
+    // (Settled for the last 0.8 s before the cut to him; under 4% of its peak by the cut itself,
+    // the canopy's slow sway all that is left of it.)
     const p = peak(G[0]);
-    for (let t = SHOTS.closeHim - 0.5; t < SHOTS.closeHim; t += 0.05) expect(seen(t, G[0]), `${t.toFixed(2)} s`).toBeLessThan(0.08 * p);
+    for (let t = SHOTS.closeHim - 0.8; t < SHOTS.closeHim; t += 0.05) expect(seen(t, G[0]), `${t.toFixed(2)} s`).toBeLessThan(0.08 * p);
+    expect(seen(SHOTS.closeHim, G[0])).toBeLessThan(0.04 * p);
     // (None from a second before the second wide to the dusk cut: its stillness.)
     for (let t = SHOTS.wideAgain - 1; t < CUT_AT; t += 0.05) expect(gust(t, G).strength).toBe(0);
     expect(gust(37.5, G).strength).toBeGreaterThan(0);
@@ -122,19 +126,32 @@ describe('the air, which moves everything (one wind, seekable)', () => {
     // (And the falling leaf, crossing in its 2.1 s, is gone before the cut to him.)
     for (const at of SPEC.air.leaves) expect(at < SHOTS.closeHim ? at + 2.1 < SHOTS.closeHim : at > SHOTS.wideAgain).toBe(true);
   });
-  it('what is heard of a gust swells and settles with the canopy it moves, a moment before it is seen', () => {
+  it('what is heard of a gust (the sound itself) swells and settles with the canopy it moves, a moment before it is seen', () => {
     const g = G[0];
     const sway = (t: number) => windResponse(t, 0.5, CANOPY[0], CANOPY[1], [g], 0);
     let seenAt = 0, heardAt = 0, top = 0, topHeard = 0;
     for (let t = g.at; t < g.at + 6; t += 0.01) {
       if (sway(t) > top) (top = sway(t)), (seenAt = t);
-      const h = gustSway(t + 0.4, 0.5, G).strength;
+      const h = heard(t).strength;
       if (h > topHeard) (topHeard = h), (heardAt = t);
     }
     expect(seenAt - heardAt).toBeCloseTo(0.4, 1);
-    // A full gust is heard at full strength; nothing is heard of the gusts in the stillness.
-    expect(topHeard).toBeCloseTo(g.strength, 1);
-    for (let t = SHOTS.wideAgain; t < CUT_AT; t += 0.1) expect(gustSway(t + 0.4, 0.5, G).strength).toBe(0);
+    // A full gust is heard nearly full (a quick one moves the slow canopy a little less); nothing
+    // is heard of the gusts in the stillness.
+    expect(topHeard).toBeGreaterThan(0.8);
+    expect(topHeard).toBeLessThanOrEqual(1);
+    for (let t = SHOTS.wideAgain; t < CUT_AT; t += 0.1) expect(heard(t).strength).toBe(0);
+  });
+  it('the leaves are heard moving across with the gust and back to the middle as it dies, never jumping', () => {
+    const dt = 64 / RATE;
+    let prev = leavesPan(0), most = 0;
+    for (let t = dt; t < TIMES.length; t += dt) {
+      const p = leavesPan(t);
+      most = Math.max(most, Math.abs(p - prev));
+      prev = p;
+    }
+    expect(most).toBeLessThanOrEqual(0.02);
+    expect(Math.abs(leavesPan(G[0].at - 1))).toBe(0);
   });
   it("the sound's times are the picture's", () => {
     expect(TIMES.cut).toBe(CUT_AT);
@@ -250,6 +267,56 @@ describe('the ending: a cut, on one frame', () => {
     expect(flips).toBe(1);
     expect(halfway).toBe(0);
     c.dispose(0);
+  });
+
+  it("let go early, the room's writing under the painting comes back as the painting goes, never after it", () => {
+    // A line inside the painting where the colour has come.
+    const box = { x: 0.2, y: 0.1, w: 1, h: 0.1 }, painting = { cx: 0, cy: 0, w: 3.2, h: 1.8 };
+    for (const at of [7, 20]) {
+      const c = new MemoryPlaybackController({ timeline: src, weights: FULL, reduced: false, entrance: 2, sways: [], exit: def.exit, maxHold: 60, tail: 0, living: true });
+      c.start();
+      for (let t = 0; t < at; t += 1 / 60) c.step(1 / 60);
+      c.release('interrupt');
+      let prev: number | null = null, gone = false;
+      for (let k = 0; k < 60 * 12; k++) {
+        const f = c.step(1 / 60);
+        if (!f || f.state === 'complete') break;
+        const presence = f.final['window.presence'] ?? 1;
+        const w = washOf(box, painting, () => 0.2, f.final['window.reveal'] ?? 0, presence);
+        if (presence <= 0.02) (gone = true), expect(w, `${at} s, let go`).toBeLessThanOrEqual(0.02);
+        if (prev !== null) expect(Math.abs(w - prev)).toBeLessThanOrEqual(0.1);
+        prev = w;
+      }
+      expect(gone).toBe(true);
+      c.dispose(0);
+    }
+  });
+});
+
+describe("the room's writing under a living memory's painting", () => {
+  const painting = { cx: 0, cy: 0, w: 3.2, h: 1.8 };
+  const coloured = () => 0.3;
+  it('goes to a trace where the colour has come, only as far as the painting is there', () => {
+    expect(washOf({ x: 0, y: 0, w: 1, h: 0.1 }, painting, coloured, 1, 1)).toBeCloseTo(WASH, 6);
+    expect(washOf({ x: 0, y: 0, w: 1, h: 0.1 }, painting, coloured, 0.1, 1)).toBe(0);
+    expect(washOf({ x: 0, y: 0, w: 1, h: 0.1 }, painting, coloured, 1, 0.6)).toBeCloseTo(WASH * 0.6, 6);
+    expect(washOf({ x: 0, y: 0, w: 1, h: 0.1 }, painting, coloured, 1, 0)).toBe(0);
+  });
+  it('a line half over the painting goes half way; one off it, or above or below it, not at all', () => {
+    // Its middle just past the painting's right edge (1.6 m from the centre): two of its five
+    // points on it.
+    expect(washOf({ x: 1.65, y: 0, w: 1, h: 0.1 }, painting, coloured, 1, 1)).toBeCloseTo(WASH * 0.4, 6);
+    expect(washOf({ x: 3, y: 0, w: 1, h: 0.1 }, painting, coloured, 1, 1)).toBe(0);
+    expect(washOf({ x: 0, y: 1.2, w: 1, h: 0.1 }, painting, coloured, 1, 1)).toBe(0);
+  });
+  it('a long line goes as the colour crosses it, not all at once', () => {
+    // The colour comes from the left: the line's left end coloured long before its right.
+    const fromLeft = (u: number) => 0.12 + 0.8 * u;
+    const box = { x: 0, y: 0, w: 2.4, h: 0.1 };
+    const at = (reveal: number) => washOf(box, painting, fromLeft, reveal, 1);
+    expect(at(0.3)).toBeGreaterThan(0);
+    expect(at(0.3)).toBeLessThan(WASH * 0.5);
+    expect(at(0.9)).toBeCloseTo(WASH, 6);
   });
 });
 

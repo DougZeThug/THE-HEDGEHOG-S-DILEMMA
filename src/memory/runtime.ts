@@ -159,9 +159,13 @@ async function loadLayer(url: string, o: { living?: boolean; data?: boolean } = 
 function colourTimes(bitmap: ImageBitmap): ((u: number, v: number) => number) | null {
   const w = 96, h = 54;
   try {
-    const c = typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(w, h) : Object.assign(document.createElement('canvas'), { width: w, height: h });
-    const x = c.getContext('2d') as CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null;
-    if (!x) return null;
+    // (An offscreen canvas where there is one with a 2D context, else a page canvas.)
+    const off = typeof OffscreenCanvas !== 'undefined' ? (new OffscreenCanvas(w, h).getContext('2d') as OffscreenCanvasRenderingContext2D | null) : null;
+    const x = off ?? Object.assign(document.createElement('canvas'), { width: w, height: h }).getContext('2d');
+    if (!x) {
+      console.warn('living memory: no 2D canvas to read its order map; the writing under it stays');
+      return null;
+    }
     x.drawImage(bitmap, 0, 0, w, h);
     const d = x.getImageData(0, 0, w, h).data;
     const g = new Float32Array(w * h);
@@ -169,7 +173,8 @@ function colourTimes(bitmap: ImageBitmap): ((u: number, v: number) => number) | 
     // (Decoded upside down, as the textures are: its first row is the painting's foot.)
     const at = (k: number, n: number) => Math.min(n - 1, Math.max(0, Math.floor(k * n)));
     return (u, v) => g[at(v, h) * w + at(u, w)];
-  } catch {
+  } catch (e) {
+    console.warn('living memory: its order map could not be read; the writing under it stays', e);
     return null;
   }
 }

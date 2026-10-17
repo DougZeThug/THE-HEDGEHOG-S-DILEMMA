@@ -143,3 +143,10 @@ for (const profile of PROFILES) {
 }
 writeFileSync(`${OUT}/memories.json`, JSON.stringify(report, null, 2));
 await browser.close();
+// It fails (exits non-zero) on an error, a program compiled after entry, what a memory leaves
+// behind growing, or a memory still living after it was let go.
+const failed = Object.entries(report.profiles).filter(([, p]) => p.errors.length || p.programsAfter !== p.programsAtBoot || p.texturesAfterSecond !== p.texturesAfter || p.stillLiving);
+if (failed.length) {
+  console.error(`failed: ${failed.map(([k]) => k).join(', ')}`);
+  process.exitCode = 1;
+}

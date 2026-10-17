@@ -339,7 +339,8 @@ export class LivingScene {
       this.people = null;
     }
   }
-  private readonly reduced: boolean;
+  /** Reduced motion (as asked for now: the App keeps it current; the motes' number is set once). */
+  reduced: boolean;
 
   /** Each deformer's slot, by name; its moves are set each drawing by `pose`. */
   private readonly slot = new Map<string, number>();
