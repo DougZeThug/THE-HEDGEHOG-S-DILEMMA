@@ -92,11 +92,13 @@ SHOTS = {
 # Until a shot's first drawing is in: the sheet's own close-up panel (x0, y0, x1, y1, inside its
 # border), held; the face and the chest in it (panel fractions, y down; the chest's x, y, rx, ry);
 # where the face goes across the frame (the drawings' framing: his head left looking right, hers
-# right looking left, so the eyelines meet across the cut), or `fill`: the panel cropped across its
-# whole width (the hands: the trousers run off the frame's sides).
+# right looking left, so the eyelines meet across the cut), and `foot`, the panel row the frame's
+# foot cuts the body at, above where the sheet's drawing fades out to paper (keyed out, that paper
+# was grass, and the body ended in it: the artist's note, 2026-10-17); or `fill`: the panel cropped
+# across its whole width (the hands: the trousers run off the frame's sides).
 STANDIN = {
-    'c4': {'panel': (540, 542, 800, 783), 'face': (0.55, 0.3), 'at': 0.38, 'chest': (0.45, 0.68, 0.35, 0.22)},
-    'c5': {'panel': (802, 542, 1076, 783), 'face': (0.45, 0.25), 'at': 0.62, 'chest': (0.52, 0.62, 0.32, 0.2)},
+    'c4': {'panel': (540, 542, 800, 783), 'face': (0.55, 0.3), 'at': 0.38, 'foot': 0.77, 'chest': (0.45, 0.68, 0.35, 0.22)},
+    'c5': {'panel': (802, 542, 1076, 783), 'face': (0.45, 0.25), 'at': 0.62, 'foot': 0.8, 'chest': (0.52, 0.62, 0.32, 0.2)},
     'c6': {'panel': (1096, 534, 1422, 755), 'face': (0.56, 0.8), 'fill': True, 'chest': None},
 }
 # The sheet's top panel: the two of them lying in a long bed of grass, drawn by the same hand (its
@@ -226,7 +228,9 @@ def standin(s, sheet, rng):
         cw, ch = pw, round(pw * H / W)
         ox, oy = 0, -round((ph - ch) / 2)
     else:
-        ch, cw = ph, round(ph * W / H)
+        # (Its top at the frame's: the hair runs off the panel's top, as it does the frame's.)
+        ch = round(s.get('foot', 1.0) * ph)
+        cw = round(ch * W / H)
         ox, oy = round(s['at'] * cw - s['face'][0] * pw), 0
     paper = paper_of(panel)
     # Grass to grow from: the panel's own, and the top panel's at about this scale, side by side.

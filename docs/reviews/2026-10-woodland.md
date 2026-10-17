@@ -670,6 +670,8 @@ Not done: the decode on iOS Safari and Firefox, audio-clock stalls on real phone
 
 "The close-ups aren't widescreen and there's lots of white in the background; they should be fully surrounded in the grass." The stand-ins are now widescreen 1920×1080, each panel's paper keyed out and the sheet's own grass grown round it (quilted from the panel and the sheet's top panel), faces where the kit frames them (his at 0.38 across, hers at 0.62).
 
+Then: "the lower halves of their bodies don't exist and it just becomes grass". The sheet's panels fade out to paper below the chest (as a character sheet's drawings do), and that paper, keyed out, had become grass. The frame's foot now cuts each body above that (at 0.77 of his panel, 0.8 of hers), so their shirts, her arm and her trousers run off the bottom of the frame; the grass is only round their heads and beside them. (Not lower: their hair runs off the panels' tops, so the frame's top stays there. The panels are enlarged a little more, about 5.7× instead of 4.4×: softer, until the drawings come.)
+
 ## The directors on the film, and the skeptic on what to do
 
 The cinematic and creative directors watched the review film (desktop, the afternoon, 0–53 s, stand-in close-ups).
