@@ -12,6 +12,20 @@ const ROOT = join(__dirname, '..');
 const manifest = JSON.parse(readFileSync(join(ROOT, 'public/voices/manifest.json'), 'utf8')) as Record<string, string[]>;
 
 describe('the living memories, as defined and committed', () => {
+  it("the woodland's pencil and colour clocks are the order map's (scripts/stroke-order.py)", () => {
+    const py = readFileSync(join(ROOT, 'scripts/stroke-order.py'), 'utf8');
+    const clock = (name: string) => {
+      const [, a, b, ease] = py.match(new RegExp(`^${name} = \\(([\\d.]+), ([\\d.]+), '(\\w+)'\\)`, 'm'))!;
+      return [Number(a), Number(b), ease];
+    };
+    const seed = MEMORIES.woodland.seed('afternoon');
+    const keys = (k: string) => {
+      const [a, b] = seed.tracks[k];
+      return [a[0], b[0], a[2] === 'linear' ? 'linear' : 'soft'];
+    };
+    expect(clock('DRAWN')).toEqual(keys('window.sketch'));
+    expect(clock('COLOURED')).toEqual(keys('window.reveal'));
+  });
   for (const def of Object.values(MEMORIES)) {
     it(`${def.id}: every authored prop exists, every layer has art, every sound marker has a cue`, () => {
       const schema = memorySchema(def.layers, def.living);

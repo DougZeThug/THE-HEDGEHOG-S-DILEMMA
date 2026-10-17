@@ -1,8 +1,10 @@
-import { gustAt } from './living/performance';
-
-/** A gust as it is heard: over the middle of the clearing, a moment before it is seen there. */
-const heard = (t: number) => gustAt(t + 0.15, 0.5, WOODLAND.gusts);
+import { BREEZE_KEYS, CUT, SHOTS } from './defs';
+import { gustSway } from './living/performance';
 import { WOODLAND } from './living/woodland';
+
+/** A gust as it is heard: the leaves over the middle of the clearing as they sway with it, a
+ *  moment before they are seen to. */
+const heard = (t: number) => gustSway(t + 0.4, 0.5, WOODLAND.gusts);
 
 /**
  * The woodland memory's sound, made in the engine (docs/reviews/2026-10-woodland.md): stand-ins
@@ -29,21 +31,22 @@ export const WOODS_KINDS = ['cicadas', 'woods', 'grass', 'cicada-last'] as const
 export type WoodsKind = (typeof WOODS_KINDS)[number];
 export const RATE = 24000;
 
-/** The afternoon's sound timeline (seconds from the memory's start; the picture's are in defs.ts). */
+/** The afternoon's sound timeline (seconds from the memory's start; the picture's, which these
+ *  follow, are in defs.ts). */
 export const TIMES = {
   length: 50.5,
-  /** The cut (the picture's: defs.ts): nothing in the sound starts or stops on it. */
-  cut: 34.5,
+  /** The cut (the picture's): nothing in the sound starts or stops on it. */
+  cut: CUT,
   /** The near cicada's phrases: first heard beyond the wall; through the first wide; a lull for
-   *  the close-ups (he looks at her, she notices, their hands); one long phrase from the second
-   *  wide, carrying straight across the cut (34.5 s). (Never within 0.7 s of a cut.) */
-  near: [[1.2, 6.6], [8.2, 15.8], [29.5, 37.8]] as [number, number][],
+   *  the close-ups (he looks at her, she notices, their hands); one long phrase from a second into
+   *  the second wide, carrying straight across the cut (34.5 s). (Never within 0.7 s of a cut.) */
+  near: [[1.2, 6.6], [8.2, SHOTS.closeHim - 0.7], [SHOTS.wideAgain + 1, 37.8]] as [number, number][],
   inside: [6.5, 10.5] as [number, number],
   chorusFrom: 2.5,
   /** The two either side: also quiet through the close-ups. */
-  midQuiet: [15.6, 29.3] as [number, number],
+  midQuiet: [SHOTS.closeHim - 0.9, SHOTS.wideAgain + 0.8] as [number, number],
   /** Her hand shifting in the grass: the chorus draws back a little. */
-  touch: [26.1, 27.3] as [number, number],
+  touch: [SHOTS.hands + 1.0, SHOTS.hands + 2.2] as [number, number],
   /**
    * After the cut (34.5 s) the sound stays the afternoon's while the cicada over them finishes its
    * phrase (to 37.8): the picture says later before the sound does. Then the day thins, and an
@@ -52,7 +55,7 @@ export const TIMES = {
   dusk: [37.8, 41.5] as [number, number],
   evening: [38.8, 41.6] as number[],
   /** The air (scene.breeze): the afternoon's, steadier into the cut, the evening's calm. */
-  breeze: [[0, 0.6], [5.5, 0.6], [10.5, 1], [28.5, 1], [32.0, 0.5], [37, 0.5], [39, 0.3]] as [number, number][],
+  breeze: BREEZE_KEYS,
   /** Going (from 42.5): the chorus first, the leaves, the two either side, the near one last. */
   chorusOut: [43, 45.5] as [number, number],
   leavesOut: [43, 45] as [number, number],

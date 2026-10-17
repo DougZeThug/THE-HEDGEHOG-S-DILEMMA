@@ -16,9 +16,12 @@ entry:
        last. Not stroke by stroke: nobody can follow a stroke's order from across a room, and
        the order of a thinned, traced line was the work's least visible effort (the skeptic's
        review, 2026-10-17).
-    G  when the colour reaches here (0..1): the time of the nearest line, a little later the
-       further from it, broken by a soft noise (a wash, following the drawing); never before its
-       line.
+    G  when the colour reaches here (0..1): out from the words as the drawing went, but with the
+       two of them (under the words) first, not last: once the drawing is whole the colour begins
+       with them (held back with their lines, it went round them, a figure-shaped gap of bare
+       plaster in the painting: the crossing's frames, 2026-10-17); a little later the further
+       from a line, broken by a soft noise (a wash); never sooner than LAG seconds after its own
+       line, on the timeline's clocks.
 
 The wall's window (src/world/MemoryWindow.ts) draws a line where R ≤ window.sketch's progress
 and colour where G ≤ window.reveal's.
@@ -41,6 +44,13 @@ W, H = 1672, 941
 # drawing starts here, at the words (cinematic review, 2026-10-17: from the crop's centre, the
 # first marks came 150–250 px below and right of them).
 WORDS = (0.48, 0.61)
+# The timeline's clocks for the drawing and the colour (src/memory/defs.ts, the woodland's
+# window.sketch and window.reveal: where each starts and reaches 1, and how: Theatre's soft key or
+# a straight one; tests/memory-defs.test.ts keeps them the same), and how long after its line the
+# colour may come at the soonest (s).
+DRAWN = (2.0, 6.0, 'soft')
+COLOURED = (5.4, 7.6, 'linear')
+LAG = 0.4
 
 
 def darkness():
@@ -70,6 +80,16 @@ def people():
     return cv2.GaussianBlur(m, (0, 0), 18)
 
 
+def clock(kind):
+    """A key's ease, Theatre's soft one (a cubic, handles (0.5, 0) and (0.5, 1)) or a straight
+    one: the value at a fraction of the time, and the time at a fraction of the value."""
+    if kind == 'linear':
+        return (lambda x: x), (lambda y: y)
+    s = np.linspace(0, 1, 2001)
+    xs, ys = 1.5 * s * (1 - s) + s ** 3, 3 * s ** 2 - 2 * s ** 3
+    return (lambda x: np.interp(x, xs, ys)), (lambda y: np.interp(y, ys, xs))
+
+
 def soft_noise(rng, sigma):
     n = cv2.GaussianBlur(rng.random((H, W)).astype(np.float32), (0, 0), sigma)
     return (n - n.min()) / (n.max() - n.min() + 1e-6)
@@ -86,24 +106,43 @@ def main():
     # How dark the mark is, a little smoothed (a line's light edge before its dark middle).
     weight = np.clip(cv2.GaussianBlur(dark, (0, 0), 1.5) / 0.8, 0, 1)
     found = people()
-    R = 0.6 * reach + 0.16 * weight + 0.14 * soft_noise(rng, 30) + 0.62 * found
-    # (All of it within the drawing's time, the latest line well before its end: the wall's reveal
-    # is half-way at a mark's own time, so a mark timed at the very end would stay half drawn.)
-    R = (R - R[lines].min()) / (R[lines].max() - R[lines].min() + 1e-6) if lines.any() else R / R.max()
-    R = np.clip(R, 0, 1) * 0.88
-    # The colour: after the nearest line, later with distance from it, broken softly.
+    grain = soft_noise(rng, 30)
+
+    def over_lines(x):
+        # (All of it within the drawing's time, the first line just after its start and the latest
+        # well before its end: the wall shows a mark half drawn at its own time, so a mark timed at
+        # 0 would be there before anything is drawn, and one at 1 would stay half drawn.)
+        x = (x - x[lines].min()) / (x[lines].max() - x[lines].min() + 1e-6) if lines.any() else x / x.max()
+        return 0.02 + np.clip(x, 0, 1) * 0.86
+
+    R = over_lines(0.6 * reach + 0.16 * weight + 0.14 * grain + 0.62 * found)
+    # The colour: the drawing's own way out from the words, the two of them a moment after the
+    # grass round them rather than last; later with distance from the nearest line; broken softly.
+    wash = over_lines(0.6 * reach + 0.16 * weight + 0.14 * grain + 0.04 * found)
     lsrc = np.where(lines, 0, 255).astype(np.uint8)
     dist, labels = cv2.distanceTransformWithLabels(lsrc, cv2.DIST_L2, 5, labelType=cv2.DIST_LABEL_PIXEL)
     ly, lx = np.nonzero(lsrc == 0)
     lorder = np.zeros(ly.size + 1, np.float32)
-    lorder[1:] = R[ly, lx]  # labels are numbered over the zero pixels, in scan order
+    lorder[1:] = wash[ly, lx]  # labels are numbered over the zero pixels, in scan order
     G = lorder[labels] + 0.18 * np.clip(dist / 120, 0, 1)
     # Soft fronts, not the nearest line's patch: a wash spreads; its edge is broken a little.
     G = cv2.GaussianBlur(G.astype(np.float32), (0, 0), 22) + 0.08 * (soft_noise(rng, 18) - 0.5)
-    G = (G - G.min()) / (G.max() - G.min() + 1e-6) * 0.94
-    # Never before its line (a lag after the pencil, whatever the wash's own order; against the
-    # line's time softened, so the wash keeps a soft front).
-    G = np.maximum(G, cv2.GaussianBlur(R.astype(np.float32), (0, 0), 8) + 0.06)
+    # As much of the painting takes its colour in each moment as in any other (the wash spreads at
+    # one pace: four fifths of it had come in under half a second, a burst: the crossing's frames,
+    # 2026-10-17); from just past the wall's soft colour edge, ±0.08 and its grain, so nothing has
+    # colour before the colour's time (from 0 the words had half their colour from the start).
+    flat = G.ravel()
+    rank = np.empty(flat.size, np.float32)
+    rank[np.argsort(flat, kind='stable')] = np.arange(flat.size, dtype=np.float32) / (flat.size - 1)
+    G = 0.12 + 0.82 * rank.reshape(G.shape)
+    # Never sooner than LAG s after its line, in seconds on the two clocks (against the line's
+    # time softened, so the wash keeps a soft front).
+    _, drawn_at = clock(DRAWN[2])
+    coloured_by, _ = clock(COLOURED[2])
+    drawn = DRAWN[0] + (DRAWN[1] - DRAWN[0]) * drawn_at(cv2.GaussianBlur(R.astype(np.float32), (0, 0), 8))
+    soonest = coloured_by(np.clip((drawn + LAG - COLOURED[0]) / (COLOURED[1] - COLOURED[0]), 0, 1))
+    held = float(np.mean(soonest > G + 0.01))
+    G = np.maximum(G, soonest)
     rgb = np.dstack([R, G, np.zeros_like(G)])
     Image.fromarray((rgb * 255 + 0.5).astype(np.uint8), 'RGB').save(OUT, 'WEBP', lossless=True, method=6)
     with open(MANIFEST) as f:
@@ -112,7 +151,7 @@ def main():
     with open(MANIFEST, 'w') as f:
         json.dump(manifest, f, indent=2)
         f.write('\n')
-    print(f'order: from {source}; {int(lines.sum())} line pixels')
+    print(f'order: from {source}; {int(lines.sum())} line pixels; the colour held for its line over {held:.1%} of the painting')
 
 
 if __name__ == '__main__':

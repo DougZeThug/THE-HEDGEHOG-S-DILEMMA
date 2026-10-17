@@ -47,6 +47,8 @@ export interface InsideFrame {
    * still becomes the painting's).
    */
   approach?: number;
+  /** The sprig passed at the crossing (the timeline's `scene.leaf`, 0..1: its pass). */
+  leaf?: number;
 }
 
 /** How far along the way in (0..1) for `scene.approach` (0..1): slow to start, slow to arrive. */
@@ -303,10 +305,10 @@ export class Inside {
       zoom: this.zoom,
       view: this.view,
       seed: this.seed,
-      // The crossing: leaves close to the lens as the room goes (none under reduced motion).
+      // The crossing: a sprig close to the lens as the view opens out (none under reduced motion,
+      // nor for someone turning away from it, nor on the way back: that would be a rewind).
       leaves: o.reduced ? null : o.leaves ?? null,
-      // (Not on the way back: that would be a rewind.)
-      crossing: o.reduced || f.leavingNaturally ? 0 : smooth(0.7, 1, e),
+      leaf: { p: o.reduced || f.leavingNaturally || this.wallOnly ? 0 : f.leaf ?? 0, show: 1 - smooth(YIELD, 0.3, this.turned) },
     });
     // What the scene must draw: the painting's part on the screen (all of it on the wall).
     if (this.immersion.pass.enabled && show > 0.5) visiblePart(this.immersion.screenToPainting, this.zoom, this.view);

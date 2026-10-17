@@ -24,7 +24,7 @@ import * as THREE from 'three';
  *    scene): chests, heads, faces, irises, locks of hair, hands, a foot. Their lids (shut, half),
  *    their colour going to graphite, the light moving on them.
  *  - The near flowers (`uKind` 2): strips bent about their roots in the grass.
- *  - What is in the air (`uKind` 3): motes seen in the light, seeds, a falling leaf.
+ *  - What is in the air (`uKind` 3): motes seen in the light, a falling leaf (seeds if any).
  *  - A close-up (`uKind` 4): the artist's drawings (scripts/closeups.py): its first drawing, and
  *    over the part that changes, the drawing of now (held, cut on the timeline's keys, never
  *    mixed); the chest breathing and the grass in the air, both the engine's.
@@ -39,14 +39,6 @@ const COMMON = /* glsl */ `
   // painting, left to right: x the grass, y a flower on its stem, z the leaves, w the leaves a
   // moment ago (their light follows them).
   uniform vec4 uWind[16];
-  // The crossing's push (src/world/living/Inside.ts): about (x, y), how much nearer things grow
-  // than far ones as the view arrives (0: the composition as painted).
-  uniform vec3 uPush;
-
-  // A layer at depth d (0 far .. 1 near), pushed.
-  vec2 pushed(vec2 p, float d) {
-    return uPush.xy + (p - uPush.xy) * (1.0 + uPush.z * (d - 0.4));
-  }
 
   vec4 windAt(float x) {
     float f = clamp(x, 0.0, 1.0) * 15.0;
@@ -139,7 +131,6 @@ const VERT = /* glsl */ `
           spin = cos(age * 5.3 + n);
         }
       }
-      at = pushed(at, 0.7);
       vScene = at;
       vDest = at;
       vMote = vec4(kind, show, spin, n);
@@ -161,7 +152,7 @@ const VERT = /* glsl */ `
       float b = pow(stem.x, 1.5);
       float dx = (windAt(stem.z).y * stem.y + 0.9 * sin(uTime * 2.3 + stem.w) * stem.x) * b * uMotion;
       dx = 14.0 * dx / sqrt(196.0 + dx * dx);
-      vec2 at = pushed(position.xy + vec2(dx, -0.3 * abs(dx) * b) * uPx, 0.95);
+      vec2 at = position.xy + vec2(dx, -0.3 * abs(dx) * b) * uPx;
       vScene = at;
       vDest = at;
       gl_Position = projectionMatrix * modelViewMatrix * vec4(at, 0.0, 1.0);
@@ -187,7 +178,7 @@ const VERT = /* glsl */ `
     }
     vec2 f = (p + d) / uSheet;
     vDest = f;
-    vScene = pushed(uPlace.xy + f * uPlace.zw, 0.6);
+    vScene = uPlace.xy + f * uPlace.zw;
     gl_Position = projectionMatrix * modelViewMatrix * vec4(vScene, 0.0, 1.0);
   }
 `;
@@ -233,14 +224,8 @@ const FRAG = /* glsl */ `
 
   void main() {
     if (uKind < 0.5) {
-      // (The push: each point shows what is there at its own depth, nearer things larger.)
-      vec2 base = vUv;
-      if (uPush.z != 0.0) {
-        float dz = texture2D(uMaps, vUv).r;
-        base = uPush.xy + (vUv - uPush.xy) / (1.0 + uPush.z * (dz - 0.4));
-      }
-      vec4 m0 = texture2D(uMaps, base);
-      vec2 uv = base + uParallax * (m0.r - 0.4);
+      vec4 m0 = texture2D(uMaps, vUv);
+      vec2 uv = vUv + uParallax * (m0.r - 0.4);
       vec4 m = texture2D(uMaps, uv);
       vec4 w = windAt(uv.x);
       // The grass: a long wave crossing it (strongest in the near grass, whose tips stand above
@@ -393,7 +378,6 @@ function uniforms(noise: THREE.Texture, empty: THREE.Texture): Record<string, TH
     uNoise: { value: noise },
     uTime: { value: 0 },
     uWind: { value: Array.from({ length: 16 }, () => new THREE.Vector4()) },
-    uPush: { value: new THREE.Vector3(0.5, 0.5, 0) },
     uDrift: { value: new Array(16).fill(0) },
     uCount: { value: 40 },
     uMotion: { value: 1 },

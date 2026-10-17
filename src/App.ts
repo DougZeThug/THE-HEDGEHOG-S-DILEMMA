@@ -103,6 +103,8 @@ export class App {
     awayFor: number; watched: number; minHold: number; why: string | null;
     /** Looking away from it now (last attention check); how many of its later descriptions are told. */
     away: boolean; told: number;
+    /** The room's writing its painting has washed out (given back when it goes). */
+    washed: Set<string>;
   } | null = null;
   /** Going into a living memory and back (src/world/living/Inside.ts). */
   private inside!: Inside;
@@ -518,6 +520,7 @@ export class App {
     if (this.living) {
       this.living.memory.dispose(0.3);
       this.memoryWindow.release();
+      for (const k of this.living.washed) this.text.wash(k, 0);
       this.living = null;
     }
     // Opening from a drawing already on the wall: the painting's own drawn shape lies on it.
@@ -541,7 +544,7 @@ export class App {
         this.memoryState(s);
       },
     });
-    this.living = { memory, id, key: a.key, anchor: a, bled: false, hiddenSince: null, held: false, awayFor: 0, watched: 0, minHold: SCENE_BY_PHRASE.get(phraseId)?.minHold ?? 8, why: null, away: false, told: 0 };
+    this.living = { memory, id, key: a.key, anchor: a, bled: false, hiddenSince: null, held: false, awayFor: 0, watched: 0, minHold: SCENE_BY_PHRASE.get(phraseId)?.minHold ?? 8, why: null, away: false, told: 0, washed: new Set() };
     this.memoryClock.reset();
     // The room hushes round it (and its music stops), until it lets go. For the door the white
     // room itself goes to evening, so the landing's light is the brightest thing there.
@@ -571,6 +574,7 @@ export class App {
       // Whoever was carried in is back where they stood.
       this.inside.end();
       this.memoryWindow.release();
+      for (const k of l.washed) this.text.wash(k, 0);
       // Its recordings are let go too (a phone keeps little decoded audio; they load again if it returns).
       const p = l.memory.prepared;
       this.voices?.forget(Object.values(p.def.cues(p.variant).cues).map((c) => c.asset).filter((a) => a.startsWith('mem:')));
@@ -1035,9 +1039,11 @@ export class App {
       away: l.away,
       leavingNaturally: f.state === 'withdrawing' || f.state === 'residue',
       approach: 'scene.approach' in f.final ? f.final['scene.approach'] : undefined,
+      leaf: f.final['scene.leaf'] ?? 0,
     }, { reduced: this.prefs.reducedMotion, aspect, scene: pl.scene.target.texture, sketch, group: l.anchor.group, leaves: pl.leaves });
     // The window was placed before the spread changed: place it again for this frame.
     this.memoryWindow.update(f.final, this.rig.restingEye, 0);
+    this.washUnderPainting(l, f.final['window.reveal'] ?? 0);
     pl.scene.update(this.renderer, f.t, f.final, { view: this.inside.view, parallax: new THREE.Vector2() });
     // What changes later, told to a screen reader when it happens (not before: the cut is not given away).
     const later = l.memory.prepared.def.announce?.(l.memory.prepared.variant) ?? [];
@@ -1049,6 +1055,29 @@ export class App {
       if (told) this.srRegion().textContent = line.text;
     }
     if (go) this.endLivingMemory('interrupt');
+  }
+
+  /**
+   * The room's writing under a living memory's painting (all but its own line, which keeps its
+   * bloom of plaster): graphite with graphite while the pencil draws; each piece goes to a trace
+   * as the colour reaches it, and comes back as the colour leaves (the skeptic's second review,
+   * 2026-10-17: the kitchen's light washes its own line so).
+   */
+  private washUnderPainting(l: NonNullable<App['living']>, reveal: number) {
+    const colourAt = l.memory.prepared.living?.colourAt;
+    const p = this.memoryWindow.painting;
+    if (!colourAt || p.w <= 0 || p.h <= 0) return;
+    for (const it of this.text.items.values()) {
+      if (it.key === l.key) continue;
+      const a = this.text.anchorOfKey(it.key);
+      if (!a || a.group !== l.anchor.group) continue;
+      const u = (a.x - p.cx) / p.w + 0.5, v = (a.y - p.cy) / p.h + 0.5;
+      if (u < 0 || u > 1 || v < 0 || v > 1) continue;
+      // (The wall's own edge for the colour: src/world/MemoryWindow.ts.)
+      const g = colourAt(u, v);
+      this.text.wash(it.key, 0.85 * THREE.MathUtils.smoothstep(reveal, g - 0.08, g + 0.08));
+      l.washed.add(it.key);
+    }
   }
 
   private bakeOldDrawings() {

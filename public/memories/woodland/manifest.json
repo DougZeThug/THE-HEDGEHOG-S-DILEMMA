@@ -677,15 +677,11 @@
             "c5-start",
             "c5-eyes",
             "c5-mid",
-            "c5-end",
-            "c5-end-half",
-            "c5-end-shut"
+            "c5-end"
           ],
           "breath": "b",
           "cells": [
             -1,
-            null,
-            null,
             null,
             null,
             null

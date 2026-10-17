@@ -665,3 +665,64 @@ Found in the browser while building, and fixed:
 - Also: her hand moves in the wide when it does in the close-up (it had jumped at 28.5 s whenever that close-up gave way); a close-up that fails to load is let go at once; the close-ups, leaves and order load alongside the rest; tests now cover a two-row atlas, the App's frame order (steps, thumbs, frames of no time, the give-way), and the playtests assert the close-ups are shown and that a turn during one gives way without leaving.
 
 Not done: the decode on iOS Safari and Firefox, audio-clock stalls on real phones, and real screen-reader timing need devices.
+
+## The artist's note on the stand-in close-ups
+
+"The close-ups aren't widescreen and there's lots of white in the background; they should be fully surrounded in the grass." The stand-ins are now widescreen 1920×1080, each panel's paper keyed out and the sheet's own grass grown round it (quilted from the panel and the sheet's top panel), faces where the kit frames them (his at 0.38 across, hers at 0.62).
+
+## The directors on the film, and the skeptic on what to do
+
+The cinematic and creative directors watched the review film (desktop, the afternoon, 0–53 s, stand-in close-ups).
+
+- **Both:** the dusk cut works (one frame, the tree and log registered within a pixel, the sound running straight across it), and so does the held empty clearing.
+- **Cinematic director:**
+  - [P1] The crossing is a two-frame exposure pop (centre luma 52 → 107, 77% of pixels in one frame), under five leaves that read as olive smudges.
+  - [P1] The return snaps back in two frames and leaves a near-black stain on the wall (the painting multiplied into the plaster).
+  - [P1] The gusts are seen 1–3 s after they are heard, and the second fills the stillness the dusk cut depends on.
+  - [P1] The leaf light that should open the memory never shows (in ordered mode the light was gated by the colour).
+  - [P1] The room's other writing is printed over the painting.
+  - [P2] The pencil starts below the words, not at them.
+  - [P2] The film dims the room (a capture artifact), and the visitor's lean counts as walking.
+- **Creative director:**
+  - [P1] The way in turns into a portal effect: straight crop edges, a dark fringe, the words removed in one frame, a brightness pop.
+  - [P1] "I wanted you to" reads as a caption on the two of them.
+  - [P1] The face close-ups, cross-cut, make a mutual look: eyes only, she looks away.
+  - [P1] The return is the busiest stretch after the climax.
+  - [P2] The screen-reader lines over-explain.
+  - [P2] The kit has no drawing for the end, and its faces will inherit the panels' smiles.
+
+**Fixed first** (the verified defects):
+- The crossing as light: the painting's light comes up at its place over the wall's (show 0.3–0.7 of the way in), then it opens out (settle 0.68–1). No double multiply, no pop.
+- An ordered painting shows its whole footprint from the start, its edge its own order (never a straight one), with its pigment sunk into the plaster (a faded fresco, never a stain).
+- The return takes 2 s, linear. The light is gated by its pool, so the warm leaf light shows before the first stroke. The pencil starts at the words.
+- The gust's sound follows what is seen. The carry no longer counts as walking, and the Director holds while a memory is held, so the film no longer dims the room.
+- The screen-reader lines say only what is seen. The kit gained `pencil-after.png` and resting mouths.
+
+**The skeptic, on the contested half.** Take more away:
+- (A) Don't fade the writing from the first stroke: the rebuilt crossing may already do it; check first, and if needed wash each line as the colour reaches it.
+- (B) One sharp leaf, not five blurred ones.
+- (C) Delete the push.
+- (D) Cut the second gust and its leaf, and the seed.
+- (E) Don't make a comparison film for the eyes-only faces; offer it to the artist in a sentence.
+- (F) Make shot 7 the longest shot, paid for before the cut.
+- (G) Drop her blink: the shot list has none, and slower is louder.
+- (H) Fall back to the artist's pencil with the figures filled; no eraser halo; drop "not smiling".
+- Restore the canopy's slower spring (big trees sway slowly) and drive the gust's sound from it.
+
+**Decided:**
+- **F, taken, at 7.5 s, not 8.** The shots are now 15.0 / 19.0 / 23.6 / 27.0 (`SHOTS` in `defs.ts`), the dusk cut still 34.5. The first wide's gust (11.5 s, exactly a second in) has to finish before the cut to him, and with the canopy's slower spring restored, 2 s more would have cut it off or pushed it into the opening-out. The sound reads the cut, the shots and the air from `defs.ts` (one edit moves both; tested).
+- **D, taken.** Gust 2 and its leaf are gone (the second wide has no gust: its stillness is the cut's), and so is the seed. A test now covers gusts and falling leaves under "nothing in a shot's first second" (from a second in) and checks that the leaf is gone before the cut to him.
+- **G, taken.** Her blink is dropped. `c5-end-shut` and `c5-end-half` leave the kit (11 close-up drawings), and her close-up is start, eyes, halfway, end.
+- **H, taken.** Without `pencil-after.png`, the way back uses the artist's `pencil.png` with the two of them taken out: the grass beside them is mirrored across (`reflect_fill`), with no outline and no smudge. The prompt now asks for "nobody lying in the grass; the grass drawn through where they were". The faces say "mouth at rest", not "not smiling".
+- **B, taken.** One sprig of the near tree's own oak leaves, cut from the day painting where they are dark against the sky, sharp (mip bias 0.5). Its pass is authored on the timeline (`scene.leaf`, 9.3–9.85 s, the last half second of the opening-out): in from the near tree's side, growing and quickening, out past the frame's edge by its end. It is drawn only for someone taken in, fades with a turn, never plays on the way back, and is absent under reduced motion. It is the artist's own ask ("foreground leaves pass close to the lens"), so it stays, as one.
+- **C, taken.** `scene.push` is deleted, along with its uniform and schema entry. This reverses "kept against the skeptic" above: −0.015 was unreadable while the frame moves by hundreds of pixels.
+- **E, taken.** The eyes-only faces are not adopted (the artist's shot list has the head turns), and there is no comparison film. The artist is offered the option, to compare in the kit's flipbook once the eye drawings exist.
+- **The canopy, taken.** It sways at 0.45 Hz, damping 0.6, again. What is heard of a gust is the canopy's own sway over the middle of the clearing, 0.4 s before it is seen (`gustSway`; tested: peak 0.4 s early, full strength for a full gust, nothing in the second wide).
+- **A, taken in the skeptic's form, after checking.** The crossing's frames, probed after the first fixes, still showed "I wanted you to" across the two of them at 6.5–7.5 s.
+  - Each piece of the room's writing under the painting now goes to a trace (15%) as the colour reaches it: the order map is read once, and the wall's own colour edge is used. It comes back as the colour leaves.
+  - The memory's own line keeps its bloom of plaster. While the pencil draws, graphite stays with graphite.
+- **Found in the same frames:** at 6.5 s his body was a white, figure-shaped gap in the painting.
+  - The cause: the colour started at the words, the words lie over the two of them, and the colour was held for their lines, which are drawn last. A floor in the order map's own units held it to 7.2 s.
+  - Now, once the drawing is whole (its last line ~5.0 s), the colour comes at 5.4 s, out from the two of them. The drawing finds them last; the colour begins with them.
+  - The floor is in real seconds (at least 0.4 s after a line) on the timeline's two clocks. A test keeps the script's copy of them the same.
+  - Also, the order map's earliest values were 0, which the wall shows half drawn and half coloured before anything has happened. They now start at 0.02 (pencil) and 0.12 (colour).

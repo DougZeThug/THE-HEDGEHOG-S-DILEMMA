@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import * as THREE from 'three';
-import { breath, blinkDrawing, gust, hash01, windForce, windResponse, windDrift } from '../src/memory/living/performance';
+import { CANOPY, breath, blinkDrawing, gust, gustSway, hash01, windForce, windResponse, windDrift } from '../src/memory/living/performance';
 import { WOODLAND as SPEC } from '../src/memory/living/woodland';
 import { compose, FULL } from '../src/memory/compose';
 import { coverQuad, squareToQuad, visiblePart } from '../src/world/living/Immersion';
 import { useInitialState, sheetSource } from '../src/memory/theatre';
 import { memorySchema } from '../src/memory/sheets';
-import { MEMORIES, sheetId } from '../src/memory/defs';
+import { BREEZE_KEYS, CUT as CUT_AT, MEMORIES, SHOTS, sheetId } from '../src/memory/defs';
 import { MemoryPlaybackController } from '../src/memory/MemoryPlaybackController';
 import { renderCicadas, renderWoods, renderGrass, renderLast, cicada, RATE, TIMES } from '../src/memory/synthWoods';
 import state from '../src/memory/theatre-state.json';
@@ -46,7 +46,7 @@ describe('their involuntary life, from time alone', () => {
     }
   });
 
-  it("his breath is held off when their hands touch (a missed breath, not a sigh)", () => {
+  it('a breath of his is held off (a missed breath, not a sigh)', () => {
     const held = SPEC.breath.a.held![0];
     const free = { ...SPEC.breath.a, held: [] };
     let missed = 0;
@@ -62,10 +62,10 @@ describe('their involuntary life, from time alone', () => {
     expect(blinkDrawing(at + 0.2, SPEC.blinks.a)).toBe(0.5);
     expect(blinkDrawing(at + 0.3, SPEC.blinks.a)).toBe(0);
     for (const b of [...SPEC.blinks.a, ...SPEC.blinks.b]) {
-      // In the first wide (to 16.5 s) or the second (from 28.5 s), and not in its last 2 s;
-      // nothing in the first second after a cut.
-      expect(b < 16.3 || (b > 28.5 && b < 32.5)).toBe(true);
-      for (const cut of [10.5, 28.5]) expect(b < cut || b > cut + 1).toBe(true);
+      // In the first wide (over half a second before the cut to him) or the second (and not in
+      // its last 2 s, its stillness); nothing in a shot's first second.
+      expect(b + 0.25 < SHOTS.closeHim - 0.5 || (b > SHOTS.wideAgain && b < CUT_AT - 2)).toBe(true);
+      for (const cut of [10.5, SHOTS.wideAgain]) expect(b < cut || b > cut + 1).toBe(true);
     }
   });
 
@@ -99,22 +99,54 @@ describe('the air, which moves everything (one wind, seekable)', () => {
     for (let t = 0; t < 35; t += 1 / 1000) p += windForce(t + 1 / 2000, 0.6, G) / 1000;
     expect(Math.abs(p - windDrift(35, 0.6, G))).toBeLessThan(0.01);
   });
-  it('three gusts: one in each wide, settled (as seen, everywhere across the clearing) before the cut to him and well before the dusk cut; one over the empty grass', () => {
-    expect(G.length).toBe(3);
+  it('two gusts: one in the first wide, settled (as seen, everywhere across the clearing) before the cut to him; none in the second; one over the empty grass', () => {
+    expect(G.length).toBe(2);
     // What each gust adds to anything on a spring (grass, flowers, the canopy, locks of hair).
-    const springs = [[0.7, 0.5], [1.2, 0.3], [0.8, 0.7], [1.3, 0.35], [0.9, 0.45], [1.6, 0.3]];
+    const springs = [[0.7, 0.5], [1.2, 0.3], [...CANOPY], [1.3, 0.35], [0.9, 0.45], [1.6, 0.3]];
     const seen = (t: number, g: (typeof G)[number]) => {
       let m = 0;
       for (let x = 0; x <= 1.0001; x += 0.1) for (const [hz, z] of springs) m = Math.max(m, Math.abs(windResponse(t, x, hz, z, [g]) - windResponse(t, x, hz, z, [])));
       return m;
     };
     const peak = (g: (typeof G)[number]) => Math.max(...Array.from({ length: 160 }, (_, i) => seen(g.at + i * 0.05, g)));
-    for (const [g, cut, calm] of [[G[0], 16.5, 1.8], [G[1], 34.5, 2.5]] as const) {
-      const p = peak(g);
-      for (let t = cut - calm; t < cut; t += 0.05) expect(seen(t, g), `${t.toFixed(2)} s`).toBeLessThan(0.08 * p);
-    }
-    expect(gust(29.5, G).strength).toBeGreaterThan(0);
+    const p = peak(G[0]);
+    for (let t = SHOTS.closeHim - 0.5; t < SHOTS.closeHim; t += 0.05) expect(seen(t, G[0]), `${t.toFixed(2)} s`).toBeLessThan(0.08 * p);
+    // (None from a second before the second wide to the dusk cut: its stillness.)
+    for (let t = SHOTS.wideAgain - 1; t < CUT_AT; t += 0.05) expect(gust(t, G).strength).toBe(0);
     expect(gust(37.5, G).strength).toBeGreaterThan(0);
+  });
+  it('nothing the air does starts in a shot\'s first second: no gust and no falling leaf', () => {
+    const starts = [10.5, SHOTS.closeHim, SHOTS.closeHer, SHOTS.hands, SHOTS.wideAgain, CUT_AT];
+    for (const at of [...G.map((g) => g.at), ...SPEC.air.leaves, ...SPEC.air.seeds])
+      for (const s of starts) expect(at < s || at >= s + 1, `${at} s, after the shot at ${s} s`).toBe(true);
+    // (And the falling leaf, crossing in its 2.1 s, is gone before the cut to him.)
+    for (const at of SPEC.air.leaves) expect(at < SHOTS.closeHim ? at + 2.1 < SHOTS.closeHim : at > SHOTS.wideAgain).toBe(true);
+  });
+  it('what is heard of a gust swells and settles with the canopy it moves, a moment before it is seen', () => {
+    const g = G[0];
+    const sway = (t: number) => windResponse(t, 0.5, CANOPY[0], CANOPY[1], [g], 0);
+    let seenAt = 0, heardAt = 0, top = 0, topHeard = 0;
+    for (let t = g.at; t < g.at + 6; t += 0.01) {
+      if (sway(t) > top) (top = sway(t)), (seenAt = t);
+      const h = gustSway(t + 0.4, 0.5, G).strength;
+      if (h > topHeard) (topHeard = h), (heardAt = t);
+    }
+    expect(seenAt - heardAt).toBeCloseTo(0.4, 1);
+    // A full gust is heard at full strength; nothing is heard of the gusts in the stillness.
+    expect(topHeard).toBeCloseTo(g.strength, 1);
+    for (let t = SHOTS.wideAgain; t < CUT_AT; t += 0.1) expect(gustSway(t + 0.4, 0.5, G).strength).toBe(0);
+  });
+  it("the sound's times are the picture's", () => {
+    expect(TIMES.cut).toBe(CUT_AT);
+    expect(TIMES.breeze).toBe(BREEZE_KEYS);
+    // The near cicada and the two either side are quiet through the close-ups, never within 0.7 s of a cut.
+    const [, first, last] = TIMES.near;
+    expect(first[1]).toBeLessThanOrEqual(SHOTS.closeHim - 0.7);
+    expect(last[0]).toBeGreaterThanOrEqual(SHOTS.wideAgain + 0.7);
+    expect(TIMES.midQuiet[0]).toBeLessThan(SHOTS.closeHim);
+    expect(TIMES.midQuiet[1]).toBeGreaterThan(SHOTS.wideAgain);
+    expect(TIMES.touch[0]).toBeGreaterThan(SHOTS.hands);
+    expect(TIMES.touch[1]).toBeLessThan(SHOTS.wideAgain);
   });
 });
 
@@ -234,9 +266,9 @@ describe('the close-ups: the artist\'s drawings, cut on keys', () => {
   });
 
   it('each change is a whole drawing (a cut), and nothing changes in a shot\'s first 0.9 s', () => {
-    const starts = [16.5, 20.5, 25.1];
+    const starts = [SHOTS.closeHim, SHOTS.closeHer, SHOTS.hands];
     for (let i = 0; i < 3; i++) {
-      const end = i < 2 ? starts[i + 1] : 28.5;
+      const end = i < 2 ? starts[i + 1] : SHOTS.wideAgain;
       let prev = src.at(starts[i])['scene.cel'], first = Infinity;
       expect(prev).toBe(0);
       for (let t = starts[i]; t < end - 1e-6; t += 1 / 120) {

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { DEFORMERS, livingCamera, livingMaterials, livingTarget, type LivingMaterials } from '../../world/living/materials';
-import { blinkDrawing, breath, hash01, windDrift, windResponse } from './performance';
+import { CANOPY, blinkDrawing, breath, hash01, windDrift, windResponse } from './performance';
 import type { LivingSpec } from './woodland';
 import type { Values } from '../types';
 
@@ -12,7 +12,7 @@ import type { Values } from '../types';
  *
  * Time inside the painting moves on twos (12 drawings a second, as hand-drawn animation does):
  * the sway, the breathing, the blinks and the gestures. The view (what part of the painting is
- * on the screen, the push in) moves at the screen's rate.
+ * on the screen) moves at the screen's rate.
  */
 
 /** One of the puppet's deformers (figure uv, y up; src/memory/living/woodland.ts drives them). */
@@ -208,8 +208,9 @@ function airborne(items: { stem: [number, number, number, number]; home: [number
 }
 
 /** The kinds of things the air moves, as springs (Hz, damping): see `windResponse`. */
-// (The canopy stiff enough to settle with its gust, not ring on after it: cinematic review.)
-const SPRINGS = { grass: [0.7, 0.5], flower: [1.2, 0.3], leaves: [0.8, 0.7] } as const;
+// (The canopy slower than the grass, as big trees sway; what is heard of a gust follows it:
+// src/memory/synthWoods.ts. The skeptic's second review, 2026-10-17.)
+const SPRINGS = { grass: [0.7, 0.5], flower: [1.2, 0.3], leaves: CANOPY } as const;
 /** How fast the sky drifts (plate px a second): the afternoon's, the evening's. */
 const DRIFT = { day: 2, after: 1.4 };
 
@@ -277,7 +278,7 @@ export class LivingScene {
     pu.uCloudsAfter.value = cl?.after ?? this.m.empty;
     (pu.uCloudBox.value as THREE.Vector4).set(...(cl?.box ?? [0, 0, 0, 0]));
     (pu.uCloud.value as THREE.Vector2).set(cl?.pad ?? 0, 0);
-    // What is in the air (as authored in the spec): motes, two seeds, a leaf in each gust.
+    // What is in the air (as authored in the spec): motes, any seeds, the falling leaves.
     // (Where each starts is hashed here, not on the GPU, so every device agrees.)
     const items: { stem: [number, number, number, number]; home: [number, number] }[] = [];
     const h = (n: number, k: number) => hash01(n, 7919 + k);
@@ -386,8 +387,7 @@ export class LivingScene {
     const cu = shot > 0 ? this.art.closeups?.[shot - 1] ?? null : null;
     // Its drawing now: a new one is drawn on its own frame (a cut), not at the next drawing.
     const cel = cu ? celOf(cu, v['scene.cel'] ?? 0) : -1;
-    // (The push moves at the screen's rate, as the view does, not on twos.)
-    const state = `${(v['scene.after'] ?? 0) >= 0.5 ? 1 : 0}|${(v['scene.people'] ?? 1) > 0.001 ? 1 : 0}|${shot}|${cel}|${(v['scene.push'] ?? 0).toFixed(4)}`;
+    const state = `${(v['scene.after'] ?? 0) >= 0.5 ? 1 : 0}|${(v['scene.people'] ?? 1) > 0.001 ? 1 : 0}|${shot}|${cel}`;
     if (tq === this.drawnAt && !viewMoved && !lookMoved && !tapping && state === this.lastState) return false;
     this.lastState = state;
     this.drawnAt = tq;
@@ -407,12 +407,9 @@ export class LivingScene {
       this.wind[i].set(r(SPRINGS.grass), r(SPRINGS.flower), r(SPRINGS.leaves), r(SPRINGS.leaves, 0.3));
     }
     for (let i = 0; i < 16; i++) this.drift[i] = windDrift(tq, i / 15, this.spec.gusts) * 6 * motion;
-    // The crossing's push (none under reduced motion): nearer things grow faster as it arrives.
-    const push = this.reduced ? 0 : val('scene.push', 0);
     for (const mat of [this.m.plate, this.m.people, this.m.flowers, this.m.air, this.m.frame]) {
       const u = mat.uniforms;
       u.uTime.value = tq;
-      (u.uPush.value as THREE.Vector3).set(0.5, 0.45, push);
       (u.uDrift.value as number[]).splice(0, 16, ...this.drift);
       u.uMotion.value = motion;
       (u.uWind.value as THREE.Vector4[]).forEach((w, i) => w.copy(this.wind[i]));

@@ -91,6 +91,8 @@ export interface PreparedLiving {
   aspect: number;
   /** When each pencil line is drawn on the wall and the colour comes, or null (the light finds it). */
   order: THREE.Texture | null;
+  /** When the colour reaches a point of the painting (uv, y up; the order map's g), or null. */
+  colourAt: ((u: number, v: number) => number) | null;
   /** The leaves passed through at the crossing (mipmapped: they are drawn out of focus), or null. */
   leaves: THREE.Texture | null;
 }
@@ -148,6 +150,28 @@ async function loadLayer(url: string, o: { living?: boolean; data?: boolean } = 
   }
   texture.needsUpdate = true;
   return { texture, bitmap };
+}
+
+/**
+ * When the colour reaches each part of the painting (its order map's g, 0..1), read once and
+ * coarsely: for the room's writing under it (src/App.ts). Painting uv, y up.
+ */
+function colourTimes(bitmap: ImageBitmap): ((u: number, v: number) => number) | null {
+  const w = 96, h = 54;
+  try {
+    const c = typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(w, h) : Object.assign(document.createElement('canvas'), { width: w, height: h });
+    const x = c.getContext('2d') as CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null;
+    if (!x) return null;
+    x.drawImage(bitmap, 0, 0, w, h);
+    const d = x.getImageData(0, 0, w, h).data;
+    const g = new Float32Array(w * h);
+    for (let i = 0; i < w * h; i++) g[i] = d[i * 4 + 1] / 255;
+    // (Decoded upside down, as the textures are: its first row is the painting's foot.)
+    const at = (k: number, n: number) => Math.min(n - 1, Math.max(0, Math.floor(k * n)));
+    return (u, v) => g[at(v, h) * w + at(u, w)];
+  } catch {
+    return null;
+  }
 }
 
 /** A living scene's render target: the screen's shape, capped by quality (its long side). */
@@ -265,7 +289,7 @@ export async function prepare(id: string, variant: string, host: RuntimeHost): P
       // focus, and seen from across the room.)
       const mipmapped = (file: string, data = false) => loadLayer(url(file, ''), { data }).then((r) => (extra.push(r), r.texture));
       const leavesP = lm.leaves ? mipmapped(lm.leaves) : Promise.resolve(null);
-      const orderP = lm.order ? mipmapped(lm.order, true) : Promise.resolve(null);
+      const orderP = lm.order ? loadLayer(url(lm.order, ''), { data: true }).then((r) => (extra.push(r), r)) : Promise.resolve(null);
       // A close-up that can't be had is the wide for its shot (the memory still plays); what of it
       // did load is let go at once.
       const closeupsP = Promise.all(
@@ -290,7 +314,8 @@ export async function prepare(id: string, variant: string, host: RuntimeHost): P
       const bad = (await Promise.allSettled([mainP, leavesP, orderP, closeupsP])).find((r) => r.status === 'rejected') as PromiseRejectedResult | undefined;
       if (bad) throw bad.reason;
       const [plate, maps, grade, sky, fig, lids, after, flowers, skyMask, clouds, cloudsAfter] = await mainP;
-      const [leaves, order, closeups] = [await leavesP, await orderP, await closeupsP];
+      const [leaves, orderR, closeups] = [await leavesP, await orderP, await closeupsP];
+      const order = orderR?.texture ?? null;
       const art: LivingArt = {
         closeups,
         plate,
@@ -305,7 +330,7 @@ export async function prepare(id: string, variant: string, host: RuntimeHost): P
       };
       const size = targetSize(host);
       scene = new LivingScene(art, SPECS[def.id] ?? WOODLAND_SPEC, { ...size, noise: host.noise!, reduced: !!host.reduced, low: host.quality === 'low' });
-      living = { scene, spec: SPECS[def.id] ?? WOODLAND_SPEC, immerse: lm.immerse, crop: manifest.crop ?? [0, 0, 1, 1], aspect: manifest.size[0] / manifest.size[1], order, leaves };
+      living = { scene, spec: SPECS[def.id] ?? WOODLAND_SPEC, immerse: lm.immerse, crop: manifest.crop ?? [0, 0, 1, 1], aspect: manifest.size[0] / manifest.size[1], order, colourAt: orderR ? colourTimes(orderR.bitmap) : null, leaves };
       loaded.unshift({ texture: scene.target.texture, bitmap: null as unknown as ImageBitmap, name: 'scene', kind: 'pigment' });
     } catch (e) {
       // The living scene couldn't be made: the wall's poster instead, as any memory.

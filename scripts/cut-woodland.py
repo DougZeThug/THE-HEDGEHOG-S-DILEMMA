@@ -37,6 +37,7 @@ the runtime reads the same numbers this file cuts with):
 import json
 import math
 import os
+import sys
 
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
@@ -506,11 +507,26 @@ def pressed(dusk_rgb):
     return out * (1 - 0.13 * m[..., None])
 
 
-def pencil_layer(path):
-    """The artist's own pencil drawing of the composition (graphite on white paper), as the wall's
-    graphite layer: how dark the pencil is, laid as graphite (stand-in: `sketch_layer`, an edge
-    filter of the painting)."""
-    g = np.asarray(Image.open(path).convert('L').resize((W, H), Image.LANCZOS), np.float32) / 255
+def pencil_grey(path):
+    """An artist's pencil drawing, painting-sized: its grey (0 black .. 1 the paper)."""
+    return np.asarray(Image.open(path).convert('L').resize((W, H), Image.LANCZOS), np.float32) / 255
+
+
+def pencil_without_them(g, where):
+    """The artist's pencil drawing with the two of them taken out, for the way back (when the empty
+    clearing goes into the wall) if `pencil-after.png` isn't drawn: where they lay (`where`, their
+    cut-out on the plate, generously), the grass drawn beside them, mirrored across: no outline,
+    no smudge, nobody there. (So the drawing doesn't change hands in the memory's last image: the
+    skeptic's second review, 2026-10-17.)"""
+    hole = blur(where.astype(np.float32), 6) > 0.03
+    rgb, _ = reflect_fill(np.dstack([g, g, g]), np.ones_like(g), hole, ~hole)
+    return rgb[..., 0]
+
+
+def pencil_layer(g):
+    """The artist's own pencil drawing of the composition (graphite on white paper; `g` its grey,
+    from `pencil_grey`), as the wall's graphite layer: how dark the pencil is, laid as graphite
+    (stand-in: `sketch_layer`, an edge filter of the painting)."""
     paper = np.percentile(g, 90)
     e = np.clip((paper - g) / max(paper - g.min(), 1e-3), 0, 1)
     e = smooth(0.05, 0.85, e) * 0.9
@@ -638,25 +654,32 @@ def under_flowers(plate_rgb, mask):
     return plate_rgb * (1 - k) + src * k
 
 
-def leaves_atlas(day, sky):
-    """Two clusters of the canopy's own leaves (where they are against the sky), as cut-outs: the
-    leaves the view passes through at the crossing, close to the lens, out of focus (an atlas of
-    two 256² cells; premultiplied; darkened: backlit, near)."""
-    d = arr(day)
-    cells = []
-    for (x0, y0, x1, y1) in [(650, 0, 870, 200), (980, 10, 1170, 170)]:
-        rgb = d[y0:y1, x0:x1]
-        r, g, b = rgb[..., 0], rgb[..., 1], rgb[..., 2]
-        lum = 0.3 * r + 0.59 * g + 0.11 * b
-        leaf = smooth(0.02, 0.1, g - b) * smooth(0.85, 0.7, lum) * (1 - sky[y0:y1, x0:x1])
-        h, w = leaf.shape
-        yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
-        v = np.clip(1 - (((xx - w / 2) / (w / 2)) ** 2 + ((yy - h / 2) / (h / 2)) ** 2), 0, 1) ** 0.6
-        a = np.clip(leaf * v * 1.3, 0, 1)
-        col = rgb * 0.45 + np.array([0.02, 0.05, 0.01])
-        cell = np.dstack([col * a[..., None], a])
-        cells.append(np.clip(resize(cell, 256, 256), 0, 1))
-    return np.concatenate(cells, 1)
+# The sprig passed close to the lens at the crossing: the near tree's oak leaves where they reach
+# out against the sky (plate x0, y0, x1, y1).
+SPRIG = (686, 60, 806, 162)
+
+
+def sprig(day):
+    """The leaves the view passes at the crossing (the artist's shot 2: "foreground leaves pass
+    close to the lens"): one sprig of the near tree's own oak leaves, cut where they are dark
+    against the sky (and the sunlit leaves behind them), sharp, a little darker (backlit, near).
+    Its stem side, where the canopy goes on, fades out at the left (that side stays off the
+    screen). One 512² cell, premultiplied. (It was five clusters drawn out of focus: smudges.)"""
+    x0, y0, x1, y1 = SPRIG
+    w = 512
+    h = round(w * (y1 - y0) / (x1 - x0))
+    rgb = arr(day.crop((x0, y0, x1, y1)).resize((w, h), Image.LANCZOS))
+    lum = 0.3 * rgb[..., 0] + 0.59 * rgb[..., 1] + 0.11 * rgb[..., 2]
+    # (Keyed at full size: a crisp silhouette, not a soft one enlarged; dark and green, so not the
+    # blue-grey far trees behind its tip.)
+    a = smooth(0.34, 0.25, lum) * smooth(-0.005, 0.02, rgb[..., 1] - rgb[..., 2])
+    yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
+    a *= smooth(0.0, 0.3, xx / w) * smooth(1.0, 0.96, xx / w) * smooth(0.0, 0.08, yy / h) * smooth(1.0, 0.9, yy / h)
+    col = rgb * 0.5 + np.array([0.0, 0.012, 0.0])
+    cell = np.zeros((w, w, 4), np.float32)
+    top = (w - h) // 2
+    cell[top:top + h] = np.dstack([col * a[..., None], a])
+    return np.clip(cell, 0, 1)
 
 
 def save(a, path, sizes, lossless=False, q=90):
@@ -686,6 +709,10 @@ def flatten(plate, fig):
 
 def main():
     day, dusk, sheet = load('04-day.webp'), load('01-dusk.webp'), load('02-characters.webp')
+    if sys.argv[1:] == ['--sprig']:
+        # Only the sprig (everything else as it was cut).
+        save(sprig(day), os.path.join(OUT, 'afternoon', 'leaves.webp'), {'': W}, q=92)
+        return
     # The dusk plate sits ~2 px left of the day plate (gradient correlation, best at +2).
     dusk = dusk.transform(dusk.size, Image.AFFINE, (1, 0, -2, 0, 1, 0), resample=Image.BICUBIC)
 
@@ -706,10 +733,15 @@ def main():
     e = os.path.join(OUT, 'empty')
     # The wall's layers.
     save(np.dstack([poster, np.ones((H, W))]), os.path.join(a, 'scene.webp'), WALL)
-    # (The artist's pencil drawing where there is one: references/woodland/drawings/pencil.png.)
+    # (The artist's pencil drawing where there is one: references/woodland/drawings/pencil.png;
+    # for the way back, pencil-after.png, or that drawing with the two of them taken out.)
     pencil = os.path.join(REF, 'drawings', 'pencil.png')
     pencil_after = os.path.join(REF, 'drawings', 'pencil-after.png')
-    save(pencil_layer(pencil) if os.path.exists(pencil) else sketch_layer(poster, lines_plate), os.path.join(a, 'sketch.webp'), WALL)
+    drawn = pencil_grey(pencil) if os.path.exists(pencil) else None
+    where = np.zeros((H, W), np.float32)
+    where[FIG_Y0:FIG_Y0 + ph, FIG_X0:FIG_X0 + pw] = posed[:H - FIG_Y0, :W - FIG_X0, 3]
+    drawn_after = pencil_grey(pencil_after) if os.path.exists(pencil_after) else pencil_without_them(drawn, where) if drawn is not None else None
+    save(pencil_layer(drawn) if drawn is not None else sketch_layer(poster, lines_plate), os.path.join(a, 'sketch.webp'), WALL)
     light = np.clip(maps[..., 3] * 1.4 + 0.25 * smooth(0.55, 0.8, lum) * smooth(400, 520, np.mgrid[0:H, 0:W][0]), 0, 1)
     save(np.dstack([light, light, light]), os.path.join(a, 'light.webp'), WALL)
     # The living scene.
@@ -717,7 +749,7 @@ def main():
     save(under_flowers(arr(day), fmask), os.path.join(a, 'plate.webp'), LIVE, q=92)
     save(np.dstack([arr(day) * fmask[..., None], fmask]), os.path.join(a, 'flowers.webp'), LIVE, q=92)
     smask = sky_mask(day)
-    save(leaves_atlas(day, smask), os.path.join(a, 'leaves.webp'), {'': W}, q=90)
+    save(sprig(day), os.path.join(a, 'leaves.webp'), {'': W}, q=92)
     x0, y0, x1, y1 = CLOUD_BOX
     save(np.dstack([smask[y0:y1, x0:x1]] * 3), os.path.join(a, 'sky-mask.webp'), {'': W}, lossless=True)
     save(clouds(arr(day), smask), os.path.join(a, 'clouds.webp'), {'': W}, q=90)
@@ -730,11 +762,11 @@ def main():
     # After the cut: the same place at dusk, nobody there.
     after = pressed(arr(dusk))
     save(after, os.path.join(a, 'after.webp'), LIVE, q=92)
-    save(pencil_layer(pencil_after) if os.path.exists(pencil_after) else sketch_layer(after, np.zeros((H, W), np.float32)), os.path.join(a, 'sketch-after.webp'), WALL)
+    save(pencil_layer(drawn_after) if drawn_after is not None else sketch_layer(after, np.zeros((H, W), np.float32)), os.path.join(a, 'sketch-after.webp'), WALL)
     # The revisit: the dusk painting itself, nobody in it.
     save(np.dstack([arr(dusk), np.ones((H, W))]), os.path.join(e, 'scene.webp'), WALL)
     dl = (arr(dusk) * [0.3, 0.59, 0.11]).sum(-1)
-    save(pencil_layer(pencil_after) if os.path.exists(pencil_after) else sketch_layer(arr(dusk), np.zeros((H, W), np.float32)), os.path.join(e, 'sketch.webp'), WALL)
+    save(pencil_layer(drawn_after) if drawn_after is not None else sketch_layer(arr(dusk), np.zeros((H, W), np.float32)), os.path.join(e, 'sketch.webp'), WALL)
     dlight = np.clip((dl - blur(dl, 14)) * 4.0, 0, 1) * smooth(0.35, 0.6, dl) * 0.6
     save(np.dstack([dlight, dlight, dlight]), os.path.join(e, 'light.webp'), WALL)
 

@@ -51,28 +51,30 @@ export interface LivingSpec {
  * own drawings), never in the stillness before the cut.
  */
 const BLINKS = {
-  a: [12.3, 14.6],
-  b: [13.0, 31.6],
+  // (The first wide is 10.5–15 s, the second 27–34.5: one each in the first, settled a second
+  // before the cut to him; hers in the second, before its stillness.)
+  a: [13.4],
+  b: [11.9, 31.6],
 };
 
 export const WOODLAND: LivingSpec = {
   breath: {
-    // He breathes slower and deeper; his breath is missed when their hands touch (20 s).
-    // (Both at rest between breaths at the cut, 34.5 s: his breath waits while she is on screen
-    // (24.6), hers as she settles in the second wide (27.3); tested.)
+    // He breathes slower and deeper; a breath of his is missed while she looks at him (20 s).
+    // (Both at rest between breaths at the cut, 34.5 s: his breath waits through the close-up of
+    // their hands (24.6), hers as she settles in the second wide (27.3); tested.)
     a: { period: 4.7, jitter: 0.14, inhale: 0.38, rest: 0.16, depth: 0.18, seed: 11, held: [{ at: 20.0, span: 1.6 }, { at: 24.6, span: 2.7 }] },
     b: { period: 3.9, jitter: 0.18, inhale: 0.42, rest: 0.1, depth: 0.22, seed: 23, held: [{ at: 27.3, span: 2.8 }] },
   },
   chest: { a: { swell: 0.07, rise: 6 }, b: { swell: 0.09, rise: 6 } },
   headLift: 1.6,
   blinks: BLINKS,
-  // Three, as punctuation, quick across the clearing (heard as they are seen): one in the first
-  // wide, settled ~2 s before the cut to him; one in the second, settled ~3 s before the dusk cut
-  // (its stillness is the cut's); one over the empty grass where they lay. (Cinematic review,
-  // 2026-10-17: they were seen 1–3 s after they were heard, and rang on into the stillness.)
+  // Two, as punctuation, quick across the clearing (heard as they are seen): one in the first
+  // wide, settled before the cut to him; one over the empty grass where they lay. None in the
+  // second wide: it is the longest and the stillest shot, and the dusk cut's stillness is its own.
+  // (Cinematic review, 2026-10-17: they were seen 1–3 s after they were heard, and rang on into
+  // the stillness; the skeptic's second review: a gust opening shot 7 made its return an event.)
   gusts: [
-    { at: 12.0, cross: 1.0, strength: 1 },
-    { at: 29.0, cross: 1.0, strength: 0.6 },
+    { at: 11.5, cross: 1.0, strength: 1 },
     { at: 36.6, cross: 1.2, strength: 0.5 },
   ],
   reach: { slide: 18, turn: 0.05 },
@@ -92,9 +94,10 @@ export const WOODLAND: LivingSpec = {
     hairB2: { amp: [2, 0.5], hz: 1.1, zeta: 0.45 },
     hairB3: { amp: [2.6, 0.8], hz: 1.6, zeta: 0.3 },
   },
-  // Motes only in the light (at most ~30 seen at once); two seeds; one leaf in each afternoon gust.
-  // (No seed in the second wide: it is the stillest shot.)
-  air: { motes: 40, seeds: [11.3], leaves: [12.6, 29.6] },
+  // Motes only in the light (at most ~30 seen at once); one leaf, in the afternoon's gust. (No
+  // seeds: drawn as a bright star gliding straight across the wood, a sparkle reads as magic; the
+  // skeptic's second review, 2026-10-17.)
+  air: { motes: 40, seeds: [], leaves: [12.1] },
   alive: 6.25,
   settle: { move: [1.5, -3], turn: -0.008 },
   shoulder: [0, 3],

@@ -49,8 +49,8 @@ export const LAYER: Schema[string] = {
  *            they are taken in only their body drifts toward the wall, their look their own
  *   immerse  0 on the wall, 1 entered: the painting spreads over the plaster, the visitor is
  *            carried to it, and it becomes all there is
- *   push     the crossing's depth: negative while arriving (nearer things smaller), 0 the
- *            composition as painted (nearer things grow faster than far ones as it goes to 0)
+ *   leaf     the sprig passed close to the lens at the crossing: 0 not yet, 0→1 its pass (key it
+ *            straight; it is drawn only for someone taken in)
  *   breeze   the air: 1 the afternoon's, 0 still
  *   dusk     0 afternoon, 1 the evening's colour and sky
  *   colour   the people: 1 painted, 0 a drawing
@@ -73,7 +73,7 @@ export const SCENE: Schema[string] = {
   shot: [0, 0, 3],
   cel: [0, 0, 7],
   approach: [0, 0, 1],
-  push: [0, -0.2, 0.2],
+  leaf: [0, 0, 1],
 };
 
 /**

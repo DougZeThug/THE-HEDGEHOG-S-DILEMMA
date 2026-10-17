@@ -72,7 +72,7 @@ SHOTS = {
         'allow': (0.0, 0.0, 0.62, 0.72),
     },
     'c5': {
-        'drawings': ['c5-start', 'c5-eyes', 'c5-mid', 'c5-end', 'c5-end-half', 'c5-end-shut'],
+        'drawings': ['c5-start', 'c5-eyes', 'c5-mid', 'c5-end'],
         'focus': (0.65, 0.38),
         'breath': 'b',
         'chest': (0.58, 0.98, 0.34, 0.2),
@@ -544,7 +544,7 @@ def render(name, flips=None):
 def selftest():
     """A made-up set for shot 5 from the sheet's panel, redrawn as an image tool does (every line
     re-rendered a pixel or so off, the whole picture moved, zoomed and tinted a little), with real
-    changes (the eyes, the head, a blink): the cut must stay round the changes."""
+    changes (the eyes, the head halfway, the head): the cut must stay round the changes."""
     import tempfile
     global DRAW, OUT
     rng = np.random.default_rng(7)
@@ -572,10 +572,10 @@ def selftest():
         return img * (1 - m) + f(img) * m
 
     eyes = local(start, 1140, 260, 70, lambda im: cv2.warpAffine(im, np.float32([[1, 0, 7], [0, 1, 0]]), (W, H), borderMode=cv2.BORDER_REFLECT))
-    end = local(eyes, 1140, 300, 190, lambda im: cv2.warpAffine(im, cv2.getRotationMatrix2D((1140, 420), 5, 1.0), (W, H), borderMode=cv2.BORDER_REFLECT))
-    shut = end.copy()
-    shut[245:275, 1080:1200] = shut[290:320, 1080:1200]
-    for name, img in (('c5-start', start), ('c5-eyes', redraw(boil(eyes), 4, -3, 1.012)), ('c5-end', redraw(boil(end), 2, 2, 0.99)), ('c5-end-shut', redraw(boil(shut), -3, 1, 1.008))):
+    turn = lambda deg: lambda im: cv2.warpAffine(im, cv2.getRotationMatrix2D((1140, 420), deg, 1.0), (W, H), borderMode=cv2.BORDER_REFLECT)
+    mid = local(eyes, 1140, 300, 190, turn(2.5))
+    end = local(eyes, 1140, 300, 190, turn(5))
+    for name, img in (('c5-start', start), ('c5-eyes', redraw(boil(eyes), 4, -3, 1.012)), ('c5-mid', redraw(boil(mid), -3, 1, 1.008)), ('c5-end', redraw(boil(end), 2, 2, 0.99))):
         Image.fromarray((np.clip(img, 0, 1) * 255 + 0.5).astype(np.uint8)).save(os.path.join(DRAW, name + '.png'))
     e = render('c5')
     r = e['rect']
