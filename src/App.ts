@@ -1018,15 +1018,19 @@ export class App {
     if (!pl) return;
     const aspect = innerWidth / innerHeight;
     // The shot on now, chosen first so the view frames it from its first frame. A close-up only
-    // for someone inside; turned 14° from it, or seen on the wall alone, it is the wide
-    // (interaction review, 2026-10-17). It keeps its own subject central on an upright screen.
-    const shot = pl.scene.choose(f.final, { inside: this.inside.locked && this.inside.eff > 0.98, turned: this.inside.turned > 0.244 });
+    // for someone taken all the way in; turned 14° from it, the wide for the rest of its shot
+    // (interaction and QA reviews, 2026-10-17). On an upright screen it keeps its own subject
+    // central (the view moves; the body, and so what they hear, stays where it is).
+    const shot = pl.scene.choose(f.final, { inside: this.inside.taken, turned: this.inside.turned > 0.244 });
     const shown = shot > 0 ? pl.scene.closeup(shot) : null;
-    const focus = aspect < 0.9 ? shown?.focus ?? pl.spec.cover.upright : aspect > 2.0 ? pl.spec.cover.ultra : pl.spec.cover.wide;
+    const focus = aspect < 0.9 ? pl.spec.cover.upright : aspect > 2.0 ? pl.spec.cover.ultra : pl.spec.cover.wide;
     const sketch = l.memory.prepared.layers.find((x) => x.name === 'sketch')?.texture ?? null;
     const go = this.inside.step(dt, {
       immerse: f.final['scene.immerse'] ?? 0,
       focus,
+      // (Across only: the upright view shows the drawing's whole height anyway.)
+      view: aspect < 0.9 && shown ? [shown.focus[0], focus[1]] : undefined,
+      held: l.held,
       enter: pl.immerse,
       away: l.away,
       leavingNaturally: f.state === 'withdrawing' || f.state === 'residue',
@@ -1039,8 +1043,10 @@ export class App {
     const later = l.memory.prepared.def.announce?.(l.memory.prepared.variant) ?? [];
     while (l.told < later.length && f.position >= later[l.told].at && f.state !== 'emerging') {
       const line = later[l.told++];
-      // (What only happens inside, the close-ups, isn't told if they stayed at the wall.)
-      if (!line.inside || this.inside.entered) this.srRegion().textContent = line.text;
+      // (A close-up's line only while it is shown; what happens inside only to someone taken in;
+      // the wall's own line only to someone it stayed on the wall for.)
+      const told = line.shot !== undefined ? shot === line.shot : line.inside ? this.inside.entered : line.wall ? !this.inside.entered : true;
+      if (told) this.srRegion().textContent = line.text;
     }
     if (go) this.endLivingMemory('interrupt');
   }

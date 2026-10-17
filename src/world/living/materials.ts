@@ -197,7 +197,7 @@ const FRAG = /* glsl */ `
   uniform sampler2D uPlate, uMaps, uGrade, uSky, uAfterPlate;
   uniform float uAfter;      // 0 the afternoon, 1 the same place later (a cut: never between)
   uniform sampler2D uFigures, uLids, uFlowers, uSkyMask, uClouds, uCloudsAfter;
-  uniform sampler2D uFrame;  // a close-up: its first drawing (alpha: where the air may move its grass)
+  uniform sampler2D uFrame;  // a close-up: its first drawing (its maps, uMaps: R where the air may move its grass)
   uniform sampler2D uCels;   // its later drawings, cut to the part that changes (an atlas)
   uniform vec4 uCel;         // the drawing now in that atlas: its corner, its size (atlas uv); none: size 0
   uniform vec4 uCelRect;     // the part of the frame it covers: x0, y0, w, h (frame uv)
@@ -295,8 +295,8 @@ const FRAG = /* glsl */ `
         float e = 1.0 - smoothstep(0.0, 1.0, dot(q, q));
         uv = uChest.xy + (uv - uChest.xy) * (1.0 - uBreathe * e);
       }
-      // The grass in the air (where the drawing says it may move: never near what changes).
-      float g = texture2D(uFrame, uv).a;
+      // The grass in the air (where its map says it may move: never near what changes).
+      float g = texture2D(uMaps, uv).r;
       if (g > 0.0) {
         vec4 w = windAt(uv.x);
         float clump = sin(uTime * 3.4 + texture2D(uNoise, uv * vec2(0.7, 0.45) + 0.31).r * 6.2831);

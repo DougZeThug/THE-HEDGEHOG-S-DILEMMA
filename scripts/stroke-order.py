@@ -83,9 +83,10 @@ def main():
     weight = np.clip(cv2.GaussianBlur(dark, (0, 0), 1.5) / 0.8, 0, 1)
     found = people()
     R = 0.6 * reach + 0.16 * weight + 0.14 * soft_noise(rng, 30) + 0.62 * found
-    # (All of it within the drawing's time: the latest line at 1.)
+    # (All of it within the drawing's time, the latest line well before its end: the wall's reveal
+    # is half-way at a mark's own time, so a mark timed at the very end would stay half drawn.)
     R = (R - R[lines].min()) / (R[lines].max() - R[lines].min() + 1e-6) if lines.any() else R / R.max()
-    R = np.clip(R, 0, 1)
+    R = np.clip(R, 0, 1) * 0.88
     # The colour: after the nearest line, later with distance from it, broken softly.
     lsrc = np.where(lines, 0, 255).astype(np.uint8)
     dist, labels = cv2.distanceTransformWithLabels(lsrc, cv2.DIST_L2, 5, labelType=cv2.DIST_LABEL_PIXEL)
@@ -95,9 +96,9 @@ def main():
     G = lorder[labels] + 0.18 * np.clip(dist / 120, 0, 1)
     # Soft fronts, not the nearest line's patch: a wash spreads; its edge is broken a little.
     G = cv2.GaussianBlur(G.astype(np.float32), (0, 0), 22) + 0.08 * (soft_noise(rng, 18) - 0.5)
-    G = (G - G.min()) / (G.max() - G.min() + 1e-6)
+    G = (G - G.min()) / (G.max() - G.min() + 1e-6) * 0.94
     # Never before its line (a lag after the pencil, whatever the wash's own order).
-    G = np.maximum(G, np.clip(R + 0.06, 0, 1))
+    G = np.maximum(G, R + 0.06)
     rgb = np.dstack([R, G, np.zeros_like(G)])
     Image.fromarray((rgb * 255 + 0.5).astype(np.uint8), 'RGB').save(OUT, 'WEBP', lossless=True, method=6)
     with open(MANIFEST) as f:

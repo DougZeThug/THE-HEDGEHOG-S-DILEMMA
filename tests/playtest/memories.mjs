@@ -110,6 +110,12 @@ for (const profile of PROFILES) {
       return most < 8;
     });
     if (blank) errors.push(`the living scene is blank at ${name}`);
+    // The woodland's close-ups are shown (not silently the wide).
+    const want = { '07-close-him': 1, '08-close-her': 2, '09-hands': 3 }[name];
+    if (want) {
+      const shown = await page.evaluate(() => window.__hedgehog.living?.memory.prepared.living?.scene.shot ?? -1);
+      if (shown !== want) errors.push(`${name} shows shot ${shown}, not ${want}`);
+    }
     shots.push(`${name} (${st.state} @ ${st.position})`);
   }
   const programs1 = await page.evaluate(() => window.__hedgehog.renderer.info.programs.length);

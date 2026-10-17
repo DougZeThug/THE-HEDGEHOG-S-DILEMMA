@@ -5,6 +5,10 @@ import { MemoryWindow } from '../src/world/MemoryWindow';
 import { Immersion } from '../src/world/living/Immersion';
 import { Inside } from '../src/world/living/Inside';
 import type { Post } from '../src/world/Post';
+import type { Room } from '../src/world/Room';
+import { LivingScene, type Closeup, type LivingArt } from '../src/memory/living/LivingScene';
+import { WOODLAND as SPEC } from '../src/memory/living/woodland';
+import manifest from '../public/memories/woodland/manifest.json';
 
 // Going into a living memory and back (src/world/living/Inside.ts, docs/reviews/2026-10-woodland.md).
 
@@ -131,8 +135,8 @@ describe('inside a living memory', () => {
     expect(inside.locked).toBe(false);
     expect(rig.pos.x).toBeCloseTo(start.x, 6);
     expect(rig.pos.z).toBeCloseTo(start.z, 6);
-    // (As they looked when the move began: they had turned a little by then.)
-    expect(Math.abs(rig.yaw - start.yaw)).toBeLessThan(0.01);
+    // (As they looked when taken in: their look was their own until then.)
+    expect(rig.yaw).toBeCloseTo(start.yaw + 0.002 * turns, 6);
   });
 
   it('a look away while the drawing forms only holds them; looking back, they go on (no lurch) and are taken in', () => {
@@ -196,5 +200,145 @@ describe('inside a living memory', () => {
     for (let a = 0; a <= 0.5; a += 0.01) step(0, { approach: a, dt: 0.1 });
     for (let k = 0; k <= 40; k++) step(k / 40, { approach: 0.5 + k / 80, dt: 0.1 });
     expect(rig.pos.z).toBeLessThanOrEqual(-2.4 + 1e-6);
+  });
+});
+
+// In the App's order (src/App.ts): the room's rig moves first, then the memory's frame. What a
+// visitor's own steps, thumbs and looks do on the committed timeline's shape (QA review, 2026-10-17).
+function app(o: { reduced?: boolean } = {}) {
+  const w = setup();
+  const room = { halfW: 6, halfD: 6 } as unknown as Room;
+  const chair = new THREE.Vector3(5, 0, 5);
+  const tex = () => new THREE.Texture();
+  const cu: Closeup = { base: tex(), wind: tex(), cels: null, cells: [-1, null, null, null], grid: [0, 0], rect: [0, 0, 0, 0], focus: [0.5, 0.7], breath: 'a', chest: null };
+  const lm = manifest.living.afternoon;
+  const scene = new LivingScene(
+    { plate: tex(), maps: tex(), grade: null, after: null, sky: null, flowers: null, clouds: null, size: manifest.plate as [number, number], closeups: [cu],
+      figures: { ...(lm.figures as unknown as NonNullable<LivingArt['figures']>), texture: tex(), lids: tex() } },
+    SPEC, { width: 64, height: 36, noise: tex(), reduced: false },
+  );
+  const sceneTex = new THREE.Texture();
+  const group = new THREE.Group();
+  group.position.set(0, 1.8, -3.2);
+  group.updateMatrixWorld(true);
+  const clamp = (x: number) => Math.min(1, Math.max(0, x));
+  let t = 0;
+  const frame = (f: { dt?: number; held?: boolean; away?: boolean; shot?: number; view?: [number, number] } = {}) => {
+    const dt = f.dt ?? 1 / 60;
+    t += dt;
+    w.rig.enabled = !w.inside.locked;
+    w.rig.update(dt || 1 / 60, room, chair);
+    const shot = scene.choose({ 'scene.shot': f.shot ?? 0 }, { inside: w.inside.taken, turned: w.inside.turned > 0.244 });
+    w.inside.step(dt, { immerse: clamp((t - 6.2) / 3.6), focus: [0.5, 0.5], view: f.view, held: f.held, enter: true, away: !!f.away, leavingNaturally: false, approach: clamp((t - 1.2) / 9.3) },
+      { reduced: !!o.reduced, aspect: 16 / 9, scene: sceneTex, sketch: null, group });
+    return shot;
+  };
+  const until = (end: number, f: Parameters<typeof frame>[0] = {}) => {
+    let most = 0;
+    while (t < end - 1e-9) {
+      const x = w.rig.pos.x, z = w.rig.pos.z;
+      frame(f);
+      most = Math.max(most, Math.hypot(w.rig.pos.x - x, w.rig.pos.z - z));
+    }
+    return most;
+  };
+  w.inside.begin(11, !!o.reduced);
+  return { ...w, frame, until, now: () => t };
+}
+
+describe('the way in, in the App\'s order', () => {
+  it('walking up to it while the drawing forms: the drift waits, goes on from where they stop (no snap back), and they are taken in', () => {
+    const a = app();
+    a.until(3);
+    a.rig.keys.add('KeyW');
+    a.until(3.4);
+    a.rig.keys.delete('KeyW');
+    const z = a.rig.pos.z;
+    // (Their walk eases to a stop on its own; then the drift goes on from there.)
+    const most = a.until(9.9);
+    expect(most).toBeLessThan(0.02);
+    expect(a.rig.pos.z).toBeLessThan(z);
+    a.until(11);
+    expect(a.inside.entered).toBe(true);
+    expect(a.inside.locked).toBe(true);
+  });
+
+  it('a left-thumb turn while the drawing forms is a turn, not a step: they are taken in', () => {
+    const a = app();
+    a.until(3);
+    a.rig.touchMove.set(0.6, 0);
+    a.until(3.4);
+    a.rig.touchMove.set(0, 0);
+    a.until(11);
+    expect(a.inside.entered).toBe(true);
+  });
+
+  it('a step back held while the drawing forms lets it go, under reduced motion too', () => {
+    for (const reduced of [false, true]) {
+      const a = app({ reduced });
+      a.until(3);
+      a.rig.keys.add('KeyS');
+      a.until(3.5);
+      a.rig.keys.delete('KeyS');
+      a.until(11);
+      expect(a.inside.entered, `reduced ${reduced}`).toBe(false);
+      expect(a.inside.locked, `reduced ${reduced}`).toBe(false);
+    }
+  });
+
+  it('a frame in which no time passed moves nothing; held at a position, it is on the curve', () => {
+    const a = app();
+    a.until(4);
+    // Two seconds looking elsewhere, then back: catching up, with frames of no time among them.
+    a.until(6, { away: true });
+    let most = 0;
+    for (let k = 0; k < 40; k++) {
+      const x = a.rig.pos.x, z = a.rig.pos.z;
+      a.frame({ dt: k % 4 === 0 ? 0 : 1 / 60 });
+      most = Math.max(most, Math.hypot(a.rig.pos.x - x, a.rig.pos.z - z));
+    }
+    expect(most).toBeLessThan(0.02);
+    // Held (the editor, a capture): exactly where the curve is.
+    const b = app();
+    b.until(5, { held: true });
+    const c = app();
+    c.until(5);
+    expect(b.rig.pos.z).toBeCloseTo(c.rig.pos.z, 4);
+    const x = b.rig.pos.x, z = b.rig.pos.z;
+    b.frame({ dt: 0 });
+    expect(b.rig.pos.x).toBe(x);
+    expect(b.rig.pos.z).toBe(z);
+  });
+
+  it('a close-up stays through a small look round, and gives way at 14° for the rest of its shot', () => {
+    const turnTo = (deg: number) => {
+      const a = app();
+      a.until(16.5);
+      expect(a.inside.taken).toBe(true);
+      const shots: number[] = [];
+      // A slow turn (about 15° a second), then still while it springs back.
+      while (a.inside.turned < (deg * Math.PI) / 180) {
+        a.inside.look(2, 0);
+        shots.push(a.frame({ shot: 1 }));
+      }
+      for (let k = 0; k < 240; k++) shots.push(a.frame({ shot: 1 }));
+      return shots;
+    };
+    expect(turnTo(12).every((s) => s === 1)).toBe(true);
+    const past = turnTo(20);
+    const first = past.indexOf(0);
+    expect(first).toBeGreaterThan(0);
+    // (Once it has given way, it stays the wide, even after the turn springs back.)
+    expect(past.slice(first).every((s) => s === 0)).toBe(true);
+  });
+
+  it('on an upright screen a close-up moves the view, not the body', () => {
+    const a = app();
+    a.until(16.5);
+    const x = a.rig.pos.x, z = a.rig.pos.z;
+    a.frame({ shot: 1, view: [0.3, 0.6] });
+    a.frame({ shot: 1, view: [0.3, 0.6] });
+    expect(a.rig.pos.x).toBeCloseTo(x, 3);
+    expect(a.rig.pos.z).toBeCloseTo(z, 3);
   });
 });

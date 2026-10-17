@@ -4,6 +4,7 @@ from the artist's drawings. Offline only; what it writes ships.
 
     pip install --user opencv-python-headless   (once)
     python3 scripts/closeups.py [c4 c5 c6] [--flip DIR]
+    python3 scripts/closeups.py --selftest       (a made-up set, redrawn as an image tool does)
 
 A close-up is drawn animation: held drawings, cut on the timeline's keys (`scene.cel` in
 src/memory/defs.ts), never warped or mixed between (a face warped from one drawing toward the
@@ -12,9 +13,10 @@ references/woodland/drawings/ (named as in references/woodland/kit/README.md). T
 shot's base; any after it may be missing (the timeline then holds the one before). Without its
 first drawing, a shot is the character sheet's own close-up panel, held: a stand-in.
 
-Writes public/memories/woodland/afternoon/<shot>-base.webp (the first drawing; its alpha is where
-the engine's wind may move the grass) and <shot>-cels.webp (every later drawing, cut to the part
-of the frame that changes: an atlas), each with @low, and the shot's entry in the art manifest.
+Writes public/memories/woodland/afternoon/<shot>-base.webp (the first drawing, opaque),
+<shot>-wind.webp (where the engine's wind may move its grass: a small map, one size) and
+<shot>-cels.webp (every later drawing, cut to the part of the frame that changes: an atlas), the
+drawings with @low, and the shot's entry in the art manifest.
 --flip writes each shot's drawings as a 12 fps GIF to DIR, to check by eye that they match (line
 weight, softness, colour) before they ship.
 
@@ -23,7 +25,9 @@ How the drawings are prepared:
      a homography fitted, coarse to fine, to what didn't change). One that won't line up is
      refused: it would jump. Then it is matched to the base's colour.
   2. Each is cut where it really differs from the base (a region round the change, tightly
-     feathered). Everywhere else the base shows, so what didn't move never boils.
+     feathered), forgiving a line the image tool redrew a pixel or two off. Everywhere else the
+     base shows, so what didn't move never boils. Only inside the shot's `allow` box; a drawing
+     whose change covers more than a fifth of the frame is refused (it was redrawn, not edited).
   3. The wind leaves the grass near anything that changes alone (it would shear at the cut).
 """
 import json
@@ -43,14 +47,19 @@ W, H = 1920, 1080
 LOW = 1280 / 1920
 # The largest atlas a phone is sure to take (px, either side).
 ATLAS_MAX = 4096
+# The most of the frame one drawing may change (more: it was redrawn, not edited).
+MOST = 0.22
+# The wind map's size (it is smooth).
+WIND = (480, 270)
 
 # Each shot: its drawings in the timeline's order (`scene.cel` 0 is the first: keep the two lists
 # in step); what stays central on an upright screen (frame fractions, y down); whose breathing
 # lifts the chest and where the chest is (x, y, rx, ry: frame fractions, y down). Once the
 # drawings are in: a crop of them that matches the shots' eyelines (x, y, w: fractions of a
 # drawing; its height follows at 16:9) and where they may differ from the base (x0, y0, x1, y1;
-# outside it the base's is kept: the image tool redraws what it wasn't asked to). The chests and
-# crops are set by eye on the real drawings.
+# outside it the base's is kept: the image tool redraws what it wasn't asked to; the kit's
+# framing: his head in the left half, hers in the right, her hand coming in from the right). The
+# chests and crops are set by eye on the real drawings.
 SHOTS = {
     'c4': {
         'drawings': ['c4-start', 'c4-eyes', 'c4-mid', 'c4-end'],
@@ -58,7 +67,7 @@ SHOTS = {
         'breath': 'a',
         'chest': (0.42, 0.98, 0.34, 0.2),
         'crop': None,
-        'allow': None,
+        'allow': (0.0, 0.0, 0.62, 1.0),
     },
     'c5': {
         'drawings': ['c5-start', 'c5-eyes', 'c5-mid', 'c5-end', 'c5-end-half', 'c5-end-shut'],
@@ -66,7 +75,7 @@ SHOTS = {
         'breath': 'b',
         'chest': (0.58, 0.98, 0.34, 0.2),
         'crop': None,
-        'allow': None,
+        'allow': (0.38, 0.0, 1.0, 1.0),
     },
     'c6': {
         'drawings': ['c6-start', 'c6-mid', 'c6-end'],
@@ -74,16 +83,16 @@ SHOTS = {
         'breath': None,
         'chest': None,
         'crop': None,
-        'allow': None,
+        'allow': (0.35, 0.0, 1.0, 1.0),
     },
 }
 
-# Until a shot's first drawing is in: the sheet's own close-up panel (x0, y0, x1, y1), held; the
-# face and the chest in it (panel fractions, y down; the chest's x, y, rx, ry).
+# Until a shot's first drawing is in: the sheet's own close-up panel (x0, y0, x1, y1, inside its
+# border), held; the face and the chest in it (panel fractions, y down; the chest's x, y, rx, ry).
 STANDIN = {
-    'c4': {'panel': (538, 540, 802, 785), 'face': (0.55, 0.3), 'chest': (0.45, 0.68, 0.35, 0.22)},
-    'c5': {'panel': (800, 540, 1078, 785), 'face': (0.45, 0.25), 'chest': (0.52, 0.62, 0.32, 0.2)},
-    'c6': {'panel': (1088, 528, 1428, 758), 'face': (0.5, 0.5), 'chest': None},
+    'c4': {'panel': (540, 542, 800, 783), 'face': (0.55, 0.3), 'chest': (0.45, 0.68, 0.35, 0.22)},
+    'c5': {'panel': (802, 542, 1076, 783), 'face': (0.45, 0.25), 'chest': (0.52, 0.62, 0.32, 0.2)},
+    'c6': {'panel': (1093, 532, 1424, 756), 'face': (0.5, 0.5), 'chest': None},
 }
 
 
@@ -132,11 +141,24 @@ def gray(img):
     return cv2.cvtColor((np.clip(img, 0, 1) * 255).astype(np.uint8), cv2.COLOR_RGB2GRAY)
 
 
+def differs(a, b, reach=2):
+    """How far two lined-up drawings differ at each point (0..1), forgiving a line redrawn up to
+    `reach` px off: a point differs only as far as it falls outside the other's colours round it
+    (and the other way round)."""
+    k = np.ones((2 * reach + 1, 2 * reach + 1), np.uint8)
+
+    def outside(x, y):
+        return np.maximum(cv2.erode(y, k) - x, x - cv2.dilate(y, k)).clip(0).max(-1)
+
+    return np.maximum(outside(a, b), outside(b, a))
+
+
 def changed(a, b, grow=25, soft=18, least=900, whole=False):
     """Where two lined-up drawings differ (a soft mask, 0..1): regions only (a face, a hand, an
-    eye), not the image tool's speckle or scattered blades. `whole`: each region made one piece
-    (a turned head differs at its features and edges, not across its cheek; it is cut whole)."""
-    d = np.abs(cv2.GaussianBlur(a, (0, 0), 2.5) - cv2.GaussianBlur(b, (0, 0), 2.5)).max(-1)
+    eye), not the image tool's speckle, its redrawn lines or scattered blades. `whole`: each region
+    made one piece (a turned head differs at its features and edges, not across its cheek; it is
+    cut whole)."""
+    d = differs(cv2.GaussianBlur(a, (0, 0), 1.2), cv2.GaussianBlur(b, (0, 0), 1.2))
     # (Not at the frame's very edge: a drawing lined up has a sliver of nothing there.)
     e = 12
     d[:e], d[-e:], d[:, :e], d[:, -e:] = 0, 0, 0, 0
@@ -148,13 +170,15 @@ def changed(a, b, grow=25, soft=18, least=900, whole=False):
         if stats[i, cv2.CC_STAT_AREA] > least:
             keep[lab == i] = 1
     if whole:
-        # The differences near each other are one thing (its features, its outline): its hull.
+        # The differences near each other are one thing (its features, its outline): its hull. A
+        # speck on its own, far smaller than the change, is the image tool's, not the drawing's.
         near = cv2.dilate(keep, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (81, 81)))
         n2, lab2 = cv2.connectedComponents(near)
+        groups = [np.nonzero((lab2 == i) & (keep > 0)) for i in range(1, n2)]
+        most = max((len(g[0]) for g in groups), default=0)
         solid = np.zeros_like(keep)
-        for i in range(1, n2):
-            ys, xs = np.nonzero((lab2 == i) & (keep > 0))
-            if len(xs):
+        for ys, xs in groups:
+            if len(xs) >= max(300, 0.05 * most):
                 cv2.fillConvexPoly(solid, cv2.convexHull(np.stack([xs, ys], 1).astype(np.int32)), 1)
         keep = solid
     keep = cv2.dilate(keep, np.ones((grow, grow), np.uint8))
@@ -218,20 +242,28 @@ def box(b, soft=12):
     return cv2.GaussianBlur(m, (0, 0), soft)
 
 
-def save(rgb, alpha, path, exact=False, q=92):
-    """WebP with a straight alpha, full size and @low. `exact`: the colour under a clear alpha is
-    kept (the alpha is data, not coverage). Colour and alpha are resized apart (never
-    premultiplied), so neither bleeds into the other."""
+def save(rgb, alpha, path, q=92):
+    """WebP, full size and @low: opaque, or with a straight alpha (coverage). Colour and alpha
+    are resized apart (never premultiplied), so neither bleeds into the other."""
     rgb8 = Image.fromarray((np.clip(rgb, 0, 1) * 255 + 0.5).astype(np.uint8), 'RGB')
-    a8 = Image.fromarray((np.clip(alpha, 0, 1) * 255 + 0.5).astype(np.uint8), 'L')
+    a8 = None if alpha is None else Image.fromarray((np.clip(alpha, 0, 1) * 255 + 0.5).astype(np.uint8), 'L')
     for sfx, k in (('', 1.0), ('@low', LOW)):
         c, a = rgb8, a8
         if k != 1.0:
             size = (max(1, round(rgb8.width * k)), max(1, round(rgb8.height * k)))
-            c, a = rgb8.resize(size, Image.LANCZOS), a8.resize(size, Image.LANCZOS)
+            c = rgb8.resize(size, Image.LANCZOS)
+            a = None if a8 is None else a8.resize(size, Image.LANCZOS)
         im = c.copy()
-        im.putalpha(a)
-        im.save(path + sfx + '.webp', 'WEBP', quality=q, method=6, exact=exact)
+        if a is not None:
+            im.putalpha(a)
+        im.save(path + sfx + '.webp', 'WEBP', quality=q, method=6)
+
+
+def save_wind(m, path):
+    """Where the wind may move the grass (0..1): a small opaque map, one size, lossless (a map,
+    not colour: nothing a decoder does to an alpha can touch it)."""
+    g = (np.clip(cv2.resize(m, WIND, interpolation=cv2.INTER_AREA), 0, 1) * 255 + 0.5).astype(np.uint8)
+    Image.fromarray(np.dstack([g, g, g]), 'RGB').save(path + '.webp', 'WEBP', lossless=True, method=6)
 
 
 def prepare(shot):
@@ -293,7 +325,8 @@ def render(name, flips=None):
         if s['chest']:
             cx, cy, rx, ry = s['chest']
             chest = [round((px + cx * pw) / W, 4), round(1 - (py + cy * ph) / H, 4), round(rx * pw / W, 4), round(ry * ph / H, 4)]
-        save(base, grass_of(base), path + '-base', exact=True)
+        save(base, None, path + '-base')
+        save_wind(grass_of(base), path + '-wind')
         for f in ('-cels.webp', '-cels@low.webp'):
             if os.path.exists(path + f):
                 os.remove(path + f)
@@ -305,19 +338,25 @@ def render(name, flips=None):
         return entry
     base = drawn[names[0]]
     allow = box(shot['allow'])
-    # Where each later drawing really differs from the base.
+    # Where each later drawing really differs from the base (refused if that is most of it).
     regions = {}
     for k in names[1:]:
         if k in drawn:
             r = changed(drawn[k], base, grow=11, soft=3, least=250, whole=True) * allow
-            if r.max() > 0.5:
+            cover = float((r > 0.5).mean())
+            if cover > MOST:
+                print(f'  {k}: refused: it changes {cover:.0%} of the frame (redrawn, not edited); make it again from {names[0]}, changing only what the kit asks')
+                del drawn[k]
+            elif r.max() > 0.5:
                 regions[k] = r
+                print(f'  {k}: changes {cover:.1%} of the frame')
     union = np.zeros((H, W), np.float32)
     for r in regions.values():
         union = np.maximum(union, r)
     # The wind leaves the grass alone near anything that changes.
     calm = np.clip(cv2.GaussianBlur(cv2.dilate((union > 0.02).astype(np.uint8), np.ones((61, 61), np.uint8)).astype(np.float32), (0, 0), 24) * 1.3, 0, 1)
-    save(base, grass_of(base) * (1 - calm), path + '-base', exact=True)
+    save(base, None, path + '-base')
+    save_wind(grass_of(base) * (1 - calm), path + '-wind')
     cx, cy, rx, ry = shot['chest'] or (0, 0, 0, 0)
     entry.update({'focus': [shot['focus'][0], round(1 - shot['focus'][1], 4)],
                   'chest': [cx, round(1 - cy, 4), rx, ry] if shot['chest'] else None, 'standin': False})
@@ -373,8 +412,56 @@ def render(name, flips=None):
     return entry
 
 
+def selftest():
+    """A made-up set for shot 5 from the sheet's panel, redrawn as an image tool does (every line
+    re-rendered a pixel or so off, the whole picture moved, zoomed and tinted a little), with real
+    changes (the eyes, the head, a blink): the cut must stay round the changes."""
+    import tempfile
+    global DRAW, OUT
+    rng = np.random.default_rng(7)
+    tmp = tempfile.mkdtemp(prefix='closeups-')
+    DRAW, OUT = os.path.join(tmp, 'draw'), os.path.join(tmp, 'out')
+    os.makedirs(DRAW)
+    os.makedirs(OUT)
+    x0, y0, x1, y1 = STANDIN['c5']['panel']
+    start, _ = contain(load(SHEET)[y0:y1, x0:x1])
+
+    def boil(img, amp=1.5):
+        f = [cv2.GaussianBlur(rng.standard_normal((H, W)).astype(np.float32), (0, 0), 24) for _ in range(2)]
+        f = [d * amp / (d.std() + 1e-6) for d in f]
+        gx, gy = np.meshgrid(np.arange(W, dtype=np.float32), np.arange(H, dtype=np.float32))
+        out = cv2.remap(img, gx + f[0], gy + f[1], cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT)
+        return np.clip(out + 0.35 * (out - cv2.GaussianBlur(out, (0, 0), 1.0)), 0, 1)
+
+    def redraw(img, dx, dy, k, cast=(1.03, 1.0, 0.97)):
+        M = np.float32([[k, 0, dx + (1 - k) * W / 2], [0, k, dy + (1 - k) * H / 2]])
+        return np.clip(cv2.warpAffine(img, M, (W, H), flags=cv2.INTER_LANCZOS4, borderMode=cv2.BORDER_REFLECT) * np.float32(cast), 0, 1)
+
+    def local(img, cx, cy, r, f):
+        m = np.zeros((H, W), np.float32)
+        cv2.circle(m, (cx, cy), r, 1, -1)
+        m = cv2.GaussianBlur(m, (0, 0), r * 0.15)[..., None]
+        return img * (1 - m) + f(img) * m
+
+    eyes = local(start, 1140, 260, 70, lambda im: cv2.warpAffine(im, np.float32([[1, 0, 7], [0, 1, 0]]), (W, H), borderMode=cv2.BORDER_REFLECT))
+    end = local(eyes, 1140, 300, 190, lambda im: cv2.warpAffine(im, cv2.getRotationMatrix2D((1140, 420), 5, 1.0), (W, H), borderMode=cv2.BORDER_REFLECT))
+    shut = end.copy()
+    shut[245:275, 1080:1200] = shut[290:320, 1080:1200]
+    for name, img in (('c5-start', start), ('c5-eyes', redraw(boil(eyes), 4, -3, 1.012)), ('c5-end', redraw(boil(end), 2, 2, 0.99)), ('c5-end-shut', redraw(boil(shut), -3, 1, 1.008))):
+        Image.fromarray((np.clip(img, 0, 1) * 255 + 0.5).astype(np.uint8)).save(os.path.join(DRAW, name + '.png'))
+    e = render('c5')
+    r = e['rect']
+    cover = r[2] * r[3]
+    ok = [c for c in e['cells'][1:] if c is not None and c >= 0]
+    print(f'selftest: {len(ok)} of 3 drawings kept; the cut covers {cover:.0%} of the frame (at most 15%)')
+    if len(ok) != 3 or cover > 0.15:
+        sys.exit(1)
+
+
 def main():
     args = sys.argv[1:]
+    if args == ['--selftest']:
+        return selftest()
     flips = None
     if '--flip' in args:
         i = args.index('--flip')

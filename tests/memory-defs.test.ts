@@ -46,7 +46,7 @@ describe('the living memories, as defined and committed', () => {
           // The close-ups: each one's first drawing and (if any drawing differs from it) the rest.
           const closeups = (lm.closeups ?? []) as { file: string; names: string[]; cells: (number | null)[]; grid: [number, number] }[];
           for (const c of closeups) {
-            files.push([`${c.file}-base`, ['', '@low']]);
+            files.push([`${c.file}-base`, ['', '@low']], [`${c.file}-wind`, ['']]);
             if (c.grid[0] > 0) files.push([`${c.file}-cels`, ['', '@low']]);
             expect(c.cells.length, c.file).toBe(c.names.length);
             expect(c.cells[0], c.file).toBe(-1);

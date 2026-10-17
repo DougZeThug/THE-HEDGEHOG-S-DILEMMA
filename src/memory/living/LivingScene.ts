@@ -46,8 +46,9 @@ export interface FigureArt {
  * (`scene.cel`), never mixed between.
  */
 export interface Closeup {
-  /** Its first drawing (its alpha: where the air may move the grass). */
+  /** Its first drawing, and where the air may move its grass (a map: R). */
   base: THREE.Texture;
+  wind: THREE.Texture;
   /** Its later drawings, cut to the part of the frame that changes (an atlas), or null. */
   cels: THREE.Texture | null;
   /** Each drawing, as `scene.cel` counts them: its cell in the atlas, −1 the first drawing, null not drawn yet (the one before holds). */
@@ -441,6 +442,7 @@ export class LivingScene {
       for (const o of this.wide) o.visible = false;
       const fu = this.m.frame.uniforms;
       fu.uFrame.value = cu.base;
+      fu.uMaps.value = cu.wind;
       fu.uCels.value = cu.cels ?? this.m.empty;
       const [cols, rows] = cu.grid;
       if (cel >= 0 && cu.cels && cols > 0 && rows > 0) {

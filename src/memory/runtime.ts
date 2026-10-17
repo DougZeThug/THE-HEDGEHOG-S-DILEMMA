@@ -56,11 +56,11 @@ interface LivingManifest {
   /** The leaves passed through at the crossing (an atlas of two), one size. */
   leaves?: string | null;
   /**
-   * The close-ups, by shot (scripts/closeups.py): `<file>-base` (its first drawing; alpha: where
-   * the air may move the grass, so a map: decoded straight) and, if any drawing differs from it,
-   * `<file>-cels` (the rest, an atlas of the part that changes).
+   * The close-ups, by shot (scripts/closeups.py): `<file>-base` (its first drawing), `<file>-wind`
+   * (where the air may move its grass: a map, one size) and, if any drawing differs from the
+   * first, `<file>-cels` (the rest, an atlas of the part that changes).
    */
-  closeups?: (Omit<Closeup, 'base' | 'cels'> & { file: string; names: string[]; standin?: boolean })[];
+  closeups?: (Omit<Closeup, 'base' | 'wind' | 'cels'> & { file: string; names: string[] })[];
   immerse: boolean;
 }
 
@@ -196,7 +196,7 @@ function livingFiles(lm: LivingManifest, suffix: string): { file: string; suffix
   if (lm.order) out.push({ file: lm.order, suffix: '' });
   if (lm.leaves) out.push({ file: lm.leaves, suffix: '' });
   for (const c of lm.closeups ?? []) {
-    out.push({ file: `${c.file}-base`, suffix });
+    out.push({ file: `${c.file}-base`, suffix }, { file: `${c.file}-wind`, suffix: '' });
     if (c.grid[0] > 0) out.push({ file: `${c.file}-cels`, suffix });
   }
   return out;
@@ -248,7 +248,7 @@ export async function prepare(id: string, variant: string, host: RuntimeHost): P
         extra.push(r);
         return r.texture;
       };
-      const [plate, maps, grade, sky, fig, lids, after, flowers, skyMask, clouds, cloudsAfter, order] = await Promise.all([
+      const mainP = Promise.all([
         one(lm.plate),
         one(lm.maps, { data: true, sfx: '' }),
         lm.grade ? one(lm.grade, { data: true, sfx: '' }) : Promise.resolve(null),
@@ -260,22 +260,37 @@ export async function prepare(id: string, variant: string, host: RuntimeHost): P
         lm.clouds ? one(lm.clouds.mask, { data: true, sfx: '' }) : Promise.resolve(null),
         lm.clouds ? one(lm.clouds.file, { sfx: '' }) : Promise.resolve(null),
         lm.clouds ? one(lm.clouds.after, { sfx: '' }) : Promise.resolve(null),
-        lm.order ? one(lm.order, { data: true, sfx: '' }) : Promise.resolve(null),
       ]);
-      // (The leaves are mipmapped, unlike the scene's layers: they are drawn out of focus.)
-      const leaves = lm.leaves ? await loadLayer(url(lm.leaves, '')).then((r) => (extra.push(r), r.texture)) : null;
-      // A close-up that can't be had is the wide for its shot (the memory still plays).
-      const closeups = await Promise.all(
+      // (The leaves and the pencil's order are mipmapped, unlike the scene's layers: drawn out of
+      // focus, and seen from across the room.)
+      const mipmapped = (file: string, data = false) => loadLayer(url(file, ''), { data }).then((r) => (extra.push(r), r.texture));
+      const leavesP = lm.leaves ? mipmapped(lm.leaves) : Promise.resolve(null);
+      const orderP = lm.order ? mipmapped(lm.order, true) : Promise.resolve(null);
+      // A close-up that can't be had is the wide for its shot (the memory still plays); what of it
+      // did load is let go at once.
+      const closeupsP = Promise.all(
         (lm.closeups ?? []).map(async (c): Promise<Closeup | null> => {
-          const [b, cels] = await Promise.allSettled([
-            loadLayer(url(`${c.file}-base`), { living: true, data: true }),
+          const got = await Promise.allSettled([
+            loadLayer(url(`${c.file}-base`), { living: true }),
+            loadLayer(url(`${c.file}-wind`, ''), { living: true, data: true }),
             c.grid[0] > 0 ? loadLayer(url(`${c.file}-cels`), { living: true }) : Promise.resolve(null),
           ]);
-          for (const r of [b, cels]) if (r.status === 'fulfilled' && r.value) extra.push(r.value);
-          if (b.status !== 'fulfilled' || cels.status !== 'fulfilled') return null;
-          return { ...c, base: b.value.texture, cels: cels.value?.texture ?? null };
+          const ok = got.every((r) => r.status === 'fulfilled');
+          for (const r of got) {
+            if (r.status !== 'fulfilled' || !r.value) continue;
+            if (ok) extra.push(r.value);
+            else r.value.texture.dispose(), r.value.bitmap.close();
+          }
+          if (!ok) return null;
+          const [b, w, cels] = got.map((r) => (r as PromiseFulfilledResult<{ texture: THREE.Texture } | null>).value);
+          return { ...c, base: b!.texture, wind: w!.texture, cels: cels?.texture ?? null };
         }),
       );
+      // (All of it settled before any failure is thrown, so nothing loads after it is let go.)
+      const bad = (await Promise.allSettled([mainP, leavesP, orderP, closeupsP])).find((r) => r.status === 'rejected') as PromiseRejectedResult | undefined;
+      if (bad) throw bad.reason;
+      const [plate, maps, grade, sky, fig, lids, after, flowers, skyMask, clouds, cloudsAfter] = await mainP;
+      const [leaves, order, closeups] = [await leavesP, await orderP, await closeupsP];
       const art: LivingArt = {
         closeups,
         plate,

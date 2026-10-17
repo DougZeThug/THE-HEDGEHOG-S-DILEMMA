@@ -126,6 +126,34 @@ for (const how of ['turn', 'step']) {
   report[how] = { start, inside, back, after: await pose(page), errors };
   await page.close();
 }
+// 3. A close-up: a small look round keeps it; past 14° it is the wide for the rest of the shot
+// (and they are still inside: leaving takes 30°).
+{
+  const { page, errors } = await room();
+  await page.evaluate(() => window.__hedgehog.playMemory('woodland', 'more-minutes', 'afternoon'));
+  await page.evaluate(() => window.__hedgehog.heldAt(12));
+  await page.waitForTimeout(800);
+  await page.evaluate(() => window.__hedgehog.heldAt(17.5));
+  await page.waitForTimeout(800);
+  const shot = () => page.evaluate(() => window.__hedgehog.living?.memory.prepared.living?.scene.shot ?? -1);
+  const turned = () => page.evaluate(() => +((window.__hedgehog.inside.turned * 180) / Math.PI).toFixed(1));
+  const look = async (px) => {
+    for (let i = 0; i < px / 20; i++) {
+      await page.evaluate(() => window.__hedgehog.lookBy(20, 0));
+      await page.waitForTimeout(60);
+    }
+    await page.waitForTimeout(400);
+  };
+  const at = { start: await shot() };
+  await look(80);
+  at.small = { shot: await shot(), turned: await turned() };
+  await look(60);
+  at.past = { shot: await shot(), turned: await turned() };
+  await page.waitForTimeout(1500);
+  at.later = { shot: await shot(), locked: await page.evaluate(() => window.__hedgehog.inside.locked) };
+  report.closeTurn = { ...at, ok: at.start === 1 && at.small.shot === 1 && at.past.shot === 0 && at.later.shot === 0 && at.later.locked, errors };
+  await page.close();
+}
 writeFileSync(`${OUT}/woodland.json`, JSON.stringify(report, null, 2));
 console.log(JSON.stringify(report));
 await browser.close();

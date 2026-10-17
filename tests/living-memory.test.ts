@@ -242,7 +242,8 @@ describe('the close-ups: the artist\'s drawings, cut on keys', () => {
 
   it('the shot is chosen before it is drawn; turned from a close-up, it is the wide for the rest of that shot', () => {
     const tex = () => new THREE.Texture();
-    const cu: Closeup = { base: tex(), cels: tex(), cells: [-1, 0, null, 1], grid: [2, 1], rect: [0.2, 0.3, 0.4, 0.5], focus: [0.4, 0.6], breath: 'a', chest: [0.5, 0.1, 0.3, 0.2] };
+    // (Two rows: the atlas's first row is at its top, decoded upside down.)
+    const cu: Closeup = { base: tex(), wind: tex(), cels: tex(), cells: [-1, 0, null, 3], grid: [2, 2], rect: [0.2, 0.3, 0.4, 0.5], focus: [0.4, 0.6], breath: 'a', chest: [0.5, 0.1, 0.3, 0.2] };
     const lm = manifest.living.afternoon;
     const s = new LivingScene(
       { plate: tex(), maps: tex(), grade: null, after: null, sky: null, flowers: null, clouds: null, size: manifest.plate as [number, number], closeups: [cu, null],
@@ -256,14 +257,15 @@ describe('the close-ups: the artist\'s drawings, cut on keys', () => {
     expect(s.choose({ 'scene.shot': 1, 'scene.cel': 1 }, inside)).toBe(1);
     draw(17, { 'scene.shot': 1, 'scene.cel': 1 });
     expect(m.frame.uniforms.uFrame.value).toBe(cu.base);
-    expect((m.frame.uniforms.uCel.value as THREE.Vector4).toArray()).toEqual([0, 0, 0.5, 1]);
-    // Its third drawing isn't made: the second holds. Its fourth: the atlas's second cell.
+    expect(m.frame.uniforms.uMaps.value).toBe(cu.wind);
+    expect((m.frame.uniforms.uCel.value as THREE.Vector4).toArray()).toEqual([0, 0.5, 0.5, 0.5]);
+    // Its third drawing isn't made: the second holds. Its fourth: the atlas's last cell (bottom right).
     s.choose({ 'scene.shot': 1, 'scene.cel': 2 }, inside);
     draw(17.5, { 'scene.shot': 1, 'scene.cel': 2 });
-    expect((m.frame.uniforms.uCel.value as THREE.Vector4).toArray()).toEqual([0, 0, 0.5, 1]);
+    expect((m.frame.uniforms.uCel.value as THREE.Vector4).toArray()).toEqual([0, 0.5, 0.5, 0.5]);
     s.choose({ 'scene.shot': 1, 'scene.cel': 3 }, inside);
     draw(18, { 'scene.shot': 1, 'scene.cel': 3 });
-    expect((m.frame.uniforms.uCel.value as THREE.Vector4).toArray()).toEqual([0.5, 0, 0.5, 1]);
+    expect((m.frame.uniforms.uCel.value as THREE.Vector4).toArray()).toEqual([0.5, 0, 0.5, 0.5]);
     // Breathing (his), on the chest.
     expect(m.frame.uniforms.uBreathe.value).toBeGreaterThanOrEqual(0);
     expect((m.frame.uniforms.uChest.value as THREE.Vector4).toArray()).toEqual(cu.chest);

@@ -26,8 +26,12 @@ import { Immersion, projectQuad, visiblePart } from './Immersion';
 export interface InsideFrame {
   /** The timeline's immersion (composed: an early leaving already takes it back). */
   immerse: number;
-  /** Where the visitor may stand to be carried (its painting's place, the scene's cover focus). */
+  /** Where the visitor is carried to (the painting's point square in front of them: the wide's cover focus). */
   focus: [number, number];
+  /** What the view keeps central (a close-up's subject on an upright screen); the body stays put. Default: `focus`. */
+  view?: [number, number];
+  /** Held at a position (the editor, a capture): the way in is exactly where its curve is. */
+  held?: boolean;
   /** Whether this variant may be entered at all. */
   enter: boolean;
   /** The visitor is looking away from the painting (from the attention check). */
@@ -52,10 +56,9 @@ export function approachCurve(a: number): number {
 const LEAVE = 0.52; // radians of a new turn that let it go (30°)
 const YIELD = 0.14; // a glance (under 8°) changes nothing
 // How fast the way in may catch up after a look away held it (of the whole way, a second: about
-// twice its own fastest), and how long a step is held, or a look away lasts, before it counts.
+// twice its own fastest), and how long a step back is held before it is leaving.
 const CATCH_UP = 0.35;
 const HELD = 0.35;
-const LOOKED_AWAY = 0.5;
 const smooth = (e0: number, e1: number, x: number) => {
   const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0)));
   return t * t * (3 - 2 * t);
@@ -66,17 +69,21 @@ export class Inside {
   eff = 0;
   /** The view's part of the painting (painting uv): what the living scene must draw. */
   readonly view = new THREE.Vector4(0, 0, 1, 1);
+  /** Where the way back ends (where they last stood by themselves, as they looked when taken in). */
   private from: { x: number; z: number; yaw: number; pitch: number } | null = null;
-  /** Where they stood before anything (the way back ends here), and where the carry began. */
-  private origin: { x: number; z: number; yaw: number; pitch: number } | null = null;
+  /** Where they were when taken in. */
   private start: { x: number; z: number; yaw: number; pitch: number } | null = null;
+  /** Where they last stood by themselves (the drift goes on from here), and how far along the way in it was then. */
+  private anchor: { x: number; z: number } | null = null;
+  private l0 = 0;
   /** How far along the way in they are (0..1), and were when taken in (the lean's share of it). */
   private lean = 0;
   private pLock = 0;
   private leanStopped = false;
-  /** Before it takes them: a step held, a look away (seconds). */
+  /** Before it takes them: a step back held (seconds). */
   private leanStep = 0;
-  private awayFor = 0;
+  /** How far in it is, as the timeline has it (before any yielding). */
+  private immersed = 0;
   /** They were taken in (the painting was all there is, at least half way). */
   entered = false;
   private decided = false;
@@ -108,6 +115,11 @@ export class Inside {
     return this.from !== null && !this.handedBack;
   }
 
+  /** Taken all the way in (whatever they are doing with their look): what a close-up is for. */
+  get taken(): boolean {
+    return this.locked && this.immersed > 0.98;
+  }
+
   private reduced = false;
 
   /** A new memory: nothing carried, nothing decided. Reduced motion is as it was when it began. */
@@ -115,8 +127,8 @@ export class Inside {
     this.end();
     this.reduced = reduced;
     this.decided = this.wallOnly = this.handedBack = this.leaving = false;
-    this.origin = this.start = null;
-    this.lean = this.pLock = this.leanStep = this.awayFor = 0;
+    this.anchor = this.start = null;
+    this.lean = this.l0 = this.pLock = this.leanStep = this.immersed = 0;
     this.leanStopped = this.entered = false;
     this.vx = this.vy = this.quiet = this.stepHeld = 0;
     this.freshKeys.clear();
@@ -144,15 +156,15 @@ export class Inside {
    */
   step(dt: number, f: InsideFrame, o: { reduced: boolean; aspect: number; scene: THREE.Texture; sketch: THREE.Texture | null; group: THREE.Object3D; leaves?: THREE.Texture | null }): 'leave' | null {
     let out: 'leave' | null = null;
-    if (!this.decided) this.awayFor = f.away ? this.awayFor + dt : 0;
     if (!this.decided && f.immerse > 0) {
       this.decided = true;
-      // Decided once, when it would take them (the skeptic's review, 2026-10-17): someone
-      // looking at it then is taken in (a glance away a moment ago doesn't count), unless they
-      // walked off; otherwise it stays on the wall.
-      this.wallOnly = !f.enter || this.awayFor >= LOOKED_AWAY || this.leanStopped;
+      // Decided once, when it would take them (the skeptic's and QA's reviews, 2026-10-17):
+      // someone looking at it then is taken in, unless they stepped back from it; otherwise it
+      // stays on the wall.
+      this.wallOnly = !f.enter || f.away || this.leanStopped;
     }
     const immerse = this.wallOnly ? 0 : f.immerse;
+    this.immersed = immerse;
     // Turning: held keys turn at the room's rate; quiet, the turn springs back.
     if (this.locked) {
       const k = this.rig.keys;
@@ -191,31 +203,39 @@ export class Inside {
     this.proxy.scale.set(p.w, p.h, 1);
     this.proxy.updateMatrixWorld();
 
-    // Shot 1, the lean (the artist's shot list; the interaction, cinematic and skeptic's reviews,
-    // 2026-10-17): while the drawing forms, they drift toward the wall along the way in, their
-    // look their own. Looking away holds it where it is (looking back, it goes on, catching up
-    // gently, never a lurch); holding a step lets it go for good (it stays on the wall, and they
-    // are free). Taken in, the same move carries on: one unbroken approach.
+    // Shot 1, the lean (the artist's shot list; the interaction, cinematic, skeptic's and QA's
+    // reviews, 2026-10-17): while the drawing forms, they drift toward the wall along the way in,
+    // their look their own. Looking away holds it where it is (looking back, it goes on, catching
+    // up gently, never a lurch). Their own steps are theirs: walking up to it, or aside, the drift
+    // waits and goes on from where they stop; a step back held lets it go for good (it stays on
+    // the wall, and they are free). Taken in, the same move carries on: one unbroken approach.
     const want = f.approach === undefined || o.reduced ? 0 : approachCurve(f.approach);
-    if (!this.decided && want > 0 && !this.from && !this.handedBack && !this.leanStopped) {
-      const k = this.rig.keys;
-      const walking = ['KeyW', 'KeyS', 'KeyA', 'KeyD', 'ArrowUp', 'ArrowDown'].some((c) => k.has(c)) || this.rig.touchMove.length() > 0.3;
-      this.leanStep = walking ? this.leanStep + dt : 0;
+    if (!this.decided && (f.approach ?? 0) > 0 && !this.from && !this.handedBack && !this.leanStopped) {
+      const k = this.rig.keys, thumb = this.rig.touchMove;
+      // (The left thumb's sideways push turns; only its up and down walk. A walk easing to a stop,
+      // or the walk toward a tapped line, is still theirs until it has.)
+      const back = k.has('KeyS') || k.has('ArrowDown') || thumb.y < -0.3;
+      const walking = back || k.has('KeyW') || k.has('ArrowUp') || k.has('KeyA') || k.has('KeyD') || thumb.y > 0.3 || this.rig.moving;
+      this.leanStep = back ? this.leanStep + dt : 0;
       if (this.leanStep >= HELD) this.leanStopped = true;
-      else if (!f.away && !walking) {
-        if (!this.origin) this.origin = { x: this.rig.pos.x, z: this.rig.pos.z, yaw: this.rig.yaw, pitch: this.rig.pitch };
-        const t = this.toward(f.focus, o.aspect, this.origin);
-        const a = this.origin;
-        // (Held at a position, as the editor and a capture hold it, it is where the curve is.)
-        this.lean = dt > 0 ? Math.min(want, this.lean + CATCH_UP * dt) : want;
-        this.rig.drift(a.x + (t.x - a.x) * this.lean, a.z + (t.z - a.z) * this.lean);
+      else if (walking) this.anchor = null;
+      else if (!f.away && want > 0) {
+        if (!this.anchor) this.anchor = { x: this.rig.pos.x, z: this.rig.pos.z }, (this.l0 = this.lean);
+        // (Held at a position, as the editor and a capture hold it, it is where the curve is; in a
+        // frame in which no time passed, nothing moves.)
+        this.lean = f.held ? want : Math.min(want, this.lean + CATCH_UP * dt);
+        const t = this.along(f.focus, o.aspect, this.anchor, this.lean);
+        this.rig.drift(t.x, t.z);
       }
     }
 
-    // Taken in (from where the lean left them), and back (to where they first stood).
+    // Taken in (from where the lean left them); the way back ends where they last stood by
+    // themselves, as they looked when taken in.
     if (e > 0 && !this.from && !this.handedBack && !o.reduced) {
-      this.start = { x: this.rig.pos.x, z: this.rig.pos.z, yaw: this.rig.yaw, pitch: this.rig.pitch };
-      this.from = this.origin ?? this.start;
+      const here = { x: this.rig.pos.x, z: this.rig.pos.z, yaw: this.rig.yaw, pitch: this.rig.pitch };
+      this.start = here;
+      if (!this.anchor) this.anchor = { x: here.x, z: here.z }, (this.l0 = this.lean);
+      this.from = { ...this.anchor, yaw: here.yaw, pitch: here.pitch };
       this.pLock = this.lean;
       this.rig.cancelAttend();
     }
@@ -232,26 +252,20 @@ export class Inside {
         this.from = null;
       } else if (!o.reduced && f.approach !== undefined) {
         // One move: on along the way in (backing off a little as they turn), square to it by its
-        // end; on the way back, past where they were taken, turning back to how they stood.
+        // end; on the way back, turning back to how they looked when taken, then on to where they
+        // stood.
         const a = this.from;
         const s0 = this.start ?? a;
-        const t = this.toward(f.focus, o.aspect, a);
         const yieldK = 1 - 0.45 * smooth(YIELD, LEAVE, this.turned);
         const aim = want >= this.pLock ? this.pLock + (want - this.pLock) * yieldK : want;
-        // (Behind the curve after a held look, it catches up; backing off or going back, it follows.)
-        this.lean = aim > this.lean && dt > 0 ? Math.min(aim, this.lean + CATCH_UP * dt) : aim;
+        // (Behind the curve after a held look, it catches up; backing off or going back, it
+        // follows; held, it is on the curve; in a frame in which no time passed, nothing moves.)
+        if (f.held) this.lean = aim;
+        else if (dt > 0) this.lean = aim > this.lean ? Math.min(aim, this.lean + CATCH_UP * dt) : aim;
         const pos = this.lean;
-        let yaw: number, pitch: number;
-        if (pos >= this.pLock) {
-          const q = this.pLock < 0.999 ? smooth(0, 1, (pos - this.pLock) / (1 - this.pLock)) : 1;
-          yaw = s0.yaw + angleDiff(s0.yaw, t.yaw) * q;
-          pitch = s0.pitch + (t.pitch - s0.pitch) * q;
-        } else {
-          const q = this.pLock > 1e-3 ? pos / this.pLock : 0;
-          yaw = a.yaw + angleDiff(a.yaw, s0.yaw) * q;
-          pitch = a.pitch + (s0.pitch - a.pitch) * q;
-        }
-        this.rig.place(a.x + (t.x - a.x) * pos, a.z + (t.z - a.z) * pos, yaw, pitch);
+        const t = this.along(f.focus, o.aspect, a, pos);
+        const q = pos <= this.pLock ? 0 : this.pLock < 0.999 ? smooth(0, 1, (pos - this.pLock) / (1 - this.pLock)) : 1;
+        this.rig.place(t.x, t.z, s0.yaw + angleDiff(s0.yaw, t.yaw) * q, s0.pitch + (t.pitch - s0.pitch) * q);
         if (want <= 1e-3 && f.leavingNaturally) {
           // Back exactly where they stood.
           this.rig.place(a.x, a.z, a.yaw, a.pitch);
@@ -273,7 +287,7 @@ export class Inside {
       show,
       aspect: o.aspect,
       paint: p.w / Math.max(1e-3, p.h),
-      focus: f.focus,
+      focus: f.view ?? f.focus,
       zoom: this.zoom,
       view: this.view,
       seed: this.seed,
@@ -291,6 +305,16 @@ export class Inside {
     if (show * settle >= 0.5 && !this.wallOnly) this.entered = true;
     this.post.roomHidden = show >= 0.999 && settle >= 0.999;
     return out;
+  }
+
+  /**
+   * Where the body is `p` of the way in, drifting from where they last stood (`anchor`, when the
+   * way was `l0` along): there at `l0`, at the way's end at 1.
+   */
+  private along(focus: [number, number], aspect: number, anchor: { x: number; z: number }, p: number): { x: number; z: number; yaw: number; pitch: number } {
+    const t = this.toward(focus, aspect, anchor);
+    const g = this.l0 < 0.999 ? Math.min(1, Math.max(0, (p - this.l0) / (1 - this.l0))) : 1;
+    return { x: anchor.x + (t.x - anchor.x) * g, z: anchor.z + (t.z - anchor.z) * g, yaw: t.yaw, pitch: t.pitch };
   }
 
   /**

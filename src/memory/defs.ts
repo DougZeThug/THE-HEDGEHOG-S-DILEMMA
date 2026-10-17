@@ -41,8 +41,12 @@ export interface MemoryDef {
   roomDim?: number;
   /** What the picture is, for a screen reader (announced once, when it has formed). */
   describe: (variant: string) => string;
-  /** What changes later, told to a screen reader at the moment it happens (sequence seconds). */
-  announce?: (variant: string) => { at: number; text: string; inside?: boolean }[];
+  /**
+   * What changes later, told to a screen reader at the moment it happens (sequence seconds): only
+   * to someone taken in (`inside`), only to someone it stayed on the wall for (`wall`), or only
+   * while a close-up is shown (`shot`).
+   */
+  announce?: (variant: string) => { at: number; text: string; inside?: boolean; wall?: boolean; shot?: number }[];
   /**
    * A living memory (animated, and entered): its scene's object names in the timeline (`scene`,
    * `figure:a`, `figure:b`) are added to the schema, and the variants that have a living scene in
@@ -511,9 +515,9 @@ export const WOODLAND: MemoryDef = {
         'figure:a.breath': [[0, 1]],
         'figure:b.breath': [[0, 1]],
         'figure:b.foot': [[0, 0], [11, 0], [11.6, 0.8], [14.4, 0.8], [15.0, 0]],
-        // Her hand a little further from his in the first wide than in the second (it moved, in
-        // the close-up of their hands).
-        'figure:b.hand': [[0, 0.55, 'hold'], [C.wideAgain, 1]],
+        // Her hand a little further from his in the first wide than in the second: it moves when
+        // it does in the close-up of their hands (seen in the wide if that close-up gave way).
+        'figure:b.hand': [[0, 0.55, 'hold'], [C.hands + 11 * d, 0.55], [C.hands + 18 * d, 1]],
       },
       markers: [
         { label: 'active', position: S.active },
@@ -557,12 +561,14 @@ export const WOODLAND: MemoryDef = {
   describe: (v) => v === 'empty'
     ? 'A painting forms in the wall by the words: a clearing in a wood at dusk, a fallen log, a tree, the grass. Nobody is there.'
     : 'A pencil drawing forms in the wall by the words: a clearing in a wood, two young people lying in the grass.',
-  // (Short, at least 3.5 s apart; the close-ups only if they were taken in: interaction review.)
+  // (Short, at least 3.5 s apart; the close-ups only while shown, and only what is seen in them,
+  // stand-ins or drawings: interaction and QA reviews.)
   announce: (v) => v === 'empty' ? [] : [
-    { at: 10.5, text: 'It opens until it is all there is: a summer afternoon, cicadas in the trees.' },
-    { at: SHOTS.closeHim, text: 'He turns his head toward her.', inside: true },
-    { at: SHOTS.closeHer, text: 'She notices, and turns a little.', inside: true },
-    { at: SHOTS.hands, text: 'Their hands, close. They don\'t touch.', inside: true },
+    { at: 10.5, text: 'It opens until it is all there is: a summer afternoon, cicadas in the trees.', inside: true },
+    { at: 10.5, text: 'The painting comes alive on the wall: a summer afternoon, cicadas in the trees.', wall: true },
+    { at: SHOTS.closeHim, text: 'Close on him; he looks toward her.', shot: 1 },
+    { at: SHOTS.closeHer, text: 'Close on her; she looks back at him.', shot: 2 },
+    { at: SHOTS.hands, text: 'Their hands in the grass, close. They don\'t touch.', shot: 3 },
     { at: CUT, text: 'The same clearing, at dusk. Nobody is there.' },
     { at: WOODLAND_SECTIONS.exit, text: 'The painting goes back into the wall.' },
   ],
