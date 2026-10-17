@@ -11,7 +11,8 @@ src/memory/defs.ts), never warped or mixed between (a face warped from one drawi
 next tears: the skeptic's review, 2026-10-17). Reads each shot's drawings from
 references/woodland/drawings/ (named as in references/woodland/kit/README.md). The first is the
 shot's base; any after it may be missing (the timeline then holds the one before). Without its
-first drawing, a shot is the character sheet's own close-up panel, held: a stand-in.
+first drawing, a shot is a stand-in: the character sheet's own close-up panel, held, its paper
+keyed out and the sheet's own grass grown round it to fill the widescreen frame.
 
 Writes public/memories/woodland/afternoon/<shot>-base.webp (the first drawing, opaque),
 <shot>-wind.webp (where the engine's wind may move its grass: a small map, one size) and
@@ -58,8 +59,9 @@ WIND = (480, 270)
 # drawings are in: a crop of them that matches the shots' eyelines (x, y, w: fractions of a
 # drawing; its height follows at 16:9) and where they may differ from the base (x0, y0, x1, y1;
 # outside it the base's is kept: the image tool redraws what it wasn't asked to; the kit's
-# framing: his head in the left half, hers in the right, her hand coming in from the right). The
-# chests and crops are set by eye on the real drawings.
+# framing: his head in the left half, hers in the right, above the frame's lower part, where only
+# the engine's breath moves; her hand coming in from the right). The chests, crops and boxes are
+# set by eye on the real drawings.
 SHOTS = {
     'c4': {
         'drawings': ['c4-start', 'c4-eyes', 'c4-mid', 'c4-end'],
@@ -67,7 +69,7 @@ SHOTS = {
         'breath': 'a',
         'chest': (0.42, 0.98, 0.34, 0.2),
         'crop': None,
-        'allow': (0.0, 0.0, 0.62, 1.0),
+        'allow': (0.0, 0.0, 0.62, 0.72),
     },
     'c5': {
         'drawings': ['c5-start', 'c5-eyes', 'c5-mid', 'c5-end', 'c5-end-half', 'c5-end-shut'],
@@ -75,7 +77,7 @@ SHOTS = {
         'breath': 'b',
         'chest': (0.58, 0.98, 0.34, 0.2),
         'crop': None,
-        'allow': (0.38, 0.0, 1.0, 1.0),
+        'allow': (0.38, 0.0, 1.0, 0.72),
     },
     'c6': {
         'drawings': ['c6-start', 'c6-mid', 'c6-end'],
@@ -88,12 +90,18 @@ SHOTS = {
 }
 
 # Until a shot's first drawing is in: the sheet's own close-up panel (x0, y0, x1, y1, inside its
-# border), held; the face and the chest in it (panel fractions, y down; the chest's x, y, rx, ry).
+# border), held; the face and the chest in it (panel fractions, y down; the chest's x, y, rx, ry);
+# where the face goes across the frame (the drawings' framing: his head left looking right, hers
+# right looking left, so the eyelines meet across the cut), or `fill`: the panel cropped across its
+# whole width (the hands: the trousers run off the frame's sides).
 STANDIN = {
-    'c4': {'panel': (540, 542, 800, 783), 'face': (0.55, 0.3), 'chest': (0.45, 0.68, 0.35, 0.22)},
-    'c5': {'panel': (802, 542, 1076, 783), 'face': (0.45, 0.25), 'chest': (0.52, 0.62, 0.32, 0.2)},
-    'c6': {'panel': (1093, 532, 1424, 756), 'face': (0.5, 0.5), 'chest': None},
+    'c4': {'panel': (540, 542, 800, 783), 'face': (0.55, 0.3), 'at': 0.38, 'chest': (0.45, 0.68, 0.35, 0.22)},
+    'c5': {'panel': (802, 542, 1076, 783), 'face': (0.45, 0.25), 'at': 0.62, 'chest': (0.52, 0.62, 0.32, 0.2)},
+    'c6': {'panel': (1096, 534, 1422, 755), 'face': (0.5, 0.5), 'fill': True, 'chest': None},
 }
+# The sheet's top panel: the two of them lying in a long bed of grass, drawn by the same hand (its
+# grass, enlarged to the close-ups' scale, is what the stand-ins' grass is grown from).
+SHEET_TOP = (0, 0, 1448, 520)
 
 
 def load(path):
@@ -119,22 +127,141 @@ def fit(img, w=W, h=H):
     return np.ascontiguousarray(big[y0:y0 + h, x0:x0 + w])
 
 
-def contain(img, w=W, h=H):
-    """Fit the whole of `img` in a w×h frame, its sides filled with a soft, out-of-focus stretch
-    of itself (for the sheet's square-ish panels). Returns it and where the panel is (x, y, w, h px)."""
-    ih, iw = img.shape[:2]
-    k = min(w / iw, h / ih)
-    nw, nh = round(iw * k), round(ih * k)
-    fg = cv2.resize(img, (nw, nh), interpolation=cv2.INTER_LANCZOS4)
-    bg = cv2.GaussianBlur(cv2.resize(img, (w, h), interpolation=cv2.INTER_LINEAR), (0, 0), 28)
-    out = bg.copy()
-    x0, y0 = (w - nw) // 2, (h - nh) // 2
-    # Feather the panel's edges into the soft surround.
-    m = np.zeros((nh, nw), np.float32)
-    m[12:-12, 12:-12] = 1
-    m = cv2.GaussianBlur(m, (0, 0), 10)[..., None]
-    out[y0:y0 + nh, x0:x0 + nw] = fg * m + out[y0:y0 + nh, x0:x0 + nw] * (1 - m)
-    return out, (x0, y0, nw, nh)
+def hsv(img):
+    h = cv2.cvtColor((np.clip(img, 0, 1) * 255).astype(np.uint8), cv2.COLOR_RGB2HSV).astype(np.float32)
+    return h[..., 0], h[..., 1] / 255, h[..., 2] / 255
+
+
+def blades(img):
+    """Drawn grass, strictly (yellow-green to green, not his grey-teal shirt nor the paper),
+    closed over the dark gaps between blades: what grass is grown from."""
+    h, s, v = hsv(img)
+    g = ((h > 20) & (h < 72) & (s > 0.24) & (v > 0.18)).astype(np.uint8)
+    return cv2.morphologyEx(g, cv2.MORPH_CLOSE, np.ones((5, 5), np.uint8))
+
+
+def paper_of(panel):
+    """The sheet's paper showing in a panel: the pale, colourless ground reaching its edge (and
+    flecks of it caught nearby), and small pale patches ringed by grass (the paper between blades;
+    a shirt or a cuff is larger, or ringed by ink and skin)."""
+    h, s, v = hsv(panel)
+    pale = ((v > 0.8) & (s < 0.16)).astype(np.uint8)
+    n, lab = cv2.connectedComponents(pale)
+    edge = set(np.unique(np.concatenate([lab[0], lab[-1], lab[:, 0], lab[:, -1]]))) - {0}
+    m = np.isin(lab, list(edge)).astype(np.uint8)
+    for _ in range(3):
+        m = (m | (cv2.dilate(m, np.ones((9, 9), np.uint8)) & pale)).astype(np.uint8)
+    g = blades(panel)
+    n, lab, st, _ = cv2.connectedComponentsWithStats(pale)
+    for i in range(1, n):
+        if not 12 <= st[i, cv2.CC_STAT_AREA] <= 0.02 * pale.size:
+            continue
+        x, y, w, hh = st[i, 0], st[i, 1], st[i, 2], st[i, 3]
+        x0, y0, x1, y1 = max(0, x - 4), max(0, y - 4), min(pale.shape[1], x + w + 4), min(pale.shape[0], y + hh + 4)
+        comp = (lab[y0:y1, x0:x1] == i).astype(np.uint8)
+        ring = cv2.dilate(comp, np.ones((7, 7), np.uint8)) - comp
+        if ring.sum() and g[y0:y1, x0:x1][ring > 0].mean() > 0.55:
+            m[y0:y1, x0:x1] |= comp
+    return m
+
+
+def seam(e):
+    """The cheapest path down an error surface (rows × overlap columns): the column to cut at, per row."""
+    R, C = e.shape
+    cost = e.copy()
+    for r in range(1, R):
+        cost[r] += np.minimum(np.minimum(np.r_[np.inf, cost[r - 1, :-1]], cost[r - 1]), np.r_[cost[r - 1, 1:], np.inf])
+    cut = np.zeros(R, int)
+    cut[-1] = int(np.argmin(cost[-1]))
+    for r in range(R - 2, -1, -1):
+        lo = max(0, cut[r + 1] - 1)
+        cut[r] = lo + int(np.argmin(cost[r, lo:min(C, cut[r + 1] + 2)]))
+    return cut
+
+
+def quilt(src, ok, w, h, rng, B=28, O=8, tries=600):
+    """A w×h field of grass quilted from `src` where `ok` (Efros and Freeman: overlapping
+    patches, each a good fit to its neighbours, joined along their least visible seam). Only
+    textured patches: a flat one (cloth, paper) wins every seam and spreads."""
+    H_, W_ = ok.shape
+    ii = cv2.integral(ok.astype(np.uint8))
+    ys, xs = np.mgrid[0:H_ - B:2, 0:W_ - B:2]
+    cover = (ii[ys + B, xs + B] - ii[ys, xs + B] - ii[ys + B, xs] + ii[ys, xs]) / (B * B)
+    g = gray(src).astype(np.float32) / 255
+    mu = cv2.boxFilter(g, -1, (B, B))
+    var = cv2.boxFilter(g * g, -1, (B, B)) - mu * mu
+    tex = var[ys + B // 2, xs + B // 2]
+    good = (cover > 0.92) & (tex > np.percentile(tex[cover > 0.92], 40))
+    cand = np.stack([ys[good], xs[good]], 1)
+    out = np.zeros((h + B, w + B, 3), np.float32)
+    for by in range(0, h, B - O):
+        for bx in range(0, w, B - O):
+            pick = cand[rng.choice(len(cand), min(tries, len(cand)), replace=False)]
+            pats = np.stack([src[y:y + B, x:x + B] for y, x in pick])
+            err = np.zeros(len(pick), np.float32)
+            if bx > 0:
+                err += ((pats[:, :, :O] - out[by:by + B, bx:bx + O]) ** 2).sum((1, 2, 3))
+            if by > 0:
+                err += ((pats[:, :O, :] - out[by:by + O, bx:bx + B]) ** 2).sum((1, 2, 3))
+            p = pats[rng.choice(np.flatnonzero(err <= err.min() * 1.35 + 1e-6))]
+            m = np.ones((B, B), np.float32)
+            if bx > 0:
+                for r, c in enumerate(seam(((p[:, :O] - out[by:by + B, bx:bx + O]) ** 2).sum(-1))):
+                    m[r, :c] = 0
+            if by > 0:
+                for c, r in enumerate(seam(((p[:O, :] - out[by:by + O, bx:bx + B]) ** 2).sum(-1).T)):
+                    m[:r, c] = 0
+            m = cv2.GaussianBlur(m, (0, 0), 0.8)[..., None]
+            out[by:by + B, bx:bx + B] = out[by:by + B, bx:bx + B] * (1 - m) + p * m
+    return out[:h, :w]
+
+
+def standin(s, sheet, rng):
+    """A shot's stand-in: the sheet's panel, its paper keyed out, in a widescreen field of the
+    sheet's own grass. Returns the frame (W×H) and where the panel is in it (x, y, w, h: fractions)."""
+    x0, y0, x1, y1 = s['panel']
+    panel = sheet[y0:y1, x0:x1]
+    ph, pw = panel.shape[:2]
+    if s.get('fill'):
+        cw, ch = pw, round(pw * H / W)
+        ox, oy = 0, -round((ph - ch) / 2)
+    else:
+        ch, cw = ph, round(ph * W / H)
+        ox, oy = round(s['at'] * cw - s['face'][0] * pw), 0
+    paper = paper_of(panel)
+    # Grass to grow from: the panel's own, and the top panel's at about this scale, side by side.
+    tx0, ty0, tx1, ty1 = SHEET_TOP
+    top = cv2.resize(sheet[ty0:ty1, tx0:tx1], None, fx=1.6, fy=1.6, interpolation=cv2.INTER_CUBIC)
+    th, tw = top.shape[:2]
+    src = np.zeros((max(ph, th), pw + tw, 3), np.float32)
+    ok = np.zeros(src.shape[:2], np.uint8)
+    src[:ph, :pw], src[:th, pw:] = panel, top
+    ok[:ph, :pw] = blades(panel) & (1 - cv2.dilate(paper, np.ones((5, 5), np.uint8)))
+    h_, s_, v_ = hsv(top)
+    ok[:th, pw:] = blades(top) & (1 - cv2.dilate(((v_ > 0.8) & (s_ < 0.16)).astype(np.uint8), np.ones((5, 5), np.uint8)))
+    field = quilt(src, ok, cw, ch, rng)
+    # The panel over it, its paper keyed out; its own edges (where they fall inside the frame)
+    # softened into the field.
+    keep = 1 - cv2.dilate(paper, np.ones((3, 3), np.uint8)).astype(np.float32)
+    inner = np.ones((ph, pw), np.float32)
+    if ox > 0:
+        inner[:, :6] = 0
+    if ox + pw < cw:
+        inner[:, -6:] = 0
+    if oy > 0:
+        inner[:6] = 0
+    if oy + ph < ch:
+        inner[-6:] = 0
+    keep = cv2.GaussianBlur(np.minimum(keep, cv2.GaussianBlur(inner, (0, 0), 3) if inner.min() < 1 else inner), (0, 0), 1.0)
+    ys, xs, ye, xe = max(0, oy), max(0, ox), min(ch, oy + ph), min(cw, ox + pw)
+    m = np.zeros((ch, cw, 1), np.float32)
+    m[ys:ye, xs:xe, 0] = keep[ys - oy:ye - oy, xs - ox:xe - ox]
+    over = np.zeros((ch, cw, 3), np.float32)
+    over[ys:ye, xs:xe] = panel[ys - oy:ye - oy, xs - ox:xe - ox]
+    frame = cv2.resize(field * (1 - m) + over * m, (W, H), interpolation=cv2.INTER_LANCZOS4)
+    # (An enlargement of a small panel: its edges brought back a little.)
+    frame = np.clip(frame + 0.5 * (frame - cv2.GaussianBlur(frame, (0, 0), 2.0)), 0, 1)
+    return frame, (ox / cw, oy / ch, pw / cw, ph / ch)
 
 
 def gray(img):
@@ -159,6 +286,9 @@ def changed(a, b, grow=25, soft=18, least=900, whole=False):
     made one piece (a turned head differs at its features and edges, not across its cheek; it is
     cut whole)."""
     d = differs(cv2.GaussianBlur(a, (0, 0), 1.2), cv2.GaussianBlur(b, (0, 0), 1.2))
+    # (Grass against grass is never the acting: the image tool redraws every blade a little, and
+    # the engine's wind moves them anyway. A hand or a head over grass still differs.)
+    d[(blades(a) > 0) & (blades(b) > 0)] = 0
     # (Not at the frame's very edge: a drawing lined up has a sliver of nothing there.)
     e = 12
     d[:e], d[-e:], d[:, :e], d[:, -e:] = 0, 0, 0, 0
@@ -318,13 +448,12 @@ def render(name, flips=None):
     drawn = prepare(shot)
     if drawn is None:
         s = STANDIN[name]
-        x0, y0, x1, y1 = s['panel']
-        base, (px, py, pw, ph) = contain(load(SHEET)[y0:y1, x0:x1])
-        fx, fy = (px + s['face'][0] * pw) / W, (py + s['face'][1] * ph) / H
+        base, (px, py, pw, ph) = standin(s, load(SHEET), np.random.default_rng(5))
+        fx, fy = px + s['face'][0] * pw, py + s['face'][1] * ph
         chest = None
         if s['chest']:
             cx, cy, rx, ry = s['chest']
-            chest = [round((px + cx * pw) / W, 4), round(1 - (py + cy * ph) / H, 4), round(rx * pw / W, 4), round(ry * ph / H, 4)]
+            chest = [round(px + cx * pw, 4), round(1 - (py + cy * ph), 4), round(rx * pw, 4), round(ry * ph, 4)]
         save(base, None, path + '-base')
         save_wind(grass_of(base), path + '-wind')
         for f in ('-cels.webp', '-cels@low.webp'):
@@ -332,7 +461,7 @@ def render(name, flips=None):
                 os.remove(path + f)
         entry.update({'cells': [-1] + [None] * (len(names) - 1), 'grid': [0, 0], 'rect': [0, 0, 0, 0],
                       'focus': [round(fx, 4), round(1 - fy, 4)], 'chest': chest, 'standin': True})
-        print(f'{name}: a stand-in (the sheet\'s panel, held): {names[0]} isn\'t drawn yet')
+        print(f'{name}: a stand-in (the sheet\'s panel in its own grass, held): {names[0]} isn\'t drawn yet')
         if flips:
             flip([base], os.path.join(flips, f'{name}.gif'))
         return entry
@@ -423,8 +552,7 @@ def selftest():
     DRAW, OUT = os.path.join(tmp, 'draw'), os.path.join(tmp, 'out')
     os.makedirs(DRAW)
     os.makedirs(OUT)
-    x0, y0, x1, y1 = STANDIN['c5']['panel']
-    start, _ = contain(load(SHEET)[y0:y1, x0:x1])
+    start, _ = standin(STANDIN['c5'], load(SHEET), np.random.default_rng(5))
 
     def boil(img, amp=1.5):
         f = [cv2.GaussianBlur(rng.standard_normal((H, W)).astype(np.float32), (0, 0), 24) for _ in range(2)]
