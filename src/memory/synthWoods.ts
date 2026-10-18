@@ -59,8 +59,12 @@ export const TIMES = {
   chorusFrom: 2.5,
   /** The two either side: also quiet through the close-ups. */
   midQuiet: [SHOTS.closeHim - 0.9, SHOTS.wideAgain + 0.8] as [number, number],
-  /** Her hand shifting in the grass: the chorus draws back a little. */
-  touch: [SHOTS.hands + 1.0, SHOTS.hands + 2.2] as [number, number],
+  /** Her hand shifting in the grass: the chorus draws back a little (from 0.4 s before: never
+   *  within 0.7 s of the cut to their hands). */
+  touch: [SHOTS.hands + 1.1, SHOTS.hands + 2.3] as [number, number],
+  /** The chorus's own slow swells held still across the cut (nothing in the sound marks it: a
+   *  swell of +7 dB in the trees from 33.5 to 36.5 s did, a little; QA, 2026-10-18). */
+  stillAcross: [CUT - 1.5, CUT + 3.5] as [number, number],
   /**
    * After the cut (34.5 s) the sound stays the afternoon's while the cicada over them finishes its
    * phrase (to 37.8): the picture says later before the sound does. Then the day thins, and an
@@ -326,7 +330,13 @@ export async function renderWoods(take: number): Promise<Float32Array[]> {
   for (let k = 0; k < 4; k++) {
     const f = 4400 + k * 520 + r() * 150, pulse = 170 + r() * 110;
     const s1 = 0.05 + r() * 0.08, s2 = 0.13 + r() * 0.1, p1 = r() * 6.28, p2 = r() * 6.28, p3 = r() * 6.28;
-    const swell = control(n, (t) => 0.55 + 0.25 * Math.sin(2 * Math.PI * s1 * t + p1) + 0.2 * Math.sin(2 * Math.PI * s2 * t + p2));
+    // (Its clock stops across the cut and goes on from where it stopped.)
+    const [h0, h1] = T.stillAcross;
+    const clock = (t: number) => (empty || t < h0 ? t : t < h1 ? h0 : t - (h1 - h0));
+    const swell = control(n, (t) => {
+      const c = clock(t);
+      return 0.55 + 0.25 * Math.sin(2 * Math.PI * s1 * c + p1) + 0.2 * Math.sin(2 * Math.PI * s2 * c + p2);
+    });
     let cp = (p3 / 6.2832) * TAB;
     const dcp = (pulse * TAB) / RATE;
     for (let i = 0; i < n; i++) {

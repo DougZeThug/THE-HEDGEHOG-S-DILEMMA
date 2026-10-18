@@ -9,7 +9,7 @@ import { MemoryLight } from './world/MemoryLight';
 import { MemoryWindow } from './world/MemoryWindow';
 import { Immersion } from './world/living/Immersion';
 import { Inside } from './world/living/Inside';
-import { washOf } from './world/living/wash';
+import { washInputs, washOf } from './world/living/wash';
 import { warmLiving } from './world/living/materials';
 import { MemoryClock } from './memory/clock';
 import type { Lifecycle } from './memory/types';
@@ -520,11 +520,16 @@ export class App {
       return false;
     }
     // A switch released the one before: let it go at once rather than overlap.
-    if (this.living) {
-      this.living.memory.dispose(0.3);
-      this.memoryWindow.release();
-      for (const k of this.living.washed) this.text.wash(k, 0);
-      this.living = null;
+    const before = this.living;
+    if (before) {
+      before.memory.dispose(0.3);
+      // (Disposed, it completes, and its completion lets go of the window and gives the room its
+      // words back (memoryState). Read after that, `this.living` was null: QA, 2026-10-18.)
+      if (this.living === before) {
+        this.memoryWindow.release();
+        for (const k of before.washed) this.text.wash(k, 0);
+        this.living = null;
+      }
     }
     // Opening from a drawing already on the wall: the painting's own drawn shape lies on it.
     let fixed: { cx: number; cy: number; w: number } | null = null;
@@ -1024,8 +1029,8 @@ export class App {
     const pl = l.memory.prepared.living;
     if (!pl) {
       // (A living memory's revisit stays on the wall, as any memory, but lies under its writing as
-      // the scene did. Every other memory keeps its words on bare plaster, legible.)
-      if (l.memory.prepared.def.living) this.washUnderPainting(l, f.final);
+      // the scene did. Every other memory keeps its words on bare plaster, legible: washInputs.)
+      this.washUnderPainting(l, f.final);
       return;
     }
     const aspect = innerWidth / innerHeight;
@@ -1071,14 +1076,12 @@ export class App {
    * order map) has the colour everywhere at once, at the reveal's half way.
    */
   private washUnderPainting(l: NonNullable<App['living']>, final: Record<string, number>) {
-    const colourAt = l.memory.prepared.living?.colourAt ?? (l.memory.prepared.living ? null : () => 0.5);
-    if (!colourAt) return;
-    const reveal = final['window.reveal'] ?? 0, presence = final['window.presence'] ?? 1;
-    const hold = Math.min(final['window.sketch'] ?? 0, final['window.wash'] ?? 0);
+    const m = washInputs(l.memory.prepared.def, l.memory.prepared.living, final, l.memory.controller.weights.presence);
+    if (!m) return;
     for (const it of this.text.items.values()) {
       const a = this.text.anchorOfKey(it.key);
       if (!a || a.group !== l.anchor.group) continue;
-      const w = washOf(a, this.memoryWindow.rect, colourAt, reveal, presence, hold);
+      const w = washOf(a, this.memoryWindow.rect, m.colourAt, m.reveal, m.presence, m.hold);
       if (w <= 0 && !l.washed.has(it.key)) continue;
       // (Its own line may be in the memory's light as well: the more washed of the two.)
       this.text.wash(it.key, it.key === this.memoryKey ? Math.max(w, this.lightWash) : w);

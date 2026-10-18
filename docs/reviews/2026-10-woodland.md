@@ -817,3 +817,18 @@ Remove: the sprig system, the falling leaf (and the shader's seed and leaf branc
 - **Found in the revisit's frames, and fixed** (the commit after 8dfcfff):
   - [P1, introduced by 8dfcfff] The writing under *every* memory's painting was washed, not only the woodland's: the branch for a memory without a living scene serves the cereal, bedroom and door memories too. Now only a living memory washes. Checked: the cereal memory's writing is never washed (0 over 0–20 s), and the light's own wash of a memory's line is unchanged.
   - [P1, older: it showed once the room's layout put the painting square under its words] The revisit's painting was a dark strip under its words. The bare plaster kept round them took its top half (the window's top is just above the words, and their placement box is 0.21 m tall), and at full strength the dusk was a black stain. Its words are washed now, so it keeps no plaster round them, and it is sunk (0.72) as the afternoon's scene is. It reads as the clearing again.
+
+**QA on the built round** (`qa-accessibility`; no browser while the film recorded). These held:
+- The removals are complete, and all eight sheets in the timeline state match their seeds.
+- The wash rule, the hold and the gate run smoothly through the real controller (the largest step a frame is 0.06), and the writing is back at completion in every run.
+- `order.webp` decodes as built: one part at every step, values in range, the clocks matching.
+- The return closes and then the light goes, mirroring the way in.
+
+Fixed:
+- [P1] **The App's wash wiring was untested:** the regression of 8dfcfff passed the full suite, and so did its fix. The frame's inputs (the gate, the revisit's colour time, the hold, the presence) are now one pure function, `washInputs` (`src/world/living/wash.ts`), which the App calls. It is tested by playing every memory and variant to its end through the controller: the cereal, bedroom and door memories never wash, and the revisit washes by 6 s and gives the words back by its end. The window's revisit uniforms are tested too. Each test was checked against the defect it guards: the gate removed, the presence unweighted, the revisit unlifted each fail one test.
+- [P2] **The ordered painting's light ran past the colour's rounded edge to the plate's straight edge** (up to 32% brighter along 14% of the top edge at 6 s). It is now masked by the edge with the colour.
+- [P2] **Under gentle intensity the words were only half washed:** the presence is weighted by the intensity, and the wash took that weight too. The wash now judges against the painting as made: it is fainter, but no less there.
+- [P2] **The revisit was sunk but not lifted:** its median was 0.31 of the plaster. It is now the same pigment in the same plaster as the afternoon, lifted as well (about 0.43 offline). The dusk stays darker than the day.
+- [P2] **Switching memories could throw** (older; the editor's and the debug paths only): disposing the memory completes it, and its completion had already let it go. The switch now cleans up only if it hasn't.
+- [P2, older] **The trees' chorus swelled about 2.6 dB just after the cut,** a little mark. Its slow swells are now held still from 1.5 s before the cut to 3.5 s after it, and the woods stay within ±0.4 dB across it, until the cicada's phrase ends and the day thins as designed. The test now checks half seconds over 33.5–37 s. The chorus's draw-back for her hand now starts 0.7 s after the cut to the hands, not 0.6.
+- Two stale comments.

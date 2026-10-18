@@ -343,7 +343,7 @@ export interface LivingMaterials {
   people: THREE.ShaderMaterial;
   /** The near flowers on their stems (`uKind` 2). */
   flowers: THREE.ShaderMaterial;
-  /** Motes, seeds, a leaf, in the air (`uKind` 3). */
+  /** Motes in the air (`uKind` 3). */
   air: THREE.ShaderMaterial;
   /** A close-up's drawings (`uKind` 4). */
   frame: THREE.ShaderMaterial;

@@ -11,6 +11,35 @@
 /** How far a washed piece of writing goes (to 15% of its strength). */
 export const WASH = 0.85;
 
+/** A revisit without a scene of its own has no order map: its colour is everywhere at once. */
+const EVERYWHERE = () => 0.5;
+
+/**
+ * What a playing memory's frame washes the room's writing by (src/App.ts, `washUnderPainting`),
+ * or null if it keeps its words: only a living memory lies under its writing (the cereal, bedroom
+ * and door memories keep theirs on bare plaster, legible). `scene`: its living scene this
+ * variant, if it has one (its order map's colour times; none for a revisit: the colour everywhere
+ * at once, at the reveal's half way). `presenceWeight`: the intensity's (gentle paints it fainter,
+ * but it is no less there: the words still go to their trace). The hold is `window.wash`, never
+ * past the pencil.
+ */
+export function washInputs(
+  def: { living?: boolean },
+  scene: { colourAt: ((u: number, v: number) => number) | null } | null,
+  final: Record<string, number>,
+  presenceWeight = 1,
+): { colourAt: (u: number, v: number) => number; reveal: number; presence: number; hold: number } | null {
+  if (!def.living) return null;
+  const colourAt = scene ? scene.colourAt : EVERYWHERE;
+  if (!colourAt) return null;
+  return {
+    colourAt,
+    reveal: final['window.reveal'] ?? 0,
+    presence: Math.min(1, (final['window.presence'] ?? 1) / Math.max(presenceWeight, 1e-3)),
+    hold: Math.min(final['window.sketch'] ?? 0, final['window.wash'] ?? 0),
+  };
+}
+
 /**
  * How washed a piece of writing is (0 .. `WASH`). `box`: where it is written (centre and size, in
  * the wall's writing frame, metres); `painting`: where the painting is in that frame; `colourAt`:

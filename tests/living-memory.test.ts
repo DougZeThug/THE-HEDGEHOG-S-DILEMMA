@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import * as THREE from 'three';
 import { CANOPY, breath, blinkDrawing, gust, hash01, windForce, windResponse, windDrift } from '../src/memory/living/performance';
-import { WASH, washOf } from '../src/world/living/wash';
+import { WASH, washInputs, washOf } from '../src/world/living/wash';
+import { MemoryWindow } from '../src/world/MemoryWindow';
 import { WOODLAND as SPEC } from '../src/memory/living/woodland';
-import { compose, FULL } from '../src/memory/compose';
+import { compose, FULL, weightsFor } from '../src/memory/compose';
 import { coverQuad, squareToQuad, visiblePart } from '../src/world/living/Immersion';
 import { useInitialState, sheetSource } from '../src/memory/theatre';
 import { memorySchema } from '../src/memory/sheets';
@@ -162,8 +163,12 @@ describe('the air, which moves everything (one wind, seekable)', () => {
     expect(last[0]).toBeGreaterThanOrEqual(SHOTS.wideAgain + 0.7);
     expect(TIMES.midQuiet[0]).toBeLessThan(SHOTS.closeHim);
     expect(TIMES.midQuiet[1]).toBeGreaterThan(SHOTS.wideAgain);
-    expect(TIMES.touch[0]).toBeGreaterThan(SHOTS.hands);
+    // (The chorus begins to draw back 0.4 s before her hand: not within 0.7 s of the cut to it.)
+    expect(TIMES.touch[0] - 0.4).toBeGreaterThanOrEqual(SHOTS.hands + 0.7 - 1e-9);
     expect(TIMES.touch[1]).toBeLessThan(SHOTS.wideAgain);
+    // Held still across the cut, from before it to past the cicada's first seconds after it.
+    expect(TIMES.stillAcross[0]).toBeLessThan(CUT_AT - 1);
+    expect(TIMES.stillAcross[1]).toBeGreaterThan(CUT_AT + 3);
   });
 });
 
@@ -362,6 +367,76 @@ describe("the room's writing under a living memory's painting", () => {
   });
 });
 
+describe("which memories lie under the room's writing (the App's wiring, through washInputs)", () => {
+  // (The committed timelines: the state was set for the cut's tests, above.)
+  const box = { x: 0.2, y: 0.1, w: 1, h: 0.1 }, painting = { cx: 0, cy: 0, w: 3.2, h: 1.8 };
+  const scenes = manifest.living as Record<string, unknown>;
+  // Played as the App plays a memory (src/memory/runtime.ts, LivingMemory), to its end, its
+  // writing washed as the App washes it (src/App.ts, washUnderPainting).
+  const play = (id: string, variant: string, gentle = false) => {
+    const def = MEMORIES[id];
+    const src = sheetSource(sheetId(id, variant), memorySchema(def.layers, def.living), { sections: def.sections, markers: def.markers });
+    const scene = def.living && scenes[variant] ? { colourAt: () => 0.2 } : null;
+    const c = new MemoryPlaybackController({ timeline: src, weights: weightsFor(false, gentle), reduced: false, entrance: Math.min(2, src.sections.active * 0.4), sways: def.sways, exit: def.exit, maxHold: Math.max(def.maxHold, src.sections.exit), tail: def.tail, living: !!scene });
+    c.start();
+    const frames: { t: number; w: number; state: string }[] = [];
+    for (let k = 0; k < 60 * 120; k++) {
+      // (Its last frame is the residue's; then it completes, and gives no frame.)
+      const f = c.step(1 / 60);
+      if (!f) break;
+      const m = washInputs(def, scene, f.final, c.weights.presence);
+      frames.push({ t: f.t, w: m ? washOf(box, painting, m.colourAt, m.reveal, m.presence, m.hold) : 0, state: f.state });
+    }
+    const complete = c.state === 'complete';
+    c.dispose(0);
+    return Object.assign(frames, { complete });
+  };
+
+  it('every other memory keeps its words, on every frame of every variant', () => {
+    let played = 0;
+    for (const def of Object.values(MEMORIES)) {
+      if (def.living) continue;
+      for (const v of def.variants) {
+        expect(washInputs(def, null, { 'window.reveal': 1, 'window.presence': 1, 'window.sketch': 1, 'window.wash': 1 })).toBeNull();
+        const frames = play(def.id, v);
+        expect(frames.complete, `${def.id}-${v}`).toBe(true);
+        expect(Math.max(...frames.map((x) => x.w)), `${def.id}-${v}`).toBe(0);
+        played++;
+      }
+    }
+    expect(played).toBeGreaterThanOrEqual(6);
+  });
+
+  it("the woodland's revisit, on the wall with no scene of its own, washes them as its colour comes, and gives them back by its end", () => {
+    expect(scenes.empty).toBeNull();
+    const frames = play('woodland', 'empty');
+    expect(frames.find((x) => x.w >= WASH * 0.99)?.t ?? Infinity).toBeLessThanOrEqual(6);
+    expect(frames.complete).toBe(true);
+    expect(frames[frames.length - 1].w).toBeLessThanOrEqual(0.01);
+  });
+
+  it('gentle intensity paints it fainter, but the words still go to their trace', () => {
+    for (const v of ['afternoon', 'empty']) {
+      const peak = Math.max(...play('woodland', v, true).map((x) => x.w));
+      expect(peak, v).toBeCloseTo(WASH, 3);
+    }
+  });
+
+  it("the wall: the revisit sunk and lifted in the plaster, keeping no plaster round its words; let go, as any memory's", () => {
+    const w = new MemoryWindow();
+    const u = w['u'] as Record<string, { value: unknown }>;
+    w.setLiving(null, true);
+    expect(u.uUnder.value).toBe(1);
+    expect(u.uSunk.value).toBeCloseTo(0.72, 6);
+    expect(u.uLift.value).toBeGreaterThan(0);
+    w.release();
+    expect([u.uUnder.value, u.uSunk.value, u.uLift.value]).toEqual([0, 1, 0]);
+    // Any other memory's painting: none of it.
+    w.setLiving(null);
+    expect([u.uUnder.value, u.uSunk.value, u.uLift.value]).toEqual([0, 1, 0]);
+  });
+});
+
 describe('the close-ups: the artist\'s drawings, cut on keys', () => {
   // (The committed timeline: the state was set for the cut's tests, above.)
   const def = MEMORIES.woodland;
@@ -456,11 +531,12 @@ describe('the woodland, heard', () => {
     const [l, r] = await renderWoods(0);
     const e = (a: number, b: number) => energy(l, a, b) + energy(r, a, b);
     const before = e(33.5, 34.5);
-    // The afternoon carries on unchanged past the cut (the picture says later first): its first
-    // second (the gust over the empty grass is heard from ~35.5 s).
-    for (const [a, b] of [[34.5, 35.5]]) {
-      expect(e(a, b) / before).toBeGreaterThan(0.6);
-      expect(e(a, b) / before).toBeLessThan(1.6);
+    // The afternoon carries on unchanged past the cut (the picture says later first), to the
+    // cicada's phrase's end: in half seconds, nothing rises or falls by more than 1.5 dB (the
+    // trees' own slow swell rose 2.6 dB just after it, a little mark: QA, 2026-10-18).
+    for (let a = 33.5; a < 37; a += 0.5) {
+      const db = 10 * Math.log10(e(a, a + 0.5) / before);
+      expect(Math.abs(db), `${a}–${a + 0.5} s`).toBeLessThan(1.5);
     }
   });
   it("a cicada's phrase swells in and falls away, never a gated tone", () => {

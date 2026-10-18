@@ -86,6 +86,11 @@ export class MemoryPlaybackController {
   get position(): number {
     return this.pos;
   }
+  /** What it was composed with (the intensity's presence, reduced motion). */
+  get weights(): Weights {
+    return this.o.weights;
+  }
+
   get isPaused(): boolean {
     return this.paused;
   }

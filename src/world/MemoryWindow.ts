@@ -64,8 +64,8 @@ const FRAG = /* glsl */ `
   // How strongly a living memory's pigment sinks into the plaster (a faded fresco, never a hole:
   // the dusk painting multiplied in at full strength is a black stain).
   uniform float uSunk;
-  // How far a living painting drawn in order is lifted toward the plaster (a light wash, as image
-  // 3, not a dark stain), all the way at its colour's front.
+  // How far a living painting (drawn in order, or its revisit) is lifted toward the plaster (a light
+  // wash, as image 3, not a dark stain), all the way at its colour's front.
   uniform float uLift;
   // Its words lie on it, washed to a trace (a living memory's revisit, on the wall without a scene
   // of its own): no plaster kept round them.
@@ -133,9 +133,6 @@ const FRAG = /* glsl */ `
 
     // Unstylized (the editor's comparison): the layers as baked, with no mask, noise or reserve.
     float mask = mix(1.0, colourMask, uStylize);
-    // (The light reveals as the colour does: before it, on bare plaster, it read as two pale
-    // smears, not as light: the skeptic's third review.)
-    float lightMask = mask;
     float smask = mix(1.0, sketchMask, uStylize);
     // Drawn in order, the colour keeps inside its ragged edge and the pencil runs on past it, to
     // the plate's edge (image 3); otherwise both keep inside it.
@@ -145,6 +142,10 @@ const FRAG = /* glsl */ `
       smask *= smoothstep(0.0, 0.015, ed);
       edgeAll = 1.0;
     }
+    // (The light reveals as the colour does, inside its edge: before the colour, on bare plaster,
+    // it read as two pale smears, not as light (the skeptic's third review); past the colour's
+    // rounded edge it ran on to the plate's straight one (QA, 2026-10-18).)
+    float lightMask = mask;
     // Graphite is found by the light first; colour follows. Lead over colour, premultiplied.
     float cA = cov * mask, lA = lead.a * smask;
     vec3 premul = lead.rgb * smask + col * mask * (1.0 - lA);
@@ -226,9 +227,10 @@ export function kelvin(k: number): THREE.Vector3 {
 const MAX_SHIFT = 0.02;
 /** How strongly a living memory's painting sinks into the plaster (cinematic review, 2026-10-17). */
 const SUNK = 0.72;
-/** How far a living painting drawn in order is lifted toward the plaster (the skeptic's third
- *  review): rendered on the wall, its median 0.45 of the bare plaster's, linear (from about 0.34);
- *  image 3's, measured the same way, 0.42–0.53 by which plaster it is set against. */
+/** How far a living painting (drawn in order, or its revisit) is lifted toward the plaster (the
+ *  skeptic's third review): rendered on the wall, the afternoon's median 0.45 of the bare plaster's,
+ *  linear (from about 0.34); image 3's, measured the same way, 0.42–0.53 by which plaster it is set
+ *  against. */
 const LIFT = 0.35;
 
 export class MemoryWindow {
@@ -342,9 +344,9 @@ export class MemoryWindow {
 
   /**
    * A living memory's painting: its size on the wall and the part shown first; null for any other.
-   * `under`: a living memory's revisit, a painting on the wall as any other, but sunk in the plaster
-   * as its scene was and lying under its words, which are washed (src/App.ts): without, its words'
-   * bare plaster took the top half of it, and at full strength the dusk was a black stain.
+   * `under`: a living memory's revisit, a painting on the wall as any other, but sunk and lifted in
+   * the plaster as its scene was, and lying under its words, which are washed (src/App.ts): without,
+   * its words' bare plaster took the top half of it, and at full strength the dusk was a black stain.
    */
   setLiving(o: { crop: [number, number, number, number]; size: [number, number]; order?: THREE.Texture | null } | null, under = false): void {
     this.living = o;
@@ -352,7 +354,9 @@ export class MemoryWindow {
     this.u.uSoftReserve.value = o ? 1 : 0;
     this.u.uSunk.value = o || under ? SUNK : 1;
     this.u.uUnder.value = !o && under ? 1 : 0;
-    this.u.uLift.value = o?.order ? LIFT : 0;
+    // (The revisit is the same pigment in the same plaster: lifted as well. Its dusk stays darker
+    // than the afternoon, as its own colours are: QA, 2026-10-18.)
+    this.u.uLift.value = o?.order || (!o && under) ? LIFT : 0;
     this.u.uOrder.value = o?.order ?? this.dummy;
     this.u.uOrdered.value = o?.order ? 1 : 0;
     if (!o) {
