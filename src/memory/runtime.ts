@@ -8,7 +8,6 @@ import { sheetSource } from './theatre';
 import type { Lifecycle, MemoryFrame, ReleaseReason } from './types';
 import type { WindowLayer, LayerKind } from '../world/MemoryWindow';
 import { LivingScene, type FigureArt, type HeadCels, type LivingArt, type NearArt, type Eye } from './living/LivingScene';
-import { UPRIGHT } from '../world/living/Immersion';
 import { WOODLAND as WOODLAND_SPEC, type LivingSpec } from './living/woodland';
 
 /**
@@ -217,20 +216,26 @@ export async function prefetch(id: string, variant: string, host: Pick<RuntimeHo
     const manifest = await manifestOf(base, def.art);
     const lm = manifest.living?.[v];
     const wall = manifest.variants[v].filter((l) => !(lm && l.name === 'scene')).map((l) => ({ file: l.file, suffix }));
-    const files = lm ? [...wall, ...livingFiles(lm, suffix, upright(host))] : wall;
+    const files = lm ? [...wall, ...livingFiles(lm, suffix, !framesNear(host, SPECS[def.id] ?? WOODLAND_SPEC))] : wall;
     await Promise.all(files.map((f) => fetchBlob(`${base}${def.art}/${f.file}${f.suffix}.webp`)));
   } catch {
     /* it will be fetched again when it is needed */
   }
 }
 
-/** An upright screen (it never shows the two-shot: its 16:9 frame would hold one face there). */
-function upright(host: Pick<RuntimeHost, 'screen'>): boolean {
-  return !!host.screen && host.screen.width / host.screen.height < UPRIGHT;
+/**
+ * Whether the screen can show the two-shot (the spec's aspects: upright its 16:9 frame would hold
+ * one face, at 4:3 or narrower cut his, wider than 2.45 hers and the hands): elsewhere its shot is
+ * the wide, and its art isn't loaded (about 24 MB on a desktop).
+ */
+function framesNear(host: Pick<RuntimeHost, 'screen'>, spec: LivingSpec): boolean {
+  if (!host.screen || !spec.near) return true;
+  const a = host.screen.width / host.screen.height;
+  return a >= spec.near.aspect[0] && a <= spec.near.aspect[1];
 }
 
 /** A living scene's files (maps, grade and sky have one size only); the two-shot's only for a screen that shows it. */
-function livingFiles(lm: LivingManifest, suffix: string, upright = false): { file: string; suffix: string }[] {
+function livingFiles(lm: LivingManifest, suffix: string, noNear = false): { file: string; suffix: string }[] {
   const out = [{ file: lm.plate, suffix }, { file: lm.maps, suffix: '' }];
   if (lm.grade) out.push({ file: lm.grade, suffix: '' });
   if (lm.after) out.push({ file: lm.after, suffix });
@@ -240,7 +245,7 @@ function livingFiles(lm: LivingManifest, suffix: string, upright = false): { fil
   if (lm.clouds) out.push({ file: lm.clouds.mask, suffix: '' }, { file: lm.clouds.file, suffix: '' }, { file: lm.clouds.after, suffix: '' });
   if (lm.order) out.push({ file: lm.order, suffix: '' });
   if (lm.figures?.heads) out.push({ file: lm.figures.heads.file, suffix });
-  if (lm.near && lm.figures?.heads && !upright) out.push({ file: lm.near.file, suffix }, { file: lm.near.lids, suffix }, { file: lm.near.heads.file, suffix }, { file: lm.near.ground.file, suffix: '' }, { file: lm.near.maps, suffix: '' });
+  if (lm.near && lm.figures?.heads && !noNear) out.push({ file: lm.near.file, suffix }, { file: lm.near.lids, suffix }, { file: lm.near.heads.file, suffix }, { file: lm.near.ground.file, suffix: '' }, { file: lm.near.maps, suffix: '' });
   return out;
 }
 
@@ -319,10 +324,10 @@ export async function prepare(id: string, variant: string, host: RuntimeHost): P
         }
       })();
       // The two-shot: all of it, or none (its shot is then the wide), and only for a screen that
-      // shows it (upright, it is never shown).
+      // shows it.
       const nearP = (async (): Promise<NearArt | null> => {
         const n = lm.near;
-        if (!n || !lm.figures?.heads || upright(host)) return null;
+        if (!n || !lm.figures?.heads || !framesNear(host, SPECS[def.id] ?? WOODLAND_SPEC)) return null;
         const got = await Promise.allSettled([
           loadLayer(url(n.file), { living: true }),
           loadLayer(url(n.lids), { living: true }),
