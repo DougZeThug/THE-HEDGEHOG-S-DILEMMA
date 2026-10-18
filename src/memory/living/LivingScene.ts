@@ -267,8 +267,6 @@ export class LivingScene {
   private near = false;
   /** The ground's grass, out of focus, barely stirs (a map of one texel: the air moves what is near and sharp). */
   private readonly stir: THREE.DataTexture;
-  /** The two-shot's frame now (stage px, y down: x0, y0, w, h). */
-  readonly stage = new THREE.Vector4(0, 0, 1, 1);
 
   constructor(
     private readonly art: LivingArt,
@@ -449,11 +447,10 @@ export class LivingScene {
   /**
    * The two-shot's frame: the part of the stage (sheet px, y down; its height the painting's
    * proportion of its width) the painting's square shows. The people are placed by it, and the
-   * ground under them; so the camera's push moves the place, and its light, not the screen.
+   * ground under them.
    */
   private frameStage(x: number, y: number, w: number): void {
     const h = (w * this.art.size[1]) / this.art.size[0];
-    this.stage.set(x, y, w, h);
     (this.m.people.uniforms.uPlace.value as THREE.Vector4).set(-x / w, 1 - (SHEET.y - y) / h, SHEET.x / w, SHEET.y / h);
     const [gx, gy, gw, gh] = this.art.near!.groundBox;
     const u0 = (gx - x) / w, u1 = (gx + gw - x) / w;
@@ -604,7 +601,6 @@ export class LivingScene {
   get hasNear(): boolean {
     return !!this.art.near && !!this.art.figures && !!this.art.heads;
   }
-
 
   /** The people at `t`: their breathing, blinks and hair (from time) and what they do (authored). */
   private pose(t: number, val: (k: string, d: number) => number): void {
