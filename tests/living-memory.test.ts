@@ -473,7 +473,7 @@ describe('the two of them close: one shot, three beats, held drawings', () => {
       }
       prevCel = v['figure:b.cel'];
     }
-    // Her head turns through its two in-betweens, a third (2) and two thirds (3) of the way, each
+    // Her head turns through its two in-betweens, a quarter (2) and three quarters (3) of the way, each
     // held two drawings, and comes back up the same way, arriving at `herBack`.
     expect(changes.map(([, c]) => c)).toEqual([2, 3, 1, 3, 2, 0]);
     const starts = [T.herTurn, T.herTurn + TURN_STEP, T.herTurn + 2 * TURN_STEP, T.herBack - 2 * TURN_STEP, T.herBack - TURN_STEP, T.herBack];

@@ -1086,15 +1086,15 @@ the clumps (25–35% of their sway, never on the beats), not the sheet again.
 
 The artist, on the film: "Her turn does not feel like a natural turn, it reads like jumping
 frames." Asked how to get the in-betweens, they chose to try free stand-ins made here, two of
-them (a third and two thirds of the way), judged by them in a flipbook before anything is filmed.
+them, judged by them in a flipbook before anything is filmed.
 That overrides decision 17's "never a warp" for these two drawings, and only as held drawings
 (never a dissolve or a morph played in time).
 
 30. **How they are made** (`scripts/stand-in-turn.py`; no model, no network, no cost).
     - The panel's head, with her eyes already on him (the shader's own look, so nothing jumps at
-      18.0), is bent a third of the way toward take b. Take b is bent a third of the way back.
-    - The bend is a thin-plate spline through 16 points of the face matched by hand (the eyes and
-      their corners, brows, nose, mouth, chin, hairline, both cheeks).
+      18.0), is bent part of the way toward take b. Take b is bent part of the way back (33).
+    - The bend is a thin-plate spline through 14 points of the face matched by hand (the eyes'
+      corners, brows, nose, mouth, chin, hairline, both cheeks).
     - It is pinned on a 24 px grid everywhere outside take b's region grown by 28 px, so the hair
       lying on the grass stays where both drawings have it.
     - Each head is laid into the panel through that margin.
@@ -1103,10 +1103,10 @@ That overrides decision 17's "never a warp" for these two drawings, and only as 
       - confining the bend to b's own region: it cut her jaw and hair where the in-between chins
         fall outside both drawings;
       - fading the bend out inside the region: it folded her cheek and chin.
-    - Measured at the sheet's size:
-      - their shared region is 220×190 sheet px (b alone 200×180; unpinned, the stand-ins dragged
+    - Measured at the sheet's size, as first made (a third and two thirds of the way):
+      - their shared region was 220×190 sheet px (b alone 200×180; unpinned, the stand-ins dragged
         her neck's strands along and made it 240×255);
-      - each drawing's seam p99 under the shared region is 0.065 (b), 0.069 and 0.082 (the
+      - each drawing's seam p99 under the shared region was 0.065 (b), 0.069 and 0.082 (the
         unpinned bend had 0.090 and 0.093).
 31. **On the timeline** each is held two drawings (`TURN_STEP`, 1/6 s), on twos:
     - toward him: 2 at 18.0, 3 at 18.17, her drawing at 18.33;
@@ -1120,3 +1120,35 @@ That overrides decision 17's "never a warp" for these two drawings, and only as 
     manifest. The committed art stays without them until the artist approves the flipbook. The kit
     now asks for two in-betweens instead of the halfway drawing (`b-look-full-mid1.png` from the
     sheet, `b-look-full-mid2.png` from take b), with the stand-ins as a guide to the angle only.
+
+#### The flipbook evaluated (the cinematic director), and decisions
+
+The cinematic director, on the recorded frames: the outer steps read as one head rolling, both ways.
+- **[P1] Still a cut in the middle step.** The middle step (18.17, 21.33) is a cut inside the move.
+  In one drawing her ear jumps across her face, the fringe drops, the crown changes and take b's
+  softer line arrives. The eyes slow down there too: the irises travel 25/18/22 px (near eye) and
+  27/22/28 (far eye) across the three steps.
+- **[P1] Spacing and holds.** A quarter and three quarters of the way: slow, fast, slow, with the
+  change at the fastest step, and each bent less. Held 1/12 then 1/6 toward him and the reverse
+  back: a quick turn to him, a reluctant one back.
+- **[P1, verified] The first in-between's near eye.** It looked down for a drawing: the iris sank
+  under the lower lid and the upper lid doubled. The point on her iris moved 19.6 crop px down, her
+  eye's corners 12.5–13.3.
+- **[P2] Otherwise clean.** No seam at the region's edge; the hair on the grass is identical in all
+  four drawings; the far eye is clean. Minor: the grass under her jaw moves with her head, and the
+  stand-ins are softer than the drawings.
+- **On the measure.** The change-per-drawing measure saturates (a third of the turn 13–15, the whole
+  cut 15.6), so it can't rank smoothness: track the eyes instead.
+
+33. **Taken:**
+    - The eyes are matched by their corners only (the iris looks a different way in each drawing).
+      On the remade heads, both eyes keep their look through all four.
+    - A quarter and three quarters of the way. Held evenly, these are close to sampling a head's
+      natural, symmetric turn. A minimum-jerk turn over half a second (17.92–18.42 s), sampled at
+      the middle of each hold (18.08 and 18.25 s), is 0.21 and 0.79 of the way.
+    - Kept: two drawings each (the keys unchanged). The asymmetric holds would be acting, not
+      smoothing. The creative director once asked for the opposite (slow toward, quick away), and
+      at 1/12 s it is the artist's call: offered with the flipbook, not built.
+    - Remeasured: the shared region is 225×185, and the seams are 0.067 (b), 0.068 and 0.089.
+    - The kit now asks for a quarter and three quarters. The flipbook's loop now keeps the film's
+      rhythm: her drawing is held as long as the film holds it.

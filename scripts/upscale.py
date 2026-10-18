@@ -34,8 +34,8 @@ SOURCES = {
     'b-look-full-a': os.path.join(REF, 'drawings', 'b-look-full-a.webp'),
     'b-look-full-b': os.path.join(REF, 'drawings', 'b-look-full-b.webp'),
     'b-look-full-c': os.path.join(REF, 'drawings', 'b-look-full-c.webp'),
-    # (Her head a third and two thirds of the way there, when the artist has drawn them: the kit's
-    # `b-look-full-mid1.png`, `b-look-full-mid2.png`.)
+    # (Her head a quarter and three quarters of the way there, when the artist has drawn them: the
+    # kit's `b-look-full-mid1.png`, `b-look-full-mid2.png`.)
     'b-look-full-mid1': os.path.join(REF, 'drawings', 'b-look-full-mid1.png'),
     'b-look-full-mid2': os.path.join(REF, 'drawings', 'b-look-full-mid2.png'),
 }

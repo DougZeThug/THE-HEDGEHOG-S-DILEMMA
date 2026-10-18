@@ -406,9 +406,10 @@ export const CUT = 34.5;
  */
 export const TWO_SHOT = { from: 15.0, hisBlink: 16.2, herEyes: 17.5, herTurn: 18.0, herBack: 21.5, herEyesBack: 22.0, hisEyes: 24.0, hisRoll: 24.5, to: 27.0 };
 /**
- * Her turn's in-betweens, a third and two thirds of the way (`figure:b.cel` 2 and 3): each held this
- * long, two drawings (the memory is drawn on twos), on the way to him from `herTurn` and on the way
- * back up to `herBack` (the artist: "it reads like jumping frames").
+ * Her turn's in-betweens, a quarter and three quarters of the way (`figure:b.cel` 2 and 3): each held
+ * this long, two drawings (the memory is drawn on twos), on the way to him from `herTurn` and on the
+ * way back up to `herBack`. Held evenly, the turn moves slow, fast, slow, as a head does, its change
+ * of drawing in the fastest step (the artist: "it reads like jumping frames"; the cinematic director).
  */
 export const TURN_STEP = 1 / 6;
 /**

@@ -60,8 +60,8 @@ LID_BOX = (180, 40, 640, 270)
 # not used: a smile nobody sees is the film telling, and redrawn whole they jump her head again:
 # the directors' and the technical artist's reviews, 2026-10-18).
 TAKE = 'b'
-# Her head a third and two thirds of the way there, her eyes already on him (the artist's, when they
-# are drawn: the kit's `b-look-full-mid1.png`, `b-look-full-mid2.png`; until then, with
+# Her head a quarter and three quarters of the way there, her eyes already on him (the artist's,
+# when they are drawn: the kit's `b-look-full-mid1.png`, `b-look-full-mid2.png`; until then, with
 # `--stand-ins`, the stand-ins made without them from the panel's head and the take:
 # scripts/stand-in-turn.py): laid between the panel's and the take on the way to him. Without
 # either the turn is the straight cut (the directors' evaluations of the film, 2026-10-18; the

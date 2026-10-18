@@ -1,13 +1,13 @@
 """
-Stand-ins for her turn's two in-betweens: her head a third and two thirds of the way to him, made
-here from the drawings already in the kit until the artist draws `b-look-full-mid1.png` and
+Stand-ins for her turn's two in-betweens: her head a quarter and three quarters of the way to him,
+made here from the drawings already in the kit until the artist draws `b-look-full-mid1.png` and
 `b-look-full-mid2.png` (references/woodland/kit/README.md). Offline, free, no model, no network.
 
     python3 scripts/stand-in-turn.py
 
 How they are made:
 - The panel's head, with her eyes already on him (the two-shot shader's look, below), is warped a
-  third of the way toward take b, and take b a third of the way back.
+  quarter of the way toward take b, and take b a quarter of the way back.
 - The warp is a thin-plate spline through points of the face matched by hand on the 2x drawings.
 - It is pinned everywhere outside the region take b is laid in by (scripts/two-shot.py), plus a
   margin, so the hair lying on the grass stays where both drawings have it and only her head turns.
@@ -38,12 +38,12 @@ cut = ts.cut
 
 # The crop the heads are made in: 512 px square at twice the sheet's size (sheet x 377-633, y 0-256).
 CX, N = 754, 512
-# Matched points of her face, crop px: the panel's head -> take b's.
+# Matched points of her face, crop px: the panel's head -> take b's. (Each eye by its corners only:
+# its iris looks a different way in each drawing, and a point on it slid the iris down under the lid
+# for a drawing: the cinematic director's review of the flipbook.)
 PAIRS = [
-    ((250.5, 135.5), (179.25, 194.25)),   # right eye
     ((229.25, 150.5), (168.0, 188.0)),    # right eye, outer corner
     ((270.5, 144.25), (191.75, 184.25)),  # right eye, inner corner
-    ((324.25, 115.5), (238.0, 150.5)),    # left eye
     ((303.0, 110.5), (225.5, 146.75)),    # left eye, inner corner
     ((339.25, 120.5), (261.75, 140.0)),   # left eye, outer corner
     ((313.0, 141.75), (211.75, 193.0)),   # nose tip
@@ -59,7 +59,9 @@ PAIRS = [
 ]
 # How far outside take b's region the head's motion fades out (crop px), and the pins' spacing.
 MARGIN, PIN = 28, 24
-STEPS = (('mid1', 1 / 3), ('mid2', 2 / 3))
+# A quarter and three quarters of the way: held evenly, the turn moves slow, fast, slow, as a head
+# does, and the change of drawing between them (her ear, her fringe) falls in its fastest step.
+STEPS = (('mid1', 1 / 4), ('mid2', 3 / 4))
 
 
 def smooth(e0, e1, x):
