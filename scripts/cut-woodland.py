@@ -686,34 +686,6 @@ def under_flowers(plate_rgb, mask):
     return plate_rgb * (1 - k) + src * k
 
 
-# The sprig passed close to the lens at the crossing: the near tree's oak leaves where they reach
-# out against the sky (plate x0, y0, x1, y1).
-SPRIG = (686, 60, 806, 162)
-
-
-def sprig(day):
-    """The leaves the view passes at the crossing (the artist's shot 2: "foreground leaves pass
-    close to the lens"): one sprig of the near tree's own oak leaves, cut where they are dark
-    against the sky (and the sunlit leaves behind them), sharp, a little darker (backlit, near).
-    Its stem side, where the canopy goes on, fades out at the left (that side stays off the
-    screen). One 512² cell, premultiplied. (It was five clusters drawn out of focus: smudges.)"""
-    x0, y0, x1, y1 = SPRIG
-    w = 512
-    h = round(w * (y1 - y0) / (x1 - x0))
-    rgb = arr(day.crop((x0, y0, x1, y1)).resize((w, h), Image.LANCZOS))
-    lum = 0.3 * rgb[..., 0] + 0.59 * rgb[..., 1] + 0.11 * rgb[..., 2]
-    # (Keyed at full size: a crisp silhouette, not a soft one enlarged; dark and green, so not the
-    # blue-grey far trees behind its tip.)
-    a = smooth(0.34, 0.25, lum) * smooth(-0.005, 0.02, rgb[..., 1] - rgb[..., 2])
-    yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
-    a *= smooth(0.0, 0.3, xx / w) * smooth(1.0, 0.96, xx / w) * smooth(0.0, 0.08, yy / h) * smooth(1.0, 0.9, yy / h)
-    col = rgb * 0.5 + np.array([0.0, 0.012, 0.0])
-    cell = np.zeros((w, w, 4), np.float32)
-    top = (w - h) // 2
-    cell[top:top + h] = np.dstack([col * a[..., None], a])
-    return np.clip(cell, 0, 1)
-
-
 def save(a, path, sizes, lossless=False, q=90):
     """`a`: HxWx{3,4} floats (RGBA premultiplied is stored straight, as WebP wants)."""
     os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -741,10 +713,6 @@ def flatten(plate, fig):
 
 def main():
     day, dusk, sheet = load('04-day.webp'), load('01-dusk.webp'), load('02-characters.webp')
-    if sys.argv[1:] == ['--sprig']:
-        # Only the sprig (everything else as it was cut).
-        save(sprig(day), os.path.join(OUT, 'afternoon', 'leaves.webp'), {'': W}, q=92)
-        return
     # The dusk plate sits ~2 px left of the day plate (gradient correlation, best at +2).
     dusk = dusk.transform(dusk.size, Image.AFFINE, (1, 0, -2, 0, 1, 0), resample=Image.BICUBIC)
 
@@ -784,8 +752,8 @@ def main():
     heads, fmask = flower_heads(day)
     save(under_flowers(arr(day), fmask), os.path.join(a, 'plate.webp'), LIVE, q=92)
     save(np.dstack([arr(day) * fmask[..., None], fmask]), os.path.join(a, 'flowers.webp'), LIVE, q=92)
-    save(sprig(day), os.path.join(a, 'leaves.webp'), {'': W}, q=92)
     smask = save_skies(day, dusk, a)
+    x0, y0, x1, y1 = CLOUD_BOX
     save(maps.clip(0, 1), os.path.join(a, 'maps.webp'), {'': W // 4}, lossless=True)
     # Atlases (rows top to bottom): the body, her forearm; her lids shut, half, and her sleeve.
     save(stack([fig, arm]), os.path.join(a, 'figures.webp'), LIVE, q=92)
@@ -845,8 +813,6 @@ def main():
             # and the layers (the afternoon's, the evening's), each CLOUD_PAD px wider on the left.
             'clouds': {'mask': 'afternoon/sky-mask', 'file': 'afternoon/clouds', 'after': 'afternoon/clouds-after',
                        'box': [x0 / W, 1 - y1 / H, (x1 - x0) / W, (y1 - y0) / H], 'pad': round(CLOUD_PAD / (x1 - x0 + CLOUD_PAD), 5)},
-            # The leaves passed through at the crossing (an atlas of two cells).
-            'leaves': 'afternoon/leaves',
             'immerse': True,
         },
         # The revisit stays in the wall, as any memory: the dusk painting, still.

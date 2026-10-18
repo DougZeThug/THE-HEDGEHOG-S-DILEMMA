@@ -9,8 +9,9 @@ import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
  * projected), then, as `immerse` rises, spreading out from there until it covers the view, and
  * back again. One continuous homography: the wall's painting becomes the world without a cut.
  *
- * Its edge is ragged and soft (the noise the wall's mask uses), and light: the painting, then
- * the graphite underdrawing just inside the edge, then the plaster (image 3). As it shows, the
+ * Its edge is ragged and soft (the noise the wall's mask uses), its corners rounded (no corner is
+ * ever seen: image 3 has none), wide while it grows, the wall's own painting and pencil showing
+ * through it (the creative director's and the skeptic's reviews, 2026-10-18). As it shows, the
  * wall's painting (pigment in the plaster) becomes the painting's own light, at its place, over a
  * second and more; only then does it open out (cinematic and creative reviews, 2026-10-17: the
  * painting's light grows, then its frame; never a pop).
@@ -19,7 +20,6 @@ const ImmersionShader = {
   uniforms: {
     tDiffuse: { value: null as THREE.Texture | null },
     uScene: { value: null as THREE.Texture | null },
-    uSketch: { value: null as THREE.Texture | null },
     uNoise: { value: null as THREE.Texture | null },
     /** Screen uv → painting uv (a homography). */
     uH: { value: new THREE.Matrix3() },
@@ -34,28 +34,17 @@ const ImmersionShader = {
     uZoom: { value: new THREE.Vector3(0.5, 0.5, 1) },
     /** The part of the painting the render target holds (x0, y0, w, h). */
     uView: { value: new THREE.Vector4(0, 0, 1, 1) },
-    /**
-     * The sprig the view passes at the crossing (the near tree's own oak leaves, cut out), close
-     * to the lens: where (screen uv), how big (screen heights), turned; how present.
-     */
-    uLeaves: { value: null as THREE.Texture | null },
-    uLeaf: { value: new THREE.Vector4(0, 0, 0, 0) },
-    uLeafShow: { value: 0 },
-    uScreen: { value: 16 / 9 },
   },
   vertexShader: /* glsl */ `
     varying vec2 vUv;
     void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }
   `,
   fragmentShader: /* glsl */ `
-    uniform sampler2D tDiffuse, uScene, uSketch, uNoise;
+    uniform sampler2D tDiffuse, uScene, uNoise;
     uniform mat3 uH;
     uniform float uShow, uAspect, uEdge, uSeed;
     uniform vec3 uZoom;
     uniform vec4 uView;
-    uniform sampler2D uLeaves;
-    uniform vec4 uLeaf;
-    uniform float uLeafShow, uScreen;
     varying vec2 vUv;
     void main(){
       vec4 room = texture2D(tDiffuse, vUv);
@@ -63,33 +52,20 @@ const ImmersionShader = {
       vec3 h = uH * vec3(vUv, 1.0);
       if (h.z <= 0.0) { gl_FragColor = room; return; }
       vec2 q = h.xy / h.z;
-      // Distance in from the painting's nearest edge, in painting heights, made ragged.
-      float e = min(min(q.x, 1.0 - q.x) * uAspect, min(q.y, 1.0 - q.y));
+      // Distance in from the painting's nearest edge, in painting heights (its corners rounded as
+      // wide as the edge), made ragged.
+      float dx = min(q.x, 1.0 - q.x) * uAspect, dy = min(q.y, 1.0 - q.y);
+      float rr = uEdge * 1.2;
+      float e = (dx < rr && dy < rr) ? rr - length(vec2(rr - dx, rr - dy)) : min(dx, dy);
       float n = texture2D(uNoise, q * vec2(uAspect, 1.0) * 1.7 + uSeed).r;
       float n2 = texture2D(uNoise, q * vec2(uAspect, 1.0) * 6.3 - uSeed).r;
       e += (n - 0.5) * uEdge * 1.1 + (n2 - 0.5) * uEdge * 0.35;
       float colour = smoothstep(uEdge * 0.35, uEdge * 1.2, e);
-      float lead = smoothstep(0.0, uEdge * 0.4, e) * (1.0 - colour);
       vec2 qc = clamp(uZoom.xy + (q - uZoom.xy) / uZoom.z, 0.0, 1.0);
       vec3 p = texture2D(uScene, (qc - uView.xy) / uView.zw).rgb;
-      vec4 g = texture2D(uSketch, qc);
       // The painting's own light over the room (the wall's painting under it, at its place, until
-      // it opens out), its edge into the plaster.
-      vec3 c = mix(room.rgb, p, colour * uShow);
-      // The graphite the light finds first, just inside the colour's edge.
-      // (Light: stronger, it printed as a sooty speckle along the edge: directors' film review.)
-      c *= 1.0 - g.a * lead * uShow * 0.3;
-      // The sprig passing close to the lens (premultiplied; sharp: a leaf, not a smudge).
-      if (uLeafShow > 0.0) {
-        vec2 d = (vUv - uLeaf.xy) * vec2(uScreen, 1.0) / uLeaf.z;
-        float cr = cos(uLeaf.w), sr = sin(uLeaf.w);
-        vec2 r = vec2(cr * d.x - sr * d.y, sr * d.x + cr * d.y) + 0.5;
-        if (r.x >= 0.0 && r.y >= 0.0 && r.x <= 1.0 && r.y <= 1.0) {
-          vec4 lf = texture2D(uLeaves, r, 0.5);
-          c = c * (1.0 - lf.a * uLeafShow) + lf.rgb * uLeafShow;
-        }
-      }
-      gl_FragColor = vec4(c, room.a);
+      // it opens out), its edge into the wall's painting and pencil.
+      gl_FragColor = vec4(mix(room.rgb, p, colour * uShow), room.a);
     }
   `,
 };
@@ -112,9 +88,6 @@ export class Immersion {
   off(): void {
     this.u.uShow.value = 0;
     this.u.uScene.value = null;
-    this.u.uSketch.value = null;
-    this.u.uLeaves.value = null;
-    this.u.uLeafShow.value = 0;
     this.pass.enabled = false;
   }
 
@@ -122,7 +95,7 @@ export class Immersion {
    * One frame. `wall`: the painting's corners on the screen (screen uv; 00, 10, 11, 01), or null
    * if the wall's quad is behind the eye. `immerse` 0..1. `aspect`: the screen's (w / h).
    */
-  set(o: { scene: THREE.Texture; sketch: THREE.Texture | null; wall: THREE.Vector2[] | null; immerse: number; show: number; aspect: number; paint: number; focus: [number, number]; zoom: THREE.Vector3; view: THREE.Vector4; seed: number; leaves?: THREE.Texture | null; leaf?: { p: number; show: number } }): void {
+  set(o: { scene: THREE.Texture; wall: THREE.Vector2[] | null; immerse: number; show: number; aspect: number; paint: number; focus: [number, number]; zoom: THREE.Vector3; view: THREE.Vector4; seed: number }): void {
     const u = this.u;
     if (o.show <= 0 || (!o.wall && o.immerse <= 0)) {
       this.off();
@@ -130,7 +103,6 @@ export class Immersion {
     }
     this.pass.enabled = true;
     u.uScene.value = o.scene;
-    u.uSketch.value = o.sketch;
     u.uShow.value = o.show;
     u.uSeed.value = o.seed;
     u.uAspect.value = o.paint;
@@ -142,36 +114,11 @@ export class Immersion {
     const full = coverQuad(o.aspect, o.paint, o.focus);
     const from = o.wall ?? full.map((p) => p.clone().sub(new THREE.Vector2(0.5, 0.5)).multiplyScalar(0.3).add(new THREE.Vector2(0.5, 0.5)));
     for (let i = 0; i < 4; i++) this.quad[i].copy(from[i]).lerp(full[i], k);
-    // The ragged edge is a brush while it grows, and narrows into the overscan as it settles
-    // (never a strip of plaster left at the screen's edge once inside).
-    u.uEdge.value = 0.06 - 0.048 * k;
+    // The ragged edge is a wide brush while it grows (its corners never seen), and narrows into
+    // the overscan as it settles (never a strip of plaster left at the screen's edge once inside).
+    u.uEdge.value = 0.18 - 0.168 * k;
     const h = squareToQuad(this.quad);
     (u.uH.value as THREE.Matrix3).copy(h.invert());
-    this.passLeaf(o.leaves ?? null, o.leaf?.p ?? 0, o.leaf?.show ?? 0, o.aspect);
-  }
-
-  /**
-   * The sprig at the crossing (`p` 0..1: its pass, authored on the timeline as `scene.leaf`):
-   * hanging in at the top over the sky as the view opens out, its stem above the frame, and gone
-   * up past the frame's edge as the view passes under it, growing and quickening as it goes (a
-   * near thing passed, not a wipe: the skeptic's second review, 2026-10-17; against the sky, so it
-   * reads as a leaf and not as more of the canopy behind it).
-   */
-  private passLeaf(tex: THREE.Texture | null, p: number, show: number, aspect: number): void {
-    this.u.uLeaves.value = tex;
-    this.u.uScreen.value = aspect;
-    if (!tex || p <= 0 || p >= 1 || show <= 0) {
-      this.u.uLeafShow.value = 0;
-      return;
-    }
-    // (Its size in screen heights, no wider than the screen allows: an upright phone too.)
-    const go = p ** 1.6;
-    const z = (0.7 + 0.8 * go) * Math.min(1, aspect);
-    // Its lowest tips from half way down the frame to above its top (most of the sprig seen, its
-    // stem above the frame); turned stem up.
-    const bottom = 0.5 + 0.52 * go;
-    (this.u.uLeaf.value as THREE.Vector4).set(0.46 - 0.06 * go, bottom + z / 2, z, Math.PI / 2 - 0.12 + 0.1 * go);
-    this.u.uLeafShow.value = smoothstep(p / 0.25) * show;
   }
 
   /** The painting's corners on the screen now (for the window's crossfade, tests and captures). */
@@ -186,10 +133,6 @@ export class Immersion {
 }
 
 const clamp01 = (x: number) => (x < 0 ? 0 : x > 1 ? 1 : x);
-const smoothstep = (x: number) => {
-  const t = clamp01(x);
-  return t * t * (3 - 2 * t);
-};
 
 /**
  * The painting's corners when it covers the screen (screen uv; 00, 10, 11, 01), a little over so

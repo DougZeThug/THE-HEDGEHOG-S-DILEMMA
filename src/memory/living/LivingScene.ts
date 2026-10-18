@@ -184,8 +184,8 @@ function flowerStrips(heads: [number, number, number][], plate: [number, number]
 }
 
 /**
- * What is in the air: motes (`stem` = kind 0, index, size px), seeds (1) and leaves (2) at their
- * times. Each a quad round its centre (`position` its corner, ±1; the shader places it).
+ * What is in the air: motes (`stem` = kind 0, index, size px). Each a quad round its centre
+ * (`position` its corner, ±1; the shader places it).
  */
 function airborne(items: { stem: [number, number, number, number]; home: [number, number] }[]): THREE.BufferGeometry {
   const pos: number[] = [];
@@ -278,14 +278,12 @@ export class LivingScene {
     pu.uCloudsAfter.value = cl?.after ?? this.m.empty;
     (pu.uCloudBox.value as THREE.Vector4).set(...(cl?.box ?? [0, 0, 0, 0]));
     (pu.uCloud.value as THREE.Vector2).set(cl?.pad ?? 0, 0);
-    // What is in the air (as authored in the spec): motes, any seeds, the falling leaves.
+    // What is in the air (as authored in the spec): motes. (No seed, no falling leaf: drawn by the
+    // engine, they read as a sparkle and as a sprite: the directors' and the skeptic's reviews.)
     // (Where each starts is hashed here, not on the GPU, so every device agrees.)
     const items: { stem: [number, number, number, number]; home: [number, number] }[] = [];
     const h = (n: number, k: number) => hash01(n, 7919 + k);
     for (let i = 0; i < spec.air.motes; i++) items.push({ stem: [0, i, 3 + (i % 3) * 1.2, 0], home: [h(i, 0), 0.36 + 0.48 * h(i, 1)] });
-    // Seeds cross high, from the left; leaves fall from the canopy on the left.
-    spec.air.seeds.forEach((t, i) => items.push({ stem: [1, 41 + i, 13, t], home: [0.08 + 0.2 * h(41 + i, 0), 0.62 + 0.18 * h(41 + i, 1)] }));
-    spec.air.leaves.forEach((t, i) => items.push({ stem: [2, 45 + i, 8, t], home: [0.14 + 0.12 * h(45 + i, 0), 0.8 + 0.08 * h(45 + i, 1)] }));
     this.air = airborne(items);
     const airMesh = new THREE.Mesh(this.air, this.m.air);
     airMesh.frustumCulled = false;

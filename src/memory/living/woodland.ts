@@ -40,8 +40,8 @@ export interface LivingSpec {
   shoulder: [number, number];
   /** When the painting is alive (s: the middle of `scene.life`'s rise; the sky drifts from then). */
   alive: number;
-  /** What is in the air: how many motes, when each seed starts across, when each leaf falls (s). */
-  air: { motes: number; seeds: number[]; leaves: number[] };
+  /** What is in the air: how many motes (seen only in the sun). */
+  air: { motes: number };
   /** The painting u (and v) kept at the screen's centre when it covers the view. */
   cover: { wide: [number, number]; upright: [number, number]; ultra: [number, number] };
 }
@@ -69,17 +69,14 @@ export const WOODLAND: LivingSpec = {
   chest: { a: { swell: 0.07, rise: 6 }, b: { swell: 0.09, rise: 6 } },
   headLift: 1.6,
   blinks: BLINKS,
-  // Two, as punctuation, quick across the clearing (heard as they are seen): one in the first
-  // wide, settled before the cut to him; one over the empty grass where they lay. None in the
-  // second wide: it is the longest and the stillest shot, and the dusk cut's stillness is its own.
-  // (Cinematic review, 2026-10-17: they were seen 1–3 s after they were heard, and rang on into
-  // the stillness; the skeptic's second review: a gust opening shot 7 made its return an event.)
-  // (The first crosses in 0.8 s, so that, the canopy's slow sway and all, it has settled 0.8 s
-  // before the cut to him: QA, 2026-10-17.)
-  gusts: [
-    { at: 11.5, cross: 0.8, strength: 1 },
-    { at: 36.6, cross: 1.2, strength: 0.5 },
-  ],
+  // One, as punctuation, quick across the clearing (heard as it is seen), in the first wide,
+  // settled before the cut to him. None in the second wide: it is the longest and the stillest
+  // shot, and the dusk cut's stillness is its own; none over the empty grass after the cut,
+  // which it marked after the fact, pointing at the absence (the skeptic's third review, the
+  // creative director's; the evening's breeze keeps the air alive). (Cinematic review,
+  // 2026-10-17: gusts were seen 1–3 s after they were heard; it crosses in 0.8 s so that, the
+  // canopy's slow sway and all, it has settled 0.8 s before the cut to him: QA.)
+  gusts: [{ at: 11.5, cross: 0.8, strength: 1 }],
   reach: { slide: 18, turn: 0.05 },
   forearmA: [0.881, -0.473],
   handReach: 9,
@@ -97,10 +94,10 @@ export const WOODLAND: LivingSpec = {
     hairB2: { amp: [2, 0.5], hz: 1.1, zeta: 0.45 },
     hairB3: { amp: [2.6, 0.8], hz: 1.6, zeta: 0.3 },
   },
-  // Motes only in the light (at most ~30 seen at once); one leaf, in the afternoon's gust. (No
-  // seeds: drawn as a bright star gliding straight across the wood, a sparkle reads as magic; the
-  // skeptic's second review, 2026-10-17.)
-  air: { motes: 40, seeds: [], leaves: [12.1] },
+  // Motes only in the light (at most ~30 seen at once). (No seed: a bright star gliding across
+  // the wood, a sparkle reads as magic; no falling leaf: a 5×10 px sprite sliding down the trunk:
+  // the skeptic's second and third reviews, the cinematic director's, 2026-10-17 and 18.)
+  air: { motes: 40 },
   alive: 6.25,
   settle: { move: [1.5, -3], turn: -0.008 },
   shoulder: [0, 3],

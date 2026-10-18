@@ -21,6 +21,8 @@ export const WINDOW: Schema[string] = {
   reveal: [0, 0, 1],
   presence: [1, 0, 1],
   parallax: [1, 0, 1],
+  // The room's writing under the painting held washed (with the pencil: src/world/living/wash.ts).
+  wash: [0, 0, 1],
 };
 
 export const LIGHT: Schema[string] = {
@@ -49,8 +51,6 @@ export const LAYER: Schema[string] = {
  *            they are taken in only their body drifts toward the wall, their look their own
  *   immerse  0 on the wall, 1 entered: the painting spreads over the plaster, the visitor is
  *            carried to it, and it becomes all there is
- *   leaf     the sprig passed close to the lens at the crossing: 0 not yet, 0→1 its pass (key it
- *            straight; it is drawn only for someone taken in)
  *   breeze   the air: 1 the afternoon's, 0 still
  *   dusk     0 afternoon, 1 the evening's colour and sky
  *   colour   the people: 1 painted, 0 a drawing
@@ -73,7 +73,6 @@ export const SCENE: Schema[string] = {
   shot: [0, 0, 3],
   cel: [0, 0, 7],
   approach: [0, 0, 1],
-  leaf: [0, 0, 1],
 };
 
 /**

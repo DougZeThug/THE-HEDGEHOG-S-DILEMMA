@@ -100,8 +100,8 @@ describe('the air, which moves everything (one wind, seekable)', () => {
     for (let t = 0; t < 35; t += 1 / 1000) p += windForce(t + 1 / 2000, 0.6, G) / 1000;
     expect(Math.abs(p - windDrift(35, 0.6, G))).toBeLessThan(0.01);
   });
-  it('two gusts: one in the first wide, settled (as seen, everywhere across the clearing) before the cut to him; none in the second; one over the empty grass', () => {
-    expect(G.length).toBe(2);
+  it('one gust, in the first wide, settled (as seen, everywhere across the clearing) before the cut to him; none in the second, none after the cut', () => {
+    expect(G.length).toBe(1);
     // What each gust adds to anything on a spring (grass, flowers, the canopy, locks of hair).
     const springs = [[0.7, 0.5], [1.2, 0.3], [...CANOPY], [1.3, 0.35], [0.9, 0.45], [1.6, 0.3]];
     const seen = (t: number, g: (typeof G)[number]) => {
@@ -115,16 +115,13 @@ describe('the air, which moves everything (one wind, seekable)', () => {
     const p = peak(G[0]);
     for (let t = SHOTS.closeHim - 0.8; t < SHOTS.closeHim; t += 0.05) expect(seen(t, G[0]), `${t.toFixed(2)} s`).toBeLessThan(0.08 * p);
     expect(seen(SHOTS.closeHim, G[0])).toBeLessThan(0.04 * p);
-    // (None from a second before the second wide to the dusk cut: its stillness.)
-    for (let t = SHOTS.wideAgain - 1; t < CUT_AT; t += 0.05) expect(gust(t, G).strength).toBe(0);
-    expect(gust(37.5, G).strength).toBeGreaterThan(0);
+    // (None from a second before the second wide to the end: its stillness, and the cut's.)
+    for (let t = SHOTS.wideAgain - 1; t < 53; t += 0.05) expect(gust(t, G).strength).toBe(0);
   });
-  it('nothing the air does starts in a shot\'s first second: no gust and no falling leaf', () => {
+  it('nothing the air does starts in a shot\'s first second', () => {
     const starts = [10.5, SHOTS.closeHim, SHOTS.closeHer, SHOTS.hands, SHOTS.wideAgain, CUT_AT];
-    for (const at of [...G.map((g) => g.at), ...SPEC.air.leaves, ...SPEC.air.seeds])
+    for (const at of G.map((g) => g.at))
       for (const s of starts) expect(at < s || at >= s + 1, `${at} s, after the shot at ${s} s`).toBe(true);
-    // (And the falling leaf, crossing in its 2.1 s, is gone before the cut to him.)
-    for (const at of SPEC.air.leaves) expect(at < SHOTS.closeHim ? at + 2.1 < SHOTS.closeHim : at > SHOTS.wideAgain).toBe(true);
   });
   it('what is heard of a gust (the sound itself) swells and settles with the canopy it moves, a moment before it is seen', () => {
     const g = G[0];
@@ -285,7 +282,7 @@ describe('the ending: a cut, on one frame', () => {
         const f = c.step(1 / 60);
         if (!f || f.state === 'complete') break;
         const presence = f.final['window.presence'] ?? 1;
-        const w = washOf(box, painting, () => 0.2, f.final['window.reveal'] ?? 0, presence);
+        const w = washed(box, painting, () => 0.2, f.final);
         if (presence <= 0.02) (gone = true), expect(w, `${at} s, let go`).toBeLessThanOrEqual(0.02);
         if (prev !== null) expect(Math.abs(w - prev)).toBeLessThanOrEqual(0.1);
         prev = w;
@@ -294,7 +291,37 @@ describe('the ending: a cut, on one frame', () => {
       c.dispose(0);
     }
   });
+
+  it("played through, the writing stays a trace while the pencil stays, the colour gone, and comes back with the plaster", () => {
+    const box = { x: 0.2, y: 0.1, w: 1, h: 0.1 }, painting = { cx: 0, cy: 0, w: 3.2, h: 1.8 };
+    // (Held to the hold point and a little past it: then the memory ends as it was made to.)
+    const c = new MemoryPlaybackController({ timeline: src, weights: FULL, reduced: false, entrance: 2, sways: [], exit: def.exit, maxHold: src.sections.exit + 1, tail: 0, living: true });
+    c.start();
+    let prev: number | null = null, coloured = false, pencilOnly = 0, plaster = 0;
+    for (let k = 0; k < 60 * 80; k++) {
+      const f = c.step(1 / 60);
+      if (!f || f.state === 'complete') break;
+      const reveal = f.final['window.reveal'] ?? 0, sketch = f.final['window.sketch'] ?? 0;
+      const w = washed(box, painting, () => 0.2, f.final);
+      if (reveal >= 0.99) coloured = true;
+      // The colour gone, the pencil still there: the writing still a trace.
+      if (coloured && reveal <= 0.01 && sketch >= 0.99) pencilOnly++, expect(w).toBeGreaterThanOrEqual(WASH * 0.99);
+      // The pencil gone after it: the writing back, whole.
+      if (coloured && sketch <= 0.01) plaster++, expect(w).toBeLessThanOrEqual(0.01);
+      if (prev !== null) expect(Math.abs(w - prev)).toBeLessThanOrEqual(0.1);
+      prev = w;
+    }
+    expect(pencilOnly).toBeGreaterThan(60);
+    expect(plaster).toBeGreaterThan(0);
+    c.dispose(0);
+  });
 });
+
+/** As the App washes the writing (src/App.ts, `washUnderPainting`), from a frame's values. */
+function washed(box: { x: number; y: number; w: number; h: number }, painting: { cx: number; cy: number; w: number; h: number }, colourAt: (u: number, v: number) => number, final: Record<string, number>) {
+  const hold = Math.min(final['window.sketch'] ?? 0, final['window.wash'] ?? 0);
+  return washOf(box, painting, colourAt, final['window.reveal'] ?? 0, final['window.presence'] ?? 1, hold);
+}
 
 describe("the room's writing under a living memory's painting", () => {
   const painting = { cx: 0, cy: 0, w: 3.2, h: 1.8 };
@@ -312,14 +339,26 @@ describe("the room's writing under a living memory's painting", () => {
     expect(washOf({ x: 3, y: 0, w: 1, h: 0.1 }, painting, coloured, 1, 1)).toBe(0);
     expect(washOf({ x: 0, y: 1.2, w: 1, h: 0.1 }, painting, coloured, 1, 1)).toBe(0);
   });
-  it('a long line goes as the colour crosses it, not all at once', () => {
-    // The colour comes from the left: the line's left end coloured long before its right.
+  it('a line goes as soon as the colour comes to any of it, a little ahead of it, not once it has crossed it', () => {
+    // The colour comes from the left: the line's left end (u 0.2) at 0.28, its right (u 0.8) at 0.76.
     const fromLeft = (u: number) => 0.12 + 0.8 * u;
     const box = { x: 0, y: 0, w: 2.4, h: 0.1 };
     const at = (reveal: number) => washOf(box, painting, fromLeft, reveal, 1);
-    expect(at(0.3)).toBeGreaterThan(0);
-    expect(at(0.3)).toBeLessThan(WASH * 0.5);
-    expect(at(0.9)).toBeCloseTo(WASH, 6);
+    expect(at(0.14)).toBe(0);
+    expect(at(0.22)).toBeGreaterThan(0);
+    // Its left end coloured (0.28), its right far from it: the whole line gone.
+    expect(at(0.32)).toBeCloseTo(WASH, 6);
+    // (No caption over the colour: a line half washed, words still read over the two of them.)
+    for (let r = 0.14; r < 1; r += 0.01) expect(at(r + 0.01)).toBeGreaterThanOrEqual(at(r));
+  });
+  it('held, it stays a trace after the colour has gone, as far as it is held and the painting is there', () => {
+    const box = { x: 0, y: 0, w: 1, h: 0.1 };
+    expect(washOf(box, painting, coloured, 0, 1, 1)).toBeCloseTo(WASH, 6);
+    expect(washOf(box, painting, coloured, 0, 1, 0.5)).toBeCloseTo(WASH * 0.5, 6);
+    expect(washOf(box, painting, coloured, 0, 0.5, 1)).toBeCloseTo(WASH * 0.5, 6);
+    expect(washOf(box, painting, coloured, 0, 1, 0)).toBe(0);
+    // Off the painting, held or not, it is never washed.
+    expect(washOf({ x: 3, y: 0, w: 1, h: 0.1 }, painting, coloured, 0, 1, 1)).toBe(0);
   });
 });
 

@@ -354,18 +354,17 @@ export const DOOR: MemoryDef = {
  * Nothing happens. Then they are gone. The artist's shot list (2026-10-17), about 50 s and a
  * cicada after:
  *
- *   0–6       1 the room remembers: a cicada beyond the wall (1.2); warm leaf light on the plaster
- *             (1.4); the pencil finds the clearing from the line outward from 2.0 (light lines
- *             first, the two of them last), while the visitor drifts toward the wall (their look
+ *   0–6       1 the room remembers: a cicada beyond the wall (1.2); the pencil finds the clearing
+ *             from the line outward from 2.0 (light lines first, the two of them last), the room's
+ *             writing with it, while the visitor drifts toward the wall (their look
  *             their own; a look away holds it, a step held lets it go; they are taken in if they
  *             are looking at it when it would take them)
- *   5.4–10.5  2 crossing in: the drawing whole, the colour comes, from the two of them outward as
- *             a wash; the painting begins to live (5.5–7), its light spreads across the plaster,
- *             and the same move carries them on, square to it; past a sprig of leaves close to
- *             the lens it is all there is (9.8)
+ *   5.4–10.5  2 crossing in: the drawing whole, the colour comes, from between the two of them
+ *             outward as one light wash, the room's writing going to a trace just ahead of it;
+ *             the painting begins to live (5.5–7), its light comes up (7.1–8.3), and the same move
+ *             carries them on, square to it; it opens out until it is all there is (8.2–9.8)
  *   10.5–15.0 3 an ordinary afternoon: the wide, both looking up; breathing; a gust crosses the
- *             clearing (11.5) and a leaf falls (12.1); her crossed foot rocks a while; a blink
- *             each; cicadas
+ *             clearing (11.5); her crossed foot rocks a while; his blink; cicadas
  *   15.0–19.0 4 cut: close on him (the artist's drawings): his eyes go to her (16.0), then his
  *             head, a little (16.5)
  *   19.0–23.6 5 cut: close on her: her eyes (20.25), a pause, a small turn of her head toward him
@@ -379,10 +378,11 @@ export const DOOR: MemoryDef = {
  *   34.5      8 a cut, on one frame, in that stillness: the same clearing, the same view, at dusk,
  *             and nobody there. No sound marks it: the cicada over them sings straight across it,
  *             the grass keeps moving
- *   34.5–42.5 the empty clearing at dusk, held; a gust crosses the grass where they lay (36.6);
- *             the day thins and, once, and once more, an evening cicada
+ *   34.5–42.5 the empty clearing at dusk, held; the evening's breeze in the grass; the day thins
+ *             and, once, and once more, an evening cicada
  *   42.5–46.5 out: carried back, the painting gathers itself to the wall
- *   46–49.5   the colour goes, the graphite sinks (the empty clearing's)
+ *   46–49.5   the colour goes, the empty clearing's pencil alone a while; the graphite sinks and
+ *             the room's writing comes back with it (49.8–51.3)
  *   48.5–52.5 one evening cicada, far off, heard in the white room
  *
  * What they might have said, never said (no line is spoken, written or captioned):
@@ -430,6 +430,9 @@ export const WOODLAND: MemoryDef = {
         tracks: {
           'window.sketch': [[1.5, 0], [3.5, 1]],
           'window.reveal': [[2.5, 0], [6, 1]],
+          // (The room's writing under it goes as the colour comes and stays a trace until it goes:
+          // over the empty clearing, the opening's unfinished line said what the absence meant.)
+          'window.wash': [[0, 0, 'hold'], [6, 1]],
           'window.presence': [[0, 1]],
           'window.parallax': [[0, 0]],
           'light.x': [[0, -0.05]],
@@ -465,9 +468,9 @@ export const WOODLAND: MemoryDef = {
         // stroke (scripts/stroke-order.py), while the visitor drifts toward the wall (the lean,
         // their look their own); shot 2: once the drawing is whole the colour comes, out from the
         // two of them (the words lie over them) as a wash, the painting spreads, they are carried
-        // in, and past the leaves it is all there is.
-        // (The cicada first, beyond the wall (1.2 s); then the light (1.4); then the first stroke
-        // (2.0); the two of them are found last, ~4.2–5.0: cinematic review. The colour waits for
+        // in, and it opens out until it is all there is.
+        // (The cicada first, beyond the wall (1.2 s); then the first stroke (2.0); the two of them
+        // are found last, ~4.2–5.0: cinematic review. The colour waits for
         // them: begun while they were still to be drawn, it went round them, a figure-shaped gap
         // of bare plaster in the painting (the crossing's frames, 2026-10-17). The two clocks are
         // scripts/stroke-order.py's too: tests/memory-defs.test.ts.)
@@ -479,6 +482,11 @@ export const WOODLAND: MemoryDef = {
         'window.reveal': [[5.4, 0, 'linear'], [7.6, 1], [45.8, 1], [47.8, 0]],
         'window.presence': [[0, 1]],
         'window.parallax': [[0, 0]],
+        // The room's writing under the painting: going as the colour reaches it, then held a trace
+        // until the pencil goes (src/world/living/wash.ts), so the empty clearing's pencil is
+        // alone a while on the way back and the words come back to a white wall: the creative
+        // director's and the skeptic's reviews, 2026-10-18.
+        'window.wash': [[0, 0, 'hold'], [7.6, 1]],
         // The light finds the people first (painting metres from its centre).
         'light.x': [[0, -0.05]],
         'light.y': [[0, -0.24]],
@@ -486,24 +494,23 @@ export const WOODLAND: MemoryDef = {
         'light.soft': [[0, 0.14]],
         // The afternoon's warmth, then (at the cut) the evening's.
         'light.warmth': [[0, 4300, 'hold'], [CUT, 2900]],
-        // Warm leaf light on the plaster before anything is drawn; low while inside; it goes last.
+        // The painting's light (with its colour: before it, on bare plaster, it read as two pale
+        // smears); low while inside; it goes last.
         'light.intensity': [[0, 0], [1.4, 0], [2.6, 0.5], [6, 0.45], [10.5, 0.3], [42.5, 0.2], [46.5, 0.3], [49.5, 0]],
         'light.roomSpill': [[0, 0]],
         'layer:scene.opacity': [[0, 1]],
         'layer:sketch.opacity': [[0, 0.9, 'hold'], [CUT, 0]],
-        'layer:sketch-after.opacity': [[0, 0, 'hold'], [CUT, 0.9]],
+        'layer:sketch-after.opacity': [[0, 0, 'hold'], [CUT, 1]],
         'layer:light.opacity': [[0, 1]],
         // The scene.
         'scene.life': [[0, 0], [5.5, 0], [7, 1]],
         // The way in, one move (shaped in Inside.ts): from the cicada, slowly; the body only until
-        // they are taken in (~6.2 s); the painting's own light up over it 7.3–8.7, then opening out
-        // to all there is by 9.8; still by 10.5. Back: steadily (never a jolt), the plaster
-        // re-forming as they are carried back.
+        // they are taken in (~6.2 s); the painting's own light up over it 7.1–8.3, then opening out
+        // to all there is over its own straight 1.6 s, 8.2–9.8 (cinematic review, 2026-10-18: it
+        // was the threshold's briefest phase); still by 10.5. Back: steadily (never a jolt), the
+        // plaster re-forming as they are carried back.
         'scene.approach': [[1.2, 0, 'linear'], [10.5, 1], [S.exit + 1, 1, 'linear'], [S.exit + 5, 0]],
-        'scene.immerse': [[0, 0, 'hold'], [6.2, 0, 'linear'], [9.8, 1, 'hold'], [S.exit, 1, 'linear'], [S.exit + 2, 0.72, 'linear'], [S.exit + 5, 0]],
-        // A sprig of the near tree's leaves passes close to the lens in the last half second of
-        // the opening out (the artist's shot 2; one, sharp: the skeptic's second review).
-        'scene.leaf': [[9.3, 0, 'linear'], [9.85, 1]],
+        'scene.immerse': [[0, 0, 'hold'], [6.2, 0, 'linear'], [8.2, 0.68, 'linear'], [9.8, 1, 'hold'], [S.exit, 1, 'linear'], [S.exit + 2, 0.72, 'linear'], [S.exit + 5, 0]],
         // The air.
         'scene.breeze': BREEZE_KEYS,
         // The cut: the afternoon and the two of them until it, then the same place later, empty.

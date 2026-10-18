@@ -18,7 +18,6 @@ function setup() {
   const post = { immersed: 0, roomHidden: false } as unknown as Post;
   const imm = new Immersion(new THREE.DataTexture(new Uint8Array(4), 1, 1));
   const inside = new Inside(rig, win, imm, post);
-  const leafTex = new THREE.Texture();
   // A wall 3.2 m in front of the visitor, facing them; the painting on it, 3.2 × 1.8 m.
   const wall = new THREE.Group();
   wall.position.set(0, 1.8, -3.2);
@@ -26,8 +25,8 @@ function setup() {
   Object.assign(win.painting, { cx: 0, cy: 0, w: 3.2, h: 1.8 });
   rig.place(0.4, 0, 0.1, -0.05);
   const scene = new THREE.Texture();
-  const step = (immerse: number, o: { leaving?: boolean; reduced?: boolean; dt?: number; approach?: number; away?: boolean; leaf?: number } = {}) =>
-    inside.step(o.dt ?? 1 / 60, { immerse, focus: [0.5, 0.5], enter: true, away: !!o.away, leavingNaturally: !!o.leaving, approach: o.approach, leaf: o.leaf }, { reduced: !!o.reduced, aspect: 16 / 9, scene, sketch: null, group: wall, leaves: leafTex });
+  const step = (immerse: number, o: { leaving?: boolean; reduced?: boolean; dt?: number; approach?: number; away?: boolean } = {}) =>
+    inside.step(o.dt ?? 1 / 60, { immerse, focus: [0.5, 0.5], enter: true, away: !!o.away, leavingNaturally: !!o.leaving, approach: o.approach }, { reduced: !!o.reduced, aspect: 16 / 9, scene, group: wall });
   // The way in at its own pace (~9 s): the drawing forms, then they are taken in.
   const goIn = () => {
     for (let a = 0; a <= 0.55; a += 0.01) step(0, { approach: a, dt: 0.1 });
@@ -79,31 +78,6 @@ describe('inside a living memory', () => {
     expect(inside.locked).toBe(false);
     expect(e).toBeGreaterThan(0.3);
     expect(rig.yaw).toBeLessThan(yawInside - 0.4);
-  });
-
-  it('the sprig: for someone taken in; let go mid-pass, it goes in a fifth of a second, never cut; none once reduced motion is asked for', () => {
-    const { inside, step, goIn, imm } = setup();
-    inside.begin(7);
-    goIn();
-    const show = () => imm.u.uLeafShow.value as number;
-    step(1, { approach: 1, leaf: 0.5 });
-    expect(show()).toBeGreaterThan(0.9);
-    // Let go (the memory withdraws, the timeline still running): no frame takes more than a
-    // quarter of it, and it is gone within a fifth of a second.
-    let prev = show(), most = 0;
-    for (let k = 0; k < 15; k++) {
-      step(1 - k / 60, { approach: 1, leaf: 0.5 + k * 0.02, leaving: true });
-      most = Math.max(most, prev - show());
-      prev = show();
-    }
-    expect(most).toBeLessThanOrEqual(0.25);
-    expect(show()).toBe(0);
-    // Reduced motion asked for during the memory (it began without): no sprig from then on.
-    const b = setup();
-    b.inside.begin(8);
-    b.goIn();
-    b.step(1, { approach: 1, leaf: 0.5, reduced: true });
-    expect(b.imm.u.uLeafShow.value).toBe(0);
   });
 
   it('a long frame cannot swallow a turn', () => {
@@ -257,7 +231,7 @@ function app(o: { reduced?: boolean } = {}) {
     w.rig.update(dt || 1 / 60, room, chair);
     const shot = scene.choose({ 'scene.shot': f.shot ?? 0 }, { inside: w.inside.taken, turned: w.inside.turned > 0.244 });
     w.inside.step(dt, { immerse: clamp((t - 6.2) / 3.6), focus: [0.5, 0.5], view: f.view, held: f.held, enter: true, away: !!f.away, leavingNaturally: false, approach: clamp((t - 1.2) / 9.3) },
-      { reduced: !!o.reduced, aspect: 16 / 9, scene: sceneTex, sketch: null, group });
+      { reduced: !!o.reduced, aspect: 16 / 9, scene: sceneTex, group });
     return shot;
   };
   const until = (end: number, f: Parameters<typeof frame>[0] = {}) => {

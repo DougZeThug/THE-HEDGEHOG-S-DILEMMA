@@ -16,12 +16,14 @@ entry:
        last. Not stroke by stroke: nobody can follow a stroke's order from across a room, and
        the order of a thinned, traced line was the work's least visible effort (the skeptic's
        review, 2026-10-17).
-    G  when the colour reaches here (0..1): out from the words as the drawing went, but with the
-       two of them (under the words) first, not last: once the drawing is whole the colour begins
-       with them (held back with their lines, it went round them, a figure-shaped gap of bare
-       plaster in the painting: the crossing's frames, 2026-10-17); a little later the further
-       from a line, broken by a soft noise (a wash); never sooner than LAG seconds after its own
-       line, on the timeline's clocks.
+    G  when the colour reaches here (0..1): one front, out from between the two of them (their
+       faces), broken by one soft noise: a wash spreading from them, as much of the painting in
+       each moment as in any other. Not along the lines: held back with theirs it went round them,
+       a figure-shaped gap of bare plaster (the crossing's frames, 2026-10-17), and taken from
+       each nearest line it came in patches, islands of colour from nowhere (the skeptic's third
+       review, 2026-10-18). Never sooner than LAG seconds after its own line, on the timeline's
+       clocks. One front: the script stops, writing nothing, if any step of the reveal colours a
+       second part of the painting (over 0.2% of it) apart from the first.
 
 The wall's window (src/world/MemoryWindow.ts) draws a line where R ≤ window.sketch's progress
 and colour where G ≤ window.reveal's.
@@ -51,6 +53,10 @@ WORDS = (0.48, 0.61)
 DRAWN = (2.0, 6.0, 'soft')
 COLOURED = (5.4, 7.6, 'linear')
 LAG = 0.4
+# How broken the colour's front is (of the painting's furthest reach from them), and the largest
+# part of the painting the colour may reach apart from its front, at any step (a fraction).
+BROKEN = 0.15
+ISLAND = 0.002
 
 
 def darkness():
@@ -78,6 +84,32 @@ def people():
     m = cv2.dilate((m > 0.3).astype(np.uint8), np.ones((9, 9), np.uint8)).astype(np.float32)
     # (Soft round them: no hard-edged island of late colour where they lay.)
     return cv2.GaussianBlur(m, (0, 0), 18)
+
+
+def faces():
+    """Between their two faces (painting px, y down): where the colour begins. The rig's face
+    deformers (sheet uv, y up) placed where the cut-out lies on the painting."""
+    with open(MANIFEST) as f:
+        fig = json.load(f)['living']['afternoon']['figures']
+    c = [d['c'] for d in fig['deformers'] if d['name'] in ('faceA', 'faceB')]
+    if len(c) != 2:
+        raise SystemExit('order: the figures have no faceA and faceB in the manifest (run the cutter)')
+    x0, y0, w, h = fig['place']
+    u, v = x0 + w * (c[0][0] + c[1][0]) / 2, y0 + h * (c[0][1] + c[1][1]) / 2
+    return u * W, (1 - v) * H
+
+
+def one_front(G):
+    """The most of the painting the colour reaches apart from its front, at any step of the
+    reveal (a fraction), and the step: what is coloured is one part, or there is an island."""
+    worst, at = 0, 0.0
+    for r in np.unique(G):
+        n, _, stats, _ = cv2.connectedComponentsWithStats((G <= r).astype(np.uint8), connectivity=8)
+        if n > 2:
+            second = int(np.sort(stats[1:, cv2.CC_STAT_AREA])[-2])
+            if second > worst:
+                worst, at = second, float(r)
+    return worst / (W * H), at
 
 
 def clock(kind):
@@ -116,17 +148,10 @@ def main():
         return 0.02 + np.clip(x, 0, 1) * 0.86
 
     R = over_lines(0.6 * reach + 0.16 * weight + 0.14 * grain + 0.62 * found)
-    # The colour: the drawing's own way out from the words, the two of them a moment after the
-    # grass round them rather than last; later with distance from the nearest line; broken softly.
-    wash = over_lines(0.6 * reach + 0.16 * weight + 0.14 * grain + 0.04 * found)
-    lsrc = np.where(lines, 0, 255).astype(np.uint8)
-    dist, labels = cv2.distanceTransformWithLabels(lsrc, cv2.DIST_L2, 5, labelType=cv2.DIST_LABEL_PIXEL)
-    ly, lx = np.nonzero(lsrc == 0)
-    lorder = np.zeros(ly.size + 1, np.float32)
-    lorder[1:] = wash[ly, lx]  # labels are numbered over the zero pixels, in scan order
-    G = lorder[labels] + 0.18 * np.clip(dist / 120, 0, 1)
-    # Soft fronts, not the nearest line's patch: a wash spreads; its edge is broken a little.
-    G = cv2.GaussianBlur(G.astype(np.float32), (0, 0), 22) + 0.08 * (soft_noise(rng, 18) - 0.5)
+    # The colour: out from between their faces, one front, broken softly.
+    fx, fy = faces()
+    G = np.hypot(xx - fx, yy - fy)
+    G = G / G.max() + BROKEN * (soft_noise(rng, 36) - 0.5)
     # As much of the painting takes its colour in each moment as in any other (the wash spreads at
     # one pace: four fifths of it had come in under half a second, a burst: the crossing's frames,
     # 2026-10-17); from just past the wall's soft colour edge, ±0.08 and its grain, so nothing has
@@ -143,8 +168,13 @@ def main():
     soonest = coloured_by(np.clip((drawn + LAG - COLOURED[0]) / (COLOURED[1] - COLOURED[0]), 0, 1))
     held = float(np.mean(soonest > G + 0.01))
     G = np.maximum(G, soonest)
-    rgb = np.dstack([R, G, np.zeros_like(G)])
-    Image.fromarray((rgb * 255 + 0.5).astype(np.uint8), 'RGB').save(OUT, 'WEBP', lossless=True, method=6)
+    # (Judged as it is stored: eight bits.)
+    rgb = (np.dstack([R, G, np.zeros_like(G)]) * 255 + 0.5).astype(np.uint8)
+    island, at = one_front(rgb[..., 1])
+    if island > ISLAND:
+        raise SystemExit(f'order: the colour reaches {island:.2%} of the painting apart from its front at '
+                         f'{at / 255:.2f} of the reveal (at most {ISLAND:.1%}); nothing written')
+    Image.fromarray(rgb, 'RGB').save(OUT, 'WEBP', lossless=True, method=6)
     with open(MANIFEST) as f:
         manifest = json.load(f)
     manifest['living']['afternoon']['order'] = 'afternoon/order'
@@ -154,7 +184,8 @@ def main():
     with open(MANIFEST, 'w') as f:
         json.dump(manifest, f, indent=2)
         f.write('\n')
-    print(f'order: from {source}; {int(lines.sum())} line pixels; the colour held for its line over {held:.1%} of the painting')
+    print(f'order: from {source}; {int(lines.sum())} line pixels; the colour from ({fx:.0f}, {fy:.0f}) px, '
+          f'held for its line over {held:.1%} of the painting, at most {island:.2%} of it apart from its front')
 
 
 if __name__ == '__main__':

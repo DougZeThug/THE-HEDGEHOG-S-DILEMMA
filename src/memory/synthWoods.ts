@@ -394,10 +394,11 @@ export async function renderWoods(take: number): Promise<Float32Array[]> {
     biquad(ch, 'peak', 5000, 1.5, -6);
   }
   const leaves = [new Float32Array(n), new Float32Array(n)];
-  const air = control(n, (t) => {
-    const gs = heard(t);
-    return (0.15 * (empty ? 0.6 : curve(T.breeze, t)) + Math.pow(gs.strength, 1.5)) * (empty ? 0.6 : 0.25 + 0.75 * opened(t)) * going(t, T.leavesOut);
-  });
+  // The breeze in the leaves, and a gust over it (at half the weight it had: the memory's loudest
+  // moment outweighed the silent cut; the skeptic's third review, the cinematic director's).
+  const breezeAt = (t: number) => 0.15 * (empty ? 0.6 : curve(T.breeze, t)) * (empty ? 0.6 : 0.25 + 0.75 * opened(t)) * going(t, T.leavesOut);
+  const air = control(n, (t) => breezeAt(t) + 0.5 * Math.pow(heard(t).strength, 1.5) * (empty ? 0.6 : 0.25 + 0.75 * opened(t)) * going(t, T.leavesOut));
+  const breezeOnly = control(n, breezeAt);
   // From the left as the front comes in, toward the right as it passes.
   const panEnv = control(n, leavesPan);
   for (let i = 0; i < n; i++) {
@@ -406,9 +407,16 @@ export async function renderWoods(take: number): Promise<Float32Array[]> {
     leaves[0][i] = nl[i] * lv * Math.sqrt((1 - pan * 0.6) / 2);
     leaves[1][i] = nr[i] * lv * Math.sqrt((1 + pan * 0.6) / 2);
   }
-  // Balanced against the cicadas by ear-free measure: the leaves sit about 4 dB under them.
-  const kc = rms([L, R]), kl = rms(leaves);
-  const lk = kl > 0 ? (kc / kl) * Math.pow(10, -4 / 20) : 0;
+  // Balanced against the cicadas by ear-free measure, on the breeze alone (so a gust is as loud
+  // as it is, not as loud as every other gust lets it be): the breeze in the leaves about 6 dB
+  // under them.
+  let sb = 0;
+  for (let i = 0; i < n; i++) {
+    const b = at64(breezeOnly, i);
+    sb += (nl[i] * b) ** 2 + (nr[i] * b) ** 2;
+  }
+  const kc = rms([L, R]), kl = Math.sqrt(sb / Math.max(1, 2 * n));
+  const lk = kl > 0 ? (kc / kl) * Math.pow(10, -6 / 20) : 0;
   for (let i = 0; i < n; i++) (L[i] += leaves[0][i] * lk), (R[i] += leaves[1][i] * lk);
   normalise([L, R], -45);
   return [L, R];

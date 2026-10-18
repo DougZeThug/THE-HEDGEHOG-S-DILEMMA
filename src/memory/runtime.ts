@@ -53,8 +53,6 @@ interface LivingManifest {
   clouds?: { mask: string; file: string; after: string; box: [number, number, number, number]; pad: number } | null;
   /** When each pencil line is drawn and the colour comes (scripts/stroke-order.py), one size. */
   order?: string | null;
-  /** The leaves passed through at the crossing (an atlas of two), one size. */
-  leaves?: string | null;
   /**
    * The close-ups, by shot (scripts/closeups.py): `<file>-base` (its first drawing), `<file>-wind`
    * (where the air may move its grass: a map, one size) and, if any drawing differs from the
@@ -93,8 +91,6 @@ export interface PreparedLiving {
   order: THREE.Texture | null;
   /** When the colour reaches a point of the painting (uv, y up; the order map's g), or null. */
   colourAt: ((u: number, v: number) => number) | null;
-  /** The leaves passed through at the crossing (mipmapped: they are drawn out of focus), or null. */
-  leaves: THREE.Texture | null;
 }
 
 export interface Prepared {
@@ -223,7 +219,6 @@ function livingFiles(lm: LivingManifest, suffix: string): { file: string; suffix
   if (lm.flowers) out.push({ file: lm.flowers.file, suffix });
   if (lm.clouds) out.push({ file: lm.clouds.mask, suffix: '' }, { file: lm.clouds.file, suffix: '' }, { file: lm.clouds.after, suffix: '' });
   if (lm.order) out.push({ file: lm.order, suffix: '' });
-  if (lm.leaves) out.push({ file: lm.leaves, suffix: '' });
   for (const c of lm.closeups ?? []) {
     out.push({ file: `${c.file}-base`, suffix }, { file: `${c.file}-wind`, suffix: '' });
     if (c.grid[0] > 0) out.push({ file: `${c.file}-cels`, suffix });
@@ -290,10 +285,7 @@ export async function prepare(id: string, variant: string, host: RuntimeHost): P
         lm.clouds ? one(lm.clouds.file, { sfx: '' }) : Promise.resolve(null),
         lm.clouds ? one(lm.clouds.after, { sfx: '' }) : Promise.resolve(null),
       ]);
-      // (The leaves and the pencil's order are mipmapped, unlike the scene's layers: drawn out of
-      // focus, and seen from across the room.)
-      const mipmapped = (file: string, data = false) => loadLayer(url(file, ''), { data }).then((r) => (extra.push(r), r.texture));
-      const leavesP = lm.leaves ? mipmapped(lm.leaves) : Promise.resolve(null);
+      // (The pencil's order is mipmapped, unlike the scene's layers: seen from across the room.)
       const orderP = lm.order ? loadLayer(url(lm.order, ''), { data: true }).then((r) => (extra.push(r), r)) : Promise.resolve(null);
       // A close-up that can't be had is the wide for its shot (the memory still plays); what of it
       // did load is let go at once.
@@ -316,10 +308,10 @@ export async function prepare(id: string, variant: string, host: RuntimeHost): P
         }),
       );
       // (All of it settled before any failure is thrown, so nothing loads after it is let go.)
-      const bad = (await Promise.allSettled([mainP, leavesP, orderP, closeupsP])).find((r) => r.status === 'rejected') as PromiseRejectedResult | undefined;
+      const bad = (await Promise.allSettled([mainP, orderP, closeupsP])).find((r) => r.status === 'rejected') as PromiseRejectedResult | undefined;
       if (bad) throw bad.reason;
       const [plate, maps, grade, sky, fig, lids, after, flowers, skyMask, clouds, cloudsAfter] = await mainP;
-      const [leaves, orderR, closeups] = [await leavesP, await orderP, await closeupsP];
+      const [orderR, closeups] = [await orderP, await closeupsP];
       const order = orderR?.texture ?? null;
       const art: LivingArt = {
         closeups,
@@ -335,7 +327,7 @@ export async function prepare(id: string, variant: string, host: RuntimeHost): P
       };
       const size = targetSize(host);
       scene = new LivingScene(art, SPECS[def.id] ?? WOODLAND_SPEC, { ...size, noise: host.noise!, reduced: !!host.reduced, low: host.quality === 'low' });
-      living = { scene, spec: SPECS[def.id] ?? WOODLAND_SPEC, immerse: lm.immerse, crop: manifest.crop ?? [0, 0, 1, 1], aspect: manifest.size[0] / manifest.size[1], order, colourAt: orderR ? colourTimes(orderR.bitmap) : null, leaves };
+      living = { scene, spec: SPECS[def.id] ?? WOODLAND_SPEC, immerse: lm.immerse, crop: manifest.crop ?? [0, 0, 1, 1], aspect: manifest.size[0] / manifest.size[1], order, colourAt: orderR ? colourTimes(orderR.bitmap) : null };
       loaded.unshift({ texture: scene.target.texture, bitmap: null as unknown as ImageBitmap, name: 'scene', kind: 'pigment' });
     } catch (e) {
       // The living scene couldn't be made: the wall's poster instead, as any memory.

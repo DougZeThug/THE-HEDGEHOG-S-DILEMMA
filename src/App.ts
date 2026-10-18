@@ -1022,7 +1022,11 @@ export class App {
    */
   private drawLiving(l: NonNullable<App['living']>, f: { t: number; state: Lifecycle; position: number; final: Record<string, number> }, dt: number) {
     const pl = l.memory.prepared.living;
-    if (!pl) return;
+    if (!pl) {
+      // (A living memory's revisit stays on the wall, as any memory: the writing under it too.)
+      this.washUnderPainting(l, f.final);
+      return;
+    }
     const aspect = innerWidth / innerHeight;
     // The shot on now, chosen first so the view frames it from its first frame. A close-up only
     // for someone taken all the way in; turned 14° from it, the wide for the rest of its shot
@@ -1031,7 +1035,6 @@ export class App {
     const shot = pl.scene.choose(f.final, { inside: this.inside.taken, turned: this.inside.turned > 0.244 });
     const shown = shot > 0 ? pl.scene.closeup(shot) : null;
     const focus = aspect < 0.9 ? pl.spec.cover.upright : aspect > 2.0 ? pl.spec.cover.ultra : pl.spec.cover.wide;
-    const sketch = l.memory.prepared.layers.find((x) => x.name === 'sketch')?.texture ?? null;
     const go = this.inside.step(dt, {
       immerse: f.final['scene.immerse'] ?? 0,
       focus,
@@ -1042,8 +1045,7 @@ export class App {
       away: l.away,
       leavingNaturally: f.state === 'withdrawing' || f.state === 'residue',
       approach: 'scene.approach' in f.final ? f.final['scene.approach'] : undefined,
-      leaf: f.final['scene.leaf'] ?? 0,
-    }, { reduced: this.prefs.reducedMotion, aspect, scene: pl.scene.target.texture, sketch, group: l.anchor.group, leaves: pl.leaves });
+    }, { reduced: this.prefs.reducedMotion, aspect, scene: pl.scene.target.texture, group: l.anchor.group });
     // The window was placed before the spread changed: place it again for this frame.
     this.memoryWindow.update(f.final, this.rig.restingEye, 0);
     this.washUnderPainting(l, f.final);
@@ -1063,17 +1065,19 @@ export class App {
 
   /**
    * The room's writing under a living memory's painting, its own line too (`washOf`: each piece
-   * goes to a trace as the colour reaches it, and comes back as the colour leaves or the painting
-   * goes; the skeptic's second review and QA, 2026-10-17).
+   * goes to a trace just ahead of the colour, and comes back with the pencil, or as the painting
+   * goes if it is let go early; reviews of 2026-10-17 and 18). A revisit without its own scene (no
+   * order map) has the colour everywhere at once, at the reveal's half way.
    */
   private washUnderPainting(l: NonNullable<App['living']>, final: Record<string, number>) {
-    const colourAt = l.memory.prepared.living?.colourAt;
+    const colourAt = l.memory.prepared.living?.colourAt ?? (l.memory.prepared.living ? null : () => 0.5);
     if (!colourAt) return;
     const reveal = final['window.reveal'] ?? 0, presence = final['window.presence'] ?? 1;
+    const hold = Math.min(final['window.sketch'] ?? 0, final['window.wash'] ?? 0);
     for (const it of this.text.items.values()) {
       const a = this.text.anchorOfKey(it.key);
       if (!a || a.group !== l.anchor.group) continue;
-      const w = washOf(a, this.memoryWindow.painting, colourAt, reveal, presence);
+      const w = washOf(a, this.memoryWindow.rect, colourAt, reveal, presence, hold);
       if (w <= 0 && !l.washed.has(it.key)) continue;
       // (Its own line may be in the memory's light as well: the more washed of the two.)
       this.text.wash(it.key, it.key === this.memoryKey ? Math.max(w, this.lightWash) : w);

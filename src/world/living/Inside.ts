@@ -47,8 +47,6 @@ export interface InsideFrame {
    * still becomes the painting's).
    */
   approach?: number;
-  /** The sprig passed at the crossing (the timeline's `scene.leaf`, 0..1: its pass). */
-  leaf?: number;
 }
 
 /** How far along the way in (0..1) for `scene.approach` (0..1): slow to start, slow to arrive. */
@@ -131,9 +129,6 @@ export class Inside {
   }
 
   private reduced = false;
-  /** The sprig's pass as last drawn, and how far it has gone since the memory was let go (0..1). */
-  private leafP = 0;
-  private leafGone = 0;
 
   /** A new memory: nothing carried, nothing decided. Reduced motion is as it was when it began. */
   begin(seed: number, reduced = false): void {
@@ -144,7 +139,6 @@ export class Inside {
     this.lean = this.l0 = this.pLock = this.leanStep = this.immersed = 0;
     this.leanStopped = this.entered = false;
     this.vx = this.vy = this.quiet = this.stepHeld = 0;
-    this.leafP = this.leafGone = 0;
     this.freshKeys.clear();
     this.freshThumb = false;
     this.seed = (seed % 997) / 997;
@@ -168,7 +162,7 @@ export class Inside {
    * One frame. Returns 'leave' when the visitor has let it go (the caller releases the memory as
    * an interruption).
    */
-  step(dt: number, f: InsideFrame, o: { reduced: boolean; aspect: number; scene: THREE.Texture; sketch: THREE.Texture | null; group: THREE.Object3D; leaves?: THREE.Texture | null }): 'leave' | null {
+  step(dt: number, f: InsideFrame, o: { reduced: boolean; aspect: number; scene: THREE.Texture; group: THREE.Object3D }): 'leave' | null {
     let out: 'leave' | null = null;
     if (!this.decided && f.immerse > 0) {
       this.decided = true;
@@ -203,16 +197,14 @@ export class Inside {
     // The memory yields as they turn away.
     // (Past a glance, the full view goes over about 12–22°; at 30° it lets go.)
     this.eff = immerse * (1 - 0.45 * smooth(YIELD, LEAVE, this.turned));
-    // (Reduced motion asked for now, not only when it began: no sprig from then on.)
-    const reducedNow = o.reduced || this.reduced;
     o = { ...o, reduced: this.reduced };
     const e = this.eff;
     // (The painting's own light comes up at its place over the wall's, then it opens out to all
     // there is: the light grows, then the frame. Cinematic review, 2026-10-17.)
     const spread = smooth(0, 0.5, e);
     const show = o.reduced ? smooth(0.4, 1, e) : smooth(0.3, 0.7, e);
-    // (Opening out over the last 45% of the way in, ~1.6 s, the painting's light still mostly ahead of it.)
-    const settle = o.reduced ? 1 : smooth(0.55, 1, e);
+    // (The opening out: the timeline gives it its own straight 1.6 s, 8.2–9.8; eased here once.)
+    const settle = o.reduced ? 1 : smooth(0.68, 1, e);
     this.window.spread = spread;
 
     // The whole painting, where it is on its wall.
@@ -302,7 +294,6 @@ export class Inside {
     const wall = o.reduced ? null : projectQuad(this.proxy, this.rig.camera, this.corners);
     this.immersion.set({
       scene: o.scene,
-      sketch: o.sketch,
       wall,
       immerse: settle,
       show,
@@ -312,10 +303,6 @@ export class Inside {
       zoom: this.zoom,
       view: this.view,
       seed: this.seed,
-      // The crossing: a sprig close to the lens as the view opens out (none under reduced motion,
-      // nor for someone turning away from it, nor on the way back: that would be a rewind).
-      leaves: o.reduced ? null : o.leaves ?? null,
-      leaf: this.sprig(dt, f, reducedNow),
     });
     // What the scene must draw: the painting's part on the screen (all of it on the wall).
     if (this.immersion.pass.enabled && show > 0.5) visiblePart(this.immersion.screenToPainting, this.zoom, this.view);
@@ -326,20 +313,6 @@ export class Inside {
     if (show * settle >= 0.5 && !this.wallOnly) this.entered = true;
     this.post.roomHidden = show >= 0.999 && settle >= 0.999;
     return out;
-  }
-
-  /**
-   * The sprig's pass this frame: the timeline's, for someone taken in; let go (whichever way), it
-   * stops where it is and goes in a fifth of a second, never cut (QA, 2026-10-17); a turn fades it.
-   */
-  private sprig(dt: number, f: InsideFrame, reduced: boolean): { p: number; show: number } {
-    if (reduced || this.wallOnly) return { p: 0, show: 0 };
-    if (f.leavingNaturally || this.leaving) this.leafGone = Math.min(1, this.leafGone + dt / 0.2);
-    else {
-      this.leafP = f.leaf ?? 0;
-      this.leafGone = 0;
-    }
-    return { p: this.leafP, show: (1 - smooth(YIELD, 0.3, this.turned)) * (1 - this.leafGone) };
   }
 
   /**

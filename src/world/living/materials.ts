@@ -24,7 +24,7 @@ import * as THREE from 'three';
  *    scene): chests, heads, faces, irises, locks of hair, hands, a foot. Their lids (shut, half),
  *    their colour going to graphite, the light moving on them.
  *  - The near flowers (`uKind` 2): strips bent about their roots in the grass.
- *  - What is in the air (`uKind` 3): motes seen in the light, a falling leaf (seeds if any).
+ *  - What is in the air (`uKind` 3): motes, seen only in the sun.
  *  - A close-up (`uKind` 4): the artist's drawings (scripts/closeups.py): its first drawing, and
  *    over the part that changes, the drawing of now (held, cut on the timeline's keys, never
  *    mixed); the chest breathing and the grass in the air, both the engine's.
@@ -68,8 +68,8 @@ const VERT = /* glsl */ `
   uniform vec4 uD[${DEFORMERS * 4}];
   attribute float part;      // 0 the body, 1 her forearm
   attribute vec4 stem;       // a flower: how far up its stem (0 root .. 1 head), how far it swings (px), its root's x, a phase
-                             // a mote, a seed, a leaf: which (0, 1, 2), its index, its size (px), when (s)
-  attribute vec2 home;       // a mote, a seed, a leaf: where it starts (painting uv, hashed on the CPU)
+                             // a mote: its kind (0), its index, its size (px)
+  attribute vec2 home;       // a mote: where it starts (painting uv, hashed on the CPU)
   uniform vec2 uPx;          // one plate pixel, in uv
   uniform float uDrift[16];  // how far the air has carried something light by now (plate px), across the painting
   uniform float uAfter;
@@ -95,10 +95,10 @@ const VERT = /* glsl */ `
     vMote = vec4(0.0);
     if (uKind > 2.5 && uKind < 3.5) {
       // Something light in the air (painting uv), a pure function of time.
-      float kind = stem.x, n = stem.y, size = stem.z, t0 = stem.w;
+      float kind = stem.x, n = stem.y, size = stem.z;
       vec2 at;
       float show = 1.0, spin = 1.0;
-      if (kind < 0.5) {
+      {
         // A mote: hanging in the light, drifting with the air, sinking slowly, wandering.
         // (Its wander and rise are as much as the air moves things: less under reduced motion,
         // none before the painting comes alive.)
@@ -113,30 +113,12 @@ const VERT = /* glsl */ `
         // Now and then one catches the sun (one or two a second across them all).
         float tw = sin(uTime * (0.6 + 0.5 * h1(n + 11.0)) + n * 3.1);
         spin = 1.0 + 2.5 * smoothstep(0.985, 1.0, tw) * uMotion;
-      } else {
-        // A seed or a leaf, crossing in its own few seconds.
-        float age = uTime - t0;
-        float life = kind < 1.5 ? 3.2 : 2.1;
-        show = step(0.0, age) * step(age, life) * smoothstep(0.0, 0.3, age) * (1.0 - smoothstep(life - 0.3, life, age)) * (1.0 - uAfter);
-        // (No seeds or falling leaves under reduced motion: they cross the frame.)
-        show *= step(0.5, uMotion);
-        // (Seeds cross high, from the left; leaves fall from the canopy on the left.)
-        vec2 from = home;
-        if (kind < 1.5) {
-          // The seed: carried right on the gust, rising and falling.
-          at = from + vec2(age * 0.11 + driftAt(from.x) * uPx.x * 0.3, 0.012 * sin(age * 2.2 + n)) ;
-        } else {
-          // The leaf: falling, swinging side to side, turning over (left, away from the hands).
-          at = from + vec2(-age * 0.035 + 0.02 * sin(age * 2.6 + n), -age * 0.2);
-          spin = cos(age * 5.3 + n);
-        }
       }
       vScene = at;
       vDest = at;
       vMote = vec4(kind, show, spin, n);
-      // The quad round it (position.xy is its corner, ±1), a leaf turning over (its width flips).
+      // The quad round it (position.xy is its corner, ±1).
       vec2 corner = position.xy * size * uPx;
-      if (kind > 1.5) corner.x *= max(0.15, abs(spin));
       gl_Position = projectionMatrix * modelViewMatrix * vec4(at + corner, 0.0, 1.0);
       return;
     }
@@ -312,7 +294,7 @@ const FRAG = /* glsl */ `
     if (uKind > 2.5) {
       vec2 q = vUv * 2.0 - 1.0;
       float r = length(q);
-      if (vMote.x < 0.5) {
+      {
         // A mote: soft, warm, seen only where the sun is (the painted light under it), and less
         // against what is already bright.
         // (After the cut the afternoon's sun flecks are gone: an even evening light.)
@@ -324,19 +306,6 @@ const FRAG = /* glsl */ `
         float lit = sun * (1.0 - 0.5 * bg);
         float a = exp(-r * r * 5.0) * vMote.y * lit * vMote.z * 0.9;
         gl_FragColor = vec4(vec3(1.0, 0.95, 0.8) * a, 0.0);
-      } else if (vMote.x < 1.5) {
-        // A seed: a little puff of white threads.
-        float ang = atan(q.y, q.x + 1e-6);
-        float threads = pow(abs(cos(ang * 4.0 + vMote.w)), 14.0) * (1.0 - smoothstep(0.15, 1.0, r));
-        float a = clamp(exp(-r * r * 14.0) + exp(-r * r * 3.0) * 0.25 + threads * 0.7, 0.0, 1.0) * vMote.y;
-        gl_FragColor = vec4(vec3(0.97, 0.96, 0.9) * a, a * 0.85);
-      } else {
-        // A leaf: a pointed oval, darker along its middle, its two sides as it turns over.
-        float leaf = 1.0 - smoothstep(0.85, 1.0, length(vec2(q.x, q.y * 0.55)) + abs(q.x) * 0.25);
-        vec3 col = mix(vec3(0.33, 0.42, 0.14), vec3(0.55, 0.6, 0.22), step(0.0, vMote.z));
-        col *= 1.0 - 0.25 * (1.0 - smoothstep(0.0, 0.12, abs(q.x)));
-        float a = leaf * vMote.y;
-        gl_FragColor = vec4(col * a, a);
       }
       return;
     }

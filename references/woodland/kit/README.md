@@ -9,7 +9,8 @@ still on each close-up.
 
 So every movement is made of drawings: a start, sometimes a drawing halfway, and where it ends.
 That is 11 drawings for the close-ups, plus the pencil drawing for shot 1 (and, if you like, the
-same pencil drawing with nobody in it, for the end).
+same pencil drawing with nobody in it, for the end). Two more are optional, for the way in: the
+leaves passing the lens in shot 2, and where the colour goes on the wall.
 
 This replaces the earlier lists. The three full-scene takes of her look (`b-look-full-*`) are not
 needed now; nor is `c4-blink`, nor her blink (`c5-end-shut`, `c5-end-half`): your shot 5 has no
@@ -56,6 +57,17 @@ filter of the painting, and it reads as one.
 | `pencil.png` | Turn this painting into a loose graphite pencil underdrawing on white paper: exactly the same composition, light searching lines for the tree trunks, branches and leaves, the grasses, the log, the two people outlined; some lines drawn twice where the hand wasn't sure; the two people the faintest lines in it; no colour; only a few hatched strokes of shading. Keep every element in exactly the same place, same size (1672×941). |
 | `pencil-after.png` (optional) | (Made from `pencil.png`.) The same drawing with nobody lying in the grass: the grass drawn through where they were; nothing else changes. (For the end, when the empty clearing goes back into the wall. Without it, the two of them are taken out of your `pencil.png` here, the grass beside them carried across.) |
 | `wash.png` (optional) | The same composition as an early watercolour stage over that pencil drawing: soft washes of colour blocked in, no detail yet, paper showing through, everything in exactly the same place. |
+| `colour-extent.png` (optional) | Not a prompt: painted by hand over the painting (`../drawings/base-scene.png`), the same size. White where the colour goes on the wall, black where it stays pencil, soft where it fades between them. Follow what is in the picture: the canopy's edge, the grass spilling down, the sides going back into the pencil. Until there is one, the colour stops at a soft-edged rectangle with rounded corners. (Not wired in yet: I'll add it when the file is here.) |
+
+## Shot 2: into the forest (optional)
+
+Your shot 2 has leaves passing close to the lens. A sprig cut from the painting itself was tried
+and taken out: small and sharp, it read as a sticker sliding past. A drawing made for the lens
+would do it. (Not wired in yet: I'll add it when the file is here.)
+
+| File | Make it from | Prompt |
+|---|---|---|
+| `c2-leaves.png` (optional) | `../drawings/base-scene.png` | The near oak's leaves very close to the lens, out of focus, lit from behind by the afternoon sun: a few leaves and a twig, large in the frame, soft-edged, warm green and gold where the light comes through. Nothing behind them: a plain, flat background of one colour, so they can be cut out. Widescreen, 1920×1080. |
 
 ## Shot 4: he looks toward her (from `panel-him.png`)
 
@@ -96,6 +108,7 @@ Hers shifts a little nearer through the grass; the fingers stay apart.
 3. Then `c4-start`, `c5-start`, `c6-end`.
 4. Then the eyes (`c4-eyes`, `c5-eyes`).
 5. Then the halfway drawings (`c4-mid`, `c5-mid`, `c6-mid`); `pencil-after` if you like.
+6. Any time, if you like: `colour-extent`, `c2-leaves`.
 
 A shot uses your drawings as soon as its start is in (`c4-start`, `c5-start`, `c6-start`): until
 then it shows the sheet's panel as a stand-in. After that, until a drawing is made, the timeline

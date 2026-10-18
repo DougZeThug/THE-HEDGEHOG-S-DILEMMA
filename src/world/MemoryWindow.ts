@@ -64,6 +64,9 @@ const FRAG = /* glsl */ `
   // How strongly a living memory's pigment sinks into the plaster (a faded fresco, never a hole:
   // the dusk painting multiplied in at full strength is a black stain).
   uniform float uSunk;
+  // How far a living painting drawn in order is lifted toward the plaster (a light wash, as image
+  // 3, not a dark stain), all the way at its colour's front.
+  uniform float uLift;
   varying vec2 vUv;
 
   vec3 toLinear(vec3 c) { return mix(c / 12.92, pow((c + 0.055) / 1.055, vec3(2.4)), step(0.04045, c)); }
@@ -109,9 +112,13 @@ const FRAG = /* glsl */ `
     colourMask = max(colourMask, uOpen * step(0.5, uReveal) * (1.0 - uOrdered));
     sketchMask = max(sketchMask, uOpen * step(0.5, uSketch) * (1.0 - uOrdered));
     // Never to the window's edge: ragged, inside its rectangle (wider as a living one spreads:
-    // a brush, not a frame).
+    // a brush, not a frame). One drawn in order has its corners rounded as wide as its band (no
+    // corner is ever seen: image 3 has none; the creative director's and the skeptic's reviews).
     vec2 e = min(vUv, 1.0 - vUv) * uSize;
-    float edge = smoothstep(0.0, (0.06 + 0.05 * n) * (1.0 + 0.6 * uOpen), min(e.x, e.y) + (n2 - 0.5) * 0.08 * uOpen);
+    float band = (0.06 + 0.05 * n) * (1.0 + 0.6 * uOpen);
+    float rr = band * 1.5 * uOrdered;
+    float ed = (e.x < rr && e.y < rr) ? rr - length(vec2(rr) - e) : min(e.x, e.y);
+    float edge = smoothstep(0.0, band, ed + (n2 - 0.5) * 0.08 * uOpen);
 
     vec3 col = vec3(0.0); float cov = 0.0; vec3 light = vec3(0.0); vec4 lead = vec4(0.0);
     if (uCount > 0) layer(0, texture2D(uL0, (P - uView0.xy) / uView0.zw + uShift[0] + vec2(uSkew[0] * (1.0 - P.y), 0.0)), col, cov, light, lead);
@@ -123,16 +130,31 @@ const FRAG = /* glsl */ `
 
     // Unstylized (the editor's comparison): the layers as baked, with no mask, noise or reserve.
     float mask = mix(1.0, colourMask, uStylize);
-    // (Drawn in order, its light is on the plaster before anything is drawn: the room remembers
-    // the light first. Otherwise the light reveals as the colour does.)
-    float lightMask = max(mask, uOrdered * mix(1.0, pool, uStylize));
+    // (The light reveals as the colour does: before it, on bare plaster, it read as two pale
+    // smears, not as light: the skeptic's third review.)
+    float lightMask = mask;
     float smask = mix(1.0, sketchMask, uStylize);
+    // Drawn in order, the colour keeps inside its ragged edge and the pencil runs on past it, to
+    // the plate's edge (image 3); otherwise both keep inside it.
+    float edgeAll = edge;
+    if (uOrdered > 0.5) {
+      mask *= edge;
+      smask *= smoothstep(0.0, 0.015, ed);
+      edgeAll = 1.0;
+    }
     // Graphite is found by the light first; colour follows. Lead over colour, premultiplied.
     float cA = cov * mask, lA = lead.a * smask;
     vec3 premul = lead.rgb * smask + col * mask * (1.0 - lA);
+    if (uLift > 0.0) {
+      // (Its colour lifted toward the plaster's own lightness, all the way at the colour's front:
+      // a dark multiply read as stains coming and a scorch going.)
+      vec3 sc = col / max(cov, 1e-3);
+      float plasterS = 1.055 * pow(uPlaster, 1.0 / 2.4) - 0.055;
+      premul = lead.rgb * smask + mix(vec3(plasterS), sc, (1.0 - uLift) * smoothstep(0.0, 1.0, mask)) * cA * (1.0 - lA);
+    }
     cov = lA + cA * (1.0 - lA);
     col = premul;
-    float pigCov = clamp(cov, 0.0, 1.0) * edge * uPresence * uSunk;
+    float pigCov = clamp(cov, 0.0, 1.0) * edgeAll * uPresence * uSunk;
 
     // Bare plaster round the words, feathered over 2–3 cm with a rough edge.
     vec2 r = abs(m - uReserve.xy) - uReserve.zw;
@@ -146,7 +168,7 @@ const FRAG = /* glsl */ `
     pigCov *= 1.0 - mix(0.0, 0.85, reserve * uStylize * (1.0 - uOpen));
 
     vec3 pigment = toLinear(col / max(cov, 1e-3));
-    vec3 lit = toLinear(min(light, vec3(1.0))) * shade * uLight * lightMask * edge * uPresence;
+    vec3 lit = toLinear(min(light, vec3(1.0))) * shade * uLight * lightMask * edgeAll * uPresence;
 
     // dst × (cover × pigment / plaster + (1 − cover)) + dst × light (see the blend below).
     gl_FragColor = vec4(pigCov * pigment / uPlaster + lit, 1.0 - pigCov);
@@ -201,6 +223,9 @@ export function kelvin(k: number): THREE.Vector3 {
 const MAX_SHIFT = 0.02;
 /** How strongly a living memory's painting sinks into the plaster (cinematic review, 2026-10-17). */
 const SUNK = 0.72;
+/** How far a living painting drawn in order is lifted toward the plaster (its median ~0.57 of the
+ *  plaster's lightness, as image 3's, from ~0.34: the skeptic's third review). */
+const LIFT = 0.35;
 
 export class MemoryWindow {
   readonly mesh: THREE.Mesh;
@@ -265,6 +290,7 @@ export class MemoryWindow {
       uOrdered: { value: 0 },
       uSoftReserve: { value: 0 },
       uSunk: { value: 1 },
+      uLift: { value: 0 },
     };
     const mat = new THREE.ShaderMaterial({
       uniforms: this.u,
@@ -315,6 +341,7 @@ export class MemoryWindow {
     this.spread = 0;
     this.u.uSoftReserve.value = o ? 1 : 0;
     this.u.uSunk.value = o ? SUNK : 1;
+    this.u.uLift.value = o?.order ? LIFT : 0;
     this.u.uOrder.value = o?.order ?? this.dummy;
     this.u.uOrdered.value = o?.order ? 1 : 0;
     if (!o) {
@@ -326,6 +353,11 @@ export class MemoryWindow {
   /** The part of the painting the first layer holds (a living scene draws only what is seen). */
   setView(v: THREE.Vector4): void {
     (this.u.uView0.value as THREE.Vector4).copy(v);
+  }
+
+  /** Where the painting is on its wall now (centre and size, in its writing group's metres). */
+  get rect(): { cx: number; cy: number; w: number; h: number } {
+    return this.living ? this.painting : { cx: this.mesh.position.x, cy: this.mesh.position.y, w: this.mesh.scale.x, h: this.mesh.scale.y };
   }
 
   /** The tiling noise its mask uses (shared: the living scene and the immersion use it too). */
