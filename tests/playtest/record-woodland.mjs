@@ -82,7 +82,10 @@ for (let i = 0; START === 0 && i < PRE * FPS; i++) {
   await raf();
   await shot();
 }
-await page.evaluate((v) => window.__hedgehog.playMemory('woodland', 'more-minutes', v), VARIANT);
+// (It must start, and stay: a film of the room alone, the memory refused or superseded by something
+// the room did while the setup ran slow, was once made and nearly sent.)
+const started = await page.evaluate((v) => window.__hedgehog.playMemory('woodland', 'more-minutes', v), VARIANT);
+if (!started) throw new Error('the memory did not start');
 // (A later part: the way in held through first, so the visitor is where they would be.)
 for (let t = 0; t < START; t += 0.5) {
   await page.evaluate((p) => window.__hedgehog.heldAt(p), t);
@@ -91,7 +94,8 @@ for (let t = 0; t < START; t += 0.5) {
 const t0 = Date.now();
 for (let i = Math.round(START * FPS); i < END * FPS; i++) {
   const t = i / FPS;
-  await page.evaluate((p) => window.__hedgehog.heldAt(p), t);
+  const held = await page.evaluate((p) => window.__hedgehog.heldAt(p), t);
+  if (!held) throw new Error(`the memory is gone at ${t.toFixed(2)} s`);
   await raf();
   await shot();
   if (i % (FPS * 2) === 0) console.log(`${t.toFixed(1)} s (${((Date.now() - t0) / 1000).toFixed(0)} s elapsed)`);
