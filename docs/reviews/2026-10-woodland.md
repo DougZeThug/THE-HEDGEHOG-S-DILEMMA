@@ -990,3 +990,60 @@ cut out while he is still looking, the dusk cut now taking away two people we we
     the grass, his blink at speed (the re-joined film, 12–36 s, full screen); the chorus at 0.3 against
     1.0; whether the hush framing the two-shot reads as the world holding still or as a dropout; the near
     cicada's return at 28.0 (the second wide's first event now the bed is steady) or about 29 s.
+### Measured on the new film (desktop, 1280×720, 12 drawings a second; `test-output/review/woodland/heart/`)
+
+- **Faces across the cuts** (linear luminance, two-shot over wide, the cinematic director's points):
+  his cheek 1.03 at the cut in and 1.04 at the cut out (0.88 and 0.88 before), his forehead 1.07 and
+  0.97 (0.86, 0.76); her cheek 1.00 and 1.00 (0.94, 0.94), her forehead 1.05 (0.92).
+- **The bed's grass** (15–27 s; frame-to-frame phase correlation of four patches, her head's
+  changes left out): correlation between patches +0.54 to +0.77 before, −0.60 to +0.41 now (the one
+  strong pair swings in opposition). Change per frame (median grey levels): between their faces 4.2
+  (5.2 before), the rest of the bed 2.2–3.3, the faces 0.8; the eight busiest 40-px cells are now
+  the lower-left foreground and the right but one. Moving share (motion.py, ≥2 px per half second):
+  7.3–14.2% of the frame each second, median 9.2% (5.4–16.4%, 9.7% before: the old swing was the
+  whole bed on one clock); round the people 3.1% median (2.4%). No tear or smear at 2×.
+- **Her eyes**: at the lead both irises go to him and a white opens in the far eye (it showed skin);
+  on the return her head goes back with her eyes still on him for half a second, then they follow.
+- **His blink** at 16.2: half, shut, half, on twos.
+- **The woods** (the film's sound): 1.6 dB range through 15–27 s (5.2 before); −0.13 dB at the cut in,
+  −0.30 at the cut out; no mid cicada faded in at 27.8.
+
+### QA (a1aaab0, d668068), and what was fixed
+
+QA found this round's changes holding in the browser (the vignette only in the two-shot, matching
+the shader; his face level across both cuts; the bands, the files fetched and the screen-reader
+lines as decided; the assets reproduced byte for byte; the music's reverb gated within ~2 s; the deep
+release even), and these, all fixed:
+
+1. **[P1, since 2f208aa] A resize or rotation while fully inside the painting turned the screen
+   near-white until it went back to the wall**: the immersion pass passed on the room buffer's alpha,
+   which a resize reallocates at zero while the room isn't drawn, and the page's paper showed
+   through. The immersion pass and the grade now write an opaque alpha; `tests/playtest/woodland.mjs`
+   resizes mid-shot and reads the canvas back.
+2. **The held band kept frames that cut faces** (her hair at 2.05, both heads at 2.5, his face at
+   1.22). Each frame now carries where it still holds both faces and the hands with 8 stage px to
+   spare (`holds`: 1.26–2.37, 1.38–1.91, 1.30–2.50); held past that, the screen is framed again, or
+   given the wide. Tested by holding each band through every aspect, both ways.
+3. **A texture leaked per play that reached the two-shot** (its one-texel ground map, never
+   disposed): disposed, tested; the memories playtest's second pass now reaches the two-shot.
+4. **Two playtest checks failed on correct behaviour**: the upright phone's shot (now expected from
+   the screen's aspect) and the give-way's return (a held memory never springs the turn back: the
+   playtest turns back by hand, at a moment a return may land).
+5. **The re-key left a cream fleck in her hair** through her turn (a gap between strands that the
+   outline closed over, taken for interior paper): islands of paper within 5 px of their outline stay
+   keyed (the ground shows through, as before); her catchlights keep full alpha.
+6. **The room given back twice** (at the residue and at the end) restarted the even rise (26 s, not
+   20): the same depth asked again while on its way there changes nothing (tested). The music's two
+   gates are back on the plain curve (QA saw the even rise stall twice under instrumentation; only the
+   hum needs it).
+7. **His far eye kept its white by 0.002**: an eye's white is now told from skin by the skin round it
+   (a white 1.10–1.15 times as light; her far eye's sample 1.01; the threshold 1.05): the same result,
+   with a margin.
+8. (Speculative, taken.) **Turned back into a screen it can frame mid-shot, the two-shot came back on
+   the next frame**: it now comes back as after giving way (a new drawing, never within half a second
+   of a beat, never in its last 2 s). Tested.
+
+Not changed: the clock's 1 s cap per frame (the sound designer's note: after a stall longer than a
+second the picture falls behind the sound for the rest of the memory). The two-shot's textures upload
+while the memory is prepared, not at the cut, so a device shouldn't stall there; to check on a real
+phone, with the far evening cicada's level and the reverb's 3–4 s tail after the gate.

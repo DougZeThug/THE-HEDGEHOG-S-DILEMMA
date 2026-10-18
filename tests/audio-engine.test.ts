@@ -68,9 +68,29 @@ describe("the room's music stops under a memory, its reverb with it", () => {
     // Going down it still falls at once (the hush engages under the painting's opening).
     a.memoryHush(0.95, 2.5);
     expect(last(g.memoryDuck.gain)[0]).toBe('target');
-    // The room's music given back after the memory: from silence, evenly, over its 20 s.
+    // Given back after the memory: the hum evenly over its 20 s; the music's gates on the plain
+    // curve (an even rise from silence could stall them).
+    g.memoryDuck.gain.value = 0.3;
     for (const k of ['memoryMusic', 'musicReverb'] as const) g[k].gain.value = 0;
     a.memoryHush(0, 20);
-    for (const k of ['memoryMusic', 'musicReverb'] as const) expect(g[k].gain.events.slice(-2)).toEqual([['set', 1e-3, 0], ['exp', 1, 20]]);
+    expect(g.memoryDuck.gain.events.slice(-2)).toEqual([['set', 0.3, 0], ['exp', 1, 20]]);
+    for (const k of ['memoryMusic', 'musicReverb'] as const) expect(g[k].gain.events.slice(-2)).toEqual([['set', 0, 0], ['target', 1, 0]]);
+  });
+
+  it('the room given back twice (at the residue and at the end) rises once, not over again', () => {
+    const { a, g } = engine();
+    const ctx = a.ctx as unknown as FakeCtx;
+    g.memoryDuck.gain.value = 0.3;
+    a.memoryHush(0, 20);
+    const n = g.memoryDuck.gain.events.length;
+    ctx.currentTime = 4;
+    a.memoryHush(0, 20);
+    expect(g.memoryDuck.gain.events.length).toBe(n);
+    // (Once it is there, asking again is harmless; another depth is heard at once.)
+    ctx.currentTime = 25;
+    g.memoryDuck.gain.value = 1;
+    a.memoryHush(0, 20);
+    a.memoryHush(0.7, 1.4);
+    expect(last(g.memoryDuck.gain)).toEqual(['target', 0.30000000000000004, 25]);
   });
 });

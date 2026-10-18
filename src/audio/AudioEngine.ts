@@ -260,22 +260,31 @@ export class AudioEngine {
     return p;
   }
 
+  private hushTo = 0;
+  private hushUntil = 0;
+
   /**
    * A living memory hushes the room (depth 0…1) and stops its music; `memoryHush(0)` gives the
    * room back. Its own stage: a deeper room silence already under way is kept, not lifted. Going
-   * down it falls quickly at first; coming back it rises evenly in loudness over `seconds` (as
-   * `lift`: on a fall's curve the hum came back like a switch, two thirds of it in a second).
+   * down it falls quickly at first; the hum coming back rises evenly in loudness over `seconds`
+   * (as `lift`: on a fall's curve it came back like a switch, two thirds of it in a second). The
+   * same depth asked again while it is on its way there changes nothing (asked again, an even
+   * rise started over: the room given back at the residue and again at the end took 26 s).
    */
   memoryHush(depth: number, seconds = 1.4) {
     const t = this.ctx.currentTime;
+    if (depth === this.hushTo && t < this.hushUntil) return;
+    this.hushTo = depth;
+    this.hushUntil = t + seconds;
     const music = depth > 0 ? 0 : 1;
-    for (const [p, v] of [[this.memoryDuck.gain, 1 - depth], [this.memoryMusic.gain, music], [this.musicReverb.gain, music]] as const) {
+    for (const [p, v, even] of [[this.memoryDuck.gain, 1 - depth, true], [this.memoryMusic.gain, music, false], [this.musicReverb.gain, music, false]] as const) {
       p.cancelScheduledValues(t);
-      if (v > p.value + 1e-4) {
+      if (even && v > p.value + 1e-4) {
         p.setValueAtTime(Math.max(p.value, 1e-3), t);
         p.exponentialRampToValueAtTime(v, t + Math.max(0.05, seconds));
         continue;
       }
+      // (The music's gates on the plain curve: nothing plays through them as they open.)
       p.setValueAtTime(p.value, t);
       p.setTargetAtTime(v, t, Math.max(0.05, seconds / 3));
     }

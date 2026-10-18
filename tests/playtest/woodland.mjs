@@ -140,8 +140,8 @@ for (const how of ['turn', 'step']) {
   // (Software GL draws a frame every second or so: wait for two to have been drawn.)
   const drawn = () => page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
   const look = async (px) => {
-    for (let i = 0; i < px / 20; i++) {
-      await page.evaluate(() => window.__hedgehog.lookBy(20, 0));
+    for (let i = 0; i < Math.abs(px) / 20; i++) {
+      await page.evaluate((d) => window.__hedgehog.lookBy(d, 0), Math.sign(px) * 20);
       await drawn();
     }
     await drawn();
@@ -151,7 +151,11 @@ for (const how of ['turn', 'step']) {
   at.small = { shot: await shot(), turned: await turned() };
   await look(60);
   at.past = { shot: await shot(), turned: await turned() };
-  // Still: the turn springs back, and after 1.2 s settled the two-shot is back (held, any frame).
+  // Turned back to face it (a held memory doesn't spring the turn back: its dt is 0), at a moment
+  // a return may land (never within half a second of a beat): after 1.2 s settled, the two of them
+  // close again (held, any frame).
+  await page.evaluate(() => window.__hedgehog.heldAt(18.6));
+  await look(-140);
   let back = null;
   const t0 = Date.now();
   while (Date.now() - t0 < 8000) {
@@ -164,7 +168,23 @@ for (const how of ['turn', 'step']) {
   }
   at.back = back;
   at.locked = await page.evaluate(() => window.__hedgehog.inside.locked);
-  report.twoShotTurn = { ...at, ok: at.start === 1 && at.small.shot === 1 && at.past.shot === 0 && !!at.back && at.locked, errors };
+  // The screen resized while it has the whole view: the canvas stays opaque (its alpha read back
+  // after a render; it was 0, the page's paper showing through, until the painting went back).
+  await page.setViewportSize({ width: 1100, height: 800 });
+  await page.waitForTimeout(600);
+  await page.evaluate(() => window.__hedgehog.heldAt(18.7));
+  await drawn();
+  at.alphaAfterResize = await page.evaluate(() => {
+    const a = window.__hedgehog, gl = a.renderer.getContext();
+    a.post.render();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    return [[0.5, 0.5], [0.2, 0.3], [0.8, 0.7]].map(([fx, fy]) => {
+      const px = new Uint8Array(4);
+      gl.readPixels(Math.floor(gl.drawingBufferWidth * fx), Math.floor(gl.drawingBufferHeight * fy), 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
+      return px[3];
+    });
+  });
+  report.twoShotTurn = { ...at, ok: at.start === 1 && at.small.shot === 1 && at.past.shot === 0 && !!at.back && at.locked && at.alphaAfterResize.every((x) => x === 255), errors };
   await page.close();
 }
 writeFileSync(`${OUT}/woodland.json`, JSON.stringify(report, null, 2));

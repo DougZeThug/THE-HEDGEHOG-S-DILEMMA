@@ -251,8 +251,9 @@ export class LivingScene {
   private shot = 0;
   private asked = 0;
   private gaveWay = false;
-  /** The two-shot's frame while it is on (chosen as it came on). */
-  private band: [number, number, number] | null = null;
+  /** The two-shot's frame while it is on (chosen as it came on), and whether the screen took it away (it comes back as after giving way). */
+  private band: NonNullable<LivingSpec['near']>['frames'][number] | null = null;
+  private unframed = false;
   /** Since when (room s) they have faced the two-shot again after it gave way (−1: not settled), and the drawing and time it was last chosen at. */
   private settled = -1;
   private lastDrawing = -1;
@@ -529,7 +530,7 @@ export class LivingScene {
     if (two) {
       // The two of them close, the camera locked (its frame the screen's: `aspect`), over the
       // ground round them; nothing else of the wide.
-      this.frameStage(...(this.band ?? this.bandFor(o.aspect ?? WIDE)));
+      this.frameStage(...(this.band ?? this.bandFor(o.aspect ?? WIDE)).frame);
     }
     if (this.people) this.pose(tq, val);
     // The two-shot shows them over their ground alone; the wide shows everything else.
@@ -574,12 +575,13 @@ export class LivingScene {
    */
   choose(v: Values, o: { inside: boolean; turn: number; t: number; now?: number; aspect?: number }): number {
     const sp = this.spec.near, aspect = o.aspect ?? WIDE;
-    // (On, it holds through a browser's bars coming and going: a little either side of its aspects.)
-    const on = this.shot === 1, m = on ? 0.1 : 0;
-    const near = this.hasNear && !!sp && aspect >= sp.aspect[0] - m && aspect <= sp.aspect[1] + m;
+    // On, its frame holds through a resize while it still holds both faces and the hands; past
+    // that it is framed again for the screen, or it is the wide.
+    const b = this.band, held = this.shot === 1 && !!b && aspect >= b.holds[0] && aspect <= b.holds[1];
+    const near = this.hasNear && !!sp && (held || (aspect >= sp.aspect[0] && aspect <= sp.aspect[1]));
     const now = o.now ?? o.t;
     const asked = Math.max(0, Math.min(1, Math.round(v['scene.shot'] ?? 0)));
-    if (asked !== this.asked) this.asked = asked, (this.gaveWay = false), (this.settled = -1);
+    if (asked !== this.asked) this.asked = asked, (this.gaveWay = false), (this.settled = -1), (this.unframed = false);
     const drawing = Math.floor(o.t * FPS);
     const fresh = drawing !== this.lastDrawing || o.t === this.lastT;
     if (asked > 0 && o.inside) {
@@ -592,17 +594,27 @@ export class LivingScene {
     }
     this.lastDrawing = drawing;
     this.lastT = o.t;
-    const shot = this.gaveWay || !o.inside || !near ? 0 : asked;
-    // Its frame is the screen's as it comes on, held while it lasts (never reframed mid-shot).
-    if (shot === 1 && !on) this.band = this.bandFor(aspect);
+    let shot = this.gaveWay || !o.inside || !near ? 0 : asked;
+    // Taken away by the screen (turned or resized past it), it comes back as it does after giving
+    // way: on a new drawing, never within half a second of something they do nor in its last two
+    // seconds (never on a half-shut lid).
+    if (asked > 0 && o.inside && !this.gaveWay) {
+      if (!near) this.unframed = true;
+      else if (this.unframed) {
+        if (fresh && this.mayReturn(o.t)) this.unframed = false;
+        else shot = 0;
+      }
+    }
+    // Its frame is the screen's as it comes on, held while it holds them.
+    if (shot === 1 && !held) this.band = this.bandFor(aspect);
     this.shot = shot;
     return this.shot;
   }
 
-  /** The two-shot's frame for a screen's aspect (its band's: `near.frames`). */
-  private bandFor(aspect: number): [number, number, number] {
+  /** The two-shot's band for a screen's aspect (`near.frames`). */
+  private bandFor(aspect: number): NonNullable<LivingSpec['near']>['frames'][number] {
     const fr = this.spec.near!.frames;
-    return (fr.find((b) => aspect <= b.upTo) ?? fr[fr.length - 1]).frame;
+    return fr.find((b) => aspect <= b.upTo) ?? fr[fr.length - 1];
   }
 
   /** Whether the two-shot may come back at `t`: not near a beat, not in its last two seconds. */
@@ -699,6 +711,8 @@ export class LivingScene {
     this.grid?.dispose();
     this.strips?.dispose();
     this.air.dispose();
+    // (Its own one-texel map, uploaded the first time the two-shot drew: a texture per play, kept.)
+    this.stir.dispose();
     for (const mat of [this.m.plate, this.m.people, this.m.flowers, this.m.air, this.m.frame]) {
       for (const k of ['uPlate', 'uAfterPlate', 'uMaps', 'uGrade', 'uSky', 'uFigures', 'uLids', 'uFlowers', 'uSkyMask', 'uClouds', 'uCloudsAfter', 'uFrame', 'uHeads']) mat.uniforms[k].value = this.m.empty;
       mat.uniforms.uHeadCel.value.set(-1, 1);

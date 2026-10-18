@@ -70,7 +70,8 @@ const GradeShader = {
       float ign1 = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));
       float ign2 = fract(52.9829189 * fract(dot(gl_FragCoord.xy + 17.0, vec2(0.06711056, 0.00583715))));
       c.rgb += (ign1 + ign2 - 1.0) * (1.0 / 255.0);
-      gl_FragColor = c;
+      // (The canvas is always opaque: the page behind it never shows through.)
+      gl_FragColor = vec4(c.rgb, 1.0);
     }
   `,
 };

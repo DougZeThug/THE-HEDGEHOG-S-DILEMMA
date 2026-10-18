@@ -661,11 +661,9 @@ describe('the scene, as built (no GL: what it would draw and let go)', () => {
     const m = livingMaterials(tex());
     const v = { 'scene.shot': 1 };
     const [lo, hi] = SPEC.near!.aspect;
-    for (let i = 0, aspect = lo; aspect <= hi + 1e-9; i++, aspect = lo + i * 0.05) {
-      // (Each coming on afresh, on a new drawing, so each is framed for its screen.)
-      s.choose({ 'scene.shot': 0 }, { inside: true, turn: 0, t: 16 + i / 6 - 0.01, aspect });
-      expect(s.choose(v, { inside: true, turn: 0, t: 16 + i / 6, aspect })).toBe(1);
-      s.update(gl, 16 + i / 6, v, { ...view, aspect });
+    let i = 0;
+    const framed = (aspect: number, why: string) => {
+      s.update(gl, 16 + ++i / 6, v, { ...view, aspect });
       // What the screen sees of the stage: the painting as it covers the screen, through the frame.
       const q = coverQuad(aspect, paint, SPEC.cover.wide);
       const qw = q[1].x - q[0].x, qh = q[3].y - q[0].y;
@@ -675,7 +673,24 @@ describe('the scene, as built (no GL: what it would draw and let go)', () => {
       const seen = [sx(-q[0].x / qw), sy((1 - q[0].y) / qh), sx((1 - q[0].x) / qw), sy(-q[0].y / qh)];
       for (const [name, [x0, y0, x1, y1]] of Object.entries(features)) {
         const margin = Math.min(x0 - seen[0], y0 - seen[1], seen[2] - x1, seen[3] - y1);
-        expect(margin, `${name} at ${aspect.toFixed(2)}`).toBeGreaterThanOrEqual(8);
+        expect(margin, `${name} at ${aspect.toFixed(2)} (${why})`).toBeGreaterThanOrEqual(8);
+      }
+    };
+    // Coming on afresh at every aspect it is shown for.
+    for (let k = 0, aspect = lo; aspect <= hi + 1e-9; k++, aspect = lo + k * 0.05) {
+      s.choose({ 'scene.shot': 0 }, { inside: true, turn: 0, t: 16, aspect });
+      expect(s.choose(v, { inside: true, turn: 0, t: 16, aspect })).toBe(1);
+      framed(aspect, 'fresh');
+    }
+    // And held: come on in each band, then the screen resized across every aspect, both ways;
+    // whenever it is still on, whatever frame it kept or took, they are all in it.
+    for (const start of [1.4, 1.7, 2.2]) {
+      for (const dir of [1, -1]) {
+        s.choose({ 'scene.shot': 0 }, { inside: true, turn: 0, t: 16, aspect: start });
+        s.choose(v, { inside: true, turn: 0, t: 16, aspect: start });
+        for (let aspect = start; aspect > 1.1 && aspect < 2.7; aspect += dir * 0.025) {
+          if (s.choose(v, { inside: true, turn: 0, t: 16, aspect }) === 1) framed(aspect, `held from ${start}`);
+        }
       }
     }
     s.dispose();
@@ -693,17 +708,24 @@ describe('the scene, as built (no GL: what it would draw and let go)', () => {
     const fresh = (aspect: number) => (s.choose({ 'scene.shot': 0 }, { inside: true, turn: 0, t: 16.2, aspect }), s.choose(v, { inside: true, turn: 0, t: 16.2, aspect }));
     for (const aspect of [9 / 19.5, 1, 1.25, 2.6, 32 / 9]) expect(fresh(aspect), `${aspect}`).toBe(0);
     for (const aspect of [1.3, 4 / 3, 16 / 10, 2.165, 2.45]) expect(fresh(aspect), `${aspect}`).toBe(1);
-    // On, it holds through a browser's bars coming and going (a little either side of its
-    // aspects), and its frame with it; a screen turned or resized past that, the wide.
+    // On, its frame holds through a browser's bars coming and going while it still holds them,
+    // and is framed again past that; a screen turned past every frame, the wide.
     const u = livingMaterials(tex()).people.uniforms;
     fresh(1.85);
     s.update(gl, 16.25, v, { ...view, aspect: 1.85 });
     const framed = (u.uPlace.value as THREE.Vector4).clone();
+    expect(s.choose(v, { inside: true, turn: 0, t: 16.3, aspect: 1.9 })).toBe(1);
+    s.update(gl, 16.3, v, { ...view, aspect: 1.9 });
+    expect((u.uPlace.value as THREE.Vector4).equals(framed)).toBe(true);
     expect(s.choose(v, { inside: true, turn: 0, t: 16.4, aspect: 2.05 })).toBe(1);
     s.update(gl, 16.4, v, { ...view, aspect: 2.05 });
-    expect((u.uPlace.value as THREE.Vector4).equals(framed)).toBe(true);
+    expect((u.uPlace.value as THREE.Vector4).equals(framed)).toBe(false);
     expect(s.choose(v, { inside: true, turn: 0, t: 16.5, aspect: 2.5 })).toBe(1);
     expect(s.choose(v, { inside: true, turn: 0, t: 16.6, aspect: 0.46 })).toBe(0);
+    // Turned back, it comes back as after giving way: never within half a second of a beat (her
+    // eyes at 17.5, her head at 18.0), on a new drawing.
+    for (let t = 17.2; t < 18.5 - 1e-9; t += 1 / 12) expect(s.choose(v, { inside: true, turn: 0, t, aspect: 16 / 9 }), `${t.toFixed(2)} s`).toBe(0);
+    expect(s.choose(v, { inside: true, turn: 0, t: 18.55, aspect: 16 / 9 })).toBe(1);
     expect(fresh(16 / 9)).toBe(1);
     // Turned past 14°: the wide; still turned, still the wide.
     expect(s.choose(v, { inside: true, turn: 0.3, t: 19 })).toBe(0);
@@ -789,9 +811,13 @@ describe('the scene, as built (no GL: what it would draw and let go)', () => {
     const geos = ['grid', 'strips', 'air', 'quad'].map((k) => (s as unknown as Record<string, THREE.BufferGeometry>)[k]);
     let freed = 0;
     for (const g of geos) g.addEventListener('dispose', () => freed++);
+    // (And its own one-texel ground map: one texture a play leaked without it.)
+    let stir = 0;
+    (s as unknown as { stir: THREE.Texture }).stir.addEventListener('dispose', () => stir++);
     s.dispose();
     s.dispose();
     expect(freed).toBe(4);
+    expect(stir).toBe(1);
     const m = livingMaterials(tex());
     for (const mat of [m.plate, m.people, m.flowers, m.air])
       for (const k of ['uPlate', 'uFigures', 'uFlowers', 'uClouds', 'uSkyMask']) expect(mat.uniforms[k].value).toBe(m.empty);

@@ -110,10 +110,14 @@ for (const profile of PROFILES) {
       return most < 8;
     });
     if (blank) errors.push(`the living scene is blank at ${name}`);
-    // The woodland's two-shot is shown (not silently the wide).
-    const want = { '07-two': 1, '08-her-look': 1, '09-his-look': 1 }[name];
-    if (want) {
-      const shown = await page.evaluate(() => window.__hedgehog.living?.memory.prepared.living?.scene.shot ?? -1);
+    // The woodland's two-shot is shown (not silently the wide) on a screen that can frame it, and
+    // the wide on one that can't (an upright phone: decisions 7 and 21).
+    if (['07-two', '08-her-look', '09-his-look'].includes(name)) {
+      const { shown, framed } = await page.evaluate(() => {
+        const pl = window.__hedgehog.living?.memory.prepared.living, n = pl?.spec.near, a = innerWidth / innerHeight;
+        return { shown: pl?.scene.shot ?? -1, framed: !!n && a >= n.aspect[0] && a <= n.aspect[1] };
+      });
+      const want = framed ? 1 : 0;
       if (shown !== want) errors.push(`${name} shows shot ${shown}, not ${want}`);
     }
     shots.push(`${name} (${st.state} @ ${st.position})`);
@@ -129,8 +133,12 @@ for (const profile of PROFILES) {
   // Again, start to finish: what a memory leaves behind must not grow (the window's own noise and
   // blank textures are uploaded once, the first time it is drawn).
   await page.evaluate(([m, v, p]) => window.__hedgehog.playMemory(m, p, v), [MEMORY, VARIANT, PHRASE]);
-  await page.evaluate(() => window.__hedgehog.heldAt(12));
-  await page.waitForTimeout(800);
+  // (The woodland's as far as the two-shot, so what it makes is let go too: its one-texel ground
+  // map leaked, a texture a play, unseen while this pass stopped at 12 s: QA, 2026-10-18.)
+  for (const p of MEMORY === 'woodland' && VARIANT !== 'empty' ? [2.5, 6.5, 8.5, 9.6, 12.3, 16.5] : [12]) {
+    await page.evaluate((x) => window.__hedgehog.heldAt(x), p);
+    await page.waitForTimeout(1200);
+  }
   await page.evaluate(() => {
     window.__hedgehog.heldAt(null);
     window.__hedgehog.endLivingMemory('depart');

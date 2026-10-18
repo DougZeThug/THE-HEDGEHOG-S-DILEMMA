@@ -48,7 +48,8 @@ export interface LivingSpec {
   /**
    * The two-shot (scripts/two-shot.py): its frame (stage px: x0, y0 and width; the height is the
    * painting's proportion), locked, by the screen's aspect (width over height: each frame for
-   * screens up to `upTo`), and the aspects it is shown on at all (outside them, the wide); their
+   * screens up to `upTo`, and held through a resize as long as it still holds both faces and the
+   * hands, `holds`), and the aspects it comes on for at all (outside them, the wide); their
    * eyes' look at `figure:a.eyes` and `figure:b.eyes` 1 (fractions of each opening's radii, along
    * it toward the picture's right, and across it, down); how far their breath goes close (of the
    * wide's); when it is on (memory s: from, to) and when they do something in it (memory s: after
@@ -56,7 +57,7 @@ export interface LivingSpec {
    * (defs.ts TWO_SHOT).
    */
   near?: {
-    frames: { upTo: number; frame: [number, number, number] }[];
+    frames: { upTo: number; frame: [number, number, number]; holds: [number, number] }[];
     aspect: [number, number];
     gaze: [number, number];
     gazeB: [number, number];
@@ -144,10 +145,12 @@ export const WOODLAND: LivingSpec = {
   // turn toward him. Their breath close at a little under half the wide's (the rig was made for
   // ~0.5×: the technical artist's review).
   near: {
+    // (`holds`: where each still keeps 8 stage px round both faces and the three hands; held past
+    // that, the 16:9 frame cut her hair at 2.05 and both their heads at 2.5: QA, 2026-10-18.)
     frames: [
-      { upTo: 1.5, frame: [0, -60, 940] },
-      { upTo: 1.9, frame: [50, -10, 790] },
-      { upTo: 2.45, frame: [0, -80, 1000] },
+      { upTo: 1.5, frame: [0, -60, 940], holds: [1.26, 2.37] },
+      { upTo: 1.9, frame: [50, -10, 790], holds: [1.38, 1.91] },
+      { upTo: 2.45, frame: [0, -80, 1000], holds: [1.3, 2.5] },
     ],
     aspect: [1.3, 2.45],
     gaze: [0.5, 0.08],

@@ -64,8 +64,10 @@ const ImmersionShader = {
       vec2 qc = clamp(uZoom.xy + (q - uZoom.xy) / uZoom.z, 0.0, 1.0);
       vec3 p = texture2D(uScene, (qc - uView.xy) / uView.zw).rgb;
       // The painting's own light over the room (the wall's painting under it, at its place, until
-      // it opens out), its edge into the wall's painting and pencil.
-      gl_FragColor = vec4(mix(room.rgb, p, colour * uShow), room.a);
+      // it opens out), its edge into the wall's painting and pencil. Opaque: while it covers the
+      // view the room isn't drawn, and its buffer's alpha (zero after a resize reallocates it) let
+      // the page's paper through, the screen near-white (QA, 2026-10-18).
+      gl_FragColor = vec4(mix(room.rgb, p, colour * uShow), 1.0);
     }
   `,
 };

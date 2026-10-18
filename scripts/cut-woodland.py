@@ -294,8 +294,9 @@ def unkeyed(top, key, k=1):
     their edges), wherever the panel's paper can't reach, they are opaque: her eye's catchlight,
     her shirt's brightest light, and the soft ring the key leaves round them (keyed, the meadow
     showed through her eye: the creative director's review, 2026-10-18). Paper the outside
-    reaches (between strands of hair, at their edges) stays paper. Only the key: their bed's fade
-    is laid on after it, as before."""
+    reaches (between strands of hair, at their edges) stays paper, and so does an island of it
+    near their outline (a gap between strands the outline closed over: kept, it was a cream fleck
+    in her hair: QA, 2026-10-18). Only the key: their bed's fade is laid on after it, as before."""
     import cv2
     paper = (key < 0.5).astype(np.uint8)
     n, lab, _, _ = cv2.connectedComponentsWithStats(paper, connectivity=8)
@@ -304,7 +305,11 @@ def unkeyed(top, key, k=1):
     reached[0] = False
     near_paper = cv2.dilate(reached[lab].astype(np.uint8), cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (6 * k + 1, 6 * k + 1)))
     body = cv2.erode(figures_alone(top, key, k), np.ones((2 * k + 1, 2 * k + 1), np.uint8))
-    return np.maximum(key, blur((body & (1 - near_paper)).astype(np.float32), 0.6 * k))
+    edge = (body > 0) & (cv2.distanceTransform(body, cv2.DIST_L2, 5) < 5 * k)
+    outer = np.zeros(n, bool)
+    outer[np.unique(lab[edge & (paper > 0)])] = True
+    outer[0] = False
+    return np.maximum(key, blur((body & (1 - near_paper) & (1 - outer[lab])).astype(np.float32), 0.6 * k))
 
 
 def light_match(plate, tw, th):

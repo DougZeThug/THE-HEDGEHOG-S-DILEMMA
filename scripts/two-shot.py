@@ -299,24 +299,28 @@ def whites(straight, k):
     """Each eye's white (the median of the light inside its opening, round its iris)."""
     h, w = straight.shape[:2]
     lum = (straight * [0.3, 0.59, 0.11]).sum(-1)
-    out = []
+    out, skin = [], []
+    x, y = np.mgrid[0:h, 0:w][1].astype(np.float32), np.mgrid[0:h, 0:w][0].astype(np.float32)
     for eye, iris in EYES_A + EYES_B:
         cx, cy, rx, ry, ang = eye
         u, v = local(w, h, k, eye)
-        x, y = np.mgrid[0:h, 0:w][1].astype(np.float32), np.mgrid[0:h, 0:w][0].astype(np.float32)
+        r = np.hypot(u / rx, v / ry)
         far = np.hypot((x + 0.5) / k - iris[0], (y + 0.5) / k - iris[1]) > iris[2] + 0.8
-        inside = (np.hypot(u / rx, v / ry) < 0.85) & far
+        inside = (r < 0.85) & far
         px = straight[inside]
         lit = px[lum[inside] >= np.percentile(lum[inside], 50)] if inside.sum() > 8 else np.array([[0.93, 0.88, 0.82]])
         out.append([round(float(c), 4) for c in np.clip(np.median(lit, 0), 0, 1)])
+        # The skin round it (below and beside the opening, its lit half).
+        ring = (r > 1.6) & (r < 2.6) & (v > 0)
+        skin.append(float(np.median(lum[ring][lum[ring] >= np.percentile(lum[ring], 50)])))
     # An eye drawn with no white showing (the far eye, foreshortened, its iris filling the opening)
-    # gives skin, and its look reads as the eye narrowing: it takes its partner's (a white is
-    # cooler than skin: warmer than the partner's by more than 0.08 in red over blue).
+    # gives skin, and its look reads as the eye narrowing: it takes its partner's. A white is
+    # lighter than the skin round it (the panel's: 1.10–1.15 times; her far eye's sample 1.01).
+    white = lambda i: (np.array(out[i]) * [0.3, 0.59, 0.11]).sum() >= 1.05 * skin[i]
     for a, b in ((0, 1), (2, 3)):
-        warm = [out[i][0] - out[i][2] for i in (a, b)]
-        if warm[1] - warm[0] > 0.08:
+        if white(a) and not white(b):
             out[b] = list(out[a])
-        elif warm[0] - warm[1] > 0.08:
+        elif white(b) and not white(a):
             out[a] = list(out[b])
     return out
 
