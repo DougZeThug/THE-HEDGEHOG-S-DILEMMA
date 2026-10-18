@@ -18,6 +18,13 @@ export interface SceneMemory {
   commit: number;
   /** Seconds before looking away may end it. */
   minHold: number;
+  /**
+   * A painted memory counts as seen only once it has been entered and played to here (its own
+   * seconds), not after `minHold` (or 8 s) watched: the woodland's heart is her look, 18 s in (a
+   * visitor who turned away as it took them in, at 9 s, was counted for good: the interaction
+   * designer's review, 2026-10-18).
+   */
+  seenAt?: number;
   /** The longest it plays (the controller closes it then). */
   maxHold: number;
   /** First visit, and returning visits in turn. */
@@ -68,7 +75,8 @@ export const SCENE_MEMORIES: SceneMemory[] = [
   // (it takes a first visit's late place; the bedroom comes on a visit after it). Nothing painted
   // comes after it in that visit. A return visit meets the clearing again, empty, kept in the wall.
   {
-    id: 'woodland', phraseId: 'more-minutes', earliest: 200, arc: 'afterAnother', arm: 2.5, commit: 1.0, minHold: 12, maxHold: 42.5, span: 53,
+    // (seenAt: her look, defs.ts TWO_SHOT.herTurn; tested.)
+    id: 'woodland', phraseId: 'more-minutes', earliest: 200, arc: 'afterAnother', arm: 2.5, commit: 1.0, minHold: 12, seenAt: 18, maxHold: 42.5, span: 53,
     variants: { first: 'afternoon', revisit: ['empty'] }, lookBack: false, offer: { phases: ['contradiction', 'transform'], apart: 120 }, reserved: true, last: true,
   },
   // Peace with a cost: the longest, once the room has begun to contradict itself.

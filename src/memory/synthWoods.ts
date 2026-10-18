@@ -29,19 +29,18 @@ export function leavesPan(t: number): number {
  * falling in long phrases, one near them, two either side, and the shimmer of many more in the
  * trees; at evening (after the cut) the evening cicada comes in, its falling "kana-kana" call, as
  * the day's thin out. Not loops: each is one take laid along the memory's own timeline (from its
- * start), so the near cicada's phrases fall where they should (a lull while the hand moves, a
- * phrase carrying straight across the cut), and the leaves move with the same gust the grass
- * does. Pure functions of their seed, rendered at 24 kHz, in slices that yield to the page.
+ * start), so the near cicada's phrases fall where they should (a lull while the two of them are
+ * close, a phrase carrying straight across the cut), and the leaves move with the same gust the
+ * grass does. Pure functions of their seed, rendered at 24 kHz, in slices that yield to the page.
  *
  *   cicadas      the one near them (mono, placed)
  *   woods        the rest (stereo, wide): two more cicadas, the chorus in the trees, the evening
  *                cicadas after the cut, the leaves
- *   grass        grass and cloth moving under a hand (take 0), settling (take 1)
  *   cicada-last  one evening cicada, far off, heard from the white room after
  *
  * Take 0 is the afternoon's timeline, take 1 the empty clearing's (dusk, shorter).
  */
-export const WOODS_KINDS = ['cicadas', 'woods', 'grass', 'cicada-last'] as const;
+export const WOODS_KINDS = ['cicadas', 'woods', 'cicada-last'] as const;
 export type WoodsKind = (typeof WOODS_KINDS)[number];
 export const RATE = 24000;
 
@@ -51,17 +50,14 @@ export const TIMES = {
   length: 50.5,
   /** The cut (the picture's): nothing in the sound starts or stops on it. */
   cut: CUT,
-  /** The near cicada's phrases: first heard beyond the wall; through the first wide; a lull for
-   *  the close-ups (he looks at her, she notices, their hands); one long phrase from a second into
-   *  the second wide, carrying straight across the cut (34.5 s). (Never within 0.7 s of a cut.) */
-  near: [[1.2, 6.6], [8.2, SHOTS.closeHim - 0.7], [SHOTS.wideAgain + 1, 37.8]] as [number, number][],
+  /** The near cicada's phrases: first heard beyond the wall; through the first wide; a lull while
+   *  the two of them are close (her look, his); one long phrase from a second into the second
+   *  wide, carrying straight across the cut (34.5 s). (Never within 0.7 s of a cut.) */
+  near: [[1.2, 6.6], [8.2, SHOTS.two - 0.7], [SHOTS.wideAgain + 1, 37.8]] as [number, number][],
   inside: [6.5, 10.5] as [number, number],
   chorusFrom: 2.5,
-  /** The two either side: also quiet through the close-ups. */
-  midQuiet: [SHOTS.closeHim - 0.9, SHOTS.wideAgain + 0.8] as [number, number],
-  /** Her hand shifting in the grass: the chorus draws back a little (from 0.4 s before: never
-   *  within 0.7 s of the cut to their hands). */
-  touch: [SHOTS.hands + 1.1, SHOTS.hands + 2.3] as [number, number],
+  /** The two either side: also quiet while the two of them are close. */
+  midQuiet: [SHOTS.two - 0.9, SHOTS.wideAgain + 0.8] as [number, number],
   /** The chorus's own slow swells held still across the cut (nothing in the sound marks it: a
    *  swell of +7 dB in the trees from 33.5 to 36.5 s did, a little; QA, 2026-10-18). */
   stillAcross: [CUT - 1.5, CUT + 3.5] as [number, number],
@@ -357,9 +353,8 @@ export async function renderWoods(take: number): Promise<Float32Array[]> {
   }
   const chorusLv = control(n, (t) => {
     const g = heard(t).strength;
-    // The wind carries it; it draws back at the touch; it thins in the evening; it goes first.
-    let lv = day(t) * Math.pow(10, (3 * g) / 20);
-    lv *= empty ? 1 : 1 - 0.5 * (1 - quiet(t, T.touch, 0.4));
+    // The wind carries it; it thins in the evening; it goes first.
+    const lv = day(t) * Math.pow(10, (3 * g) / 20);
     return lv * smooth(T.chorusFrom, T.chorusFrom + 2.5, t) * (0.45 + 0.55 * opened(t)) * going(t, T.chorusOut);
   });
   for (let i = 0; i < n; i++) {
@@ -432,38 +427,6 @@ export async function renderWoods(take: number): Promise<Float32Array[]> {
   return [L, R];
 }
 
-/** Grass and cloth under a moving hand (take 0, 1.4 s) or settling back (take 1, 1.8 s). */
-export function renderGrass(take: number): Float32Array[] {
-  const settle = take === 1;
-  const len = settle ? 1.8 : 1.4;
-  const n = Math.ceil((len + 0.2) * RATE);
-  const x = new Float32Array(n), body = new Float32Array(n);
-  const r = rng(500 + take);
-  const density = (t: number) => smooth(0, 0.3, t) * (1 - smooth(len - 0.5, len, t));
-  let t = 0;
-  while (t < len) {
-    const d = density(t);
-    if (r() < 0.25 + 0.75 * d) {
-      const g = 0.006 + r() * 0.019;
-      const i0 = Math.floor(t * RATE), m = Math.floor(g * RATE);
-      const a = (0.4 + 0.6 * r()) * (0.2 + 0.8 * d);
-      for (let i = 0; i < m && i0 + i < n; i++) x[i0 + i] += (r() * 2 - 1) * a * Math.exp(-i / (m * 0.3));
-    }
-    t += len / (settle ? 60 : 45);
-  }
-  biquad(x, 'bandpass', settle ? 1100 : 1600, 0.55);
-  for (let i = 0; i < n; i++) body[i] = (r() * 2 - 1) * density(i / RATE);
-  biquad(body, 'bandpass', 550, 0.8);
-  const kb = rms([x]) / Math.max(1e-9, rms([body]));
-  for (let i = 0; i < n; i++) x[i] += body[i] * kb * Math.pow(10, -10 / 20);
-  // Peak at −12 dBFS (a one-shot).
-  let pk = 0;
-  for (let i = 0; i < n; i++) pk = Math.max(pk, Math.abs(x[i]));
-  const k = Math.pow(10, -12 / 20) / Math.max(1e-9, pk);
-  for (let i = 0; i < n; i++) x[i] *= k;
-  return [x];
-}
-
 /** One evening cicada, far off, heard from the white room: a single call. */
 export function renderLast(): Float32Array[] {
   const x = new Float32Array(Math.ceil(6.4 * RATE));
@@ -475,7 +438,7 @@ export function renderLast(): Float32Array[] {
 
 /** One of the woodland's sounds as an AudioBuffer (rendered on first use; cached by the host's loader). */
 export async function synthWoods(ctx: BaseAudioContext, kind: WoodsKind, take: number): Promise<AudioBuffer> {
-  const ch = kind === 'cicadas' ? renderCicadas(take) : kind === 'woods' ? await renderWoods(take) : kind === 'grass' ? renderGrass(take) : renderLast();
+  const ch = kind === 'cicadas' ? renderCicadas(take) : kind === 'woods' ? await renderWoods(take) : renderLast();
   const buf = ctx.createBuffer(ch.length, ch[0].length, RATE);
   ch.forEach((c, i) => buf.copyToChannel(c, i));
   return buf;

@@ -28,10 +28,8 @@ import { Immersion, projectQuad, visiblePart } from './Immersion';
 export interface InsideFrame {
   /** The timeline's immersion (composed: an early leaving already takes it back). */
   immerse: number;
-  /** Where the visitor is carried to (the painting's point square in front of them: the wide's cover focus). */
+  /** Where the visitor is carried to (the painting's point square in front of them: the wide's cover focus), and what the view keeps central. */
   focus: [number, number];
-  /** What the view keeps central (a close-up's subject on an upright screen); the body stays put. Default: `focus`. */
-  view?: [number, number];
   /** Held at a position (the editor, a capture): the way in is exactly where its curve is. */
   held?: boolean;
   /** Whether this variant may be entered at all. */
@@ -123,7 +121,7 @@ export class Inside {
   }
   private drifted = false;
 
-  /** Taken all the way in (whatever they are doing with their look): what a close-up is for. */
+  /** Taken all the way in (whatever they are doing with their look): what the two-shot is for. */
   get taken(): boolean {
     return this.locked && this.immersed > 0.98;
   }
@@ -299,7 +297,7 @@ export class Inside {
       show,
       aspect: o.aspect,
       paint: p.w / Math.max(1e-3, p.h),
-      focus: f.view ?? f.focus,
+      focus: f.focus,
       zoom: this.zoom,
       view: this.view,
       seed: this.seed,

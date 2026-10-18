@@ -31,7 +31,7 @@ const STAGES = {
   // The woodland (docs/reviews/2026-10-woodland.md): the artist's eight shots.
   woodland: VARIANT === 'empty'
     ? [['0-untouched', null], ['1-first-drawing', 2.6], ['2-developing', 5], ['3-active', 10], ['4-dissolving', 18], ['5-drawing-alone', 20.6]]
-    : [['00-untouched', null], ['01-pencil', 2.5], ['02-pencil-more', 4.5], ['03-colour', 6.5], ['04-carried', 8.5], ['05-crossing', 9.6], ['06-wide', 12.3], ['07-close-him', 17.0], ['08-close-her', 22.5], ['09-hands', 25.5], ['10-wide-again', 31.0],
+    : [['00-untouched', null], ['01-pencil', 2.5], ['02-pencil-more', 4.5], ['03-colour', 6.5], ['04-carried', 8.5], ['05-crossing', 9.6], ['06-wide', 12.3], ['07-two', 16.5], ['08-her-look', 19.5], ['09-his-look', 25.5], ['10-wide-again', 31.0],
        // The cut (34.5 s): the last frame before it and the first after it, then the empty clearing.
        ['11-last-frame-before-cut', 34.5 - 1 / 60], ['12-first-frame-after-cut', 34.5], ['13-empty-dusk', 39.5], ['14-returning', 44.5], ['15-wall', 47.5], ['16-white-room', 51.0]],
 }[MEMORY];
@@ -110,8 +110,8 @@ for (const profile of PROFILES) {
       return most < 8;
     });
     if (blank) errors.push(`the living scene is blank at ${name}`);
-    // The woodland's close-ups are shown (not silently the wide).
-    const want = { '07-close-him': 1, '08-close-her': 2, '09-hands': 3 }[name];
+    // The woodland's two-shot is shown (not silently the wide).
+    const want = { '07-two': 1, '08-her-look': 1, '09-his-look': 1 }[name];
     if (want) {
       const shown = await page.evaluate(() => window.__hedgehog.living?.memory.prepared.living?.scene.shot ?? -1);
       if (shown !== want) errors.push(`${name} shows shot ${shown}, not ${want}`);

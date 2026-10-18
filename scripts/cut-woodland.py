@@ -268,6 +268,19 @@ def reflect_fill(rgb, a, hole, usable):
     return out_rgb, out_a
 
 
+def light_match(plate, tw, th):
+    """The plate's own light where the people lie (low frequency), relative to its mean over their
+    bodies (0.85..1.10), over the sheet's top panel at `tw`×`th` px: the wide's people are lit by
+    it, and so are the two-shot's (scripts/two-shot.py), so a cut between them keeps their light."""
+    w, h = FIG_CROP[2] - FIG_CROP[0], FIG_CROP[3] - FIG_CROP[1]
+    ph, pw = round(h * FIG_S), round(w * FIG_S)
+    under = arr(plate)[FIG_Y0:FIG_Y0 + ph, FIG_X0:FIG_X0 + pw]
+    lum = (under * [0.3, 0.59, 0.11]).sum(-1)
+    body_small = resize(poly_mask((w, h), [BODY]), pw, ph)
+    ref = (lum * body_small).sum() / max(body_small.sum(), 1)
+    return resize(np.clip(blur(lum, 40 * FIG_S) / ref, 0.85, 1.10), tw, th)
+
+
 def figures(sheet, plate):
     """The two people, cut from the sheet, unmixed, occluded, shadowed, light-matched, at their
     texture's scale (FIG_T of the sheet). Returns (body premultiplied RGBA, her forearm
@@ -337,14 +350,8 @@ def figures(sheet, plate):
     sleeve[y0:y1, x0:x1] = (cream & ~(limb > 0.5))[y0:y1, x0:x1]
     sleeve = np.clip(blur(sleeve, 1.0) * 1.4, 0, 1)
 
-    # Light-match: the plate's own light where they lie (low frequency), relative to its mean there.
-    ph, pw = round(h * FIG_S), round(w * FIG_S)
     th, tw = round(h * FIG_T), round(w * FIG_T)
-    under = arr(plate)[FIG_Y0:FIG_Y0 + ph, FIG_X0:FIG_X0 + pw]
-    lum = (under * [0.3, 0.59, 0.11]).sum(-1)
-    body_small = resize(poly_mask((w, h), [BODY]), pw, ph)
-    ref = (lum * body_small).sum() / max(body_small.sum(), 1)
-    match = resize(np.clip(blur(lum, 40 * FIG_S) / ref, 0.85, 1.10), tw, th)
+    match = light_match(plate, tw, th)
 
     def small_of(rgb_, a_):
         # To the texture's scale, premultiplied, softened a little (the sheet's line is finer than the plate's).
@@ -829,14 +836,17 @@ def main():
         'variants': {v: [layer(v, 'scene', 'pigment'), layer(v, 'sketch', 'sketch'), dict(layer(v, 'sketch-after', 'sketch'), file=f'{v}/sketch-after' if v == 'afternoon' else 'empty/sketch'), layer(v, 'light', 'light')] for v in ('afternoon', 'empty')},
         'living': living,
     }
-    # The close-ups (scripts/closeups.py) and the drawing's order (scripts/stroke-order.py)
-    # are made by their own scripts: kept as they are.
+    # The drawing's order (scripts/stroke-order.py) and the two-shot with her head's redrawing
+    # (scripts/two-shot.py: `near`, and `figures.heads` below) are made by their own scripts: kept
+    # as they are.
     try:
         with open(os.path.join(OUT, 'manifest.json')) as f:
             before = json.load(f)['living']['afternoon']
-        for k in ('closeups', 'order', 'orderClocks'):
+        for k in ('order', 'orderClocks', 'near'):
             if before.get(k):
                 living['afternoon'][k] = before[k]
+        if before.get('figures', {}).get('heads'):
+            living['afternoon']['figures']['heads'] = before['figures']['heads']
     except (OSError, KeyError, ValueError, TypeError):
         pass
     with open(os.path.join(OUT, 'manifest.json'), 'w') as f:

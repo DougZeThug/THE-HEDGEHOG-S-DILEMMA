@@ -8,7 +8,7 @@
  */
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { WOODLAND } from '../../src/memory/defs';
-import { renderCicadas, renderWoods, renderGrass, renderLast, RATE } from '../../src/memory/synthWoods';
+import { renderCicadas, renderWoods, renderLast, RATE } from '../../src/memory/synthWoods';
 import { isSpot, type Cue } from '../../src/memory/cueSheet';
 
 const VARIANT = process.env.VARIANT ?? 'afternoon';
@@ -24,7 +24,6 @@ async function render(c: Cue): Promise<Float32Array[]> {
   const kind = c.asset.slice(6), take = c.take ?? 0;
   if (kind === 'cicadas') return renderCicadas(take);
   if (kind === 'woods') return renderWoods(take);
-  if (kind === 'grass') return renderGrass(take);
   if (kind === 'cicada-last') return renderLast();
   return [];
 }

@@ -41,44 +41,49 @@ export interface FigureArt {
   limb: { box: [number, number, number, number]; axis: [number, number] };
 }
 
+/** Her head as the artist redrew it (cells: the drawing, then the region it is laid in by), where its cells lie on the panel (sheet px, y down: x0, y0, w, h), and how many cells. */
+export interface HeadCels {
+  texture: THREE.Texture;
+  box: [number, number, number, number];
+  cells: number;
+}
+
 /**
- * A close-up (scripts/closeups.py): the artist's drawings, held, cut on the timeline's keys
- * (`scene.cel`), never mixed between.
+ * An eye (sheet px, y down): its opening (centre, radii, angle: positive turns its outer end down),
+ * its iris (centre, radius), its white (rgb).
  */
-export interface Closeup {
-  /** Its first drawing, and where the air may move its grass (a map: R). */
-  base: THREE.Texture;
-  wind: THREE.Texture;
-  /** Its later drawings, cut to the part of the frame that changes (an atlas), or null. */
-  cels: THREE.Texture | null;
-  /** Each drawing, as `scene.cel` counts them: its cell in the atlas, −1 the first drawing, null not drawn yet (the one before holds). */
-  cells: (number | null)[];
-  /** The atlas's columns and rows, and the part of the frame its cells cover (x0, y0, w, h: frame uv). */
-  grid: [number, number];
-  rect: [number, number, number, number];
-  /** What stays at the screen's centre when it covers an upright screen (frame uv). */
-  focus: [number, number];
-  /** Whose breathing lifts the chest, and where it is (centre, radii: frame uv), or null. */
-  breath: 'a' | 'b' | null;
-  chest: [number, number, number, number] | null;
-}
+export type Eye = [number, number, number, number, number, number, number, number, number, number, number];
 
-/** The drawing shown for `scene.cel` = `k`: its cell, or −1 the first drawing (one not drawn yet holds the one before). */
-export function celOf(c: Pick<Closeup, 'cells'>, k: number): number {
-  let i = Math.max(0, Math.min(c.cells.length - 1, Math.round(k)));
-  while (i > 0 && c.cells[i] === null) i--;
-  return c.cells[i] ?? -1;
+/**
+ * The two-shot (scripts/two-shot.py): the two of them close. The same puppet as the wide (the wide's
+ * people are this panel at 0.8, its deformers in the panel's pixels), drawn from the panel at its
+ * own size, over the ground round them, out of focus; her head as the artist redrew it, in either
+ * shot.
+ */
+export interface NearArt {
+  /** An atlas: the body, her forearm (rows of `pixels`, `gutter` apart), as far across the panel as `reach` (sheet px). */
+  texture: THREE.Texture;
+  /** Their lids shut, half, and her sleeve (rows), at this size, over `lidBox` (sheet px, y down: x0, y0, w, h). */
+  lids: THREE.Texture;
+  /** Her head turned to him, at this size, and at the wide's. */
+  heads: HeadCels;
+  wideHeads: HeadCels;
+  /** The ground round them, out of focus. */
+  ground: THREE.Texture;
+  /** Where their bed's grass moves in the air (R, over the atlas's reach). */
+  maps: THREE.Texture;
+  pixels: [number, number];
+  gutter: number;
+  reach: number;
+  lidBox: [number, number, number, number];
+  /** Where the ground lies (stage px, y down: x0, y0, w, h). */
+  groundBox: [number, number, number, number];
+  /** Their eyes: his two, then hers. */
+  eyes: Eye[];
 }
-
-/** How far a close-up's chest swells at a full breath (a fraction of its distance from the middle: ~2–3 px). */
-const SWELL = 0.012;
-/** A close-up's own pixels (scripts/closeups.py): its grass moves as far on every tier. */
-const FRAME_PX = new THREE.Vector2(1 / 1920, 1 / 1080);
 
 export interface LivingArt {
   plate: THREE.Texture;
-  /** The close-ups, by shot (`scene.shot` 1 is the first); null: it couldn't be had (its shot is the wide). */
-  closeups?: (Closeup | null)[];
   /** The near flowers' heads (cut from the plate) and where they are (painting uv: x, y, radius as a fraction of the width). */
   flowers: { texture: THREE.Texture; heads: [number, number, number][] } | null;
   /** The sky in the canopy's gap, drifting: where it shows, the afternoon's and the evening's, their box and left margin. */
@@ -89,13 +94,25 @@ export interface LivingArt {
   after: THREE.Texture | null;
   sky: { texture: THREE.Texture; box: [number, number, number, number] } | null;
   figures: FigureArt | null;
+  /** The two-shot and her look, if they could be had (its shot is then the wide, her head as the panel has it). */
+  near?: NearArt | null;
   /** The plate's pixels. */
   size: [number, number];
 }
 
 /** The figures' sheet (deformers are fractions of this; figure uv × this = sheet pixels, y up). */
 const SHEET = new THREE.Vector2(1448, 505);
+
+/** An atlas of `n` rows of `px` (with `gutter` between): a row's height and pitch (fractions). */
+function rowsOf(px: number, gutter: number, n: number): THREE.Vector2 {
+  const total = n * px + (n - 1) * gutter;
+  return new THREE.Vector2(px / total, (px + gutter) / total);
+}
 const FPS = 12;
+/** A turn (radians) that gives the close shot way to the wide, and one under which it may come back (after RETURN s). */
+const GIVE_WAY = 0.244;
+const SETTLE = 0.105;
+const RETURN = 1.2;
 
 /**
  * The puppet's mesh: the body finer where faces and hands are (an eye is ~20 sheet px), her forearm
@@ -224,15 +241,17 @@ export class LivingScene {
   private readonly people: THREE.Mesh | null;
   private readonly strips: THREE.BufferGeometry | null = null;
   private readonly air: THREE.BufferGeometry;
+  /** The ground round them in the two-shot. */
   private readonly frame: THREE.Mesh;
   private readonly wide: THREE.Object3D[] = [];
-  /** The close-up shown now (0: the wide), the one the timeline asks for, and whether it gave way. */
+  /** The shot shown now (0: the wide, 1: the two-shot), the one the timeline asks for, and whether it gave way. */
   private shot = 0;
   private asked = 0;
   private gaveWay = false;
-  /** How far each of them has breathed in now (A, B). */
-  private breathA = 0;
-  private breathB = 0;
+  /** Since when (room s) they have faced the two-shot again after it gave way (−1: not settled), and the drawing and time it was last chosen at. */
+  private settled = -1;
+  private lastDrawing = -1;
+  private lastT = -1;
   private drawnAt = -1;
   private readonly lastView = new THREE.Vector4(-1, -1, -1, -1);
   private readonly lastParallax = new THREE.Vector2(9, 9);
@@ -243,6 +262,12 @@ export class LivingScene {
   private readonly drift: number[] = new Array(16).fill(0);
   /** The part of the painting drawn now (x0, y0, w, h in painting uv). */
   readonly view = new THREE.Vector4(0, 0, 1, 1);
+  /** The two-shot is drawn now (its art on the people and the frame), or the wide. */
+  private near = false;
+  /** The ground's grass, out of focus, barely stirs (a map of one texel: the air moves what is near and sharp). */
+  private readonly stir: THREE.DataTexture;
+  /** The two-shot's frame now (stage px, y down: x0, y0, w, h). */
+  readonly stage = new THREE.Vector4(0, 0, 1, 1);
 
   constructor(
     private readonly art: LivingArt,
@@ -266,10 +291,10 @@ export class LivingScene {
     plate.frustumCulled = false;
     this.scene.add(plate);
     this.wide.push(plate);
-    // A close-up's frame, over the painting's square (shown alone while its shot is on).
+    // The two-shot's ground (placed by the shot's frame; under them).
     this.frame = new THREE.Mesh(this.quad, this.m.frame);
     this.frame.frustumCulled = false;
-    this.frame.renderOrder = 5;
+    this.frame.renderOrder = 0;
     this.frame.visible = false;
     this.scene.add(this.frame);
     const cl = art.clouds;
@@ -308,6 +333,8 @@ export class LivingScene {
       (fu.uPx.value as THREE.Vector2).set(1 / art.size[0], 1 / art.size[1]);
     }
     this.reduced = o.reduced;
+    this.stir = new THREE.DataTexture(new Uint8Array([25, 0, 0, 255]), 1, 1, THREE.RGBAFormat);
+    this.stir.needsUpdate = true;
     const f = art.figures;
     if (f) {
       this.grid = puppet(f.limb.box, !!o.low);
@@ -323,15 +350,12 @@ export class LivingScene {
       u.uMaps.value = art.maps;
       u.uMotion.value = o.reduced ? 0.25 : 1;
       (u.uPlace.value as THREE.Vector4).set(...f.place);
-      const rows = (n: number) => {
-        const total = n * f.pixels[1] + (n - 1) * f.gutter;
-        return new THREE.Vector2(f.pixels[1] / total, (f.pixels[1] + f.gutter) / total);
-      };
-      (u.uFigRows.value as THREE.Vector2).copy(rows(2));
-      (u.uLidRows.value as THREE.Vector2).copy(rows(3));
+      (u.uFigRows.value as THREE.Vector2).copy(rowsOf(f.pixels[1], f.gutter, 2));
+      (u.uLidRows.value as THREE.Vector2).copy(rowsOf(f.pixels[1], f.gutter, 3));
       (u.uSheet.value as THREE.Vector2).copy(SHEET);
       u.uSplit.value = f.split;
       this.setDeformers(f);
+      this.dressPeople(false);
     } else {
       this.grid = null;
       this.people = null;
@@ -371,11 +395,77 @@ export class LivingScene {
   }
 
   /**
+   * The people's art: the wide's (cut at 0.8, placed on the painting) or the two-shot's (the panel
+   * at its own size; their eyes' openings; lit as the wide lights them, at the same place). Her
+   * head's redrawing at either size.
+   */
+  private dressPeople(near: boolean): void {
+    const u = this.m.people.uniforms;
+    const f = this.art.figures!;
+    const n = this.art.near;
+    const box = (b: [number, number, number, number]) => [b[0] / SHEET.x, 1 - (b[1] + b[3]) / SHEET.y, b[2] / SHEET.x, b[3] / SHEET.y] as const;
+    if (near && n) {
+      u.uFigures.value = n.texture;
+      u.uLids.value = n.lids;
+      u.uGrade.value = this.m.empty;
+      // (Px a sheet px, as the rows were cut: their proportions hold at either stored size.)
+      const k = n.pixels[0] / n.reach;
+      (u.uFigRows.value as THREE.Vector2).copy(rowsOf(n.pixels[1], n.gutter, 2));
+      (u.uLidRows.value as THREE.Vector2).copy(rowsOf(n.lidBox[3] * k, n.gutter, 3));
+      u.uFigU.value = n.reach / SHEET.x;
+      (u.uLidBox.value as THREE.Vector4).set(...box(n.lidBox));
+      u.uHeads.value = n.heads.texture;
+      (u.uHeadBox.value as THREE.Vector4).set(...box(n.heads.box));
+      // (The eyes in stage px, y up: an angle turns the other way.)
+      n.eyes.forEach((e, i) => {
+        (u.uEyes.value as THREE.Vector4[])[i].set(e[0], SHEET.y - e[1], e[2], e[3]);
+        (u.uIrises.value as THREE.Vector4[])[i].set(e[5], SHEET.y - e[6], e[7], -e[4]);
+        (u.uWhites.value as THREE.Vector3[])[i].set(e[8], e[9], e[10]);
+      });
+      (u.uWidePlace.value as THREE.Vector4).set(...f.place);
+      u.uMaps.value = n.maps;
+      u.uNear.value = 1;
+    } else {
+      u.uFigures.value = f.texture;
+      u.uLids.value = f.lids;
+      u.uGrade.value = this.art.grade ?? this.m.empty;
+      (u.uFigRows.value as THREE.Vector2).copy(rowsOf(f.pixels[1], f.gutter, 2));
+      (u.uLidRows.value as THREE.Vector2).copy(rowsOf(f.pixels[1], f.gutter, 3));
+      u.uFigU.value = 1;
+      (u.uLidBox.value as THREE.Vector4).set(0, 0, 1, 1);
+      (u.uPlace.value as THREE.Vector4).set(...f.place);
+      u.uHeads.value = n?.wideHeads.texture ?? this.m.empty;
+      (u.uHeadBox.value as THREE.Vector4).set(...(n ? box(n.wideHeads.box) : ([0, 0, 0, 0] as const)));
+      (u.uGaze.value as THREE.Vector2).set(0, 0);
+      (u.uGazeB.value as THREE.Vector2).set(0, 0);
+      u.uMaps.value = this.art.maps;
+      u.uNear.value = 0;
+    }
+    this.near = near;
+  }
+
+  /**
+   * The two-shot's frame: the part of the stage (sheet px, y down; its height the painting's
+   * proportion of its width) the painting's square shows. The people are placed by it, and the
+   * ground under them; so the camera's push moves the place, and its light, not the screen.
+   */
+  private frameStage(x: number, y: number, w: number): void {
+    const h = (w * this.art.size[1]) / this.art.size[0];
+    this.stage.set(x, y, w, h);
+    (this.m.people.uniforms.uPlace.value as THREE.Vector4).set(-x / w, 1 - (SHEET.y - y) / h, SHEET.x / w, SHEET.y / h);
+    const [gx, gy, gw, gh] = this.art.near!.groundBox;
+    const u0 = (gx - x) / w, u1 = (gx + gw - x) / w;
+    const vTop = 1 - (gy - y) / h, vBottom = 1 - (gy + gh - y) / h;
+    this.frame.position.set(u0, vBottom, 0);
+    this.frame.scale.set(u1 - u0, vTop - vBottom, 1);
+  }
+
+  /**
    * One frame: the memory's time `t` (its sequence position while living) and composed values.
    * `view` is the part of the painting to draw (what is on the screen); `parallax` the visitor's
    * small looks (painting uv at depth 1). Returns whether it drew.
    */
-  update(renderer: THREE.WebGLRenderer, t: number, v: Values, o: { view: THREE.Vector4; parallax: THREE.Vector2; tap?: THREE.Vector4 }): boolean {
+  update(renderer: THREE.WebGLRenderer, t: number, v: Values, o: { view: THREE.Vector4; parallax: THREE.Vector2; tap?: THREE.Vector4; ultra?: boolean }): boolean {
     if (this.disposed) return false;
     const tq = Math.floor(t * FPS) / FPS;
     const viewMoved = !this.lastView.equals(o.view);
@@ -383,10 +473,10 @@ export class LivingScene {
     const tapping = !!o.tap && o.tap.w > 0 && o.tap.z < 2;
     // (The shot as chosen for this frame.)
     const shot = this.shot;
-    const cu = shot > 0 ? this.art.closeups?.[shot - 1] ?? null : null;
-    // Its drawing now: a new one is drawn on its own frame (a cut), not at the next drawing.
-    const cel = cu ? celOf(cu, v['scene.cel'] ?? 0) : -1;
-    const state = `${(v['scene.after'] ?? 0) >= 0.5 ? 1 : 0}|${(v['scene.people'] ?? 1) > 0.001 ? 1 : 0}|${shot}|${cel}`;
+    const two = shot > 0 && !!this.art.near && !!this.art.figures;
+    // A cut (the people, the evening, the shot, her head's drawing) is drawn on its own frame, not
+    // at the next drawing.
+    const state = `${(v['scene.after'] ?? 0) >= 0.5 ? 1 : 0}|${(v['scene.people'] ?? 1) > 0.001 ? 1 : 0}|${shot}|${Math.round(v['figure:b.cel'] ?? 0)}`;
     if (tq === this.drawnAt && !viewMoved && !lookMoved && !tapping && state === this.lastState) return false;
     this.lastState = state;
     this.drawnAt = tq;
@@ -406,6 +496,7 @@ export class LivingScene {
       this.wind[i].set(r(SPRINGS.grass), r(SPRINGS.flower), r(SPRINGS.leaves), r(SPRINGS.leaves, 0.3));
     }
     for (let i = 0; i < 16; i++) this.drift[i] = windDrift(tq, i / 15, this.spec.gusts) * 6 * motion;
+    if (two !== this.near && this.art.figures) this.dressPeople(two);
     for (const mat of [this.m.plate, this.m.people, this.m.flowers, this.m.air, this.m.frame]) {
       const u = mat.uniforms;
       u.uTime.value = tq;
@@ -432,28 +523,22 @@ export class LivingScene {
       (pu.uCloud.value as THREE.Vector2).y = ((after ? DRIFT.after : DRIFT.day) * alive * (this.reduced ? 0.5 : 1)) / width;
     }
     (pu.uParallax.value as THREE.Vector2).copy(o.parallax);
+    if (two) {
+      // The two of them close, the camera locked (a looser frame on a very wide screen, `ultra`),
+      // over the ground round them; nothing else of the wide.
+      const sp = this.spec.near!;
+      this.frameStage(...(o.ultra ? sp.ultra : sp.frame));
+    }
     if (this.people) this.pose(tq, val);
-    // A close-up shows its drawings alone (the camera locked on them); the wide shows everything else.
-    this.frame.visible = !!cu;
-    if (cu) {
-      for (const o of this.wide) o.visible = false;
+    // The two-shot shows them over their ground alone; the wide shows everything else.
+    this.frame.visible = two;
+    if (two) {
+      for (const o of this.wide) o.visible = o === this.people && (val('scene.people', 1) > 0.001);
       const fu = this.m.frame.uniforms;
-      fu.uFrame.value = cu.base;
-      fu.uMaps.value = cu.wind;
-      fu.uCels.value = cu.cels ?? this.m.empty;
-      const [cols, rows] = cu.grid;
-      if (cel >= 0 && cu.cels && cols > 0 && rows > 0) {
-        const c = cel % cols, r = Math.floor(cel / cols);
-        // (The atlas's first row is at its top.)
-        (fu.uCel.value as THREE.Vector4).set(c / cols, (rows - r - 1) / rows, 1 / cols, 1 / rows);
-        (fu.uCelRect.value as THREE.Vector4).set(...cu.rect);
-      } else {
-        (fu.uCel.value as THREE.Vector4).set(0, 0, 0, 0);
-        (fu.uCelRect.value as THREE.Vector4).set(0, 0, 1, 1);
-      }
-      (fu.uChest.value as THREE.Vector4).set(...(cu.chest ?? [0, 0, 0, 0]));
-      fu.uBreathe.value = cu.breath ? SWELL * (cu.breath === 'a' ? this.breathA : this.breathB) : 0;
-      (fu.uPx.value as THREE.Vector2).copy(FRAME_PX);
+      fu.uFrame.value = this.art.near!.ground;
+      fu.uMaps.value = this.stir;
+      const [, , gw, gh] = this.art.near!.groundBox;
+      (fu.uPx.value as THREE.Vector2).set(1 / gw, 1 / gh);
     } else {
       for (const o of this.wide) if (o !== this.people) o.visible = true;
     }
@@ -473,23 +558,51 @@ export class LivingScene {
 
   /**
    * Which shot is on now (chosen before `update`, so the view frames it from its first frame):
-   * the timeline's, except that a close-up is only for someone inside (seen on the wall it is
-   * the wide), gives way to the wide for the rest of its shot once they turn from it, and is the
-   * wide if it couldn't be had: never a wait, never a face shrunk onto the wall.
+   * the timeline's, except that the two-shot is only for someone inside (seen on the wall it is
+   * the wide), gives way to the wide while they turn from it, and is the wide if it couldn't be
+   * had: never a wait, never a face shrunk onto the wall. `turn` is how far they have turned
+   * (radians), `t` the memory's time, `now` the room's (seconds; default `t`).
+   *
+   * The two-shot comes back once they have settled facing it again (under SETTLE for RETURN s), on
+   * a new drawing (any frame, if the memory's time is held), never within half a second of
+   * something they do (`near.beats`) nor in its last two seconds: turning away gives distance,
+   * turning back closeness (the interaction designer's review, 2026-10-18: one glance cost the
+   * whole heart). Everything they do is drawn in both shots.
    */
-  choose(v: Values, o: { inside: boolean; turned: boolean }): number {
-    const closeups = this.art.closeups ?? [];
-    const asked = Math.max(0, Math.min(closeups.length, Math.round(v['scene.shot'] ?? 0)));
-    if (asked !== this.asked) this.asked = asked, (this.gaveWay = false);
-    if (asked > 0 && o.inside && o.turned) this.gaveWay = true;
-    this.shot = this.gaveWay || !o.inside || !closeups[asked - 1] ? 0 : asked;
+  choose(v: Values, o: { inside: boolean; turn: number; t: number; now?: number }): number {
+    const near = this.hasNear;
+    const now = o.now ?? o.t;
+    const asked = Math.max(0, Math.min(1, Math.round(v['scene.shot'] ?? 0)));
+    if (asked !== this.asked) this.asked = asked, (this.gaveWay = false), (this.settled = -1);
+    const drawing = Math.floor(o.t * FPS);
+    const fresh = drawing !== this.lastDrawing || o.t === this.lastT;
+    if (asked > 0 && o.inside) {
+      if (o.turn > GIVE_WAY) this.gaveWay = true, (this.settled = -1);
+      else if (this.gaveWay) {
+        if (o.turn > SETTLE) this.settled = -1;
+        else if (this.settled < 0) this.settled = now;
+        if (this.settled >= 0 && now - this.settled >= RETURN && fresh && this.mayReturn(o.t)) this.gaveWay = false;
+      }
+    }
+    this.lastDrawing = drawing;
+    this.lastT = o.t;
+    this.shot = this.gaveWay || !o.inside || !near ? 0 : asked;
     return this.shot;
   }
 
-  /** A close-up, by shot (1 is the first), if it is there. */
-  closeup(shot: number): Closeup | null {
-    return this.art.closeups?.[shot - 1] ?? null;
+  /** Whether the two-shot may come back at `t`: not near a beat, not in its last two seconds. */
+  private mayReturn(t: number): boolean {
+    const sp = this.spec.near;
+    if (!sp) return false;
+    if (t > sp.span[1] - 2) return false;
+    return sp.beats.every((b) => Math.abs(t - b) >= 0.5);
   }
+
+  /** Whether the two-shot (and her look in either shot) could be had. */
+  get hasNear(): boolean {
+    return !!this.art.near && !!this.art.figures;
+  }
+
 
   /** The people at `t`: their breathing, blinks and hair (from time) and what they do (authored). */
   private pose(t: number, val: (k: string, d: number) => number): void {
@@ -499,25 +612,40 @@ export class LivingScene {
     const k = (this.reduced ? 0.5 : 1) * life;
     const ba = breath(t, s.breath.a) * k * val('figure:a.breath', 1);
     const bb = breath(t, s.breath.b) * k * val('figure:b.breath', 1);
-    this.breathA = ba;
-    this.breathB = bb;
+    // (Close, the same breath and looks, less far: the rig was made for the wide, ~0.5×; at
+    // 2–3× its full breath was 15 screen px: the technical artist's review, 2026-10-18.)
+    const near = this.near && !!s.near;
+    const deep = near ? s.near!.breath : 1;
     // Breath: the chest swells along its short axis and rises; the head and her resting hand ride it.
     const chest = (name: string, c: { swell: number; rise: number }, b: number) => {
       const i = this.slot.get(name);
       const a = i === undefined ? 0 : (u.uD.value as THREE.Vector4[])[i * 4 + 1].x;
       this.bone(name, { swell: c.swell * b, x: -Math.sin(a) * c.rise * b, y: Math.cos(a) * c.rise * b });
     };
-    chest('chestA', s.chest.a, ba);
-    chest('chestB', s.chest.b, bb);
+    chest('chestA', s.chest.a, ba * deep);
+    chest('chestB', s.chest.b, bb * deep);
+    // Her head as the artist redrew it (`figure:b.cel`: 0 the panel's, 1 turned to him), held, in
+    // either shot; while it is shown, nothing of the rig made for the panel's face moves it.
+    const heads = this.art.near ? (near ? this.art.near.heads : this.art.near.wideHeads) : null;
+    const cel = heads ? Math.max(0, Math.min(heads.cells - 1, Math.round(val('figure:b.cel', 0)))) : 0;
+    (u.uHeadCel.value as THREE.Vector2).set(cel >= 1 ? cel - 1 : -1, heads?.cells ?? 1);
+    const redrawn = cel >= 1;
     // Heads: a roll toward where they look (−1 left .. 1 right: rolling left is anticlockwise).
-    const lookA = val('figure:a.look', 0), lookB = val('figure:b.look', 0);
-    this.bone('headA', { turn: val('figure:a.head', 0) - s.roll * lookA, y: s.headLift * ba });
-    this.bone('headB', { turn: val('figure:b.head', 0) - s.roll * lookB, y: s.headLift * bb });
-    this.bone('faceA', { x: s.face * lookA });
-    this.bone('faceB', { x: s.face * lookB });
-    const eyesA = val('figure:a.eyes', 0), eyesB = val('figure:b.eyes', 0);
-    for (const e of ['eyeA1', 'eyeA2']) this.bone(e, { x: s.iris * eyesA });
-    for (const e of ['eyeB1', 'eyeB2']) this.bone(e, { x: s.iris * eyesB });
+    const lookA = val('figure:a.look', 0), lookB = redrawn ? 0 : val('figure:b.look', 0);
+    this.bone('headA', { turn: val('figure:a.head', 0) - s.roll * lookA, y: s.headLift * ba * deep });
+    this.bone('headB', { turn: val('figure:b.head', 0) - s.roll * lookB, y: s.headLift * bb * deep });
+    this.bone('faceA', { x: near ? 0 : s.face * lookA });
+    this.bone('faceB', { x: near || redrawn ? 0 : s.face * lookB });
+    const eyesA = val('figure:a.eyes', 0), eyesB = redrawn ? 0 : val('figure:b.eyes', 0);
+    // Their eyes: in the two-shot the iris moves along each opening (the lash line stays); in the
+    // wide, too small for that, the soft deformers.
+    for (const e of ['eyeA1', 'eyeA2']) this.bone(e, { x: near ? 0 : s.iris * eyesA });
+    for (const e of ['eyeB1', 'eyeB2']) this.bone(e, { x: near ? 0 : s.iris * eyesB });
+    if (near) {
+      // (Along each opening and across it, down positive as drawn: up positive for the shader.)
+      (u.uGaze.value as THREE.Vector2).set(s.near!.gaze[0] * eyesA, -s.near!.gaze[1] * eyesA);
+      (u.uGazeB.value as THREE.Vector2).set(s.near!.gazeB[0] * eyesB, -s.near!.gazeB[1] * eyesB);
+    }
     // Hair: the loose ends answer the air (each lock its own spring), as the grass does.
     const still = val('scene.breeze', 1) * life * (this.reduced ? 0.25 : 1);
     for (const [name, h] of Object.entries(s.hair)) {
@@ -534,7 +662,7 @@ export class LivingScene {
     this.bone('forearmB', { x: this.axis.x * s.reach.slide * back, y: this.axis.y * s.reach.slide * back, turn: s.reach.turn * back });
     // Her hand on her stomach: it rides her breath and lifts a little.
     const palm = val('figure:b.fingers', 0);
-    this.bone('palmB', { x: s.palm[0] * palm, y: s.palm[1] * palm + s.chest.b.rise * 0.6 * bb });
+    this.bone('palmB', { x: s.palm[0] * palm, y: s.palm[1] * palm + s.chest.b.rise * 0.6 * bb * deep });
     // Her crossed foot rocks at the ankle (as much as authored).
     this.bone('footB', { turn: s.foot.turn * val('figure:b.foot', 0) * Math.sin(2 * Math.PI * s.foot.hz * t) * (this.reduced ? 0.5 : 1) });
     this.bone('shoulderB', { x: s.shoulder[0] * val('figure:b.shoulder', 0), y: s.shoulder[1] * val('figure:b.shoulder', 0) });
@@ -558,7 +686,8 @@ export class LivingScene {
     this.strips?.dispose();
     this.air.dispose();
     for (const mat of [this.m.plate, this.m.people, this.m.flowers, this.m.air, this.m.frame]) {
-      for (const k of ['uPlate', 'uAfterPlate', 'uMaps', 'uGrade', 'uSky', 'uFigures', 'uLids', 'uFlowers', 'uSkyMask', 'uClouds', 'uCloudsAfter', 'uFrame', 'uCels']) mat.uniforms[k].value = this.m.empty;
+      for (const k of ['uPlate', 'uAfterPlate', 'uMaps', 'uGrade', 'uSky', 'uFigures', 'uLids', 'uFlowers', 'uSkyMask', 'uClouds', 'uCloudsAfter', 'uFrame', 'uHeads']) mat.uniforms[k].value = this.m.empty;
+      mat.uniforms.uHeadCel.value.set(-1, 1);
       mat.uniforms.uAfter.value = 0;
     }
   }

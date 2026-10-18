@@ -7,7 +7,7 @@ import { memorySchema } from './sheets';
 import { sheetSource } from './theatre';
 import type { Lifecycle, MemoryFrame, ReleaseReason } from './types';
 import type { WindowLayer, LayerKind } from '../world/MemoryWindow';
-import { LivingScene, type Closeup, type FigureArt, type LivingArt } from './living/LivingScene';
+import { LivingScene, type FigureArt, type LivingArt, type NearArt, type Eye } from './living/LivingScene';
 import { WOODLAND as WOODLAND_SPEC, type LivingSpec } from './living/woodland';
 
 /**
@@ -46,7 +46,8 @@ interface LivingManifest {
   /** The same composition later, nobody there (the cut). */
   after?: string | null;
   sky: { file: string; box: [number, number, number, number] } | null;
-  figures: (Omit<FigureArt, 'texture' | 'lids'> & { file: string; lids: string }) | null;
+  /** The people (and her head turned to him at their size: scripts/two-shot.py, with the two-shot). */
+  figures: (Omit<FigureArt, 'texture' | 'lids'> & { file: string; lids: string; heads?: { file: string; box: [number, number, number, number]; cells: number } }) | null;
   /** The near flowers' heads and where they are (painting uv). */
   flowers?: { file: string; heads: [number, number, number][] } | null;
   /** The sky in the gap, drifting: where it shows, the afternoon's and the evening's layers (one size). */
@@ -54,11 +55,24 @@ interface LivingManifest {
   /** When each pencil line is drawn and the colour comes (scripts/stroke-order.py), one size. */
   order?: string | null;
   /**
-   * The close-ups, by shot (scripts/closeups.py): `<file>-base` (its first drawing), `<file>-wind`
-   * (where the air may move its grass: a map, one size) and, if any drawing differs from the
-   * first, `<file>-cels` (the rest, an atlas of the part that changes).
+   * The two-shot (scripts/two-shot.py): the two of them close, the character sheet's own panel (an
+   * atlas: the body, her forearm, as far across as `reach`), their lids (over `lidBox`), her head
+   * turned to him as the artist redrew it (cells), the ground round them, out of focus, and their
+   * eyes (opening, iris, white: `Eye`).
    */
-  closeups?: (Omit<Closeup, 'base' | 'wind' | 'cels'> & { file: string; names: string[] })[];
+  near?: {
+    file: string;
+    lids: string;
+    pixels: [number, number];
+    gutter: number;
+    reach: number;
+    lidBox: [number, number, number, number];
+    heads: { file: string; box: [number, number, number, number]; takes: string[]; cells: number };
+    ground: { file: string; box: [number, number, number, number] };
+    /** Where their bed's grass moves in the air (a map, R; one size). */
+    maps: string;
+    eyes: { a: Eye[]; b: Eye[] };
+  } | null;
   immerse: boolean;
 }
 
@@ -219,10 +233,7 @@ function livingFiles(lm: LivingManifest, suffix: string): { file: string; suffix
   if (lm.flowers) out.push({ file: lm.flowers.file, suffix });
   if (lm.clouds) out.push({ file: lm.clouds.mask, suffix: '' }, { file: lm.clouds.file, suffix: '' }, { file: lm.clouds.after, suffix: '' });
   if (lm.order) out.push({ file: lm.order, suffix: '' });
-  for (const c of lm.closeups ?? []) {
-    out.push({ file: `${c.file}-base`, suffix }, { file: `${c.file}-wind`, suffix: '' });
-    if (c.grid[0] > 0) out.push({ file: `${c.file}-cels`, suffix });
-  }
+  if (lm.near && lm.figures?.heads) out.push({ file: lm.near.file, suffix }, { file: lm.near.lids, suffix }, { file: lm.near.heads.file, suffix }, { file: lm.near.ground.file, suffix: '' }, { file: lm.near.maps, suffix: '' }, { file: lm.figures.heads.file, suffix });
   return out;
 }
 
@@ -287,34 +298,50 @@ export async function prepare(id: string, variant: string, host: RuntimeHost): P
       ]);
       // (The pencil's order is mipmapped, unlike the scene's layers: seen from across the room.)
       const orderP = lm.order ? loadLayer(url(lm.order, ''), { data: true }).then((r) => (extra.push(r), r)) : Promise.resolve(null);
-      // A close-up that can't be had is the wide for its shot (the memory still plays); what of it
-      // did load is let go at once.
-      const closeupsP = Promise.all(
-        (lm.closeups ?? []).map(async (c): Promise<Closeup | null> => {
-          const got = await Promise.allSettled([
-            loadLayer(url(`${c.file}-base`), { living: true }),
-            loadLayer(url(`${c.file}-wind`, ''), { living: true, data: true }),
-            c.grid[0] > 0 ? loadLayer(url(`${c.file}-cels`), { living: true }) : Promise.resolve(null),
-          ]);
-          const ok = got.every((r) => r.status === 'fulfilled');
-          for (const r of got) {
-            if (r.status !== 'fulfilled' || !r.value) continue;
-            if (ok) extra.push(r.value);
-            else r.value.texture.dispose(), r.value.bitmap.close();
-          }
-          if (!ok) return null;
-          const [b, w, cels] = got.map((r) => (r as PromiseFulfilledResult<{ texture: THREE.Texture } | null>).value);
-          return { ...c, base: b!.texture, wind: w!.texture, cels: cels?.texture ?? null };
-        }),
-      );
+      // The two-shot and her look (drawn in either shot): all of it, or none (the wide then plays
+      // as it was, her head as the panel has it; the memory still plays).
+      const nearP = (async (): Promise<NearArt | null> => {
+        const n = lm.near;
+        const wh = lm.figures?.heads;
+        if (!n || !wh) return null;
+        const got = await Promise.allSettled([
+          loadLayer(url(n.file), { living: true }),
+          loadLayer(url(n.lids), { living: true }),
+          loadLayer(url(n.heads.file), { living: true }),
+          loadLayer(url(n.ground.file, ''), { living: true }),
+          loadLayer(url(wh.file), { living: true }),
+          loadLayer(url(n.maps, ''), { living: true, data: true }),
+        ]);
+        const ok = got.every((r) => r.status === 'fulfilled');
+        for (const r of got) {
+          if (r.status !== 'fulfilled') continue;
+          if (ok) extra.push(r.value);
+          else r.value.texture.dispose(), r.value.bitmap.close();
+        }
+        if (!ok) return null;
+        const [atlas, lids, heads, ground, wide, maps] = got.map((r) => (r as PromiseFulfilledResult<{ texture: THREE.Texture }>).value.texture);
+        return {
+          texture: atlas,
+          lids,
+          heads: { texture: heads, box: n.heads.box, cells: n.heads.cells },
+          wideHeads: { texture: wide, box: wh.box, cells: wh.cells },
+          ground,
+          maps,
+          pixels: n.pixels,
+          gutter: n.gutter,
+          reach: n.reach,
+          lidBox: n.lidBox,
+          groundBox: n.ground.box,
+          eyes: [...n.eyes.a, ...n.eyes.b],
+        };
+      })();
       // (All of it settled before any failure is thrown, so nothing loads after it is let go.)
-      const bad = (await Promise.allSettled([mainP, orderP, closeupsP])).find((r) => r.status === 'rejected') as PromiseRejectedResult | undefined;
+      const bad = (await Promise.allSettled([mainP, orderP, nearP])).find((r) => r.status === 'rejected') as PromiseRejectedResult | undefined;
       if (bad) throw bad.reason;
       const [plate, maps, grade, sky, fig, lids, after, flowers, skyMask, clouds, cloudsAfter] = await mainP;
-      const [orderR, closeups] = [await orderP, await closeupsP];
+      const [orderR, near] = [await orderP, await nearP];
       const order = orderR?.texture ?? null;
       const art: LivingArt = {
-        closeups,
         plate,
         maps,
         grade,
@@ -323,6 +350,7 @@ export async function prepare(id: string, variant: string, host: RuntimeHost): P
         flowers: flowers && lm.flowers ? { texture: flowers, heads: lm.flowers.heads } : null,
         clouds: lm.clouds && skyMask && clouds && cloudsAfter ? { mask: skyMask, day: clouds, after: cloudsAfter, box: lm.clouds.box, pad: lm.clouds.pad } : null,
         figures: lm.figures && fig && lids ? { ...lm.figures, texture: fig, lids } : null,
+        near,
         size: manifest.plate ?? [1672, 941],
       };
       const size = targetSize(host);

@@ -126,14 +126,14 @@ for (const how of ['turn', 'step']) {
   report[how] = { start, inside, back, after: await pose(page), errors };
   await page.close();
 }
-// 3. A close-up: a small look round keeps it; past 14° it is the wide for the rest of the shot
-// (and they are still inside: leaving takes 30°).
+// 3. The two-shot: a small look round keeps it; past 14° it is the wide (and they are still
+// inside: leaving takes 30°); settled facing it again, the two of them close again.
 {
   const { page, errors } = await room();
   await page.evaluate(() => window.__hedgehog.playMemory('woodland', 'more-minutes', 'afternoon'));
   await page.evaluate(() => window.__hedgehog.heldAt(12));
   await page.waitForTimeout(800);
-  await page.evaluate(() => window.__hedgehog.heldAt(17.5));
+  await page.evaluate(() => window.__hedgehog.heldAt(16.5));
   await page.waitForTimeout(800);
   const shot = () => page.evaluate(() => window.__hedgehog.living?.memory.prepared.living?.scene.shot ?? -1);
   const turned = () => page.evaluate(() => +((window.__hedgehog.inside.turned * 180) / Math.PI).toFixed(1));
@@ -151,9 +151,20 @@ for (const how of ['turn', 'step']) {
   at.small = { shot: await shot(), turned: await turned() };
   await look(60);
   at.past = { shot: await shot(), turned: await turned() };
-  await page.waitForTimeout(1500);
-  at.later = { shot: await shot(), locked: await page.evaluate(() => window.__hedgehog.inside.locked) };
-  report.closeTurn = { ...at, ok: at.start === 1 && at.small.shot === 1 && at.past.shot === 0 && at.later.shot === 0 && at.later.locked, errors };
+  // Still: the turn springs back, and after 1.2 s settled the two-shot is back (held, any frame).
+  let back = null;
+  const t0 = Date.now();
+  while (Date.now() - t0 < 8000) {
+    const s = await shot();
+    if (s === 1) {
+      back = { after: (Date.now() - t0) / 1000, turned: await turned() };
+      break;
+    }
+    await page.waitForTimeout(200);
+  }
+  at.back = back;
+  at.locked = await page.evaluate(() => window.__hedgehog.inside.locked);
+  report.twoShotTurn = { ...at, ok: at.start === 1 && at.small.shot === 1 && at.past.shot === 0 && !!at.back && at.locked, errors };
   await page.close();
 }
 writeFileSync(`${OUT}/woodland.json`, JSON.stringify(report, null, 2));

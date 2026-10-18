@@ -1,3 +1,4 @@
+import { TWO_SHOT } from '../defs';
 import type { BreathProfile, Gust } from './performance';
 
 /**
@@ -44,26 +45,37 @@ export interface LivingSpec {
   air: { motes: number };
   /** The painting u (and v) kept at the screen's centre when it covers the view. */
   cover: { wide: [number, number]; upright: [number, number]; ultra: [number, number] };
+  /**
+   * The two-shot (scripts/two-shot.py): its frame (stage px: x0, y0 and width; the height is the
+   * painting's proportion), locked, and a looser one for a very wide screen (which shows only
+   * three quarters of the height); their eyes' look at `figure:a.eyes` and `figure:b.eyes` 1
+   * (fractions of each opening's radii, along it toward the picture's right, and across it,
+   * down); how far their breath goes close (of the wide's); when it is on (memory s: from, to) and
+   * when they do something in it (memory s: after giving way it never comes back within half a
+   * second of one). The times are the timeline's own (defs.ts TWO_SHOT).
+   */
+  near?: { frame: [number, number, number]; ultra: [number, number, number]; gaze: [number, number]; gazeB: [number, number]; breath: number; span: [number, number]; beats: number[] };
 }
 
 /**
- * Blinks, by hand (docs/reviews/2026-10-woodland.md): in the wides only (the close-ups are their
- * own drawings), never in the stillness before the cut.
+ * Blinks, by hand (docs/reviews/2026-10-woodland.md): never in a shot's first second, never in the
+ * stillness before the cut, never during either look (a blink then reads as a reaction).
  */
 const BLINKS = {
   // (The first wide is 10.5–15 s, the second 27–34.5: his in the first, after the gust, settled a
-  // second before the cut to him; hers in the second, before its stillness. The first wide holds
-  // a gust, a leaf and her foot already: QA, 2026-10-17.)
-  a: [13.4],
+  // second before the cut; his again in the two-shot, before her look (the creative director's
+  // beat sheet: "both look up; he blinks once"); hers in the second wide, before its stillness.)
+  a: [13.4, TWO_SHOT.hisBlink],
   b: [31.6],
 };
 
 export const WOODLAND: LivingSpec = {
   breath: {
-    // He breathes slower and deeper; a breath of his is missed while she looks at him (20 s).
-    // (Both at rest between breaths at the cut, 34.5 s: his breath waits through the close-up of
-    // their hands (24.6), hers as she settles in the second wide (27.3); tested.)
-    a: { period: 4.7, jitter: 0.14, inhale: 0.38, rest: 0.16, depth: 0.18, seed: 11, held: [{ at: 20.0, span: 1.6 }, { at: 24.6, span: 2.7 }] },
+    // He breathes slower and deeper. Nothing in his breathing answers either look (a held breath
+    // would be the most noticeable thing in the shot: the creative director's review, 2026-10-18).
+    // (Both at rest between breaths at the cut, 34.5 s: his breath waits in the second wide (27.5,
+    // 28.5), hers as she settles there (27.3); tested.)
+    a: { period: 4.7, jitter: 0.14, inhale: 0.38, rest: 0.16, depth: 0.18, seed: 11, held: [{ at: 27.5, span: 2.0 }, { at: 28.5, span: 2.4 }] },
     b: { period: 3.9, jitter: 0.18, inhale: 0.42, rest: 0.1, depth: 0.22, seed: 23, held: [{ at: 27.3, span: 2.8 }] },
   },
   chest: { a: { swell: 0.07, rise: 6 }, b: { swell: 0.09, rise: 6 } },
@@ -101,5 +113,22 @@ export const WOODLAND: LivingSpec = {
   alive: 6.25,
   settle: { move: [1.5, -3], turn: -0.008 },
   shoulder: [0, 3],
-  cover: { wide: [0.5, 0.5], upright: [0.37, 0.5], ultra: [0.5, 0.5] },
+  // (Upright, between his face and her hand: at 0.37 her outer hand came within 5% of a 9:19.5
+  // screen's edge: the interaction designer's review, 2026-10-18.)
+  cover: { wide: [0.5, 0.5], upright: [0.385, 0.5], ultra: [0.5, 0.5] },
+  // Their heads and torsos and their hands between them, locked: both faces and both hands, the
+  // hands well above the frame's foot, his face inside a 4:3 screen's (the cinematic director's,
+  // the interaction designer's and the skeptic's reviews, 2026-10-18); looser on a very wide
+  // screen. His look reaches the corner of each eye (a sidelong look, not a 4-px one); hers leads
+  // her head's turn toward him. Their breath close at a little under half the wide's (the rig was
+  // made for ~0.5×: the technical artist's review).
+  near: {
+    frame: [50, -10, 790],
+    ultra: [21, -50, 889],
+    gaze: [0.5, 0.08],
+    gazeB: [-0.45, 0.1],
+    breath: 0.45,
+    span: [TWO_SHOT.from, TWO_SHOT.to],
+    beats: [TWO_SHOT.herEyes, TWO_SHOT.herTurn, TWO_SHOT.herBack, TWO_SHOT.herEyesBack, TWO_SHOT.hisEyes, TWO_SHOT.hisRoll],
+  },
 };

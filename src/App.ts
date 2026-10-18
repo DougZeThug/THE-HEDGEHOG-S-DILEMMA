@@ -43,6 +43,8 @@ import { clamp } from './core/math';
 import { hashString } from './core/rng';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+/** How far the room goes down while the visitor is inside a living memory's painting (−26 dB). */
+const DEEP_HUSH = 0.95;
 
 type Mode = 'threshold' | 'room' | 'settings' | 'contribute' | 'departed';
 
@@ -101,7 +103,7 @@ export class App {
   /** The living memory playing now (at most one), and the writing it formed round. */
   private living: { memory: LivingMemory; id: string; key: string; anchor: NonNullable<ReturnType<WallText['anchorOf']>>; bled: boolean; hiddenSince: number | null; held: boolean;
     /** Seconds looking away from it, and watching it; why it was let go. */
-    awayFor: number; watched: number; minHold: number; why: string | null;
+    awayFor: number; watched: number; minHold: number; seenAt?: number; reached: number; deep: boolean; why: string | null;
     /** Looking away from it now (last attention check); how many of its later descriptions are told. */
     away: boolean; told: number;
     /** The room's writing its painting has washed out (given back when it goes). */
@@ -552,11 +554,15 @@ export class App {
         this.memoryState(s);
       },
     });
-    this.living = { memory, id, key: a.key, anchor: a, bled: false, hiddenSince: null, held: false, awayFor: 0, watched: 0, minHold: SCENE_BY_PHRASE.get(phraseId)?.minHold ?? 8, why: null, away: false, told: 0, washed: new Set() };
+    const sm = SCENE_BY_PHRASE.get(phraseId);
+    this.living = { memory, id, key: a.key, anchor: a, bled: false, hiddenSince: null, held: false, awayFor: 0, watched: 0, minHold: sm?.minHold ?? 8, seenAt: sm?.seenAt, reached: 0, deep: false, why: null, away: false, told: 0, washed: new Set() };
     this.memoryClock.reset();
     // The room hushes round it (and its music stops), until it lets go. For the door the white
-    // room itself goes to evening, so the landing's light is the brightest thing there.
+    // room itself goes to evening, so the landing's light is the brightest thing there. Nothing
+    // passes outside and the drone keeps its chord while it plays (a swell or a chord change under
+    // it is a score cue: the sound designer's and the skeptic's reviews, 2026-10-18).
     this.audio?.memoryHush(prepared.def.hush, 1.4);
+    this.ambience?.hold(this.time + prepared.def.sections.end);
     if (prepared.def.roomDim) this.lighting.dimToChair(prepared.def.roomDim, prepared.def.maxHold + 4, this.time);
     if (this.director.scenes.active?.id !== id) this.director.memoryExternal(id);
     memory.start();
@@ -588,9 +594,10 @@ export class App {
       this.voices?.forget(Object.values(p.def.cues(p.variant).cues).map((c) => c.asset).filter((a) => a.startsWith('mem:')));
       l.memory.prepared.dispose();
       this.living = null;
-      // Seen: watched past its first moments. It ran to its end if nobody let it go early.
-      // (A tab hidden for long ends it uncounted, as a vignette: it comes back, the same, another time.)
-      const seen = l.why !== 'hidden' && l.watched >= Math.min(l.minHold, 8) && entered;
+      // Seen: watched past its first moments (or, if it says where its heart is, played to there).
+      // It ran to its end if nobody let it go early. (A tab hidden for long ends it uncounted, as a
+      // vignette: it comes back, the same, another time.)
+      const seen = l.why !== 'hidden' && entered && (l.seenAt !== undefined ? l.reached >= l.seenAt : l.watched >= Math.min(l.minHold, 8));
       if (this.director.memoryEnded(l.id, seen, l.why === null || l.why === 'complete') && !this.forgotten) {
         const counts = readMemoryCounts();
         counts[l.id] = (counts[l.id] ?? 0) + 1;
@@ -1034,18 +1041,17 @@ export class App {
       return;
     }
     const aspect = innerWidth / innerHeight;
-    // The shot on now, chosen first so the view frames it from its first frame. A close-up only
-    // for someone taken all the way in; turned 14° from it, the wide for the rest of its shot
-    // (interaction and QA reviews, 2026-10-17). On an upright screen it keeps its own subject
-    // central (the view moves; the body, and so what they hear, stays where it is).
-    const shot = pl.scene.choose(f.final, { inside: this.inside.taken, turned: this.inside.turned > 0.244 });
-    const shown = shot > 0 ? pl.scene.closeup(shot) : null;
-    const focus = aspect < 0.9 ? pl.spec.cover.upright : aspect > 2.0 ? pl.spec.cover.ultra : pl.spec.cover.wide;
+    const upright = aspect < 0.9;
+    // The shot on now, chosen first so the view frames it from its first frame. The two-shot only
+    // for someone taken all the way in; turned 14° from it, the wide until they settle facing it
+    // again (interaction and QA reviews, 2026-10-17 and 18). Never on an upright screen: there a
+    // 16:9 two-shot holds one face, and the wide holds both, with her look and his drawn in it
+    // (the reviews of 2026-10-18): the dusk cut is its only cut.
+    const shot = pl.scene.choose(f.final, { inside: this.inside.taken && !upright, turn: this.inside.turned, t: f.t, now: this.time });
+    const focus = upright ? pl.spec.cover.upright : aspect > 2.0 ? pl.spec.cover.ultra : pl.spec.cover.wide;
     const go = this.inside.step(dt, {
       immerse: f.final['scene.immerse'] ?? 0,
       focus,
-      // (Across only: the upright view shows the drawing's whole height anyway.)
-      view: aspect < 0.9 && shown ? [shown.focus[0], focus[1]] : undefined,
       held: l.held,
       enter: pl.immerse,
       away: l.away,
@@ -1054,9 +1060,18 @@ export class App {
     }, { reduced: this.prefs.reducedMotion, aspect, scene: pl.scene.target.texture, group: l.anchor.group });
     // The window was placed before the spread changed: place it again for this frame.
     this.memoryWindow.update(f.final, this.rig.restingEye, 0);
+    l.reached = Math.max(l.reached, f.position);
+    // Inside the painting the white room's hum goes further down (it is not in the clearing), and
+    // comes back as the painting goes back to the wall (the sound designer's review, 2026-10-18).
+    const deep = this.inside.entered && (f.final['scene.immerse'] ?? 0) >= 0.9;
+    if (deep !== l.deep && f.state !== 'residue' && f.state !== 'complete') {
+      l.deep = deep;
+      this.audio?.memoryHush(deep ? DEEP_HUSH : l.memory.prepared.def.hush, deep ? 2.5 : 4);
+    }
     this.washUnderPainting(l, f.final);
     pl.scene.reduced = this.prefs.reducedMotion;
-    pl.scene.update(this.renderer, f.t, f.final, { view: this.inside.view, parallax: new THREE.Vector2() });
+    // (A very wide screen shows only three quarters of the two-shot's height: its looser frame.)
+    pl.scene.update(this.renderer, f.t, f.final, { view: this.inside.view, parallax: new THREE.Vector2(), ultra: aspect > 2.0 });
     // What changes later, told to a screen reader when it happens (not before: the cut is not given away).
     const later = l.memory.prepared.def.announce?.(l.memory.prepared.variant) ?? [];
     while (l.told < later.length && f.position >= later[l.told].at && f.state !== 'emerging') {

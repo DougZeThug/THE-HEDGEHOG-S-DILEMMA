@@ -57,10 +57,8 @@ export const LAYER: Schema[string] = {
  *   people   the people: 1 there, 0 gone
  *   after    0 the afternoon, 1 the same place later, its own painting (a cut: held keys, never
  *            in between: below one half it is the afternoon)
- *   shot     0 the wide painting, 1.. a close-up (the artist's drawings): held keys, so every
- *            change is a cut
- *   cel      which of the close-up's drawings (0 its first, in the order scripts/closeups.py lists
- *            them): held keys, every change a cut; one not drawn yet holds the one before
+ *   shot     0 the wide painting, 1 the two of them close (scripts/two-shot.py): held keys, so
+ *            every change is a cut
  */
 export const SCENE: Schema[string] = {
   life: [1, 0, 1],
@@ -70,8 +68,7 @@ export const SCENE: Schema[string] = {
   colour: [1, 0, 1],
   people: [1, 0, 1],
   after: [0, 0, 1],
-  shot: [0, 0, 3],
-  cel: [0, 0, 7],
+  shot: [0, 0, 1],
   approach: [0, 0, 1],
 };
 
@@ -88,6 +85,8 @@ export const SCENE: Schema[string] = {
  *   shoulder  B: her shoulder easing (0..1)
  *   settle    B: settling back into the grass (0..1)
  *   breath    how deep they breathe (1 as they do)
+ *   cel       B: her head as the panel has it (0), or as the artist redrew it, turned to him (1:
+ *             scripts/two-shot.py), in either shot: held keys, every change a cut
  */
 export const FIGURE: Schema[string] = {
   head: [0, -0.06, 0.06],
@@ -99,6 +98,7 @@ export const FIGURE: Schema[string] = {
   shoulder: [0, 0, 1],
   settle: [0, 0, 1],
   breath: [1, 0, 1.5],
+  cel: [0, 0, 1],
 };
 
 /** A memory's objects, given its layers' names (back to front), and the scene if it lives. */

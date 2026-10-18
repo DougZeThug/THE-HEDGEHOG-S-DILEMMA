@@ -6,7 +6,7 @@ import { Immersion } from '../src/world/living/Immersion';
 import { Inside } from '../src/world/living/Inside';
 import type { Post } from '../src/world/Post';
 import type { Room } from '../src/world/Room';
-import { LivingScene, type Closeup, type LivingArt } from '../src/memory/living/LivingScene';
+import { LivingScene, type LivingArt, type NearArt } from '../src/memory/living/LivingScene';
 import { WOODLAND as SPEC } from '../src/memory/living/woodland';
 import manifest from '../public/memories/woodland/manifest.json';
 
@@ -211,10 +211,18 @@ function app(o: { reduced?: boolean } = {}) {
   const room = { halfW: 6, halfD: 6 } as unknown as Room;
   const chair = new THREE.Vector3(5, 0, 5);
   const tex = () => new THREE.Texture();
-  const cu: Closeup = { base: tex(), wind: tex(), cels: null, cells: [-1, null, null, null], grid: [0, 0], rect: [0, 0, 0, 0], focus: [0.5, 0.7], breath: 'a', chest: null };
   const lm = manifest.living.afternoon;
+  const n = lm.near as unknown as { pixels: [number, number]; gutter: number; reach: number; lidBox: [number, number, number, number]; heads: { box: [number, number, number, number]; cells: number }; ground: { box: [number, number, number, number] }; eyes: { a: number[][]; b: number[][] } };
+  const wh = (lm.figures as unknown as { heads: { box: [number, number, number, number]; cells: number } }).heads;
+  const near: NearArt = {
+    texture: tex(), lids: tex(), ground: tex(), maps: tex(),
+    heads: { texture: tex(), box: n.heads.box, cells: n.heads.cells },
+    wideHeads: { texture: tex(), box: wh.box, cells: wh.cells },
+    pixels: n.pixels, gutter: n.gutter, reach: n.reach, lidBox: n.lidBox, groundBox: n.ground.box,
+    eyes: [...n.eyes.a, ...n.eyes.b] as NearArt['eyes'],
+  };
   const scene = new LivingScene(
-    { plate: tex(), maps: tex(), grade: null, after: null, sky: null, flowers: null, clouds: null, size: manifest.plate as [number, number], closeups: [cu],
+    { plate: tex(), maps: tex(), grade: null, after: null, sky: null, flowers: null, clouds: null, size: manifest.plate as [number, number], near,
       figures: { ...(lm.figures as unknown as NonNullable<LivingArt['figures']>), texture: tex(), lids: tex() } },
     SPEC, { width: 64, height: 36, noise: tex(), reduced: false },
   );
@@ -224,13 +232,13 @@ function app(o: { reduced?: boolean } = {}) {
   group.updateMatrixWorld(true);
   const clamp = (x: number) => Math.min(1, Math.max(0, x));
   let t = 0;
-  const frame = (f: { dt?: number; held?: boolean; away?: boolean; shot?: number; view?: [number, number] } = {}) => {
+  const frame = (f: { dt?: number; held?: boolean; away?: boolean; shot?: number } = {}) => {
     const dt = f.dt ?? 1 / 60;
     t += dt;
     w.rig.enabled = !w.inside.locked;
     w.rig.update(dt || 1 / 60, room, chair);
-    const shot = scene.choose({ 'scene.shot': f.shot ?? 0 }, { inside: w.inside.taken, turned: w.inside.turned > 0.244 });
-    w.inside.step(dt, { immerse: clamp((t - 6.2) / 3.6), focus: [0.5, 0.5], view: f.view, held: f.held, enter: true, away: !!f.away, leavingNaturally: false, approach: clamp((t - 1.2) / 9.3) },
+    const shot = scene.choose({ 'scene.shot': f.shot ?? 0 }, { inside: w.inside.taken, turn: w.inside.turned, t });
+    w.inside.step(dt, { immerse: clamp((t - 6.2) / 3.6), focus: [0.5, 0.5], held: f.held, enter: true, away: !!f.away, leavingNaturally: false, approach: clamp((t - 1.2) / 9.3) },
       { reduced: !!o.reduced, aspect: 16 / 9, scene: sceneTex, group });
     return shot;
   };
@@ -311,7 +319,7 @@ describe('the way in, in the App\'s order', () => {
     expect(b.rig.pos.z).toBe(z);
   });
 
-  it('a close-up stays through a small look round, and gives way at 14° for the rest of its shot', () => {
+  it('the two-shot stays through a small look round, gives way at 14°, and comes back once the turn has sprung back', () => {
     const turnTo = (deg: number) => {
       const a = app();
       a.until(16.5);
@@ -329,17 +337,10 @@ describe('the way in, in the App\'s order', () => {
     const past = turnTo(20);
     const first = past.indexOf(0);
     expect(first).toBeGreaterThan(0);
-    // (Once it has given way, it stays the wide, even after the turn springs back.)
-    expect(past.slice(first).every((s) => s === 0)).toBe(true);
-  });
-
-  it('on an upright screen a close-up moves the view, not the body', () => {
-    const a = app();
-    a.until(16.5);
-    const x = a.rig.pos.x, z = a.rig.pos.z;
-    a.frame({ shot: 1, view: [0.3, 0.6] });
-    a.frame({ shot: 1, view: [0.3, 0.6] });
-    expect(a.rig.pos.x).toBeCloseTo(x, 3);
-    expect(a.rig.pos.z).toBeCloseTo(z, 3);
+    // (Given way, it is the wide while they are turned, then the two of them again: turning away
+    // gives distance, turning back closeness.)
+    const back = past.indexOf(1, first);
+    expect(back).toBeGreaterThan(first + 60);
+    expect(past.slice(back).every((s) => s === 1)).toBe(true);
   });
 });

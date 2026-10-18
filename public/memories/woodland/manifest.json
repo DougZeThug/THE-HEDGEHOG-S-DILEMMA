@@ -500,6 +500,16 @@
             -0.76719,
             0.64142
           ]
+        },
+        "heads": {
+          "file": "afternoon/heads",
+          "box": [
+            405,
+            0,
+            200,
+            180
+          ],
+          "cells": 2
         }
       },
       "after": "afternoon/after",
@@ -632,112 +642,6 @@
       },
       "immerse": true,
       "order": "afternoon/order",
-      "closeups": [
-        {
-          "file": "afternoon/c4",
-          "names": [
-            "c4-start",
-            "c4-eyes",
-            "c4-mid",
-            "c4-end"
-          ],
-          "breath": "a",
-          "cells": [
-            -1,
-            null,
-            null,
-            null
-          ],
-          "grid": [
-            0,
-            0
-          ],
-          "rect": [
-            0,
-            0,
-            0,
-            0
-          ],
-          "focus": [
-            0.3807,
-            0.6113
-          ],
-          "chest": [
-            0.3021,
-            0.1189,
-            0.2749,
-            0.2851
-          ],
-          "standin": true
-        },
-        {
-          "file": "afternoon/c5",
-          "names": [
-            "c5-start",
-            "c5-eyes",
-            "c5-mid",
-            "c5-end"
-          ],
-          "breath": "b",
-          "cells": [
-            -1,
-            null,
-            null,
-            null
-          ],
-          "grid": [
-            0,
-            0
-          ],
-          "rect": [
-            0,
-            0,
-            0,
-            0
-          ],
-          "focus": [
-            0.619,
-            0.6878
-          ],
-          "chest": [
-            0.6749,
-            0.2258,
-            0.2556,
-            0.2497
-          ],
-          "standin": true
-        },
-        {
-          "file": "afternoon/c6",
-          "names": [
-            "c6-start",
-            "c6-mid",
-            "c6-end"
-          ],
-          "breath": null,
-          "cells": [
-            -1,
-            null,
-            null
-          ],
-          "grid": [
-            0,
-            0
-          ],
-          "rect": [
-            0,
-            0,
-            0,
-            0
-          ],
-          "focus": [
-            0.56,
-            0.1377
-          ],
-          "chest": null,
-          "standin": true
-        }
-      ],
       "orderClocks": {
         "drawn": [
           2.0,
@@ -750,6 +654,103 @@
           "linear"
         ],
         "lag": 0.4
+      },
+      "near": {
+        "file": "afternoon/near",
+        "lids": "afternoon/near-lids",
+        "pixels": [
+          2000,
+          1010
+        ],
+        "gutter": 4,
+        "reach": 1000,
+        "lidBox": [
+          180,
+          40,
+          460,
+          230
+        ],
+        "heads": {
+          "file": "afternoon/near-heads",
+          "box": [
+            405,
+            0,
+            200,
+            180
+          ],
+          "takes": [
+            "b"
+          ],
+          "cells": 2
+        },
+        "ground": {
+          "file": "afternoon/near-ground",
+          "box": [
+            -140,
+            -140,
+            1728,
+            785
+          ]
+        },
+        "maps": "afternoon/near-maps",
+        "eyes": {
+          "a": [
+            [
+              211.0,
+              89.3,
+              10.3,
+              3.6,
+              -0.4,
+              212.5,
+              87.2,
+              4.1,
+              0.9777,
+              0.8358,
+              0.6811
+            ],
+            [
+              254.0,
+              82.2,
+              6.6,
+              3.5,
+              0.23,
+              252.8,
+              81.9,
+              3.5,
+              1.0,
+              0.8486,
+              0.6252
+            ]
+          ],
+          "b": [
+            [
+              500.6,
+              69.0,
+              9.8,
+              4.0,
+              -0.42,
+              502.8,
+              67.5,
+              5.2,
+              0.9604,
+              0.8293,
+              0.7047
+            ],
+            [
+              539.3,
+              59.0,
+              7.0,
+              3.3,
+              0.29,
+              538.5,
+              58.5,
+              4.9,
+              1.0,
+              0.8186,
+              0.621
+            ]
+          ]
+        }
       }
     },
     "empty": null

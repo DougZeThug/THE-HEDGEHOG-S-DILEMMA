@@ -81,12 +81,12 @@ export function compose(base: Values, env: Values, w: Weights, living = false): 
         out[k] = clamp01(v * smooth(0.55, 1, exitRaw));
         break;
       case 'shot':
-        // Which shot (0 the wide painting, n a close-up): held keys, never between; let go
-        // early, it cuts straight back to the wide (the way out is the wide's).
+        // Which shot (0 the wide painting, 1 the two of them close): held keys, never between; let
+        // go early, it cuts straight back to the wide (the way out is the wide's).
         out[k] = exitRaw < 0.999 ? 0 : Math.round(v);
         break;
       case 'cel':
-        // Which drawing (held keys): a whole one, never between.
+        // Which drawing of her head (held keys): a whole one, never between.
         out[k] = Math.round(v);
         break;
       case 'skew':
