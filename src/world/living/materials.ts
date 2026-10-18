@@ -239,8 +239,10 @@ const FRAG = /* glsl */ `
       float grass = w.x * (2.5 + 8.0 * near) + clump * (0.6 + 1.8 * near);
       // (A gust bends it further, but never past ~12 px: a smooth field this long doesn't tear.)
       grass = 12.0 * grass / sqrt(144.0 + grass * grass);
-      // The leaves: their edges against the sky most (the map's sway is larger there).
+      // The leaves: their edges against the sky most (the map's sway is larger there); a few
+      // pixels, never more, a gust too (at 16 px the far trees and the mountain smeared).
       float leaves = w.z * 5.0 * m.g;
+      leaves = 7.0 * leaves / sqrt(49.0 + leaves * leaves);
       float dx = mix(leaves, grass * clamp(m.g * 5.0, 0.0, 1.0), m.b) * uMotion;
       vec2 d = vec2(dx, -0.25 * abs(dx) * m.b);
       if (uTap.w > 0.0) {
@@ -253,16 +255,21 @@ const FRAG = /* glsl */ `
       vec3 c = uAfter > 0.5 ? texture2D(uAfterPlate, at).rgb : texture2D(uPlate, at).rgb;
       // The sky drifting behind the leaves (the leaves and the mountain stay where they are).
       vec2 sq = (at - uCloudBox.xy) / uCloudBox.zw;
+      float sky = 0.0;
       if (uCloudBox.z > 0.0 && all(greaterThan(sq, vec2(0.0))) && all(lessThan(sq, vec2(1.0)))) {
-        float sky = texture2D(uSkyMask, sq).r;
+        sky = texture2D(uSkyMask, sq).r;
         vec2 cq = vec2(uCloud.x + (1.0 - uCloud.x) * ((uv - uCloudBox.xy) / uCloudBox.zw).x - uCloud.y, sq.y);
         vec3 cl = uAfter > 0.5 ? texture2D(uCloudsAfter, cq).rgb : texture2D(uClouds, cq).rgb;
         c = mix(c, cl, sky);
       }
-      // The painted sun flecks move as the leaves above them move (a moment behind them).
+      // The painted sun flecks move as the leaves above them move (a moment behind them, a few
+      // pixels at most); not in the sky, whose bright clouds the flecks map holds too (a gust
+      // printed shifted copies of their edges: the directors' film review, 2026-10-17).
       float f0 = m.a;
-      float f1 = texture2D(uMaps, uv - vec2(w.w * 5.0, w.w * 1.5) * uPx * uMotion).a;
-      c *= 1.0 + (f1 - f0) * 0.75 * (1.0 - uAfter);
+      vec2 fs = vec2(w.w * 5.0, w.w * 1.5);
+      fs *= 5.0 / sqrt(25.0 + dot(fs, fs));
+      float f1 = texture2D(uMaps, uv - fs * uPx * uMotion).a;
+      c *= 1.0 + (f1 - f0) * 0.75 * (1.0 - uAfter) * (1.0 - sky);
       c = evening(c, uv);
       vec2 sk = (uv - uSkyBox.xy) / uSkyBox.zw;
       if (uDuskSky > 0.0 && all(greaterThan(sk, vec2(0.0))) && all(lessThan(sk, vec2(1.0)))) {

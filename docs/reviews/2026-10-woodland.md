@@ -750,3 +750,7 @@ Fixed:
   - The memories playtest now fails on a program compiled after entry or on growth.
 - [P2] **The order map's reading failed silently.** It now falls back to a page canvas and warns.
 - **Simplified:** `gustAt` deleted (no callers). Her blink in the first wide is gone: in 4.5 s it already holds a gust, a leaf and her foot.
+- **Found in the re-recorded film: the sky tore in the gust** (the cinematic director's earlier note, not yet fixed).
+  - The cause: the clouds and the mountain ridge are in the painted sun-flecks map too, and the flecks' brightness pattern, shifted with the leaves (up to ~16 px in the gust), printed offset copies of their edges.
+  - The flecks now stay out of the sky, their shift is capped at 5 px, and the leaves' sway at 7 px: the painting's own rule, "nothing that moves more than a few pixels is moved inside the painting".
+
