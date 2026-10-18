@@ -9,7 +9,7 @@ Offline, once: its output is committed, so scripts/two-shot.py never needs this 
       https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.2.4/RealESRGAN_x4plus_anime_6B.pth
     /tmp/sr/bin/python scripts/upscale.py /tmp/RealESRGAN_x4plus_anime_6B.pth [names…]
 
-(Names, e.g. `b-look-full-mid` once the artist's halfway drawing is in references/woodland/drawings/,
+(Names, e.g. `b-look-full-mid1 b-look-full-mid2` once the artist's in-betweens are in references/woodland/drawings/,
 upscale only those; then run scripts/two-shot.py.)
 
 Real-ESRGAN (Xintao Wang et al., BSD-3), its anime model (6 blocks), run on the CPU in tiles at
@@ -34,8 +34,10 @@ SOURCES = {
     'b-look-full-a': os.path.join(REF, 'drawings', 'b-look-full-a.webp'),
     'b-look-full-b': os.path.join(REF, 'drawings', 'b-look-full-b.webp'),
     'b-look-full-c': os.path.join(REF, 'drawings', 'b-look-full-c.webp'),
-    # (Her head halfway there, when the artist has drawn it: the kit's `b-look-full-mid.png`.)
-    'b-look-full-mid': os.path.join(REF, 'drawings', 'b-look-full-mid.png'),
+    # (Her head a third and two thirds of the way there, when the artist has drawn them: the kit's
+    # `b-look-full-mid1.png`, `b-look-full-mid2.png`.)
+    'b-look-full-mid1': os.path.join(REF, 'drawings', 'b-look-full-mid1.png'),
+    'b-look-full-mid2': os.path.join(REF, 'drawings', 'b-look-full-mid2.png'),
 }
 
 

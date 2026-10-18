@@ -1081,3 +1081,42 @@ the clumps (25–35% of their sway, never on the beats), not the sheet again.
     start range wider than 2.45 for iPhones held sideways (their viewport sits either side of it with
     Safari's bar: a device decides); the kit's order (the pencil stays first: everyone sees it,
     phones included).
+
+### Her turn: stand-in in-betweens (the artist's choice, 2026-10-18)
+
+The artist, on the film: "Her turn does not feel like a natural turn, it reads like jumping
+frames." Asked how to get the in-betweens, they chose to try free stand-ins made here, two of
+them (a third and two thirds of the way), judged by them in a flipbook before anything is filmed.
+That overrides decision 17's "never a warp" for these two drawings, and only as held drawings
+(never a dissolve or a morph played in time).
+
+30. **How they are made** (`scripts/stand-in-turn.py`; no model, no network, no cost).
+    - The panel's head, with her eyes already on him (the shader's own look, so nothing jumps at
+      18.0), is bent a third of the way toward take b. Take b is bent a third of the way back.
+    - The bend is a thin-plate spline through 16 points of the face matched by hand (the eyes and
+      their corners, brows, nose, mouth, chin, hairline, both cheeks).
+    - It is pinned on a 24 px grid everywhere outside take b's region grown by 28 px, so the hair
+      lying on the grass stays where both drawings have it.
+    - Each head is laid into the panel through that margin.
+    - Tried and dropped:
+      - an img2img clean-up with an open anime model: off-model faces;
+      - confining the bend to b's own region: it cut her jaw and hair where the in-between chins
+        fall outside both drawings;
+      - fading the bend out inside the region: it folded her cheek and chin.
+    - Measured at the sheet's size:
+      - their shared region is 220×190 sheet px (b alone 200×180; unpinned, the stand-ins dragged
+        her neck's strands along and made it 240×255);
+      - each drawing's seam p99 under the shared region is 0.065 (b), 0.069 and 0.082 (the
+        unpinned bend had 0.090 and 0.093).
+31. **On the timeline** each is held two drawings (`TURN_STEP`, 1/6 s), on twos:
+    - toward him: 2 at 18.0, 3 at 18.17, her drawing at 18.33;
+    - back up: 3 at 21.17, 2 at 21.33, the panel's head at 21.5.
+
+    So her eyes still lead by half a second and stay on him half a second after her head is back.
+    Without the in-betweens, 2 and 3 show her drawing (the scene clamps to the last drawing there
+    is), so the committed build is the straight cut until a decision. If only one is drawn, it
+    stands for both. Tested both ways.
+32. **Opt-in.** The cutter lays them in only with `--stand-ins`, and names them `standIns` in the
+    manifest. The committed art stays without them until the artist approves the flipbook. The kit
+    now asks for two in-betweens instead of the halfway drawing (`b-look-full-mid1.png` from the
+    sheet, `b-look-full-mid2.png` from take b), with the stand-ins as a guide to the angle only.

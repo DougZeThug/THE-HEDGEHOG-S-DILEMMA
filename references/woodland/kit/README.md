@@ -19,8 +19,17 @@ stand-in.
 **Her turn is one cut**: from the panel's head straight to yours, a turn of 70–90° in a twelfth of
 a second, and back the same way. Where she ends up is clear; how she gets there reads as a start or
 a sudden decision, the loudest thing in the shot, seen twice by everyone who sees it (both
-directors, going through the film frame by frame). A drawing of her head halfway there makes it a
-turn: it is the most useful drawing for the close shot, and his look the next.
+directors, going through the film frame by frame; you: "it reads like jumping frames"). Two
+drawings of her head on the way there, a third and two thirds of the way, make it a turn: they are
+the most useful drawings for the close shot, and his look the next.
+
+Until they come there are **stand-ins** for them in `../drawings/stand-in/`, made without you
+(`scripts/stand-in-turn.py`). They are not drawings: the panel's head and yours, each bent a third
+of the way toward the other through matched points of the face, her hair on the grass held still.
+You judge them in a flipbook first. If you approve, the film uses them until yours come; if not,
+the turn stays the cut. They show the angle each of yours needs. Don't copy their hair or their
+ear: a warp can only bend what is drawn, so the change of side happens in the second one, all at
+once.
 
 This replaces the earlier lists: the eleven close-up drawings (`c4-*`, `c5-*`, `c6-*`) and the
 three close-up panels are no longer needed. Your shot list had him look first and her notice; the
@@ -51,16 +60,17 @@ extra limbs, text, watermark, photo, 3D render, blur.
 
 | File | Make it from | Prompt (after the line above) |
 |---|---|---|
-| `b-look-full-mid.png` | `../drawings/b-look-full-b.webp` | The same image, but her head is turned only halfway between looking straight up at the sky and looking at him, her fringe only beginning to fall across her forehead; her eyes already on him. Nothing else changes. |
+| `b-look-full-mid1.png` | `../02-characters.webp` | The same image, but the young woman's head is turned a third of the way from looking straight up at the sky toward looking at him, her eyes already on him; her hair only beginning to shift with her head. Nothing else changes, nothing on him. |
+| `b-look-full-mid2.png` | `../drawings/b-look-full-b.webp` | The same image, but her head is turned back a third of the way toward looking straight up at the sky (two thirds of the way from the sky to him), her fringe beginning to fall across her forehead; her eyes still on him. Nothing else changes. |
 | `a-look-full.png` | `../02-characters.webp` | The same image; only the young man's eyes have moved: he is looking sideways to the right, toward her, out of the corners of his eyes. His head still faces up, his mouth exactly as it is. Nothing else changes, nothing on her. |
 
-Her halfway drawing is laid between her two heads for two drawings (a sixth of a second) each way:
-toward him once her eyes have gone to him, then yours; back to the sky just before the panel's
-head, her eyes staying on him half a second after it, as now. **Keep a take only if the panel's
-head, it and yours, flipped at twelve drawings a second, read as one girl turning**, not because its
-angle is halfway: between the panel's head and yours her ear changes side, a fringe appears and her
-face rounds, and a halfway drawing has to carry that too. Never a warp or a dissolve between
-drawings: until it comes, the turn stays the cut.
+Her two in-betweens are laid between her two heads for two drawings (a sixth of a second) each:
+toward him once her eyes have gone to him, then yours; back to the sky the same way, arriving as
+the panel's head, her eyes staying on him half a second after it, as now. **Keep a pair only if the
+panel's head, the two and yours, flipped at twelve drawings a second, read as one girl turning**,
+not because their angles are a third and two thirds: between the panel's head and yours her ear
+changes side, a fringe appears and her face rounds, and the two have to carry that between them.
+Each is held as a drawing, never dissolved into the next. If only one comes, it is used for both.
 
 His drawing replaces the moved irises (laid in the way hers is, over his head only). Judge how his
 look reads in the flipbook: if it reads sly rather than fond, a second edit can soften it.
@@ -104,6 +114,6 @@ I would lay single breaths on the drawn breathing and send you the film with and
 ## Order
 
 1. `pencil.png`.
-2. `b-look-full-mid.png` (her turn, halfway).
+2. `b-look-full-mid1.png` and `b-look-full-mid2.png` (her turn, a third and two thirds of the way).
 3. `a-look-full.png` (his look).
 4. Any time, if you like: `pencil-after`, `colour-extent`, `c2-leaves`, the voice memo.

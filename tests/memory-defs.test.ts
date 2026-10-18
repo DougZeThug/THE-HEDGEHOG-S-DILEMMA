@@ -76,7 +76,9 @@ describe('the living memories, as defined and committed', () => {
             for (const f of [near.ground.file, near.maps]) files.push([f, ['']]);
           }
           for (const [t, shot] of (seed.tracks['scene.shot'] ?? []) as [number, number][]) expect(shot, `scene.shot at ${t}`).toBeLessThanOrEqual(near ? 1 : 0);
-          for (const [t, cel] of (seed.tracks['figure:b.cel'] ?? []) as [number, number][]) expect(cel, `figure:b.cel at ${t}`).toBeLessThanOrEqual(near ? near.heads.cells - 1 : 0);
+          // (Her head's in-betweens may be asked for before they are drawn: the scene shows the last
+          // drawing there is, so any of it needs the drawing itself.)
+          for (const [t, cel] of (seed.tracks['figure:b.cel'] ?? []) as [number, number][]) expect(cel, `figure:b.cel at ${t}`).toBeLessThanOrEqual(near && near.heads.cells >= 2 ? 3 : 0);
           for (const [f, sizes] of files) for (const s of sizes) expect(existsSync(join(ROOT, 'public/memories', def.art, `${f}${s}.webp`)), f + s).toBe(true);
         }
         // And the committed timeline has the sheet (production never plays the fallbacks).

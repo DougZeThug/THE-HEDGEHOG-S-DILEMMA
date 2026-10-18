@@ -406,6 +406,12 @@ export const CUT = 34.5;
  */
 export const TWO_SHOT = { from: 15.0, hisBlink: 16.2, herEyes: 17.5, herTurn: 18.0, herBack: 21.5, herEyesBack: 22.0, hisEyes: 24.0, hisRoll: 24.5, to: 27.0 };
 /**
+ * Her turn's in-betweens, a third and two thirds of the way (`figure:b.cel` 2 and 3): each held this
+ * long, two drawings (the memory is drawn on twos), on the way to him from `herTurn` and on the way
+ * back up to `herBack` (the artist: "it reads like jumping frames").
+ */
+export const TURN_STEP = 1 / 6;
+/**
  * The artist's shot list (2026-10-17): 1 the room remembers (the pencil, the lean), 2 crossing
  * in, 3 the wide afternoon, 4 he looks toward her, 5 she notices, 6 their hands, 7 the wide
  * again, 8 the cut to the same place empty at dusk. Since 2026-10-18 shots 4–6 are one two-shot
@@ -532,11 +538,20 @@ export const WOODLAND: MemoryDef = {
         'figure:b.breath': [[0, 1]],
         'figure:b.foot': [[0, 0], [12.4, 0], [12.9, 0.8], [13.8, 0.8], [14.3, 0]],
         // Her look: her eyes go to him (a drawing), her head follows (the artist's drawing of her
-        // turned to him: held, never mixed); her head goes back to the sky as the panel draws it,
-        // and her eyes after it. (The eyes are forced still while the drawing is shown: its eyes
-        // are drawn on him.)
+        // turned to him, through its two in-betweens: held, never mixed); her head goes back to the
+        // sky the same way, arriving as the panel draws it, and her eyes after it. (The eyes are
+        // forced still while a drawing is shown: its eyes are drawn on him. Without the
+        // in-betweens, 2 and 3 are the drawing itself: the straight cut.)
         'figure:b.eyes': [[0, 0, 'hold'], [T.herEyes, 1, 'hold'], [T.herEyesBack, 0]],
-        'figure:b.cel': [[0, 0, 'hold'], [T.herTurn, 1, 'hold'], [T.herBack, 0]],
+        'figure:b.cel': [
+          [0, 0, 'hold'],
+          [T.herTurn, 2, 'hold'],
+          [T.herTurn + TURN_STEP, 3, 'hold'],
+          [T.herTurn + 2 * TURN_STEP, 1, 'hold'],
+          [T.herBack - 2 * TURN_STEP, 3, 'hold'],
+          [T.herBack - TURN_STEP, 2, 'hold'],
+          [T.herBack, 0],
+        ],
         // His look: his eyes go to her (a drawing), his head rolls a little toward her after them
         // (about 2°: the rig was made for the wide), and the shot cuts while he is still looking;
         // in the wide, settled, he looks back up.

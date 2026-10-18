@@ -653,8 +653,9 @@ export class LivingScene {
     };
     chest('chestA', s.chest.a, ba * deep);
     chest('chestB', s.chest.b, bb * deep);
-    // Her head as the artist redrew it (`figure:b.cel`: 0 the panel's, 1 turned to him), held, in
-    // either shot; while it is shown, nothing of the rig made for the panel's face moves it.
+    // Her head as the artist redrew it (`figure:b.cel`: 0 the panel's, 1 turned to him, 2 and 3 on
+    // the way, each the last there is if they are not drawn), held, in either shot; while one is
+    // shown, nothing of the rig made for the panel's face moves it.
     const heads = near ? this.art.near!.heads : this.art.heads ?? null;
     const cel = heads ? Math.max(0, Math.min(heads.cells - 1, Math.round(val('figure:b.cel', 0)))) : 0;
     (u.uHeadCel.value as THREE.Vector2).set(cel >= 1 ? cel - 1 : -1, heads?.cells ?? 1);

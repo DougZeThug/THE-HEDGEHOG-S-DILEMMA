@@ -2,7 +2,7 @@
 The two-shot (docs/reviews/2026-10-woodland.md): the two of them close, from the artist's own
 character sheet, with her look in the artist's own drawing of it. Offline.
 
-    python3 scripts/two-shot.py
+    python3 scripts/two-shot.py [--stand-ins]
 
 From references/woodland/upscaled/*-top@2x.webp (scripts/upscale.py) when they are there, at twice
 the sheet's size (the artist's choice, 2026-10-18: crisper on large screens); else from the sheet
@@ -23,7 +23,9 @@ itself. Writes public/memories/woodland/afternoon/:
     heads        her head turned to him at the wide's size (its people: scripts/cut-woodland.py), so
                  her look is drawn in either shot
 
-and `living.afternoon.near` and `living.afternoon.figures.heads` in the manifest. The wide's puppet
+and `living.afternoon.near` and `living.afternoon.figures.heads` in the manifest. With `--stand-ins`,
+her turn's in-betweens the artist hasn't drawn yet are laid in from the stand-ins
+(scripts/stand-in-turn.py; the manifest names them `standIns`); without it, only her own drawings. The wide's puppet
 is this panel too (cut at 0.8), so the same deformers move both, and both are lit by the painting's
 light where they lie: a cut between them keeps their breath and their light.
 """
@@ -31,6 +33,7 @@ import importlib.util
 import json
 import math
 import os
+import sys
 
 import cv2
 import numpy as np
@@ -57,10 +60,15 @@ LID_BOX = (180, 40, 640, 270)
 # not used: a smile nobody sees is the film telling, and redrawn whole they jump her head again:
 # the directors' and the technical artist's reviews, 2026-10-18).
 TAKE = 'b'
-# Her head halfway there, her eyes already on him (the artist's, when it is drawn: the kit's
-# `b-look-full-mid.png`): laid between the panel's and the take on the way to him. Without it the
-# turn is the straight cut, never a warp (the directors' evaluations of the film, 2026-10-18).
-MID = 'mid'
+# Her head a third and two thirds of the way there, her eyes already on him (the artist's, when they
+# are drawn: the kit's `b-look-full-mid1.png`, `b-look-full-mid2.png`; until then, with
+# `--stand-ins`, the stand-ins made without them from the panel's head and the take:
+# scripts/stand-in-turn.py): laid between the panel's and the take on the way to him. Without
+# either the turn is the straight cut (the directors' evaluations of the film, 2026-10-18; the
+# artist: "it reads like jumping frames").
+MIDS = ('mid1', 'mid2')
+# (The stand-ins only when asked for: the artist judges them before they are filmed.)
+STAND_INS = '--stand-ins' in sys.argv
 # Their eyes (sheet px, y down; measured on the panel at twice its size): the opening below the
 # lash line (centre, radii, angle: positive turns its outer end down), and the iris in it (centre,
 # radius). A look moves the iris along the opening, the white filling in where it was; the lash
@@ -389,11 +397,13 @@ def ground(day):
 
 
 def drawing(name):
-    """One of her redrawn heads as delivered (`b-look-full-<name>`, WebP or PNG), or None."""
-    for ext in ('webp', 'png'):
-        p = os.path.join(cut.REF, 'drawings', f'b-look-full-{name}.{ext}')
-        if os.path.exists(p):
-            return p
+    """One of her redrawn heads (`b-look-full-<name>`, WebP or PNG): the artist's, else (with
+    `--stand-ins`) a stand-in, else None. Returns its path and the name its 2x upscale is kept under."""
+    for sub in ('', 'stand-in') if STAND_INS else ('',):
+        for ext in ('webp', 'png'):
+            p = os.path.join(cut.REF, 'drawings', sub, f'b-look-full-{name}.{ext}')
+            if os.path.exists(p):
+                return p, os.path.join(sub, f'b-look-full-{name}') if sub else f'b-look-full-{name}'
     return None
 
 
@@ -421,24 +431,32 @@ def main():
     # the sheet's own size (from the sheet and the take as drawn), one region round them all (its
     # edge where every drawing agrees with the panel), then each laid in at either size by it.
     sheet1, _ = source('02-characters', os.path.join(cut.REF, '02-characters.webp'), up=False)
-    takes = [TAKE] + [MID] * (drawing(MID) is not None)
-    regions, moves, seams = [], [], []
+    takes = [TAKE] + [m for m in MIDS if drawing(m)]
+    regions, moves, takes1 = [], [], []
     for name in takes:
-        take1, _ = source(f'b-look-full-{name}', drawing(name), up=False)
-        take1, move1 = register(sheet1, take1, 1)
-        region1, seam = head_region(sheet1[:PH], take1[:PH])
-        regions.append(region1), moves.append(move1), seams.append(seam)
-    region1, seam = np.maximum.reduce(regions), max(seams)
+        take1, _ = source(drawing(name)[1], drawing(name)[0], up=False)
+        # (A stand-in is made on the panel's own grid: moved by its new head, the panel round it
+        # would shift and seem to differ everywhere.)
+        stand_in = 'stand-in' in drawing(name)[1]
+        take1, move1 = (take1, (0.0, 0.0)) if stand_in else register(sheet1, take1, 1)
+        region1, _ = head_region(sheet1[:PH], take1[:PH])
+        regions.append(region1), moves.append(move1), takes1.append(take1)
+    region1 = np.maximum.reduce(regions)
+    stand_ins = [t for t in takes if 'stand-in' in drawing(t)[1]]
+    # (Each drawing's seam where it is laid in: the band of the region round them all.)
+    band = (region1 > 0.02) & (region1 < 0.98)
+    seam = max(float(np.percentile(np.abs(cv2.GaussianBlur(t[:PH], (0, 0), 1.5) - cv2.GaussianBlur(sheet1[:PH], (0, 0), 1.5)).max(-1)[band], 99)) for t in takes1)
     bx, by, bw, bh = boxed(region1)
     reg_k = cv2.resize(region1, (w, h), interpolation=cv2.INTER_LINEAR)
     box_k = (slice(by * k, (by + bh) * k), slice(bx * k, (bx + bw) * k))
     rk = reg_k[box_k]
     cels = []
     for name in takes:
-        takek, kk = source(f'b-look-full-{name}', drawing(name))
+        takek, kk = source(drawing(name)[1], drawing(name)[0])
         if kk != k:
             takek = cv2.resize(takek, (takek.shape[1] * k // kk, takek.shape[0] * k // kk), interpolation=cv2.INTER_LANCZOS4)
-        takek, _ = register(top, takek, k)
+        if 'stand-in' not in drawing(name)[1]:
+            takek, _ = register(top, takek, k)
         cel, _, _, _ = dressed(takek[:h, :w], k, day, d, sigma, light)
         cels.append(cel[box_k])
     cut.save(np.concatenate(cels + [np.dstack([rk, rk, rk, np.ones_like(rk)])], 1), os.path.join(a_dir, 'near-heads.webp'), sizes, q=94)
@@ -447,7 +465,7 @@ def main():
     t = cut.FIG_T
     wides = []
     for name, move1 in zip(takes, moves):
-        full1 = cut.arr(Image.open(drawing(name)).convert('RGB').resize((1448, 1086), Image.LANCZOS))
+        full1 = cut.arr(Image.open(drawing(name)[0]).convert('RGB').resize((1448, 1086), Image.LANCZOS))
         full1 = cv2.warpAffine(full1, np.float32([[1, 0, -move1[0]], [0, 1, -move1[1]]]), (1448, 1086), flags=cv2.INTER_LANCZOS4, borderMode=cv2.BORDER_REFLECT)
         wide, _, _, _, _ = cut.figures(cut.img(full1), cut.load('04-day.webp'))
         th, tw = wide.shape[:2]
@@ -478,9 +496,10 @@ def main():
         'pixels': [rw, h], 'gutter': cut.GUTTER, 'reach': REACH,
         'lidBox': [LID_BOX[0], LID_BOX[1], LID_BOX[2] - LID_BOX[0], LID_BOX[3] - LID_BOX[1]],
         # Her head turned to him: where its cells lie on the panel (sheet px, y down), and the
-        # atlas's cells (the drawings, `figure:b.cel` 1 onward: the take, then halfway there if it
-        # is drawn; then the region they are laid in by).
-        'heads': {'file': 'afternoon/near-heads', 'box': [bx, by, bw, bh], 'takes': takes, 'cells': len(takes) + 1},
+        # atlas's cells (the drawings, `figure:b.cel` 1 onward: the take, then its in-betweens as far
+        # as they are there; then the region they are laid in by), and which of them are stand-ins.
+        'heads': {'file': 'afternoon/near-heads', 'box': [bx, by, bw, bh], 'takes': takes, 'cells': len(takes) + 1,
+                  **({'standIns': stand_ins} if stand_ins else {})},
         # The ground under and round them (sheet px, y down: x0, y0, w, h), and where their bed's
         # grass moves (over the atlas's reach).
         'ground': {'file': 'afternoon/near-ground', 'box': [-MARGIN, -MARGIN, gw, gh]},
