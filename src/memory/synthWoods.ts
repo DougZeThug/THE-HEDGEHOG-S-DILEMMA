@@ -62,6 +62,13 @@ export const TIMES = {
    *  swell of +7 dB in the trees from 33.5 to 36.5 s did, a little; QA, 2026-10-18). */
   stillAcross: [CUT - 1.5, CUT + 3.5] as [number, number],
   /**
+   * And shallow while the two of them are close (to `depth`): with the cicadas over and beside
+   * them quiet, they were the only sound moving, and they crested under both looks (+4.8 dB through
+   * hers, +7.6 through his), the woods scoring them (all three evaluations of the film, 2026-10-18).
+   * Eased in under the gust, out under the cicadas' return.
+   */
+  shallow: { from: [11.0, 13.5] as [number, number], to: [SHOTS.wideAgain + 0.8, SHOTS.wideAgain + 3.0] as [number, number], depth: 0.3 },
+  /**
    * After the cut (34.5 s) the sound stays the afternoon's while the cicada over them finishes its
    * phrase (to 37.8): the picture says later before the sound does. Then the day thins, and an
    * evening cicada calls, once, and once more. Nothing marks the cut itself.
@@ -298,6 +305,19 @@ function steady(ph: [number, number][], empty: boolean): [number, number][] {
   });
 }
 
+/**
+ * The two either side's phrases (take 0 the afternoon's, take 1 the dusk's): random, none begins or
+ * ends on the cut, and none is under way as their quiet ends: they come back out of it at a
+ * phrase's start, each with its own swell (one already under way came back as a fade, half a
+ * phrase, on the cut's heels: the sound designer's review, 2026-10-18).
+ */
+export function midPhrases(take: number): [number, number][][] {
+  const empty = take === 1;
+  const len = empty ? EMPTY.length : TIMES.length;
+  const end = TIMES.midQuiet[1];
+  return [MID_L, MID_R].map((c) => steady(phrases(c.seed, 2, len - 1, [4, 9], [2, 6]), empty).filter(([a, b]) => empty || !(a < end && b > end)));
+}
+
 export async function renderWoods(take: number): Promise<Float32Array[]> {
   const empty = take === 1;
   const len = empty ? EMPTY.length : TIMES.length;
@@ -311,9 +331,10 @@ export async function renderWoods(take: number): Promise<Float32Array[]> {
   // Two cicadas, left and right of them, a little further off.
   const mid = new Float32Array(n);
   const midLevel = (t: number) => (0.4 + 0.6 * opened(t)) * (empty ? 1 : quiet(t, T.midQuiet, 0.6)) * day(t) * going(t, T.midOut);
+  const lists = midPhrases(take);
   for (const [k, c] of [[0, MID_L], [1, MID_R]] as [number, Cicada][]) {
     mid.fill(0);
-    for (const [a, b] of steady(phrases(c.seed, 2, len - 1, [4, 9], [2, 6]), empty)) cicada(mid, c, a, b, midLevel);
+    for (const [a, b] of lists[k]) cicada(mid, c, a, b, midLevel);
     smear(mid, 40, 5 + k);
     const [gl, gr] = k === 0 ? [0.8, 0.25] : [0.3, 0.75];
     for (let i = 0; i < n; i++) (L[i] += mid[i] * gl), (R[i] += mid[i] * gr);
@@ -329,9 +350,11 @@ export async function renderWoods(take: number): Promise<Float32Array[]> {
     // (Its clock stops across the cut and goes on from where it stopped.)
     const [h0, h1] = T.stillAcross;
     const clock = (t: number) => (empty || t < h0 ? t : t < h1 ? h0 : t - (h1 - h0));
+    const { from: sf, to: st, depth } = T.shallow;
     const swell = control(n, (t) => {
       const c = clock(t);
-      return 0.55 + 0.25 * Math.sin(2 * Math.PI * s1 * c + p1) + 0.2 * Math.sin(2 * Math.PI * s2 * c + p2);
+      const dep = empty ? 1 : 1 - (1 - depth) * smooth(sf[0], sf[1], t) * (1 - smooth(st[0], st[1], t));
+      return 0.55 + dep * (0.25 * Math.sin(2 * Math.PI * s1 * c + p1) + 0.2 * Math.sin(2 * Math.PI * s2 * c + p2));
     });
     let cp = (p3 / 6.2832) * TAB;
     const dcp = (pulse * TAB) / RATE;

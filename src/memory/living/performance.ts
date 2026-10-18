@@ -33,6 +33,11 @@ export interface BreathProfile {
    * `span` seconds longer at the bottom (a missed breath, not a sigh).
    */
   held?: { at: number; span: number }[];
+  /**
+   * Spans in which no breath takes its longer pause (a chest still for 2 s while one of them looks
+   * at the other reads as a held breath): a breath whose pause would fall in one breathes on.
+   */
+  steady?: [number, number][];
 }
 
 const ease = (x: number) => 0.5 - 0.5 * Math.cos(Math.PI * Math.min(1, Math.max(0, x)));
@@ -48,7 +53,8 @@ export function breath(t: number, p: BreathProfile): number {
     const core = p.period * (1 + p.jitter * (2 * hash01(i + 1, p.seed) - 1));
     let len = core;
     // Every so often a longer pause at the bottom (people don't breathe like metronomes).
-    if (hash01(i + 101, p.seed) < 0.18) len += p.period * 0.35;
+    const pause = p.period * 0.35;
+    if (hash01(i + 101, p.seed) < 0.18 && !(p.steady ?? []).some(([a, b]) => start + core < b && start + core + pause > a)) len += pause;
     for (const h of p.held ?? []) if (start + len > h.at && start <= h.at + h.span) len += h.span;
     if (t < start + len) {
       const depth = 1 + p.depth * (2 * hash01(i + 211, p.seed) - 1);

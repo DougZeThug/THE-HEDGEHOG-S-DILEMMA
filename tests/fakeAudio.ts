@@ -70,6 +70,23 @@ export class FakeCtx {
   createConvolver() {
     return Object.assign(new FakeNode(this), { buffer: null });
   }
+  // (Enough for the engine itself: its limiter, analyser, reverb impulses and the speakers.)
+  sampleRate = 8000;
+  private dest: FakeNode | null = null;
+  get destination() {
+    if (!this.dest) (this.dest = new FakeNode(this)), this.nodes.delete(this.dest);
+    return this.dest;
+  }
+  createDynamicsCompressor() {
+    return Object.assign(new FakeNode(this), { threshold: new FakeParam(), knee: new FakeParam(), ratio: new FakeParam(), attack: new FakeParam(), release: new FakeParam() });
+  }
+  createAnalyser() {
+    return Object.assign(new FakeNode(this), { fftSize: 0 });
+  }
+  createBuffer(channels: number, length: number, sampleRate: number) {
+    const data = Array.from({ length: channels }, () => new Float32Array(length));
+    return { duration: length / sampleRate, getChannelData: (i: number) => data[i] };
+  }
   /** Advance the clock, ending every source whose stop time (or natural end) has passed. */
   advance(dt: number) {
     this.currentTime += dt;

@@ -363,16 +363,24 @@ const FRAG = /* glsl */ `
     } else {
       vec2 uvF = vUv;
       if (uNear > 0.5) {
-        // Their bed's grass in the air (the two-shot): as the wide's grass moves where they lie
-        // (the same wind and clumps, at the same place on the painting), never on them nor within
-        // 6 sheet px of them (its map, uMaps here: R), less where it is out of focus. (Weaker, and
-        // kept off the grass between them, the heart moved half as much as the second wide: the
-        // artist's "still images" again.)
+        // Their bed's grass in the air (the two-shot): bent a little by the wind where they lie on
+        // the painting, but close up it is many clumps, each its own: never on them nor within 6
+        // sheet px of them (its map, uMaps here: R), less where it is out of focus and round their
+        // faces. (Weaker, and kept off the grass between them, the heart moved half as much as the
+        // second wide: the artist's "still images" again.)
         float sw = texture2D(uMaps, vec2(vUv.x / uFigU, vUv.y)).r;
         if (sw > 0.0) {
           vec2 at = uWidePlace.xy + vUv * uWidePlace.zw;
-          float clump = sin(uTime * 3.4 + texture2D(uNoise, at * vec2(0.7, 0.45) + 0.31).r * 6.2831);
-          float dx = (windAt(at.x).x * 5.0 + clump * 1.8) * sw * uMotion;
+          float w = windAt(at.x).x;
+          // Clumps about 80 sheet px across (the noise's cells), each with its own phase and its
+          // own pace, which wanders ±20% (bounded: a pace of its own kept would shear them apart
+          // over the shot), and swaying as far as the air takes it. (The wide's clumps and the
+          // wind's bend, magnified, moved the whole bed as one sheet on one clock, 0.8–0.96 alike
+          // across it: a wave-warp, the cinematic director's evaluation of the film, 2026-10-18.)
+          vec2 q = vUv * uSheet / 1280.0;
+          float n1 = texture2D(uNoise, q + 0.47).r, n2 = texture2D(uNoise, q + vec2(0.21, 0.66)).r;
+          float clump = sin(uTime * 3.4 + 2.0 * sin(uTime * 0.34 + 9.42 * n2) + 9.42 * n1) * (0.3 + 0.7 * min(1.0, abs(w)));
+          float dx = (w * 1.5 + clump * 3.2) * sw * uMotion;
           dx = 7.0 * dx / sqrt(49.0 + dx * dx);
           uvF += vec2(dx, -0.25 * abs(dx)) / uSheet;
         }

@@ -1044,10 +1044,12 @@ export class App {
     const upright = aspect < UPRIGHT;
     // The shot on now, chosen first so the view frames it from its first frame. The two-shot only
     // for someone taken all the way in; turned 14° from it, the wide until they settle facing it
-    // again (interaction and QA reviews, 2026-10-17 and 18). Never on an upright screen: there a
-    // 16:9 two-shot holds one face, and the wide holds both, with her look and his drawn in it
-    // (the reviews of 2026-10-18): the dusk cut is its only cut.
-    const shot = pl.scene.choose(f.final, { inside: this.inside.taken && !upright, turn: this.inside.turned, t: f.t, now: this.time });
+    // again (interaction and QA reviews, 2026-10-17 and 18). Only on a screen that can frame it
+    // (the spec's aspects: never upright, where a 16:9 two-shot holds one face and the wide holds
+    // both, with her look and his drawn in it; the reviews of 2026-10-18): elsewhere the dusk cut
+    // is its only cut.
+    const shot = pl.scene.choose(f.final, { inside: this.inside.taken, turn: this.inside.turned, t: f.t, now: this.time, aspect });
+    this.post.close = shot > 0 ? 1 : 0;
     const focus = upright ? pl.spec.cover.upright : aspect > 2.0 ? pl.spec.cover.ultra : pl.spec.cover.wide;
     const go = this.inside.step(dt, {
       immerse: f.final['scene.immerse'] ?? 0,
@@ -1066,12 +1068,12 @@ export class App {
     const deep = this.inside.entered && (f.final['scene.immerse'] ?? 0) >= 0.9;
     if (deep !== l.deep && f.state !== 'residue' && f.state !== 'complete') {
       l.deep = deep;
-      this.audio?.memoryHush(deep ? DEEP_HUSH : l.memory.prepared.def.hush, deep ? 2.5 : 4);
+      this.audio?.memoryHush(deep ? DEEP_HUSH : l.memory.prepared.def.hush, deep ? 2.5 : 4.5);
     }
     this.washUnderPainting(l, f.final);
     pl.scene.reduced = this.prefs.reducedMotion;
-    // (A very wide screen shows only three quarters of the two-shot's height: its looser frame.)
-    pl.scene.update(this.renderer, f.t, f.final, { view: this.inside.view, parallax: new THREE.Vector2(), ultra: aspect > 2.0 });
+    // (The two-shot's frame is the screen's: a narrower one sees less of its width, a wider one less of its height.)
+    pl.scene.update(this.renderer, f.t, f.final, { view: this.inside.view, parallax: new THREE.Vector2(), aspect });
     // What changes later, told to a screen reader when it happens (not before: the cut is not given away).
     const later = l.memory.prepared.def.announce?.(l.memory.prepared.variant) ?? [];
     while (l.told < later.length && f.position >= later[l.told].at && f.state !== 'emerging') {

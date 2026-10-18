@@ -11,7 +11,7 @@ import { memorySchema } from '../src/memory/sheets';
 import { BREEZE_KEYS, CUT as CUT_AT, MEMORIES, SHOTS, TWO_SHOT, sheetId } from '../src/memory/defs';
 import { SCENE_MEMORIES } from '../src/content/memories';
 import { MemoryPlaybackController } from '../src/memory/MemoryPlaybackController';
-import { renderCicadas, renderWoods, renderLast, cicada, heard, leavesPan, RATE, TIMES } from '../src/memory/synthWoods';
+import { renderCicadas, renderWoods, renderLast, cicada, heard, leavesPan, midPhrases, RATE, TIMES } from '../src/memory/synthWoods';
 import state from '../src/memory/theatre-state.json';
 import manifest from '../public/memories/woodland/manifest.json';
 import { LivingScene, type HeadCels, type LivingArt, type NearArt } from '../src/memory/living/LivingScene';
@@ -53,6 +53,13 @@ describe('their involuntary life, from time alone', () => {
     for (const p of [SPEC.breath.a, SPEC.breath.b]) {
       const free = { ...p, held: [] };
       for (let t = TWO_SHOT.herEyes - 0.5; t < TWO_SHOT.to + 0.5; t += 0.05) expect(Math.abs(breath(t, p) - breath(t, free)), `${t.toFixed(2)} s`).toBeLessThan(0.02);
+      // Nor a long pause: a chest still for more than a second while one of them looks at the
+      // other reads as a held breath (his fell exactly in her look, 18.8–21.3 s).
+      for (const [from, to] of [[TWO_SHOT.herEyes, TWO_SHOT.herEyesBack], [TWO_SHOT.hisEyes, TWO_SHOT.to]]) {
+        let still = 0, longest = 0;
+        for (let t = from; t <= to; t += 0.05) longest = Math.max(longest, (still = breath(t, p) < 0.005 ? still + 0.05 : 0));
+        expect(longest, `${from}–${to} s`).toBeLessThanOrEqual(1);
+      }
     }
   });
 
@@ -538,6 +545,28 @@ describe('the woodland, heard', () => {
       expect(Math.abs(db), `${a}–${a + 0.5} s`).toBeLessThan(1.5);
     }
   });
+  it('the woods neither swell nor fall on either cut of the two-shot, and stay level through it (nothing scores the looks)', async () => {
+    const [l, r] = await renderWoods(0);
+    const e = (a: number, b: number) => energy(l, a, b) + energy(r, a, b);
+    // Half a second either side of each cut: within 1 dB.
+    for (const c of [SHOTS.two, SHOTS.wideAgain]) {
+      const db = 10 * Math.log10(e(c, c + 0.5) / e(c - 0.5, c));
+      expect(Math.abs(db), `${c} s`).toBeLessThan(1);
+    }
+    // Through the heart its half seconds range by no more than 3 dB (the chorus's swells, deep,
+    // ranged 7.6 dB under the looks).
+    const dbs: number[] = [];
+    for (let a = SHOTS.two; a < SHOTS.wideAgain; a += 0.5) dbs.push(10 * Math.log10(e(a, a + 0.5)));
+    expect(Math.max(...dbs) - Math.min(...dbs)).toBeLessThan(3);
+  });
+  it("the two either side come back out of their quiet only at a phrase's start (never faded in mid-phrase)", () => {
+    const [, end] = TIMES.midQuiet;
+    for (const list of midPhrases(0)) {
+      for (const [a, b] of list) expect(a < end && b > end, `${a.toFixed(2)}–${b.toFixed(2)} s`).toBe(false);
+      // (Each still comes back, within a few seconds.)
+      expect(list.some(([a]) => a >= end && a < end + 4)).toBe(true);
+    }
+  });
   it("a cicada's phrase swells in and falls away, never a gated tone", () => {
     const x = new Float32Array(8 * RATE);
     cicada(x, { f: 5200, q: 3, pulse: 230, beat: 2.6, seed: 1 }, 1, 7, () => 1);
@@ -616,17 +645,66 @@ describe('the scene, as built (no GL: what it would draw and let go)', () => {
     expect(n.heads.takes).toEqual(['b']);
     expect(n.heads.cells).toBe(2);
     expect((lm.figures as unknown as { heads: { cells: number } }).heads.cells).toBe(2);
-    // The camera never looks past the atlas's reach (both frames, every screen it is shown on).
-    for (const [x, , w] of [SPEC.near!.frame, SPEC.near!.ultra]) expect(x + w).toBeLessThanOrEqual(n.reach);
+    // The camera never looks past the atlas's reach (every frame, every screen it is shown on).
+    for (const { frame: [x, , w] } of SPEC.near!.frames) expect(x + w).toBeLessThanOrEqual(n.reach);
+  });
+
+  it('the two-shot holds both faces and all three hands on every screen it is shown on', () => {
+    // Their features (stage px: x0, y0, x1, y1), as drawn: his face and ear, hers, her hand on
+    // her stomach, his hand and hers between them (measured on the film's frame 204).
+    const features: Record<string, number[]> = {
+      'his face': [165, 55, 276, 177], 'her face': [467, 26, 567, 137], 'her resting hand': [639, 195, 719, 261], 'his hand': [567, 317, 602, 358], 'her hand': [607, 317, 672, 381],
+    };
+    const { art: a } = both();
+    const paint = a.size[0] / a.size[1];
+    const s = new LivingScene(a, SPEC, { width: 64, height: 36, noise: tex(), reduced: false });
+    const m = livingMaterials(tex());
+    const v = { 'scene.shot': 1 };
+    const [lo, hi] = SPEC.near!.aspect;
+    for (let i = 0, aspect = lo; aspect <= hi + 1e-9; i++, aspect = lo + i * 0.05) {
+      // (Each coming on afresh, on a new drawing, so each is framed for its screen.)
+      s.choose({ 'scene.shot': 0 }, { inside: true, turn: 0, t: 16 + i / 6 - 0.01, aspect });
+      expect(s.choose(v, { inside: true, turn: 0, t: 16 + i / 6, aspect })).toBe(1);
+      s.update(gl, 16 + i / 6, v, { ...view, aspect });
+      // What the screen sees of the stage: the painting as it covers the screen, through the frame.
+      const q = coverQuad(aspect, paint, SPEC.cover.wide);
+      const qw = q[1].x - q[0].x, qh = q[3].y - q[0].y;
+      const pl = m.people.uniforms.uPlace.value as THREE.Vector4;
+      // (uPlace: painting uv = (sheet px / SHEET) * zw + xy, v up from the painting's foot.)
+      const sx = (u: number) => ((u - pl.x) / pl.z) * 1448, sy = (vv: number) => (1 - (vv - pl.y) / pl.w) * 505;
+      const seen = [sx(-q[0].x / qw), sy((1 - q[0].y) / qh), sx((1 - q[0].x) / qw), sy(-q[0].y / qh)];
+      for (const [name, [x0, y0, x1, y1]] of Object.entries(features)) {
+        const margin = Math.min(x0 - seen[0], y0 - seen[1], seen[2] - x1, seen[3] - y1);
+        expect(margin, `${name} at ${aspect.toFixed(2)}`).toBeGreaterThanOrEqual(8);
+      }
+    }
+    s.dispose();
   });
 
   it('the two-shot: only for someone inside; gives way past 14° and comes back once they have settled, never near a beat nor in its last 2 s', () => {
     const s = new LivingScene(both().art, SPEC, { width: 64, height: 36, noise: tex(), reduced: false });
     const v = { 'scene.shot': 1 };
     expect(s.choose(v, { inside: true, turn: 0, t: 16 })).toBe(1);
-    // Not inside (seen on the wall, or upright: the App says so): the wide.
+    // Not inside (seen on the wall): the wide.
     expect(s.choose(v, { inside: false, turn: 0, t: 16.1 })).toBe(0);
     expect(s.choose(v, { inside: true, turn: 0, t: 16.2 })).toBe(1);
+    // A screen it can't frame (upright, square, 4:3's narrower kin; a 21:9 monitor's full width):
+    // the wide. (Each coming on afresh.)
+    const fresh = (aspect: number) => (s.choose({ 'scene.shot': 0 }, { inside: true, turn: 0, t: 16.2, aspect }), s.choose(v, { inside: true, turn: 0, t: 16.2, aspect }));
+    for (const aspect of [9 / 19.5, 1, 1.25, 2.6, 32 / 9]) expect(fresh(aspect), `${aspect}`).toBe(0);
+    for (const aspect of [1.3, 4 / 3, 16 / 10, 2.165, 2.45]) expect(fresh(aspect), `${aspect}`).toBe(1);
+    // On, it holds through a browser's bars coming and going (a little either side of its
+    // aspects), and its frame with it; a screen turned or resized past that, the wide.
+    const u = livingMaterials(tex()).people.uniforms;
+    fresh(1.85);
+    s.update(gl, 16.25, v, { ...view, aspect: 1.85 });
+    const framed = (u.uPlace.value as THREE.Vector4).clone();
+    expect(s.choose(v, { inside: true, turn: 0, t: 16.4, aspect: 2.05 })).toBe(1);
+    s.update(gl, 16.4, v, { ...view, aspect: 2.05 });
+    expect((u.uPlace.value as THREE.Vector4).equals(framed)).toBe(true);
+    expect(s.choose(v, { inside: true, turn: 0, t: 16.5, aspect: 2.5 })).toBe(1);
+    expect(s.choose(v, { inside: true, turn: 0, t: 16.6, aspect: 0.46 })).toBe(0);
+    expect(fresh(16 / 9)).toBe(1);
     // Turned past 14°: the wide; still turned, still the wide.
     expect(s.choose(v, { inside: true, turn: 0.3, t: 19 })).toBe(0);
     expect(s.choose(v, { inside: true, turn: 0.2, t: 19.6 })).toBe(0);

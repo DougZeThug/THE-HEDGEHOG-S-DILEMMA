@@ -8,6 +8,7 @@ const MIX = 0.64 * 1.1 * 2.1;
  *
  *   sources → [ambience | music | voices] buses → master → limiter → output
  *                         └──── sends ────→ reverb (small/large crossfade) ─┘
+ *   (the music's send stopped under a memory with it: musicReverb)
  *
  * Everything level-related is ramped (no clicks). A compressor set as a brick-wall-ish
  * limiter sits before the output; a final trim keeps headroom for headphones.
@@ -21,6 +22,13 @@ export class AudioEngine {
   /** Ducking stage for "silence" moments (ambience + music). */
   readonly duck: GainNode;
   readonly reverbIn: GainNode;
+  /**
+   * The room's music into the reverb: stopped under a memory with its dry sound (`memoryMusic`),
+   * which otherwise left a phrase already playing as a reverb-only piano over the clearing's
+   * quietest seconds (the sound designer's review, 2026-10-18). (Gated, not cut: a tail already
+   * ringing in the reverb decays.)
+   */
+  readonly musicReverb: GainNode;
   private revSmall: ConvolverNode;
   private revLarge: ConvolverNode;
   private revSmallGain: GainNode;
@@ -85,6 +93,8 @@ export class AudioEngine {
     this.revLargeGain.gain.value = 0.15;
     this.reverbIn.connect(this.revSmall).connect(this.revSmallGain).connect(this.master);
     this.reverbIn.connect(this.revLarge).connect(this.revLargeGain).connect(this.master);
+    this.musicReverb = c.createGain();
+    this.musicReverb.connect(this.reverbIn);
   }
 
   async resume() {
@@ -252,12 +262,20 @@ export class AudioEngine {
 
   /**
    * A living memory hushes the room (depth 0…1) and stops its music; `memoryHush(0)` gives the
-   * room back. Its own stage: a deeper room silence already under way is kept, not lifted.
+   * room back. Its own stage: a deeper room silence already under way is kept, not lifted. Going
+   * down it falls quickly at first; coming back it rises evenly in loudness over `seconds` (as
+   * `lift`: on a fall's curve the hum came back like a switch, two thirds of it in a second).
    */
   memoryHush(depth: number, seconds = 1.4) {
     const t = this.ctx.currentTime;
-    for (const [p, v] of [[this.memoryDuck.gain, 1 - depth], [this.memoryMusic.gain, depth > 0 ? 0 : 1]] as const) {
+    const music = depth > 0 ? 0 : 1;
+    for (const [p, v] of [[this.memoryDuck.gain, 1 - depth], [this.memoryMusic.gain, music], [this.musicReverb.gain, music]] as const) {
       p.cancelScheduledValues(t);
+      if (v > p.value + 1e-4) {
+        p.setValueAtTime(Math.max(p.value, 1e-3), t);
+        p.exponentialRampToValueAtTime(v, t + Math.max(0.05, seconds));
+        continue;
+      }
       p.setValueAtTime(p.value, t);
       p.setTargetAtTime(v, t, Math.max(0.05, seconds / 3));
     }

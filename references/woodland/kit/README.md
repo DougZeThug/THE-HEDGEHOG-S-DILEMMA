@@ -14,7 +14,13 @@ drew them), shown at twice its size (the upscale you chose). In it:
 
 Her look is your drawing. **His look is not**: there is no drawing of it, so his irises are moved
 inside his eye openings (the lash line stays as drawn) and his head rolls about 2°. That is a
-stand-in, and the one drawing that would replace it is the most useful thing you could make now.
+stand-in.
+
+**Her turn is one cut**: from the panel's head straight to yours, a turn of 70–90° in a twelfth of
+a second, and back the same way. Where she ends up is clear; how she gets there reads as a start or
+a sudden decision, the loudest thing in the shot, seen twice by everyone who sees it (both
+directors, watching the film). A drawing of her head halfway there makes it a turn: it is now the
+most useful drawing you could make, and his look the next.
 
 This replaces the earlier lists: the eleven close-up drawings (`c4-*`, `c5-*`, `c6-*`) and the
 three close-up panels are no longer needed. Your shot list had him look first and her notice; the
@@ -45,11 +51,19 @@ extra limbs, text, watermark, photo, 3D render, blur.
 
 | File | Make it from | Prompt (after the line above) |
 |---|---|---|
+| `b-look-full-mid.png` | `../drawings/b-look-full-b.webp` | The same image, but her head is turned only halfway between looking straight up at the sky and looking at him, her fringe only beginning to fall across her forehead; her eyes already on him. Nothing else changes. |
 | `a-look-full.png` | `../02-characters.webp` | The same image; only the young man's eyes have moved: he is looking sideways to the right, toward her, out of the corners of his eyes. His head still faces up, his mouth exactly as it is. Nothing else changes, nothing on her. |
-| `b-look-full-mid.png` (optional) | `../drawings/b-look-full-b.webp` | The same image, but her head is turned only halfway between looking straight up at the sky and looking at him; her eyes already on him. Nothing else changes. |
 
-His drawing replaces the moved irises (laid in the way hers is, over his head only). Her halfway
-drawing, if it comes, sits between her two heads as she turns.
+Her halfway drawing is laid between her two heads for two drawings (a sixth of a second) each way:
+toward him once her eyes have gone to him, then yours; back to the sky just before the panel's
+head, her eyes staying on him half a second after it, as now. **Keep a take only if the panel's
+head, it and yours, flipped at twelve drawings a second, read as one girl turning**, not because its
+angle is halfway: between the panel's head and yours her ear changes side, a fringe appears and her
+face rounds, and a halfway drawing has to carry that too. Never a warp or a dissolve between
+drawings: until it comes, the turn stays the cut.
+
+His drawing replaces the moved irises (laid in the way hers is, over his head only). Judge how his
+look reads in the flipbook: if it reads sly rather than fond, a second edit can soften it.
 
 ## Shot 1: the pencil on the wall (from `../drawings/base-scene.png`): most important
 
@@ -90,6 +104,6 @@ I would lay single breaths on the drawn breathing and send you the film with and
 ## Order
 
 1. `pencil.png`.
-2. `a-look-full.png` (his look).
-3. Any time, if you like: `b-look-full-mid`, `pencil-after`, `colour-extent`, `c2-leaves`, the
-   voice memo.
+2. `b-look-full-mid.png` (her turn, halfway).
+3. `a-look-full.png` (his look).
+4. Any time, if you like: `pencil-after`, `colour-extent`, `c2-leaves`, the voice memo.

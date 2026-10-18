@@ -566,7 +566,7 @@ export const WOODLAND: MemoryDef = {
       // renders are −45 dBFS RMS; pulsed tones read hotter than their RMS).
       cues: {
         // The cicada nearest them, in the tree over them, first heard from beyond the wall; a lull
-        // while the hand moves; singing straight across the cut.
+        // while the two of them are close (her look, his); singing straight across the cut.
         'music:cicadas': { asset: 'synth:cicadas', take, gainDb: -10, place: { u: -0.3, v: 0.25, d: 1.5 }, fadeOut: 6, caption: '[cicadas, beyond the wall]' },
         // The rest of the clearing: two more cicadas, the chorus in the trees, the evening
         // cicadas after the cut, the leaves.

@@ -22,6 +22,7 @@ const GradeShader = {
     uBlack: { value: 1 },
     uVignette: { value: 0.32 },
     uVigLow: { value: 0 },
+    uVigOut: { value: 0 },
     uContrast: { value: 0 },
     uGrain: { value: 0.035 },
     uTime: { value: 0 },
@@ -33,7 +34,7 @@ const GradeShader = {
   `,
   fragmentShader: /* glsl */ `
     uniform sampler2D tDiffuse;
-    uniform float uSaturation, uDarkness, uWhite, uBlack, uVignette, uGrain, uTime, uContrast, uVigLow;
+    uniform float uSaturation, uDarkness, uWhite, uBlack, uVignette, uGrain, uTime, uContrast, uVigLow, uVigOut;
     uniform vec2 uRes;
     varying vec2 vUv;
     float h(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
@@ -43,12 +44,14 @@ const GradeShader = {
       c.rgb = mix(vec3(l), c.rgb, uSaturation);
       vec2 d = vUv - 0.5;
       d.x *= uRes.x / uRes.y;
-      float v = smoothstep(0.95, 0.25, length(d));
+      // (Close up inside a living memory it falls off further out: the picture's corners, not a face.)
+      float r0 = mix(0.25, 0.45, uVigOut), r1 = mix(0.95, 1.1, uVigOut);
+      float v = smoothstep(r1, r0, length(d));
       // The look's own vignette can sit lower (centred at 0.42 of the height) and spare the
       // highlights; the Director's darkness keeps the plain one.
       vec2 dl = vUv - vec2(0.5, 0.5 - 0.08 * uVigLow);
       dl.x *= uRes.x / uRes.y;
-      float vl = mix(smoothstep(0.95, 0.25, length(dl)), 1.0, smoothstep(0.85, 0.95, l) * uVigLow);
+      float vl = mix(smoothstep(r1, r0, length(dl)), 1.0, smoothstep(0.85, 0.95, l) * uVigLow);
       float vk = uVignette + uDarkness * 0.6;
       c.rgb *= mix(1.0, mix(v, vl, uVignette / max(vk, 1e-4)), vk);
       c.rgb *= 1.0 - uDarkness * 0.92;
@@ -99,6 +102,14 @@ export class Post {
    * (twelve a second) and lighter. The vignette stays: it is what the room and the memory share.
    */
   immersed = 0;
+  /**
+   * The two of them close (0..1, the App's, from the shot): inside, the vignette is centred again
+   * (the room's sits low for its unlit ceiling) and falls off further out, so it frames the
+   * picture's corners and not a face near its edge: his, upper left in the two-shot, was 13%
+   * darker there than in the wide (the directors' evaluations, 2026-10-18). Only then: the wides
+   * and the dusk keep the vignette they were reviewed with (the cut hides the change).
+   */
+  close = 0;
   private readonly roomPass: RenderPass;
   private readonly outputPass: OutputPass;
 
@@ -154,7 +165,9 @@ export class Post {
     u.uTime.value = this.reducedMotion ? 0.5 : grainTime * 0.25;
     u.uGrain.value = (this.reducedMotion ? this.grain * 0.625 : this.grain) * (1 - 0.6 * im);
     u.uVignette.value = this.vignette;
-    u.uVigLow.value = this.vigLow;
+    const close = this.close * im;
+    u.uVigLow.value = this.vigLow * (1 - close);
+    u.uVigOut.value = close;
     u.uContrast.value = this.contrast * (1 - im);
   }
 

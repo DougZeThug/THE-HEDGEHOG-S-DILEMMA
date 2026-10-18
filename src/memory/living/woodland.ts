@@ -47,14 +47,23 @@ export interface LivingSpec {
   cover: { wide: [number, number]; upright: [number, number]; ultra: [number, number] };
   /**
    * The two-shot (scripts/two-shot.py): its frame (stage px: x0, y0 and width; the height is the
-   * painting's proportion), locked, and a looser one for a very wide screen (which shows only
-   * three quarters of the height); their eyes' look at `figure:a.eyes` and `figure:b.eyes` 1
-   * (fractions of each opening's radii, along it toward the picture's right, and across it,
-   * down); how far their breath goes close (of the wide's); when it is on (memory s: from, to) and
-   * when they do something in it (memory s: after giving way it never comes back within half a
-   * second of one). The times are the timeline's own (defs.ts TWO_SHOT).
+   * painting's proportion), locked, by the screen's aspect (width over height: each frame for
+   * screens up to `upTo`), and the aspects it is shown on at all (outside them, the wide); their
+   * eyes' look at `figure:a.eyes` and `figure:b.eyes` 1 (fractions of each opening's radii, along
+   * it toward the picture's right, and across it, down); how far their breath goes close (of the
+   * wide's); when it is on (memory s: from, to) and when they do something in it (memory s: after
+   * giving way it never comes back within half a second of one). The times are the timeline's own
+   * (defs.ts TWO_SHOT).
    */
-  near?: { frame: [number, number, number]; ultra: [number, number, number]; gaze: [number, number]; gazeB: [number, number]; breath: number; span: [number, number]; beats: number[] };
+  near?: {
+    frames: { upTo: number; frame: [number, number, number] }[];
+    aspect: [number, number];
+    gaze: [number, number];
+    gazeB: [number, number];
+    breath: number;
+    span: [number, number];
+    beats: number[];
+  };
 }
 
 /**
@@ -64,19 +73,27 @@ export interface LivingSpec {
 const BLINKS = {
   // (The first wide is 10.5–15 s, the second 27–34.5: his in the first, after the gust, settled a
   // second before the cut; his again in the two-shot, before her look (the creative director's
-  // beat sheet: "both look up; he blinks once"); hers in the second wide, before its stillness.)
+  // beat sheet: "both look up; he blinks once"); hers in the second wide, before its stillness.
+  // His in the two-shot stays: without it nobody blinks from 13.4 s to 31.6, two faces 3.3× as big
+  // never blinking for the whole 12 s close, and his face would move only on cue: the skeptic's
+  // review of the evaluations, 2026-10-18, against the creative director's.)
   a: [13.4, TWO_SHOT.hisBlink],
   b: [31.6],
 };
 
+/** The two-shot's looks, from half a second before her eyes go to him to the cut out. */
+const STEADY: [number, number] = [TWO_SHOT.herEyes - 0.5, TWO_SHOT.to];
+
 export const WOODLAND: LivingSpec = {
   breath: {
-    // He breathes slower and deeper. Nothing in his breathing answers either look (a held breath
-    // would be the most noticeable thing in the shot: the creative director's review, 2026-10-18).
-    // (Both at rest between breaths at the cut, 34.5 s: his breath waits in the second wide (27.5,
-    // 28.5), hers as she settles there (27.3); tested.)
-    a: { period: 4.7, jitter: 0.14, inhale: 0.38, rest: 0.16, depth: 0.18, seed: 11, held: [{ at: 27.5, span: 2.0 }, { at: 28.5, span: 2.4 }] },
-    b: { period: 3.9, jitter: 0.18, inhale: 0.42, rest: 0.1, depth: 0.22, seed: 23, held: [{ at: 27.3, span: 2.8 }] },
+    // He breathes slower and deeper. Nothing in their breathing answers either look (a held breath
+    // would be the most noticeable thing in the shot: the creative director's review, 2026-10-18):
+    // from just before her eyes go to him to the cut out, neither takes a long pause (his fell
+    // exactly in her look, 18.8–21.3 s, a still chest while she looked at him: the cinematic
+    // director's evaluation of the film; tested). Both at rest between breaths at the cut, 34.5 s:
+    // the breath each would take just before it waits (his for 0.9 s, hers 2.4 s; tested).
+    a: { period: 4.7, jitter: 0.14, inhale: 0.38, rest: 0.16, depth: 0.18, seed: 11, held: [{ at: 33.2, span: 0.9 }], steady: [STEADY] },
+    b: { period: 3.9, jitter: 0.18, inhale: 0.42, rest: 0.1, depth: 0.22, seed: 23, held: [{ at: 31.0, span: 2.4 }], steady: [STEADY] },
   },
   chest: { a: { swell: 0.07, rise: 6 }, b: { swell: 0.09, rise: 6 } },
   headLift: 1.6,
@@ -116,19 +133,28 @@ export const WOODLAND: LivingSpec = {
   // (Upright, between his face and her hand: at 0.37 her outer hand came within 5% of a 9:19.5
   // screen's edge: the interaction designer's review, 2026-10-18.)
   cover: { wide: [0.5, 0.5], upright: [0.385, 0.5], ultra: [0.5, 0.5] },
-  // Their heads and torsos and their hands between them, locked: both faces and both hands, the
-  // hands well above the frame's foot, his face inside a 4:3 screen's (the cinematic director's,
-  // the interaction designer's and the skeptic's reviews, 2026-10-18); looser on a very wide
-  // screen. His look reaches the corner of each eye (a sidelong look, not a 4-px one); hers leads
-  // her head's turn toward him. Their breath close at a little under half the wide's (the rig was
-  // made for ~0.5×: the technical artist's review).
+  // Their heads and torsos and their hands between them, locked: both faces and all three hands,
+  // the hands well above the frame's foot (the cinematic director's, the interaction designer's
+  // and the skeptic's reviews, 2026-10-18). One frame can't hold them on every screen: a narrower
+  // one sees less of the width (at 4:3 the 16:9 frame touched his ear, at 1.2 it cut a quarter of
+  // his face), a wider one less of the height (at 2.0 it cut her hair, at 2.6 her face and the
+  // hands): so a looser frame either side, and outside 1.3–2.45 the wide, as upright screens have
+  // (the cinematic director's evaluation of the film, checked through `coverQuad`; tested). His
+  // look reaches the corner of each eye (a sidelong look, not a 4-px one); hers leads her head's
+  // turn toward him. Their breath close at a little under half the wide's (the rig was made for
+  // ~0.5×: the technical artist's review).
   near: {
-    frame: [50, -10, 790],
-    ultra: [21, -50, 889],
+    frames: [
+      { upTo: 1.5, frame: [0, -60, 940] },
+      { upTo: 1.9, frame: [50, -10, 790] },
+      { upTo: 2.45, frame: [0, -80, 1000] },
+    ],
+    aspect: [1.3, 2.45],
     gaze: [0.5, 0.08],
     gazeB: [-0.45, 0.1],
     breath: 0.45,
     span: [TWO_SHOT.from, TWO_SHOT.to],
-    beats: [TWO_SHOT.herEyes, TWO_SHOT.herTurn, TWO_SHOT.herBack, TWO_SHOT.herEyesBack, TWO_SHOT.hisEyes, TWO_SHOT.hisRoll],
+    // (His blink too: a return never cuts in on a half-shut lid.)
+    beats: [TWO_SHOT.hisBlink, TWO_SHOT.herEyes, TWO_SHOT.herTurn, TWO_SHOT.herBack, TWO_SHOT.herEyesBack, TWO_SHOT.hisEyes, TWO_SHOT.hisRoll],
   },
 };

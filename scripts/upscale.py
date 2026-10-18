@@ -7,7 +7,10 @@ Offline, once: its output is committed, so scripts/two-shot.py never needs this 
     /tmp/sr/bin/pip install numpy pillow
     curl -L -o /tmp/RealESRGAN_x4plus_anime_6B.pth \
       https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.2.4/RealESRGAN_x4plus_anime_6B.pth
-    /tmp/sr/bin/python scripts/upscale.py /tmp/RealESRGAN_x4plus_anime_6B.pth
+    /tmp/sr/bin/python scripts/upscale.py /tmp/RealESRGAN_x4plus_anime_6B.pth [names…]
+
+(Names, e.g. `b-look-full-mid` once the artist's halfway drawing is in references/woodland/drawings/,
+upscale only those; then run scripts/two-shot.py.)
 
 Real-ESRGAN (Xintao Wang et al., BSD-3), its anime model (6 blocks), run on the CPU in tiles at
 4×, then resampled to 2×. Writes references/woodland/upscaled/<name>-top@2x.webp (lossless).
@@ -31,6 +34,8 @@ SOURCES = {
     'b-look-full-a': os.path.join(REF, 'drawings', 'b-look-full-a.webp'),
     'b-look-full-b': os.path.join(REF, 'drawings', 'b-look-full-b.webp'),
     'b-look-full-c': os.path.join(REF, 'drawings', 'b-look-full-c.webp'),
+    # (Her head halfway there, when the artist has drawn it: the kit's `b-look-full-mid.png`.)
+    'b-look-full-mid': os.path.join(REF, 'drawings', 'b-look-full-mid.png'),
 }
 
 
@@ -108,7 +113,13 @@ def main():
     net.load_state_dict(sd.get('params_ema', sd.get('params', sd)), strict=True)
     net.eval()
     os.makedirs(OUT, exist_ok=True)
+    only = set(sys.argv[2:])
     for name, path in SOURCES.items():
+        # (Each drawing as delivered, WebP or PNG; one not yet drawn is passed over. Names after the
+        # weights: only those.)
+        path = next((p for p in (path, os.path.splitext(path)[0] + '.webp', os.path.splitext(path)[0] + '.png') if os.path.exists(p)), None)
+        if path is None or (only and name not in only):
+            continue
         im = Image.open(path).convert('RGB')
         # (The takes were drawn at a slightly different size: on the sheet's own grid first.)
         if im.size != (1448, 1086):

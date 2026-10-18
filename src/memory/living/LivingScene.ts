@@ -114,6 +114,8 @@ const FPS = 12;
 const GIVE_WAY = 0.244;
 const SETTLE = 0.105;
 const RETURN = 1.2;
+/** A screen's aspect when none is given (16:9). */
+const WIDE = 16 / 9;
 
 /**
  * The puppet's mesh: the body finer where faces and hands are (an eye is ~20 sheet px), her forearm
@@ -249,6 +251,8 @@ export class LivingScene {
   private shot = 0;
   private asked = 0;
   private gaveWay = false;
+  /** The two-shot's frame while it is on (chosen as it came on). */
+  private band: [number, number, number] | null = null;
   /** Since when (room s) they have faced the two-shot again after it gave way (−1: not settled), and the drawing and time it was last chosen at. */
   private settled = -1;
   private lastDrawing = -1;
@@ -464,7 +468,7 @@ export class LivingScene {
    * `view` is the part of the painting to draw (what is on the screen); `parallax` the visitor's
    * small looks (painting uv at depth 1). Returns whether it drew.
    */
-  update(renderer: THREE.WebGLRenderer, t: number, v: Values, o: { view: THREE.Vector4; parallax: THREE.Vector2; tap?: THREE.Vector4; ultra?: boolean }): boolean {
+  update(renderer: THREE.WebGLRenderer, t: number, v: Values, o: { view: THREE.Vector4; parallax: THREE.Vector2; tap?: THREE.Vector4; aspect?: number }): boolean {
     if (this.disposed) return false;
     const tq = Math.floor(t * FPS) / FPS;
     const viewMoved = !this.lastView.equals(o.view);
@@ -523,10 +527,9 @@ export class LivingScene {
     }
     (pu.uParallax.value as THREE.Vector2).copy(o.parallax);
     if (two) {
-      // The two of them close, the camera locked (a looser frame on a very wide screen, `ultra`),
-      // over the ground round them; nothing else of the wide.
-      const sp = this.spec.near!;
-      this.frameStage(...(o.ultra ? sp.ultra : sp.frame));
+      // The two of them close, the camera locked (its frame the screen's: `aspect`), over the
+      // ground round them; nothing else of the wide.
+      this.frameStage(...(this.band ?? this.bandFor(o.aspect ?? WIDE)));
     }
     if (this.people) this.pose(tq, val);
     // The two-shot shows them over their ground alone; the wide shows everything else.
@@ -559,8 +562,9 @@ export class LivingScene {
    * Which shot is on now (chosen before `update`, so the view frames it from its first frame):
    * the timeline's, except that the two-shot is only for someone inside (seen on the wall it is
    * the wide), gives way to the wide while they turn from it, and is the wide if it couldn't be
-   * had: never a wait, never a face shrunk onto the wall. `turn` is how far they have turned
-   * (radians), `t` the memory's time, `now` the room's (seconds; default `t`).
+   * had or the screen can't frame it (`aspect`, width over height: `near.aspect`): never a wait,
+   * never a face shrunk onto the wall or cut by the screen's edge. `turn` is how far they have
+   * turned (radians), `t` the memory's time, `now` the room's (seconds; default `t`).
    *
    * The two-shot comes back once they have settled facing it again (under SETTLE for RETURN s), on
    * a new drawing (any frame, if the memory's time is held), never within half a second of
@@ -568,8 +572,11 @@ export class LivingScene {
    * turning back closeness (the interaction designer's review, 2026-10-18: one glance cost the
    * whole heart). Everything they do is drawn in both shots.
    */
-  choose(v: Values, o: { inside: boolean; turn: number; t: number; now?: number }): number {
-    const near = this.hasNear;
+  choose(v: Values, o: { inside: boolean; turn: number; t: number; now?: number; aspect?: number }): number {
+    const sp = this.spec.near, aspect = o.aspect ?? WIDE;
+    // (On, it holds through a browser's bars coming and going: a little either side of its aspects.)
+    const on = this.shot === 1, m = on ? 0.1 : 0;
+    const near = this.hasNear && !!sp && aspect >= sp.aspect[0] - m && aspect <= sp.aspect[1] + m;
     const now = o.now ?? o.t;
     const asked = Math.max(0, Math.min(1, Math.round(v['scene.shot'] ?? 0)));
     if (asked !== this.asked) this.asked = asked, (this.gaveWay = false), (this.settled = -1);
@@ -585,8 +592,17 @@ export class LivingScene {
     }
     this.lastDrawing = drawing;
     this.lastT = o.t;
-    this.shot = this.gaveWay || !o.inside || !near ? 0 : asked;
+    const shot = this.gaveWay || !o.inside || !near ? 0 : asked;
+    // Its frame is the screen's as it comes on, held while it lasts (never reframed mid-shot).
+    if (shot === 1 && !on) this.band = this.bandFor(aspect);
+    this.shot = shot;
     return this.shot;
+  }
+
+  /** The two-shot's frame for a screen's aspect (its band's: `near.frames`). */
+  private bandFor(aspect: number): [number, number, number] {
+    const fr = this.spec.near!.frames;
+    return (fr.find((b) => aspect <= b.upTo) ?? fr[fr.length - 1]).frame;
   }
 
   /** Whether the two-shot may come back at `t`: not near a beat, not in its last two seconds. */

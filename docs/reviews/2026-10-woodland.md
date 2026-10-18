@@ -885,3 +885,108 @@ The artist decided one thing before the reviews could: shown Lanczos and Real-ES
 - **The ground and the bed**: one depth model (`defocus`): nothing on them, the bed sharp beside them, softer away, softest beyond their heads (σ up to 11 sheet px), across the ground and the outer bed alike; the bed graded toward the painting's grass where they lie (Lab mean and spread, 0.7, away from their bodies); specks under 40 sheet px removed. The ground is the day painting's meadow where they lie, a little taller than wide (the painting sees it at a slant).
 - **Motion in the heart** (`tests/playtest/motion.py`'s block matching on 1280×720 captures, half a second apart): at first 1.4–2.2% of the frame moved 2 px or more, under half the second wide's 5.2% (the artist's "still images" again, as the skeptic warned): the bed's sway was keyed to the coarse body outline, which also covers the grass between them. Keyed to the figures' own pixels (colour-segmented), the grass between their heads, beside them, round their hands and at the frame's foot moves, and the two-shot moves 5.4–7.0% (16, 19, 23 s). Their outlines don't move; her breathing is up to ~4 screen px at the chest.
 - **Tests** (385): the two-shot's timeline (when it is on, the beats, her eyes leading and following, his look last and cut while it lasts, the hands never moved, no grass cue), the spec, timeline and room agreeing on its times and `seenAt`, the screen-reader lines, the release-and-return choice (beats and the last 2 s honoured), her head in either shot and his look only close, no two-shot without her look in the wide, every file in the manifest, and the program's samplers (14, at most 16).
+
+### The film evaluated (the creative, cinematic and sound directors), the skeptic, and decisions
+
+The three watched and measured the recorded heart (15.0–27.0 s), its two cuts and the dusk cut.
+All three: it works as cinema (one locked two-shot of the artist's panel, a hush that frames it, the
+cut out while he is still looking, the dusk cut now taking away two people we were close to).
+
+- **Creative director.** The one thing to change is her turn: a one-frame swap of her whole head,
+  the loudest event in the shot; and a keying defect made the eye she looks at him with olive and
+  lightless (her catchlight keyed out as paper, the meadow showing through). Also: the trees'
+  chorus swells inside both looks; her far eye barely moves when her near eye goes to him; his face
+  13% darker in the two-shot than in the wide; his look could read as sly. Remove his blink at 16.2
+  (his face would then first move on his look). Add nothing.
+- **Cinematic director.** Her turn the same; make the halfway drawing a requirement, two drawings
+  each way. Outside aspect ~1.3–2.45 the locked frame cuts his face (4:3 touches his ear, 1.0 half
+  his eyes) or hers and the hands (21:9): bands of frames, the wide outside them. The bed's grass
+  sways as one sheet on one clock (0.50 Hz, correlation 0.80–0.96 across 760 px) and changes most
+  between their faces. The chorus swells crest under both looks. His face 15% darker. His breath
+  stops for 2.5 s exactly while she looks at him: the held breath that was removed, back by chance.
+  Keep the locked frame, the 12 s, the order, the hush, the cuts.
+- **Sound designer.** With the cicadas over and beside them quiet, the chorus's unauthored slow swell
+  is the only moving sound in the heart and peaks under both looks (+4.8 dB, +7.6 dB): flatten it
+  there to ~0.3, and let the leaves follow the visible wind. The room's music stops under a memory
+  but its reverb doesn't (a phrase already playing goes on as a reverb-only piano over the memory's
+  opening). A mid cicada comes back faded in mid-phrase 0.8 s after the cut out. The deep hush's
+  release is front-loaded (+9.4 dB of its ~14.6 in under a second: the hum back like a switch).
+- **Skeptic** (on the main session's proposed reconciliation). It removed motion on three channels at
+  once (his only blink, the grass between their faces, the chorus's swell) and its compensation (the
+  leaves) is too small to perceive and reaches the dusk cut. Keep the blink (without it nobody
+  blinks from 13.4 s to 31.6, two faces at 3.3× for the whole 12 s close, his face moving only on
+  cue) and add it to the beats a return avoids. Flatten the chorus (its swells are phase-locked to
+  both looks, measured); drop the leaves (no canopy in the two-shot; ±0.3 dB in the mix). For the
+  grass, one constant (clumps at the two-shot's own scale), no ellipse (it reverses decision 10), no
+  per-clump clocks. The halfway drawing second, ahead of his look, the same timing both ways (its
+  return drawing before the panel's head, so the half-second linger survives), her hair named in
+  the prompt, wired in only once it exists. Gate only the music's reverb now (gating through the
+  room's silences changes every silence in the room, unheard). Drop the relaxed lids from his prompt
+  (heavy upper lids with a sidelong glance are the stock sly look). The vignette fix brightens every
+  shot inside the memory, not only his face. Hold the band for the shot (a browser's bars must not
+  reframe it).
+
+### Decisions (main session, after the skeptic)
+
+15. **His face** was not the light match: the atlases and the render target agree (his cheek 0.50 in
+    both). It was the room's screen-space vignette (the `reference` look: 0.2, centred low at 0.42 of
+    the height): at his cheek, upper left in the two-shot, it multiplied by 0.927, at his cheek's place
+    in the wide by 0.988; 0.938 in sRGB is 0.87 in linear light, the measured 13%. While the two of
+    them are close (and only then: the wides and the dusk keep the vignette they were reviewed with,
+    the cut hides the change), the vignette is centred and falls off further out (1.1 → 0.45 instead of
+    0.95 → 0.25): his cheek 0.997.
+16. **His blink stays** (the skeptic, the cinematic director, against the creative director: involuntary
+    life follows from time; a face that moves only on cue is the artist's "still images"), and a
+    release-and-return keeps half a second from it.
+17. **Her turn.** The halfway drawing goes to the artist second, ahead of his look (the snap is seen
+    twice by everyone in the two-shot; his stand-in reads as a look), with her fringe in its prompt and
+    the test that the three heads flipped read as one girl turning. Laid two drawings each way: toward
+    him 18.0–18.17, back 21.33–21.5 before the panel's head, so the 0.5 s eye lead and the 0.5 s linger
+    both stay (the creative director's slow-toward, quick-away was one drawing against two, 1/12 s,
+    imperceptible; the cinematic director's layout cost the linger). The cutter takes it when it is
+    there (`b-look-full-mid`, one region round both takes, cells [b, mid]; the same output to the byte
+    without it, a stand-in run gave the three cells), the engine already takes any number of cells; the
+    two keys go on the timeline when the drawing does. Until then the turn stays the cut, never a warp.
+18. **His prompt** stays to his eyes (the skeptic: a second instruction to an eyes-only edit invites a
+    redrawn head; heavy lids read sly). How it reads is judged in the flipbook.
+19. **Her far eye** moved as far as its opening allows (its catchlight 5.0 screen px against the near
+    eye's 5.6); what hid it was the colour filled in where the iris was: the drawing shows no white in
+    that eye, so the white sampled was skin, and the look read as the eye narrowing. An eye whose white
+    samples as skin takes its partner's (hers; his far eye's sampled white reads as white and stays).
+    The opening and iris were re-checked on the 2× panel: they fit.
+20. **Their breath.** Neither takes a long pause from half a second before her eyes go to him to the cut
+    out (`steady`; his had fallen at 18.8–21.3); both still at rest across the dusk cut (the breath each
+    would take just before it waits: his 0.9 s, hers 2.4 s). Tested: no still chest over 1 s during
+    either look.
+21. **Screens.** The two-shot only for 1.3 ≤ aspect ≤ 2.45, framed by band (1.3–1.5 [0, −60, 940],
+    1.5–1.9 [50, −10, 790], 1.9–2.45 [0, −80, 1000]), the wide outside; the band chosen as it comes on
+    and held while it lasts, through a browser's bars coming and going (0.1 either side). Tested at
+    every 0.05 against both faces and all three hands (8 px margin at least). Phones in landscape wider
+    than 2.45 (some Androids, 2.69–2.74) get the wide: no frame inside the atlas's reach holds both
+    faces and the hands there. The widest frame's screen edges never sample past the atlas (the screen
+    sees sheet x 28–972 of it).
+22. **The bed's grass.** The skeptic's one constant, measured before building (the shader's sway
+    reproduced offline, wind table, noise and map included; it gives the cinematic director's numbers:
+    patch correlations 0.69–0.87, points 40 px apart 1.00): clumps at the two-shot's scale alone leave it
+    one sheet (distant pairs 0.73 on average, 93% over 0.5), because the wind's shared bend dominates. So
+    the skeptic's own fallback, the balance toward the clumps (bend 5 → 1.5, clumps 1.8 → 3.2), with
+    clumps 80 sheet px across, their phases spread 1.5 turns, their pace wandering ±20% (bounded: a
+    phase modulation of the flutter's existing clock, not a clock of its own) and their sway following
+    the air: distant pairs 0.15 on average, 14% over 0.5; the cinematic director's four patches 0.18–0.40.
+    Halved round both faces and the grass between them (the busiest grey-level change in the frame,
+    which both looks cross); the bed still moves more than before (52% of it ≥2 px per half second,
+    against 47.5%), so decision 10's floor holds. Shear: 99th percentile 0.28 px per px (0.24 before).
+    Checked on the film.
+23. **The chorus** in the trees is shallow while they are close (its swells to 0.3, eased in under the
+    gust 11.0–13.5 s, out under the cicadas' return 27.8–30.0): tested, the woods change by under 1 dB
+    across either cut and range under 3 dB through the heart. The leaves don't follow the wind (dropped:
+    the skeptic). If the artist hears the heart as dead, the knob is the depth.
+24. **Sound, otherwise.** The room's music into the reverb is gated with the music itself under a memory
+    (one gain, closed by `memoryHush`; a tail already ringing decays); the room's own silences and the
+    drone's send are untouched (their own round, with a listen). The two cicadas either side come back
+    out of their quiet only at a phrase's start (the one faded in mid-phrase goes). The hush comes back
+    evenly in loudness (an exponential ramp, the deep release 4.5 s); it still falls at once.
+25. **For the artist's ears and eyes** (perceptual, every evaluator's speculation): the snap of her turn,
+    the grass, his blink at speed (the re-joined film, 12–36 s, full screen); the chorus at 0.3 against
+    1.0; whether the hush framing the two-shot reads as the world holding still or as a dropout; the near
+    cicada's return at 28.0 (the second wide's first event now the bed is steady) or about 29 s.

@@ -57,6 +57,10 @@ LID_BOX = (180, 40, 640, 270)
 # not used: a smile nobody sees is the film telling, and redrawn whole they jump her head again:
 # the directors' and the technical artist's reviews, 2026-10-18).
 TAKE = 'b'
+# Her head halfway there, her eyes already on him (the artist's, when it is drawn: the kit's
+# `b-look-full-mid.png`): laid between the panel's and the take on the way to him. Without it the
+# turn is the straight cut, never a warp (the directors' evaluations of the film, 2026-10-18).
+MID = 'mid'
 # Their eyes (sheet px, y down; measured on the panel at twice its size): the opening below the
 # lash line (centre, radii, angle: positive turns its outer end down), and the iris in it (centre,
 # radius). A look moves the iris along the opening, the white filling in where it was; the lash
@@ -65,6 +69,9 @@ EYES_A = [((211.0, 89.3, 10.3, 3.6, -0.40), (212.5, 87.2, 4.1)), ((254.0, 82.2, 
 # (Hers reach down to her lower lids: her irises are large, and an opening cut above their lower
 # rims left a dark arc of the old iris behind when her eyes moved.)
 EYES_B = [((501.0, 69.8, 9.9, 4.7, -0.42), (502.9, 67.6, 5.4)), ((539.0, 59.6, 7.3, 3.9, 0.29), (538.5, 58.7, 5.0))]
+# Round both their faces and the grass between them (sheet px, y down: centre, radii): their bed's
+# grass moves half as much there.
+FACES = (370, 100, 240, 105)
 # How far their bed's grass takes the colour of the painting's grass where they lie (0..1).
 GRADE = 0.7
 # The painting's grass where they lie (plate px: x0, y0, x1, y1): the bed's colour, and the ground.
@@ -105,10 +112,11 @@ def scaled(poly, k):
 def keyed(top, k):
     """Straight colour and alpha of the panel (at `k` times the sheet's size): its paper keyed out
     (the cutter's key), their bed of grass faded with distance from their bodies, choked a pixel and
-    unmixed from the paper; specks of it lying apart from the rest gone."""
+    unmixed from the paper; specks of it lying apart from the rest gone; the key undone inside them
+    (`cut.unkeyed`)."""
     h, w = top.shape[:2]
     d = np.sqrt(((top - cut.IVORY) ** 2).sum(-1))
-    key = cut.smooth(0.035, 0.12, d)
+    key = cut.unkeyed(top, cut.smooth(0.035, 0.12, d), k)
     body = cut.poly_mask((w, h), [scaled(cut.BODY, k)]) > 0.5
     dist = cv2.distanceTransform((~body).astype(np.uint8), cv2.DIST_L2, 5)
     keep = 1 - cut.smooth(BED[0] * k, BED[1] * k, dist)
@@ -301,6 +309,15 @@ def whites(straight, k):
         px = straight[inside]
         lit = px[lum[inside] >= np.percentile(lum[inside], 50)] if inside.sum() > 8 else np.array([[0.93, 0.88, 0.82]])
         out.append([round(float(c), 4) for c in np.clip(np.median(lit, 0), 0, 1)])
+    # An eye drawn with no white showing (the far eye, foreshortened, its iris filling the opening)
+    # gives skin, and its look reads as the eye narrowing: it takes its partner's (a white is
+    # cooler than skin: warmer than the partner's by more than 0.08 in red over blue).
+    for a, b in ((0, 1), (2, 3)):
+        warm = [out[i][0] - out[i][2] for i in (a, b)]
+        if warm[1] - warm[0] > 0.08:
+            out[b] = list(out[a])
+        elif warm[0] - warm[1] > 0.08:
+            out[a] = list(out[b])
     return out
 
 
@@ -336,34 +353,22 @@ def boxed(region, step=5):
     return x0, y0, x1 - x0, y1 - y0
 
 
-def figures_alone(straight, a):
-    """The two of them without their grass (sheet px, 0/1): what the panel draws that isn't grass
-    (grass: yellow to green and coloured enough), in pieces big enough to be them, small holes
-    (shadows in their clothes that read as green) filled; the grass between them stays grass."""
-    hsv = cv2.cvtColor((np.clip(straight, 0, 1) * 255).astype(np.uint8), cv2.COLOR_RGB2HSV).astype(np.float32)
-    h, s, v = hsv[..., 0] * 2, hsv[..., 1] / 255, hsv[..., 2] / 255
-    grass = (h >= 38) & (h <= 120) & (s > 0.2) & (v > 0.12)
-    body = cv2.morphologyEx(((a > 0.3) & ~grass).astype(np.uint8), cv2.MORPH_OPEN, np.ones((3, 3), np.uint8))
-    n, lab, st, _ = cv2.connectedComponentsWithStats(body, connectivity=8)
-    big = np.zeros(n, bool)
-    big[1:] = st[1:, cv2.CC_STAT_AREA] > 400
-    body = cv2.morphologyEx(big[lab].astype(np.uint8), cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (9, 9)))
-    n, lab, st, _ = cv2.connectedComponentsWithStats((1 - body).astype(np.uint8), connectivity=4)
-    small = np.zeros(n, bool)
-    small[1:] = st[1:, cv2.CC_STAT_AREA] < 250
-    return body | small[lab].astype(np.uint8)
-
-
-def sway_map(straight1, a1, k=0.5):
+def sway_map(top1, k=0.5):
     """Where their bed's grass moves in the air (0..1, over the atlas's reach at `k` px a sheet px):
     none on them (their own pixels, not the coarse outline: the grass between them, round their
     hands, is the most seen in the shot) nor within 6 sheet px of them, all of it from 22 away;
     less where it is out of focus (motion belongs to the near, sharp grass: the technical artist's
     review). The heart was nearly still without it: the skeptic's review, 2026-10-18."""
-    body = figures_alone(straight1, a1)
+    body = cut.figures_alone(top1, cut.smooth(0.035, 0.12, np.sqrt(((top1 - cut.IVORY) ** 2).sum(-1))))
     d = cv2.distanceTransform(1 - body, cv2.DIST_L2, 5)
-    y = np.mgrid[0:PH, 0:PW][0].astype(np.float32)
+    y, x = (a.astype(np.float32) for a in np.mgrid[0:PH, 0:PW])
     sw = cut.smooth(6, 22, d) * (1 - 0.5 * cut.smooth(2, 9, defocus(body_distance(PW, PH, 1), y)))
+    # Half as much round both faces and the grass between them, which both looks cross (it was the
+    # busiest place in the frame: the cinematic director's evaluation of the film, 2026-10-18); the
+    # foreground and the grass beyond her carry it.
+    cx, cy, rx, ry = FACES
+    r = np.hypot((x - cx) / rx, (y - cy) / ry)
+    sw *= 1 - 0.5 * (1 - cut.smooth(0.6, 1.0, r))
     return cv2.resize(sw[:, :REACH], (round(REACH * k), round(PH * k)), interpolation=cv2.INTER_AREA)
 
 
@@ -377,6 +382,15 @@ def ground(day):
     d = body_distance(gw, gh, 1, -MARGIN, -MARGIN)
     y = np.mgrid[0:gh, 0:gw][0].astype(np.float32) - MARGIN
     return np.clip(blur_by(g, defocus(d, y), 1), 0, 1)
+
+
+def drawing(name):
+    """One of her redrawn heads as delivered (`b-look-full-<name>`, WebP or PNG), or None."""
+    for ext in ('webp', 'png'):
+        p = os.path.join(cut.REF, 'drawings', f'b-look-full-{name}.{ext}')
+        if os.path.exists(p):
+            return p
+    return None
 
 
 def main():
@@ -399,36 +413,47 @@ def main():
     lx0, ly0, lx1, ly1 = (v * k for v in LID_BOX)
     cut.save(cut.stack([r[ly0:ly1, lx0:lx1] for r in (shut, half, occ)]), os.path.join(a_dir, 'near-lids.webp'), sizes, q=93)
 
-    # Her head turned to him: where it differs, at the sheet's own size (from the sheet and the
-    # take as drawn), then laid in at either size from the same region.
+    # Her head turned to him (the take, then halfway there if it is drawn): where each differs, at
+    # the sheet's own size (from the sheet and the take as drawn), one region round them all (its
+    # edge where every drawing agrees with the panel), then each laid in at either size by it.
     sheet1, _ = source('02-characters', os.path.join(cut.REF, '02-characters.webp'), up=False)
-    take1, _ = source(f'b-look-full-{TAKE}', os.path.join(cut.REF, 'drawings', f'b-look-full-{TAKE}.webp'), up=False)
-    take1, move1 = register(sheet1, take1, 1)
-    region1, seam = head_region(sheet1[:PH], take1[:PH])
+    takes = [TAKE] + [MID] * (drawing(MID) is not None)
+    regions, moves, seams = [], [], []
+    for name in takes:
+        take1, _ = source(f'b-look-full-{name}', drawing(name), up=False)
+        take1, move1 = register(sheet1, take1, 1)
+        region1, seam = head_region(sheet1[:PH], take1[:PH])
+        regions.append(region1), moves.append(move1), seams.append(seam)
+    region1, seam = np.maximum.reduce(regions), max(seams)
     bx, by, bw, bh = boxed(region1)
-    takek, kk = source(f'b-look-full-{TAKE}', os.path.join(cut.REF, 'drawings', f'b-look-full-{TAKE}.webp'))
-    if kk != k:
-        takek = cv2.resize(takek, (takek.shape[1] * k // kk, takek.shape[0] * k // kk), interpolation=cv2.INTER_LANCZOS4)
-    takek, movek = register(top, takek, k)
-    cel, _, _, _ = dressed(takek[:h, :w], k, day, d, sigma, light)
     reg_k = cv2.resize(region1, (w, h), interpolation=cv2.INTER_LINEAR)
     box_k = (slice(by * k, (by + bh) * k), slice(bx * k, (bx + bw) * k))
     rk = reg_k[box_k]
-    cut.save(np.concatenate([cel[box_k], np.dstack([rk, rk, rk, np.ones_like(rk)])], 1), os.path.join(a_dir, 'near-heads.webp'), sizes, q=94)
+    cels = []
+    for name in takes:
+        takek, kk = source(f'b-look-full-{name}', drawing(name))
+        if kk != k:
+            takek = cv2.resize(takek, (takek.shape[1] * k // kk, takek.shape[0] * k // kk), interpolation=cv2.INTER_LANCZOS4)
+        takek, _ = register(top, takek, k)
+        cel, _, _, _ = dressed(takek[:h, :w], k, day, d, sigma, light)
+        cels.append(cel[box_k])
+    cut.save(np.concatenate(cels + [np.dstack([rk, rk, rk, np.ones_like(rk)])], 1), os.path.join(a_dir, 'near-heads.webp'), sizes, q=94)
 
-    # The same at the wide's size: the cutter's own people from the take (only her head differs).
-    full1 = cut.arr(Image.open(os.path.join(cut.REF, 'drawings', f'b-look-full-{TAKE}.webp')).convert('RGB').resize((1448, 1086), Image.LANCZOS))
-    full1 = cv2.warpAffine(full1, np.float32([[1, 0, -move1[0]], [0, 1, -move1[1]]]), (1448, 1086), flags=cv2.INTER_LANCZOS4, borderMode=cv2.BORDER_REFLECT)
-    wide, _, _, _, _ = cut.figures(cut.img(full1), cut.load('04-day.webp'))
-    th, tw = wide.shape[:2]
+    # The same at the wide's size: the cutter's own people from each take (only her head differs).
     t = cut.FIG_T
+    wides = []
+    for name, move1 in zip(takes, moves):
+        full1 = cut.arr(Image.open(drawing(name)).convert('RGB').resize((1448, 1086), Image.LANCZOS))
+        full1 = cv2.warpAffine(full1, np.float32([[1, 0, -move1[0]], [0, 1, -move1[1]]]), (1448, 1086), flags=cv2.INTER_LANCZOS4, borderMode=cv2.BORDER_REFLECT)
+        wide, _, _, _, _ = cut.figures(cut.img(full1), cut.load('04-day.webp'))
+        th, tw = wide.shape[:2]
+        box_t = (slice(round(by * t), round((by + bh) * t)), slice(round(bx * t), round((bx + bw) * t)))
+        wides.append(wide[box_t])
     reg_t = cv2.resize(region1, (tw, th), interpolation=cv2.INTER_AREA)
-    box_t = (slice(round(by * t), round((by + bh) * t)), slice(round(bx * t), round((bx + bw) * t)))
     rt = reg_t[box_t]
-    cut.save(np.concatenate([wide[box_t], np.dstack([rt, rt, rt, np.ones_like(rt)])], 1), os.path.join(a_dir, 'heads.webp'), cut.LIVE, q=94)
+    cut.save(np.concatenate(wides + [np.dstack([rt, rt, rt, np.ones_like(rt)])], 1), os.path.join(a_dir, 'heads.webp'), cut.LIVE, q=94)
 
-    st1, a1 = keyed(sheet1[:PH], 1)
-    sw = sway_map(st1, a1)
+    sw = sway_map(sheet1[:PH])
     cut.save(np.dstack([sw, sw, sw]), os.path.join(a_dir, 'near-maps.webp'), {'': cut.W}, lossless=True)
 
     # (Out of focus: stored at half its size; it has nothing finer.)
@@ -449,8 +474,9 @@ def main():
         'pixels': [rw, h], 'gutter': cut.GUTTER, 'reach': REACH,
         'lidBox': [LID_BOX[0], LID_BOX[1], LID_BOX[2] - LID_BOX[0], LID_BOX[3] - LID_BOX[1]],
         # Her head turned to him: where its cells lie on the panel (sheet px, y down), and the
-        # atlas's cells (the drawing, then the region it is laid in by).
-        'heads': {'file': 'afternoon/near-heads', 'box': [bx, by, bw, bh], 'takes': [TAKE], 'cells': 2},
+        # atlas's cells (the drawings, `figure:b.cel` 1 onward: the take, then halfway there if it
+        # is drawn; then the region they are laid in by).
+        'heads': {'file': 'afternoon/near-heads', 'box': [bx, by, bw, bh], 'takes': takes, 'cells': len(takes) + 1},
         # The ground under and round them (sheet px, y down: x0, y0, w, h), and where their bed's
         # grass moves (over the atlas's reach).
         'ground': {'file': 'afternoon/near-ground', 'box': [-MARGIN, -MARGIN, gw, gh]},
@@ -460,12 +486,12 @@ def main():
         'eyes': {'a': [eye(e, c) for e, c in zip(EYES_A, wh[:2])], 'b': [eye(e, c) for e, c in zip(EYES_B, wh[2:])]},
     }
     # Her head turned to him in the wide (the same box and cells, at the wide's size).
-    aft['figures']['heads'] = {'file': 'afternoon/heads', 'box': [bx, by, bw, bh], 'cells': 2}
+    aft['figures']['heads'] = {'file': 'afternoon/heads', 'box': [bx, by, bw, bh], 'cells': len(takes) + 1}
     with open(MANIFEST, 'w') as f:
         json.dump(manifest, f, indent=2)
         f.write('\n')
     print(f'two-shot: panel {rw}x{h} ({k}x the sheet, to x {REACH}); her head {bw}x{bh} at ({bx}, {by}) sheet px, '
-          f'take moved ({move1[0]:.2f}, {move1[1]:.2f}) px, seam p99 {seam:.3f}; ground {gw}x{gh}; whites {wh}')
+          f'takes {takes} moved {[(round(float(m[0]), 2), round(float(m[1]), 2)) for m in moves]} px, seam p99 {seam:.3f}; ground {gw}x{gh}; whites {wh}')
 
 
 if __name__ == '__main__':

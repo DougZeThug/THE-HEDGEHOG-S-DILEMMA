@@ -268,6 +268,45 @@ def reflect_fill(rgb, a, hole, usable):
     return out_rgb, out_a
 
 
+def figures_alone(top, key, k=1):
+    """The two of them without their grass (0/1, at `k` px a sheet px): what the panel draws (not
+    its paper: `key`) that isn't grass (yellow to green and coloured enough, in the panel's own
+    colours), in pieces big enough to be them, small holes (shadows in their clothes that read as
+    green, highlights the key took for paper) filled; the grass between them stays grass."""
+    import cv2
+    hsv = cv2.cvtColor((np.clip(top, 0, 1) * 255).astype(np.uint8), cv2.COLOR_RGB2HSV).astype(np.float32)
+    h, s, v = hsv[..., 0] * 2, hsv[..., 1] / 255, hsv[..., 2] / 255
+    grass = (h >= 38) & (h <= 120) & (s > 0.2) & (v > 0.12)
+    n3 = 3 if k == 1 else 3 * k + 1
+    body = cv2.morphologyEx(((key > 0.5) & ~grass).astype(np.uint8), cv2.MORPH_OPEN, np.ones((n3, n3), np.uint8))
+    n, lab, st, _ = cv2.connectedComponentsWithStats(body, connectivity=8)
+    big = np.zeros(n, bool)
+    big[1:] = st[1:, cv2.CC_STAT_AREA] > 400 * k * k
+    body = cv2.morphologyEx(big[lab].astype(np.uint8), cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (9 * k, 9 * k)))
+    n, lab, st, _ = cv2.connectedComponentsWithStats((1 - body).astype(np.uint8), connectivity=4)
+    small = np.zeros(n, bool)
+    small[1:] = st[1:, cv2.CC_STAT_AREA] < 250 * k * k
+    return body | small[lab].astype(np.uint8)
+
+
+def unkeyed(top, key, k=1):
+    """The paper key undone where it took them for paper: inside them (their own pixels, away from
+    their edges), wherever the panel's paper can't reach, they are opaque: her eye's catchlight,
+    her shirt's brightest light, and the soft ring the key leaves round them (keyed, the meadow
+    showed through her eye: the creative director's review, 2026-10-18). Paper the outside
+    reaches (between strands of hair, at their edges) stays paper. Only the key: their bed's fade
+    is laid on after it, as before."""
+    import cv2
+    paper = (key < 0.5).astype(np.uint8)
+    n, lab, _, _ = cv2.connectedComponentsWithStats(paper, connectivity=8)
+    reached = np.zeros(n, bool)
+    reached[np.unique(np.concatenate([lab[0], lab[-1], lab[:, 0], lab[:, -1]]))] = True
+    reached[0] = False
+    near_paper = cv2.dilate(reached[lab].astype(np.uint8), cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (6 * k + 1, 6 * k + 1)))
+    body = cv2.erode(figures_alone(top, key, k), np.ones((2 * k + 1, 2 * k + 1), np.uint8))
+    return np.maximum(key, blur((body & (1 - near_paper)).astype(np.float32), 0.6 * k))
+
+
 def light_match(plate, tw, th):
     """The plate's own light where the people lie (low frequency), relative to its mean over their
     bodies (0.85..1.10), over the sheet's top panel at `tw`×`th` px: the wide's people are lit by
@@ -289,7 +328,7 @@ def figures(sheet, plate):
     top = arr(sheet.crop(FIG_CROP))
     h, w = top.shape[:2]
     d = np.sqrt(((top - IVORY) ** 2).sum(-1))
-    key = smooth(0.035, 0.12, d)
+    key = unkeyed(top, smooth(0.035, 0.12, d))
     core = poly_mask((w, h), [FIG_POLY])
     bed = np.clip(np.maximum(core, blur(core, 14) * 1.6), 0, 1) * np.clip(blur(core, 22), 0, 1) ** 0.5
     a = key * np.clip(bed, 0, 1)
