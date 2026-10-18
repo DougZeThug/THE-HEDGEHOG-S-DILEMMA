@@ -1047,3 +1047,37 @@ Not changed: the clock's 1 s cap per frame (the sound designer's note: after a s
 second the picture falls behind the sound for the rest of the memory). The two-shot's textures upload
 while the memory is prepared, not at the cut, so a device shouldn't stall there; to check on a real
 phone, with the far evening cicada's level and the reverb's 3–4 s tail after the gate.
+
+### The new film evaluated (the creative and cinematic directors), and decisions
+
+Both: the heart now does what the brief asks, as far as the stand-ins allow; this round fixed every
+defect the last film showed and made nothing worse. Protect: the asymmetry (she turns her head, he
+moves only his eyes), her eyes staying on him half a second after her head goes back, the hands
+never moving, both cuts (faces within ~7%, the sound within 0.4 dB), the dusk cut, the hush and the
+near cicada's return at 28.0 s (back when its tree is back in frame; later, it would start with the
+side cicada's phrase at 28.98). The creative director withdrew the call to remove his blink: on the
+film it reads as involuntary and lands on neither the cut nor her eyes. Still wrong, and only the
+artist's drawing fixes it: her turn, the loudest event in the shot (2.4–2.6 times the median change
+per drawing), a layer swapped on a held picture. No workaround (no warp, dissolve or rolled head
+region). The grass reads as grass, not a sliding picture, but carries no direction of wind any more:
+for the artist's eye; if it doesn't read as air, a small shared swell travelling left to right under
+the clumps (25–35% of their sway, never on the beats), not the sheet again.
+
+26. **The note to the artist** said 4:3 and 21:9 screens get no close shot (both get a looser frame of
+    it), put her halfway drawing first on the kit's list (second, after the pencil), and overstated
+    ("one held frame", "three directors watched", "within 4%", "exactly the close shot"). Corrected,
+    with what it left out: the film's sound is the clearing alone, raised, with no room under it; his
+    look fond or sly is theirs to judge; the hush settles about a second before the close shot and
+    lifts 1–3 s after it.
+27. **A fourth frame** for 1.9–2.15 ([30, −50, 880], holding them from 1.34 to 2.16): a maximised
+    browser window on most desktop screens is about 2:1, and the loosest frame showed their faces 11%
+    smaller than the film does, with a 20% jump in face size at each band's edge. Now their faces fill
+    22.9–25.9% of the screen's height there (the film 23.9%), and the jumps are 10–12%. Re-framing
+    mid-shot takes any frame that still holds them (so 2.05 → 2.5 stays the close shot). Tested, fresh
+    and held from every band.
+28. **The right-hand cicada** went into the quiet as a fade mid-phrase (the gated fade fixed on the way
+    back in): it now ends its phrase on its own fall-away as the quiet begins (14.1 s); tested both ways.
+29. Not taken now: framing continuously by the subject (the cinematic director's later option); a
+    start range wider than 2.45 for iPhones held sideways (their viewport sits either side of it with
+    Safari's bar: a device decides); the kit's order (the pencil stays first: everyone sees it,
+    phones included).

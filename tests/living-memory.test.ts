@@ -684,7 +684,7 @@ describe('the scene, as built (no GL: what it would draw and let go)', () => {
     }
     // And held: come on in each band, then the screen resized across every aspect, both ways;
     // whenever it is still on, whatever frame it kept or took, they are all in it.
-    for (const start of [1.4, 1.7, 2.2]) {
+    for (const start of [1.4, 1.7, 2.0, 2.3]) {
       for (const dir of [1, -1]) {
         s.choose({ 'scene.shot': 0 }, { inside: true, turn: 0, t: 16, aspect: start });
         s.choose(v, { inside: true, turn: 0, t: 16, aspect: start });

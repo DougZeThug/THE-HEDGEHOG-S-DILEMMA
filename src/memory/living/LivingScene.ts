@@ -575,10 +575,13 @@ export class LivingScene {
    */
   choose(v: Values, o: { inside: boolean; turn: number; t: number; now?: number; aspect?: number }): number {
     const sp = this.spec.near, aspect = o.aspect ?? WIDE;
-    // On, its frame holds through a resize while it still holds both faces and the hands; past
-    // that it is framed again for the screen, or it is the wide.
-    const b = this.band, held = this.shot === 1 && !!b && aspect >= b.holds[0] && aspect <= b.holds[1];
-    const near = this.hasNear && !!sp && (held || (aspect >= sp.aspect[0] && aspect <= sp.aspect[1]));
+    // It comes on only for the aspects it is shown for. On, its frame holds through a resize while
+    // it still holds both faces and the hands; past that it is framed again for the screen (by a
+    // frame that holds them there), or it is the wide.
+    const on = this.shot === 1, b = this.band, next = sp ? this.bandFor(aspect) : null;
+    const holds = (x: { holds: [number, number] } | null) => !!x && aspect >= x.holds[0] && aspect <= x.holds[1];
+    const held = on && holds(b);
+    const near = this.hasNear && !!sp && (held || (aspect >= sp.aspect[0] && aspect <= sp.aspect[1]) || (on && holds(next)));
     const now = o.now ?? o.t;
     const asked = Math.max(0, Math.min(1, Math.round(v['scene.shot'] ?? 0)));
     if (asked !== this.asked) this.asked = asked, (this.gaveWay = false), (this.settled = -1), (this.unframed = false);

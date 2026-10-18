@@ -147,9 +147,13 @@ export const WOODLAND: LivingSpec = {
   near: {
     // (`holds`: where each still keeps 8 stage px round both faces and the three hands; held past
     // that, the 16:9 frame cut her hair at 2.05 and both their heads at 2.5: QA, 2026-10-18.)
+    // (A maximised browser window on most desktop screens is about 2:1: its own frame, their faces
+    // about the film's size; with the loosest they were 11% smaller, and faces jumped 20% at each
+    // band's edge: the cinematic director's evaluation of the film, 2026-10-18.)
     frames: [
       { upTo: 1.5, frame: [0, -60, 940], holds: [1.26, 2.37] },
       { upTo: 1.9, frame: [50, -10, 790], holds: [1.38, 1.91] },
+      { upTo: 2.15, frame: [30, -50, 880], holds: [1.34, 2.16] },
       { upTo: 2.45, frame: [0, -80, 1000], holds: [1.3, 2.5] },
     ],
     aspect: [1.3, 2.45],
