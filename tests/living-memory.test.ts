@@ -14,7 +14,7 @@ import { MemoryPlaybackController } from '../src/memory/MemoryPlaybackController
 import { renderCicadas, renderWoods, renderLast, cicada, heard, leavesPan, RATE, TIMES } from '../src/memory/synthWoods';
 import state from '../src/memory/theatre-state.json';
 import manifest from '../public/memories/woodland/manifest.json';
-import { LivingScene, type LivingArt, type NearArt } from '../src/memory/living/LivingScene';
+import { LivingScene, type HeadCels, type LivingArt, type NearArt } from '../src/memory/living/LivingScene';
 import { DEFORMERS, livingMaterials } from '../src/world/living/materials';
 
 // The woodland memory (docs/reviews/2026-10-woodland.md): its people's involuntary life, the
@@ -573,10 +573,15 @@ describe('the scene, as built (no GL: what it would draw and let go)', () => {
     return {
       texture: tex(), lids: tex(), ground: tex(), maps: tex(),
       heads: { texture: tex(), box: n.heads.box, cells: n.heads.cells },
-      wideHeads: { texture: tex(), box: wh.box, cells: wh.cells },
       pixels: n.pixels, gutter: n.gutter, reach: n.reach, lidBox: n.lidBox, groundBox: n.ground.box,
       eyes: [...n.eyes.a, ...n.eyes.b] as NearArt['eyes'],
-    };
+      // (Her look in the wide: the scene's own, given with it below.)
+      wide: { texture: tex(), box: wh.box, cells: wh.cells },
+    } as NearArt & { wide: HeadCels };
+  };
+  const both = () => {
+    const n = near() as NearArt & { wide: HeadCels };
+    return { art: { ...art(), near: n, heads: n.wide }, n };
   };
   const gl = { getRenderTarget: () => null, setRenderTarget: () => {}, render: () => {} } as unknown as THREE.WebGLRenderer;
   const view = { view: new THREE.Vector4(0, 0, 1, 1), parallax: new THREE.Vector2() };
@@ -616,7 +621,7 @@ describe('the scene, as built (no GL: what it would draw and let go)', () => {
   });
 
   it('the two-shot: only for someone inside; gives way past 14° and comes back once they have settled, never near a beat nor in its last 2 s', () => {
-    const s = new LivingScene({ ...art(), near: near() }, SPEC, { width: 64, height: 36, noise: tex(), reduced: false });
+    const s = new LivingScene(both().art, SPEC, { width: 64, height: 36, noise: tex(), reduced: false });
     const v = { 'scene.shot': 1 };
     expect(s.choose(v, { inside: true, turn: 0, t: 16 })).toBe(1);
     // Not inside (seen on the wall, or upright: the App says so): the wide.
@@ -646,11 +651,16 @@ describe('the scene, as built (no GL: what it would draw and let go)', () => {
     // The next shot asks afresh.
     expect(s.choose({ 'scene.shot': 0 }, { inside: true, turn: 0, t: 27.1 })).toBe(0);
     s.dispose();
+    // Without her look drawn in the wide there is no two-shot (a turn away would undo her look).
+    const { n } = both();
+    const none = new LivingScene({ ...art(), near: n, heads: null }, SPEC, { width: 64, height: 36, noise: tex(), reduced: false });
+    expect(none.choose(v, { inside: true, turn: 0, t: 16 })).toBe(0);
+    none.dispose();
   });
 
   it('her head turned to him is drawn in either shot, his look only close; the two-shot is the panel at its reach, lit as the wide', () => {
-    const n = near();
-    const s = new LivingScene({ ...art(), near: n }, SPEC, { width: 64, height: 36, noise: tex(), reduced: false });
+    const { art: a, n } = both();
+    const s = new LivingScene(a, SPEC, { width: 64, height: 36, noise: tex(), reduced: false });
     const m = livingMaterials(tex());
     const u = m.people.uniforms;
     const v = { 'scene.shot': 1, 'figure:b.cel': 1, 'figure:a.eyes': 1 };
@@ -671,7 +681,7 @@ describe('the scene, as built (no GL: what it would draw and let go)', () => {
     s.choose(v, { inside: true, turn: 0.3, t: 19.5 });
     s.update(gl, 19.5, v, view);
     expect(u.uNear.value).toBe(0);
-    expect(u.uHeads.value).toBe(n.wideHeads.texture);
+    expect(u.uHeads.value).toBe(n.wide.texture);
     expect((u.uHeadCel.value as THREE.Vector2).toArray()).toEqual([0, 2]);
     expect((u.uGaze.value as THREE.Vector2).length()).toBe(0);
     expect(u.uFigU.value).toBe(1);

@@ -134,6 +134,9 @@ export class Immersion {
 
 const clamp01 = (x: number) => (x < 0 ? 0 : x > 1 ? 1 : x);
 
+/** Narrower than this (width / height), a screen is upright: it sees a column of the painting. */
+export const UPRIGHT = 0.9;
+
 /**
  * The painting's corners when it covers the screen (screen uv; 00, 10, 11, 01), a little over so
  * its ragged edge is never seen. `focus` (painting uv) is kept at the screen's centre, as far as

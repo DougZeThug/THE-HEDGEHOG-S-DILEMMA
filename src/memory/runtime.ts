@@ -7,7 +7,8 @@ import { memorySchema } from './sheets';
 import { sheetSource } from './theatre';
 import type { Lifecycle, MemoryFrame, ReleaseReason } from './types';
 import type { WindowLayer, LayerKind } from '../world/MemoryWindow';
-import { LivingScene, type FigureArt, type LivingArt, type NearArt, type Eye } from './living/LivingScene';
+import { LivingScene, type FigureArt, type HeadCels, type LivingArt, type NearArt, type Eye } from './living/LivingScene';
+import { UPRIGHT } from '../world/living/Immersion';
 import { WOODLAND as WOODLAND_SPEC, type LivingSpec } from './living/woodland';
 
 /**
@@ -206,7 +207,7 @@ async function manifestOf(base: string, art: string): Promise<ArtManifest> {
  * Fetch a memory's art ahead (when its line is armed), so beginning it waits on nothing but
  * decoding. Sounds are fetched by the voices' own loader when the memory is prepared.
  */
-export async function prefetch(id: string, variant: string, host: Pick<RuntimeHost, 'quality' | 'base'>): Promise<void> {
+export async function prefetch(id: string, variant: string, host: Pick<RuntimeHost, 'quality' | 'base' | 'screen'>): Promise<void> {
   const def = MEMORIES[id];
   if (!def) return;
   const v = def.variants.includes(variant) ? variant : def.variants[0];
@@ -216,15 +217,20 @@ export async function prefetch(id: string, variant: string, host: Pick<RuntimeHo
     const manifest = await manifestOf(base, def.art);
     const lm = manifest.living?.[v];
     const wall = manifest.variants[v].filter((l) => !(lm && l.name === 'scene')).map((l) => ({ file: l.file, suffix }));
-    const files = lm ? [...wall, ...livingFiles(lm, suffix)] : wall;
+    const files = lm ? [...wall, ...livingFiles(lm, suffix, upright(host))] : wall;
     await Promise.all(files.map((f) => fetchBlob(`${base}${def.art}/${f.file}${f.suffix}.webp`)));
   } catch {
     /* it will be fetched again when it is needed */
   }
 }
 
-/** A living scene's files (maps, grade and sky have one size only). */
-function livingFiles(lm: LivingManifest, suffix: string): { file: string; suffix: string }[] {
+/** An upright screen (it never shows the two-shot: its 16:9 frame would hold one face there). */
+function upright(host: Pick<RuntimeHost, 'screen'>): boolean {
+  return !!host.screen && host.screen.width / host.screen.height < UPRIGHT;
+}
+
+/** A living scene's files (maps, grade and sky have one size only); the two-shot's only for a screen that shows it. */
+function livingFiles(lm: LivingManifest, suffix: string, upright = false): { file: string; suffix: string }[] {
   const out = [{ file: lm.plate, suffix }, { file: lm.maps, suffix: '' }];
   if (lm.grade) out.push({ file: lm.grade, suffix: '' });
   if (lm.after) out.push({ file: lm.after, suffix });
@@ -233,7 +239,8 @@ function livingFiles(lm: LivingManifest, suffix: string): { file: string; suffix
   if (lm.flowers) out.push({ file: lm.flowers.file, suffix });
   if (lm.clouds) out.push({ file: lm.clouds.mask, suffix: '' }, { file: lm.clouds.file, suffix: '' }, { file: lm.clouds.after, suffix: '' });
   if (lm.order) out.push({ file: lm.order, suffix: '' });
-  if (lm.near && lm.figures?.heads) out.push({ file: lm.near.file, suffix }, { file: lm.near.lids, suffix }, { file: lm.near.heads.file, suffix }, { file: lm.near.ground.file, suffix: '' }, { file: lm.near.maps, suffix: '' }, { file: lm.figures.heads.file, suffix });
+  if (lm.figures?.heads) out.push({ file: lm.figures.heads.file, suffix });
+  if (lm.near && lm.figures?.heads && !upright) out.push({ file: lm.near.file, suffix }, { file: lm.near.lids, suffix }, { file: lm.near.heads.file, suffix }, { file: lm.near.ground.file, suffix: '' }, { file: lm.near.maps, suffix: '' });
   return out;
 }
 
@@ -298,18 +305,29 @@ export async function prepare(id: string, variant: string, host: RuntimeHost): P
       ]);
       // (The pencil's order is mipmapped, unlike the scene's layers: seen from across the room.)
       const orderP = lm.order ? loadLayer(url(lm.order, ''), { data: true }).then((r) => (extra.push(r), r)) : Promise.resolve(null);
-      // The two-shot and her look (drawn in either shot): all of it, or none (the wide then plays
-      // as it was, her head as the panel has it; the memory still plays).
+      // Her look in the wide (her head turned to him at its size), if it can be had (else her
+      // head stays as the panel has it; the memory still plays).
+      const headsP = (async (): Promise<HeadCels | null> => {
+        const h = lm.figures?.heads;
+        if (!h) return null;
+        try {
+          const r = await loadLayer(url(h.file), { living: true });
+          extra.push(r);
+          return { texture: r.texture, box: h.box, cells: h.cells };
+        } catch {
+          return null;
+        }
+      })();
+      // The two-shot: all of it, or none (its shot is then the wide), and only for a screen that
+      // shows it (upright, it is never shown).
       const nearP = (async (): Promise<NearArt | null> => {
         const n = lm.near;
-        const wh = lm.figures?.heads;
-        if (!n || !wh) return null;
+        if (!n || !lm.figures?.heads || upright(host)) return null;
         const got = await Promise.allSettled([
           loadLayer(url(n.file), { living: true }),
           loadLayer(url(n.lids), { living: true }),
           loadLayer(url(n.heads.file), { living: true }),
           loadLayer(url(n.ground.file, ''), { living: true }),
-          loadLayer(url(wh.file), { living: true }),
           loadLayer(url(n.maps, ''), { living: true, data: true }),
         ]);
         const ok = got.every((r) => r.status === 'fulfilled');
@@ -319,12 +337,11 @@ export async function prepare(id: string, variant: string, host: RuntimeHost): P
           else r.value.texture.dispose(), r.value.bitmap.close();
         }
         if (!ok) return null;
-        const [atlas, lids, heads, ground, wide, maps] = got.map((r) => (r as PromiseFulfilledResult<{ texture: THREE.Texture }>).value.texture);
+        const [atlas, lids, heads, ground, maps] = got.map((r) => (r as PromiseFulfilledResult<{ texture: THREE.Texture }>).value.texture);
         return {
           texture: atlas,
           lids,
           heads: { texture: heads, box: n.heads.box, cells: n.heads.cells },
-          wideHeads: { texture: wide, box: wh.box, cells: wh.cells },
           ground,
           maps,
           pixels: n.pixels,
@@ -336,10 +353,10 @@ export async function prepare(id: string, variant: string, host: RuntimeHost): P
         };
       })();
       // (All of it settled before any failure is thrown, so nothing loads after it is let go.)
-      const bad = (await Promise.allSettled([mainP, orderP, nearP])).find((r) => r.status === 'rejected') as PromiseRejectedResult | undefined;
+      const bad = (await Promise.allSettled([mainP, orderP, headsP, nearP])).find((r) => r.status === 'rejected') as PromiseRejectedResult | undefined;
       if (bad) throw bad.reason;
       const [plate, maps, grade, sky, fig, lids, after, flowers, skyMask, clouds, cloudsAfter] = await mainP;
-      const [orderR, near] = [await orderP, await nearP];
+      const [orderR, heads, near] = [await orderP, await headsP, await nearP];
       const order = orderR?.texture ?? null;
       const art: LivingArt = {
         plate,
@@ -350,7 +367,9 @@ export async function prepare(id: string, variant: string, host: RuntimeHost): P
         flowers: flowers && lm.flowers ? { texture: flowers, heads: lm.flowers.heads } : null,
         clouds: lm.clouds && skyMask && clouds && cloudsAfter ? { mask: skyMask, day: clouds, after: cloudsAfter, box: lm.clouds.box, pad: lm.clouds.pad } : null,
         figures: lm.figures && fig && lids ? { ...lm.figures, texture: fig, lids } : null,
-        near,
+        heads,
+        // (Without her look in the wide, no two-shot: a turn away would undo her look.)
+        near: heads ? near : null,
         size: manifest.plate ?? [1672, 941],
       };
       const size = targetSize(host);

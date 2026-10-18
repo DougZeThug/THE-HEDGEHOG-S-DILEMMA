@@ -217,12 +217,11 @@ function app(o: { reduced?: boolean } = {}) {
   const near: NearArt = {
     texture: tex(), lids: tex(), ground: tex(), maps: tex(),
     heads: { texture: tex(), box: n.heads.box, cells: n.heads.cells },
-    wideHeads: { texture: tex(), box: wh.box, cells: wh.cells },
     pixels: n.pixels, gutter: n.gutter, reach: n.reach, lidBox: n.lidBox, groundBox: n.ground.box,
     eyes: [...n.eyes.a, ...n.eyes.b] as NearArt['eyes'],
   };
   const scene = new LivingScene(
-    { plate: tex(), maps: tex(), grade: null, after: null, sky: null, flowers: null, clouds: null, size: manifest.plate as [number, number], near,
+    { plate: tex(), maps: tex(), grade: null, after: null, sky: null, flowers: null, clouds: null, size: manifest.plate as [number, number], near, heads: { texture: tex(), box: wh.box, cells: wh.cells },
       figures: { ...(lm.figures as unknown as NonNullable<LivingArt['figures']>), texture: tex(), lids: tex() } },
     SPEC, { width: 64, height: 36, noise: tex(), reduced: false },
   );

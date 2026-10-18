@@ -7,7 +7,7 @@ import { Lighting, shadowMapSize } from './world/Lighting';
 import { lookFor, parseLook, LOOK_NAMES, LOOKS, type Look, type LookName } from './world/Style';
 import { MemoryLight } from './world/MemoryLight';
 import { MemoryWindow } from './world/MemoryWindow';
-import { Immersion } from './world/living/Immersion';
+import { Immersion, UPRIGHT } from './world/living/Immersion';
 import { Inside } from './world/living/Inside';
 import { washInputs, washOf } from './world/living/wash';
 import { warmLiving } from './world/living/materials';
@@ -994,7 +994,7 @@ export class App {
       this.prefetched.add(m.id);
       const variant = (readMemoryCounts()[m.id] ?? 0) > 0 ? m.variants.revisit[0] ?? m.variants.first : m.variants.first;
       const idle = (window as { requestIdleCallback?: (f: () => void) => void }).requestIdleCallback ?? ((f: () => void) => setTimeout(f, 200));
-      idle(() => void this.memoryChunk().then((rt) => rt.prefetch(m.id, variant, { quality: this.prefs.quality })));
+      idle(() => void this.memoryChunk().then((rt) => rt.prefetch(m.id, variant, { quality: this.prefs.quality, screen: { width: innerWidth, height: innerHeight } })));
     }
   }
   private frameCount = 0;
@@ -1041,7 +1041,7 @@ export class App {
       return;
     }
     const aspect = innerWidth / innerHeight;
-    const upright = aspect < 0.9;
+    const upright = aspect < UPRIGHT;
     // The shot on now, chosen first so the view frames it from its first frame. The two-shot only
     // for someone taken all the way in; turned 14° from it, the wide until they settle facing it
     // again (interaction and QA reviews, 2026-10-17 and 18). Never on an upright screen: there a

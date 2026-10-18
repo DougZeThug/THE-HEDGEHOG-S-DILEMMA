@@ -65,9 +65,8 @@ export interface NearArt {
   texture: THREE.Texture;
   /** Their lids shut, half, and her sleeve (rows), at this size, over `lidBox` (sheet px, y down: x0, y0, w, h). */
   lids: THREE.Texture;
-  /** Her head turned to him, at this size, and at the wide's. */
+  /** Her head turned to him, at this size. */
   heads: HeadCels;
-  wideHeads: HeadCels;
   /** The ground round them, out of focus. */
   ground: THREE.Texture;
   /** Where their bed's grass moves in the air (R, over the atlas's reach). */
@@ -94,7 +93,9 @@ export interface LivingArt {
   after: THREE.Texture | null;
   sky: { texture: THREE.Texture; box: [number, number, number, number] } | null;
   figures: FigureArt | null;
-  /** The two-shot and her look, if they could be had (its shot is then the wide, her head as the panel has it). */
+  /** Her head turned to him, at the wide's size (her look, in the wide), if it could be had. */
+  heads?: HeadCels | null;
+  /** The two-shot, if it could be had and her look in the wide too (else its shot is the wide). */
   near?: NearArt | null;
   /** The plate's pixels. */
   size: [number, number];
@@ -434,8 +435,9 @@ export class LivingScene {
       u.uFigU.value = 1;
       (u.uLidBox.value as THREE.Vector4).set(0, 0, 1, 1);
       (u.uPlace.value as THREE.Vector4).set(...f.place);
-      u.uHeads.value = n?.wideHeads.texture ?? this.m.empty;
-      (u.uHeadBox.value as THREE.Vector4).set(...(n ? box(n.wideHeads.box) : ([0, 0, 0, 0] as const)));
+      const h = this.art.heads;
+      u.uHeads.value = h?.texture ?? this.m.empty;
+      (u.uHeadBox.value as THREE.Vector4).set(...(h ? box(h.box) : ([0, 0, 0, 0] as const)));
       (u.uGaze.value as THREE.Vector2).set(0, 0);
       (u.uGazeB.value as THREE.Vector2).set(0, 0);
       u.uMaps.value = this.art.maps;
@@ -473,7 +475,7 @@ export class LivingScene {
     const tapping = !!o.tap && o.tap.w > 0 && o.tap.z < 2;
     // (The shot as chosen for this frame.)
     const shot = this.shot;
-    const two = shot > 0 && !!this.art.near && !!this.art.figures;
+    const two = shot > 0 && this.hasNear;
     // A cut (the people, the evening, the shot, her head's drawing) is drawn on its own frame, not
     // at the next drawing.
     const state = `${(v['scene.after'] ?? 0) >= 0.5 ? 1 : 0}|${(v['scene.people'] ?? 1) > 0.001 ? 1 : 0}|${shot}|${Math.round(v['figure:b.cel'] ?? 0)}`;
@@ -598,9 +600,9 @@ export class LivingScene {
     return sp.beats.every((b) => Math.abs(t - b) >= 0.5);
   }
 
-  /** Whether the two-shot (and her look in either shot) could be had. */
+  /** Whether the two-shot could be had (with her look drawn in the wide too: every state in both shots). */
   get hasNear(): boolean {
-    return !!this.art.near && !!this.art.figures;
+    return !!this.art.near && !!this.art.figures && !!this.art.heads;
   }
 
 
@@ -626,7 +628,7 @@ export class LivingScene {
     chest('chestB', s.chest.b, bb * deep);
     // Her head as the artist redrew it (`figure:b.cel`: 0 the panel's, 1 turned to him), held, in
     // either shot; while it is shown, nothing of the rig made for the panel's face moves it.
-    const heads = this.art.near ? (near ? this.art.near.heads : this.art.near.wideHeads) : null;
+    const heads = near ? this.art.near!.heads : this.art.heads ?? null;
     const cel = heads ? Math.max(0, Math.min(heads.cells - 1, Math.round(val('figure:b.cel', 0)))) : 0;
     (u.uHeadCel.value as THREE.Vector2).set(cel >= 1 ? cel - 1 : -1, heads?.cells ?? 1);
     const redrawn = cel >= 1;

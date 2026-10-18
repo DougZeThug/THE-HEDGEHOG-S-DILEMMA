@@ -18,7 +18,7 @@ itself. Writes public/memories/woodland/afternoon/:
                  b-look-full-b.webp: her mouth at rest), and the soft region it is laid in by
     near-ground  the meadow round and beyond them: the day painting's own grass where they lie,
                  out of focus by its distance from the camera
-    near-maps    where their bed's grass moves in the air (R: none within 25 sheet px of them, less
+    near-maps    where their bed's grass moves in the air (R: none on them nor within 6 sheet px, less
                  where it is out of focus), at half the sheet's size
     heads        her head turned to him at the wide's size (its people: scripts/cut-woodland.py), so
                  her look is drawn in either shot
@@ -62,7 +62,9 @@ TAKE = 'b'
 # radius). A look moves the iris along the opening, the white filling in where it was; the lash
 # line, outside the opening, stays as drawn.
 EYES_A = [((211.0, 89.3, 10.3, 3.6, -0.40), (212.5, 87.2, 4.1)), ((254.0, 82.2, 6.6, 3.5, 0.23), (252.8, 81.9, 3.5))]
-EYES_B = [((500.6, 69.0, 9.8, 4.0, -0.42), (502.8, 67.5, 5.2)), ((539.3, 59.0, 7.0, 3.3, 0.29), (538.5, 58.5, 4.9))]
+# (Hers reach down to her lower lids: her irises are large, and an opening cut above their lower
+# rims left a dark arc of the old iris behind when her eyes moved.)
+EYES_B = [((501.0, 69.8, 9.9, 4.7, -0.42), (502.9, 67.6, 5.4)), ((539.0, 59.6, 7.3, 3.9, 0.29), (538.5, 58.7, 5.0))]
 # How far their bed's grass takes the colour of the painting's grass where they lie (0..1).
 GRADE = 0.7
 # The painting's grass where they lie (plate px: x0, y0, x1, y1): the bed's colour, and the ground.
@@ -334,15 +336,35 @@ def boxed(region, step=5):
     return x0, y0, x1 - x0, y1 - y0
 
 
-def sway_map(k=0.5):
+def figures_alone(straight, a):
+    """The two of them without their grass (sheet px, 0/1): what the panel draws that isn't grass
+    (grass: yellow to green and coloured enough), in pieces big enough to be them, small holes
+    (shadows in their clothes that read as green) filled; the grass between them stays grass."""
+    hsv = cv2.cvtColor((np.clip(straight, 0, 1) * 255).astype(np.uint8), cv2.COLOR_RGB2HSV).astype(np.float32)
+    h, s, v = hsv[..., 0] * 2, hsv[..., 1] / 255, hsv[..., 2] / 255
+    grass = (h >= 38) & (h <= 120) & (s > 0.2) & (v > 0.12)
+    body = cv2.morphologyEx(((a > 0.3) & ~grass).astype(np.uint8), cv2.MORPH_OPEN, np.ones((3, 3), np.uint8))
+    n, lab, st, _ = cv2.connectedComponentsWithStats(body, connectivity=8)
+    big = np.zeros(n, bool)
+    big[1:] = st[1:, cv2.CC_STAT_AREA] > 400
+    body = cv2.morphologyEx(big[lab].astype(np.uint8), cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (9, 9)))
+    n, lab, st, _ = cv2.connectedComponentsWithStats((1 - body).astype(np.uint8), connectivity=4)
+    small = np.zeros(n, bool)
+    small[1:] = st[1:, cv2.CC_STAT_AREA] < 250
+    return body | small[lab].astype(np.uint8)
+
+
+def sway_map(straight1, a1, k=0.5):
     """Where their bed's grass moves in the air (0..1, over the atlas's reach at `k` px a sheet px):
-    none on them or within 25 sheet px of them (their outline never wobbles), all of it from 60
-    away; less where it is out of focus (motion belongs to the near, sharp grass: the technical
-    artist's review). The heart was nearly still without it: the skeptic's review, 2026-10-18."""
-    w, h = round(REACH * k), round(PH * k)
-    d = body_distance(w, h, k)
-    y = (np.mgrid[0:h, 0:w][0].astype(np.float32) + 0.5) / k
-    return cut.smooth(25, 60, d) * (1 - 0.6 * cut.smooth(2, 9, defocus(d, y)))
+    none on them (their own pixels, not the coarse outline: the grass between them, round their
+    hands, is the most seen in the shot) nor within 6 sheet px of them, all of it from 22 away;
+    less where it is out of focus (motion belongs to the near, sharp grass: the technical artist's
+    review). The heart was nearly still without it: the skeptic's review, 2026-10-18."""
+    body = figures_alone(straight1, a1)
+    d = cv2.distanceTransform(1 - body, cv2.DIST_L2, 5)
+    y = np.mgrid[0:PH, 0:PW][0].astype(np.float32)
+    sw = cut.smooth(6, 22, d) * (1 - 0.5 * cut.smooth(2, 9, defocus(body_distance(PW, PH, 1), y)))
+    return cv2.resize(sw[:, :REACH], (round(REACH * k), round(PH * k)), interpolation=cv2.INTER_AREA)
 
 
 def ground(day):
@@ -405,7 +427,8 @@ def main():
     rt = reg_t[box_t]
     cut.save(np.concatenate([wide[box_t], np.dstack([rt, rt, rt, np.ones_like(rt)])], 1), os.path.join(a_dir, 'heads.webp'), cut.LIVE, q=94)
 
-    sw = sway_map()
+    st1, a1 = keyed(sheet1[:PH], 1)
+    sw = sway_map(st1, a1)
     cut.save(np.dstack([sw, sw, sw]), os.path.join(a_dir, 'near-maps.webp'), {'': cut.W}, lossless=True)
 
     # (Out of focus: stored at half its size; it has nothing finer.)

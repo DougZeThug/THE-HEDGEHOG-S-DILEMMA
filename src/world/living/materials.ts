@@ -364,14 +364,16 @@ const FRAG = /* glsl */ `
       vec2 uvF = vUv;
       if (uNear > 0.5) {
         // Their bed's grass in the air (the two-shot): as the wide's grass moves where they lie
-        // (the same wind and clumps, at the same place on the painting), never within 25 sheet px
-        // of them (its map, uMaps here: R), less where it is out of focus.
+        // (the same wind and clumps, at the same place on the painting), never on them nor within
+        // 6 sheet px of them (its map, uMaps here: R), less where it is out of focus. (Weaker, and
+        // kept off the grass between them, the heart moved half as much as the second wide: the
+        // artist's "still images" again.)
         float sw = texture2D(uMaps, vec2(vUv.x / uFigU, vUv.y)).r;
         if (sw > 0.0) {
           vec2 at = uWidePlace.xy + vUv * uWidePlace.zw;
           float clump = sin(uTime * 3.4 + texture2D(uNoise, at * vec2(0.7, 0.45) + 0.31).r * 6.2831);
-          float dx = (windAt(at.x).x * 3.0 + clump * 0.9) * sw * uMotion;
-          dx = 5.0 * dx / sqrt(25.0 + dx * dx);
+          float dx = (windAt(at.x).x * 5.0 + clump * 1.8) * sw * uMotion;
+          dx = 7.0 * dx / sqrt(49.0 + dx * dx);
           uvF += vec2(dx, -0.25 * abs(dx)) / uSheet;
         }
       }
