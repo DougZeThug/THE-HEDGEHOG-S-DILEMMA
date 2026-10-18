@@ -152,6 +152,9 @@ describe('the air, which moves everything (one wind, seekable)', () => {
     }
     expect(most).toBeLessThanOrEqual(0.02);
     expect(Math.abs(leavesPan(G[0].at - 1))).toBe(0);
+    // It starts on the left with the near oak and goes right with its front.
+    expect(leavesPan(G[0].at + 0.4)).toBeLessThan(-0.3);
+    expect(leavesPan(G[0].at + 1.5)).toBeGreaterThan(0.3);
   });
   it("the sound's times are the picture's", () => {
     expect(TIMES.cut).toBe(CUT_AT);

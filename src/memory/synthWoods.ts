@@ -7,14 +7,17 @@ import { WOODLAND } from './living/woodland';
 export const heard = (t: number) => gustSway(t + 0.4, 0.5, WOODLAND.gusts);
 
 /**
- * Where the leaves are heard across (−1 left .. 1 right): from the left as a gust's front comes
- * in, toward the right as it passes, back to the middle as it dies away (by its strength: never a
- * jump; QA, 2026-10-17).
+ * Where the leaves are heard across (−1 left .. 1 right): where they are seen to sway, the
+ * canopy's left against its right, so a gust starts on the left with the near oak and travels
+ * right with its front (heard on the right all along, it was ahead of what was seen: cinematic
+ * review, 2026-10-18); back to the middle as it dies away (by its strength: never a jump; QA).
  */
 export function leavesPan(t: number): number {
-  const gs = heard(t);
-  const k = Math.min(1, gs.strength / 0.15);
-  return Math.min(1, Math.max(-1, gs.front * 1.6 - 0.8)) * k * k * (3 - 2 * k);
+  const l = gustSway(t + 0.4, 0.2, WOODLAND.gusts).strength, r = gustSway(t + 0.4, 0.8, WOODLAND.gusts).strength;
+  if (l + r < 1e-6) return 0;
+  // (Across only as far as the gust is heard: not hard over while it is barely there.)
+  const k = Math.min(1, heard(t).strength / 0.35);
+  return 0.8 * ((r - l) / (l + r)) * k * k * (3 - 2 * k);
 }
 
 /**

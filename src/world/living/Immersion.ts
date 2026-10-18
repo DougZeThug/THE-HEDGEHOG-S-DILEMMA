@@ -77,7 +77,8 @@ const ImmersionShader = {
       // it opens out), its edge into the plaster.
       vec3 c = mix(room.rgb, p, colour * uShow);
       // The graphite the light finds first, just inside the colour's edge.
-      c *= 1.0 - g.a * lead * uShow * 0.75;
+      // (Light: stronger, it printed as a sooty speckle along the edge: directors' film review.)
+      c *= 1.0 - g.a * lead * uShow * 0.3;
       // The sprig passing close to the lens (premultiplied; sharp: a leaf, not a smudge).
       if (uLeafShow > 0.0) {
         vec2 d = (vUv - uLeaf.xy) * vec2(uScreen, 1.0) / uLeaf.z;
@@ -135,7 +136,9 @@ export class Immersion {
     u.uAspect.value = o.paint;
     (u.uZoom.value as THREE.Vector3).copy(o.zoom);
     (u.uView.value as THREE.Vector4).copy(o.view);
-    const k = smoothstep(o.immerse);
+    // (`immerse` arrives eased already: eased again, nine tenths of the opening out fell in two
+    // thirds of a second, the threshold's briefest phase: cinematic review, 2026-10-18.)
+    const k = clamp01(o.immerse);
     const full = coverQuad(o.aspect, o.paint, o.focus);
     const from = o.wall ?? full.map((p) => p.clone().sub(new THREE.Vector2(0.5, 0.5)).multiplyScalar(0.3).add(new THREE.Vector2(0.5, 0.5)));
     for (let i = 0; i < 4; i++) this.quad[i].copy(from[i]).lerp(full[i], k);

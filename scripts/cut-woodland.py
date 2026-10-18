@@ -576,6 +576,38 @@ def sky_mask(day):
     return blur(arr(im), 0.6)
 
 
+def sky_mask_dusk(dusk):
+    """The same in the dusk painting, whose leaves aren't quite where the afternoon's are (laid in
+    through the afternoon's matte, the evening sky showed leaf-shaped halos where they differ: the
+    directors' film review, 2026-10-18): its leaves dark, or yellow-brown with little blue; its sky
+    pink, orange and purple; its mountain a dark blue."""
+    d = arr(dusk)
+    r, g, b = d[..., 0], d[..., 1], d[..., 2]
+    lum = 0.3 * r + 0.59 * g + 0.11 * b
+    y = np.mgrid[0:H, 0:W][0]
+    leaf = ((b < g - 0.05) & (lum < 0.42)) | (lum < 0.24)
+    # (Above the ridge, as the afternoon's: below it, the glow between the far treetops isn't sky
+    # that drifts.)
+    m = ~leaf & (lum > 0.28) & (y < 172) & (poly_mask((W, H), [MOUNTAIN]) < 0.5)
+    x0, y0, x1, y1 = CLOUD_BOX
+    box = np.zeros((H, W), bool)
+    box[y0:y1, x0:x1] = True
+    m = (m & box).astype(np.float32)
+    im = img(m).filter(ImageFilter.MaxFilter(3)).filter(ImageFilter.MinFilter(3))
+    return blur(arr(im), 0.6)
+
+
+def save_skies(day, dusk, a):
+    """The sky's matte (R the afternoon's, G the evening's) and the two skies that drift behind
+    the leaves, each filled under its own painting's leaves."""
+    smask, dmask = sky_mask(day), sky_mask_dusk(dusk)
+    x0, y0, x1, y1 = CLOUD_BOX
+    save(np.dstack([smask[y0:y1, x0:x1], dmask[y0:y1, x0:x1], smask[y0:y1, x0:x1]]), os.path.join(a, 'sky-mask.webp'), {'': W}, lossless=True)
+    save(clouds(arr(day), smask), os.path.join(a, 'clouds.webp'), {'': W}, q=90)
+    save(clouds(arr(dusk), dmask), os.path.join(a, 'clouds-after.webp'), {'': W}, q=90)
+    return smask
+
+
 def clouds(plate_rgb, mask):
     """The sky in the gap as its own layer, filled where the leaves and mountain hide it (so it can
     drift behind them) and painted on CLOUD_PAD px further left (where it drifts in from)."""
@@ -716,6 +748,10 @@ def main():
     # The dusk plate sits ~2 px left of the day plate (gradient correlation, best at +2).
     dusk = dusk.transform(dusk.size, Image.AFFINE, (1, 0, -2, 0, 1, 0), resample=Image.BICUBIC)
 
+    if sys.argv[1:] == ['--skies']:
+        # Only the skies and their matte (everything else as it was cut).
+        save_skies(day, dusk, os.path.join(OUT, 'afternoon'))
+        return
     maps, sky, lum = plate_maps(day)
     fig, arm, sleeve, straight, fa = figures(sheet, day)
     th, tw = fig.shape[:2]
@@ -748,12 +784,8 @@ def main():
     heads, fmask = flower_heads(day)
     save(under_flowers(arr(day), fmask), os.path.join(a, 'plate.webp'), LIVE, q=92)
     save(np.dstack([arr(day) * fmask[..., None], fmask]), os.path.join(a, 'flowers.webp'), LIVE, q=92)
-    smask = sky_mask(day)
     save(sprig(day), os.path.join(a, 'leaves.webp'), {'': W}, q=92)
-    x0, y0, x1, y1 = CLOUD_BOX
-    save(np.dstack([smask[y0:y1, x0:x1]] * 3), os.path.join(a, 'sky-mask.webp'), {'': W}, lossless=True)
-    save(clouds(arr(day), smask), os.path.join(a, 'clouds.webp'), {'': W}, q=90)
-    save(clouds(arr(dusk), smask), os.path.join(a, 'clouds-after.webp'), {'': W}, q=90)
+    smask = save_skies(day, dusk, a)
     save(maps.clip(0, 1), os.path.join(a, 'maps.webp'), {'': W // 4}, lossless=True)
     # Atlases (rows top to bottom): the body, her forearm; her lids shut, half, and her sleeve.
     save(stack([fig, arm]), os.path.join(a, 'figures.webp'), LIVE, q=92)

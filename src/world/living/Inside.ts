@@ -211,7 +211,8 @@ export class Inside {
     // there is: the light grows, then the frame. Cinematic review, 2026-10-17.)
     const spread = smooth(0, 0.5, e);
     const show = o.reduced ? smooth(0.4, 1, e) : smooth(0.3, 0.7, e);
-    const settle = o.reduced ? 1 : smooth(0.68, 1, e);
+    // (Opening out over the last 45% of the way in, ~1.6 s, the painting's light still mostly ahead of it.)
+    const settle = o.reduced ? 1 : smooth(0.55, 1, e);
     this.window.spread = spread;
 
     // The whole painting, where it is on its wall.

@@ -257,7 +257,10 @@ const FRAG = /* glsl */ `
       vec2 sq = (at - uCloudBox.xy) / uCloudBox.zw;
       float sky = 0.0;
       if (uCloudBox.z > 0.0 && all(greaterThan(sq, vec2(0.0))) && all(lessThan(sq, vec2(1.0)))) {
-        sky = texture2D(uSkyMask, sq).r;
+        // (Its matte: R the afternoon's, G the evening's: their leaves aren't quite in the same
+        // places, and through the afternoon's the evening sky showed leaf-shaped halos.)
+        vec2 mm = texture2D(uSkyMask, sq).rg;
+        sky = uAfter > 0.5 ? mm.g : mm.r;
         vec2 cq = vec2(uCloud.x + (1.0 - uCloud.x) * ((uv - uCloudBox.xy) / uCloudBox.zw).x - uCloud.y, sq.y);
         vec3 cl = uAfter > 0.5 ? texture2D(uCloudsAfter, cq).rgb : texture2D(uClouds, cq).rgb;
         c = mix(c, cl, sky);
@@ -316,7 +319,9 @@ const FRAG = /* glsl */ `
         vec4 m = texture2D(uMaps, vScene);
         float bg = dot((uAfter > 0.5 ? texture2D(uAfterPlate, vScene) : texture2D(uPlate, vScene)).rgb, vec3(0.3, 0.59, 0.11));
         float sun = uAfter > 0.5 ? 0.35 : smoothstep(0.05, 0.4, m.a);
-        float lit = (0.3 + 0.7 * sun) * (1.0 - 0.5 * bg);
+        // (None in the shade: one there, catching the sun on a dark ground, glowed cyan-white, a
+        // sparkle: the directors' film review, 2026-10-18.)
+        float lit = sun * (1.0 - 0.5 * bg);
         float a = exp(-r * r * 5.0) * vMote.y * lit * vMote.z * 0.9;
         gl_FragColor = vec4(vec3(1.0, 0.95, 0.8) * a, 0.0);
       } else if (vMote.x < 1.5) {
