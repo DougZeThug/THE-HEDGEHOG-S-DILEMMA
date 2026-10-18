@@ -307,15 +307,20 @@ function steady(ph: [number, number][], empty: boolean): [number, number][] {
 
 /**
  * The two either side's phrases (take 0 the afternoon's, take 1 the dusk's): random, none begins or
- * ends on the cut, and none is under way as their quiet ends: they come back out of it at a
- * phrase's start, each with its own swell (one already under way came back as a fade, half a
- * phrase, on the cut's heels: the sound designer's review, 2026-10-18).
+ * ends on the cut, and their quiet is never a fade: a phrase under way as it begins ends there, on
+ * its own fall-away, and none is under way as it ends: they come back out of it at a phrase's
+ * start, each with its own swell (one already under way came back as a fade, half a phrase, on the
+ * cut's heels: the sound designer's review, 2026-10-18; the creative director's, on the way in).
  */
 export function midPhrases(take: number): [number, number][][] {
   const empty = take === 1;
   const len = empty ? EMPTY.length : TIMES.length;
-  const end = TIMES.midQuiet[1];
-  return [MID_L, MID_R].map((c) => steady(phrases(c.seed, 2, len - 1, [4, 9], [2, 6]), empty).filter(([a, b]) => empty || !(a < end && b > end)));
+  const [start, end] = TIMES.midQuiet;
+  return [MID_L, MID_R].map((c) =>
+    steady(phrases(c.seed, 2, len - 1, [4, 9], [2, 6]), empty)
+      .filter(([a, b]) => empty || !(a < end && b > end))
+      .map(([a, b]): [number, number] => (!empty && a < start && b > start ? [a, Math.max(a + 2, start)] : [a, b])),
+  );
 }
 
 export async function renderWoods(take: number): Promise<Float32Array[]> {

@@ -559,10 +559,10 @@ describe('the woodland, heard', () => {
     for (let a = SHOTS.two; a < SHOTS.wideAgain; a += 0.5) dbs.push(10 * Math.log10(e(a, a + 0.5)));
     expect(Math.max(...dbs) - Math.min(...dbs)).toBeLessThan(3);
   });
-  it("the two either side come back out of their quiet only at a phrase's start (never faded in mid-phrase)", () => {
-    const [, end] = TIMES.midQuiet;
+  it("the two either side go quiet at a phrase's end and come back at a phrase's start (never a fade mid-phrase)", () => {
+    const [start, end] = TIMES.midQuiet;
     for (const list of midPhrases(0)) {
-      for (const [a, b] of list) expect(a < end && b > end, `${a.toFixed(2)}–${b.toFixed(2)} s`).toBe(false);
+      for (const [a, b] of list) expect((a < end && b > end) || (a < start && b > start), `${a.toFixed(2)}–${b.toFixed(2)} s`).toBe(false);
       // (Each still comes back, within a few seconds.)
       expect(list.some(([a]) => a >= end && a < end + 4)).toBe(true);
     }

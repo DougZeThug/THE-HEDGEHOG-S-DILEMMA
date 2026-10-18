@@ -19,8 +19,8 @@ stand-in.
 **Her turn is one cut**: from the panel's head straight to yours, a turn of 70–90° in a twelfth of
 a second, and back the same way. Where she ends up is clear; how she gets there reads as a start or
 a sudden decision, the loudest thing in the shot, seen twice by everyone who sees it (both
-directors, watching the film). A drawing of her head halfway there makes it a turn: it is now the
-most useful drawing you could make, and his look the next.
+directors, going through the film frame by frame). A drawing of her head halfway there makes it a
+turn: it is the most useful drawing for the close shot, and his look the next.
 
 This replaces the earlier lists: the eleven close-up drawings (`c4-*`, `c5-*`, `c6-*`) and the
 three close-up panels are no longer needed. Your shot list had him look first and her notice; the

@@ -224,9 +224,10 @@ export async function prefetch(id: string, variant: string, host: Pick<RuntimeHo
 }
 
 /**
- * Whether the screen can show the two-shot (the spec's aspects: upright its 16:9 frame would hold
- * one face, at 4:3 or narrower cut his, wider than 2.45 hers and the hands): elsewhere its shot is
- * the wide, and its art isn't loaded (about 24 MB on a desktop).
+ * Whether the screen can show the two-shot (the spec's aspects, framed by band: narrower than 1.3
+ * no frame holds his face, wider than 2.45 none holds hers and the hands, and upright a 16:9 one
+ * would hold one face): elsewhere its shot is the wide, and its art isn't loaded (about 24 MB on a
+ * desktop).
  */
 function framesNear(host: Pick<RuntimeHost, 'screen'>, spec: LivingSpec): boolean {
   if (!host.screen || !spec.near) return true;
