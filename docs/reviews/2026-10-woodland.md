@@ -754,3 +754,66 @@ Fixed:
   - The cause: the clouds and the mountain ridge are in the painted sun-flecks map too, and the flecks' brightness pattern, shifted with the leaves (up to ~16 px in the gust), printed offset copies of their edges.
   - The flecks now stay out of the sky, their shift is capped at 5 px, and the leaves' sway at 7 px: the painting's own rule, "nothing that moves more than a few pixels is moved inside the painting".
 
+
+## The directors' evaluation of the re-recorded film, and the skeptic's third review
+
+The cinematic and creative directors watched the re-recorded film (desktop, the afternoon, 0–53 s, HEAD 7a9a44c).
+
+- **Both:** the crossing no longer pops (its largest step in centre brightness is 3.9/255 a drawing, from 55), each gust is heard as it is seen, the return carries over 2 s with no lasting stain, and the second wide and the one-frame cut to the empty dusk are the work at its best: add nothing to them.
+- **Cinematic director:**
+  - [P1] "I wanted you to" captions the two of them for about 1.2 s as their colour arrives: a line's wash was the mean of its five points, most of them over bare plaster, so it lagged the colour by ~1.3 s.
+  - [P1] The crossing's last second is a 0.9 s zoom (the settle eased twice) with a dark sprig flicking through it: as dark as the painting's darkest 5%, sharp, three drawings long.
+  - [P1] The stand-in close-ups are 12 s at the centre where nothing is told, and their eyelines contradict the wide (both already look at each other, smiling, before the beat).
+  - [P2] The first wide spends its emphasis on the trees: its gust is the loudest half second of the memory (+6 dB over the whole mix), louder than the silent cut is weighty; the falling leaf reads as a sprite.
+  - [P2] Both gusts are heard on the right while the left oak sways first and most.
+  - [P2] Make the light lead: a trembling dapple. [P2, speculative] The hands are the shortest shot.
+- **Creative director:**
+  - [P1] For about 5 s of every visit the painting is a picture with corners, not a clearing coming out of the plaster.
+  - [P1] The room's unfinished sentence captions the memory at its two most legible moments, the first colour and the last.
+  - [P1] The return's quiet comes late, and its own "pencil alone" beat isn't on screen.
+  - [P1, speculative] Shot 5 is written as a returned look; "she notices" could be the dilemma instead.
+  - [P2] The sprig is the least painterly thing in the film. The colour's arrival opens separate dark blots that read as stains. [Speculative] The last of the dusk colour reads as a scorch.
+
+**Fixed first** (commit 2a5d16f, the verified defects):
+- The leaves are heard where they sway: a gust starts on the left with the near oak and travels right with its front, panned only as far as it is heard.
+- The opening-out is eased once, over ~1.6 s.
+- The overlay's graphite edge is light (it printed as a sooty speckle).
+- No motes in the shade (one there glowed cyan-white on a dark ground).
+- The evening sky drifts behind the dusk painting's own leaves, through a matte cut from that painting (through the afternoon's it showed leaf-shaped halos).
+
+**The skeptic, on the reconciled plan for the rest.** The plan fixed real defects but added more than it took away, in the 5 s of the crossing that already carry about a dozen overlapping systems. Most important: don't restage the sprig; delete it and ask the artist to draw it. The biggest thing missed: the wall painting is a dark multiply where image 3 is luminous (its median 0.34–0.35 of the plaster on the way in, 0.26 on the way out), and that one cause makes the islands read as stains, the leaving as a scorch and the corners loud.
+1. [P1] Delete the sprig; put it in the kit.
+2. [P1] Take the creative director's way with the writing (it comes back to a white wall, after the empty clearing's pencil has been alone a while), and wash it on the revisit too, which captions the absence for its whole 16 s.
+3. [P1] Lift the wall painting toward the plaster, all the way at the colour's front, before building any silhouette.
+4. [P1] The extent: only the minimal version (a rounded rectangle, the band wider as the painting grows, the graphite running to the plate's edge), and one optional kit line for the artist's own mask. No loader for a file that doesn't exist.
+5. [P2] The single ease re-timed the return the cinematic director asked to protect (its close fastest just before it lands; the light leaving before the frame has closed). Restore 0.68 and give the way in its own key.
+6. [P2] A weaker gust barely lowers it (−2.7 dB: the leaves were balanced on the whole render, which hands the cut back to everything else) and shrinks the first wide's one visible event. Keep it whole in the picture; in the sound, halve only the gust's term and balance the leaves on the breeze alone. The artist must listen.
+7. [P2] Cut the dusk gust: the loudest moment in the empty clearing, 3 s after the cut, marking it after the fact.
+8. [P2] The max rule must keep QA's "a line half over the painting goes half way" (`on / 5`, presence, and the hold through both).
+9. [P2] The warm light before the pencil isn't perceived as light (two pale smears after the first stroke): gate it by the colour, let the cicada lead, no dapple.
+10. [P2] The colour order: the ranked distance from between their heads, one soft noise, the existing floor, and a script that fails on a second coloured part over 0.2% of the painting (there were 2–3, the largest 2.8%).
+
+Remove: the sprig system, the falling leaf (and the shader's seed and leaf branches), the smears before the pencil, the dusk gust.
+
+**Decided** (all taken; commit 8dfcfff):
+- **1.** The sprig is gone: `scene.leaf`, its texture, its uniforms, its test. The kit asks for `c2-leaves.png` (optional): the near oak's leaves very close to the lens, out of focus, lit from behind.
+- **2.** A piece of writing under the painting goes to a trace as soon as the colour (0.05 ahead of it) reaches any of its five points on the painting, only as far as its share of those points is on the painting and as the painting is there. It stays a trace while the pencil is there (`window.wash`, held no further than `window.sketch`), so after the colour has gone (47.8 s) the empty clearing's pencil is alone, and the words come back as it goes (49.8–51.3 s), to a white wall. The revisit washes its writing too.
+- **3.** The painting drawn in order is lifted toward the plaster's lightness (`LIFT` 0.35), all the way at its colour's front. See the measurements below for why it stays at 0.35.
+- **4.** Its edge is a rounded rectangle, never oval; the colour keeps inside it, the pencil runs on to the plate's edge. The overlay's edge is rounded too, its band from 0.18 of the frame down to 0.012 as it opens out. The kit asks for `colour-extent.png` (optional); there is no loader until it exists.
+- **5.** The settle is back to 0.68–1, and the way in has its own key (`scene.immerse` [8.2, 0.68, linear]): the opening is one ease over 8.2–9.8 s and the return is as reviewed. Under reduced motion there is no settle at all.
+- **6.** In the picture the gust stays whole. In the sound its own term is halved, and the leaves sit 6 dB under the cicadas measured on the breeze alone.
+- **7.** The dusk gust is cut. One gust is left, in the first wide (tested: none in the second wide, none after the cut).
+- **8.** As specified, with tests: the line goes at its first coloured point, half over the edge it goes half way, and played through the controller it stays a trace while the pencil stays and comes back with the plaster.
+- **9.** The light comes only with the colour; the comment in `defs.ts` is corrected. No dapple.
+- **10.** As specified (below).
+- Also removed: the falling leaf, the seed and leaf branches in `materials.ts`.
+- **Not taken now:** gating the stand-in face close-ups (nothing is hosted, so no one sees them yet; when it ships without the drawings, gate the faces and keep the hands); the hands' length (judge it on the animatic); the return's retiming (2 now gives its pencil-alone beat). The creative director's "she notices" reading of shot 5, and the eyes-only faces, go to the artist as an offer, not a change.
+
+**Built, and measured:**
+- **The colour front** (`scripts/stroke-order.py`): the ranked distance from between their faces (the rig's face deformers placed on the painting: 602, 489 px), broken by one soft noise (0.15 of the furthest reach, σ 36 px). Every step of the reveal colours one part; the largest other part at any step is 0.09% of the painting. At 0.24 the noise made a 0.54% island, and the script refused it, writing nothing. On the current clocks the floor is never reached: the last line is drawn by ~4.95 s, the first colour shows at ~5.66 s.
+- **The sound** (offline, at the cues' gains, 0.4 s windows, the same render with and without the two changes): the gust's peak (12.2 s) went from −38.4 to −41.8 dB, from 6.1 dB over the first wide's breeze to 2.3 dB; the rest moved by about +0.4 dB (the second wide −44.3, the empty clearing −43.5, the close-ups −48.0). The leaves are still a synthesised stand-in, and only listening decides.
+- **The wall painting's lightness**, rendered for a visitor it stays on the wall for: the painting's median is 0.45 of the bare plaster behind it (linear luminance, the same pixels with and without it, at 12 s and 20 s), from about 0.34. The skeptic's target was image 3's 0.57; measured the same way, image 3 gives 0.42–0.53 by which patch of its plaster it is set against. So `LIFT` stays at 0.35: lifting further would pale the colour away from image 3, which is more saturated than ours.
+- **A full run of the cutter** (in a scratch copy) reproduces every committed image within 2 levels, and the manifest but for one key's place.
+- **Found in the revisit's frames, and fixed** (the commit after 8dfcfff):
+  - [P1, introduced by 8dfcfff] The writing under *every* memory's painting was washed, not only the woodland's: the branch for a memory without a living scene serves the cereal, bedroom and door memories too. Now only a living memory washes. Checked: the cereal memory's writing is never washed (0 over 0–20 s), and the light's own wash of a memory's line is unchanged.
+  - [P1, older: it showed once the room's layout put the painting square under its words] The revisit's painting was a dark strip under its words. The bare plaster kept round them took its top half (the window's top is just above the words, and their placement box is 0.21 m tall), and at full strength the dusk was a black stain. Its words are washed now, so it keeps no plaster round them, and it is sunk (0.72) as the afternoon's scene is. It reads as the clearing again.
