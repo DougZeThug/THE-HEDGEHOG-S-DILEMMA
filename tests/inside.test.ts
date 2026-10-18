@@ -212,16 +212,16 @@ function app(o: { reduced?: boolean } = {}) {
   const chair = new THREE.Vector3(5, 0, 5);
   const tex = () => new THREE.Texture();
   const lm = manifest.living.afternoon;
-  const n = lm.near as unknown as { pixels: [number, number]; gutter: number; reach: number; lidBox: [number, number, number, number]; heads: { box: [number, number, number, number]; cells: number }; ground: { box: [number, number, number, number] }; eyes: { a: number[][]; b: number[][] } };
-  const wh = (lm.figures as unknown as { heads: { box: [number, number, number, number]; cells: number } }).heads;
+  const n = lm.near as unknown as { pixels: [number, number]; gutter: number; reach: number; lidBox: [number, number, number, number]; heads: { box: [number, number, number, number]; at: number[]; cells: number }; ground: { box: [number, number, number, number] }; eyes: { a: number[][]; b: number[][] } };
+  const wh = (lm.figures as unknown as { heads: { box: [number, number, number, number]; at: number[]; cells: number } }).heads;
   const near: NearArt = {
     texture: tex(), lids: tex(), ground: tex(), maps: tex(),
-    heads: { texture: tex(), box: n.heads.box, cells: n.heads.cells },
+    heads: { texture: tex(), box: n.heads.box, at: n.heads.at, cells: n.heads.cells },
     pixels: n.pixels, gutter: n.gutter, reach: n.reach, lidBox: n.lidBox, groundBox: n.ground.box,
     eyes: [...n.eyes.a, ...n.eyes.b] as NearArt['eyes'],
   };
   const scene = new LivingScene(
-    { plate: tex(), maps: tex(), grade: null, after: null, sky: null, flowers: null, clouds: null, size: manifest.plate as [number, number], near, heads: { texture: tex(), box: wh.box, cells: wh.cells },
+    { plate: tex(), maps: tex(), grade: null, after: null, sky: null, flowers: null, clouds: null, size: manifest.plate as [number, number], near, heads: { texture: tex(), box: wh.box, at: wh.at, cells: wh.cells },
       figures: { ...(lm.figures as unknown as NonNullable<LivingArt['figures']>), texture: tex(), lids: tex() } },
     SPEC, { width: 64, height: 36, noise: tex(), reduced: false },
   );

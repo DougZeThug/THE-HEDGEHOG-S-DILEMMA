@@ -85,9 +85,9 @@ export const SCENE: Schema[string] = {
  *   shoulder  B: her shoulder easing (0..1)
  *   settle    B: settling back into the grass (0..1)
  *   breath    how deep they breathe (1 as they do)
- *   cel       B: her head as the panel has it (0), as the artist redrew it, turned to him (1), or
- *             on the way there, a quarter (2) and three quarters (3) of the way (scripts/two-shot.py;
- *             without those drawings, 1), in either shot: held keys, every change a cut
+ *   turn      B: how far her head has turned to him, 0 as the panel has it .. 1 as the artist
+ *             redrew it; the scene shows the drawing nearest to it (scripts/two-shot.py: the
+ *             manifest's `at`), in either shot: held keys on twos, every change a cut
  */
 export const FIGURE: Schema[string] = {
   head: [0, -0.06, 0.06],
@@ -99,7 +99,7 @@ export const FIGURE: Schema[string] = {
   shoulder: [0, 0, 1],
   settle: [0, 0, 1],
   breath: [1, 0, 1.5],
-  cel: [0, 0, 3],
+  turn: [0, 0, 1],
 };
 
 /** A memory's objects, given its layers' names (back to front), and the scene if it lives. */

@@ -8,13 +8,13 @@ import { compose, FULL, weightsFor } from '../src/memory/compose';
 import { coverQuad, squareToQuad, visiblePart } from '../src/world/living/Immersion';
 import { useInitialState, sheetSource } from '../src/memory/theatre';
 import { memorySchema } from '../src/memory/sheets';
-import { BREEZE_KEYS, CUT as CUT_AT, MEMORIES, SHOTS, TURN_STEP, TWO_SHOT, sheetId } from '../src/memory/defs';
+import { BREEZE_KEYS, CUT as CUT_AT, MEMORIES, SHOTS, TURN_STEPS, TWO_SHOT, sheetId } from '../src/memory/defs';
 import { SCENE_MEMORIES } from '../src/content/memories';
 import { MemoryPlaybackController } from '../src/memory/MemoryPlaybackController';
 import { renderCicadas, renderWoods, renderLast, cicada, heard, leavesPan, midPhrases, RATE, TIMES } from '../src/memory/synthWoods';
 import state from '../src/memory/theatre-state.json';
 import manifest from '../public/memories/woodland/manifest.json';
-import { LivingScene, type HeadCels, type LivingArt, type NearArt } from '../src/memory/living/LivingScene';
+import { LivingScene, headFor, type HeadCels, type LivingArt, type NearArt } from '../src/memory/living/LivingScene';
 import { DEFORMERS, livingMaterials } from '../src/world/living/materials';
 
 // The woodland memory (docs/reviews/2026-10-woodland.md): its people's involuntary life, the
@@ -460,38 +460,55 @@ describe('the two of them close: one shot, three beats, held drawings', () => {
     expect(SHOTS.wideAgain).toBe(27.0);
   });
 
-  it('her look: her eyes lead her head to him by half a second, and follow it back; every head a held drawing', () => {
-    let prevCel = 0;
+  it('her look: her eyes lead her head to him by half a second, and follow it back; her turn on twos, slow, fast, slow; every head a held drawing', () => {
+    let prev = 0;
     const changes: [number, number][] = [];
     for (let t = SHOTS.two; t < SHOTS.wideAgain; t += 1 / 120) {
       const v = src.at(t);
-      expect([0, 1, 2, 3]).toContain(v['figure:b.cel']);
+      expect(v['figure:b.turn']).toBeGreaterThanOrEqual(0);
+      expect(v['figure:b.turn']).toBeLessThanOrEqual(1);
       expect([0, 1]).toContain(v['figure:b.eyes']);
-      if (v['figure:b.cel'] !== prevCel) {
+      if (v['figure:b.turn'] !== prev) {
         expect(t - SHOTS.two).toBeGreaterThan(1);
-        changes.push([t, v['figure:b.cel']]);
+        changes.push([t, v['figure:b.turn']]);
       }
-      prevCel = v['figure:b.cel'];
+      prev = v['figure:b.turn'];
     }
-    // Her head turns through its two in-betweens, a quarter (2) and three quarters (3) of the way, each
-    // held two drawings, and comes back up the same way, arriving at `herBack`.
-    expect(changes.map(([, c]) => c)).toEqual([2, 3, 1, 3, 2, 0]);
-    const starts = [T.herTurn, T.herTurn + TURN_STEP, T.herTurn + 2 * TURN_STEP, T.herBack - 2 * TURN_STEP, T.herBack - TURN_STEP, T.herBack];
-    changes.forEach(([t], i) => expect(Math.abs(t - starts[i])).toBeLessThanOrEqual(1 / 120 + 1e-9));
-    expect(TURN_STEP * 12).toBeCloseTo(2, 9);
+    // Toward him a drawing every twelfth of a second from `herTurn`, arriving at her drawing; back up
+    // the same way, arriving at the panel's head at `herBack`.
+    const n = TURN_STEPS.length;
+    expect(changes.map(([, f]) => f)).toEqual([...TURN_STEPS, 1, ...TURN_STEPS.map((f) => +(1 - f).toFixed(4)), 0]);
+    changes.slice(0, n + 1).forEach(([t], i) => expect(Math.abs(t - (T.herTurn + i / 12))).toBeLessThanOrEqual(1 / 120 + 1e-9));
+    changes.slice(n + 1).forEach(([t], i) => expect(Math.abs(t - (T.herBack - (n - i) / 12))).toBeLessThanOrEqual(1 / 120 + 1e-9));
+    // Slow, fast, slow: each step larger to the middle (her drawing changing at 0.5), then smaller.
+    const steps = [...TURN_STEPS, 1].map((f, i, a) => f - (i ? a[i - 1] : 0));
+    for (let i = 1; i < steps.length / 2; i++) expect(steps[i]).toBeGreaterThan(steps[i - 1]);
+    steps.forEach((d, i) => expect(d).toBeCloseTo(steps[steps.length - 1 - i], 3));
+    expect(TURN_STEPS[Math.floor(n / 2)]).toBe(0.5);
     const at = (t: number) => src.at(t);
     expect(at(T.herEyes - 0.01)['figure:b.eyes']).toBe(0);
     expect(at(T.herEyes + 0.01)['figure:b.eyes']).toBe(1);
-    expect(at(T.herEyes + 0.01)['figure:b.cel']).toBe(0);
-    expect(at(T.herTurn + 0.01)['figure:b.cel']).toBe(2);
-    expect(at(T.herTurn + 2 * TURN_STEP + 0.01)['figure:b.cel']).toBe(1);
+    expect(at(T.herTurn - 0.01)['figure:b.turn']).toBe(0);
+    expect(at(T.herTurn + 0.01)['figure:b.turn']).toBeGreaterThan(0);
     expect(T.herTurn - T.herEyes).toBeCloseTo(0.5, 6);
     // Back: her head first (the panel's, its eyes still on him), her eyes after it.
-    expect(at(T.herBack - 0.01)['figure:b.cel']).toBe(2);
-    expect(at(T.herBack + 0.01)['figure:b.cel']).toBe(0);
+    expect(at(T.herBack - 0.01)['figure:b.turn']).toBeGreaterThan(0);
+    expect(at(T.herBack + 0.01)['figure:b.turn']).toBe(0);
     expect(at(T.herBack + 0.01)['figure:b.eyes']).toBe(1);
     expect(at(T.herEyesBack + 0.01)['figure:b.eyes']).toBe(0);
-    expect(at(SHOTS.wideAgain)['figure:b.cel']).toBe(0);
+    expect(at(SHOTS.wideAgain)['figure:b.turn']).toBe(0);
+  });
+
+  it('her head: the drawing nearest to how far she has turned, a tie going to the one further on', () => {
+    // Her drawing alone: the straight cut, at the turn's middle.
+    expect(TURN_STEPS.map((f) => headFor(f, [1]))).toEqual([0, 0, 1, 1, 1]);
+    expect(TURN_STEPS.map((f) => headFor(1 - f, [1]))).toEqual([1, 1, 1, 0, 0]);
+    // The artist's two drawings on the way (a quarter and three quarters).
+    expect(TURN_STEPS.map((f) => headFor(f, [1, 0.25, 0.75]))).toEqual([0, 2, 3, 3, 1]);
+    // The five stand-ins, made at the turn's own steps: one each.
+    expect(TURN_STEPS.map((f) => headFor(f, [1, ...TURN_STEPS]))).toEqual([2, 3, 4, 5, 6]);
+    expect(headFor(0, [1, ...TURN_STEPS])).toBe(0);
+    expect(headFor(1, [1, ...TURN_STEPS])).toBe(1);
   });
 
   it('his look comes last, after hers is over, and the shot ends while he is still looking', () => {
@@ -609,15 +626,15 @@ describe('the scene, as built (no GL: what it would draw and let go)', () => {
     new LivingScene(art(), SPEC, { width: 64, height: 36, noise: tex(), reduced: !!o.reduced, low: o.low });
   // The two-shot's art as the runtime builds it from the manifest (scripts/two-shot.py).
   const near = (): NearArt => {
-    const n = lm.near as unknown as { pixels: [number, number]; gutter: number; reach: number; lidBox: [number, number, number, number]; heads: { box: [number, number, number, number]; cells: number }; ground: { box: [number, number, number, number] }; eyes: { a: number[][]; b: number[][] } };
-    const wh = (lm.figures as unknown as { heads: { box: [number, number, number, number]; cells: number } }).heads;
+    const n = lm.near as unknown as { pixels: [number, number]; gutter: number; reach: number; lidBox: [number, number, number, number]; heads: { box: [number, number, number, number]; at: number[]; cells: number }; ground: { box: [number, number, number, number] }; eyes: { a: number[][]; b: number[][] } };
+    const wh = (lm.figures as unknown as { heads: { box: [number, number, number, number]; at: number[]; cells: number } }).heads;
     return {
       texture: tex(), lids: tex(), ground: tex(), maps: tex(),
-      heads: { texture: tex(), box: n.heads.box, cells: n.heads.cells },
+      heads: { texture: tex(), box: n.heads.box, at: n.heads.at, cells: n.heads.cells },
       pixels: n.pixels, gutter: n.gutter, reach: n.reach, lidBox: n.lidBox, groundBox: n.ground.box,
       eyes: [...n.eyes.a, ...n.eyes.b] as NearArt['eyes'],
       // (Her look in the wide: the scene's own, given with it below.)
-      wide: { texture: tex(), box: wh.box, cells: wh.cells },
+      wide: { texture: tex(), box: wh.box, at: wh.at, cells: wh.cells },
     } as NearArt & { wide: HeadCels };
   };
   const both = () => {
@@ -654,16 +671,24 @@ describe('the scene, as built (no GL: what it would draw and let go)', () => {
     expect(n.eyes.a.length).toBe(2);
     expect(n.eyes.b.length).toBe(2);
     for (const e of [...n.eyes.a, ...n.eyes.b]) expect(e.length).toBe(11);
-    // Her head turned to him, then its in-betweens if they are there (the artist's, or the stand-ins
-    // when the cutter is asked for them: named so), and the region they are laid in by; as many at
-    // the wide's size.
-    const heads = n.heads as { cells: number; takes: string[]; standIns?: string[] };
+    // Her head turned to him, then its drawings on the way there if there are any (the artist's, or
+    // the stand-ins when the cutter is asked for them: named so), each with how far it is, and the
+    // region they are laid in by; the same at the wide's size.
+    const heads = n.heads as { cells: number; takes: string[]; at: number[]; standIns?: string[] };
     expect(heads.takes[0]).toBe('b');
-    expect(['b', 'mid1', 'mid2'].filter((t) => heads.takes.includes(t))).toEqual(heads.takes);
+    expect(heads.at[0]).toBe(1);
+    expect(heads.at.length).toBe(heads.takes.length);
+    for (const f of heads.at.slice(1)) expect(f > 0 && f < 1).toBe(true);
+    for (let i = 2; i < heads.at.length; i++) expect(heads.at[i]).toBeGreaterThan(heads.at[i - 1]);
     expect(heads.cells).toBe(heads.takes.length + 1);
-    for (const t of heads.standIns ?? []) expect(['mid1', 'mid2']).toContain(t);
-    for (const t of heads.standIns ?? []) expect(heads.takes).toContain(t);
-    expect((lm.figures as unknown as { heads: { cells: number } }).heads.cells).toBe(heads.cells);
+    if (heads.standIns?.length) {
+      // (Never with the artist's; made at the turn's own steps.)
+      expect(heads.standIns).toEqual(heads.takes.slice(1));
+      expect(heads.at.slice(1)).toEqual(TURN_STEPS);
+    }
+    const wide = (lm.figures as unknown as { heads: { cells: number; at: number[] } }).heads;
+    expect(wide.cells).toBe(heads.cells);
+    expect(wide.at).toEqual(heads.at);
     // The camera never looks past the atlas's reach (every frame, every screen it is shown on).
     for (const { frame: [x, , w] } of SPEC.near!.frames) expect(x + w).toBeLessThanOrEqual(n.reach);
   });
@@ -782,7 +807,7 @@ describe('the scene, as built (no GL: what it would draw and let go)', () => {
     const s = new LivingScene(a, SPEC, { width: 64, height: 36, noise: tex(), reduced: false });
     const m = livingMaterials(tex());
     const u = m.people.uniforms;
-    const v = { 'scene.shot': 1, 'figure:b.cel': 1, 'figure:a.eyes': 1 };
+    const v = { 'scene.shot': 1, 'figure:b.turn': 1, 'figure:a.eyes': 1 };
     s.choose(v, { inside: true, turn: 0, t: 19 });
     s.update(gl, 19, v, view);
     expect(u.uNear.value).toBe(1);
@@ -805,20 +830,23 @@ describe('the scene, as built (no GL: what it would draw and let go)', () => {
     expect((u.uGaze.value as THREE.Vector2).length()).toBe(0);
     expect(u.uFigU.value).toBe(1);
     expect(u.uMaps.value).not.toBe(n.maps);
-    // On the way there: its in-betweens if they are drawn, else the drawing itself (the straight cut).
-    for (const cel of [2, 3]) {
-      s.update(gl, 18.1, { 'scene.shot': 1, 'figure:b.cel': cel }, view);
-      expect((u.uHeadCel.value as THREE.Vector2).toArray()).toEqual([Math.min(cel, n.heads.cells - 1) - 1, n.heads.cells]);
-    }
-    const four = new LivingScene({ ...a, near: { ...n, heads: { ...n.heads, cells: 4 } } }, SPEC, { width: 64, height: 36, noise: tex(), reduced: false });
-    four.choose(v, { inside: true, turn: 0, t: 18.1 });
-    for (const cel of [1, 2, 3]) {
-      four.update(gl, 18.1 + cel / 12, { 'scene.shot': 1, 'figure:b.cel': cel }, view);
-      expect((u.uHeadCel.value as THREE.Vector2).toArray()).toEqual([cel - 1, 4]);
-    }
-    four.dispose();
+    // On the way there: the drawing nearest to how far she has turned (her drawing or the panel's
+    // head if there are none on the way: the straight cut).
+    TURN_STEPS.forEach((f, i) => {
+      s.update(gl, 18.1 + i / 12, { 'scene.shot': 1, 'figure:b.turn': f }, view);
+      const cel = headFor(f, n.heads.at);
+      expect((u.uHeadCel.value as THREE.Vector2).toArray()).toEqual([cel - 1, n.heads.cells]);
+    });
+    // (With the five stand-ins: one each, in the order they lie in the atlas.)
+    const five = new LivingScene({ ...a, near: { ...n, heads: { ...n.heads, at: [1, ...TURN_STEPS], cells: 7 } } }, SPEC, { width: 64, height: 36, noise: tex(), reduced: false });
+    five.choose(v, { inside: true, turn: 0, t: 18.1 });
+    TURN_STEPS.forEach((f, i) => {
+      five.update(gl, 18.1 + i / 12, { 'scene.shot': 1, 'figure:b.turn': f }, view);
+      expect((u.uHeadCel.value as THREE.Vector2).toArray()).toEqual([i + 1, 7]);
+    });
+    five.dispose();
     // Her head as the panel has it: none of the drawing.
-    s.update(gl, 22.6, { 'scene.shot': 1, 'figure:b.cel': 0 }, view);
+    s.update(gl, 22.6, { 'scene.shot': 1, 'figure:b.turn': 0 }, view);
     expect((u.uHeadCel.value as THREE.Vector2).x).toBe(-1);
     s.dispose();
     expect(u.uHeads.value).toBe(m.empty);

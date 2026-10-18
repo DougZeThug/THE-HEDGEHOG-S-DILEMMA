@@ -1,25 +1,33 @@
 """
-Stand-ins for her turn's two in-betweens: her head a quarter and three quarters of the way to him,
-made here from the drawings already in the kit until the artist draws `b-look-full-mid1.png` and
-`b-look-full-mid2.png` (references/woodland/kit/README.md). Offline, free, no model, no network.
+Stand-ins for her turn: the five drawings between the panel's head and hers turned to him, drawn on
+twos, made here from the drawings already in the kit. Offline, free, no model, no network.
 
     python3 scripts/stand-in-turn.py
 
 How they are made:
-- The panel's head, with her eyes already on him (the two-shot shader's look, below), is warped a
-  quarter of the way toward take b, and take b a quarter of the way back.
-- The warp is a thin-plate spline through points of the face matched by hand on the 2x drawings.
-- It is pinned everywhere outside the region take b is laid in by (scripts/two-shot.py), plus a
-  margin, so the hair lying on the grass stays where both drawings have it and only her head turns.
-- Each head is laid into the panel through that margin.
+- The turn is a minimum-jerk move over seven drawings: slow, fast, slow, as a head turns. Its first
+  and last drawings are the panel's head and take b; the five between are made here, at 0.07, 0.25,
+  0.5, 0.75 and 0.93 of the way.
+- Each one bends both drawings to that moment's shape: the panel's head (her eyes already on him, by
+  the two-shot shader's look, below) and take b. The bend is a thin-plate spline through points of
+  the face matched by hand on the 2x drawings.
+  - It is pinned everywhere outside the region take b is laid in by (scripts/two-shot.py), plus a
+    margin, so the hair lying on the grass stays where both drawings have it and only her head turns.
+  - Before the middle of the turn the drawing is the panel's head bent; after it, take b bent.
+  - Near the middle they are blended, after a dense flow lines them up further, so her ear and her
+    fringe pass over instead of popping.
+- Each drawing is the moment it stands for, exposed for a quarter of its twelfth of a second, so it
+  stays nearly crisp. The middle one is exposed for the whole of it: a smear, as an animator draws the
+  fastest moment of a move.
+- Each head is laid into the panel through the margin.
 
 Writes:
-- references/woodland/drawings/stand-in/b-look-full-mid{1,2}.webp, at the sheet's size;
-- references/woodland/upscaled/stand-in/b-look-full-mid{1,2}-top@2x.webp, at twice it.
+- references/woodland/drawings/stand-in/b-look-full-turn{1..5}.webp, at the sheet's size;
+- references/woodland/upscaled/stand-in/b-look-full-turn{1..5}-top@2x.webp, at twice it;
+- references/woodland/drawings/stand-in/turn.json, how far each is.
 
-scripts/two-shot.py then uses them until the artist's own drawings are in
-references/woodland/drawings/, and names them `standIns` in the manifest. They are not drawings:
-the artist judges them in a flipbook before they are filmed.
+`scripts/two-shot.py --stand-ins` lays them in. It names them `standIns` and gives how far each is in
+the manifest. They are not drawings: the artist judges them in a flipbook before they are filmed.
 """
 import importlib.util
 import json
@@ -57,11 +65,27 @@ PAIRS = [
     ((208.0, 165.5), (160.5, 178.0)),     # right cheek's outline
     ((368.0, 153.0), (318.0, 188.0)),     # left cheek's outline
 ]
+# The right side of her neck, which turns with her head. (Not the left: her chin passes in front of
+# it, which a bend can't do without folding.)
+PAIRS += [
+    ((362.7, 260.0), (349.3, 243.3)),     # the right side of her neck, halfway down
+    ((372.7, 276.7), (369.3, 273.3)),     # the right side of her neck, lower
+]
 # How far outside take b's region the head's motion fades out (crop px), and the pins' spacing.
 MARGIN, PIN = 28, 24
-# A quarter and three quarters of the way: held evenly, the turn moves slow, fast, slow, as a head
-# does, and the change of drawing between them (her ear, her fringe) falls in its fastest step.
-STEPS = (('mid1', 1 / 4), ('mid2', 3 / 4))
+# The turn's drawings on twos (the first and last are her two drawings themselves), where the two
+# drawings are blended (how far she has turned), and how long each drawing is exposed (a fraction of
+# its twelfth of a second): the middle one for all of it.
+DRAWINGS, BLEND, SHUTTER, SMEAR = 7, (0.3, 0.7), 0.25, 1.0
+
+
+def minjerk(t):
+    """How far a minimum-jerk move has gone at `t` (0..1) of its time: slow, fast, slow."""
+    t = min(max(t, 0.0), 1.0)
+    return t ** 3 * (10 - 15 * t + 6 * t * t)
+
+
+STEPS = [(f'turn{i}', minjerk((i + 0.5) / DRAWINGS)) for i in range(1, DRAWINGS - 1)]
 
 
 def smooth(e0, e1, x):
@@ -127,6 +151,22 @@ def warped(img, at, to):
     return cv2.remap(img.astype(np.float32), s[:, 0].reshape(N, N), s[:, 1].reshape(N, N), cv2.INTER_CUBIC, borderMode=cv2.BORDER_REFLECT)
 
 
+def flow(a, b):
+    """The dense flow from `a` to `b` (a(x) ~ b(x + f)), smoothed, and never more than 16 px: past
+    that it is no longer the same thing in both."""
+    def grey(i):
+        return cv2.cvtColor((np.clip(i, 0, 1) * 255).astype(np.uint8), cv2.COLOR_RGB2GRAY)
+    f = cv2.DISOpticalFlow_create(cv2.DISOPTICAL_FLOW_PRESET_MEDIUM).calc(grey(a), grey(b), None)
+    f = cv2.GaussianBlur(f, (0, 0), 3)
+    m = np.linalg.norm(f, axis=-1, keepdims=True)
+    return f * np.minimum(1, 16 / np.maximum(m, 1e-6))
+
+
+def shifted(img, f):
+    yy, xx = np.mgrid[0:N, 0:N].astype(np.float32)
+    return cv2.remap(img.astype(np.float32), xx + f[..., 0], yy + f[..., 1], cv2.INTER_CUBIC, borderMode=cv2.BORDER_REFLECT)
+
+
 def main():
     # The panel and take b at twice the sheet's size, the take moved onto the panel as the cutter
     # moves it; and take b's region, from the two at the sheet's own size as the cutter finds it.
@@ -156,13 +196,29 @@ def main():
     pins = [(float(x), float(y)) for y in list(range(0, N, PIN)) + [N - 1] for x in list(range(0, N, PIN)) + [N - 1] if not grown[y, x]]
     P = np.array([p for p, _ in PAIRS] + pins)
     T = np.array([t for _, t in PAIRS] + pins)
+
+    def moment(f):
+        """Her head `f` of the way to him: either drawing bent to that shape, or both, lined up and
+        blended."""
+        to = P + (T - P) * f
+        w = float(smooth(BLEND[0], BLEND[1], f))
+        if w <= 0:
+            return warped(panel, P, to)
+        if w >= 1:
+            return warped(take, T, to)
+        a, b = warped(panel, P, to), warped(take, T, to)
+        fl = flow(a, b)
+        return (1 - w) * shifted(a, -w * fl) + w * shifted(b, (1 - w) * fl)
+
     sheet = cut.arr(Image.open(os.path.join(cut.REF, '02-characters.webp')).convert('RGB').resize((1448, 1086), Image.LANCZOS))
     lay1 = cv2.resize(lay[..., 0], (N // 2, N // 2), interpolation=cv2.INTER_AREA)[..., None]
     for d in ('drawings', 'upscaled'):
         os.makedirs(os.path.join(cut.REF, d, 'stand-in'), exist_ok=True)
-    for name, f in STEPS:
-        to = P + (T - P) * f
-        head = warped(panel, P, to) if f < 0.5 else warped(take, T, to)
+    for i, (name, f) in enumerate(STEPS, 1):
+        # (The drawing's exposure: the part of the move its twelfth of a second covers.)
+        c, sh = (i + 0.5) / DRAWINGS, SMEAR if i == DRAWINGS // 2 else SHUTTER
+        f0, f1 = minjerk(c - sh / (2 * DRAWINGS)), minjerk(c + sh / (2 * DRAWINGS))
+        head = np.mean([moment(x) for x in np.linspace(f0, f1, max(1, min(9, round((f1 - f0) / 0.02) + 1)))], 0)
         head = np.clip(head * lay + panel * (1 - lay), 0, 1)
         out2 = top2.copy()
         out2[0:N, CX:CX + N] = head
@@ -171,7 +227,10 @@ def main():
         small = cv2.resize(head.astype(np.float32), (N // 2, N // 2), interpolation=cv2.INTER_AREA)
         out1[0:N // 2, CX // 2:CX // 2 + N // 2] = small * lay1 + out1[0:N // 2, CX // 2:CX // 2 + N // 2] * (1 - lay1)
         cut.img(out1).save(os.path.join(cut.REF, 'drawings', 'stand-in', f'b-look-full-{name}.webp'), 'WEBP', quality=95, method=6)
-    print(f'stand-in-turn: {", ".join(n for n, _ in STEPS)} from the panel and take b; {len(pins)} pins outside b\'s region grown {MARGIN} px')
+    with open(os.path.join(cut.REF, 'drawings', 'stand-in', 'turn.json'), 'w') as fh:
+        json.dump({name: round(f, 4) for name, f in STEPS}, fh, indent=2)
+        fh.write('\n')
+    print(f'stand-in-turn: {", ".join(f"{n} {f:.3f}" for n, f in STEPS)}; {len(pins)} pins outside b\'s region grown {MARGIN} px')
 
 
 if __name__ == '__main__':

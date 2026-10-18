@@ -24,13 +24,14 @@ drawings of her head on the way there make it a turn: a quarter and three quarte
 her head leaves and arrives slowly and moves fastest between them, as a head does. They are the
 most useful drawings for the close shot, and his look the next.
 
-Until they come there are **stand-ins** for them in `../drawings/stand-in/`, made without you
-(`scripts/stand-in-turn.py`). They are not drawings: the panel's head and yours, each bent a quarter
-of the way toward the other through matched points of the face, her hair on the grass held still.
-You judge them in a flipbook first. If you approve, the film uses them until yours come; if not,
-the turn stays the cut. They show the angle each of yours needs. Don't copy their hair or their
-ear: a warp can only bend what is drawn, so the ear changes side and the fringe appears between the
-two, all at once. In yours they can pass partway.
+Until they come there are **stand-ins** in `../drawings/stand-in/`, made without you
+(`scripts/stand-in-turn.py`): five of them, one a twelfth of a second, slow, fast, slow, as a head
+turns. They are not drawings: your two heads bent to each moment's shape through matched points of
+the face (her hair on the grass held still), blended in the middle, where her ear and fringe change
+over, with that one drawing smeared as an animator smears the fastest moment of a move. You judge
+them in a flipbook first. If you approve, the film uses them until yours come; if not, the turn
+stays the cut. The second and fourth (`turn2`, `turn4`) show the angle each of yours needs. Don't
+copy their hair or their ear: a bend can only move what is drawn. In yours they can pass partway.
 
 This replaces the earlier lists: the eleven close-up drawings (`c4-*`, `c5-*`, `c6-*`) and the
 three close-up panels are no longer needed. Your shot list had him look first and her notice; the
@@ -65,13 +66,14 @@ extra limbs, text, watermark, photo, 3D render, blur.
 | `b-look-full-mid2.png` | `../drawings/b-look-full-b.webp` | The same image, but her head is turned back a quarter of the way toward looking straight up at the sky (three quarters of the way from the sky to him), her fringe beginning to fall across her forehead; her eyes still on him. Nothing else changes. |
 | `a-look-full.png` | `../02-characters.webp` | The same image; only the young man's eyes have moved: he is looking sideways to the right, toward her, out of the corners of his eyes. His head still faces up, his mouth exactly as it is. Nothing else changes, nothing on her. |
 
-Her two in-betweens are laid between her two heads for two drawings (a sixth of a second) each:
-toward him once her eyes have gone to him, then yours; back to the sky the same way, arriving as
-the panel's head, her eyes staying on him half a second after it, as now. **Keep a pair only if the
-panel's head, the two and yours, flipped at twelve drawings a second, read as one girl turning**,
-not because their angles are a quarter and three quarters: between the panel's head and yours her ear
-changes side, a fringe appears and her face rounds, and the two have to carry that between them.
-Each is held as a drawing, never dissolved into the next. If only one comes, it is used for both.
+Her turn steps a drawing every twelfth of a second, toward him once her eyes have gone to him, and
+back to the sky the same way, arriving as the panel's head, her eyes staying on him half a second
+after it, as now. Yours show at the steps nearest them: the first for a twelfth of a second, the
+second for two. **Keep a pair only if the panel's head, the two and yours, flipped like that, read
+as one girl turning**, not because their angles are a quarter and three quarters: between the
+panel's head and yours her ear changes side, a fringe appears and her face rounds, and the two have
+to carry that between them. Each is held as a drawing, never dissolved into the next. If only one
+comes, it is used alone, at the steps nearest it.
 
 His drawing replaces the moved irises (laid in the way hers is, over his head only). Judge how his
 look reads in the flipbook: if it reads sly rather than fond, a second edit can soften it.

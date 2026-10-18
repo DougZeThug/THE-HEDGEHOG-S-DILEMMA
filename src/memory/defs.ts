@@ -1,5 +1,5 @@
 import type { CueSheet } from './cueSheet';
-import type { SheetSeed } from './seed';
+import type { Key, SheetSeed } from './seed';
 import type { Sway } from './behaviours';
 import type { Marker, Sections } from './types';
 
@@ -406,12 +406,21 @@ export const CUT = 34.5;
  */
 export const TWO_SHOT = { from: 15.0, hisBlink: 16.2, herEyes: 17.5, herTurn: 18.0, herBack: 21.5, herEyesBack: 22.0, hisEyes: 24.0, hisRoll: 24.5, to: 27.0 };
 /**
- * Her turn's in-betweens, a quarter and three quarters of the way (`figure:b.cel` 2 and 3): each held
- * this long, two drawings (the memory is drawn on twos), on the way to him from `herTurn` and on the
- * way back up to `herBack`. Held evenly, the turn moves slow, fast, slow, as a head does, its change
- * of drawing in the fastest step (the artist: "it reads like jumping frames"; the cinematic director).
+ * Her turn, drawn on twos (`figure:b.turn`: how far her head has turned, 0 the panel's .. 1 the
+ * artist's drawing of her turned to him): a minimum-jerk move over this many drawings, slow, fast,
+ * slow, as a head turns. Its first and last are her two drawings themselves; the scene shows, at each,
+ * the drawing nearest to how far she has turned. Toward him from `herTurn`, back up arriving at
+ * `herBack`, so her eyes still lead by half a second and stay on him half a second after her head
+ * (the artist: "it reads like jumping frames", then "it still doesn't look like a natural animation").
  */
-export const TURN_STEP = 1 / 6;
+export const TURN_DRAWINGS = 7;
+/** How far a minimum-jerk move has gone at `t` (0..1) of its time. */
+export function minJerk(t: number): number {
+  const u = Math.min(1, Math.max(0, t));
+  return u * u * u * (10 - 15 * u + 6 * u * u);
+}
+/** How far her head has turned at each of the turn's drawings between its first and last. */
+export const TURN_STEPS = Array.from({ length: TURN_DRAWINGS - 2 }, (_, i) => +minJerk((i + 1.5) / TURN_DRAWINGS).toFixed(4));
 /**
  * The artist's shot list (2026-10-17): 1 the room remembers (the pencil, the lean), 2 crossing
  * in, 3 the wide afternoon, 4 he looks toward her, 5 she notices, 6 their hands, 7 the wide
@@ -539,18 +548,17 @@ export const WOODLAND: MemoryDef = {
         'figure:b.breath': [[0, 1]],
         'figure:b.foot': [[0, 0], [12.4, 0], [12.9, 0.8], [13.8, 0.8], [14.3, 0]],
         // Her look: her eyes go to him (a drawing), her head follows (the artist's drawing of her
-        // turned to him, through its two in-betweens: held, never mixed); her head goes back to the
-        // sky the same way, arriving as the panel draws it, and her eyes after it. (The eyes are
-        // forced still while a drawing is shown: its eyes are drawn on him. Without the
-        // in-betweens, 2 and 3 are the drawing itself: the straight cut.)
+        // turned to him, through the drawings on the way there, one a twelfth of a second: held,
+        // never mixed); her head goes back to the sky the same way, arriving as the panel draws it,
+        // and her eyes after it. (The eyes are forced still while a drawing is shown: its eyes are
+        // drawn on him. Without drawings on the way, the nearest is the panel's or hers: the
+        // straight cut.)
         'figure:b.eyes': [[0, 0, 'hold'], [T.herEyes, 1, 'hold'], [T.herEyesBack, 0]],
-        'figure:b.cel': [
+        'figure:b.turn': [
           [0, 0, 'hold'],
-          [T.herTurn, 2, 'hold'],
-          [T.herTurn + TURN_STEP, 3, 'hold'],
-          [T.herTurn + 2 * TURN_STEP, 1, 'hold'],
-          [T.herBack - 2 * TURN_STEP, 3, 'hold'],
-          [T.herBack - TURN_STEP, 2, 'hold'],
+          ...TURN_STEPS.map((f, i): Key => [T.herTurn + i / 12, f, 'hold']),
+          [T.herTurn + TURN_STEPS.length / 12, 1, 'hold'],
+          ...TURN_STEPS.map((f, i): Key => [T.herBack - (TURN_STEPS.length - i) / 12, +(1 - f).toFixed(4), 'hold']),
           [T.herBack, 0],
         ],
         // His look: his eyes go to her (a drawing), his head rolls a little toward her after them

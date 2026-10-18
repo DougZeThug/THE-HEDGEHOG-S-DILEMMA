@@ -1152,3 +1152,35 @@ The cinematic director, on the recorded frames: the outer steps read as one head
     - Remeasured: the shared region is 225×185, and the seams are 0.067 (b), 0.068 and 0.089.
     - The kit now asks for a quarter and three quarters. The flipbook's loop now keeps the film's
       rhythm: her drawing is held as long as the film holds it.
+
+#### The second flipbook: "It still doesn't look like a natural animation" (the artist)
+
+Two in-betweens, each held a sixth of a second, give four poses over a third of a second: three
+steps, and the middle one pops (her ear changing side and her fringe arriving at once). An animator
+would draw five to seven drawings for this turn, on twos, with the change passing partway.
+
+34. **The turn is a minimum-jerk move over seven drawings on twos** (`TURN_DRAWINGS`, `TURN_STEPS`):
+    - steps 0.07, 0.25, 0.5, 0.75 and 0.93, one drawing apart: toward him from 18.0 (her drawing at
+      18.42), and back up arriving at the panel's head at 21.5, so the eye lead and the linger stay
+      half a second;
+    - the timeline keys how far she has turned (`figure:b.turn`, replacing `figure:b.cel`), and the
+      scene shows the nearest drawing (the manifest's `at`; a tie goes to the one further on). One
+      timeline serves the stand-ins, the artist's two drawings (at the steps nearest them) or none;
+    - with no drawings on the way (the committed build until the artist decides), the straight cut
+      falls at the middle step: 18.17 toward him and 21.33 back, a lead and linger of 0.67 s.
+35. **Five stand-ins at the turn's own steps** (`scripts/stand-in-turn.py`, free, local):
+    - both drawings are bent to each step's shape; from 0.3 to 0.7 of the way they are lined up by a
+      dense flow (DIS, at most 16 px) and blended, so her ear and fringe pass over instead of popping;
+    - each drawing is exposed for a quarter of its twelfth of a second, nearly crisp; the middle one
+      for all of it, a smear, as an animator smears the fastest moment of a move. A uniform exposure
+      softened the quarter and three-quarter drawings like a focus pull;
+    - the right side of her neck is now matched as well (two points). The left can't be: her chin
+      passes in front of it, and matching it folded the bend (the map's Jacobian went negative). That
+      overlap falls in the smeared middle drawing, as a soft see-through wedge for a twelfth of a
+      second;
+    - measured at the sheet's size: their shared region is 220×180, and the worst seam p99 is 0.086.
+36. **Not taken:**
+    - a blink to hide the change (ruled out before, and the change is in her hair, not her eyes);
+    - a learned interpolator (weights to fetch, and on what is left once the bend has lined the two
+      up, the flow-aligned blend does the same job);
+    - hair follow-through: the hair lying on the grass stays as both drawings have it.

@@ -47,7 +47,7 @@ interface LivingManifest {
   after?: string | null;
   sky: { file: string; box: [number, number, number, number] } | null;
   /** The people (and her head turned to him at their size: scripts/two-shot.py, with the two-shot). */
-  figures: (Omit<FigureArt, 'texture' | 'lids'> & { file: string; lids: string; heads?: { file: string; box: [number, number, number, number]; cells: number } }) | null;
+  figures: (Omit<FigureArt, 'texture' | 'lids'> & { file: string; lids: string; heads?: { file: string; box: [number, number, number, number]; at: number[]; cells: number } }) | null;
   /** The near flowers' heads and where they are (painting uv). */
   flowers?: { file: string; heads: [number, number, number][] } | null;
   /** The sky in the gap, drifting: where it shows, the afternoon's and the evening's layers (one size). */
@@ -67,7 +67,7 @@ interface LivingManifest {
     gutter: number;
     reach: number;
     lidBox: [number, number, number, number];
-    heads: { file: string; box: [number, number, number, number]; takes: string[]; cells: number };
+    heads: { file: string; box: [number, number, number, number]; takes: string[]; at: number[]; cells: number };
     ground: { file: string; box: [number, number, number, number] };
     /** Where their bed's grass moves in the air (a map, R; one size). */
     maps: string;
@@ -319,7 +319,7 @@ export async function prepare(id: string, variant: string, host: RuntimeHost): P
         try {
           const r = await loadLayer(url(h.file), { living: true });
           extra.push(r);
-          return { texture: r.texture, box: h.box, cells: h.cells };
+          return { texture: r.texture, box: h.box, at: h.at, cells: h.cells };
         } catch {
           return null;
         }
@@ -347,7 +347,7 @@ export async function prepare(id: string, variant: string, host: RuntimeHost): P
         return {
           texture: atlas,
           lids,
-          heads: { texture: heads, box: n.heads.box, cells: n.heads.cells },
+          heads: { texture: heads, box: n.heads.box, at: n.heads.at, cells: n.heads.cells },
           ground,
           maps,
           pixels: n.pixels,

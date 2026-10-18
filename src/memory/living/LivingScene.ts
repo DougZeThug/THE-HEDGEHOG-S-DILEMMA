@@ -41,11 +41,25 @@ export interface FigureArt {
   limb: { box: [number, number, number, number]; axis: [number, number] };
 }
 
-/** Her head as the artist redrew it (cells: the drawing, then the region it is laid in by), where its cells lie on the panel (sheet px, y down: x0, y0, w, h), and how many cells. */
+/** Her head as the artist redrew it (cells: the drawings, then the region they are laid in by), where its cells lie on the panel (sheet px, y down: x0, y0, w, h), how far into her turn each drawing is (0 the panel's head .. 1 turned to him), and how many cells. */
 export interface HeadCels {
   texture: THREE.Texture;
   box: [number, number, number, number];
+  at: number[];
   cells: number;
+}
+
+/**
+ * Which of her heads to show for how far she has turned (`figure:b.turn`): 0 the panel's own, i + 1
+ * the drawing `at[i]` of the way; the nearest, a tie going to the one further on.
+ */
+export function headFor(turn: number, at: readonly number[]): number {
+  let cel = 0, best = Math.abs(turn);
+  at.forEach((a, i) => {
+    const d = Math.abs(turn - a);
+    if (d < best - 1e-9 || (d <= best + 1e-9 && a > (cel ? at[cel - 1] : 0))) (cel = i + 1), (best = d);
+  });
+  return cel;
 }
 
 /**
@@ -480,7 +494,7 @@ export class LivingScene {
     const two = shot > 0 && this.hasNear;
     // A cut (the people, the evening, the shot, her head's drawing) is drawn on its own frame, not
     // at the next drawing.
-    const state = `${(v['scene.after'] ?? 0) >= 0.5 ? 1 : 0}|${(v['scene.people'] ?? 1) > 0.001 ? 1 : 0}|${shot}|${Math.round(v['figure:b.cel'] ?? 0)}`;
+    const state = `${(v['scene.after'] ?? 0) >= 0.5 ? 1 : 0}|${(v['scene.people'] ?? 1) > 0.001 ? 1 : 0}|${shot}|${this.headCel(v)}`;
     if (tq === this.drawnAt && !viewMoved && !lookMoved && !tapping && state === this.lastState) return false;
     this.lastState = state;
     this.drawnAt = tq;
@@ -614,6 +628,12 @@ export class LivingScene {
     return this.shot;
   }
 
+  /** Her head's drawing for these values (the same in either shot: both atlases hold the same drawings). */
+  private headCel(v: Values): number {
+    const heads = this.art.near?.heads ?? this.art.heads;
+    return heads ? headFor(v['figure:b.turn'] ?? 0, heads.at) : 0;
+  }
+
   /** The two-shot's band for a screen's aspect (`near.frames`). */
   private bandFor(aspect: number): NonNullable<LivingSpec['near']>['frames'][number] {
     const fr = this.spec.near!.frames;
@@ -653,11 +673,11 @@ export class LivingScene {
     };
     chest('chestA', s.chest.a, ba * deep);
     chest('chestB', s.chest.b, bb * deep);
-    // Her head as the artist redrew it (`figure:b.cel`: 0 the panel's, 1 turned to him, 2 and 3 on
-    // the way, each the last there is if they are not drawn), held, in either shot; while one is
-    // shown, nothing of the rig made for the panel's face moves it.
+    // Her head as the artist redrew it, or on the way there: the drawing nearest to how far she has
+    // turned (`figure:b.turn`), held, in either shot; while one is shown, nothing of the rig made for
+    // the panel's face moves it.
     const heads = near ? this.art.near!.heads : this.art.heads ?? null;
-    const cel = heads ? Math.max(0, Math.min(heads.cells - 1, Math.round(val('figure:b.cel', 0)))) : 0;
+    const cel = heads ? headFor(val('figure:b.turn', 0), heads.at) : 0;
     (u.uHeadCel.value as THREE.Vector2).set(cel >= 1 ? cel - 1 : -1, heads?.cells ?? 1);
     const redrawn = cel >= 1;
     // Heads: a roll toward where they look (−1 left .. 1 right: rolling left is anticlockwise).

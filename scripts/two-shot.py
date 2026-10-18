@@ -60,14 +60,15 @@ LID_BOX = (180, 40, 640, 270)
 # not used: a smile nobody sees is the film telling, and redrawn whole they jump her head again:
 # the directors' and the technical artist's reviews, 2026-10-18).
 TAKE = 'b'
-# Her head a quarter and three quarters of the way there, her eyes already on him (the artist's,
-# when they are drawn: the kit's `b-look-full-mid1.png`, `b-look-full-mid2.png`; until then, with
-# `--stand-ins`, the stand-ins made without them from the panel's head and the take:
-# scripts/stand-in-turn.py): laid between the panel's and the take on the way to him. Without
-# either the turn is the straight cut (the directors' evaluations of the film, 2026-10-18; the
-# artist: "it reads like jumping frames").
-MIDS = ('mid1', 'mid2')
-# (The stand-ins only when asked for: the artist judges them before they are filmed.)
+# Her head on the way to him, her eyes already on him, as the artist draws it (the kit's
+# `b-look-full-mid1.png`, `b-look-full-mid2.png`), and how far each is (0 the panel's head, 1 the
+# take). Until they are drawn, with `--stand-ins`, the five stand-ins made without them
+# (scripts/stand-in-turn.py, which says how far each is). Without either the turn is the straight
+# cut (the directors' evaluations of the film, 2026-10-18; the artist: "it reads like jumping
+# frames").
+MIDS = {'mid1': 0.25, 'mid2': 0.75}
+# (The stand-ins only when asked for, and never with any of the artist's: the artist judges them
+# before they are filmed.)
 STAND_INS = '--stand-ins' in sys.argv
 # Their eyes (sheet px, y down; measured on the panel at twice its size): the opening below the
 # lash line (centre, radii, angle: positive turns its outer end down), and the iris in it (centre,
@@ -397,14 +398,24 @@ def ground(day):
 
 
 def drawing(name):
-    """One of her redrawn heads (`b-look-full-<name>`, WebP or PNG): the artist's, else (with
-    `--stand-ins`) a stand-in, else None. Returns its path and the name its 2x upscale is kept under."""
-    for sub in ('', 'stand-in') if STAND_INS else ('',):
+    """One of her redrawn heads (`b-look-full-<name>`, WebP or PNG): the artist's, else a stand-in,
+    else None. Returns its path and the name its 2x upscale is kept under."""
+    for sub in ('', 'stand-in'):
         for ext in ('webp', 'png'):
             p = os.path.join(cut.REF, 'drawings', sub, f'b-look-full-{name}.{ext}')
             if os.path.exists(p):
                 return p, os.path.join(sub, f'b-look-full-{name}') if sub else f'b-look-full-{name}'
     return None
+
+
+def between():
+    """Her head's drawings between the panel's and the take, and how far each is: the artist's if
+    there are any; else, with `--stand-ins`, the stand-ins; else none."""
+    drawn = {m: f for m, f in MIDS.items() if drawing(m) and 'stand-in' not in drawing(m)[1]}
+    path = os.path.join(cut.REF, 'drawings', 'stand-in', 'turn.json')
+    if drawn or not STAND_INS or not os.path.exists(path):
+        return drawn
+    return {m: f for m, f in json.load(open(path)).items() if drawing(m)}
 
 
 def main():
@@ -427,11 +438,14 @@ def main():
     lx0, ly0, lx1, ly1 = (v * k for v in LID_BOX)
     cut.save(cut.stack([r[ly0:ly1, lx0:lx1] for r in (shut, half, occ)]), os.path.join(a_dir, 'near-lids.webp'), sizes, q=93)
 
-    # Her head turned to him (the take, then halfway there if it is drawn): where each differs, at
-    # the sheet's own size (from the sheet and the take as drawn), one region round them all (its
-    # edge where every drawing agrees with the panel), then each laid in at either size by it.
+    # Her head turned to him (the take, then its drawings on the way there, as far as there are
+    # any): where each differs, at the sheet's own size (from the sheet and the take as drawn), one
+    # region round them all (its edge where every drawing agrees with the panel), then each laid in
+    # at either size by it.
     sheet1, _ = source('02-characters', os.path.join(cut.REF, '02-characters.webp'), up=False)
-    takes = [TAKE] + [m for m in MIDS if drawing(m)]
+    mids = between()
+    takes = [TAKE] + sorted(mids, key=mids.get)
+    at = [1.0] + [mids[m] for m in takes[1:]]
     regions, moves, takes1 = [], [], []
     for name in takes:
         take1, _ = source(drawing(name)[1], drawing(name)[0], up=False)
@@ -495,10 +509,11 @@ def main():
         # y down: x0, y0, w, h). Places below are in the sheet's own pixels.)
         'pixels': [rw, h], 'gutter': cut.GUTTER, 'reach': REACH,
         'lidBox': [LID_BOX[0], LID_BOX[1], LID_BOX[2] - LID_BOX[0], LID_BOX[3] - LID_BOX[1]],
-        # Her head turned to him: where its cells lie on the panel (sheet px, y down), and the
-        # atlas's cells (the drawings, `figure:b.cel` 1 onward: the take, then its in-betweens as far
-        # as they are there; then the region they are laid in by), and which of them are stand-ins.
-        'heads': {'file': 'afternoon/near-heads', 'box': [bx, by, bw, bh], 'takes': takes, 'cells': len(takes) + 1,
+        # Her head turned to him: where its cells lie on the panel (sheet px, y down), the atlas's
+        # cells (the drawings: the take, then those on the way there, as far as there are any; then
+        # the region they are laid in by), how far each drawing is (`figure:b.turn` shows the
+        # nearest), and which of them are stand-ins.
+        'heads': {'file': 'afternoon/near-heads', 'box': [bx, by, bw, bh], 'takes': takes, 'at': at, 'cells': len(takes) + 1,
                   **({'standIns': stand_ins} if stand_ins else {})},
         # The ground under and round them (sheet px, y down: x0, y0, w, h), and where their bed's
         # grass moves (over the atlas's reach).
@@ -509,7 +524,7 @@ def main():
         'eyes': {'a': [eye(e, c) for e, c in zip(EYES_A, wh[:2])], 'b': [eye(e, c) for e, c in zip(EYES_B, wh[2:])]},
     }
     # Her head turned to him in the wide (the same box and cells, at the wide's size).
-    aft['figures']['heads'] = {'file': 'afternoon/heads', 'box': [bx, by, bw, bh], 'cells': len(takes) + 1}
+    aft['figures']['heads'] = {'file': 'afternoon/heads', 'box': [bx, by, bw, bh], 'at': at, 'cells': len(takes) + 1}
     with open(MANIFEST, 'w') as f:
         json.dump(manifest, f, indent=2)
         f.write('\n')
