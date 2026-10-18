@@ -537,7 +537,7 @@ export class App {
     // Anything already drawn on that wall is kept clear of (a painting never lands on a drawing).
     this.memoryWindow.avoid = fixed ? [] : this.drawingsOn(a.group);
     this.memoryWindow.setLayers(prepared.layers, prepared.size, prepared.band);
-    this.memoryWindow.setLiving(prepared.living ? { crop: prepared.living.crop, size: prepared.size, order: prepared.living.order } : null);
+    this.memoryWindow.setLiving(prepared.living ? { crop: prepared.living.crop, size: prepared.size, order: prepared.living.order } : null, !prepared.living && !!prepared.def.living);
     this.inside.begin(hashString(a.key), this.prefs.reducedMotion);
     const memory = new rt.LivingMemory(prepared, {
       reduced: this.prefs.reducedMotion,
@@ -1023,8 +1023,9 @@ export class App {
   private drawLiving(l: NonNullable<App['living']>, f: { t: number; state: Lifecycle; position: number; final: Record<string, number> }, dt: number) {
     const pl = l.memory.prepared.living;
     if (!pl) {
-      // (A living memory's revisit stays on the wall, as any memory: the writing under it too.)
-      this.washUnderPainting(l, f.final);
+      // (A living memory's revisit stays on the wall, as any memory, but lies under its writing as
+      // the scene did. Every other memory keeps its words on bare plaster, legible.)
+      if (l.memory.prepared.def.living) this.washUnderPainting(l, f.final);
       return;
     }
     const aspect = innerWidth / innerHeight;

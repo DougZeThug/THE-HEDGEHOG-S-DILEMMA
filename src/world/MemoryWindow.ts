@@ -67,6 +67,9 @@ const FRAG = /* glsl */ `
   // How far a living painting drawn in order is lifted toward the plaster (a light wash, as image
   // 3, not a dark stain), all the way at its colour's front.
   uniform float uLift;
+  // Its words lie on it, washed to a trace (a living memory's revisit, on the wall without a scene
+  // of its own): no plaster kept round them.
+  uniform float uUnder;
   varying vec2 vUv;
 
   vec3 toLinear(vec3 c) { return mix(c / 12.92, pow((c + 0.055) / 1.055, vec3(2.4)), step(0.04045, c)); }
@@ -165,7 +168,7 @@ const FRAG = /* glsl */ `
     float reserve = (1.0 - smoothstep(-0.005, mix(0.03, 0.11, bloom), rd)) * mix(1.0, 0.7, bloom);
     // (A living memory's painting, opened across the plaster, lies under its words as image 3:
     // no card of bare plaster round them.)
-    pigCov *= 1.0 - mix(0.0, 0.85, reserve * uStylize * (1.0 - uOpen));
+    pigCov *= 1.0 - mix(0.0, 0.85, reserve * uStylize * (1.0 - uOpen) * (1.0 - uUnder));
 
     vec3 pigment = toLinear(col / max(cov, 1e-3));
     vec3 lit = toLinear(min(light, vec3(1.0))) * shade * uLight * lightMask * edgeAll * uPresence;
@@ -223,8 +226,9 @@ export function kelvin(k: number): THREE.Vector3 {
 const MAX_SHIFT = 0.02;
 /** How strongly a living memory's painting sinks into the plaster (cinematic review, 2026-10-17). */
 const SUNK = 0.72;
-/** How far a living painting drawn in order is lifted toward the plaster (its median ~0.57 of the
- *  plaster's lightness, as image 3's, from ~0.34: the skeptic's third review). */
+/** How far a living painting drawn in order is lifted toward the plaster (the skeptic's third
+ *  review): rendered on the wall, its median 0.45 of the bare plaster's, linear (from about 0.34);
+ *  image 3's, measured the same way, 0.42–0.53 by which plaster it is set against. */
 const LIFT = 0.35;
 
 export class MemoryWindow {
@@ -291,6 +295,7 @@ export class MemoryWindow {
       uSoftReserve: { value: 0 },
       uSunk: { value: 1 },
       uLift: { value: 0 },
+      uUnder: { value: 0 },
     };
     const mat = new THREE.ShaderMaterial({
       uniforms: this.u,
@@ -335,12 +340,18 @@ export class MemoryWindow {
     this.u.uCount.value = this.layers.length;
   }
 
-  /** A living memory's painting: its size on the wall and the part shown first; null for any other. */
-  setLiving(o: { crop: [number, number, number, number]; size: [number, number]; order?: THREE.Texture | null } | null): void {
+  /**
+   * A living memory's painting: its size on the wall and the part shown first; null for any other.
+   * `under`: a living memory's revisit, a painting on the wall as any other, but sunk in the plaster
+   * as its scene was and lying under its words, which are washed (src/App.ts): without, its words'
+   * bare plaster took the top half of it, and at full strength the dusk was a black stain.
+   */
+  setLiving(o: { crop: [number, number, number, number]; size: [number, number]; order?: THREE.Texture | null } | null, under = false): void {
     this.living = o;
     this.spread = 0;
     this.u.uSoftReserve.value = o ? 1 : 0;
-    this.u.uSunk.value = o ? SUNK : 1;
+    this.u.uSunk.value = o || under ? SUNK : 1;
+    this.u.uUnder.value = !o && under ? 1 : 0;
     this.u.uLift.value = o?.order ? LIFT : 0;
     this.u.uOrder.value = o?.order ?? this.dummy;
     this.u.uOrdered.value = o?.order ? 1 : 0;
