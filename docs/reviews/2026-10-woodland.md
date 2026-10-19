@@ -1397,3 +1397,71 @@ alone: 270–630 on desktop, 0–4 on the phone):
   lead on every screen now.
 - **The cut back to the wide at 27.0** (recorded on the build before the last fixes, which kept the
   pose): the same pose either side, the wide's own drawing of her turned, at its size.
+
+#### QA (d753b00), and what was fixed
+
+No P0 or P1 defects. In the browser, on desktop, an upright phone, a landscape phone, after a
+give-way and under reduced motion: each drawing shows once, in its slot (read from the live scene at
+the held times); her eyes lead at 17.5; nothing jumps at 18.0; the turn's change rises and falls
+once; nothing outside her head changes (outside its box, 2/255 at most: the film grain); her pose is
+the same either side of the cut at 27.0; no return of the two-shot inside the turn, 18.5 included;
+14 samplers; every atlas within 2048; the turn's atlases take 9.4 MiB of GPU memory on desktop
+screens that show the two-shot, 2.8 on a landscape phone, 0.8 upright; no program or texture left
+behind; the screen-reader line at 18.5. Under reduced motion her turn plays as authored: QA judged
+that right (it is the content; small, eased, no camera move; fewer, larger steps would read as a
+jump). Three smaller findings, and what was done:
+
+- **The wide's drawings changed her hair where she doesn't move** (the upscale's drawing, brought
+  down and laid into the sheet): on an upright phone a pale strand beside her far cheek went at
+  17.5 with her eyes. *Fixed:* `her-turn.py` turns the sheet's own painting too (the same rig, from
+  the sheet at 2×, brought down), and the wide lays in only the change the turn makes, so wherever
+  she doesn't move it is the sheet exactly; `two-shot.py` refuses a wide whose eyes drawing changes
+  anything but her eyes (3/255).
+- **Her drawn eyes were softer than the panel's** (the eye look moved her irises by bilinear
+  resampling, as the shader samples). *Fixed:* moved with the rig's Lanczos: at the art's size her
+  near eye keeps 90% of the panel's edge energy (70% before; the rest is the white filling where the
+  iris was).
+- **Test gaps.** *Fixed:* the playtest's leak check now runs through her turn, and its screenshots
+  wait as long as the recorder's. *Not built:* a browser probe of which drawing the GPU is given at
+  each key (QA's own probe found them right, and the unit tests hold the keys and the cels to each
+  other). Removed: compose.ts's `cel` case (no track has used it since 473ddd6). Kept: her live look
+  in the shader (`uGazeB`), unreachable as keyed (the drawing carries her eyes from 17.5), because it
+  is what the editor shows if her eyes are re-keyed ahead of the drawing; her-turn.py draws from the
+  same `gazeB`.
+
+#### The finished turn evaluated (the creative director)
+
+"It works. In every drawing this is her own painted face turning toward him, a person's small
+movement, not a warp, a slide or a card turning": her nose and mouth move about 20 px while her ear
+moves 9, her far outline 4.5 and the hair on the grass under 1; her features keep the artist's
+shapes at the panel's sharpness; she lands softly and stays. Nothing in her head needs to change.
+- Show the artist the memory as a visitor meets it first (the two-shot through the wide to the empty
+  clearing, with its sound, on a desktop and a phone), then the closer looks, without captions that
+  name the technique. His look at 24.0 had not been filmed beside the rebuilt turn.
+- His look (decision 49): put it to the artist by what each version means. Answered, it is the
+  dilemma in one image (both looking, their hands an inch apart, neither closing the gap); unanswered,
+  a smaller story of longing; as built, which one a visitor gets depends on their screen. The creative
+  director recommends answered everywhere (his eyes drawn for the wide), and whatever is chosen, his
+  answer smaller than her turn: eyes, at most the 2° tilt.
+- Her eyes go to him in one drawing; the brief says they "drift". A dart is a real eye movement and
+  the usual way, and both directors advised it for the prototype; a drift over two in-betweens reads
+  more as attention wandering to him. The artist's call, from a side-by-side.
+- Her far cheek coming round and her far eye widening are the turn, not something added to her face:
+  protect them; if the artist finds the far cheek too full, shorten the push, don't remove it.
+- The screen reader: her line leaves out her eyes going first; his is told on upright screens, where
+  his look can't be seen.
+
+#### Decisions (main session)
+
+53. **The wide turns the sheet's own painting** (QA), laid in as a change only; the build refuses one
+    that changes her anywhere but her eyes when her eyes move.
+54. **Her eyes moved with Lanczos** (QA).
+55. **The screen reader** (the creative director; QA): "Her eyes go to him, then her head, a little."
+    at 18.5, to anyone inside; "He turns his eyes to her." only in the close shot, the one place it
+    can be seen.
+56. **Shown in context first** (the creative director): the film from the cut to them (15.0) to the
+    empty clearing (35.5) with its sound, on a desktop and an upright phone; the closer looks after.
+57. **Her eyes: dart or drift is put to the artist**, with her head side by side both ways; as built,
+    a dart (one drawing). A drift needs one or two more drawings and, for two, a 5×4 atlas.
+58. **His look**: the creative director's recommendation (answered everywhere) goes to the artist with
+    decision 49's question; whatever they choose, his answer stays smaller than her turn.
