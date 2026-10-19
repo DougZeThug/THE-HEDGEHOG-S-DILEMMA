@@ -1,8 +1,8 @@
 """
 The two-shot (docs/reviews/2026-10-woodland.md): the two of them close, from the artist's own
-character sheet, with her look in the artist's own drawing of it. Offline.
+character sheet, her turn toward him her own painted head turned (scripts/her-turn.py). Offline.
 
-    python3 scripts/two-shot.py [--stand-ins]
+    python3 scripts/two-shot.py
 
 From references/woodland/upscaled/*-top@2x.webp (scripts/upscale.py) when they are there, at twice
 the sheet's size (the artist's choice, 2026-10-18: crisper on large screens); else from the sheet
@@ -14,18 +14,17 @@ itself. Writes public/memories/woodland/afternoon/:
                  they lie, and going out of focus away from them as the ground round it does
     near-lids    their lids shut and half, drawn at this size over each eye's opening, then her
                  sleeve (rows, cut to the box round their eyes and her sleeve)
-    near-heads   her head turned to him as the artist redrew it (references/woodland/drawings/
-                 b-look-full-b.webp: her mouth at rest), and the soft region it is laid in by
+    near-heads   her turn: each of its drawings (references/woodland/drawings/turn/), laid into the
+                 panel and dressed as the panel is, then the soft region they are laid in by (a grid
+                 of cells)
     near-ground  the meadow round and beyond them: the day painting's own grass where they lie,
                  out of focus by its distance from the camera
     near-maps    where their bed's grass moves in the air (R: none on them nor within 6 sheet px, less
                  where it is out of focus), at half the sheet's size
-    heads        her head turned to him at the wide's size (its people: scripts/cut-woodland.py), so
-                 her look is drawn in either shot
+    heads        her turn at the wide's size (its people: scripts/cut-woodland.py), so her look is
+                 drawn in either shot
 
-and `living.afternoon.near` and `living.afternoon.figures.heads` in the manifest. With `--stand-ins`,
-her turn's in-betweens the artist hasn't drawn yet are laid in from the stand-ins
-(scripts/stand-in-turn.py; the manifest names them `standIns`); without it, only her own drawings. The wide's puppet
+and `living.afternoon.near` and `living.afternoon.figures.heads` in the manifest. The wide's puppet
 is this panel too (cut at 0.8), so the same deformers move both, and both are lit by the painting's
 light where they lie: a cut between them keeps their breath and their light.
 """
@@ -33,7 +32,6 @@ import importlib.util
 import json
 import math
 import os
-import sys
 
 import cv2
 import numpy as np
@@ -56,20 +54,13 @@ MARGIN = 140
 REACH = 1000
 # Where their lids and her sleeve are (sheet px: x0, y0, x1, y1): the lids' atlas is cut to it.
 LID_BOX = (180, 40, 640, 270)
-# Her head as the artist redrew it, turned to him, her mouth at rest (the takes that smile are
-# not used: a smile nobody sees is the film telling, and redrawn whole they jump her head again:
-# the directors' and the technical artist's reviews, 2026-10-18).
-TAKE = 'b'
-# Her head on the way to him, her eyes already on him, as the artist draws it (the kit's
-# `b-look-full-mid1.png`, `b-look-full-mid2.png`), and how far each is (0 the panel's head, 1 the
-# take). Until they are drawn, with `--stand-ins`, the five stand-ins made without them
-# (scripts/stand-in-turn.py, which says how far each is). Without either the turn is the straight
-# cut (the directors' evaluations of the film, 2026-10-18; the artist: "it reads like jumping
-# frames").
-MIDS = {'mid1': 0.25, 'mid2': 0.75}
-# (The stand-ins only when asked for, and never with any of the artist's: the artist judges them
-# before they are filmed.)
-STAND_INS = '--stand-ins' in sys.argv
+# Her turn (scripts/her-turn.py): its drawings, each the crop round her head at twice the sheet's
+# size, and how far each is (turn.json).
+TURN = os.path.join(cut.REF, 'drawings', 'turn')
+# Where her turn's drawings differ from the panel by this much or less, they are the panel (her
+# hair's motion fades out to nothing: scripts/her-turn.py `HAIR_REACH`); the region they are laid in
+# by reaches this far past it (2x px), so its soft edge never crosses anything that moved.
+STILL, REGION_PAD = 0.006, 10
 # Their eyes (sheet px, y down; measured on the panel at twice its size): the opening below the
 # lash line (centre, radii, angle: positive turns its outer end down), and the iris in it (centre,
 # radius). A look moves the iris along the opening, the white filling in where it was; the lash
@@ -98,20 +89,6 @@ def source(name, path, up=True):
     if im.size != (1448, 1086):
         im = im.resize((1448, 1086), Image.LANCZOS)
     return cut.arr(im)[:520], 1
-
-
-def register(top, t, k):
-    """A take moved onto the panel (its pixels where the panel's are: phase correlation over her
-    head's surroundings), and the move (px at this size)."""
-    h, w = top.shape[:2]
-    x0, y0, x1, y1 = 300 * k, 0, 700 * k, 330 * k
-
-    def grey(i):
-        return cv2.cvtColor((np.clip(i[y0:y1, x0:x1], 0, 1) * 255).astype(np.uint8), cv2.COLOR_RGB2GRAY).astype(np.float32)
-    win = cv2.createHanningWindow((x1 - x0, y1 - y0), cv2.CV_32F)
-    (dx, dy), _ = cv2.phaseCorrelate(grey(top), grey(t[:h, :w]), win)
-    moved = cv2.warpAffine(t[:h, :w], np.float32([[1, 0, -dx], [0, 1, -dy]]), (w, h), flags=cv2.INTER_LANCZOS4, borderMode=cv2.BORDER_REFLECT)
-    return moved, (dx, dy)
 
 
 def scaled(poly, k):
@@ -334,30 +311,6 @@ def whites(straight, k):
     return out
 
 
-def head_region(top1, take1):
-    """Where her head as redrawn differs from the panel (sheet px, soft): the changed pixels round
-    her head (its face, the hair it moved), closed, filled, grown 6 px and feathered 2 px, so its
-    edge lies where the two drawings agree (never across a strand that moved)."""
-    h, w = top1.shape[:2]
-    d = np.abs(cv2.GaussianBlur(take1, (0, 0), 1.5) - cv2.GaussianBlur(top1, (0, 0), 1.5)).max(-1)
-    yy, xx = np.mgrid[0:h, 0:w]
-    core = ((d > 0.07) & (xx > 360) & (xx < 690) & (yy < 270)).astype(np.uint8)
-    n, lab, st, _ = cv2.connectedComponentsWithStats(core, connectivity=8)
-    keep = np.isin(lab, [i for i in range(1, n) if st[i, cv2.CC_STAT_AREA] >= 25]).astype(np.uint8)
-    ell = lambda n_: cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (n_, n_))
-    m = cv2.morphologyEx(keep, cv2.MORPH_CLOSE, ell(21))
-    outside = m.copy()
-    cv2.floodFill(outside, np.zeros((h + 2, w + 2), np.uint8), (0, h - 1), 1)
-    m = m | (1 - outside)
-    # (Her head only: the largest piece.)
-    n, lab, st, _ = cv2.connectedComponentsWithStats(m, connectivity=8)
-    m = (lab == 1 + int(np.argmax(st[1:, cv2.CC_STAT_AREA]))).astype(np.uint8)
-    hard = cv2.dilate(m, ell(13))
-    soft = cv2.GaussianBlur(hard.astype(np.float32), (0, 0), 2.0)
-    band = (soft > 0.02) & (soft < 0.98)
-    return soft, float(np.percentile(d[band], 99))
-
-
 def boxed(region, step=5):
     """The region's box (sheet px: x, y, w, h), on a grid of `step` (so the wide's 0.8 is whole px)."""
     x, y, w, h = cv2.boundingRect((region > 0.004).astype(np.uint8))
@@ -397,25 +350,52 @@ def ground(day):
     return np.clip(blur_by(g, defocus(d, y), 1), 0, 1)
 
 
-def drawing(name):
-    """One of her redrawn heads (`b-look-full-<name>`, WebP or PNG): the artist's, else a stand-in,
-    else None. Returns its path and the name its 2x upscale is kept under."""
-    for sub in ('', 'stand-in'):
-        for ext in ('webp', 'png'):
-            p = os.path.join(cut.REF, 'drawings', sub, f'b-look-full-{name}.{ext}')
-            if os.path.exists(p):
-                return p, os.path.join(sub, f'b-look-full-{name}') if sub else f'b-look-full-{name}'
-    return None
+def turn_drawings():
+    """Her turn's drawings: (name, how far, the 2x crop) in order, and the crop's place (2x px:
+    x, y, w, h)."""
+    spec = json.load(open(os.path.join(TURN, 'turn.json')))
+    assert spec['scale'] == 2
+    out = []
+    for name, f in sorted(spec['drawings'].items(), key=lambda kv: kv[1]):
+        out.append((name, f, cut.arr(Image.open(os.path.join(TURN, f'{name}@2x.webp')).convert('RGB'))))
+    return out, spec['crop']
 
 
-def between():
-    """Her head's drawings between the panel's and the take, and how far each is: the artist's if
-    there are any; else, with `--stand-ins`, the stand-ins; else none."""
-    drawn = {m: f for m, f in MIDS.items() if drawing(m) and 'stand-in' not in drawing(m)[1]}
-    path = os.path.join(cut.REF, 'drawings', 'stand-in', 'turn.json')
-    if drawn or not STAND_INS or not os.path.exists(path):
-        return drawn
-    return {m: f for m, f in json.load(open(path)).items() if drawing(m)}
+def turn_region(tops, top):
+    """Where her turn's drawings (the panel with each laid in, 2x) differ from the panel at all: their
+    union, holes filled, grown by REGION_PAD and feathered, so its edge lies where every drawing is
+    the panel. At the sheet's own size too, for the box."""
+    d = np.zeros(top.shape[:2], np.float32)
+    for t in tops:
+        d = np.maximum(d, np.abs(cv2.GaussianBlur(t, (0, 0), 1.0) - cv2.GaussianBlur(top, (0, 0), 1.0)).max(-1))
+    m = (d > STILL).astype(np.uint8)
+    n, lab, st, _ = cv2.connectedComponentsWithStats(m, connectivity=8)
+    m = np.isin(lab, [i for i in range(1, n) if st[i, cv2.CC_STAT_AREA] >= 50]).astype(np.uint8)
+    ell = lambda n_: cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (n_, n_))
+    m = cv2.morphologyEx(m, cv2.MORPH_CLOSE, ell(15))
+    outside = m.copy()
+    h, w = m.shape
+    cv2.floodFill(outside, np.zeros((h + 2, w + 2), np.uint8), (w - 1, h - 1), 1)
+    m = m | (1 - outside)
+    hard = cv2.dilate(m, ell(2 * REGION_PAD + 1))
+    soft = cv2.GaussianBlur(hard.astype(np.float32), (0, 0), 3.0)
+    return soft, cv2.resize(soft, (w // 2, h // 2), interpolation=cv2.INTER_AREA)
+
+
+def grid(cells, gutter=4):
+    """Cells laid out in rows, near square so no side of the atlas grows long, each inset `gutter` px
+    in its own empty frame (so sampling at a cell's edge, or the phone's half-size copy, never takes
+    in its neighbour). Returns the atlas and its layout: columns, rows, and the inset as a fraction of
+    a cell's pitch (across, up)."""
+    cols = math.ceil(math.sqrt(len(cells)))
+    rows = math.ceil(len(cells) / cols)
+    ch, cw = cells[0].shape[:2]
+    ph, pw = ch + 2 * gutter, cw + 2 * gutter
+    out = np.zeros((rows * ph, cols * pw, cells[0].shape[2]), np.float32)
+    for i, c in enumerate(cells):
+        y, x = (i // cols) * ph + gutter, (i % cols) * pw + gutter
+        out[y:y + ch, x:x + cw] = c
+    return out, [cols, rows, round(gutter / pw, 6), round(gutter / ph, 6)]
 
 
 def main():
@@ -438,56 +418,47 @@ def main():
     lx0, ly0, lx1, ly1 = (v * k for v in LID_BOX)
     cut.save(cut.stack([r[ly0:ly1, lx0:lx1] for r in (shut, half, occ)]), os.path.join(a_dir, 'near-lids.webp'), sizes, q=93)
 
-    # Her head turned to him (the take, then its drawings on the way there, as far as there are
-    # any): where each differs, at the sheet's own size (from the sheet and the take as drawn), one
-    # region round them all (its edge where every drawing agrees with the panel), then each laid in
-    # at either size by it.
+    # Her turn: each drawing laid into the panel (twice the sheet's size, as drawn), one region
+    # round where any of them differs at all (its edge where every drawing is the panel), then each
+    # dressed as the panel is and cut to the region's box.
     sheet1, _ = source('02-characters', os.path.join(cut.REF, '02-characters.webp'), up=False)
-    mids = between()
-    takes = [TAKE] + sorted(mids, key=mids.get)
-    at = [1.0] + [mids[m] for m in takes[1:]]
-    regions, moves, takes1 = [], [], []
-    for name in takes:
-        take1, _ = source(drawing(name)[1], drawing(name)[0], up=False)
-        # (A stand-in is made on the panel's own grid: moved by its new head, the panel round it
-        # would shift and seem to differ everywhere.)
-        stand_in = 'stand-in' in drawing(name)[1]
-        take1, move1 = (take1, (0.0, 0.0)) if stand_in else register(sheet1, take1, 1)
-        region1, _ = head_region(sheet1[:PH], take1[:PH])
-        regions.append(region1), moves.append(move1), takes1.append(take1)
-    region1 = np.maximum.reduce(regions)
-    stand_ins = [t for t in takes if 'stand-in' in drawing(t)[1]]
-    # (Each drawing's seam where it is laid in: the band of the region round them all.)
-    band = (region1 > 0.02) & (region1 < 0.98)
-    seam = max(float(np.percentile(np.abs(cv2.GaussianBlur(t[:PH], (0, 0), 1.5) - cv2.GaussianBlur(sheet1[:PH], (0, 0), 1.5)).max(-1)[band], 99)) for t in takes1)
+    drawings, (cx, cy, cw, ch) = turn_drawings()
+    assert k == 2, 'her turn is drawn at twice the sheet\'s size: needs references/woodland/upscaled/'
+    tops = []
+    for _, _, crop in drawings:
+        t2 = top.copy()
+        t2[cy:cy + ch, cx:cx + cw] = crop
+        tops.append(t2)
+    region2, region1 = turn_region(tops, top)
     bx, by, bw, bh = boxed(region1)
-    reg_k = cv2.resize(region1, (w, h), interpolation=cv2.INTER_LINEAR)
     box_k = (slice(by * k, (by + bh) * k), slice(bx * k, (bx + bw) * k))
-    rk = reg_k[box_k]
-    cels = []
-    for name in takes:
-        takek, kk = source(drawing(name)[1], drawing(name)[0])
-        if kk != k:
-            takek = cv2.resize(takek, (takek.shape[1] * k // kk, takek.shape[0] * k // kk), interpolation=cv2.INTER_LANCZOS4)
-        if 'stand-in' not in drawing(name)[1]:
-            takek, _ = register(top, takek, k)
-        cel, _, _, _ = dressed(takek[:h, :w], k, day, d, sigma, light)
-        cels.append(cel[box_k])
-    cut.save(np.concatenate(cels + [np.dstack([rk, rk, rk, np.ones_like(rk)])], 1), os.path.join(a_dir, 'near-heads.webp'), sizes, q=94)
+    rk = region2[box_k]
+    cels = [dressed(t2, k, day, d, sigma, light)[0][box_k] for t2 in tops]
+    atlas, cells_grid = grid(cels + [np.dstack([rk, rk, rk, np.ones_like(rk)])])
+    cut.save(atlas, os.path.join(a_dir, 'near-heads.webp'), sizes, q=94)
+    at = [f for _, f, _ in drawings]
+    names = [n for n, _, _ in drawings]
 
-    # The same at the wide's size: the cutter's own people from each take (only her head differs).
+    # The same at the wide's size: the cutter's own people from the sheet with each drawing laid
+    # in (by the region at the sheet's size: the sheet stays the sheet wherever she didn't move).
     t = cut.FIG_T
+    sheet_full = cut.arr(Image.open(os.path.join(cut.REF, '02-characters.webp')).convert('RGB'))
+    if sheet_full.shape[:2] != (1086, 1448):
+        sheet_full = cut.arr(Image.open(os.path.join(cut.REF, '02-characters.webp')).convert('RGB').resize((1448, 1086), Image.LANCZOS))
+    lay = region1[cy // 2:(cy + ch) // 2, cx // 2:(cx + cw) // 2][..., None]
     wides = []
-    for name, move1 in zip(takes, moves):
-        full1 = cut.arr(Image.open(drawing(name)[0]).convert('RGB').resize((1448, 1086), Image.LANCZOS))
-        full1 = cv2.warpAffine(full1, np.float32([[1, 0, -move1[0]], [0, 1, -move1[1]]]), (1448, 1086), flags=cv2.INTER_LANCZOS4, borderMode=cv2.BORDER_REFLECT)
+    for _, _, crop in drawings:
+        full1 = sheet_full.copy()
+        small = cv2.resize(crop, (cw // 2, ch // 2), interpolation=cv2.INTER_AREA)
+        full1[cy // 2:(cy + ch) // 2, cx // 2:(cx + cw) // 2] = small * lay + full1[cy // 2:(cy + ch) // 2, cx // 2:(cx + cw) // 2] * (1 - lay)
         wide, _, _, _, _ = cut.figures(cut.img(full1), cut.load('04-day.webp'))
         th, tw = wide.shape[:2]
         box_t = (slice(round(by * t), round((by + bh) * t)), slice(round(bx * t), round((bx + bw) * t)))
         wides.append(wide[box_t])
     reg_t = cv2.resize(region1, (tw, th), interpolation=cv2.INTER_AREA)
     rt = reg_t[box_t]
-    cut.save(np.concatenate(wides + [np.dstack([rt, rt, rt, np.ones_like(rt)])], 1), os.path.join(a_dir, 'heads.webp'), cut.LIVE, q=94)
+    wide_atlas, wide_grid = grid(wides + [np.dstack([rt, rt, rt, np.ones_like(rt)])])
+    cut.save(wide_atlas, os.path.join(a_dir, 'heads.webp'), cut.LIVE, q=94)
 
     sw = sway_map(sheet1[:PH])
     cut.save(np.dstack([sw, sw, sw]), os.path.join(a_dir, 'near-maps.webp'), {'': cut.W}, lossless=True)
@@ -509,12 +480,11 @@ def main():
         # y down: x0, y0, w, h). Places below are in the sheet's own pixels.)
         'pixels': [rw, h], 'gutter': cut.GUTTER, 'reach': REACH,
         'lidBox': [LID_BOX[0], LID_BOX[1], LID_BOX[2] - LID_BOX[0], LID_BOX[3] - LID_BOX[1]],
-        # Her head turned to him: where its cells lie on the panel (sheet px, y down), the atlas's
-        # cells (the drawings: the take, then those on the way there, as far as there are any; then
-        # the region they are laid in by), how far each drawing is (`figure:b.turn` shows the
-        # nearest), and which of them are stand-ins.
-        'heads': {'file': 'afternoon/near-heads', 'box': [bx, by, bw, bh], 'takes': takes, 'at': at, 'cells': len(takes) + 1,
-                  **({'standIns': stand_ins} if stand_ins else {})},
+        # Her turn: where its cells lie on the panel (sheet px, y down), its drawings and how far
+        # each is (`figure:b.turn` shows the nearest), the atlas's cells (the drawings, then the
+        # region they are laid in by) and how they are laid out (columns, rows, left to right and top
+        # to bottom; and each cell's inset in its frame, a fraction of its pitch across and up).
+        'heads': {'file': 'afternoon/near-heads', 'box': [bx, by, bw, bh], 'takes': names, 'at': at, 'cells': len(names) + 1, 'grid': cells_grid},
         # The ground under and round them (sheet px, y down: x0, y0, w, h), and where their bed's
         # grass moves (over the atlas's reach).
         'ground': {'file': 'afternoon/near-ground', 'box': [-MARGIN, -MARGIN, gw, gh]},
@@ -523,13 +493,13 @@ def main():
         # radius), the white (rgb); his, then hers.
         'eyes': {'a': [eye(e, c) for e, c in zip(EYES_A, wh[:2])], 'b': [eye(e, c) for e, c in zip(EYES_B, wh[2:])]},
     }
-    # Her head turned to him in the wide (the same box and cells, at the wide's size).
-    aft['figures']['heads'] = {'file': 'afternoon/heads', 'box': [bx, by, bw, bh], 'at': at, 'cells': len(takes) + 1}
+    # Her turn in the wide (the same box and cells, at the wide's size).
+    aft['figures']['heads'] = {'file': 'afternoon/heads', 'box': [bx, by, bw, bh], 'at': at, 'cells': len(names) + 1, 'grid': wide_grid}
     with open(MANIFEST, 'w') as f:
         json.dump(manifest, f, indent=2)
         f.write('\n')
-    print(f'two-shot: panel {rw}x{h} ({k}x the sheet, to x {REACH}); her head {bw}x{bh} at ({bx}, {by}) sheet px, '
-          f'takes {takes} moved {[(round(float(m[0]), 2), round(float(m[1]), 2)) for m in moves]} px, seam p99 {seam:.3f}; ground {gw}x{gh}; whites {wh}')
+    print(f'two-shot: panel {rw}x{h} ({k}x the sheet, to x {REACH}); her turn {len(names)} drawings, {bw}x{bh} at ({bx}, {by}) sheet px, '
+          f'atlas {atlas.shape[1]}x{atlas.shape[0]} ({cells_grid[0]}x{cells_grid[1]}); ground {gw}x{gh}; whites {wh}')
 
 
 if __name__ == '__main__':

@@ -41,12 +41,13 @@ export interface FigureArt {
   limb: { box: [number, number, number, number]; axis: [number, number] };
 }
 
-/** Her head as the artist redrew it (cells: the drawings, then the region they are laid in by), where its cells lie on the panel (sheet px, y down: x0, y0, w, h), how far into her turn each drawing is (0 the panel's head .. 1 turned to him), and how many cells. */
+/** Her turn (cells: its drawings, then the region they are laid in by), where its cells lie on the panel (sheet px, y down: x0, y0, w, h), how far into her turn each drawing is (0 the panel's head .. 1 turned to him), how many cells, and how they are laid out (columns, rows; each cell's inset in its frame, a fraction of its pitch across and up). */
 export interface HeadCels {
   texture: THREE.Texture;
   box: [number, number, number, number];
   at: number[];
   cells: number;
+  grid: [number, number, number, number];
 }
 
 /**
@@ -71,7 +72,7 @@ export type Eye = [number, number, number, number, number, number, number, numbe
 /**
  * The two-shot (scripts/two-shot.py): the two of them close. The same puppet as the wide (the wide's
  * people are this panel at 0.8, its deformers in the panel's pixels), drawn from the panel at its
- * own size, over the ground round them, out of focus; her head as the artist redrew it, in either
+ * own size, over the ground round them, out of focus; her turn (scripts/her-turn.py), in either
  * shot.
  */
 export interface NearArt {
@@ -79,7 +80,7 @@ export interface NearArt {
   texture: THREE.Texture;
   /** Their lids shut, half, and her sleeve (rows), at this size, over `lidBox` (sheet px, y down: x0, y0, w, h). */
   lids: THREE.Texture;
-  /** Her head turned to him, at this size. */
+  /** Her turn, at this size. */
   heads: HeadCels;
   /** The ground round them, out of focus. */
   ground: THREE.Texture;
@@ -673,12 +674,12 @@ export class LivingScene {
     };
     chest('chestA', s.chest.a, ba * deep);
     chest('chestB', s.chest.b, bb * deep);
-    // Her head as the artist redrew it, or on the way there: the drawing nearest to how far she has
-    // turned (`figure:b.turn`), held, in either shot; while one is shown, nothing of the rig made for
-    // the panel's face moves it.
+    // Her turn: the drawing nearest to how far she has turned (`figure:b.turn`), held, in either
+    // shot; while one is shown, nothing of the rig made for the panel's face moves it.
     const heads = near ? this.art.near!.heads : this.art.heads ?? null;
     const cel = heads ? headFor(val('figure:b.turn', 0), heads.at) : 0;
     (u.uHeadCel.value as THREE.Vector2).set(cel >= 1 ? cel - 1 : -1, heads?.cells ?? 1);
+    (u.uHeadGrid.value as THREE.Vector4).set(...(heads?.grid ?? ([1, 1, 0, 0] as const)));
     const redrawn = cel >= 1;
     // Heads: a roll toward where they look (−1 left .. 1 right: rolling left is anticlockwise).
     const lookA = val('figure:a.look', 0), lookB = redrawn ? 0 : val('figure:b.look', 0);
@@ -740,6 +741,7 @@ export class LivingScene {
     for (const mat of [this.m.plate, this.m.people, this.m.flowers, this.m.air, this.m.frame]) {
       for (const k of ['uPlate', 'uAfterPlate', 'uMaps', 'uGrade', 'uSky', 'uFigures', 'uLids', 'uFlowers', 'uSkyMask', 'uClouds', 'uCloudsAfter', 'uFrame', 'uHeads']) mat.uniforms[k].value = this.m.empty;
       mat.uniforms.uHeadCel.value.set(-1, 1);
+      mat.uniforms.uHeadGrid.value.set(1, 1, 0, 0);
       mat.uniforms.uAfter.value = 0;
     }
   }

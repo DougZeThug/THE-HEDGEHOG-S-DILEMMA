@@ -8,35 +8,28 @@ The two of them close (shot 4) is one held frame of your character sheet's top p
 them lying side by side, their hands almost touching in the grass between them, exactly as you
 drew them), shown at twice its size (the upscale you chose). In it:
 
-- her eyes go to him and her head follows: your own drawing of her turned to him
-  (`../drawings/b-look-full-b.webp`), and she stays there;
+- her eyes go to him first, and a moment later her head turns a little toward him and settles
+  there: her own face from the panel, turned (`scripts/her-turn.py`);
 - then his eyes go to her, and he stays there too: the shot cuts back to the wide with them still
   looking at each other, and they are still looking when it cuts to the empty clearing at dusk
   (you: "She should glance toward him, settle into that gaze, and simply remain there").
 
-Her look is your drawing. **His look is not**: there is no drawing of it, so his irises are moved
-inside his eye openings (the lash line stays as drawn) and his head rolls about 2°. That is a
+Her look is your drawing, turned. **His look is not**: there is no drawing of it, so his irises are
+moved inside his eye openings (the lash line stays as drawn) and his head rolls about 2°. That is a
 stand-in.
 
-**Her turn is one cut**: from the panel's head straight to yours, a turn of 70–90° in a twelfth of
-a second. Where she ends up is clear; how she gets there reads as a start or a sudden decision, the
-loudest thing in the shot (both directors, going through the film frame by frame; you: "it reads
-like jumping frames"). Two
-drawings of her head on the way there make it a turn: a quarter and three quarters of the way, so
-her head leaves and arrives slowly and moves fastest between them, as a head does. They are the
-most useful drawings for the close shot, and his look the next.
+**Her turn** is made from the panel alone, nothing redrawn: a head is fitted under your painting of
+her (her pose from points of her face; skull, face, nose, chin; her ear; her neck) and turned 14°
+about her neck, on twos over a second, easing in and out as a head does; her hair on the grass
+stays, the hair near her head follows a little, and her eyes, already on him, ease back in their
+sockets as her head comes round. Your drawing of her turned further (`../drawings/b-look-full-b.webp`)
+is no longer used: the turn you asked for is a slight one, and a drawing that turned her 70-90°
+could only be reached by bending one picture into another, which read as morphing. If you would
+like her turned more, or less, or sooner, say so: it is a number.
 
-Until they come there are **stand-ins** in `../drawings/stand-in/`, made without you
-(`scripts/stand-in-turn.py`): six of them, one a twelfth of a second, easing out and in. They are not
-drawings: each is one of your two heads bent to its moment's shape through matched points of the
-face (her hair on the grass held still); the first three are the sheet's head, the last three yours,
-so her ear changes side and the fringe arrives between the third and fourth, all at once. You judge
-them in a flipbook first. If you approve, the film uses them until yours come; if not, the turn stays
-the cut. The second and fifth (`turn2`, `turn5`) show the angle each of yours needs. Don't copy their
-hair or their ear: a bend can only move what is drawn. In yours they can pass partway.
-
-This replaces the earlier lists: the eleven close-up drawings (`c4-*`, `c5-*`, `c6-*`) and the
-three close-up panels are no longer needed. Your shot list had him look first and her notice; the
+This replaces the earlier lists: the eleven close-up drawings (`c4-*`, `c5-*`, `c6-*`), the
+three close-up panels and the two in-betweens of her turn (`b-look-full-mid1`, `-mid2`) are no
+longer needed. Your shot list had him look first and her notice; the
 order is now hers first, his last (the reasons are in `docs/reviews/2026-10-woodland.md`): tell
 me if you want it the other way round.
 
@@ -64,16 +57,7 @@ extra limbs, text, watermark, photo, 3D render, blur.
 
 | File | Make it from | Prompt (after the line above) |
 |---|---|---|
-| `b-look-full-mid1.png` | `../02-characters.webp` | The same image, but the young woman's head is turned a quarter of the way from looking straight up at the sky toward looking at him, her eyes already on him; her hair only beginning to shift with her head. Nothing else changes, nothing on him. |
-| `b-look-full-mid2.png` | `../drawings/b-look-full-b.webp` | The same image, but her head is turned back a quarter of the way toward looking straight up at the sky (three quarters of the way from the sky to him), her fringe beginning to fall across her forehead; her eyes still on him. Nothing else changes. |
 | `a-look-full.png` | `../02-characters.webp` | The same image; only the young man's eyes have moved: he is looking sideways to the right, toward her, out of the corners of his eyes. His head still faces up, his mouth exactly as it is. Nothing else changes, nothing on her. |
-
-Her turn steps a drawing every twelfth of a second, toward him once her eyes have gone to him; she
-doesn't turn back. Yours show at the steps nearest them, two drawings each. **Keep a pair only if the panel's head, the two and yours, flipped like that, read
-as one girl turning**, not because their angles are a quarter and three quarters: between the
-panel's head and yours her ear changes side, a fringe appears and her face rounds, and the two have
-to carry that between them. Each is held as a drawing, never dissolved into the next. If only one
-comes, it is used alone, at the steps nearest it.
 
 His drawing replaces the moved irises (laid in the way hers is, over his head only). Judge how his
 look reads in the flipbook: if it reads sly rather than fond, a second edit can soften it.
@@ -117,6 +101,5 @@ I would lay single breaths on the drawn breathing and send you the film with and
 ## Order
 
 1. `pencil.png`.
-2. `b-look-full-mid1.png` and `b-look-full-mid2.png` (her turn, a quarter and three quarters of the way).
-3. `a-look-full.png` (his look).
-4. Any time, if you like: `pencil-after`, `colour-extent`, `c2-leaves`, the voice memo.
+2. `a-look-full.png` (his look).
+3. Any time, if you like: `pencil-after`, `colour-extent`, `c2-leaves`, the voice memo.

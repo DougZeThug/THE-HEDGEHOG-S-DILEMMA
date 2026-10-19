@@ -408,15 +408,14 @@ export const CUT = 34.5;
  */
 export const TWO_SHOT = { from: 15.0, hisBlink: 16.2, herEyes: 17.5, herTurn: 18.0, hisEyes: 24.0, hisRoll: 24.5, to: 27.0 };
 /**
- * Her turn, drawn on twos (`figure:b.turn`: how far her head has turned, 0 the panel's .. 1 the
- * artist's drawing of her turned to him): how far at each drawing between them. It eases out and in
- * over a drawing at each end and is even between, so the change from one of her drawings to the
- * other (her ear, her fringe) falls on a step no wider than the rest. The scene shows, at each, the
- * drawing nearest to how far she has turned. Toward him from `herTurn`, her eyes leading by half a
- * second; never back (the artist: "it reads like jumping frames", "it still doesn't look like a
- * natural animation"; the cinematic director's spacing).
+ * Her turn, drawn on twos (`figure:b.turn`: how far her head has turned, 0 the panel's .. 1 turned a
+ * little toward him, `scripts/her-turn.py`): how far at each drawing. A head's own movement, eased
+ * in and out (minimum jerk) over fifteen drawings, a second and a quarter; the first and last, too
+ * near their neighbours to see, are left out. The scene shows, at each, the drawing nearest to how
+ * far she has turned. Toward him from `herTurn`, her eyes leading by half a second; never back (the
+ * artist: "She should glance toward him, settle into that gaze, and simply remain there").
  */
-export const TURN_STEPS = [0.07, 0.25, 0.42, 0.58, 0.75, 0.93];
+export const TURN_STEPS = [0.019, 0.058, 0.122, 0.21, 0.317, 0.438, 0.562, 0.683, 0.79, 0.878, 0.942, 0.981];
 /**
  * The artist's shot list (2026-10-17): 1 the room remembers (the pencil, the lean), 2 crossing
  * in, 3 the wide afternoon, 4 he looks toward her, 5 she notices, 6 their hands, 7 the wide
@@ -611,7 +610,7 @@ export const WOODLAND: MemoryDef = {
     { at: 10.5, text: 'It opens until it is all there is: a summer afternoon, cicadas in the trees.', inside: true },
     { at: 10.5, text: 'The painting comes alive on the wall: a summer afternoon, cicadas in the trees.', wall: true },
     { at: TWO_SHOT.from, text: 'Closer: the two of them side by side in the grass, looking up.', shot: 1 },
-    { at: TWO_SHOT.herTurn + 0.5, text: 'She turns her head toward him.', inside: true },
+    { at: TWO_SHOT.herTurn + 0.5, text: 'She turns her head a little toward him.', inside: true },
     { at: TWO_SHOT.hisEyes + 1.5, text: 'He turns his eyes to her.', inside: true },
     { at: CUT, text: 'The same clearing, at dusk. Nobody is there.' },
     { at: WOODLAND_SECTIONS.exit, text: 'The painting goes back into the wall.' },

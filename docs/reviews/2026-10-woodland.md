@@ -1241,3 +1241,37 @@ the absence of that intimate moment will hit harder."
     shader never lays them over a redrawn head, so it was silent anyway). A blink there would need
     lids drawn for that drawing.
 
+
+### Her turn rebuilt: her own head, turned (the artist's brief, 2026-10-19)
+
+"Rebuild the woodland animation using advanced Claude Code animation techniques." Her eyes drift to
+him first; a moment later she "turns her head slightly in his direction, without lifting it
+unnaturally from the grass", gentle, understated, almost unconscious; her features, skull, cheeks,
+jaw, neck and hair stay coherent, her hair grounded beneath her head; she settles into looking at
+him, with no mechanical return. "I want the viewer to experience the emotion, not notice the
+animation technique." Earlier versions "manipulated flat artwork, which distorts anatomy and reads
+as morphing"; more easing or warping between drawings was not to be assumed the answer, and the
+architecture could be replaced. Exact faces, the painted look, the composition, the light, the
+pacing, the sound and the hard cut to dusk stay.
+
+**Investigated.**
+- *ClaudeAnimationBase* (MIT) and *opus-video-skills* (MIT; its painted-animation skill is that kit
+  packaged as a Claude skill) draw a simple block character procedurally with p5.js and p5.brush.
+  Every frame is a pure function of time, drawn on twos, its linework boiling 12 times a second. A
+  character turns through drawn key views with a smear ("Never project 3D"). Puppeteer renders the
+  frames, and contact sheets, strips and crops make an inspection loop. Useful here: the pure
+  function of time, the twos, and above all the loop of rendering and looking. Not useful: none of it
+  can draw the artist's painted face. Their characters are code. Boiling her head alone would make
+  it the one thing in the painting that wobbles.
+- p5.brush (textured strokes): nothing to paint, since every pixel here is the artist's. GSAP: no DOM
+  tweening to do. Theatre.js already holds the memory's timeline; the turn stays a key track on it.
+- A video model (Wan 2.1 VACE, first and last frame, CPU) was stopped: the brief said to avoid one
+  without compelling evidence, and nothing it makes is her face as painted.
+
+**Why a rotation.** The bends failed because they went between two drawings that don't agree: a
+70–90° turn, her ear changing side. A slight turn needs no second drawing. Her own head, from the
+panel, can be turned as a head turns, provided the paint is laid on a 3D shape that fits it. Little
+new is seen at 14° (a sliver of her far cheek), so nothing has to be invented, and the face stays
+the artist's pixels. The "never project 3D" rule is right for a character drawn by code. Here it is
+the painting that is projected, onto a shape fitted to it, over a turn small enough that its drawing
+holds.

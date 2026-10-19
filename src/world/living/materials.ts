@@ -195,11 +195,14 @@ const FRAG = /* glsl */ `
   uniform float uNear;
   uniform vec4 uWidePlace;
   uniform vec2 uSheet;       // the panel's own pixels (the figure uv's scale: stage px)
-  // Her head as the artist redrew it: an atlas of cells (the drawing, then the region it is laid
-  // in by), where it lies (figure uv: x0, y0, w, h), and which is shown (−1 none), how many cells.
+  // Her turn: an atlas of cells (its drawings, then the region they are laid in by), where they lie
+  // (figure uv: x0, y0, w, h), which is shown (−1 none) and how many cells, and how they are laid
+  // out (columns, rows, left to right and top to bottom; each cell's inset in its frame, a fraction
+  // of its pitch across and up).
   uniform sampler2D uHeads;
   uniform vec4 uHeadBox;
   uniform vec2 uHeadCel;
+  uniform vec4 uHeadGrid;
   // Their eyes looking (how far each one's irises have moved: fractions of each opening's radii,
   // along it and across it, up positive): his, then hers. Each eye's opening (centre, stage px y
   // up, and radii), its iris (centre, radius; and the opening's angle), and its white.
@@ -233,6 +236,13 @@ const FRAG = /* glsl */ `
     vec2 q = (uv - uLidBox.xy) / uLidBox.zw;
     if (any(lessThan(q, vec2(0.0))) || any(greaterThan(q, vec2(1.0)))) return vec4(0.0);
     return texture2D(uLids, row(q, r, uLidRows));
+  }
+
+  // Where a point of her head's box (hq, 0..1 up) is in cell i of her turn's atlas.
+  vec2 headCell(float i, vec2 hq) {
+    float c = mod(i, uHeadGrid.x), r = floor(i / uHeadGrid.x + 0.001);
+    vec2 inner = uHeadGrid.zw + hq * (1.0 - 2.0 * uHeadGrid.zw);
+    return vec2((c + inner.x) / uHeadGrid.x, (uHeadGrid.y - 1.0 - r + inner.y) / uHeadGrid.y);
   }
 
   // An eye looking by g at p (stage px, y up), over what is drawn there (c): inside its opening,
@@ -398,15 +408,14 @@ const FRAG = /* glsl */ `
           f.rgb = looking(f.rgb, p, uEyes[3], uIrises[3], uWhites[3], uGazeB);
         }
       }
-      // Her head as the artist redrew it, laid in by its own soft region (held: never mixed
-      // between drawings; only the region's edge is soft).
+      // Her turn's drawing, laid in by its own soft region (held: never mixed between drawings;
+      // only the region's edge is soft, and it lies where every drawing is the panel).
       bool redrawn = false;
       if (uHeadCel.x >= 0.0) {
         vec2 hq = (vUv - uHeadBox.xy) / uHeadBox.zw;
         if (all(greaterThan(hq, vec2(0.0))) && all(lessThan(hq, vec2(1.0)))) {
-          float n = uHeadCel.y;
-          vec4 cel = texture2D(uHeads, vec2((uHeadCel.x + hq.x) / n, hq.y));
-          float m = texture2D(uHeads, vec2((n - 1.0 + hq.x) / n, hq.y)).r;
+          vec4 cel = texture2D(uHeads, headCell(uHeadCel.x, hq));
+          float m = texture2D(uHeads, headCell(uHeadCel.y - 1.0, hq)).r;
           f = f * (1.0 - m) + cel * m;
           redrawn = m > 0.02;
         }
@@ -489,6 +498,7 @@ function uniforms(noise: THREE.Texture, empty: THREE.Texture): Record<string, TH
     uHeads: { value: empty },
     uHeadBox: { value: new THREE.Vector4(0, 0, 0, 0) },
     uHeadCel: { value: new THREE.Vector2(-1, 1) },
+    uHeadGrid: { value: new THREE.Vector4(1, 1, 0, 0) },
     uGaze: { value: new THREE.Vector2(0, 0) },
     uGazeB: { value: new THREE.Vector2(0, 0) },
     uEyes: { value: Array.from({ length: 4 }, () => new THREE.Vector4(0, 0, 1, 1)) },
