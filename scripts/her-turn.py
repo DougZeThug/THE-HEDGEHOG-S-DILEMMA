@@ -12,23 +12,30 @@ from one drawing, honestly, as a rotation:
 
 - **A head under the paint.** Her pose is fitted from thirteen points of her face (eyes, nose, mouth,
   chin, brows, hairline, ear) to a generic head. On it are a cranium and a face: a midline profile
-  (forehead, nose, mouth, chin), a width, a cross-section, and the nose as a ridge. Her ear is a flap
-  hinged at her cheek, its slant halved (a drawn ear is flatter than a real one). Her neck takes its
-  depth from her jaw.
+  (forehead, nose, mouth, chin), a width, a cross-section, and the nose as a ridge; no surface steeper
+  than `SLOPE` toward its outline (a head's sides go nearly edge-on there, and paint on them swelled
+  or shrank). Her ear is a flap hinged at her cheek, its slant halved (a drawn ear is flatter than a
+  real one), rigid out past its outline; her jaw line holds rigid in a band either side of it; her
+  neck takes its depth from her jaw. So her drawn lines keep their weight.
 - **The turn.** About her neck's axis (the fitted head's up axis, leaning a little into the
   picture), toward him, by `ANGLE`. Her head turns whole; her neck twists, all of it at the jaw and
   none at the collar; the hair near her head follows it a little and the hair lying on the grass
   stays, nothing moving further than `HAIR_REACH` from her head.
 - **Two layers.** In front: her head and neck. Behind: her hair and the rest, filled under her with
-  the hair beside her (`stretch_fill`). What lies just behind her drawn edges (far cheek, chin, neck,
-  ear) moves with them, so the turn never uncovers anything the painting doesn't have. Each layer
-  is an inverse warp of the painting: her lines are resampled, never redrawn.
+  the hair beside her (`stretch_fill`). Her soft edge is split between them, her colour over the
+  colour behind it, so not turned they make the panel exactly. Where an edge of hers draws back from
+  what lies behind it (far cheek, chin, the neck's far side), that goes with it, so the turn never
+  uncovers anything the painting doesn't have; where she passes over it, she simply covers it. Each
+  layer is an inverse warp of the painting, resampled (Lanczos, within the painting's own range;
+  averaged where it is squeezed): her lines are moved, never redrawn.
 - **Her far cheek's outline is a silhouette,** not paint on her skin: it moves as the model's outline
   does (about half as far), and her cheek between it and her eye widens, as a far cheek coming round
-  does.
+  does; her far eye turns with her face, never widened.
 - **Her eyes** are on him first (the film's own iris move, `gazeB` in src/memory/living/woodland.ts,
   as the two-shot shader draws it); as her head comes round they ease back in their sockets, still on
   him (`KEEP` of their turn remains).
+- **Checked** as it runs: not turned, it is the panel (to 2/255); turned, how much of her drawn line
+  is squeezed or stretched past 0.75-1.35 is printed.
 
 One drawing for each of the timeline's steps (`TURN_STEPS`, src/memory/defs.ts) and the last, each
 the 2x crop round her head (lossless), and turn.json (where the crop lies, how far each drawing is):
@@ -63,10 +70,19 @@ CX, N = 754, 512
 ANGLE = 14.0
 TILT = 10.0
 KEEP = 0.65
-# How far from her head the hair near it follows (crop px; none beyond), and how far behind her
-# drawn edges what lies there goes with them.
+# How far from her head the hair near it follows (crop px; none beyond); how far behind an edge of
+# hers that draws back from what lies behind it that goes with it (none behind an edge that passes
+# over it: her face simply covers it); how far either side of her jaw line it holds rigid (so the
+# line keeps its weight and the squeeze falls on the plain skin under her chin); how far past her
+# ear's outline the flap holds rigid.
 HAIR_REACH = 60.0
-DRAG = 36.0
+DRAG = 48.0
+JAW_RIGID = (4.0, 16.0)
+EAR_RIGID = 6
+# How steeply her head's surface may fall away toward its outline (depth px per px): a head's sides
+# turn almost edge-on near its outline, and paint there swelled or shrank up to twice over as she
+# turned (the hair at her far temple thickened); hair is drawn the same width wherever it lies.
+SLOPE = 1.3
 
 # Her face's points on the 2x crop and on a generic head (template units, about a millimetre: up,
 # forward, to her left, from between her ear canals), its eyes larger and lower, its chin higher.
@@ -121,6 +137,9 @@ NECK = [(234, 240), (250, 243), (272, 245), (300, 242), (330, 236)] + NECK_R + \
 JAW = [(234, 240), (250, 243), (272, 245), (300, 242), (330, 236), (349, 236)]
 COLLAR = [(276, 312), (300, 313), (330, 313), (360, 311), (388, 303)]
 DRAWN = [FAR_OUT, NECK_R, NECK_L, EAR_OUT]
+# Her far eye (crop px: centre, radii grown 4 px, angle): it turns with her face, never widened by
+# her far cheek coming round.
+FAR_EYE = ((324.0, 119.2), (18.6, 11.8), 0.29)
 # Her far cheek's outline (the line's centre), below the lock over her temple.
 FAR = [(354, 132), (360, 140), (366, 152), (369, 164), (370, 176), (370, 188), (369, 200), (367, 212), (361, 220)]
 
@@ -234,6 +253,32 @@ def nearest_on(pts, values):
     return table[lab], dist
 
 
+def slope_limited(z, g, iters=96):
+    """`z` brought forward wherever it falls away faster than `g` (the largest surface under it no
+    steeper than `g` in any direction: its outline flattened, its middle as it was)."""
+    out = z.copy()
+    steps = [(dy, dx, g * math.hypot(dy, dx)) for dy in (-1, 0, 1) for dx in (-1, 0, 1) if dy or dx]
+    for _ in range(iters):
+        p = np.pad(out, 1, mode='edge')
+        m = out.copy()
+        for dy, dx, c in steps:
+            m = np.minimum(m, p[1 + dy:1 + dy + N, 1 + dx:1 + dx + N] + c)
+        if np.abs(m - out).max() < 1e-3:
+            return m
+        out = m
+    return out
+
+
+def nearest_on_mask(mask, values):
+    """For each pixel, `values` (an (N, N) or (N, N, C) map) at its nearest pixel of `mask`, and the
+    distance to it."""
+    m = np.where(mask, 0, 255).astype(np.uint8)
+    dist, lab = cv2.distanceTransformWithLabels(m, cv2.DIST_L2, 5, labelType=cv2.DIST_LABEL_PIXEL)
+    table = np.zeros((lab.max() + 1,) + values.shape[2:], values.dtype)
+    table[lab[mask]] = values[mask]
+    return table[lab], dist
+
+
 def hairness(img):
     """How much a pixel is her hair (0..1, soft): brown, darker than her skin."""
     r, g, b = img[..., 0], img[..., 1], img[..., 2]
@@ -274,7 +319,8 @@ def stretch_fill(img, hole, k=0.6, gap=1.5):
     colour = num / np.maximum(den, 1e-4)[..., None]
     t = np.clip(got, 0, 1)[..., None]
     filled = filled * t + colour * (1 - t)
-    m = np.clip(cv2.GaussianBlur(hole.astype(np.float32), (0, 0), 0.8) * 1.6, 0, 1)[..., None]
+    # (a hard seam: it lies under her opaque core, and feathered out it ate into her soft edge)
+    m = hole.astype(np.float32)[..., None]
     return img * (1 - m) + filled * m
 
 
@@ -292,6 +338,40 @@ def inverse(D, iters=80, damp=0.6):
     dx = cv2.remap(Dx, px, py, cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE)
     dy = cv2.remap(Dy, px, py, cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE)
     return px, py, np.hypot(px + dx - X, py + dy - Y)
+
+
+def span(mx, my):
+    """How much of the source each output pixel takes in, at most across any direction (the inverse
+    map's largest stretch: above 1 where the turn squeezes her)."""
+    a, b = np.gradient(mx, axis=1), np.gradient(mx, axis=0)
+    c, d = np.gradient(my, axis=1), np.gradient(my, axis=0)
+    q = a * a + b * b + c * c + d * d
+    return np.sqrt(0.5 * (q + np.sqrt((a * a + b * b - c * c - d * d) ** 2 + 4 * (a * c + b * d) ** 2)))
+
+
+def resample(img, mx, my, interp=cv2.INTER_LANCZOS4, border=cv2.BORDER_REFLECT, ss=4):
+    """`img` sampled at (mx, my): one sample a pixel where the turn doesn't squeeze her (Lanczos, so a
+    sub-pixel move keeps her lines as crisp as the painting: bicubic softened her face by 6%; held
+    within the painting's own range round it),
+    averaged over `ss`x`ss` where it does (so a fine line squeezed toward her ear stays a line, never
+    dots)."""
+    one = cv2.remap(img, mx, my, interp, borderMode=border)
+    if interp == cv2.INTER_LANCZOS4:
+        # (no brighter or darker than the painting round it: Lanczos rings, and beside a thin dark
+        # strand on the paper the ring read as a second, pale strand)
+        k3 = np.ones((3, 3), np.uint8)
+        lo = cv2.remap(cv2.erode(img, k3), mx, my, cv2.INTER_LINEAR, borderMode=border)
+        hi = cv2.remap(cv2.dilate(img, k3), mx, my, cv2.INTER_LINEAR, borderMode=border)
+        one = np.clip(one, lo, hi)
+    t = smoothstep(1.04, 1.3, span(mx, my))
+    if t.max() <= 0:
+        return one
+    h, w = mx.shape
+    big = cv2.remap(img, cv2.resize(mx, (w * ss, h * ss), interpolation=cv2.INTER_LINEAR),
+                    cv2.resize(my, (w * ss, h * ss), interpolation=cv2.INTER_LINEAR), cv2.INTER_CUBIC, borderMode=border)
+    many = cv2.resize(big, (w, h), interpolation=cv2.INTER_AREA)
+    t = t.reshape(t.shape + (1,) * (one.ndim - 2))
+    return one * (1 - t) + many * t
 
 
 class Head:
@@ -318,12 +398,17 @@ class Head:
         # carried down from her jaw (so it twists on from it, never shears).
         zc, inside_c = self.surface(*self.cranium())
         zf, _ = self.surface(*self.face())
-        z = fillnan(np.fmin(zc, zf))
+        z = slope_limited(fillnan(np.fmin(zc, zf)), SLOPE)
         zn, _ = nearest_on(JAW, z)
         dj, dc = line_dist(JAW), line_dist(COLLAR)
         tneck = np.clip(dj / np.maximum(dj + dc, 1e-3), 0, 1)
         bj = np.where(below, np.clip(dj / 14.0, 0, 1), 0)
         z = z * (1 - bj) + zn * bj
+        # (her jaw line and a band either side of it as one: the face model's chin curves away under
+        # it, and turning, that squeezed the drawn line six times over until it faded)
+        zj, dl = nearest_on(JAW, z)
+        w = 1 - smoothstep(*JAW_RIGID, dl)
+        z = z * (1 - w) + zj * w
         z = self.ear_depth(z)
         fm = cv2.GaussianBlur(front, (0, 0), 1.0) + 1e-3
         z = masked_blur(z, fm, 3.0)
@@ -332,19 +417,46 @@ class Head:
         wneck = 1 - smoothstep(0, 1, tneck)
         self.wF = cv2.GaussianBlur(fillnan(np.where(self.head > 0.5, 1.0, np.where(below, wneck, np.nan))).astype(np.float32), (0, 0), 2.0).astype(np.float64)
 
-        # Behind: the panel itself wherever her edge is soft, so where both layers turn alike (the
-        # hair round her crown) they make the panel exactly; filled under her, and under the soft
-        # edge too along her drawn edges where it isn't hair (no sliver of her stays behind).
+        # Her soft edge, split into her and what is behind her: each edge pixel's colour is hers (her
+        # nearest inner colour) over the colour behind it (what the panel's pixel implies, given how
+        # much of it is hers), so not turned the two make the panel exactly, and turned, no sliver of
+        # her stays behind. Under her, the hair beside her continues (`stretch_fill`).
         self.d_front = cv2.distanceTransform((front < 0.5).astype(np.uint8), cv2.DIST_L2, 5)
-        d_drawn = np.minimum.reduce([line_dist(p) for p in DRAWN])
-        ramp = (cv2.dilate((self.front_a > 0.02).astype(np.uint8), np.ones((5, 5), np.uint8)) > 0) & (d_drawn < 5)
-        hole = (self.front_a >= 0.98) | (ramp & (hairness(self.panel) < 0.5))
-        self.back = stretch_fill(self.panel, hole)
-        self.zB = cv2.GaussianBlur(fillnan(np.where(inside_c, zc, np.nan)).astype(np.float32), (0, 0), 3.0).astype(np.float64)
+        A = self.front_a[..., None]
+        core = self.front_a >= 0.99
+        self.soft = (self.front_a > 0.004) & ~core
+        # (hers as near her inner colour as the pixel allows: a drawn line lying in her soft edge is
+        # dark, and can't be skin over something darker than black, so it stays her line)
+        inner, _ = nearest_on_mask(core, self.panel)
+        d = inner - self.panel
+        with np.errstate(divide='ignore', invalid='ignore'):
+            room = np.where(d > 1e-4, (1 - A) * self.panel / (A * d), np.where(d < -1e-4, (1 - A) * (1 - self.panel) / (-A * d), np.inf))
+        lam = np.clip(np.nan_to_num(room.min(-1, keepdims=True), nan=0.0, posinf=1.0), 0, 1)
+        self.inner = self.panel + lam * d
+        behind = np.clip((self.panel - A * self.inner) / np.maximum(1 - A, 1e-3), 0, 1)
+        self.back = stretch_fill(np.where(self.soft[..., None], behind, self.panel).astype(np.float32), core)
+        # (the hair's depth smooth: hair lying on the grass took the steep fall of the cranium's
+        # outline and bunched up beside her near temple)
+        self.zB = cv2.GaussianBlur(fillnan(np.where(inside_c, zc, np.nan)).astype(np.float32), (0, 0), 16.0).astype(np.float64)
         dhead = cv2.distanceTransform((self.head < 0.5).astype(np.uint8), cv2.DIST_L2, 5)
         wB = 1 - smoothstep(0, HAIR_REACH, dhead)
         wB = np.where(below, np.minimum(wB, wneck), wB)
         self.wB = cv2.GaussianBlur(wB.astype(np.float32), (0, 0), 2.0).astype(np.float64)
+        # Which of her edges draw back from what lies behind them as she turns (at the full turn:
+        # how far each edge point moves inward, 4 px or more counting fully), carried outward from
+        # her edge: only there does what is behind go with her.
+        DF = self.motion(self.zF, self.wF, math.radians(-ANGLE))
+        gy, gx = np.gradient(cv2.GaussianBlur(self.d_front.astype(np.float32), (0, 0), 2.0))
+        nrm = np.stack([gx, gy], -1)
+        nrm /= np.linalg.norm(nrm, axis=-1, keepdims=True) + 1e-6
+        edge = (self.d_front > 0) & (self.d_front <= 2)
+        rec = np.clip(-(DF * nrm).sum(-1) / 4.0, 0, 1)
+        # (where no line is drawn, as in the hair at her crown and temples, her hair is one with what
+        # lies beyond it, and always goes with it: split there, a strand doubled)
+        drawn = np.minimum.reduce([line_dist(p) for p in DRAWN]) <= 4
+        rec = np.where(drawn, rec, 1.0)
+        rec_out, _ = nearest_on_mask(edge, rec)
+        self.drag = cv2.GaussianBlur(((1 - smoothstep(0, DRAG, self.d_front)) * rec_out).astype(np.float32), (0, 0), 3.0).astype(np.float64)
 
     # -- the model ---------------------------------------------------------------------------------
 
@@ -385,10 +497,13 @@ class Head:
         gx, gy = -n[0] / n[2] * EAR_FLAT, -n[1] / n[2] * EAR_FLAT
         hx, hy = EAR_HINGE
         zp = z[hy, hx] + gx * (self.X[..., 0] - hx) + gy * (self.X[..., 1] - hy)
-        m = cv2.GaussianBlur(poly(EAR), (0, 0), 3.0)
+        # (rigid out past its outline, so its rim, the rim's light and the outline turn as the flap;
+        # blended into her cheek and hair beyond)
+        grown = cv2.dilate((poly(EAR) > 0.5).astype(np.uint8), cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * EAR_RIGID + 1, 2 * EAR_RIGID + 1)))
+        m = cv2.GaussianBlur(grown.astype(np.float32), (0, 0), 3.0)
         return z * (1 - m) + zp * m
 
-    def far_push(self, z, far_in=30.0, psi=math.radians(-20.0)):
+    def far_push(self, z, far_in=40.0, psi=math.radians(-20.0)):
         """How far to push the paint near her far cheek's outline back toward her neck's axis, so it
         keeps pace with the model's outline: from the model's outline before and after a turn (signed
         distances), at each point of the drawn one; along it, fading out under the lock at her temple
@@ -417,11 +532,16 @@ class Head:
             push.append((s0[y * k, x * k] - s1[y * k, x * k] - moved @ nrm) / (per_px @ nrm))
         rows = np.mgrid[0:N, 0:N][0].astype(np.float64)
         near_y, dist = nearest_on(FAR, rows)
-        val = np.interp(near_y, [p[1] for p in FAR], push) * smoothstep(124, 140, near_y) * (1 - smoothstep(206, 224, near_y))
+        val = np.interp(near_y, [p[1] for p in FAR], push) * smoothstep(124, 140, near_y) * (1 - smoothstep(192, 232, near_y))
         r, g, b = self.panel[..., 0], self.panel[..., 1], self.panel[..., 2]
         skin = (0.3 * r + 0.59 * g + 0.11 * b > 0.6) & (r > g) & (g > b) & (r - b > 0.15)
         inside = self.head > 0.5
         where = cv2.GaussianBlur(((skin & inside) | (dist < 4) | ~inside).astype(np.float32), (0, 0), 2.5)
+        (ex, ey), (rx, ry), ang = FAR_EYE
+        cs, sn = math.cos(ang), math.sin(ang)
+        dx, dy = self.X[..., 0] - ex, self.X[..., 1] - ey
+        eye = np.hypot((dx * cs + dy * sn) / rx, (-dx * sn + dy * cs) / ry)
+        where = where * smoothstep(1.0, 1.6, eye)
         return val * where * np.where(inside, 1 - smoothstep(0, far_in, dist), 1.0)
 
     # -- the turn ----------------------------------------------------------------------------------
@@ -442,13 +562,13 @@ class Head:
         is toward him). Returns the picture and the warps' worst error (px)."""
         DF = self.motion(self.zF, self.wF, psi)
         DB = self.motion(self.zB, self.wB, psi)
-        t = (1 - smoothstep(0, DRAG, self.d_front))[..., None]
+        t = self.drag[..., None]
         DB = DF * t + DB * (1 - t)
         fx, fy, fres = inverse(DF)
         bx, by, bres = inverse(DB)
-        B = cv2.remap(self.back, bx, by, cv2.INTER_CUBIC, borderMode=cv2.BORDER_REFLECT)
-        F = cv2.remap(img.astype(np.float32), fx, fy, cv2.INTER_CUBIC, borderMode=cv2.BORDER_REFLECT)
-        A = cv2.remap(self.front_a, fx, fy, cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)[..., None]
+        B = resample(self.back, bx, by)
+        F = resample(np.where(self.soft[..., None], self.inner, img).astype(np.float32), fx, fy)
+        A = resample(self.front_a, fx, fy, cv2.INTER_LINEAR, cv2.BORDER_CONSTANT)[..., None]
         err = max(float(fres[self.front_a > 0.5].max()), float(bres.max()))
         return np.clip(F * A + B * (1 - A), 0, 1), err
 
@@ -481,6 +601,21 @@ def looking(img, eye, gaze):
     return img * (1 - m[..., None]) + out * m[..., None]
 
 
+def strain(head, psi):
+    """How much the turn squeezes or stretches her drawn lines (the area of each of her inked pixels
+    afterward, 1 unchanged): the inked pixels of her head and neck, and the share outside 0.75-1.35."""
+    D = head.motion(head.zF, head.wF, psi)
+    dxx, dxy = np.gradient(D[..., 0], axis=1), np.gradient(D[..., 0], axis=0)
+    dyx, dyy = np.gradient(D[..., 1], axis=1), np.gradient(D[..., 1], axis=0)
+    det = (1 + dxx) * (1 + dyy) - dxy * dyx
+    r, g, b = head.panel[..., 0], head.panel[..., 1], head.panel[..., 2]
+    lum = 0.3 * r + 0.59 * g + 0.11 * b
+    gm = np.hypot(*np.gradient(cv2.GaussianBlur(lum, (0, 0), 0.7)))
+    inked = (gm > 0.06) & (lum < 0.5) & (head.front_a > 0.98)
+    v = det[inked]
+    return v, float(((v < 0.75) | (v > 1.35)).mean())
+
+
 def steps():
     """How far she has turned at each drawing: the timeline's `TURN_STEPS`, then all the way."""
     src = open(os.path.join(ROOT, 'src', 'memory', 'defs.ts')).read()
@@ -496,6 +631,14 @@ def main():
     spec = open(os.path.join(ROOT, 'src', 'memory', 'living', 'woodland.ts')).read()
     gaze = np.array([float(v) for v in re.search(r'gazeB:\s*\[([-\d.]+),\s*([-\d.]+)\]', spec).groups()])
     head = Head(panel)
+    # (Checks: not turned, the rig is the panel; turned, her lines keep their weight.)
+    still, _ = head.render(0.0, panel)
+    off = np.abs(still - panel).max(-1)
+    assert np.percentile(off, 99.9) <= 2 / 255 + 1e-6 and off.max() <= 12 / 255, \
+        f'not turned, the rig should be the panel: p99.9 {np.percentile(off, 99.9) * 255:.1f}/255, max {off.max() * 255:.0f}/255 at {np.unravel_index(off.argmax(), off.shape)}'
+    v, outside = strain(head, math.radians(-ANGLE))
+    print(f'her-turn: not turned, the panel to {off.max() * 255:.0f}/255; turned, her inked pixels\' area {np.percentile(v, 1):.2f}-{np.percentile(v, 99):.2f} '
+          f'(p1-p99), {outside * 100:.1f}% outside 0.75-1.35')
     os.makedirs(OUT, exist_ok=True)
     for old in os.listdir(OUT):
         if old.startswith('b-turn-'):

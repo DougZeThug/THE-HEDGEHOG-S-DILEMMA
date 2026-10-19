@@ -60,7 +60,7 @@ TURN = os.path.join(cut.REF, 'drawings', 'turn')
 # Where her turn's drawings differ from the panel by this much or less, they are the panel (her
 # hair's motion fades out to nothing: scripts/her-turn.py `HAIR_REACH`); the region they are laid in
 # by reaches this far past it (2x px), so its soft edge never crosses anything that moved.
-STILL, REGION_PAD = 0.006, 10
+STILL, REGION_PAD = 0.002, 14
 # Their eyes (sheet px, y down; measured on the panel at twice its size): the opening below the
 # lash line (centre, radii, angle: positive turns its outer end down), and the iris in it (centre,
 # radius). A look moves the iris along the opening, the white filling in where it was; the lash
@@ -430,6 +430,10 @@ def main():
         t2[cy:cy + ch, cx:cx + cw] = crop
         tops.append(t2)
     region2, region1 = turn_region(tops, top)
+    # (where the region is soft, every drawing is still the panel: no seam where it is laid in)
+    band = (region2 > 0.02) & (region2 < 0.98)
+    seam = max(float(np.abs(t2 - top).max(-1)[band].max()) for t2 in tops)
+    assert seam <= 3 / 255 + 1e-6, f'her turn moves something under the region\'s soft edge: {seam * 255:.1f}/255'
     bx, by, bw, bh = boxed(region1)
     box_k = (slice(by * k, (by + bh) * k), slice(bx * k, (bx + bw) * k))
     rk = region2[box_k]
@@ -498,7 +502,7 @@ def main():
     with open(MANIFEST, 'w') as f:
         json.dump(manifest, f, indent=2)
         f.write('\n')
-    print(f'two-shot: panel {rw}x{h} ({k}x the sheet, to x {REACH}); her turn {len(names)} drawings, {bw}x{bh} at ({bx}, {by}) sheet px, '
+    print(f'two-shot: panel {rw}x{h} ({k}x the sheet, to x {REACH}); her turn {len(names)} drawings, {bw}x{bh} at ({bx}, {by}) sheet px (seam {seam * 255:.1f}/255), '
           f'atlas {atlas.shape[1]}x{atlas.shape[0]} ({cells_grid[0]}x{cells_grid[1]}); ground {gw}x{gh}; whites {wh}')
 
 

@@ -240,7 +240,7 @@ const FRAG = /* glsl */ `
 
   // Where a point of her head's box (hq, 0..1 up) is in cell i of her turn's atlas.
   vec2 headCell(float i, vec2 hq) {
-    float c = mod(i, uHeadGrid.x), r = floor(i / uHeadGrid.x + 0.001);
+    float r = floor(i / uHeadGrid.x + 0.001), c = i - r * uHeadGrid.x;
     vec2 inner = uHeadGrid.zw + hq * (1.0 - 2.0 * uHeadGrid.zw);
     return vec2((c + inner.x) / uHeadGrid.x, (uHeadGrid.y - 1.0 - r + inner.y) / uHeadGrid.y);
   }
@@ -412,7 +412,9 @@ const FRAG = /* glsl */ `
       // only the region's edge is soft, and it lies where every drawing is the panel).
       bool redrawn = false;
       if (uHeadCel.x >= 0.0) {
-        vec2 hq = (vUv - uHeadBox.xy) / uHeadBox.zw;
+        // (where their bed's grass sways, so does the grass at the drawing's soft edge: it lies
+        // where the body's does; on them uvF is vUv)
+        vec2 hq = (uvF - uHeadBox.xy) / uHeadBox.zw;
         if (all(greaterThan(hq, vec2(0.0))) && all(lessThan(hq, vec2(1.0)))) {
           vec4 cel = texture2D(uHeads, headCell(uHeadCel.x, hq));
           float m = texture2D(uHeads, headCell(uHeadCel.y - 1.0, hq)).r;
