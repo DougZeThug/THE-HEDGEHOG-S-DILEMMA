@@ -590,6 +590,7 @@ export class App {
       const entered = this.inside.entered || !l.memory.prepared.living?.immerse;
       // Whoever was carried in is back where they stood.
       this.inside.end();
+      this.captions.dim = false;
       this.memoryWindow.release();
       for (const k of l.washed) this.text.wash(k, 0);
       // Its recordings are let go too (a phone keeps little decoded audio; they load again if it returns).
@@ -1080,6 +1081,9 @@ export class App {
       this.audio?.memoryHush(deep ? DEEP_HUSH : l.memory.prepared.def.hush, deep ? 2.5 : 4.5);
     }
     this.washUnderPainting(l, f.final);
+    // (Its dusk is dark: a sound's caption over it, while it fills the view, is light words, not a
+    // pale pill; on the wall, in the white room, the pill.)
+    this.captions.dim = this.inside.entered && (f.final['scene.immerse'] ?? 0) >= 0.6 && (f.final['scene.after'] ?? 0) >= 0.5;
     pl.scene.reduced = this.prefs.reducedMotion;
     // (The two-shot's frame is the screen's: a narrower one sees less of its width, a wider one less of its height.)
     pl.scene.update(this.renderer, f.t, f.final, { view: this.inside.view, parallax: new THREE.Vector2(), aspect });

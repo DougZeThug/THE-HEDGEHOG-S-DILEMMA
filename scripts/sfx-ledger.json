@@ -1,5 +1,5 @@
 {
-  "spent": 2127,
+  "spent": 2919,
   "entries": {
     "sfx-switch-1.mp3": {
       "key": "sfx:switch",
@@ -242,6 +242,30 @@
       "duration": 24,
       "cost": 264,
       "at": "2026-10-19T21:19:53.660Z",
+      "review": "pending"
+    },
+    "woodland-dusk-1.mp3": {
+      "key": "woodland:dusk",
+      "text": "Evening cicadas (higurashi) at dusk in a cedar forest, heard from a clearing: separate calls from several trees, each a ringing run of quick notes, 'kana-kana-kana', that starts strong, then slows and falls in pitch over about five seconds and stops, a few seconds of quiet between calls, near and far trees answering. Recorded clearly at an even level. Nothing else: no other insects, no birds, no wind, no voices, no music.",
+      "duration": 24,
+      "cost": 264,
+      "at": "2026-10-19T22:17:17.364Z",
+      "review": "pending"
+    },
+    "woodland-dusk-2.mp3": {
+      "key": "woodland:dusk",
+      "text": "Evening cicadas (higurashi) at dusk in a cedar forest, heard from a clearing: separate calls from several trees, each a ringing run of quick notes, 'kana-kana-kana', that starts strong, then slows and falls in pitch over about five seconds and stops, a few seconds of quiet between calls, near and far trees answering. Recorded clearly at an even level. Nothing else: no other insects, no birds, no wind, no voices, no music.",
+      "duration": 24,
+      "cost": 264,
+      "at": "2026-10-19T22:17:20.389Z",
+      "review": "pending"
+    },
+    "woodland-dusk-3.mp3": {
+      "key": "woodland:dusk",
+      "text": "Evening cicadas (higurashi) at dusk in a cedar forest, heard from a clearing: separate calls from several trees, each a ringing run of quick notes, 'kana-kana-kana', that starts strong, then slows and falls in pitch over about five seconds and stops, a few seconds of quiet between calls, near and far trees answering. Recorded clearly at an even level. Nothing else: no other insects, no birds, no wind, no voices, no music.",
+      "duration": 24,
+      "cost": 264,
+      "at": "2026-10-19T22:17:23.331Z",
       "review": "pending"
     }
   }

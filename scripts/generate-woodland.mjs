@@ -48,6 +48,9 @@ const TAKES = [
   ['bird', 'A single small woodland songbird singing one short, relaxed, warbling phrase from a tree on a summer afternoon, then silence. Recorded close with a directional microphone, clearly audible, no other birds, no insects, no wind, no reverb, no music.', 4, 0.55, 3, false],
   // The evening: higurashi in the trees, already singing when it is cut to.
   ['evening', "Evening cicadas (higurashi) at dusk in a Japanese cedar forest: several in the trees, each call a clear, ringing, metallic run of quick notes, 'kana-kana-kana', slowly falling in pitch over about five seconds, the calls overlapping and answering from different trees, a calm evening, recorded clearly at an even level. Nothing else: no other insects, no birds, no wind, no voices, no music, no traffic, no rain.", 24, 0.65, 2, false],
+  // The evening again, as calls (the first takes measured as one steady band at 6.2 kHz, nearly
+  // mono, with no note pattern and no fall: the sound designer's evaluation, 2026-10-19).
+  ['dusk', "Evening cicadas (higurashi) at dusk in a cedar forest, heard from a clearing: separate calls from several trees, each a ringing run of quick notes, 'kana-kana-kana', that starts strong, then slows and falls in pitch over about five seconds and stops, a few seconds of quiet between calls, near and far trees answering. Recorded clearly at an even level. Nothing else: no other insects, no birds, no wind, no voices, no music.", 24, 0.7, 3, false],
   // (No single calls placed after the cut: the evening is a chorus already going, none of it in
   // front; a falling call foregrounded in the first seconds is a sigh: the reviews of 2026-10-19.)
 ];

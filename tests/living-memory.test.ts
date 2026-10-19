@@ -11,7 +11,7 @@ import { memorySchema } from '../src/memory/sheets';
 import { CUT as CUT_AT, MEMORIES, SHOTS, TURN_EYES, TURN_STEPS, TWO_SHOT, WOODLAND as WOODLAND_DEF, sheetId } from '../src/memory/defs';
 import { SCENE_MEMORIES } from '../src/content/memories';
 import { MemoryPlaybackController } from '../src/memory/MemoryPlaybackController';
-import { renderCicadas, renderWoods, renderLast, cicada, heard, leavesPan, midPhrases, RATE, TIMES } from '../src/memory/synthWoods';
+import { renderCicadas, renderWoods, cicada, heard, leavesPan, midPhrases, RATE, TIMES } from '../src/memory/synthWoods';
 import state from '../src/memory/theatre-state.json';
 import manifest from '../public/memories/woodland/manifest.json';
 import { LivingScene, headFor, type HeadCels, type LivingArt, type NearArt } from '../src/memory/living/LivingScene';
@@ -603,27 +603,38 @@ describe('the woodland, heard', () => {
         // The one sound across it: one file, no cut, nothing of the room's round it.
         expect(c.until).toBeUndefined();
         expect(c.dry).toBe(true);
-      } else if (m.position < CUT_AT) {
+      } else if (m.position < CUT_AT && m.label !== 'music:evening') {
         expect(c.until, m.label).toBe(CUT_AT);
         // (Nothing of the afternoon rings on past it in the memory's room.)
         if (m.label !== 'sfx:bird-1' && m.label !== 'sfx:bird-2') expect(c.dry, m.label).toBe(true);
       }
     }
     const evening = markers.find((m) => m.label === 'music:evening')!;
-    expect(evening.position).toBe(CUT_AT);
     const e = sheet['music:evening'];
-    // Already under way: no fade but a click's worth, and past the file's own first moments.
-    expect(e.fadeIn).toBeLessThanOrEqual(0.015);
-    expect(e.offset ?? 0).toBeGreaterThan(0);
-    // Named a moment after the cut, never on it, with what has stopped.
-    expect(e.captionAt).toBeGreaterThanOrEqual(0.7);
-    expect(e.caption).toMatch(/piano has stopped/);
+    // Already under way: full on the cut (it comes up over the afternoon's last 40 ms, so the two
+    // cross and nothing dips), past the file's own first moments, dry.
+    expect(evening.position).toBeLessThan(CUT_AT);
+    expect(evening.position + (e.fadeIn ?? 0)).toBeCloseTo(CUT_AT, 6);
+    expect(e.fadeIn).toBeLessThanOrEqual(0.04);
+    expect(e.offset ?? 0).toBeGreaterThan(0.02);
+    expect(e.dry).toBe(true);
+    // Named a second and a half after the cut (nothing in its first second): what is there, then
+    // the piano's absence as a plain fact (never "stopped").
+    expect(evening.position + e.captionAt!).toBeCloseTo(CUT_AT + 1.5, 6);
+    expect(e.caption).toMatch(/^\[evening cicadas.*no piano\]$/);
+    expect(e.caption).not.toMatch(/stop/);
     // Nothing else begins on the cut or in the dusk until the far cicada heard from the room.
-    expect(markers.filter((m) => m.position >= CUT_AT && m.label !== 'music:evening').map((m) => m.label)).toEqual(['sfx:cicada-last']);
-    // The piano: dry, one level (a single cue), named once it has been playing a few seconds.
+    expect(markers.filter((m) => m.position >= evening.position && m.label !== 'music:evening').map((m) => m.label)).toEqual(['sfx:cicada-last']);
+    // The piano: dry, one cue, never named on its own; the place is named once, with it, after
+    // the painting has come to rest and gone before the cut to the two of them.
     const p = sheet['music:score'];
     expect(p.dry).toBe(true);
-    expect(p.captionAt).toBeGreaterThanOrEqual(3);
+    expect(p.caption).toBeUndefined();
+    const air = sheet['music:air'], airAt = markers.find((m) => m.label === 'music:air')!.position;
+    expect(air.caption).toMatch(/a piano/);
+    expect(airAt + air.captionAt!).toBeGreaterThan(9.85);
+    // (A music caption is held 3.7 s and fades for 1.4: src/ui/Captions.ts.)
+    expect(airAt + air.captionAt! + 3.7 + 1.4).toBeLessThanOrEqual(SHOTS.two + 0.01);
     // The revisit: the evening and its calm air, nothing of the afternoon's.
     expect(Object.values(WOODLAND_DEF.cues('empty').cues).map((c) => c.asset).sort()).toEqual(['music/woodland-air-empty.mp3', 'music/woodland-evening-empty.mp3']);
   });
@@ -657,9 +668,6 @@ describe('the woodland, heard', () => {
     expect(energy(x, 0, 1)).toBe(0);
     expect(energy(x, 1, 1.15)).toBeLessThan(energy(x, 3, 5) * 0.1);
     expect(energy(x, 6.85, 7)).toBeLessThan(energy(x, 3, 5) * 0.1);
-  });
-  it('the last evening cicada is one call', () => {
-    expect(renderLast()[0].length / RATE).toBeLessThan(7);
   });
 });
 

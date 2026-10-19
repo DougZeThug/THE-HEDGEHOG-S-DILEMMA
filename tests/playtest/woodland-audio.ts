@@ -17,7 +17,7 @@
 import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { WOODLAND } from '../../src/memory/defs';
-import { renderCicadas, renderWoods, renderLast, RATE as SYNTH_RATE } from '../../src/memory/synthWoods';
+import { renderCicadas, renderWoods, RATE as SYNTH_RATE } from '../../src/memory/synthWoods';
 import { isSpot, type Cue } from '../../src/memory/cueSheet';
 
 const RATE = 48000;
@@ -76,7 +76,7 @@ async function render(c: Cue): Promise<Float32Array[]> {
   }
   if (!c.asset.startsWith('synth:')) return [];
   const kind = c.asset.slice(6);
-  const ch = kind === 'cicadas' ? renderCicadas() : kind === 'woods' ? await renderWoods() : kind === 'cicada-last' ? renderLast() : [];
+  const ch = kind === 'cicadas' ? renderCicadas() : kind === 'woods' ? await renderWoods() : [];
   if (SYNTH_RATE * 2 !== RATE) throw new Error('the synthesised renders are expected at half the mix rate');
   return ch.map(twice);
 }

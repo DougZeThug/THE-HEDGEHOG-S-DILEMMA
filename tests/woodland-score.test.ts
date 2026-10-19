@@ -1,8 +1,9 @@
 /**
- * The woodland's score against its picture (scripts/woodland-score/; decisions 65–69 of
- * docs/reviews/2026-10-woodland.md): no note begins on any of the picture's moments; the same tune
- * both times, one level, one bass note a bar; home once, between the looks; the second time, the
- * last note a little before the cut, and the cut before home. Heard only in the afternoon.
+ * The woodland's score against its picture (scripts/woodland-score/; decisions 65–69 and 77–83 of
+ * docs/reviews/2026-10-woodland.md): no note begins on any of the picture's moments (as measured
+ * on the film's drawings, not as authored); the same tune both times, one level, one bass note a
+ * bar, played by hands (never a copy to the millisecond); home once, between the looks; the second
+ * time, the last note a little before the cut, and the cut before home. Heard only in the afternoon.
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -16,6 +17,8 @@ interface Score {
   beat: number;
   statements: [number, number];
   notes: { t: number; midi: number; vel: number; dur: number; hand: 'r' | 'l' }[];
+  /** Struck before the file begins: still ringing as it comes up (the go-round already under way). */
+  ringing: { t: number; midi: number }[];
 }
 const score = JSON.parse(readFileSync('scripts/woodland-score/notes.json', 'utf8')) as Score;
 const melody = score.notes.filter((n) => n.hand === 'r');
@@ -28,13 +31,18 @@ describe("the woodland's score", () => {
     expect(score.cut).toBe(CUT);
     for (const n of score.notes) expect(n.t).toBeGreaterThanOrEqual(SCORE_FROM);
     for (const n of score.notes) expect(n.t).toBeLessThan(CUT);
+    // What is ringing when it begins was struck within a second and a half before: the last chord
+    // of a go-round (and no more).
+    for (const n of score.ringing) expect(SCORE_FROM - n.t).toBeLessThan(1.5);
   });
 
   it("no note begins on any of the picture's moments", () => {
     const settled = TWO_SHOT.herTurn + TURN_STEPS.length / 12;
     const moments: [number, number, string][] = [
-      [10.3, 10.7, "the wide's first still frame"],
-      ...WOODLAND.gusts.map((g): [number, number, string] => [g.at - 0.2, g.at + 0.25, 'the gust']),
+      // (As the film's drawings show them: the painting comes to rest at 9.75–9.83; the gust is seen
+      // from 11.75 and heard from 11.9: the cinematic director's evaluation, 2026-10-19.)
+      [9.6, 10.0, 'the painting coming to rest'],
+      ...WOODLAND.gusts.map((g): [number, number, string] => [g.at + 0.1, g.at + 0.5, 'the gust arriving']),
       ...WOODLAND.blinks.a.map((b): [number, number, string] => [b - 0.2, b + 0.4, 'his blink']),
       [SHOTS.two - 0.7, SHOTS.two + 0.7, 'the cut to the two of them'],
       [TWO_SHOT.herEyes - 0.5, settled + 0.5, 'her look'],
@@ -51,16 +59,21 @@ describe("the woodland's score", () => {
     }
   });
 
-  it('is the same tune both times, at one level, one bass note a bar (V–I in the last)', () => {
-    const at = (from: number, to: number) => melody.filter((n) => n.t >= from - 0.05 && n.t < to - 0.05).map((n) => ({ beat: (n.t - from) / score.beat, midi: n.midi }));
+  it('is the same tune both times, as hands play it, at one level, one bass note a bar (V–I in the last)', () => {
+    // (The first time it comes in a little early, its first two notes; from its third, the same.)
+    const at = (from: number, to: number) => melody.filter((n) => n.t >= from + 3 * score.beat && n.t < to - 0.05).map((n) => ({ beat: (n.t - from) / score.beat, midi: n.midi }));
     const first = at(S1, S2), second = at(S2, CUT);
-    expect(second.length).toBeGreaterThan(6);
+    expect(second.length).toBeGreaterThan(5);
+    let same = 0;
     second.forEach((n, i) => {
       expect(n.midi).toBe(first[i].midi);
-      expect(Math.abs(n.beat - first[i].beat)).toBeLessThan(0.01);
+      // Within a player's 25 ms either way, and never the same to the millisecond throughout.
+      expect(Math.abs(n.beat - first[i].beat)).toBeLessThan(0.07);
+      if (Math.abs(n.beat - first[i].beat) * score.beat < 0.002) same++;
     });
+    expect(same).toBeLessThan(second.length / 2);
     const v = melody.map((n) => n.vel), mean = v.reduce((a, b) => a + b, 0) / v.length;
-    for (const x of v) expect(Math.abs(x - mean)).toBeLessThanOrEqual(4);
+    for (const x of v) expect(Math.abs(x - mean)).toBeLessThanOrEqual(6);
     const vel = (from: number, to: number) => {
       const s = melody.filter((n) => n.t >= from && n.t < to).map((n) => n.vel);
       return s.reduce((a, b) => a + b, 0) / s.length;

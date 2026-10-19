@@ -97,6 +97,7 @@ class Piano:
     def __init__(self, sfz, seed=7):
         self.regions = parse_sfz(sfz)
         self.cache = {}
+        self.matched = {}
         self.rng = np.random.default_rng(seed)
         tj = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tuning.json')
         self.tuning = json.load(open(tj)) if os.path.exists(tj) else {}
@@ -130,6 +131,19 @@ class Piano:
         self.cache[key] = y
         return y
 
+    def match(self, n: Note):
+        """The gain that brings a key's alternate sample to its own sample's level (each sample was
+        normalised on its own: a repeat voiced from its neighbour was up to 2–3 dB louder)."""
+        key = (n.midi, n.vel > 80)
+        if key not in self.matched:
+            def level(alt):
+                r = self.region(n.midi, n.vel, alt)
+                x = repitch(self.sample(r, 1.0), 100 * (n.midi - r.center))
+                seg = x[int(0.02 * SR):int(0.6 * SR)]
+                return float(np.sqrt((seg ** 2).mean()) + 1e-9)
+            self.matched[key] = level(0) / level(1)
+        return self.matched[key]
+
     def voice(self, n: Note, off: float, felt=1.0):
         """One note from its onset to its release `off` (s after onset) and its ring after."""
         r = self.region(n.midi, n.vel, n.alt)
@@ -148,7 +162,7 @@ class Piano:
             tt = np.arange(len(y) - k) / SR
             y[k:] *= np.exp(-tt / (rel / 4.6))[:, None]
         # touch: soft playing is darker, and felt darker still; the attack's edge rounded
-        g = (n.vel / 127.0) ** 1.8
+        g = (n.vel / 127.0) ** 1.8 * (self.match(n) if n.alt else 1.0)
         # (felt 1: damped toward a felt piano; 0: the upright as it is, only soft playing's darkening)
         fc = (1700 + 22 * n.vel) if felt >= 1 else (3200 + 60 * n.vel)
         sos = signal.butter(2 if felt >= 1 else 1, min(fc, SR * 0.45), 'low', fs=SR, output='sos')

@@ -414,6 +414,11 @@ export const DOOR: MemoryDef = {
 const WOODLAND_SECTIONS: Sections = { active: 6, exit: 42.5, residue: 49.5, end: 53 };
 /** The cut: the people gone and the evening come, on the same frame. */
 export const CUT = 34.5;
+/** The evening comes up over the afternoon's 40 ms cut, full on it (the two cross over the same
+ *  40 ms, so nothing dips: a hole of 9.5 dB had opened with the wind gone), this far into its file
+ *  (past an MP3's first moments). */
+export const EVENING_AT = CUT - 0.04;
+export const EVENING_OFFSET = 0.03;
 /** Where the score's file begins (its first note, the turnaround of a go-round already under way,
  *  falls at 8.5, as the painting opens out: scripts/woodland-score/score.py). */
 export const SCORE_FROM = 8.2;
@@ -462,8 +467,8 @@ export const SHOTS = { two: TWO_SHOT.from, wideAgain: TWO_SHOT.to };
 export const BREEZE_KEYS: [number, number][] = [[0, 0.6], [5.5, 0.6], [10.5, 1], [SHOTS.wideAgain, 1], [32.0, 0.5], [37, 0.5], [39, 0.3]];
 /** The woodland's recorded sound against its insects (dB on the files as baked), set by measure. */
 const AIR_DB = -14;
-const SCORE_DB = -21;
-const EVENING_DB = -31;
+const SCORE_DB = -24;
+const EVENING_DB = -32;
 // (The revisit stays on the wall, still: a short hold, its stillness the answer.)
 const EMPTY_SECTIONS: Sections = { active: 6, exit: 16, residue: 21, end: 24 };
 
@@ -480,7 +485,7 @@ export const WOODLAND: MemoryDef = {
     { label: 'music:score', position: SCORE_FROM },
     { label: 'sfx:bird-1', position: 10.9 },
     { label: 'sfx:bird-2', position: 29.0 },
-    { label: 'music:evening', position: CUT },
+    { label: 'music:evening', position: EVENING_AT },
     { label: 'sfx:cicada-last', position: 48.5 },
   ],
   seed: (variant): SheetSeed => {
@@ -621,7 +626,7 @@ export const WOODLAND: MemoryDef = {
         room,
         cues: {
           'music:air': { asset: 'music/woodland-air-empty.mp3', gainDb: AIR_DB, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, fadeOut: 4 },
-          'music:evening': { asset: 'music/woodland-evening-empty.mp3', gainDb: EVENING_DB, place: { u: 0, v: 0, d: 2 }, wide: true, fadeOut: 4, caption: '[evening cicadas]', captionAt: 1.5 },
+          'music:evening': { asset: 'music/woodland-evening-empty.mp3', gainDb: EVENING_DB, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, fadeOut: 4, caption: '[evening cicadas, far off]', captionAt: 1.5 },
         },
       };
     }
@@ -635,24 +640,27 @@ export const WOODLAND: MemoryDef = {
         // The wind in the leaves and the long grass: the painting's own air (its breeze, its gust
         // from the left), less of it beyond the wall; the one sound of the afternoon that goes on
         // across the cut, unchanged, then calms with the evening's breeze.
-        'music:air': { asset: 'music/woodland-air.mp3', gainDb: AIR_DB, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, fadeOut: 4 },
+        // Named once, as the place (the piano a part of it), when the painting has come to rest and
+        // gone again before the cut to the two of them; never with a note.
+        'music:air': { asset: 'music/woodland-air.mp3', gainDb: AIR_DB, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, fadeOut: 4, caption: '[wind in the leaves; a piano]', captionAt: 9.85 },
         // The cicada nearest them, in the tree over them, first heard from beyond the wall; a lull
         // while the two of them are close (her look, his); cut off by the cut, mid-phrase.
-        'music:cicadas': { asset: 'synth:cicadas', gainDb: -14, place: { u: -0.3, v: 0.25, d: 1.5 }, dry: true, until: CUT, fadeOut: 3, caption: '[cicadas, beyond the wall]' },
+        'music:cicadas': { asset: 'synth:cicadas', gainDb: -20, place: { u: -0.3, v: 0.25, d: 1.5 }, dry: true, until: CUT, fadeOut: 3, caption: '[cicadas, beyond the wall]' },
         // The rest of the day's insects: two more cicadas, the chorus in the trees.
-        'music:woods': { asset: 'synth:woods', gainDb: -9, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, until: CUT, fadeOut: 3 },
+        'music:woods': { asset: 'synth:woods', gainDb: -14, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, until: CUT, fadeOut: 3 },
         // Two far birds in the trees at the clearing's edge, in the wides (none while they are close).
         'sfx:bird-1': { asset: 'music/woodland-bird-1.mp3', gainDb: -12, place: { u: -0.4, v: 0.35, d: 14 }, lowpass: 5500, until: CUT },
-        'sfx:bird-2': { asset: 'music/woodland-bird-2.mp3', gainDb: -12, place: { u: 0.45, v: 0.3, d: 18 }, lowpass: 5000, until: CUT },
-        // The piano: one level, centred, dry, from the painting opening out to the cut; named
-        // once it is part of the place, not as it begins.
-        'music:score': { asset: 'music/woodland-score.mp3', gainDb: SCORE_DB, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, until: CUT, fadeOut: 3, caption: '[a piano]', captionAt: 4 },
-        // The evening, from the cut: already singing, far off in the trees, nothing of it in front;
-        // named a moment after the cut, with what has stopped (a deaf visitor otherwise never
-        // learns that the music ended: the sound designer and the skeptic, 2026-10-19).
-        'music:evening': { asset: 'music/woodland-evening.mp3', gainDb: EVENING_DB, place: { u: 0, v: 0, d: 2 }, wide: true, offset: 0.03, fadeIn: 0.012, fadeOut: 4, caption: '[the piano has stopped; evening cicadas]', captionAt: 0.8 },
-        // One evening cicada, far off, heard from the white room (as through a window).
-        'sfx:cicada-last': { asset: 'synth:cicada-last', gainDb: -16, place: { u: 0.2, v: 0.3, d: 6 }, lowpass: 5000, caption: '[an evening cicada, far off]' },
+        'sfx:bird-2': { asset: 'music/woodland-bird-2.mp3', gainDb: -12, place: { u: 0.45, v: 0.3, d: 18 }, lowpass: 7500, until: CUT },
+        // The piano: centred, dry, coming into hearing with the clearing as the painting opens out,
+        // keeping its distance from the place to the cut (its file: scripts/woodland-score/).
+        'music:score': { asset: 'music/woodland-score.mp3', gainDb: SCORE_DB, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, until: CUT, fadeOut: 3 },
+        // The evening: already singing, far off in the trees, nothing of it in front; full on the
+        // cut (crossed with the afternoon's last 40 ms). Named a second and a half after the cut,
+        // what is there first, the piano's absence a plain fact (a deaf visitor otherwise never
+        // learns that the music ended: the reviews of 2026-10-19).
+        'music:evening': { asset: 'music/woodland-evening.mp3', gainDb: EVENING_DB, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, offset: EVENING_OFFSET, fadeIn: CUT - EVENING_AT, fadeOut: 4, caption: '[evening cicadas, far off; no piano]', captionAt: CUT + 1.5 - EVENING_AT },
+        // One evening cicada, far off, heard from the white room (as through a window): the evening's own.
+        'sfx:cicada-last': { asset: 'music/woodland-cicada-last.mp3', gainDb: -41, place: { u: 0.2, v: 0.3, d: 6 }, lowpass: 5000, caption: '[an evening cicada, far off]' },
       },
     };
   },

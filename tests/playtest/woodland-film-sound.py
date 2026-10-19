@@ -91,10 +91,11 @@ def duck(n):
 
 
 def drone_level(n):
-    """The drone: its chord under the room before; silent from the woodland's start (a ramp with a
-    time constant of 4 s, as Ambience.update), never back once it has been seen."""
+    """The drone: its chord under the room before; silent from the woodland's start (Ambience.update's
+    ramp over 4 s), never back once it has been seen."""
     t = np.arange(n) / SR - PRE
-    return np.where(t < 0, 1.0, np.exp(-np.maximum(0, t) / 4.0))
+    # (AudioEngine.ramp's time constant is a third of the seconds it is given: 4 s.)
+    return np.where(t < 0, 1.0, np.exp(-np.maximum(0, t) / (4.0 / 3)))
 
 
 def main(d, out, phone=None):

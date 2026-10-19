@@ -1621,3 +1621,94 @@ generated beds under the synthesised ones; a few produced versions.
     outside; its drone going as the woodland begins); the same through a phone's speaker; and the
     choices: home once or never home, the level, the wind across the cut or not; and one question,
     which evening insect they remember.
+
+### The sketch as built, evaluated (the sound designer, the creative and cinematic directors; 169e0ef)
+
+- **The sound designer**: the cut is clean (no gap, no click, the MP3 priming cleared), the score
+  about 5 LU under the place, the wind unchanged across the cut. But every take carries a generator
+  hum (200 Hz and its multiples, 14–32 dB over its neighbours) that the wind's warming raised to a
+  fifth of its energy, most exposed at dusk; the levelling took out the wind's movement (2 dB over
+  13.5 s, filtered noise); the evening is one steady, nearly mono band at 6.2 kHz with no calls and
+  no fall; the day insects lead the last seconds, so the evening's cicadas arrive quieter; bird 2 is
+  masked and cut mid-phrase; the version without the wind across the cut has a 9.5 dB hole.
+- **The creative director**: protect the architecture (home once, cut after the leading tone, the
+  evening already singing, only the wind across, nothing pitched after). What is wrong is where the
+  piano stands against the place: it begins out of silence as a pickup, louder than the clearing,
+  and lifts to its high note on the frame the painting settles; it steps forward in the two-shot,
+  and its last chord comes out 2.3 dB louder than the same chord earlier (a neighbouring sample).
+  The tune leans tender (9 of 16 beats on minor chords, a strict copy the second time) and form B
+  more wistful still (home with a ninth over it). "The piano has stopped" narrates the loss.
+- **The cinematic director**: the cut is one event (the first dusk frame at film 39.500 s, the
+  afternoon's ramp in the 40 ms before it). But captions, on by default, announce the music's
+  beginning and its end to every visitor, and the dusk caption's pill is the brightest thing in the
+  frame; the tune's top note lands on the camera's arrival at every tempo (move the picture's
+  settle to 10.3, they said); the G♭5 re-enters on the gust's crest (the artist's call); B differs
+  from A at the cut (its sample alternation).
+
+### Decisions (main session)
+
+77. **The generator's hum taken out** (the sound designer): every take is notched at 200·k Hz
+    (k = 1–6, Q 40) as it is read, before levelling or EQ; the stems are checked as they are written
+    (no line more than 6 dB over its neighbours; they measure 13–21 dB under now). The same line is in
+    18 of the 28 mem-/sfx- recordings in `public/voices`, which the artist approved: reported to them,
+    not touched.
+78. **The wind moves again** (the sound designer): each take brought half way to its middle level,
+    not all the way, its top shelved 9 dB above 5 kHz; the painting's breeze and gust still shape it,
+    and no swell crests on either look.
+79. **The day insects demoted** (the sound designer): the near cicada −20 dB and the woods −14 dB
+    on their files (were −14 and −9). In the last 3 s they lead the wind by 1.8 LU (were 6.9); the
+    evening's first 3 s are 0.9 LU under them and 1.4 LU over the wind (were 4.8 under).
+80. **The evening as calls** (the sound designer): three more takes asked for separate calls that
+    fall and stop, near and far trees answering (3 × 24 s, influence 0.7: 792 credits, within the
+    artist's "as much as you need"). The evening is built from slices of three takes (two in each
+    ear, each swelling ±3 dB on its own period, out of step), a forest's tail 8 dB under (was 14),
+    its top softened at 7 kHz, dry (it had the room's reverb on its own tail, which the film did not
+    model). The cicada heard from the room is now the evening's own (it was a synthesised, different
+    insect). Whether the calls are heard as calls is for the artist's ears.
+81. **The piano comes into hearing with the clearing** (the creative director, the sound designer):
+    the file begins inside the previous go-round, its last chord (home, struck at 7.65) still
+    ringing at 8.2, and comes up on the clearing's own curve, so nothing begins from silence: the entry
+    (8.2–10.5) is 8.4 LU under the clearing (was 0.9).
+82. **The painting comes to rest inside the high note** (the cinematic director's finding, another
+    remedy): the first time round comes in 0.31 s early (its turnaround and first two notes), so the
+    A♭5 sounds at 9.47 while the picture is still easing and the image settles inside its ring with
+    nothing struck; the settle (9.6–10.0) is now one of the test's moments. The picture's settle was
+    not moved: its straight 1.6 s opening-out was decided in an earlier round, and 0.31 s of a
+    player's anticipation is not heard as a shift.
+83. **One distance from the place** (the creative director): the piano dips 2.5 dB on the
+    clearing's own hush (in under the gust's fall, 12.8–14.3, out with the cicada's return,
+    27.8–30.0: the place's, not levels by shot), and each alternate sample is level-matched to the
+    first. Under the clearing: 8.7 LU through the gust, 5.1 in the two-shot, 4.8 in the second wide,
+    6.2 overall; in the last 2 s it is 1.7 LU over (the breeze dies there and the tune turns in quick
+    notes; the demoted insects took 0.9 LU from the clearing). The artist sets the level.
+84. **Played, not sequenced** (the creative director): each note a little early or late (about
+    12 ms, at most 25, a chord together) and a little harder or softer (±3), never drifting and never
+    into one of the picture's moments; the second time is no longer a copy of the first.
+85. **Brighter, not wistful** (the creative director): bar 2 is home with its third in the bass
+    (I6, F under the long F) instead of vi, so minor chords take 4 of 16 beats (were 9). Form B, never
+    home, is now an open half close (the turn back up to re over V), not home with a ninth over it,
+    and its samples follow A's, so the two differ only where their notes do (the cinematic director).
+86. **Captions** (the cinematic and creative directors): the score has no caption of its own; the
+    piano is named once as part of the place, "[wind in the leaves; a piano]", at 9.85, as the
+    painting comes to rest, gone before the cut to the two of them and never with a note. After the
+    cut: "[evening cicadas, far off; no piano]" at 1.5 s (nothing in the first second after a cut),
+    what is there first and the absence a plain fact; "has stopped" is gone. Over the dark dusk,
+    captions are light text without their pill, as in the dark room. Whether sound captions should
+    be on by default for hearing visitors is a question for the work, not this memory: open, for
+    the artist and the interaction designer. The master film is captions-off; the captions-on film
+    is labelled as visitors see it by default.
+87. **Both versions of the cut without a hole** (the sound designer): the evening comes up over the
+    afternoon's last 40 ms (`EVENING_AT`), full on the cut. Measured in 20 ms windows against the
+    evening: −1.1 dB at the cut as built, −1.8 dB without the wind across it, within the evening's
+    own quietest moments (−1.9 and −2.2 dB); the hole was 9.5 dB.
+88. **Small fixes**: bird 2's whole phrase (0.1–3.45 s), low-passed at 7.5 kHz (was 5); the
+    revisit's air levelled as the memory's (−36); the film's drone released at the App's rate.
+89. **Not changed**: the gust's crest under the G♭5 (the cinematic director: moving the gust changes
+    the picture; the artist's call); the resemblance to Clair de lune (speculative; asked of the
+    artist); the room after the woodland held 3–6 dB under its former level (the sound designer's
+    option, offered to the artist, not built); the 2 s dip before the room rises (it reads as a held
+    breath).
+90. **Measured across the cut** (as built): the whole falls 4.2 LU, 100–800 Hz 15.7 dB; 100–2000 Hz
+    holds 41% of the first wide's energy and 12% of the dusk's.
+91. **Paid generation**: 2,112 credits in all (the wind, the birds, five evening takes), of the
+    118,746 at the start.

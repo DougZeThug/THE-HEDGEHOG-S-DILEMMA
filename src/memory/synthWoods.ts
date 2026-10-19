@@ -37,9 +37,8 @@ export function leavesPan(t: number): number {
  *
  *   cicadas      the one near them (mono, placed)
  *   woods        the rest of the day's (stereo, wide): two cicadas either side, the chorus in the trees
- *   cicada-last  one evening cicada, far off, heard from the white room after
  */
-export const WOODS_KINDS = ['cicadas', 'woods', 'cicada-last'] as const;
+export const WOODS_KINDS = ['cicadas', 'woods'] as const;
 export type WoodsKind = (typeof WOODS_KINDS)[number];
 export const RATE = 24000;
 
@@ -208,30 +207,6 @@ export function cicada(out: Float32Array, c: Cicada, a: number, b: number, level
   for (let i = 0; i < x.length; i++) out[i0 + i] += x[i];
 }
 
-/**
- * One evening cicada's call (the "kana-kana"), starting at `at`: quick notes, each a fast
- * pulsing tone, falling in pitch and in strength over about five seconds.
- */
-export function eveningCall(out: Float32Array, at: number, seed: number, gain = 1): void {
-  const r = rng(seed);
-  const f0 = 4300 + r() * 500;
-  const len = 4.6 + r() * 1.4;
-  const rate = 7 + r() * 1.5;
-  let ph = 0;
-  const i0 = Math.floor(at * RATE), n = Math.floor(len * RATE);
-  for (let i = 0; i < n && i0 + i < out.length; i++) {
-    const t = i / RATE;
-    const k = t / len;
-    const f = f0 * (1 - 0.2 * k);
-    ph += (2 * Math.PI * f) / RATE;
-    const note = (t * rate) % 1;
-    const noteEnv = Math.min(1, note / 0.08) * Math.max(0, 1 - (note - 0.08) / 0.5) ** 2;
-    const am = 0.55 + 0.45 * Math.sin(2 * Math.PI * 42 * t);
-    const phrase = smooth(0, 0.4, t) * (1 - 0.7 * k) * (1 - smooth(len - 0.6, len, t));
-    if (i0 + i >= 0) out[i0 + i] += Math.sin(ph) * noteEnv * am * phrase * gain;
-  }
-}
-
 const NEAR: Cicada = { f: 5200, q: 3.2, pulse: 230, beat: 2.6, seed: 101 };
 const MID_L: Cicada = { f: 4700, q: 2.8, pulse: 190, beat: 2.1, seed: 202 };
 const MID_R: Cicada = { f: 5900, q: 3.4, pulse: 260, beat: 3.1, seed: 303 };
@@ -344,18 +319,9 @@ export async function renderWoods(): Promise<Float32Array[]> {
   return [L, R];
 }
 
-/** One evening cicada, far off, heard from the white room: a single call. */
-export function renderLast(): Float32Array[] {
-  const x = new Float32Array(Math.ceil(6.4 * RATE));
-  eveningCall(x, 0.1, 777);
-  smear(x, 60, 31);
-  normalise([x], -45);
-  return [x];
-}
-
 /** One of the woodland's sounds as an AudioBuffer (rendered on first use; cached by the host's loader). */
 export async function synthWoods(ctx: BaseAudioContext, kind: WoodsKind): Promise<AudioBuffer> {
-  const ch = kind === 'cicadas' ? renderCicadas() : kind === 'woods' ? await renderWoods() : renderLast();
+  const ch = kind === 'cicadas' ? renderCicadas() : await renderWoods();
   const buf = ctx.createBuffer(ch.length, ch[0].length, RATE);
   ch.forEach((c, i) => buf.copyToChannel(c, i));
   return buf;

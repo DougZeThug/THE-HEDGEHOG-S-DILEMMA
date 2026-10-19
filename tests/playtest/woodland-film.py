@@ -25,7 +25,7 @@ ROOT = 'test-output/review/woodland'
 FPS = 12
 PRE = 5.0          # film seconds before the memory
 # (text, memory seconds it is shown at, seconds it holds before fading): MemoryAudio and Captions.
-CAPS = [(0, 0.0, 3.7), (1, 12.2, 3.7), (2, 35.3, 3.7), (3, 48.2, 5.2)]
+CAPS = [(0, 0.0, 3.7), (1, 9.9, 3.7), (2, 36.0, 3.7), (3, 48.2, 5.2)]
 
 
 def frames(out):
@@ -44,11 +44,11 @@ def frames(out):
     return d, len(seq)
 
 
-def film(frames_dir, audio, out, start=0.0, end=None):
-    """Frames + captions + sound, from `start` to `end` film seconds."""
+def film(frames_dir, audio, out, start=0.0, end=None, caps=False):
+    """Frames (+ captions) + sound, from `start` to `end` film seconds."""
     inputs = ['-framerate', str(FPS), '-i', os.path.join(frames_dir, '%05d.jpg')]
     chain, last = [], '0:v'
-    for k, (i, at, hold) in enumerate(CAPS):
+    for k, (i, at, hold) in enumerate(CAPS if caps else []):
         t0 = PRE + at
         inputs += ['-loop', '1', '-framerate', str(FPS), '-t', '66', '-i', os.path.join(OUT, 'caps', f'cap-{i}.png')]
         chain.append(f'[{k + 1}:v]format=rgba,fade=in:st={t0}:d=1.4:alpha=1,fade=out:st={t0 + hold}:d=1.4:alpha=1[c{k}]')
@@ -56,7 +56,9 @@ def film(frames_dir, audio, out, start=0.0, end=None):
         last = f'v{k}'
     inputs += ['-i', audio]
     trim = ['-ss', str(start)] + (['-to', str(end)] if end else [])
-    cmd = ['ffmpeg', '-v', 'error', '-y', *inputs, '-filter_complex', ';'.join(chain), '-map', f'[{last}]', '-map', f'{len(CAPS) + 1}:a',
+    graph = ['-filter_complex', ';'.join(chain)] if chain else []
+    vmap = f'[{last}]' if chain else '0:v'
+    cmd = ['ffmpeg', '-v', 'error', '-y', *inputs, *graph, '-map', vmap, '-map', f'{len(chain) // 2 + 1}:a',
            *trim, '-c:v', 'libx264', '-r', '24', '-pix_fmt', 'yuv420p', '-crf', '18', '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', '-shortest', out]
     subprocess.run(cmd, check=True)
     print(out)
@@ -68,7 +70,10 @@ if __name__ == '__main__':
     out = OUT
     d, n = frames(out)
     print(n, 'frames,', n / FPS, 's')
+    # The master without captions (the music's beginning and end are the artist's to notice); the
+    # same as every visitor sees it by default, captions on (src/ui/prefs.ts).
     film(d, os.path.join(out, 'A.wav'), os.path.join(out, 'woodland-film-A.mp4'))
+    film(d, os.path.join(out, 'A.wav'), os.path.join(out, 'woodland-film-A-captions-as-visitors-see-them.mp4'), caps=True)
     film(d, os.path.join(out, 'A-phone.wav'), os.path.join(out, 'woodland-film-A-phone-speaker.mp4'))
     # The alternatives, from the cut to the two of them (15.0) to the room taking the painting back (43.5).
     film(d, os.path.join(out, 'B.wav'), os.path.join(out, 'alternative-never-home-15-43.mp4'), PRE + 15.0, PRE + 43.5)
