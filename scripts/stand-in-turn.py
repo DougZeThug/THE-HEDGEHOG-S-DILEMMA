@@ -169,6 +169,24 @@ def paper(img):
     return cut.smooth(0.035, 0.12, d), d
 
 
+def closed(head, hers):
+    """The smeared drawing's pockets of paper near its outline, filled from the hair round them: the
+    strands pass over where the paper was, and the cutter takes a pocket that deep in her hair for a
+    light in it (a white fleck). Only in her head's region (`hers`): not between the grass's blades."""
+    pap = (paper(head)[0][..., 0] < 0.5).astype(np.uint8)
+    n, lab, st, _ = cv2.connectedComponentsWithStats(pap, connectivity=8)
+    outside = np.zeros(n, bool)
+    outside[np.unique(np.concatenate([lab[0], lab[-1], lab[:, 0], lab[:, -1]]))] = True
+    outside[0] = False
+    near = cv2.dilate(outside[lab].astype(np.uint8), cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (65, 65))) > 0
+    pockets = (pap > 0) & ~outside[lab] & near & (st[lab, cv2.CC_STAT_AREA] < 600) & (hers > 0)
+    if not pockets.any():
+        return head
+    u8 = (np.clip(head, 0, 1) * 255 + 0.5).astype(np.uint8)
+    out = cv2.inpaint(u8, cv2.dilate(pockets.astype(np.uint8), np.ones((3, 3), np.uint8)), 5, cv2.INPAINT_TELEA)
+    return out.astype(np.float64) / 255
+
+
 def shifted(img, f):
     yy, xx = np.mgrid[0:N, 0:N].astype(np.float32)
     return cv2.remap(img.astype(np.float32), xx + f[..., 0], yy + f[..., 1], cv2.INTER_CUBIC, borderMode=cv2.BORDER_REFLECT)
@@ -236,6 +254,8 @@ def main():
         colour = np.sum([q * c for (c, _, _), q in zip(parts, weights)], 0) / np.maximum(np.sum(weights, 0), 1e-6)
         drawn = np.max([k for _, k, _ in parts], 0)
         head = colour * drawn + cut.IVORY * (1 - drawn)
+        if sh == SMEAR:
+            head = closed(head, inside)
         head = np.clip(head * lay + panel * (1 - lay), 0, 1)
         out2 = top2.copy()
         out2[0:N, CX:CX + N] = head

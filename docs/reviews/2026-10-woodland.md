@@ -1175,6 +1175,8 @@ would draw five to seven drawings for this turn, on twos, with the change passin
       hair as drawn; and the exposure averages the purest colours most. On the first recording a
       plain blend left half-paper hair, which the cutter's key reads as solid and pale: a halo round
       her head in the middle drawing; the hair's own edges, averaged evenly, still paled her crown;
+      and the middle drawing's pockets of paper near her hair's outline are filled from the hair
+      round them (the cutter took one that deep in her hair for a light in it: a white fleck);
     - each drawing is exposed for a quarter of its twelfth of a second, nearly crisp; the middle one
       for all of it, a smear, as an animator smears the fastest moment of a move. A uniform exposure
       softened the quarter and three-quarter drawings like a focus pull;
@@ -1182,7 +1184,7 @@ would draw five to seven drawings for this turn, on twos, with the change passin
       passes in front of it, and matching it folded the bend (the map's Jacobian went negative). That
       overlap falls in the smeared middle drawing, as a soft see-through wedge for a twelfth of a
       second;
-    - measured at the sheet's size: their shared region is 215×190, and the worst seam p99 is 0.085.
+    - measured at the sheet's size: their shared region is 220×190, and the worst seam p99 is 0.085.
 36. **Not taken:**
     - a blink to hide the change (ruled out before, and the change is in her hair, not her eyes);
     - a learned interpolator (weights to fetch, and on what is left once the bend has lined the two
