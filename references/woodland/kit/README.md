@@ -25,13 +25,13 @@ her head leaves and arrives slowly and moves fastest between them, as a head doe
 most useful drawings for the close shot, and his look the next.
 
 Until they come there are **stand-ins** in `../drawings/stand-in/`, made without you
-(`scripts/stand-in-turn.py`): five of them, one a twelfth of a second, slow, fast, slow, as a head
-turns. They are not drawings: your two heads bent to each moment's shape through matched points of
-the face (her hair on the grass held still), blended in the middle, where her ear and fringe change
-over, with that one drawing smeared as an animator smears the fastest moment of a move. You judge
-them in a flipbook first. If you approve, the film uses them until yours come; if not, the turn
-stays the cut. The second and fourth (`turn2`, `turn4`) show the angle each of yours needs. Don't
-copy their hair or their ear: a bend can only move what is drawn. In yours they can pass partway.
+(`scripts/stand-in-turn.py`): six of them, one a twelfth of a second, easing out and in. They are not
+drawings: each is one of your two heads bent to its moment's shape through matched points of the
+face (her hair on the grass held still); the first three are the sheet's head, the last three yours,
+so her ear changes side and the fringe arrives between the third and fourth, all at once. You judge
+them in a flipbook first. If you approve, the film uses them until yours come; if not, the turn stays
+the cut. The second and fifth (`turn2`, `turn5`) show the angle each of yours needs. Don't copy their
+hair or their ear: a bend can only move what is drawn. In yours they can pass partway.
 
 This replaces the earlier lists: the eleven close-up drawings (`c4-*`, `c5-*`, `c6-*`) and the
 three close-up panels are no longer needed. Your shot list had him look first and her notice; the
@@ -68,8 +68,7 @@ extra limbs, text, watermark, photo, 3D render, blur.
 
 Her turn steps a drawing every twelfth of a second, toward him once her eyes have gone to him, and
 back to the sky the same way, arriving as the panel's head, her eyes staying on him half a second
-after it, as now. Yours show at the steps nearest them: the first for a twelfth of a second, the
-second for two. **Keep a pair only if the panel's head, the two and yours, flipped like that, read
+after it, as now. Yours show at the steps nearest them, two drawings each. **Keep a pair only if the panel's head, the two and yours, flipped like that, read
 as one girl turning**, not because their angles are a quarter and three quarters: between the
 panel's head and yours her ear changes side, a fringe appears and her face rounds, and the two have
 to carry that between them. Each is held as a drawing, never dissolved into the next. If only one

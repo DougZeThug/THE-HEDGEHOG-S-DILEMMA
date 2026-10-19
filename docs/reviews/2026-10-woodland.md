@@ -1190,3 +1190,35 @@ would draw five to seven drawings for this turn, on twos, with the change passin
     - a learned interpolator (weights to fetch, and on what is left once the bend has lined the two
       up, the flow-aligned blend does the same job);
     - hair follow-through: the hair lying on the grass stays as both drawings have it.
+
+#### The third flipbook: "That [fourth] picture is bizarre, doesn't even look like a human" (the artist)
+
+"Use whatever tools and creative freedom you need to get this clean." The smeared middle drawing read
+as two faces, not a person. The cinematic director, on the same frames (written before the switch
+below, and agreeing with it):
+- **[P1] The middle drawing is a ghost.** Two faces over each other, its neck see-through from jaw
+  to collar, a red-brown crown where both outlines were kept, the panel's ear ghosting at her jaw.
+- **[P1] Her eyes go dead in every in-between.** The exposure, weighted toward the darkest colours,
+  dropped her catchlights; her near upper lid doubled; the drawings softened and sharpened again
+  like a focus pull.
+- **[P1] The change of drawing still steps.** It fell on the turn's widest step: put it on a
+  narrower one.
+- **[P2, speculative] Straight paths.** Every point moves in a straight line, like a flat card. Bow
+  the paths.
+
+37. **No blend, no smear, no exposure.** Each in-between is one of her two drawings bent to its
+    step's shape: the panel's head up to 0.42, take b from 0.58. Each drawing was first rendered
+    bent at every step: the panel's head bent to 0.5 drags its hair across her jaw, and take b bent
+    back past about 0.6 squashes her face; at 0.42 and 0.58 both are clean, with no folds (the
+    smallest Jacobian 0.27 and 0.32). Each drawing is one crisp moment, so her catchlights stay. The
+    flow, the paper-weighted exposure and the pocket filling are gone with the blend.
+38. **Six steps on twos, the director's spacing:** 0.07, 0.25, 0.42, 0.58, 0.75 and 0.93. They ease
+    out and in over a drawing at each end and are even between, so the change of drawing falls on a
+    step of 0.16, no wider than the rest (it was 0.25, the widest). Her drawing arrives at 18.5; the
+    way back starts at 21.0 and arrives at 21.5, so the eye lead and linger stay half a second.
+    Without drawings on the way, the straight cut falls at 18.25 and 21.25.
+39. **Not taken:** bowing the paths (speculative, and a bend that is wrong reads worse than a
+    straight one); a learned in-betweener or video model (none runs here without a GPU, and none
+    keeps her face as drawn); any paid tool (not authorised: the artist's "whatever tools" is read
+    as free ones; anything that costs goes to the artist first).
+

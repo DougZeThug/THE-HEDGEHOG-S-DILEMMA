@@ -407,20 +407,15 @@ export const CUT = 34.5;
 export const TWO_SHOT = { from: 15.0, hisBlink: 16.2, herEyes: 17.5, herTurn: 18.0, herBack: 21.5, herEyesBack: 22.0, hisEyes: 24.0, hisRoll: 24.5, to: 27.0 };
 /**
  * Her turn, drawn on twos (`figure:b.turn`: how far her head has turned, 0 the panel's .. 1 the
- * artist's drawing of her turned to him): a minimum-jerk move over this many drawings, slow, fast,
- * slow, as a head turns. Its first and last are her two drawings themselves; the scene shows, at each,
- * the drawing nearest to how far she has turned. Toward him from `herTurn`, back up arriving at
+ * artist's drawing of her turned to him): how far at each drawing between them. It eases out and in
+ * over a drawing at each end and is even between, so the change from one of her drawings to the
+ * other (her ear, her fringe) falls on a step no wider than the rest. The scene shows, at each, the
+ * drawing nearest to how far she has turned. Toward him from `herTurn`, back up arriving at
  * `herBack`, so her eyes still lead by half a second and stay on him half a second after her head
- * (the artist: "it reads like jumping frames", then "it still doesn't look like a natural animation").
+ * (the artist: "it reads like jumping frames", "it still doesn't look like a natural animation";
+ * the cinematic director's spacing).
  */
-export const TURN_DRAWINGS = 7;
-/** How far a minimum-jerk move has gone at `t` (0..1) of its time. */
-export function minJerk(t: number): number {
-  const u = Math.min(1, Math.max(0, t));
-  return u * u * u * (10 - 15 * u + 6 * u * u);
-}
-/** How far her head has turned at each of the turn's drawings between its first and last. */
-export const TURN_STEPS = Array.from({ length: TURN_DRAWINGS - 2 }, (_, i) => +minJerk((i + 1.5) / TURN_DRAWINGS).toFixed(4));
+export const TURN_STEPS = [0.07, 0.25, 0.42, 0.58, 0.75, 0.93];
 /**
  * The artist's shot list (2026-10-17): 1 the room remembers (the pencil, the lean), 2 crossing
  * in, 3 the wide afternoon, 4 he looks toward her, 5 she notices, 6 their hands, 7 the wide

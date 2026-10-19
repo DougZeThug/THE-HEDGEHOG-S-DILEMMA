@@ -1,29 +1,29 @@
 """
-Stand-ins for her turn: the five drawings between the panel's head and hers turned to him, drawn on
+Stand-ins for her turn: the six drawings between the panel's head and hers turned to him, drawn on
 twos, made here from the drawings already in the kit. Offline, free, no model, no network.
 
     python3 scripts/stand-in-turn.py
 
 How they are made:
-- The turn is a minimum-jerk move over seven drawings: slow, fast, slow, as a head turns. Its first
-  and last drawings are the panel's head and take b; the five between are made here, at 0.07, 0.25,
-  0.5, 0.75 and 0.93 of the way.
-- Each one bends both drawings to that moment's shape: the panel's head (her eyes already on him, by
-  the two-shot shader's look, below) and take b. The bend is a thin-plate spline through points of
-  the face matched by hand on the 2x drawings.
-  - It is pinned everywhere outside the region take b is laid in by (scripts/two-shot.py), plus a
-    margin, so the hair lying on the grass stays where both drawings have it and only her head turns.
-  - Before the middle of the turn the drawing is the panel's head bent; after it, take b bent.
-  - Near the middle they are blended, after a dense flow lines them up further, so her ear and her
-    fringe pass over instead of popping.
-- Each drawing is the moment it stands for, exposed for a quarter of its twelfth of a second, so it
-  stays nearly crisp. The middle one is exposed for the whole of it: a smear, as an animator draws the
-  fastest moment of a move.
+- The turn steps 0.07, 0.25, 0.42, 0.58, 0.75 and 0.93 of the way, one drawing apart (the timeline's
+  `TURN_STEPS`, src/memory/defs.ts): it eases out and in over a drawing at each end and is even
+  between.
+- Each step is a single drawing bent to that moment's shape, never a blend of two: a blend reads as a
+  double exposure, not a person (the artist, on a smeared middle drawing). The first three are the
+  panel's head (her eyes already on him, by the two-shot shader's look, below); the last three are
+  take b. So her ear changes side and her fringe arrives between 0.42 and 0.58, on a step no wider
+  than the rest. (Each drawing bends cleanly only so far: the panel's head bent to 0.5 drags its hair
+  across her jaw, and take b bent back past about 0.6 squashes her face.)
+- The bend is a thin-plate spline through points of the face matched by hand on the 2x drawings. It
+  is pinned everywhere outside the region take b is laid in by (scripts/two-shot.py), plus a margin,
+  so the hair lying on the grass stays where both drawings have it and only her head turns.
+- Each drawing is one moment, crisp: averaged over a moment's motion, her eyes lost their catchlights
+  and the drawings softened like a focus pull (the cinematic director's review).
 - Each head is laid into the panel through the margin.
 
 Writes:
-- references/woodland/drawings/stand-in/b-look-full-turn{1..5}.webp, at the sheet's size;
-- references/woodland/upscaled/stand-in/b-look-full-turn{1..5}-top@2x.webp, at twice it;
+- references/woodland/drawings/stand-in/b-look-full-turn{1..6}.webp, at the sheet's size;
+- references/woodland/upscaled/stand-in/b-look-full-turn{1..6}-top@2x.webp, at twice it;
 - references/woodland/drawings/stand-in/turn.json, how far each is.
 
 `scripts/two-shot.py --stand-ins` lays them in. It names them `standIns` and gives how far each is in
@@ -73,19 +73,10 @@ PAIRS += [
 ]
 # How far outside take b's region the head's motion fades out (crop px), and the pins' spacing.
 MARGIN, PIN = 28, 24
-# The turn's drawings on twos (the first and last are her two drawings themselves), where the two
-# drawings are blended (how far she has turned), and how long each drawing is exposed (a fraction of
-# its twelfth of a second): the middle one for all of it.
-DRAWINGS, BLEND, SHUTTER, SMEAR = 7, (0.3, 0.7), 0.25, 1.0
-
-
-def minjerk(t):
-    """How far a minimum-jerk move has gone at `t` (0..1) of its time: slow, fast, slow."""
-    t = min(max(t, 0.0), 1.0)
-    return t ** 3 * (10 - 15 * t + 6 * t * t)
-
-
-STEPS = [(f'turn{i}', minjerk((i + 0.5) / DRAWINGS)) for i in range(1, DRAWINGS - 1)]
+# How far she has turned at each drawing between her two (the timeline's `TURN_STEPS`), and where the
+# drawing changes from the panel's head to take b.
+STEPS = [(f'turn{i}', f) for i, f in enumerate((0.07, 0.25, 0.42, 0.58, 0.75, 0.93), 1)]
+CHANGE = 0.5
 
 
 def smooth(e0, e1, x):
@@ -151,47 +142,6 @@ def warped(img, at, to):
     return cv2.remap(img.astype(np.float32), s[:, 0].reshape(N, N), s[:, 1].reshape(N, N), cv2.INTER_CUBIC, borderMode=cv2.BORDER_REFLECT)
 
 
-def flow(a, b):
-    """The dense flow from `a` to `b` (a(x) ~ b(x + f)), smoothed, and never more than 16 px: past
-    that it is no longer the same thing in both."""
-    def grey(i):
-        return cv2.cvtColor((np.clip(i, 0, 1) * 255).astype(np.uint8), cv2.COLOR_RGB2GRAY)
-    f = cv2.DISOpticalFlow_create(cv2.DISOPTICAL_FLOW_PRESET_MEDIUM).calc(grey(a), grey(b), None)
-    f = cv2.GaussianBlur(f, (0, 0), 3)
-    m = np.linalg.norm(f, axis=-1, keepdims=True)
-    return f * np.minimum(1, 16 / np.maximum(m, 1e-6))
-
-
-def paper(img):
-    """How much of each pixel is drawing, not the sheet's paper (the cutter's own key), and how far
-    its colour is from the paper's (an edge half paper is half as far)."""
-    d = np.sqrt(((img - cut.IVORY) ** 2).sum(-1))[..., None]
-    return cut.smooth(0.035, 0.12, d), d
-
-
-def closed(head, hers):
-    """The smeared drawing's pockets of paper near its outline, filled from the hair round them: the
-    strands pass over where the paper was, and the cutter takes a pocket that deep in her hair for a
-    light in it (a white fleck). Only in her head's region (`hers`): not between the grass's blades."""
-    pap = (paper(head)[0][..., 0] < 0.5).astype(np.uint8)
-    n, lab, st, _ = cv2.connectedComponentsWithStats(pap, connectivity=8)
-    outside = np.zeros(n, bool)
-    outside[np.unique(np.concatenate([lab[0], lab[-1], lab[:, 0], lab[:, -1]]))] = True
-    outside[0] = False
-    near = cv2.dilate(outside[lab].astype(np.uint8), cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (65, 65))) > 0
-    pockets = (pap > 0) & ~outside[lab] & near & (st[lab, cv2.CC_STAT_AREA] < 600) & (hers > 0)
-    if not pockets.any():
-        return head
-    u8 = (np.clip(head, 0, 1) * 255 + 0.5).astype(np.uint8)
-    out = cv2.inpaint(u8, cv2.dilate(pockets.astype(np.uint8), np.ones((3, 3), np.uint8)), 5, cv2.INPAINT_TELEA)
-    return out.astype(np.float64) / 255
-
-
-def shifted(img, f):
-    yy, xx = np.mgrid[0:N, 0:N].astype(np.float32)
-    return cv2.remap(img.astype(np.float32), xx + f[..., 0], yy + f[..., 1], cv2.INTER_CUBIC, borderMode=cv2.BORDER_REFLECT)
-
-
 def main():
     # The panel and take b at twice the sheet's size, the take moved onto the panel as the cutter
     # moves it; and take b's region, from the two at the sheet's own size as the cutter finds it.
@@ -222,41 +172,13 @@ def main():
     P = np.array([p for p, _ in PAIRS] + pins)
     T = np.array([t for _, t in PAIRS] + pins)
 
-    def moment(f):
-        """Her head `f` of the way to him, and how much of each pixel is drawing: either drawing bent
-        to that shape, or both, lined up and blended."""
-        to = P + (T - P) * f
-        w = float(smooth(BLEND[0], BLEND[1], f))
-        if w <= 0 or w >= 1:
-            one = warped(panel, P, to) if w <= 0 else warped(take, T, to)
-            return (one, *paper(one))
-        a, b = warped(panel, P, to), warped(take, T, to)
-        fl = flow(a, b)
-        a, b = shifted(a, -w * fl), shifted(b, (1 - w) * fl)
-        # (Blended where both are drawn; where one is paper, the other's drawing as it is: mixed with
-        # the paper, the cutter's key reads it as solid and pale, a halo round her hair.)
-        (ka, da), (kb, db) = paper(a), paper(b)
-        colour = ((1 - w) * ka * a + w * kb * b) / np.maximum((1 - w) * ka + w * kb, 1e-6)
-        return colour, np.maximum(ka, kb), np.maximum(da, db)
-
     sheet = cut.arr(Image.open(os.path.join(cut.REF, '02-characters.webp')).convert('RGB').resize((1448, 1086), Image.LANCZOS))
     lay1 = cv2.resize(lay[..., 0], (N // 2, N // 2), interpolation=cv2.INTER_AREA)[..., None]
     for d in ('drawings', 'upscaled'):
         os.makedirs(os.path.join(cut.REF, d, 'stand-in'), exist_ok=True)
-    for i, (name, f) in enumerate(STEPS, 1):
-        # (The drawing's exposure: the part of the move its twelfth of a second covers.)
-        c, sh = (i + 0.5) / DRAWINGS, SMEAR if i == DRAWINGS // 2 else SHUTTER
-        f0, f1 = minjerk(c - sh / (2 * DRAWINGS)), minjerk(c + sh / (2 * DRAWINGS))
-        parts = [moment(x) for x in np.linspace(f0, f1, max(1, min(9, round((f1 - f0) / 0.02) + 1)))]
-        # (What the exposure saw: the drawing wherever it passed, its colours averaged, the purest
-        # most, so no edge half paper pales the hair; the paper only where it never did.)
-        weights = [k * d * d for _, k, d in parts]
-        colour = np.sum([q * c for (c, _, _), q in zip(parts, weights)], 0) / np.maximum(np.sum(weights, 0), 1e-6)
-        drawn = np.max([k for _, k, _ in parts], 0)
-        head = colour * drawn + cut.IVORY * (1 - drawn)
-        if sh == SMEAR:
-            head = closed(head, inside)
-        head = np.clip(head * lay + panel * (1 - lay), 0, 1)
+    for name, f in STEPS:
+        src, at = (panel, P) if f < CHANGE else (take, T)
+        head = np.clip(warped(src, at, P + (T - P) * f) * lay + panel * (1 - lay), 0, 1)
         out2 = top2.copy()
         out2[0:N, CX:CX + N] = head
         cut.img(out2).save(os.path.join(ts.UPSCALED, 'stand-in', f'b-look-full-{name}-top@2x.webp'), 'WEBP', lossless=True, method=6)
