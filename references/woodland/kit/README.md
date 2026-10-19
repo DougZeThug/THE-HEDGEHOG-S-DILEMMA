@@ -25,7 +25,10 @@ stand-in.
 her (her pose from points of her face; skull, face, nose, chin; her ear; her neck) and turned 14°
 about her neck, on twos over a second, easing in and out as a head does; her hair on the grass
 stays, the hair near her head follows a little, and her eyes, on him half a second before her head
-moves, ease back in their sockets as it comes round. Your drawing of her turned further (`../drawings/b-look-full-b.webp`)
+moves, ease back in their sockets as it comes round. Her eyes go to him in one drawing, as eyes
+move; you wrote that they "drift". With one or two drawings between (her eyes a half, or a third
+and two thirds, of the way) they would arrive over a sixth or a quarter of a second instead: tell me
+which you want (the review film shows all three side by side). Your drawing of her turned further (`../drawings/b-look-full-b.webp`)
 is no longer used: the turn you asked for is a slight one, and a drawing that turned her 70-90°
 could only be reached by bending one picture into another, which read as morphing. If you would
 like her turned more, or less, or sooner, say so: it is a number.
