@@ -540,6 +540,11 @@ describe('the two of them close: one shot, three beats, held drawings', () => {
   it('the spec, the timeline and the room agree on when it is and where its heart is', () => {
     expect(SPEC.near!.span).toEqual([T.from, T.to]);
     for (const b of [T.herEyes, T.herTurn, T.hisEyes, T.hisRoll]) expect(SPEC.near!.beats).toContain(b);
+    // Her turn whole: no return of the two-shot from half a second before her eyes move until
+    // half a second after her head has arrived.
+    const settled = T.herTurn + TURN_STEPS.length / 12;
+    expect(SPEC.near!.beats).toContain(settled);
+    for (let t = T.herEyes - 0.49; t < settled + 0.49; t += 0.01) expect(SPEC.near!.beats.some((b) => Math.abs(t - b) < 0.5), `${t.toFixed(2)} s`).toBe(true);
     const woodland = SCENE_MEMORIES.find((m) => m.id === 'woodland')!;
     expect(woodland.seenAt).toBe(T.herTurn);
     expect(woodland.span).toBe(def.sections.end);
@@ -773,18 +778,18 @@ describe('the scene, as built (no GL: what it would draw and let go)', () => {
     expect(s.choose(v, { inside: true, turn: 0, t: 16.5, aspect: 2.5 })).toBe(1);
     expect(s.choose(v, { inside: true, turn: 0, t: 16.6, aspect: 0.46 })).toBe(0);
     // Turned back, it comes back as after giving way: never within half a second of a beat (her
-    // eyes at 17.5, her head at 18.0), on a new drawing.
-    for (let t = 17.2; t < 18.5 - 1e-9; t += 1 / 12) expect(s.choose(v, { inside: true, turn: 0, t, aspect: 16 / 9 }), `${t.toFixed(2)} s`).toBe(0);
-    expect(s.choose(v, { inside: true, turn: 0, t: 18.55, aspect: 16 / 9 })).toBe(1);
+    // eyes at 17.5, her turn from 18.0 to 19.0, never cut into), on a new drawing.
+    for (let t = 17.2; t < 19.5 - 1e-9; t += 1 / 12) expect(s.choose(v, { inside: true, turn: 0, t, aspect: 16 / 9 }), `${t.toFixed(2)} s`).toBe(0);
+    expect(s.choose(v, { inside: true, turn: 0, t: 19.55, aspect: 16 / 9 })).toBe(1);
     expect(fresh(16 / 9)).toBe(1);
     // Turned past 14°: the wide; still turned, still the wide.
-    expect(s.choose(v, { inside: true, turn: 0.3, t: 19 })).toBe(0);
-    expect(s.choose(v, { inside: true, turn: 0.2, t: 19.6 })).toBe(0);
+    expect(s.choose(v, { inside: true, turn: 0.3, t: 19.6 })).toBe(0);
+    expect(s.choose(v, { inside: true, turn: 0.2, t: 19.8 })).toBe(0);
     // Settled under 6°: back after 1.2 s, on a new drawing.
     let back = -1;
-    for (let t = 19.7; t < 21.5; t += 1 / 60) if (s.choose(v, { inside: true, turn: 0.05, t }) === 1 && back < 0) back = t;
-    expect(back).toBeGreaterThanOrEqual(19.7 + 1.2 - 1e-9);
-    expect(back).toBeLessThan(19.7 + 1.4);
+    for (let t = 19.9; t < 21.7; t += 1 / 60) if (s.choose(v, { inside: true, turn: 0.05, t }) === 1 && back < 0) back = t;
+    expect(back).toBeGreaterThanOrEqual(19.9 + 1.2 - 1e-9);
+    expect(back).toBeLessThan(19.9 + 1.4);
     // Never within half a second of a beat: settled from 21.6, it comes back 1.2 s later, with no
     // beat near; settled from 23.1, it could come back at 24.3, but his eyes go to her at 24.0 and
     // his head at 24.5, and half a second past them is its last 2 s: the wide holds.
