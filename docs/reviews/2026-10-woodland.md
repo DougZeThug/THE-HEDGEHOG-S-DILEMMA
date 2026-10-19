@@ -1222,3 +1222,22 @@ below, and agreeing with it):
     keeps her face as drawn); any paid tool (not authorised: the artist's "whatever tools" is read
     as free ones; anything that costs goes to the artist first).
 
+#### "Remove the return head turn altogether" (the artist)
+
+"She should glance toward him, settle into that gaze, and simply remain there. No need for another
+gesture. For the intended emotional tone, that small moment of attention is more effective than a
+conspicuous animated action. And when the scene eventually hard-cuts to the empty clearing at dusk,
+the absence of that intimate moment will hit harder."
+
+40. **She turns to him once and stays.** Her head arrives at 18.5 and stays turned to him, and her
+    eyes stay on him, through the cut back to the wide, to the cut to dusk. `herBack` and
+    `herEyesBack` are gone from `TWO_SHOT`, from the beats a return of the two-shot waits on, and
+    from the timeline; so is "She looks back up." from what a screen reader is told.
+41. **He stays too** (in the same spirit, the main session's call): his eyes go to her at 24.0, his
+    head rolls a little at 24.5, and he no longer looks back up at 29.0 in the wide. From 24.0 they
+    look at each other until the clearing is empty.
+42. **Her blink is gone** (it was at 31.6 in the second wide): from her look to the cut her head is
+    the artist's drawing of her turned to him, and her lids are drawn for the panel's eyes (the
+    shader never lays them over a redrawn head, so it was silent anyway). A blink there would need
+    lids drawn for that drawing.
+

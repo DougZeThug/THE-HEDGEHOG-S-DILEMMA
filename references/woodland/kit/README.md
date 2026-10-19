@@ -9,17 +9,19 @@ them lying side by side, their hands almost touching in the grass between them, 
 drew them), shown at twice its size (the upscale you chose). In it:
 
 - her eyes go to him and her head follows: your own drawing of her turned to him
-  (`../drawings/b-look-full-b.webp`), cut in and held, then back up to the sky;
-- then his eyes go to her, and the shot cuts back to the wide while he is still looking.
+  (`../drawings/b-look-full-b.webp`), and she stays there;
+- then his eyes go to her, and he stays there too: the shot cuts back to the wide with them still
+  looking at each other, and they are still looking when it cuts to the empty clearing at dusk
+  (you: "She should glance toward him, settle into that gaze, and simply remain there").
 
 Her look is your drawing. **His look is not**: there is no drawing of it, so his irises are moved
 inside his eye openings (the lash line stays as drawn) and his head rolls about 2°. That is a
 stand-in.
 
 **Her turn is one cut**: from the panel's head straight to yours, a turn of 70–90° in a twelfth of
-a second, and back the same way. Where she ends up is clear; how she gets there reads as a start or
-a sudden decision, the loudest thing in the shot, seen twice by everyone who sees it (both
-directors, going through the film frame by frame; you: "it reads like jumping frames"). Two
+a second. Where she ends up is clear; how she gets there reads as a start or a sudden decision, the
+loudest thing in the shot (both directors, going through the film frame by frame; you: "it reads
+like jumping frames"). Two
 drawings of her head on the way there make it a turn: a quarter and three quarters of the way, so
 her head leaves and arrives slowly and moves fastest between them, as a head does. They are the
 most useful drawings for the close shot, and his look the next.
@@ -66,9 +68,8 @@ extra limbs, text, watermark, photo, 3D render, blur.
 | `b-look-full-mid2.png` | `../drawings/b-look-full-b.webp` | The same image, but her head is turned back a quarter of the way toward looking straight up at the sky (three quarters of the way from the sky to him), her fringe beginning to fall across her forehead; her eyes still on him. Nothing else changes. |
 | `a-look-full.png` | `../02-characters.webp` | The same image; only the young man's eyes have moved: he is looking sideways to the right, toward her, out of the corners of his eyes. His head still faces up, his mouth exactly as it is. Nothing else changes, nothing on her. |
 
-Her turn steps a drawing every twelfth of a second, toward him once her eyes have gone to him, and
-back to the sky the same way, arriving as the panel's head, her eyes staying on him half a second
-after it, as now. Yours show at the steps nearest them, two drawings each. **Keep a pair only if the panel's head, the two and yours, flipped like that, read
+Her turn steps a drawing every twelfth of a second, toward him once her eyes have gone to him; she
+doesn't turn back. Yours show at the steps nearest them, two drawings each. **Keep a pair only if the panel's head, the two and yours, flipped like that, read
 as one girl turning**, not because their angles are a quarter and three quarters: between the
 panel's head and yours her ear changes side, a fringe appears and her face rounds, and the two have
 to carry that between them. Each is held as a drawing, never dissolved into the next. If only one

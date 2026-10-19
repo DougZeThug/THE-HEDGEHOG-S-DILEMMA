@@ -55,7 +55,7 @@ describe('their involuntary life, from time alone', () => {
       for (let t = TWO_SHOT.herEyes - 0.5; t < TWO_SHOT.to + 0.5; t += 0.05) expect(Math.abs(breath(t, p) - breath(t, free)), `${t.toFixed(2)} s`).toBeLessThan(0.02);
       // Nor a long pause: a chest still for more than a second while one of them looks at the
       // other reads as a held breath (his fell exactly in her look, 18.8–21.3 s).
-      for (const [from, to] of [[TWO_SHOT.herEyes, TWO_SHOT.herEyesBack], [TWO_SHOT.hisEyes, TWO_SHOT.to]]) {
+      for (const [from, to] of [[TWO_SHOT.herEyes, TWO_SHOT.to]]) {
         let still = 0, longest = 0;
         for (let t = from; t <= to; t += 0.05) longest = Math.max(longest, (still = breath(t, p) < 0.005 ? still + 0.05 : 0));
         expect(longest, `${from}–${to} s`).toBeLessThanOrEqual(1);
@@ -72,11 +72,11 @@ describe('their involuntary life, from time alone', () => {
     expect(blinkDrawing(at + 0.3, SPEC.blinks.a)).toBe(0);
     for (const b of [...SPEC.blinks.a, ...SPEC.blinks.b]) {
       // Not within half a second of a cut, nor in a shot's first second; not in the stillness
-      // before the dusk cut; never during either look (a blink then reads as a reaction).
+      // before the dusk cut; never during either look (a blink then reads as a reaction), and
+      // their looks hold to the cut.
       for (const cut of [10.5, SHOTS.two, SHOTS.wideAgain]) expect(b + 0.25 < cut - 0.5 || b > cut + 1).toBe(true);
       expect(b).toBeLessThan(CUT_AT - 2);
-      expect(b + 0.25 < TWO_SHOT.herEyes || b > TWO_SHOT.herEyesBack + 0.5).toBe(true);
-      expect(b + 0.25 < TWO_SHOT.hisEyes || b > SHOTS.wideAgain).toBe(true);
+      expect(b + 0.25).toBeLessThan(TWO_SHOT.herEyes);
     }
   });
 
@@ -460,7 +460,7 @@ describe('the two of them close: one shot, three beats, held drawings', () => {
     expect(SHOTS.wideAgain).toBe(27.0);
   });
 
-  it('her look: her eyes lead her head to him by half a second, and follow it back; her turn on twos, easing out and in; every head a held drawing', () => {
+  it('her look: her eyes lead her head to him by half a second, her turn on twos, easing out and in; she stays there to the cut; every head a held drawing', () => {
     let prev = 0;
     const changes: [number, number][] = [];
     for (let t = SHOTS.two; t < SHOTS.wideAgain; t += 1 / 120) {
@@ -474,12 +474,11 @@ describe('the two of them close: one shot, three beats, held drawings', () => {
       }
       prev = v['figure:b.turn'];
     }
-    // Toward him a drawing every twelfth of a second from `herTurn`, arriving at her drawing; back up
-    // the same way, arriving at the panel's head at `herBack`.
+    // Toward him a drawing every twelfth of a second from `herTurn`, arriving at her drawing; never
+    // back (the artist: "glance toward him, settle into that gaze, and simply remain there").
     const n = TURN_STEPS.length;
-    expect(changes.map(([, f]) => f)).toEqual([...TURN_STEPS, 1, ...TURN_STEPS.map((f) => +(1 - f).toFixed(4)), 0]);
-    changes.slice(0, n + 1).forEach(([t], i) => expect(Math.abs(t - (T.herTurn + i / 12))).toBeLessThanOrEqual(1 / 120 + 1e-9));
-    changes.slice(n + 1).forEach(([t], i) => expect(Math.abs(t - (T.herBack - (n - i) / 12))).toBeLessThanOrEqual(1 / 120 + 1e-9));
+    expect(changes.map(([, f]) => f)).toEqual([...TURN_STEPS, 1]);
+    changes.forEach(([t], i) => expect(Math.abs(t - (T.herTurn + i / 12))).toBeLessThanOrEqual(1 / 120 + 1e-9));
     // Easing out and in over a drawing at each end, even between (no step wider than the rest, so
     // the change from one of her drawings to the other, at 0.5, never lands on a jump).
     const steps = [...TURN_STEPS, 1].map((f, i, a) => f - (i ? a[i - 1] : 0));
@@ -494,12 +493,11 @@ describe('the two of them close: one shot, three beats, held drawings', () => {
     expect(at(T.herTurn - 0.01)['figure:b.turn']).toBe(0);
     expect(at(T.herTurn + 0.01)['figure:b.turn']).toBeGreaterThan(0);
     expect(T.herTurn - T.herEyes).toBeCloseTo(0.5, 6);
-    // Back: her head first (the panel's, its eyes still on him), her eyes after it.
-    expect(at(T.herBack - 0.01)['figure:b.turn']).toBeGreaterThan(0);
-    expect(at(T.herBack + 0.01)['figure:b.turn']).toBe(0);
-    expect(at(T.herBack + 0.01)['figure:b.eyes']).toBe(1);
-    expect(at(T.herEyesBack + 0.01)['figure:b.eyes']).toBe(0);
-    expect(at(SHOTS.wideAgain)['figure:b.turn']).toBe(0);
+    // And she stays: her head turned to him and her eyes on him, through the wide, to the cut.
+    for (const t of [T.herTurn + n / 12 + 0.01, SHOTS.wideAgain, CUT_AT - 0.01]) {
+      expect(at(t)['figure:b.turn']).toBe(1);
+      expect(at(t)['figure:b.eyes']).toBe(1);
+    }
   });
 
   it('her head: the drawing nearest to how far she has turned, a tie going to the one further on', () => {
@@ -516,13 +514,16 @@ describe('the two of them close: one shot, three beats, held drawings', () => {
     expect(headFor(1, [1, ...TURN_STEPS])).toBe(1);
   });
 
-  it('his look comes last, after hers is over, and the shot ends while he is still looking', () => {
+  it('his look comes last, once she has settled into hers, and holds: the shot ends while he is still looking, and so does the wide', () => {
     const at = (t: number) => src.at(t);
     expect(at(T.hisEyes - 0.01)['figure:a.eyes']).toBe(0);
     expect(at(T.hisEyes + 0.01)['figure:a.eyes']).toBe(1);
-    expect(T.hisEyes - T.herEyesBack).toBeGreaterThanOrEqual(1.5);
+    expect(T.hisEyes - (T.herTurn + TURN_STEPS.length / 12)).toBeGreaterThanOrEqual(3);
     expect(SHOTS.wideAgain - T.hisEyes).toBeLessThanOrEqual(3);
-    expect(at(SHOTS.wideAgain - 0.01)['figure:a.eyes']).toBe(1);
+    for (const t of [SHOTS.wideAgain - 0.01, CUT_AT - 0.01]) {
+      expect(at(t)['figure:a.eyes']).toBe(1);
+      expect(at(t)['figure:a.look']).toBeGreaterThan(0);
+    }
     // His head rolls a little (about 2°: the rig was made for the wide) after his eyes.
     expect(at(T.hisRoll - 0.01)['figure:a.look']).toBe(0);
     expect(Math.abs(at(T.hisRoll + 0.6)['figure:a.look']) * SPEC.roll).toBeLessThan(0.04);
@@ -537,7 +538,7 @@ describe('the two of them close: one shot, three beats, held drawings', () => {
 
   it('the spec, the timeline and the room agree on when it is and where its heart is', () => {
     expect(SPEC.near!.span).toEqual([T.from, T.to]);
-    for (const b of [T.herEyes, T.herTurn, T.herBack, T.herEyesBack, T.hisEyes, T.hisRoll]) expect(SPEC.near!.beats).toContain(b);
+    for (const b of [T.herEyes, T.herTurn, T.hisEyes, T.hisRoll]) expect(SPEC.near!.beats).toContain(b);
     const woodland = SCENE_MEMORIES.find((m) => m.id === 'woodland')!;
     expect(woodland.seenAt).toBe(T.herTurn);
     expect(woodland.span).toBe(def.sections.end);
@@ -545,7 +546,7 @@ describe('the two of them close: one shot, three beats, held drawings', () => {
 
   it('what a screen reader is told of it: only what is seen, in order, at least 3.5 s apart', () => {
     const lines = def.announce!('afternoon').filter((l) => l.at >= SHOTS.two && l.at < SHOTS.wideAgain);
-    expect(lines.map((l) => l.text)).toEqual(['Closer: the two of them side by side in the grass, looking up.', 'She turns her head toward him.', 'She looks back up.', 'He turns his eyes to her.']);
+    expect(lines.map((l) => l.text)).toEqual(['Closer: the two of them side by side in the grass, looking up.', 'She turns her head toward him.', 'He turns his eyes to her.']);
     for (let i = 1; i < lines.length; i++) expect(lines[i].at - lines[i - 1].at).toBeGreaterThanOrEqual(3.5);
     // What they do is told to anyone inside, in whichever shot it is seen.
     expect(lines.slice(1).every((l) => l.inside && l.shot === undefined)).toBe(true);
@@ -784,14 +785,19 @@ describe('the scene, as built (no GL: what it would draw and let go)', () => {
     for (let t = 19.7; t < 21.5; t += 1 / 60) if (s.choose(v, { inside: true, turn: 0.05, t }) === 1 && back < 0) back = t;
     expect(back).toBeGreaterThanOrEqual(19.7 + 1.2 - 1e-9);
     expect(back).toBeLessThan(19.7 + 1.4);
-    // Never within half a second of a beat: settled from 20.1, it could come back at 21.3, but her
-    // head goes back up at 21.5 and her eyes at 22.0: it waits until half a second past them.
-    s.choose(v, { inside: true, turn: 0.3, t: 20.0 });
+    // Never within half a second of a beat: settled from 21.6, it comes back 1.2 s later, with no
+    // beat near; settled from 23.1, it could come back at 24.3, but his eyes go to her at 24.0 and
+    // his head at 24.5, and half a second past them is its last 2 s: the wide holds.
+    s.choose(v, { inside: true, turn: 0.3, t: 21.5 });
+    let between = -1;
+    for (let t = 21.6; t < 24; t += 1 / 60) if (s.choose(v, { inside: true, turn: 0, t }) === 1 && between < 0) between = t;
+    expect(between).toBeGreaterThanOrEqual(21.6 + 1.2 - 1e-9);
+    expect(between).toBeLessThan(21.6 + 1.4);
+    s.choose(v, { inside: true, turn: 0.3, t: 23.0 });
     let again = -1;
-    for (let t = 20.1; t < 24; t += 1 / 60) if (s.choose(v, { inside: true, turn: 0, t }) === 1 && again < 0) again = t;
-    expect(again).toBeGreaterThanOrEqual(TWO_SHOT.herEyesBack + 0.5 - 1e-9);
-    expect(again).toBeLessThan(TWO_SHOT.herEyesBack + 0.7);
-    for (const b of SPEC.near!.beats) expect(Math.abs(again - b)).toBeGreaterThanOrEqual(0.5 - 1e-9);
+    for (let t = 23.1; t < 27; t += 1 / 60) if (s.choose(v, { inside: true, turn: 0, t }) === 1 && again < 0) again = t;
+    expect(again < 0 || again >= TWO_SHOT.hisRoll + 0.5 - 1e-9).toBe(true);
+    for (const b of SPEC.near!.beats) expect(again < 0 || Math.abs(again - b) >= 0.5 - 1e-9).toBe(true);
     // In its last 2 s it doesn't come back: the wide holds to the cut.
     s.choose(v, { inside: true, turn: 0.3, t: 25.2 });
     let late = -1;

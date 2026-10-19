@@ -402,18 +402,19 @@ export const CUT = 34.5;
  * The two-shot (scripts/two-shot.py; the artist's brief of 2026-10-18 and its reviews): the two
  * of them close, one locked frame, in the old close-ups' slot (the memory stays 53 s: nothing after
  * the second wide's cut moved). Nothing in its first second; every head is a cut, on twos; her
- * eyes lead her head toward him, and follow it back. `scene.shot` 1 is this shot.
+ * eyes lead her head toward him, and she stays there, and so does he once his eyes find her: no
+ * gesture undoes the moment before the cut to the empty clearing (the artist: "She should glance
+ * toward him, settle into that gaze, and simply remain there"). `scene.shot` 1 is this shot.
  */
-export const TWO_SHOT = { from: 15.0, hisBlink: 16.2, herEyes: 17.5, herTurn: 18.0, herBack: 21.5, herEyesBack: 22.0, hisEyes: 24.0, hisRoll: 24.5, to: 27.0 };
+export const TWO_SHOT = { from: 15.0, hisBlink: 16.2, herEyes: 17.5, herTurn: 18.0, hisEyes: 24.0, hisRoll: 24.5, to: 27.0 };
 /**
  * Her turn, drawn on twos (`figure:b.turn`: how far her head has turned, 0 the panel's .. 1 the
  * artist's drawing of her turned to him): how far at each drawing between them. It eases out and in
  * over a drawing at each end and is even between, so the change from one of her drawings to the
  * other (her ear, her fringe) falls on a step no wider than the rest. The scene shows, at each, the
- * drawing nearest to how far she has turned. Toward him from `herTurn`, back up arriving at
- * `herBack`, so her eyes still lead by half a second and stay on him half a second after her head
- * (the artist: "it reads like jumping frames", "it still doesn't look like a natural animation";
- * the cinematic director's spacing).
+ * drawing nearest to how far she has turned. Toward him from `herTurn`, her eyes leading by half a
+ * second; never back (the artist: "it reads like jumping frames", "it still doesn't look like a
+ * natural animation"; the cinematic director's spacing).
  */
 export const TURN_STEPS = [0.07, 0.25, 0.42, 0.58, 0.75, 0.93];
 /**
@@ -544,23 +545,20 @@ export const WOODLAND: MemoryDef = {
         'figure:b.foot': [[0, 0], [12.4, 0], [12.9, 0.8], [13.8, 0.8], [14.3, 0]],
         // Her look: her eyes go to him (a drawing), her head follows (the artist's drawing of her
         // turned to him, through the drawings on the way there, one a twelfth of a second: held,
-        // never mixed); her head goes back to the sky the same way, arriving as the panel draws it,
-        // and her eyes after it. (The eyes are forced still while a drawing is shown: its eyes are
-        // drawn on him. Without drawings on the way, the nearest is the panel's or hers: the
-        // straight cut.)
-        'figure:b.eyes': [[0, 0, 'hold'], [T.herEyes, 1, 'hold'], [T.herEyesBack, 0]],
+        // never mixed), and stays, in both shots, to the cut. (The eyes are forced still while a
+        // drawing is shown: its eyes are drawn on him. Without drawings on the way, the nearest is
+        // the panel's or hers: the straight cut.)
+        'figure:b.eyes': [[0, 0, 'hold'], [T.herEyes, 1, 'hold']],
         'figure:b.turn': [
           [0, 0, 'hold'],
           ...TURN_STEPS.map((f, i): Key => [T.herTurn + i / 12, f, 'hold']),
           [T.herTurn + TURN_STEPS.length / 12, 1, 'hold'],
-          ...TURN_STEPS.map((f, i): Key => [T.herBack - (TURN_STEPS.length - i) / 12, +(1 - f).toFixed(4), 'hold']),
-          [T.herBack, 0],
         ],
         // His look: his eyes go to her (a drawing), his head rolls a little toward her after them
-        // (about 2°: the rig was made for the wide), and the shot cuts while he is still looking;
-        // in the wide, settled, he looks back up.
-        'figure:a.eyes': [[0, 0, 'hold'], [T.hisEyes, 1, 'hold'], [29.0, 0]],
-        'figure:a.look': [[0, 0, 'hold'], [T.hisRoll, 0], [T.hisRoll + 0.5, 0.3], [29.0, 0.3], [29.5, 0]],
+        // (about 2°: the rig was made for the wide), and he stays looking at her, across the cut
+        // back to the wide, to the cut to dusk.
+        'figure:a.eyes': [[0, 0, 'hold'], [T.hisEyes, 1, 'hold']],
+        'figure:a.look': [[0, 0, 'hold'], [T.hisRoll, 0], [T.hisRoll + 0.5, 0.3]],
         // Her hand lies by his as the artist drew it, almost touching, never moved (its default,
         // 0, is drawn back along her forearm: reviews of 2026-10-18).
         'figure:b.hand': [[0, 1]],
@@ -614,7 +612,6 @@ export const WOODLAND: MemoryDef = {
     { at: 10.5, text: 'The painting comes alive on the wall: a summer afternoon, cicadas in the trees.', wall: true },
     { at: TWO_SHOT.from, text: 'Closer: the two of them side by side in the grass, looking up.', shot: 1 },
     { at: TWO_SHOT.herTurn + 0.5, text: 'She turns her head toward him.', inside: true },
-    { at: TWO_SHOT.herBack + 0.5, text: 'She looks back up.', inside: true },
     { at: TWO_SHOT.hisEyes + 1.5, text: 'He turns his eyes to her.', inside: true },
     { at: CUT, text: 'The same clearing, at dusk. Nobody is there.' },
     { at: WOODLAND_SECTIONS.exit, text: 'The painting goes back into the wall.' },
