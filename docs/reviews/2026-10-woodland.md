@@ -1494,7 +1494,9 @@ hair beside her far jaw keeps its strands. No pop at 17.5, 18.0 or 19.0.
 
 59. **The artist sees the film first**: 12.0–36.0 with this build's own mix, on a desktop (and an
     upright phone, the two-shot to the empty clearing); then the turn's closer looks. The flipbook's
-    in-context clip is joined with the same mix.
+    in-context clip is joined with the same mix. (`test-output/review/woodland/context5/`: the two
+    films, and `closer/` with the drawings as filmed, the eyes three ways, the slowed and looped
+    turn, and the frames for what remains.)
 60. **Her landing on the out-breath is tested** (her inhale peaks within a quarter second of the
     turn's middle, and is falling as she lands).
 61. **Her eyes, three ways for the artist**: as built (one drawing), one in-between, two in-betweens,
