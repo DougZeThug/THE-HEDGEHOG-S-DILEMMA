@@ -162,6 +162,11 @@ def flow(a, b):
     return f * np.minimum(1, 16 / np.maximum(m, 1e-6))
 
 
+def paper(img):
+    """How much of each pixel is drawing, not the sheet's paper (the cutter's own key)."""
+    return cut.smooth(0.035, 0.12, np.sqrt(((img - cut.IVORY) ** 2).sum(-1)))[..., None]
+
+
 def shifted(img, f):
     yy, xx = np.mgrid[0:N, 0:N].astype(np.float32)
     return cv2.remap(img.astype(np.float32), xx + f[..., 0], yy + f[..., 1], cv2.INTER_CUBIC, borderMode=cv2.BORDER_REFLECT)
@@ -198,17 +203,21 @@ def main():
     T = np.array([t for _, t in PAIRS] + pins)
 
     def moment(f):
-        """Her head `f` of the way to him: either drawing bent to that shape, or both, lined up and
-        blended."""
+        """Her head `f` of the way to him, and how much of each pixel is drawing: either drawing bent
+        to that shape, or both, lined up and blended."""
         to = P + (T - P) * f
         w = float(smooth(BLEND[0], BLEND[1], f))
-        if w <= 0:
-            return warped(panel, P, to)
-        if w >= 1:
-            return warped(take, T, to)
+        if w <= 0 or w >= 1:
+            one = warped(panel, P, to) if w <= 0 else warped(take, T, to)
+            return one, paper(one)
         a, b = warped(panel, P, to), warped(take, T, to)
         fl = flow(a, b)
-        return (1 - w) * shifted(a, -w * fl) + w * shifted(b, (1 - w) * fl)
+        a, b = shifted(a, -w * fl), shifted(b, (1 - w) * fl)
+        # (Blended where both are drawn; where one is paper, the other's drawing as it is: mixed with
+        # the paper, the cutter's key reads it as solid and pale, a halo round her hair.)
+        ka, kb = paper(a), paper(b)
+        colour = ((1 - w) * ka * a + w * kb * b) / np.maximum((1 - w) * ka + w * kb, 1e-6)
+        return colour, np.maximum(ka, kb)
 
     sheet = cut.arr(Image.open(os.path.join(cut.REF, '02-characters.webp')).convert('RGB').resize((1448, 1086), Image.LANCZOS))
     lay1 = cv2.resize(lay[..., 0], (N // 2, N // 2), interpolation=cv2.INTER_AREA)[..., None]
@@ -218,7 +227,13 @@ def main():
         # (The drawing's exposure: the part of the move its twelfth of a second covers.)
         c, sh = (i + 0.5) / DRAWINGS, SMEAR if i == DRAWINGS // 2 else SHUTTER
         f0, f1 = minjerk(c - sh / (2 * DRAWINGS)), minjerk(c + sh / (2 * DRAWINGS))
-        head = np.mean([moment(x) for x in np.linspace(f0, f1, max(1, min(9, round((f1 - f0) / 0.02) + 1)))], 0)
+        parts = [moment(x) for x in np.linspace(f0, f1, max(1, min(9, round((f1 - f0) / 0.02) + 1)))]
+        # (What the exposure saw: the drawing wherever it passed, its colours averaged; the paper only
+        # where it never did.)
+        seen = np.sum([k for _, k in parts], 0)
+        colour = np.sum([k * c for c, k in parts], 0) / np.maximum(seen, 1e-6)
+        drawn = np.max([k for _, k in parts], 0)
+        head = colour * drawn + cut.IVORY * (1 - drawn)
         head = np.clip(head * lay + panel * (1 - lay), 0, 1)
         out2 = top2.copy()
         out2[0:N, CX:CX + N] = head
