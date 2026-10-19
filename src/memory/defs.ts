@@ -39,6 +39,14 @@ export interface MemoryDef {
   opensFrom?: string;
   /** The white room's own light goes down to this while it plays (the door: evening). */
   roomDim?: number;
+  /**
+   * The variant whose music is the room's last (the woodland's afternoon): the room's drone is
+   * silent from its start (a chord of the room's under it, a semitone from its key), and once it
+   * has been seen the room plays no music of its own again that visit, the drone, its piano, its
+   * humming: the music that belonged to that afternoon never returns, and nothing stands in for it
+   * (the artist's brief of 2026-10-19; the creative and cinematic directors' reviews).
+   */
+  lastMusic?: string;
   /** What the picture is, for a screen reader (announced once, when it has formed). */
   describe: (variant: string) => string;
   /**
@@ -612,6 +620,7 @@ export const WOODLAND: MemoryDef = {
   tail: 2,
   hush: 0.7,
   living: true,
+  lastMusic: 'afternoon',
   describe: (v) => v === 'empty'
     ? 'A painting forms in the wall by the words: a clearing in a wood at dusk, a fallen log, a tree, the grass. Nobody is there.'
     : 'A pencil drawing forms in the wall by the words: a clearing in a wood, two young people lying in the grass.',

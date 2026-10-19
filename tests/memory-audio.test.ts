@@ -5,7 +5,7 @@ import { CueDispatch } from '../src/memory/cueDispatch';
 import type { CueSheet } from '../src/memory/cueSheet';
 import type { Marker } from '../src/memory/types';
 
-import { FakeCtx, FakeNode } from './fakeAudio';
+import { FakeCtx, FakeNode, FakeParam, FakeSource } from './fakeAudio';
 
 const SHEET: CueSheet = {
   room: [0.5, 2, 0.2],
@@ -151,6 +151,103 @@ describe('memory audio: scheduled on the audio clock, never twice, nothing left 
   });
 });
 
+describe('a cut on one instant of the audio clock (the woodland: the afternoon stops, the evening begins)', () => {
+  const CUT = 34.5;
+  const sheet: CueSheet = {
+    room: [0.4, 3, 0.06],
+    cues: {
+      'music:air': { asset: 'air', gainDb: -20, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true },
+      'music:score': { asset: 'score', gainDb: -24, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, until: CUT, fadeOut: 3 },
+      'music:day': { asset: 'day', gainDb: -20, place: { u: -0.3, v: 0.25, d: 1.5 }, until: CUT },
+      'music:evening': { asset: 'evening', gainDb: -20, place: { u: 0, v: 0, d: 2 }, wide: true, offset: 3, fadeIn: 0.012 },
+    },
+  };
+  const markers: Marker[] = [
+    { label: 'music:air', position: 0.05 },
+    { label: 'music:day', position: 0.05 },
+    { label: 'music:score', position: 3.4 },
+    { label: 'music:evening', position: CUT },
+  ];
+  const lengths: Record<string, number> = { air: 47, day: 40, score: 32, evening: 20 };
+  function run(stallAt: number | null, stall = 1.5) {
+    const ctx = new FakeCtx();
+    const host: MemoryAudioHost = {
+      ctx: ctx as unknown as BaseAudioContext,
+      out: new FakeNode(ctx) as unknown as AudioNode,
+      load: async (asset) => ({ duration: lengths[asset] }) as AudioBuffer,
+      impulse: () => ({}) as AudioBuffer,
+      intensity: 1,
+      where: () => [0, 0, 0],
+    };
+    const audio = new MemoryAudio(host, sheet, markers);
+    // Each source's own gain (made just after it), kept: a source that has ended is disconnected.
+    const gains = new Map<FakeSource, FakeParam>();
+    let last: FakeSource | null = null;
+    const mk = ctx.createBufferSource.bind(ctx), mg = ctx.createGain.bind(ctx);
+    ctx.createBufferSource = () => (last = mk());
+    ctx.createGain = () => {
+      const g = mg();
+      if (last && !gains.has(last)) gains.set(last, g.gain);
+      return g;
+    };
+    return { ctx, audio, gains, go: () => {
+      // As the App steps it: the memory clock on the audio clock, frames of a sixtieth, one stall.
+      const clock = new MemoryClock(), d = new CueDispatch(markers);
+      ctx.currentTime = 100;
+      let pos = 0, real = 1000;
+      clock.tick(real, ctx.currentTime, true);
+      while (pos < 38) {
+        const frame = stallAt !== null && pos >= stallAt && pos < stallAt + 1 / 60 ? stall : 1 / 60;
+        ctx.advance(frame);
+        real += frame;
+        pos += clock.tick(real, ctx.currentTime, true);
+        const due = d.advance(pos);
+        if (due.length) audio.play(due);
+      }
+    } };
+  }
+  /** The audio time a source is silent from (its cut). */
+  const silentAt = (g: FakeParam) => {
+    const ramp = g.events.filter((e) => e[0] === 'ramp').at(-1);
+    return ramp ? ramp[2] : Infinity;
+  };
+  for (const stallAt of [null, 20, 33]) {
+    it(`the afternoon is cut where the evening begins, to the millisecond${stallAt ? ` (a ${1.5} s stall at ${stallAt} s)` : ''}`, async () => {
+      const { ctx, audio, gains, go } = run(stallAt);
+      await audio.prepare();
+      go();
+      const by = (a: string) => ctx.sources.filter((s) => s.buffer && (s.buffer as { duration: number }).duration === lengths[a]);
+      const evening = by('evening');
+      expect(evening.length).toBe(1);
+      const begins = evening[0].startAt![0];
+      // Already under way: three seconds into its take.
+      expect(evening[0].startAt![1]).toBeCloseTo(3, 6);
+      for (const a of ['score', 'day']) {
+        const [s] = by(a);
+        expect(Math.abs(silentAt(gains.get(s)!) - begins), a).toBeLessThan(0.003);
+        expect(s.stopAt! - begins, a).toBeLessThan(0.03);
+      }
+      // The air goes on across it.
+      expect(by('air')[0].stopAt).toBeNull();
+      // And it falls where the picture's cut is: 34.5 s of memory on the audio clock (the
+      // memory's position and the audio clock never part, a stall or not).
+      expect(Math.abs(begins - (100 + CUT))).toBeLessThan(0.02);
+    });
+  }
+  it('paused just before the cut, the afternoon does not come back for a moment; the evening does', async () => {
+    const { ctx, audio } = run(null);
+    await audio.prepare();
+    const d = new CueDispatch(markers);
+    playThrough(ctx, audio, d, 0, 34.45);
+    for (const m of audio.pause()) d.unfire(m);
+    ctx.advance(5);
+    const before = ctx.sources.length;
+    audio.resume();
+    // Nothing of the score or the day comes back with 0.05 s left before its cut.
+    expect(ctx.sources.slice(before).filter((s) => [32, 40].includes((s.buffer as { duration: number }).duration)).length).toBe(0);
+  });
+});
+
 describe('the memory clock', () => {
   it('follows the audio clock while it runs, real time while suspended, nothing while paused', () => {
     const c = new MemoryClock();
@@ -159,5 +256,15 @@ describe('the memory clock', () => {
     expect(c.tick(10.5, 100.05, false)).toBeCloseTo(0.25, 9);
     expect(c.tick(10.6, 100.05, false, true)).toBe(0);
     expect(c.tick(14, 100.05, false)).toBe(1); // a long stall becomes a jump, capped
+  });
+  it('the image catches up with the sound after a stall while it runs (never left behind it)', () => {
+    const c = new MemoryClock();
+    c.tick(10, 100, true);
+    expect(c.tick(10.02, 100.02, true)).toBeCloseTo(0.02, 9);
+    // A 1.5 s frame while the sound played on: all of it.
+    expect(c.tick(11.52, 101.52, true)).toBeCloseTo(1.5, 9);
+    // Back from suspended (no audio time on the frame before): one frame of real time.
+    c.tick(11.6, 101.52, false);
+    expect(c.tick(11.62, 101.53, true)).toBeCloseTo(0.02, 9);
   });
 });

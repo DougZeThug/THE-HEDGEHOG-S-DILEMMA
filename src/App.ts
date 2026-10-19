@@ -563,6 +563,9 @@ export class App {
     // it is a score cue: the sound designer's and the skeptic's reviews, 2026-10-18).
     this.audio?.memoryHush(prepared.def.hush, 1.4);
     this.ambience?.hold(this.time + prepared.def.sections.end);
+    // A memory whose music is the room's last: no chord of the room's under it (its reverb isn't
+    // hushed, and four of its five chords are a semitone from the woodland's key).
+    if (this.ambience && prepared.def.lastMusic === prepared.variant) this.ambience.score.drone = 0;
     if (prepared.def.roomDim) this.lighting.dimToChair(prepared.def.roomDim, prepared.def.maxHold + 4, this.time);
     if (this.director.scenes.active?.id !== id) this.director.memoryExternal(id);
     memory.start();
@@ -602,6 +605,12 @@ export class App {
         const counts = readMemoryCounts();
         counts[l.id] = (counts[l.id] ?? 0) + 1;
         writeMemoryCounts(counts);
+      }
+      // Its music was the room's last: seen, the room's own never comes back this visit (the
+      // drone stays away, and the Director plays nothing); let go before then, the drone returns.
+      if (p.def.lastMusic === p.variant) {
+        if (seen) this.director.withdrawMusic();
+        if (this.ambience && !this.director.musicWithdrawn) this.ambience.score.drone = 1;
       }
       this.ambience?.hold(this.time + Math.max(12, this.director.aftermathLeft()));
     }

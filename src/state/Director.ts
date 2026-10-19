@@ -178,6 +178,18 @@ export class Director {
   aftermathLeft(): number {
     return Math.max(0, this.aftermathUntil - this.now);
   }
+  /**
+   * The room's music is over for this visit (the woodland's afternoon has been seen: its music
+   * was the last): nothing of the room's own plays again, its piano, its humming, or a tune a
+   * humming situation owed (left unpaid). The room itself carries on.
+   */
+  private _musicWithdrawn = false;
+  get musicWithdrawn(): boolean {
+    return this._musicWithdrawn;
+  }
+  withdrawMusic(): void {
+    this._musicWithdrawn = true;
+  }
 
   /** After a vignette, even the room finishing its own line waits (its quiet is part of it). */
   private vignetteQuietUntil = -Infinity;
@@ -323,7 +335,10 @@ export class Director {
       cancel: (rule) => d.scheduler.cancelWhere((e) => e.rule === rule),
       reveal: (rule, id, delay, mode, seconds) => d.reveal(id, delay, rule, mode, seconds),
       speak: (rule, p, position, delay, style, gain) => d.speakPhrase(rule, p, position, delay, style, gain),
-      musicReady: (sec) => d.scheduler.ready('music', d.now, sec),
+      musicReady: (sec) => !d.musicWithdrawn && d.scheduler.ready('music', d.now, sec),
+      get musicWithdrawn() {
+        return d.musicWithdrawn;
+      },
       markMusic: () => d.scheduler.mark('music', d.now),
       lastContribution: () => d.lastContrib,
       // A situation is a strong thing: it doesn't begin over a meeting, inside a held silence,
@@ -571,6 +586,8 @@ export class Director {
 
   /** Keep the Director's model of what is visible in sync with the cues it lets through. */
   private accept(cue: Cue, rule: string): boolean {
+    // After the room's last music, none of its own again, nor anyone humming.
+    if (this._musicWithdrawn && (cue.type === 'music' || (cue.type === 'voice' && cue.kind === 'hum'))) return false;
     // A situation that took the chair's voice or the space beyond the walls after this was
     // queued keeps it: claims hold at the moment of sounding, not only when queued.
     if (cue.type === 'voice' && !rule.startsWith('sit:')) {

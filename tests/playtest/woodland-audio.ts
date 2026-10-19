@@ -3,8 +3,9 @@
  * its own cue sheet and markers (src/memory/defs.ts), its own renders (src/memory/synthWoods.ts) and
  * its recordings (`music/<file>` cues, from public/music/, decoded by ffmpeg), at their authored
  * levels; places approximated (a pan from where each sits, a little less for what is further off);
- * a cue's `stopAfter` cut where the room cuts it. Raised as a whole to a listening level: in the room
- * it is quieter. 48 kHz (the synthesised renders, made at 24 kHz, are brought up to it).
+ * a cue's `stopAfter` or `until` cut where the room cuts it (40 ms, ending there). Raised as a
+ * whole to a listening level: in the room it is quieter. 48 kHz (the synthesised renders, made at
+ * 24 kHz, are brought up to it).
  *
  *   npx vite-node tests/playtest/woodland-audio.ts            (VARIANT=afternoon|empty PRE=2)
  */
@@ -85,13 +86,14 @@ for (const m of seed.markers) {
   let lp = 0, rp = 0;
   const a = c.lowpass ? 1 - Math.exp((-2 * Math.PI * c.lowpass) / RATE) : 1;
   const from = Math.round((c.offset ?? 0) * RATE);
-  // (As the room: a cue cut at `stopAfter` file seconds, over 40 ms.)
-  const stop = c.stopAfter !== undefined ? Math.round(c.stopAfter * RATE) : Infinity;
+  // (As the room: a cue cut at `stopAfter` file seconds, or at `until` on the memory's timeline,
+  // over 40 ms ending there.)
+  const stop = Math.min(c.stopAfter !== undefined ? Math.round(c.stopAfter * RATE) : Infinity, c.until !== undefined ? from + Math.round((c.until - m.position) * RATE) : Infinity);
   const i0 = Math.floor((PRE + m.position) * RATE);
   for (let i = 0; from + i < ch[0].length && i0 + i < n; i++) {
     const t = i / RATE;
     const fin = c.fadeIn ? Math.min(1, t / c.fadeIn) : 1;
-    const fs = from + i < stop ? 1 : Math.max(0, 1 - (from + i - stop) / (0.04 * RATE));
+    const fs = from + i < stop - 0.04 * RATE ? 1 : Math.max(0, (stop - from - i) / (0.04 * RATE));
     if (fs <= 0) break;
     let l = ch[0][from + i], r = (ch[1] ?? ch[0])[from + i];
     if (c.lowpass) {

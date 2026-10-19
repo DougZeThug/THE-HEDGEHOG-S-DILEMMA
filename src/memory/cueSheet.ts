@@ -72,6 +72,13 @@ export interface Cue {
   side?: 'left' | 'right';
   /** Stop this many seconds into the file (a sentence cut off, a laugh that doesn't finish). */
   stopAfter?: number;
+  /**
+   * Cut at this point of the memory's own timeline (seconds), over 40 ms ending exactly there,
+   * however and whenever it was started (on time, part-way in after a stall, again after a
+   * pause): the afternoon's sounds at the woodland's cut to dusk, on the same instant of the audio
+   * clock as the evening's begin (cues whose markers stand there).
+   */
+  until?: number;
   /** Dry: no room around it (a voice on a phone, held to the ear). */
   dry?: boolean;
   /** Music only: the place's air, wide (a stereo bed that keeps its stereo), not a point in it. */

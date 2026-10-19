@@ -52,6 +52,8 @@ export interface SituationHost {
   speak(rule: string, p: Phrase, position: VoicePosition, delay: number, style: VoiceStyle, gain: number): void;
   musicReady(seconds: number): boolean;
   markMusic(): void;
+  /** The room's music is over for this visit (the woodland's afternoon was its last). */
+  readonly musicWithdrawn?: boolean;
   lastContribution(): ContributionTrace | null;
 }
 

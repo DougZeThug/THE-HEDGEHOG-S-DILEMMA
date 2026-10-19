@@ -145,6 +145,10 @@ export class MemoryAudio implements AudioSink {
       src.loopEnd = made ? buf.duration : Math.max(src.loopStart + 0.1, buf.duration - 0.05);
       from = src.loopStart + (from % Math.max(0.1, src.loopEnd - src.loopStart));
     } else if (from >= buf.duration - 0.05) return;
+    // Cut at a point of the memory's timeline (the woodland's cut): seconds from `at`. Already
+    // there or nearly (a pause just before it), it isn't started at all.
+    const until = cue.until !== undefined ? cue.until - marker.position - into : Infinity;
+    if (until < 0.1) return;
     const gain = c.createGain();
     // A one-shot is a point in the scene: mono before its panner (a stereo file's own left/right
     // imbalance would otherwise move it away from where it is placed).
@@ -159,11 +163,13 @@ export class MemoryAudio implements AudioSink {
     const nodes: AudioNode[] = [src, gain];
     let node: AudioNode = gain;
     src.connect(gain);
-    const stop = cue.stopAfter !== undefined && kind !== 'bed' ? Math.max(0.05, cue.stopAfter - from) : Infinity;
-    const dur = kind === 'bed' ? Infinity : Math.min(buf.duration - from, stop);
-    if (Number.isFinite(stop) && stop < buf.duration - from) {
-      // Cut off, not faded: a sentence that stops, but without a click.
-      gain.gain.setValueAtTime(level, at + stop - 0.04);
+    const stop = Math.min(cue.stopAfter !== undefined && kind !== 'bed' ? Math.max(0.05, cue.stopAfter - from) : Infinity, until);
+    const dur = kind === 'bed' ? stop : Math.min(buf.duration - from, stop);
+    const cut = Number.isFinite(stop) && (kind === 'bed' || stop < buf.duration - from);
+    if (cut) {
+      // Cut off, not faded: a sentence that stops, but without a click (and from wherever a
+      // fade-in has reached by then, not from its full level).
+      gain.gain.setValueAtTime(level * (fadeIn > 0 ? Math.min(1, (stop - 0.04) / fadeIn) : 1), at + stop - 0.04);
       gain.gain.linearRampToValueAtTime(SILENT, at + stop);
     }
     if (cue.lowpass) {
@@ -221,7 +227,7 @@ export class MemoryAudio implements AudioSink {
     src.onended = () => this.drop(live);
     this.live.add(live);
     src.start(at, from);
-    if (Number.isFinite(stop) && stop < buf.duration - from) src.stop(at + stop + 0.02);
+    if (cut) src.stop(at + stop + 0.02);
     if (kind === 'voice') {
       // The words, for as long as they are said (a sentence that is cut off ends in a dash).
       if (cue.text && (into === 0 || caption)) this.host.caption?.(cue.text, dur, true, cue.side);

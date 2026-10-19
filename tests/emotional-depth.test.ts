@@ -367,3 +367,27 @@ describe('review fixes', () => {
     expect(q.intenseFree(117)).toBe(false);
   });
 });
+
+describe("after the room's last music (the woodland's afternoon, seen)", () => {
+  /** Music, and anyone humming, in a visit of a visitor standing still facing one wall. */
+  const tunes = (withdrawAt: number | null, seed: number) => {
+    const d = new Director({ seed });
+    d.release();
+    const out: TimedCue[] = [];
+    for (let t = 0; t < 600; t += 0.1) {
+      if (withdrawAt !== null && Math.abs(t - withdrawAt) < 0.05) d.withdrawMusic();
+      const cues = d.tick(0.1, { ...base }, 'north');
+      if (t >= (withdrawAt ?? 0)) out.push(...cues);
+    }
+    return out.filter((c) => c.cue.type === 'music' || (c.cue.type === 'voice' && c.cue.kind === 'hum'));
+  };
+  it('the room plays no music of its own again that visit, and nobody hums', () => {
+    let before = 0;
+    for (const seed of [1, 2, 3, 4]) {
+      before += tunes(null, seed).length;
+      expect(tunes(30, seed), `seed ${seed}`).toEqual([]);
+    }
+    // (A still visitor's visit does have them, otherwise this would prove nothing.)
+    expect(before).toBeGreaterThan(0);
+  });
+});
