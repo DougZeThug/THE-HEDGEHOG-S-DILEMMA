@@ -1,4 +1,4 @@
-import { BREEZE_KEYS, CUT, SHOTS } from './defs';
+import { CUT, SHOTS } from './defs';
 import { gustSway } from './living/performance';
 import { WOODLAND } from './living/woodland';
 
@@ -21,69 +21,50 @@ export function leavesPan(t: number): number {
 }
 
 /**
- * The woodland memory's sound, made in the engine (docs/reviews/2026-10-woodland.md): stand-ins
- * until the artist has listened (`review: pending`), and a place to put real recordings later
- * (the cue's asset).
+ * The woodland memory's day insects, made in the engine (docs/reviews/2026-10-woodland.md): stand-ins
+ * until the artist has listened (`review: pending`). The rest of its sound is recorded: the wind in
+ * the leaves and the grass, two far birds, the evening's cicadas, and the piano (public/music/
+ * woodland-*.mp3: scripts/woodland-stems.ts, scripts/woodland-score/).
  *
- * A summer clearing: cicadas. By day, the tymbal buzz of the common summer kind, rising and
- * falling in long phrases, one near them, two either side, and the shimmer of many more in the
- * trees; at evening (after the cut) the evening cicada comes in, its falling "kana-kana" call, as
- * the day's thin out. Not loops: each is one take laid along the memory's own timeline (from its
- * start), so the near cicada's phrases fall where they should (a lull while the two of them are
- * close, a phrase carrying straight across the cut), and the leaves move with the same gust the
- * grass does. Pure functions of their seed, rendered at 24 kHz, in slices that yield to the page.
+ * A summer afternoon's insects: the tymbal buzz of the common summer cicada, rising and falling in
+ * long phrases, one near them, two either side, and the shimmer of many more in the trees, under
+ * the wind and the piano (demoted: the evening's cicadas are the dusk's defining sound, and the
+ * afternoon is the wind's, the birds' and the piano's: the reviews of 2026-10-19). Not loops: each
+ * is one take laid along the memory's own timeline, so the near cicada's phrases fall where they
+ * should (a lull while the two of them are close; back a second into the second wide), and all of
+ * it ends on the cut, with the piano: the afternoon's sounds stop on one instant, and the evening's
+ * begin there. Pure functions of their seed, rendered at 24 kHz, in slices that yield to the page.
  *
  *   cicadas      the one near them (mono, placed)
- *   woods        the rest (stereo, wide): two more cicadas, the chorus in the trees, the evening
- *                cicadas after the cut, the leaves
+ *   woods        the rest of the day's (stereo, wide): two cicadas either side, the chorus in the trees
  *   cicada-last  one evening cicada, far off, heard from the white room after
- *
- * Take 0 is the afternoon's timeline, take 1 the empty clearing's (dusk, shorter).
  */
 export const WOODS_KINDS = ['cicadas', 'woods', 'cicada-last'] as const;
 export type WoodsKind = (typeof WOODS_KINDS)[number];
 export const RATE = 24000;
 
-/** The afternoon's sound timeline (seconds from the memory's start; the picture's, which these
+/** The afternoon's insects' timeline (seconds from the memory's start; the picture's, which these
  *  follow, are in defs.ts). */
 export const TIMES = {
-  length: 50.5,
-  /** The cut (the picture's): nothing in the sound starts or stops on it. */
+  /** They end on the cut: the render is the afternoon and nothing after it. */
+  length: CUT,
   cut: CUT,
   /** The near cicada's phrases: first heard beyond the wall; through the first wide; a lull while
    *  the two of them are close (her look, his); one long phrase from a second into the second
-   *  wide, carrying straight across the cut (34.5 s). (Never within 0.7 s of a cut.) */
+   *  wide, cut off by the cut, at its height. (Never begun or ended within 0.7 s of a shot's cut.) */
   near: [[1.2, 6.6], [8.2, SHOTS.two - 0.7], [SHOTS.wideAgain + 1, 37.8]] as [number, number][],
   inside: [6.5, 10.5] as [number, number],
   chorusFrom: 2.5,
   /** The two either side: also quiet while the two of them are close. */
   midQuiet: [SHOTS.two - 0.9, SHOTS.wideAgain + 0.8] as [number, number],
-  /** The chorus's own slow swells held still across the cut (nothing in the sound marks it: a
-   *  swell of +7 dB in the trees from 33.5 to 36.5 s did, a little; QA, 2026-10-18). */
-  stillAcross: [CUT - 1.5, CUT + 3.5] as [number, number],
   /**
-   * And shallow while the two of them are close (to `depth`): with the cicadas over and beside
-   * them quiet, they were the only sound moving, and they crested under both looks (+4.8 dB through
-   * hers, +7.6 through his), the woods scoring them (all three evaluations of the film, 2026-10-18).
-   * Eased in under the gust, out under the cicadas' return.
+   * The chorus shallow while the two of them are close (to `depth`): with the cicadas over and
+   * beside them quiet, they were the only sound moving, and they crested under both looks (+4.8 dB
+   * through hers, +7.6 through his), the woods scoring them (all three evaluations of the film,
+   * 2026-10-18). Eased in under the gust, out under the cicadas' return.
    */
   shallow: { from: [11.0, 13.5] as [number, number], to: [SHOTS.wideAgain + 0.8, SHOTS.wideAgain + 3.0] as [number, number], depth: 0.3 },
-  /**
-   * After the cut (34.5 s) the sound stays the afternoon's while the cicada over them finishes its
-   * phrase (to 37.8): the picture says later before the sound does. Then the day thins, and an
-   * evening cicada calls, once, and once more. Nothing marks the cut itself.
-   */
-  dusk: [37.8, 41.5] as [number, number],
-  evening: [38.8, 41.6] as number[],
-  /** The air (scene.breeze): the afternoon's, steadier into the cut, the evening's calm. */
-  breeze: BREEZE_KEYS,
-  /** Going (from 42.5): the chorus first, the leaves, the two either side, the near one last. */
-  chorusOut: [43, 45.5] as [number, number],
-  leavesOut: [43, 45] as [number, number],
-  midOut: [44, 46] as [number, number],
-  nearOut: [45, 47] as [number, number],
 };
-const EMPTY = { length: 22, out: [16, 20] as [number, number], evening: [1.5, 6.5, 11.8] };
 
 // ─────────────────────────────── helpers ───────────────────────────────
 
@@ -104,12 +85,6 @@ const smooth = (e0: number, e1: number, x: number) => {
 };
 /** 1 outside [a, b], easing to 0 inside it over `edge` seconds. */
 const quiet = (t: number, [a, b]: [number, number], edge = 0.25) => 1 - smooth(a - edge, a, t) * (1 - smooth(b, b + edge, t));
-const fadeOut = (t: number, [a, b]: [number, number]) => 1 - smooth(a, b, t);
-const curve = (pts: [number, number][], t: number) => {
-  if (t <= pts[0][0]) return pts[0][1];
-  for (let i = 1; i < pts.length; i++) if (t <= pts[i][0]) return pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * smooth(pts[i - 1][0], pts[i][0], t);
-  return pts[pts.length - 1][1];
-};
 
 /** An RBJ biquad, run in place. */
 function biquad(x: Float32Array, type: 'lowpass' | 'highpass' | 'bandpass' | 'peak', f: number, q: number, gainDb = 0): void {
@@ -277,66 +252,48 @@ function phrases(seed: number, from: number, to: number, sing: [number, number],
 }
 
 /** The near cicada: beyond the wall at first (quieter), full once inside, its phrases authored. */
-export function renderCicadas(take: number): Float32Array[] {
-  const empty = take === 1;
-  const len = empty ? EMPTY.length : TIMES.length;
-  const x = new Float32Array(Math.ceil(len * RATE));
+export function renderCicadas(): Float32Array[] {
+  const x = new Float32Array(Math.ceil(TIMES.length * RATE));
   const T = TIMES;
-  const level = (t: number) => (empty ? 0.7 * fadeOut(t, EMPTY.out) : (0.5 + 0.5 * smooth(T.inside[0], T.inside[1], t)) * fadeOut(t, T.nearOut));
-  const list = empty ? [[1.5, 7.5], [10, 15.5]] as [number, number][] : T.near;
-  list.forEach(([a, b], i) => cicada(x, { ...NEAR, seed: NEAR.seed + i }, a, b, level));
+  const level = (t: number) => 0.5 + 0.5 * smooth(T.inside[0], T.inside[1], t);
+  T.near.forEach(([a, b], i) => cicada(x, { ...NEAR, seed: NEAR.seed + i }, a, b, level));
   normalise([x], -45);
   return [x];
 }
 
-/** The clearing's air: two cicadas either side, the trees' chorus, the evening's, the leaves (stereo). */
 /**
- * Nothing begins or ends on the cut: a phrase that would start just after it starts before it
- * instead (already sounding across), and one that would end just before it carries on past.
+ * The two either side's phrases: random, and their quiet is never a fade: a phrase under way as it
+ * begins ends there, on its own fall-away, and none is under way as it ends: they come back out of
+ * it at a phrase's start, each with its own swell (one already under way came back as a fade, half
+ * a phrase, on the cut's heels: the sound designer's review, 2026-10-18; the creative director's,
+ * on the way in). One under way at the cut is cut there, with everything else of the afternoon.
  */
-function steady(ph: [number, number][], empty: boolean): [number, number][] {
-  if (empty) return ph;
-  const c = TIMES.cut;
-  return ph.map(([a, b]): [number, number] => {
-    // (A phrase takes a couple of seconds to swell in and to fall away.)
-    if (a > c - 4.5 && a < c + 3) a = c - 4.5;
-    if (b > c - 3 && b < c + 3.5) b = c + 3.5;
-    return [a, Math.max(b, a + 2)];
+export function midPhrases(): [number, number][][] {
+  const [start, end] = TIMES.midQuiet;
+  return [MID_L, MID_R].map((c) => {
+    const list = phrases(c.seed, 2, TIMES.length + 3, [4, 9], [2, 6])
+      .filter(([a, b]) => !(a < end && b > end))
+      .map(([a, b]): [number, number] => (a < start && b > start ? [a, Math.max(a + 2, start)] : [a, b]));
+    // Back a few seconds after the quiet, at a phrase's start (not left until the cut is near).
+    const k = list.findIndex(([a]) => a >= end);
+    if (k >= 0 && list[k][0] > end + 3.5) list[k] = [end + 1.5, end + 1.5 + (list[k][1] - list[k][0])];
+    // And nothing begins in the afternoon's last seconds: a sound coming in as the cut nears leans
+    // toward it.
+    return list.filter(([a]) => !(a > TIMES.cut - 3 && a < TIMES.cut));
   });
 }
 
-/**
- * The two either side's phrases (take 0 the afternoon's, take 1 the dusk's): random, none begins or
- * ends on the cut, and their quiet is never a fade: a phrase under way as it begins ends there, on
- * its own fall-away, and none is under way as it ends: they come back out of it at a phrase's
- * start, each with its own swell (one already under way came back as a fade, half a phrase, on the
- * cut's heels: the sound designer's review, 2026-10-18; the creative director's, on the way in).
- */
-export function midPhrases(take: number): [number, number][][] {
-  const empty = take === 1;
-  const len = empty ? EMPTY.length : TIMES.length;
-  const [start, end] = TIMES.midQuiet;
-  return [MID_L, MID_R].map((c) =>
-    steady(phrases(c.seed, 2, len - 1, [4, 9], [2, 6]), empty)
-      .filter(([a, b]) => empty || !(a < end && b > end))
-      .map(([a, b]): [number, number] => (!empty && a < start && b > start ? [a, Math.max(a + 2, start)] : [a, b])),
-  );
-}
-
-export async function renderWoods(take: number): Promise<Float32Array[]> {
-  const empty = take === 1;
-  const len = empty ? EMPTY.length : TIMES.length;
-  const n = Math.ceil(len * RATE);
+/** The rest of the afternoon's insects: two cicadas either side, the trees' chorus (stereo). */
+export async function renderWoods(): Promise<Float32Array[]> {
+  const n = Math.ceil(TIMES.length * RATE);
   const L = new Float32Array(n), R = new Float32Array(n);
   const T = TIMES;
-  const r = rng(77 + take);
-  const opened = (t: number) => (empty ? 1 : smooth(T.inside[0], T.inside[1], t));
-  const going = (t: number, span: [number, number]) => (empty ? fadeOut(t, EMPTY.out) : fadeOut(t, span));
-  const day = (t: number) => (empty ? 0.25 : 1 - 0.7 * smooth(T.dusk[0], T.dusk[1], t));
+  const r = rng(77);
+  const opened = (t: number) => smooth(T.inside[0], T.inside[1], t);
   // Two cicadas, left and right of them, a little further off.
   const mid = new Float32Array(n);
-  const midLevel = (t: number) => (0.4 + 0.6 * opened(t)) * (empty ? 1 : quiet(t, T.midQuiet, 0.6)) * day(t) * going(t, T.midOut);
-  const lists = midPhrases(take);
+  const midLevel = (t: number) => (0.4 + 0.6 * opened(t)) * quiet(t, T.midQuiet, 0.6);
+  const lists = midPhrases();
   for (const [k, c] of [[0, MID_L], [1, MID_R]] as [number, Cicada][]) {
     mid.fill(0);
     for (const [a, b] of lists[k]) cicada(mid, c, a, b, midLevel);
@@ -352,14 +309,10 @@ export async function renderWoods(take: number): Promise<Float32Array[]> {
   for (let k = 0; k < 4; k++) {
     const f = 4400 + k * 520 + r() * 150, pulse = 170 + r() * 110;
     const s1 = 0.05 + r() * 0.08, s2 = 0.13 + r() * 0.1, p1 = r() * 6.28, p2 = r() * 6.28, p3 = r() * 6.28;
-    // (Its clock stops across the cut and goes on from where it stopped.)
-    const [h0, h1] = T.stillAcross;
-    const clock = (t: number) => (empty || t < h0 ? t : t < h1 ? h0 : t - (h1 - h0));
     const { from: sf, to: st, depth } = T.shallow;
     const swell = control(n, (t) => {
-      const c = clock(t);
-      const dep = empty ? 1 : 1 - (1 - depth) * smooth(sf[0], sf[1], t) * (1 - smooth(st[0], st[1], t));
-      return 0.55 + dep * (0.25 * Math.sin(2 * Math.PI * s1 * c + p1) + 0.2 * Math.sin(2 * Math.PI * s2 * c + p2));
+      const dep = 1 - (1 - depth) * smooth(sf[0], sf[1], t) * (1 - smooth(st[0], st[1], t));
+      return 0.55 + dep * (0.25 * Math.sin(2 * Math.PI * s1 * t + p1) + 0.2 * Math.sin(2 * Math.PI * s2 * t + p2));
     });
     let cp = (p3 / 6.2832) * TAB;
     const dcp = (pulse * TAB) / RATE;
@@ -379,78 +332,14 @@ export async function renderWoods(take: number): Promise<Float32Array[]> {
     smear(ch, 140, ch === chorusL ? 11 : 12);
     biquad(ch, 'lowpass', 7500, 0.7);
   }
-  const chorusLv = control(n, (t) => {
-    const g = heard(t).strength;
-    // The wind carries it; it thins in the evening; it goes first.
-    const lv = day(t) * Math.pow(10, (3 * g) / 20);
-    return lv * smooth(T.chorusFrom, T.chorusFrom + 2.5, t) * (0.45 + 0.55 * opened(t)) * going(t, T.chorusOut);
-  });
+  // The wind carries it (a little louder in the gust); a third less than it was against the two
+  // either side (demoted with them: the reviews of 2026-10-19).
+  const chorusLv = control(n, (t) => Math.pow(10, (3 * heard(t).strength) / 20) * smooth(T.chorusFrom, T.chorusFrom + 2.5, t) * (0.45 + 0.55 * opened(t)));
   for (let i = 0; i < n; i++) {
     const lv = at64(chorusLv, i);
-    L[i] += chorusL[i] * lv * 0.6;
-    R[i] += chorusR[i] * lv * 0.6;
+    L[i] += chorusL[i] * lv * 0.42;
+    R[i] += chorusR[i] * lv * 0.42;
   }
-  await yieldNow();
-  // The evening cicadas: after the cut (or all through the empty clearing), far off, one then another.
-  const eve = new Float32Array(n);
-  (empty ? EMPTY.evening : T.evening).forEach((at, i) => eveningCall(eve, at, 600 + i + take * 10, i === 0 ? 0.7 : 1));
-  smear(eve, 90, 21);
-  biquad(eve, 'lowpass', 6500, 0.7);
-  const eveLv = control(n, (t) => going(t, T.chorusOut));
-  for (let i = 0; i < n; i++) {
-    const v = eve[i] * at64(eveLv, i);
-    L[i] += v * 0.55;
-    R[i] += v * 0.35;
-  }
-  // The leaves: band-limited, out of the cicadas' way, fluttering, carried by the gust from the left.
-  const nl = new Float32Array(n), nr = new Float32Array(n), flutter = new Float32Array(n);
-  let b0 = 0, b1 = 0, b2 = 0, c0 = 0, c1 = 0, c2 = 0;
-  for (let i = 0; i < n; i++) {
-    // Pink-ish (Kellet's economy filter), left and right apart.
-    const w1 = r() * 2 - 1, w2 = r() * 2 - 1;
-    b0 = 0.99765 * b0 + w1 * 0.099;
-    b1 = 0.963 * b1 + w1 * 0.2965;
-    b2 = 0.57 * b2 + w1 * 1.0527;
-    c0 = 0.99765 * c0 + w2 * 0.099;
-    c1 = 0.963 * c1 + w2 * 0.2965;
-    c2 = 0.57 * c2 + w2 * 1.0527;
-    nl[i] = b0 + b1 + b2 + w1 * 0.1848;
-    nr[i] = c0 + c1 + c2 + w2 * 0.1848;
-    flutter[i] = r() * 2 - 1;
-  }
-  await yieldNow();
-  biquad(flutter, 'lowpass', 14, 0.7);
-  const fk = 1 / Math.max(1e-6, rms([flutter]));
-  for (const ch of [nl, nr]) {
-    biquad(ch, 'highpass', 500, 0.7);
-    biquad(ch, 'lowpass', 3500, 0.7);
-    biquad(ch, 'peak', 5000, 1.5, -6);
-  }
-  const leaves = [new Float32Array(n), new Float32Array(n)];
-  // The breeze in the leaves, and a gust over it (at half the weight it had: the memory's loudest
-  // moment outweighed the silent cut; the skeptic's third review, the cinematic director's).
-  const breezeAt = (t: number) => 0.15 * (empty ? 0.6 : curve(T.breeze, t)) * (empty ? 0.6 : 0.25 + 0.75 * opened(t)) * going(t, T.leavesOut);
-  const air = control(n, (t) => breezeAt(t) + 0.5 * Math.pow(heard(t).strength, 1.5) * (empty ? 0.6 : 0.25 + 0.75 * opened(t)) * going(t, T.leavesOut));
-  const breezeOnly = control(n, breezeAt);
-  // From the left as the front comes in, toward the right as it passes.
-  const panEnv = control(n, leavesPan);
-  for (let i = 0; i < n; i++) {
-    const lv = at64(air, i) * (1 + 0.6 * flutter[i] * fk * 0.35);
-    const pan = at64(panEnv, i);
-    leaves[0][i] = nl[i] * lv * Math.sqrt((1 - pan * 0.6) / 2);
-    leaves[1][i] = nr[i] * lv * Math.sqrt((1 + pan * 0.6) / 2);
-  }
-  // Balanced against the cicadas by ear-free measure, on the breeze alone (so a gust is as loud
-  // as it is, not as loud as every other gust lets it be): the breeze in the leaves about 6 dB
-  // under them.
-  let sb = 0;
-  for (let i = 0; i < n; i++) {
-    const b = at64(breezeOnly, i);
-    sb += (nl[i] * b) ** 2 + (nr[i] * b) ** 2;
-  }
-  const kc = rms([L, R]), kl = Math.sqrt(sb / Math.max(1, 2 * n));
-  const lk = kl > 0 ? (kc / kl) * Math.pow(10, -6 / 20) : 0;
-  for (let i = 0; i < n; i++) (L[i] += leaves[0][i] * lk), (R[i] += leaves[1][i] * lk);
   normalise([L, R], -45);
   return [L, R];
 }
@@ -465,8 +354,8 @@ export function renderLast(): Float32Array[] {
 }
 
 /** One of the woodland's sounds as an AudioBuffer (rendered on first use; cached by the host's loader). */
-export async function synthWoods(ctx: BaseAudioContext, kind: WoodsKind, take: number): Promise<AudioBuffer> {
-  const ch = kind === 'cicadas' ? renderCicadas(take) : kind === 'woods' ? await renderWoods(take) : renderLast();
+export async function synthWoods(ctx: BaseAudioContext, kind: WoodsKind): Promise<AudioBuffer> {
+  const ch = kind === 'cicadas' ? renderCicadas() : kind === 'woods' ? await renderWoods() : renderLast();
   const buf = ctx.createBuffer(ch.length, ch[0].length, RATE);
   ch.forEach((c, i) => buf.copyToChannel(c, i));
   return buf;

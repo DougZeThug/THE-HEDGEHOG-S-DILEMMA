@@ -65,6 +65,7 @@ export class MemoryAudio implements AudioSink {
   private released = false;
   private paused: { marker: Marker; at: number }[] = [];
   private disposed = false;
+  private timers = new Set<ReturnType<typeof setTimeout>>();
 
   constructor(private host: MemoryAudioHost, private sheet: CueSheet, private markers: Marker[], seed = 1) {
     const c = host.ctx;
@@ -235,8 +236,30 @@ export class MemoryAudio implements AudioSink {
     }
     // A caption says what began, briefly (a bed or music isn't captioned for its whole length).
     // (Also when it starts late or part-way in, after a stall: the caption is what a deaf visitor
-    // has of it. Not when it comes back after a pause or a seek.)
-    if (cue.caption && (into === 0 || caption)) this.host.caption?.(cue.caption, kind === 'sfx' ? Math.min(dur, 4) : 2.5);
+    // has of it. Not when it comes back after a pause or a seek, unless its caption, given a
+    // moment into it (`captionAt`), was still to come.)
+    const due = cue.captionAt === undefined ? 0 : cue.captionAt - into;
+    if (cue.caption && (into === 0 || caption || due > 0)) {
+      const text = cue.caption, seconds = kind === 'sfx' ? Math.min(dur, 4) : 2.5;
+      if (cue.captionAt === undefined) this.host.caption?.(text, seconds);
+      else this.later(at - this.now + Math.max(0, due), () => this.host.caption?.(text, seconds));
+    }
+  }
+
+  /** Something to do `seconds` from now (a caption a moment into its sound), unless the memory
+   *  pauses, seeks, lets go or ends first. */
+  private later(seconds: number, f: () => void): void {
+    if (seconds <= 0.02 || typeof setTimeout !== 'function') return f();
+    const h = setTimeout(() => {
+      this.timers.delete(h);
+      f();
+    }, seconds * 1000);
+    this.timers.add(h);
+  }
+
+  private cancelLater(): void {
+    for (const h of this.timers) clearTimeout(h);
+    this.timers.clear();
   }
 
   private drop(l: Live): void {
@@ -297,6 +320,7 @@ export class MemoryAudio implements AudioSink {
   release(mode: 'natural' | 'interrupt', fade: number): void {
     if (this.released) return;
     this.released = true;
+    this.cancelLater();
     for (const l of [...this.live]) {
       if (l.kind === 'voice') {
         // A sentence already begun is finished at a natural close; interrupted, it is cut.
@@ -329,6 +353,7 @@ export class MemoryAudio implements AudioSink {
     const back: Marker[] = [];
     const t = this.now;
     this.paused = [];
+    this.cancelLater();
     for (const l of [...this.live]) {
       if (l.at > t + 0.005) {
         back.push(l.marker);
@@ -366,6 +391,7 @@ export class MemoryAudio implements AudioSink {
     if (this.disposed) return;
     this.released = false;
     this.paused = [];
+    this.cancelLater();
     for (const l of [...this.live]) this.fadeOut(l, l.kind === 'sfx' ? 0.05 : 0.3);
   }
 
@@ -385,6 +411,7 @@ export class MemoryAudio implements AudioSink {
     if (this.disposed) return;
     this.disposed = true;
     this.paused = [];
+    this.cancelLater();
     for (const l of [...this.live]) this.fadeOut(l, fade);
     const room = this.room, wet = this.wet;
     const done = () => {

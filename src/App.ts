@@ -446,7 +446,7 @@ export class App {
         if (asset.startsWith('synth:')) {
           const w = await import('./memory/synthWoods');
           const kind = asset.slice(6) as (typeof w.WOODS_KINDS)[number];
-          if (w.WOODS_KINDS.includes(kind)) return w.synthWoods(a.ctx, kind, take ?? 0);
+          if (w.WOODS_KINDS.includes(kind)) return w.synthWoods(a.ctx, kind);
         }
         if (asset.startsWith('synth:')) {
           const { synthSound, SYNTH_KINDS } = await import('./memory/synthSounds');

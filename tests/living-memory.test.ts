@@ -8,7 +8,7 @@ import { compose, FULL, weightsFor } from '../src/memory/compose';
 import { coverQuad, squareToQuad, visiblePart } from '../src/world/living/Immersion';
 import { useInitialState, sheetSource } from '../src/memory/theatre';
 import { memorySchema } from '../src/memory/sheets';
-import { BREEZE_KEYS, CUT as CUT_AT, MEMORIES, SHOTS, TURN_EYES, TURN_STEPS, TWO_SHOT, sheetId } from '../src/memory/defs';
+import { CUT as CUT_AT, MEMORIES, SHOTS, TURN_EYES, TURN_STEPS, TWO_SHOT, WOODLAND as WOODLAND_DEF, sheetId } from '../src/memory/defs';
 import { SCENE_MEMORIES } from '../src/content/memories';
 import { MemoryPlaybackController } from '../src/memory/MemoryPlaybackController';
 import { renderCicadas, renderWoods, renderLast, cicada, heard, leavesPan, midPhrases, RATE, TIMES } from '../src/memory/synthWoods';
@@ -178,17 +178,17 @@ describe('the air, which moves everything (one wind, seekable)', () => {
   });
   it("the sound's times are the picture's", () => {
     expect(TIMES.cut).toBe(CUT_AT);
-    expect(TIMES.breeze).toBe(BREEZE_KEYS);
+    // The afternoon's insects are the afternoon and nothing after it.
+    expect(TIMES.length).toBe(CUT_AT);
     // The near cicada and the two either side are quiet while the two of them are close, never
-    // within 0.7 s of a cut.
+    // within 0.7 s of a shot's cut.
     const [, first, last] = TIMES.near;
     expect(first[1]).toBeLessThanOrEqual(SHOTS.two - 0.7);
     expect(last[0]).toBeGreaterThanOrEqual(SHOTS.wideAgain + 0.7);
+    // (Its last phrase is at its height on the cut, not falling away before it.)
+    expect(last[1]).toBeGreaterThan(CUT_AT + 2);
     expect(TIMES.midQuiet[0]).toBeLessThan(SHOTS.two);
     expect(TIMES.midQuiet[1]).toBeGreaterThan(SHOTS.wideAgain);
-    // Held still across the cut, from before it to past the cicada's first seconds after it.
-    expect(TIMES.stillAcross[0]).toBeLessThan(CUT_AT - 1);
-    expect(TIMES.stillAcross[1]).toBeGreaterThan(CUT_AT + 3);
   });
 });
 
@@ -587,29 +587,48 @@ describe('the woodland, heard', () => {
     for (let i = Math.floor(a * RATE); i < Math.floor(b * RATE); i++) e += x[i] * x[i];
     return e / ((b - a) * RATE);
   };
-  it('the cicada over them falls quiet while the two of them are close, and sings straight across the cut', () => {
-    const [x] = renderCicadas(0);
+  it('the cicada over them falls quiet while the two of them are close, and is at its height when the cut takes it', () => {
+    const [x] = renderCicadas();
     expect(energy(x, 17, 28)).toBeLessThan(energy(x, 11, 14) * 0.01);
-    // Across the cut (34.5 s): sounding just before and just after, unchanged.
     expect(energy(x, 33.5, 34.5)).toBeGreaterThan(energy(x, 11, 14) * 0.2);
-    expect(energy(x, 34.5, 35.5)).toBeGreaterThan(energy(x, 11, 14) * 0.2);
-    expect(energy(x, 35.5, 36.5) / energy(x, 33.5, 34.5)).toBeGreaterThan(0.5);
-    expect(x.length).toBe(Math.ceil(TIMES.length * RATE));
+    expect(energy(x, 34.0, 34.5) / energy(x, 33.0, 33.5)).toBeGreaterThan(0.7);
+    expect(x.length).toBe(Math.ceil(CUT_AT * RATE));
   });
-  it('the clearing carries on across the cut (no hole, no swell, on that second)', async () => {
-    const [l, r] = await renderWoods(0);
-    const e = (a: number, b: number) => energy(l, a, b) + energy(r, a, b);
-    const before = e(33.5, 34.5);
-    // The afternoon carries on unchanged past the cut (the picture says later first), to the
-    // cicada's phrase's end: in half seconds, nothing rises or falls by more than 1.5 dB (the
-    // trees' own slow swell rose 2.6 dB just after it, a little mark: QA, 2026-10-18).
-    for (let a = 33.5; a < 37; a += 0.5) {
-      const db = 10 * Math.log10(e(a, a + 0.5) / before);
-      expect(Math.abs(db), `${a}–${a + 0.5} s`).toBeLessThan(1.5);
+  it('the afternoon ends on the cut and the evening begins on it, already singing; only the wind goes on across it', () => {
+    const sheet = WOODLAND_DEF.cues('afternoon').cues;
+    const markers = WOODLAND_DEF.seed('afternoon').markers.filter((m) => sheet[m.label]);
+    for (const m of markers) {
+      const c = sheet[m.label];
+      if (m.label === 'music:air') {
+        // The one sound across it: one file, no cut, nothing of the room's round it.
+        expect(c.until).toBeUndefined();
+        expect(c.dry).toBe(true);
+      } else if (m.position < CUT_AT) {
+        expect(c.until, m.label).toBe(CUT_AT);
+        // (Nothing of the afternoon rings on past it in the memory's room.)
+        if (m.label !== 'sfx:bird-1' && m.label !== 'sfx:bird-2') expect(c.dry, m.label).toBe(true);
+      }
     }
+    const evening = markers.find((m) => m.label === 'music:evening')!;
+    expect(evening.position).toBe(CUT_AT);
+    const e = sheet['music:evening'];
+    // Already under way: no fade but a click's worth, and past the file's own first moments.
+    expect(e.fadeIn).toBeLessThanOrEqual(0.015);
+    expect(e.offset ?? 0).toBeGreaterThan(0);
+    // Named a moment after the cut, never on it, with what has stopped.
+    expect(e.captionAt).toBeGreaterThanOrEqual(0.7);
+    expect(e.caption).toMatch(/piano has stopped/);
+    // Nothing else begins on the cut or in the dusk until the far cicada heard from the room.
+    expect(markers.filter((m) => m.position >= CUT_AT && m.label !== 'music:evening').map((m) => m.label)).toEqual(['sfx:cicada-last']);
+    // The piano: dry, one level (a single cue), named once it has been playing a few seconds.
+    const p = sheet['music:score'];
+    expect(p.dry).toBe(true);
+    expect(p.captionAt).toBeGreaterThanOrEqual(3);
+    // The revisit: the evening and its calm air, nothing of the afternoon's.
+    expect(Object.values(WOODLAND_DEF.cues('empty').cues).map((c) => c.asset).sort()).toEqual(['music/woodland-air-empty.mp3', 'music/woodland-evening-empty.mp3']);
   });
   it('the woods neither swell nor fall on either cut of the two-shot, and stay level through it (nothing scores the looks)', async () => {
-    const [l, r] = await renderWoods(0);
+    const [l, r] = await renderWoods();
     const e = (a: number, b: number) => energy(l, a, b) + energy(r, a, b);
     // Half a second either side of each cut: within 1 dB.
     for (const c of [SHOTS.two, SHOTS.wideAgain]) {
@@ -624,10 +643,12 @@ describe('the woodland, heard', () => {
   });
   it("the two either side go quiet at a phrase's end and come back at a phrase's start (never a fade mid-phrase)", () => {
     const [start, end] = TIMES.midQuiet;
-    for (const list of midPhrases(0)) {
+    for (const list of midPhrases()) {
       for (const [a, b] of list) expect((a < end && b > end) || (a < start && b > start), `${a.toFixed(2)}–${b.toFixed(2)} s`).toBe(false);
       // (Each still comes back, within a few seconds.)
       expect(list.some(([a]) => a >= end && a < end + 4)).toBe(true);
+      // Nothing begins as the cut nears.
+      for (const [a] of list) expect(a > CUT_AT - 3 && a < CUT_AT, `${a.toFixed(2)} s`).toBe(false);
     }
   });
   it("a cicada's phrase swells in and falls away, never a gated tone", () => {

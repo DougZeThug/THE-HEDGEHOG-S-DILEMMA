@@ -65,6 +65,11 @@ export interface Cue {
   /** What a caption says while it sounds (for visitors who can't hear it). */
   caption?: string;
   /**
+   * Seconds into it that its caption is shown (default: as it begins): a sound named once it is
+   * part of the place rather than as it begins, or a moment after a cut rather than on it.
+   */
+  captionAt?: number;
+  /**
    * Voices: the words spoken, captioned as speech (not as a sound) for as long as they sound,
    * and which side the speaker is on, so two people can be told apart in the captions.
    */

@@ -47,10 +47,9 @@ const TAKES = [
   // A few far birds in the afternoon's wides (never a bed).
   ['bird', 'A single small woodland songbird singing one short, relaxed, warbling phrase from a tree on a summer afternoon, then silence. Recorded close with a directional microphone, clearly audible, no other birds, no insects, no wind, no reverb, no music.', 4, 0.55, 3, false],
   // The evening: higurashi in the trees, already singing when it is cut to.
-  ['evening', `Evening cicadas (higurashi) singing at dusk in a Japanese cedar forest: several of them in the trees, each call a clear, ringing, metallic run of quick repeated notes, 'kana-kana-kana', that slowly falls in pitch and slows over about five seconds, the calls overlapping and answering one another from different trees, a calm evening, recorded clearly at an even level. Nothing else: no other insects, no birds, no wind, ${NOTHING_ELSE}.`, 24, 0.65, 2, false],
-  // One call at a time, placed in the trees at the clearing's edge (and the one far call heard
-  // from the white room after).
-  ['call', "One evening cicada (higurashi) calling once at dusk: a clear, ringing, metallic run of quick repeated notes, 'kana-kana-kana', falling in pitch and slowing over about five seconds, then silence. Recorded close with a directional microphone, clearly audible. Nothing else: no other insects, no birds, no wind, no reverb, no music.", 8, 0.65, 3, false],
+  ['evening', "Evening cicadas (higurashi) at dusk in a Japanese cedar forest: several in the trees, each call a clear, ringing, metallic run of quick notes, 'kana-kana-kana', slowly falling in pitch over about five seconds, the calls overlapping and answering from different trees, a calm evening, recorded clearly at an even level. Nothing else: no other insects, no birds, no wind, no voices, no music, no traffic, no rain.", 24, 0.65, 2, false],
+  // (No single calls placed after the cut: the evening is a chorus already going, none of it in
+  // front; a falling call foregrounded in the first seconds is a sigh: the reviews of 2026-10-19.)
 ];
 
 const ledger = existsSync(LEDGER) ? JSON.parse(readFileSync(LEDGER, 'utf8')) : { spent: 0, entries: {} };
@@ -62,6 +61,12 @@ for (const [id, text, seconds, influence, n, loop] of TAKES) {
     const file = fileOf(id, i);
     if (args.force || !existsSync(join(OUT, file))) todo.push({ id, file, text, seconds, influence, loop });
   }
+}
+// (The API takes at most 450 characters of description.)
+const long = todo.filter((j) => j.text.length > 450);
+if (long.length) {
+  console.error(`Descriptions over 450 characters: ${[...new Set(long.map((j) => `${j.id} (${j.text.length})`))].join(', ')}. Nothing was generated.`);
+  process.exit(1);
 }
 const estimate = Math.ceil(todo.reduce((a, j) => a + j.seconds * PER_SECOND, 0));
 const budget = Number(args.budget ?? 2000);

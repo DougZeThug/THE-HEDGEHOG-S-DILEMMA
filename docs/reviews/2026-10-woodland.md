@@ -1508,3 +1508,116 @@ eyes change (157 pixels over 24/255) and nothing else of her does (146 before, a
 strand beside her far cheek stays: its largest change 11/255, 68 before). His look, filmed beside
 her rebuilt turn for the first time: his eyes go to her at 24.0, his head rolls a little from 24.67
 to 24.92, and they look at each other from then to the cut.
+
+## The artist's sound brief: a score, and the cut to dusk (2026-10-19)
+
+The artist asked for the woodland's sound to tell its story: an ordinary afternoon the visitor falls
+in love with without noticing, then its sudden, irreversible absence. A very subtle musical
+presence nobody notices beginning, a simple motif slightly incomplete; at the hard cut to the empty
+dusk clearing the music stops instantly, ideally just before its anticipated resolution, and the
+afternoon gives way on the same instant to an evening where cicadas are the defining presence;
+perhaps the wind in the same trees across the cut; no music in the dusk or back in the white room.
+References: Kensuke Ushio (Chainsaw Man: Reze Arc, "our film", "past", "fable"; DAN DA DAN episode
+7), as a compass. "The afternoon should not feel sad while we are experiencing it. It should become
+sad because we can no longer return to it." ElevenLabs allowed "as much as you need".
+
+### The proposal and its reviews (the sound designer, the creative and cinematic directors; the skeptic)
+
+The proposal: a solo upright from CC0 samples, 3/4 at 60 a minute, nine bars from 7.5 s, a motif
+stated twice and left open, two voices converging, a crescendo into a cut on bar 9's downbeat;
+generated beds under the synthesised ones; a few produced versions.
+- **The sound designer**: the core is right (one solo upright, music only inside, the wind the one
+  sound across the cut, nothing after); but the cut drifts (a file's end on a clock that can part
+  from the picture after a stall, and no output latency), the 60 a minute grid lands the motif's
+  peak on his look, and the clearing measures as a cicada band, so the cut would only change
+  species. One source per function (generated wind, demoted day insects, far birds, a higurashi
+  chorus); one level for the score; the room's drone gated (its reverb send is never hushed, and
+  four of its five chords are a semitone from D♭).
+- **The creative director**: the form leans into the cut and cues it (crescendo, held dominant, a
+  cadence withheld); the converging voices put back the reach the picture removed; "never the tonic"
+  is the room's own habit, wistful now rather than later. A plain, idle tune at one level, coming
+  home, already playing when we arrive; no room music, no drone, no humming after; the evening
+  already under way.
+- **The cinematic director**: the architecture is right (the image's lightness falls to 0.32 on the
+  cut, so a sound cut is motivated on any screen); but the grid scores both looks by arithmetic.
+  Spot to the picture (no note in its moments), one constant level, the cut one event on the audio
+  clock; a film from the room before to the room after.
+- **The skeptic**: all three judged the proposal's prose, not the sketch, which measures worse: its
+  left hand struck every beat of a half-second grid (that, not the tempo, put notes on the gust, her
+  eyes, her head and his roll), it built 5 dB over 12 s, and the cut took a ring 15 dB under its
+  last attack. A plain tune, one bass note a bar, twice in its own steady time, home once between
+  her look and his, cut a note before home; caption the stop; withdraw the drone; demote the day
+  insects; generate the wind (and the chorus only once the artist names the insect); no produced
+  music until the artist has heard the sketch in the film; the wind across the cut a switch.
+
+### Decisions (main session, after the skeptic)
+
+62. **The cut is one instant on the sound's clock** (all four). The memory's clock follows the sound
+    however long a frame took while it ran (capped at a second, a stall left the picture behind its
+    sound for the rest of the memory); every afternoon cue is cut at 34.5 on the memory's timeline
+    (`until`, 40 ms ending there), the evening's marker is on it; all that sounds at the cut is dry.
+    The skeptic thought per-cue cuts over-built given files truncated at the cut: kept, as ten lines
+    that make the cut independent of a file's padding and of a pause just before it (tested with
+    1.5 s stalls at 20 and 33 s: within 3 ms; with the old clock, half a second out). Commit 1d0e7d6.
+63. **Output latency** (Bluetooth earbuds, 150–300 ms): not built. Worth it only if iOS Safari
+    reports AirPods' latency (the skeptic); QA to check on a device.
+64. **The room afterwards** (the creative and cinematic directors and the skeptic, over the sound
+    designer's held chord): the drone silent from the woodland's start and, once it has been seen,
+    for the rest of the visit; no room music, still-music, humming or owed tune (`lastMusic`). The
+    woodland only: the kitchen and bedroom were approved with the drone under them. Commit 1d0e7d6.
+65. **The tune** (the creative director's tune, the sound designer's exact repetition, the skeptic's
+    skeleton): one plain tune in D♭, the same twice, 4/4 at 70.8 a minute, strict; a lift to sol and
+    a slow fall to home (F A♭ | G♭ F | E♭ | F E♭ C D♭), one bass note a bar with a tenth above it
+    (I, vi, ii, V–I), no inner line, no unison, no crescendo; on a natural upright, not felt (the
+    room's piano is felt, and phones lose a felt piano's warmth first). Not 3/4. The proposal's
+    rising sixth was the stock shape, and never home the room's own habit (the skeptic).
+66. **Where it begins** (the skeptic, over all three): already going round, its turnaround the first
+    thing heard (8.5), as the painting opens out: the crossing is the memory's biggest change, and a
+    sound under it goes unnoticed. Not through the wall (heard from the white room it would be the
+    room's piano, and its stop the room's habit), not a resonance rising with the light (the
+    portal's sound), not a left hand alone under the gust.
+67. **Its notes are kept off the picture's moments** (the cinematic director's windows, the creative
+    director's wider ones round the looks): the wide's first frame, the gust, his blinks, both cuts
+    of the two-shot, both looks, the cicada's return. Both looks fall inside long notes; home comes at
+    21.2, 2.2 s after she has turned and 2.8 s before his eyes. Tested against the picture's own
+    constants (`tests/woodland-score.test.ts`).
+68. **The end** (the sound designer's, sharpened by the skeptic): the second time, cut after its
+    leading tone (C over A♭, struck 0.58 s before the cut), home due at 34.77; strict time, no
+    ritardando, no held dominant (the creative director), no window over the stillness (the skeptic:
+    keeping the music still while the picture is still would score it). The file ends on the cut;
+    nothing after it, and no resolution, is in any file.
+69. **One level** (all four): the score about 5 LU under the afternoon (the skeptic, between the sound
+    designer's 8 and the cinematic director's 3); in its last 2 s within 1 LU of the clearing,
+    because the breeze dies down there, not because it rises. The dusk's first 3 s about 5 LU under
+    the afternoon's last 3, never louder; 100–800 Hz falls 17 dB on the cut. The artist sets the level.
+70. **Captions** (the sound designer and the skeptic, over the creative director): "[a piano]" once,
+    4 s after it is first heard (12.2); "[the piano has stopped; evening cicadas]" 0.8 s after the
+    cut, never on it. Captions have no state: without it a deaf visitor never learns the music ended.
+    The screen reader's afternoon line no longer gives cicadas as its sound ("the wind in the trees").
+71. **The afternoon** (the sound designer): the wind in the leaves and the long grass, generated and
+    laid along the timeline as one file across the cut, carrying the painting's breeze and its gust
+    from the left, warmed in the low middle (the clearing had nothing between 150 and 500 Hz; now
+    37–47% of the afternoon's energy is 100–2000 Hz, 8% in the dusk), within 0.8 dB across the cut;
+    the day insects demoted (the wind leads) and cut by the cut (the near cicada at its height,
+    still with its lull through the two-shot and its return at 28.0); two far birds in the wides; the
+    code that hid the cut deleted (the near cicada's phrase over it, the chorus held still across
+    it, the dusk thinning, the placed evening calls).
+72. **The evening**: a higurashi chorus already singing at the cut, far off (a forest's tail, its
+    top softened), receding into the wall with the painting; no placed calls (a falling call in the
+    first seconds is a sigh: the creative and cinematic directors, the skeptic); no crickets; the far
+    call heard in the room kept. Generated without waiting for the artist to name the insect (the
+    skeptic would have waited): they asked for cicadas at dusk, and the evening cicada has been in
+    the films since 2026-10-17; another insect is 528 credits.
+73. **The wind across the cut is a switch** (the skeptic: the brief asks to explore it): the artist
+    hears it both ways.
+74. **Paid generation**: the wind (2 × 30 s), far birds (3 × 4 s), the evening chorus (2 × 24 s):
+    1,320 credits of 118,746. No produced music versions until the artist has heard the sketch in the
+    film (the skeptic, the sound designer); no hum (both of them are holding their breath into the
+    cut, and the room already has a hummer beyond the wall).
+75. **Removed**: the breath layer (granular resonance 12 dB under the piano), the cello and pad
+    variants, the converging line, the crescendo, levels by shot, the three last-bar versions.
+76. **For the artist**: one film, from 5 s of the room before to 8 s of the room after, at speed,
+    captions on as a visitor has them, with the room's tone approximated (its hum, ventilation,
+    outside; its drone going as the woodland begins); the same through a phone's speaker; and the
+    choices: home once or never home, the level, the wind across the cut or not; and one question,
+    which evening insect they remember.
