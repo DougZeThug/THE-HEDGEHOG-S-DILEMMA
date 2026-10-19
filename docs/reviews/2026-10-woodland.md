@@ -1275,3 +1275,37 @@ new is seen at 14° (a sliver of her far cheek), so nothing has to be invented, 
 the artist's pixels. The "never project 3D" rule is right for a character drawn by code. Here it is
 the painting that is projected, onto a shape fitted to it, over a turn small enough that its drawing
 holds.
+
+**How it is built** (`scripts/her-turn.py`, offline, no model, no network).
+- *A head under the paint.* Her pose is fitted from thirteen points of her face to a generic head
+  (least squares, 8.4 px rms in the 2× crop): skull, face profile, width and nose; no surface steeper
+  than a set slope toward its outline, so paint near her outline isn't squeezed. Her jaw line holds
+  rigid in a band either side of it; her ear is a flap hinged at her cheek, rigid past its rim; her
+  neck twists, all of it at the jaw and none at the collar.
+- *The turn.* 14° about her neck's axis (the fitted axis leans 24.5° into the picture and read as a
+  roll of her head; 10° is used). Her far cheek's outline moves as the model's silhouette does, about
+  half as far as her paint, so her far cheek comes round; her far eye turns with her face, never
+  widened.
+- *Two layers.* Her head and neck in front; her hair and the rest behind, filled under her with the
+  hair beside her. The hair near her head follows it a little and none does beyond 60 px; where her
+  edge draws back from the hair behind it, that hair goes with it (over 48 px), and where her face
+  passes over it, it simply covers it. Her soft edge is split into her colour and what lies behind
+  it, so the rig at 0° is the panel.
+- *Resampled once per layer:* Lanczos, clamped to the local range (no pale halos beside strands),
+  supersampled 4× where the warp stretches.
+- *Her eyes* are on him first (the film's own iris move at 17.5); as her head comes round they ease
+  back 35% in their sockets, still on him.
+- *On twos:* thirteen drawings at the minimum-jerk curve's fractions, 18.0–19.0, then held to the
+  cut. `scripts/two-shot.py` lays them into the panel and cuts the two-shot's and the wide's heads
+  (one 4×4 atlas each, with gutters), inside a region that takes every pixel any drawing changes.
+
+**Checked on every build** (the build fails otherwise).
+- At 0° the rig is the panel: 99.9% of pixels within 2/255.
+- Turned, her inked pixels keep their weight: 5.2% of them change area by more than 0.75–1.35 (limit
+  6%; it was 21% before the jaw and ear were made rigid, when the jaw line went to dots and the ear's
+  rim stair-stepped). What remains is the turn itself: her far cheek coming round, her ear going back.
+- No drawing changes anything under the region's soft edge by more than 3/255.
+
+Measured once (optical flow over her head, drawing to drawing): every step moves as far as the ease
+says, to 0.04 px (median), and the same way (deviation from one motion field: 0.1 px median, 1.4 px
+at the 99th percentile, in the 2× crop). No snaps.

@@ -34,8 +34,8 @@ from one drawing, honestly, as a rotation:
 - **Her eyes** are on him first (the film's own iris move, `gazeB` in src/memory/living/woodland.ts,
   as the two-shot shader draws it); as her head comes round they ease back in their sockets, still on
   him (`KEEP` of their turn remains).
-- **Checked** as it runs: not turned, it is the panel (to 2/255); turned, how much of her drawn line
-  is squeezed or stretched past 0.75-1.35 is printed.
+- **Checked** as it runs: not turned, it is the panel (to 2/255); turned, no more than 6% of her
+  drawn line is squeezed or stretched past 0.75-1.35 (some is the turn: her far cheek coming round).
 
 One drawing for each of the timeline's steps (`TURN_STEPS`, src/memory/defs.ts) and the last, each
 the 2x crop round her head (lossless), and turn.json (where the crop lies, how far each drawing is):
@@ -639,6 +639,9 @@ def main():
     v, outside = strain(head, math.radians(-ANGLE))
     print(f'her-turn: not turned, the panel to {off.max() * 255:.0f}/255; turned, her inked pixels\' area {np.percentile(v, 1):.2f}-{np.percentile(v, 99):.2f} '
           f'(p1-p99), {outside * 100:.1f}% outside 0.75-1.35')
+    # (Some change is the turn itself: her far cheek comes round, her ear goes back. Past this, lines
+    # thin to dots or thicken, as they did before the jaw and the ear were made rigid: 21% outside.)
+    assert outside <= 0.06 and np.percentile(v, 1) >= 0.6 and np.percentile(v, 99) <= 1.6, 'the turn squeezes or stretches her lines'
     os.makedirs(OUT, exist_ok=True)
     for old in os.listdir(OUT):
         if old.startswith('b-turn-'):
