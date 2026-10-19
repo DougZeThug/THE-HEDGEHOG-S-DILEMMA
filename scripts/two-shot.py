@@ -351,13 +351,14 @@ def ground(day):
 
 
 def turn_drawings():
-    """Her turn's drawings: (name, how far, the 2x crop) in order, and the crop's place (2x px:
-    x, y, w, h)."""
+    """Her turn's drawings: (name, how far, the 2x crop, the 1x crop from the sheet's own painting)
+    in order, and the crop's place (2x px: x, y, w, h)."""
     spec = json.load(open(os.path.join(TURN, 'turn.json')))
     assert spec['scale'] == 2
     out = []
     for name, f in sorted(spec['drawings'].items(), key=lambda kv: kv[1]):
-        out.append((name, f, cut.arr(Image.open(os.path.join(TURN, f'{name}@2x.webp')).convert('RGB'))))
+        rgb = lambda size: cut.arr(Image.open(os.path.join(TURN, f'{name}@{size}.webp')).convert('RGB'))
+        out.append((name, f, rgb('2x'), rgb('1x')))
     return out, spec['crop']
 
 
@@ -425,7 +426,7 @@ def main():
     drawings, (cx, cy, cw, ch) = turn_drawings()
     assert k == 2, 'her turn is drawn at twice the sheet\'s size: needs references/woodland/upscaled/'
     tops = []
-    for _, _, crop in drawings:
+    for _, _, crop, _ in drawings:
         t2 = top.copy()
         t2[cy:cy + ch, cx:cx + cw] = crop
         tops.append(t2)
@@ -440,25 +441,35 @@ def main():
     cels = [dressed(t2, k, day, d, sigma, light)[0][box_k] for t2 in tops]
     atlas, cells_grid = grid(cels + [np.dstack([rk, rk, rk, np.ones_like(rk)])])
     cut.save(atlas, os.path.join(a_dir, 'near-heads.webp'), sizes, q=94)
-    at = [f for _, f, _ in drawings]
-    names = [n for n, _, _ in drawings]
+    at = [f for _, f, _, _ in drawings]
+    names = [n for n, _, _, _ in drawings]
 
     # The same at the wide's size: the cutter's own people from the sheet with each drawing laid
-    # in (by the region at the sheet's size: the sheet stays the sheet wherever she didn't move).
+    # in, the sheet's own painting turned (her-turn.py's 1x drawings: the sheet itself wherever she
+    # didn't move), by the region at the sheet's size.
     t = cut.FIG_T
     sheet_full = cut.arr(Image.open(os.path.join(cut.REF, '02-characters.webp')).convert('RGB'))
     if sheet_full.shape[:2] != (1086, 1448):
         sheet_full = cut.arr(Image.open(os.path.join(cut.REF, '02-characters.webp')).convert('RGB').resize((1448, 1086), Image.LANCZOS))
     lay = region1[cy // 2:(cy + ch) // 2, cx // 2:(cx + cw) // 2][..., None]
+    plain, _, _, _, _ = cut.figures(cut.img(sheet_full), cut.load('04-day.webp'))
+    th, tw = plain.shape[:2]
+    box_t = (slice(round(by * t), round((by + bh) * t)), slice(round(bx * t), round((bx + bw) * t)))
     wides = []
-    for _, _, crop in drawings:
+    for _, _, _, small in drawings:
         full1 = sheet_full.copy()
-        small = cv2.resize(crop, (cw // 2, ch // 2), interpolation=cv2.INTER_AREA)
         full1[cy // 2:(cy + ch) // 2, cx // 2:(cx + cw) // 2] = small * lay + full1[cy // 2:(cy + ch) // 2, cx // 2:(cx + cw) // 2] * (1 - lay)
         wide, _, _, _, _ = cut.figures(cut.img(full1), cut.load('04-day.webp'))
-        th, tw = wide.shape[:2]
-        box_t = (slice(round(by * t), round((by + bh) * t)), slice(round(bx * t), round((bx + bw) * t)))
         wides.append(wide[box_t])
+    # (Her eyes on him change nothing of her but her eyes: her hair's outline and its colour stay
+    # the wide's own, as the two-shot's do.)
+    yy, xx = np.mgrid[0:wides[0].shape[0], 0:wides[0].shape[1]]
+    eyes_out = np.ones(wides[0].shape[:2], bool)
+    for (ex, ey, rx, ry, _), _ in EYES_B:
+        eyes_out &= np.hypot(xx - (ex * t - box_t[1].start), yy - (ey * t - box_t[0].start)) > 1.6 * max(rx, ry) * t + 2
+    off = np.abs(wides[0] - plain[box_t])[eyes_out].max(-1)
+    assert np.percentile(off, 99.9) <= 3 / 255 + 1e-6 and off.max() <= 12 / 255, \
+        f'her eyes on him change her elsewhere in the wide: p99.9 {np.percentile(off, 99.9) * 255:.1f}/255, max {off.max() * 255:.0f}/255'
     reg_t = cv2.resize(region1, (tw, th), interpolation=cv2.INTER_AREA)
     rt = reg_t[box_t]
     wide_atlas, wide_grid = grid(wides + [np.dstack([rt, rt, rt, np.ones_like(rt)])])

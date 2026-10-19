@@ -41,10 +41,11 @@ from one drawing, honestly, as a rotation:
   rigid, and the rest of her lines keep their weight (`STRAIN`).
 
 One drawing of her eyes on him (`TURN_EYES`, src/memory/defs.ts), one for each of the timeline's
-steps (`TURN_STEPS`) and the last, each the 2x crop round her head (lossless), and turn.json (where
-the crop lies, how far each drawing is):
+steps (`TURN_STEPS`) and the last: each the 2x crop round her head from the upscaled panel (the
+two-shot's), and the 1x crop from the sheet's own painting (the wide's: the change the turn makes,
+laid on the sheet), lossless; and turn.json (where the crop lies, how far each drawing is):
 
-    references/woodland/drawings/turn/b-turn-01@2x.webp ... and turn.json
+    references/woodland/drawings/turn/b-turn-01@2x.webp, b-turn-01@1x.webp ... and turn.json
 
 scripts/two-shot.py lays them into the panel and cuts them into the two-shot's and the wide's heads.
 """
@@ -581,8 +582,8 @@ class Head:
 
 
 def looking(img, eye, gaze):
-    """`img` (the crop) with one eye looking by `gaze`, as the two-shot shader's `looking()` draws it
-    (src/world/living/materials.ts): inside the opening the iris moves along it and the white fills
+    """`img` (the crop, 2x) with one eye looking by `gaze`, as the two-shot shader's `looking()` draws
+    it (src/world/living/materials.ts): inside the opening the iris moves along it and the white fills
     in where it was. `eye`: the manifest's eleven numbers (opening, iris, white; sheet px, y up)."""
     sheet_y = float(ts.PH)
     ex, ey, rx, ry, ang, ix, iy, ir, wr, wg, wb = eye
@@ -603,7 +604,8 @@ def looking(img, eye, gaze):
     base = img * (1 - was) + fill * was
     mx = ((src[..., 0] - CX / 2) * 2 - 0.5).astype(np.float32)
     my = ((sheet_y - src[..., 1]) * 2 - 0.5).astype(np.float32)
-    moved = cv2.remap(img.astype(np.float32), mx, my, cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT)
+    # (Resampled as the turn is: bilinear, as the shader samples, softened her iris by a third.)
+    moved = resample(img.astype(np.float32), mx, my)
     out = base * (1 - iris[..., None]) + moved * iris[..., None]
     return img * (1 - m[..., None]) + out * m[..., None]
 
@@ -651,6 +653,15 @@ STRAIN = {'near eye': (0.0, 0.8, 1.2, 1.2), 'far eye': (0.0, 1.0, 1.35, 1.35), '
           'far outline': (0.45, 0.4, 1.8, 1.8), 'the rest': (0.05, 0.6, 1.4, 1.65), 'all': (0.06, 0.6, 1.6, 1.8)}
 
 
+def sheet_crop():
+    """The crop round her head from the sheet's own painting (1x, not the upscale): what the wide's
+    people are cut from (scripts/cut-woodland.py)."""
+    img = Image.open(os.path.join(cut.REF, '02-characters.webp')).convert('RGB')
+    if img.size != (1448, 1086):
+        img = img.resize((1448, 1086), Image.LANCZOS)
+    return cut.arr(img)[0:N // 2, CX // 2:(CX + N) // 2].astype(np.float64)
+
+
 def steps():
     """How far she has turned at each drawing: her eyes on him before her head moves (`TURN_EYES`),
     the timeline's `TURN_STEPS`, then all the way."""
@@ -682,19 +693,33 @@ def main():
         s_max, lo_min, hi_max, most_max = STRAIN[k]
         assert share <= s_max + 1e-9 and lo >= lo_min and hi <= hi_max and most <= most_max, \
             f'the turn squeezes or stretches her {k}: {share * 100:.1f}% outside, area {lo:.2f}-{hi:.2f}, stretch {most:.2f}'
+    # The wide is cut from the sheet's own painting, not the upscale: the same turn of it (rendered
+    # at 2x from it, brought down), laid on it only as the change the turn makes, so wherever she
+    # doesn't move the wide stays the sheet exactly (laying in the upscale changed her hair's outline
+    # there: QA, 2026-10-19).
+    one = sheet_crop()
+    one2 = np.clip(cv2.resize(one, (N, N), interpolation=cv2.INTER_LANCZOS4), 0, 1)
+    head1 = Head(one2)
+    still1, _ = head1.render(0.0, one2)
+    assert np.percentile(np.abs(still1 - one2).max(-1), 99.9) <= 2 / 255 + 1e-6, 'not turned, the rig should be the sheet'
+    down = lambda a: cv2.resize(a.astype(np.float32), (N // 2, N // 2), interpolation=cv2.INTER_AREA).astype(np.float64)
+    base1 = down(still1)
     os.makedirs(OUT, exist_ok=True)
     for old in os.listdir(OUT):
         if old.startswith('b-turn-'):
             os.remove(os.path.join(OUT, old))
+    save = lambda a, name: Image.fromarray((np.clip(a, 0, 1) * 255 + 0.5).astype(np.uint8)).save(os.path.join(OUT, name), 'WEBP', lossless=True, method=6)
     fractions, worst = {}, 0.0
     for i, s in enumerate(steps(), 1):
-        img = panel.copy()
+        name, psi, g = f'b-turn-{i:02d}', math.radians(-ANGLE * s), gaze * (1 - (1 - KEEP) * s)
+        img, img1 = panel.copy(), one2.copy()
         for e in eyes:
-            img = looking(img, e, gaze * (1 - (1 - KEEP) * s))
-        out, err = head.render(math.radians(-ANGLE * s), img)
-        worst = max(worst, err)
-        name = f'b-turn-{i:02d}'
-        Image.fromarray((out * 255 + 0.5).astype(np.uint8)).save(os.path.join(OUT, f'{name}@2x.webp'), 'WEBP', lossless=True, method=6)
+            img, img1 = looking(img, e, g), looking(img1, e, g)
+        out, err = head.render(psi, img)
+        out1, err1 = head1.render(psi, img1)
+        worst = max(worst, err, err1)
+        save(out, f'{name}@2x.webp')
+        save(one + down(out1) - base1, f'{name}@1x.webp')
         fractions[name] = round(s, 4)
     with open(os.path.join(OUT, 'turn.json'), 'w') as fh:
         json.dump({'crop': [CX, 0, N, N], 'scale': 2, 'angle': ANGLE, 'tilt': TILT, 'keep': KEEP, 'drawings': fractions}, fh, indent=2)

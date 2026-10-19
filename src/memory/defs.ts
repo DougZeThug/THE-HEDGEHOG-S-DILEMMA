@@ -616,15 +616,16 @@ export const WOODLAND: MemoryDef = {
     ? 'A painting forms in the wall by the words: a clearing in a wood at dusk, a fallen log, a tree, the grass. Nobody is there.'
     : 'A pencil drawing forms in the wall by the words: a clearing in a wood, two young people lying in the grass.',
   // (Short, at least 3.5 s apart; only what is seen, in order, never what it means: interaction,
-  // QA and creative reviews. The close shot's own line only while it is shown; what they do is
+  // QA and creative reviews. The close shot's own line only while it is shown; what she does is
   // told to anyone inside, whichever shot shows it: upright screens and a turned visitor see it in
-  // the wide.)
+  // the wide. His look can be seen only close (in the wide it is too small), so it is told only
+  // there: the creative director, 2026-10-19.)
   announce: (v) => v === 'empty' ? [] : [
     { at: 10.5, text: 'It opens until it is all there is: a summer afternoon, cicadas in the trees.', inside: true },
     { at: 10.5, text: 'The painting comes alive on the wall: a summer afternoon, cicadas in the trees.', wall: true },
     { at: TWO_SHOT.from, text: 'Closer: the two of them side by side in the grass, looking up.', shot: 1 },
-    { at: TWO_SHOT.herTurn + 0.5, text: 'She turns her head a little toward him.', inside: true },
-    { at: TWO_SHOT.hisEyes + 1.5, text: 'He turns his eyes to her.', inside: true },
+    { at: TWO_SHOT.herTurn + 0.5, text: 'Her eyes go to him, then her head, a little.', inside: true },
+    { at: TWO_SHOT.hisEyes + 1.5, text: 'He turns his eyes to her.', shot: 1 },
     { at: CUT, text: 'The same clearing, at dusk. Nobody is there.' },
     { at: WOODLAND_SECTIONS.exit, text: 'The painting goes back into the wall.' },
   ],

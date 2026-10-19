@@ -559,10 +559,12 @@ describe('the two of them close: one shot, three beats, held drawings', () => {
 
   it('what a screen reader is told of it: only what is seen, in order, at least 3.5 s apart', () => {
     const lines = def.announce!('afternoon').filter((l) => l.at >= SHOTS.two && l.at < SHOTS.wideAgain);
-    expect(lines.map((l) => l.text)).toEqual(['Closer: the two of them side by side in the grass, looking up.', 'She turns her head a little toward him.', 'He turns his eyes to her.']);
+    expect(lines.map((l) => l.text)).toEqual(['Closer: the two of them side by side in the grass, looking up.', 'Her eyes go to him, then her head, a little.', 'He turns his eyes to her.']);
     for (let i = 1; i < lines.length; i++) expect(lines[i].at - lines[i - 1].at).toBeGreaterThanOrEqual(3.5);
-    // What they do is told to anyone inside, in whichever shot it is seen.
-    expect(lines.slice(1).every((l) => l.inside && l.shot === undefined)).toBe(true);
+    // What she does is told to anyone inside, in whichever shot it is seen; his look only close,
+    // the one shot it can be seen in (in the wide, and so on an upright screen, it is too small).
+    expect(lines[1].inside && lines[1].shot === undefined).toBe(true);
+    expect(lines[2].shot).toBe(1);
   });
 });
 

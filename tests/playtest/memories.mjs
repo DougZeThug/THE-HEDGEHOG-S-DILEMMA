@@ -86,7 +86,7 @@ for (const profile of PROFILES) {
   const shots = [];
   for (const [name, pos] of STAGES) {
     if (pos === null) {
-      await page.screenshot({ path: `${OUT}/${profile}-${name}.png` });
+      await page.screenshot({ path: `${OUT}/${profile}-${name}.png`, timeout: 180000 });
       shots.push(name);
       // Now it begins.
       const ok = await page.evaluate(([m, v, p]) => window.__hedgehog.playMemory(m, p, v), [MEMORY, VARIANT, PHRASE]);
@@ -95,7 +95,8 @@ for (const profile of PROFILES) {
     }
     const st = await page.evaluate((p) => window.__hedgehog.heldAt(p), pos);
     await page.waitForTimeout(name.includes('residue') || name.includes('alone') ? 3000 : 1200);
-    await page.screenshot({ path: `${OUT}/${profile}-${name}.png` });
+    // (Generous: under load, software GL can take most of a minute for a frame.)
+    await page.screenshot({ path: `${OUT}/${profile}-${name}.png`, timeout: 180000 });
     // A living scene drawn black (nothing reached its target) is a failure, whatever the frame.
     const blank = await page.evaluate(() => {
       const a = window.__hedgehog;
@@ -133,9 +134,10 @@ for (const profile of PROFILES) {
   // Again, start to finish: what a memory leaves behind must not grow (the window's own noise and
   // blank textures are uploaded once, the first time it is drawn).
   await page.evaluate(([m, v, p]) => window.__hedgehog.playMemory(m, p, v), [MEMORY, VARIANT, PHRASE]);
-  // (The woodland's as far as the two-shot, so what it makes is let go too: its one-texel ground
-  // map leaked, a texture a play, unseen while this pass stopped at 12 s: QA, 2026-10-18.)
-  for (const p of MEMORY === 'woodland' && VARIANT !== 'empty' ? [2.5, 6.5, 8.5, 9.6, 12.3, 16.5] : [12]) {
+  // (The woodland's through the two-shot and her turn, so what they make is let go too: its
+  // one-texel ground map leaked, a texture a play, unseen while this pass stopped at 12 s: QA,
+  // 2026-10-18; it stopped before her turn's drawings until QA, 2026-10-19.)
+  for (const p of MEMORY === 'woodland' && VARIANT !== 'empty' ? [2.5, 6.5, 8.5, 9.6, 12.3, 16.5, 17.6, 18.5, 19.5] : [12]) {
     await page.evaluate((x) => window.__hedgehog.heldAt(x), p);
     await page.waitForTimeout(1200);
   }

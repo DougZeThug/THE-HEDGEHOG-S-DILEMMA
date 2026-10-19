@@ -85,10 +85,6 @@ export function compose(base: Values, env: Values, w: Weights, living = false): 
         // go early, it cuts straight back to the wide (the way out is the wide's).
         out[k] = exitRaw < 0.999 ? 0 : Math.round(v);
         break;
-      case 'cel':
-        // Which drawing of her head (held keys): a whole one, never between.
-        out[k] = Math.round(v);
-        break;
       case 'skew':
         // A hanging thing's sway (the curtain): it is motion, so none under reduced motion.
         out[k] = (v + env1(env, `sway:${obj.replace(/^layer:/, '')}.skew`, 0)) * w.motion;
