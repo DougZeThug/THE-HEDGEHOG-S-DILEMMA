@@ -49,6 +49,19 @@ describe('their involuntary life, from time alone', () => {
     }
   });
 
+  it('her turn crosses the top of a breath and lands as she breathes out', () => {
+    // (Why it settles: an accident of her breath's seed and jitter, so held here; a change to her
+    // breath, its steady stretch or the turn's keys could put the landing on an in-breath: the
+    // cinematic director's evaluation of the built turn, 2026-10-19.)
+    const b = SPEC.breath.b;
+    let peak = 0, at = 0;
+    for (let t = TWO_SHOT.herEyes; t <= TWO_SHOT.herTurn + 1.5; t += 0.01) if (breath(t, b) > peak) (peak = breath(t, b)), (at = t);
+    expect(Math.abs(at - (TWO_SHOT.herTurn + TURN_STEPS.length / 24))).toBeLessThanOrEqual(0.25);
+    const settled = TWO_SHOT.herTurn + TURN_STEPS.length / 12;
+    expect(breath(settled, b)).toBeLessThan(breath(settled - 0.1, b));
+    expect(breath(settled, b)).toBeGreaterThan(0.05);
+  });
+
   it('nothing in their breathing answers either look (no held breath: its pauses are for the cut)', () => {
     for (const p of [SPEC.breath.a, SPEC.breath.b]) {
       const free = { ...p, held: [] };

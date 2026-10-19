@@ -1366,8 +1366,9 @@ its own phone film.
 48. **Timing as built (A), not B.** B's fastest drawing moves half a pixel less (at 1280 wide) and
     its last drawings tenths of a pixel; A's own first two drawings already move under a pixel, so
     the visible lead of her eyes is already 0.67 s. "She settles" means she stays: the 15.5 s hold
-    gives it. If the artist finds the turn quick, the last three drawings can each be held 1/8 s
-    (no new drawings).
+    gives it. If the artist finds the turn quick, the last three drawings can each be held two
+    twelfths of a second, landing at 19.25 (no new drawings; in twelfths, the painting's own clock:
+    the cinematic director).
 49. **His look: put to the artist, not changed.** On desktops her look is answered: his eyes go to
     her at 24.0, three seconds close, then the wide. On upright screens, where there is only the
     wide, his eye move is too small to see, so it isn't. (a) As now; (b) unanswered everywhere: his
@@ -1465,3 +1466,37 @@ shapes at the panel's sharpness; she lands softly and stays. Nothing in her head
     a dart (one drawing). A drift needs one or two more drawings and, for two, a 5×4 atlas.
 58. **His look**: the creative director's recommendation (answered everywhere) goes to the artist with
     decision 49's question; whatever they choose, his answer stays smaller than her turn.
+
+#### The finished turn evaluated (the cinematic director)
+
+"The turn works, and nothing in it needs to change before the artist sees it." Her eyes move at
+17.5 as she breathes in; her head comes round visibly from 18.17 to 18.92 over the top of that
+breath, lands at 19.0 as she breathes out, and holds against his still face in the cicadas' lull.
+The features move by different amounts front to back (nose 25.6, eyes 19, crown 10.7, ear 9, far
+outline 6.8 atlas px; the head's width from ear to far outline the same, 172 to 170, while her
+features slide across it), so it reads as a head turning. The held drawing's edges are clean at
+1440p (the stroke under her ear and the ear's rim, faulted in the prototype, are continuous); the
+hair beside her far jaw keeps its strands. No pop at 17.5, 18.0 or 19.0.
+- **The review clip played an old mix**, in which the woods swell 3.6 dB into her landing: a swell
+  decision 23 removed, which the room doesn't play (the clip's sound came from a mix made before it;
+  the current one rises 1.2 dB). *Fixed:* the films are joined with a mix made from this build.
+- **4.5 seconds can't show the rhythm**: the turn's weight comes from the stillness before it, the
+  hold against his stillness after it, and the cut that takes it away. *Done:* the film from 12.0 to
+  36.0, shown first, full screen, at speed, with sound; the closer looks after.
+- Protect the rotation as built: no easing, smoothing or hair follow-through added.
+- The landing on her out-breath is an accident of her breath's seed: *pinned by a test.*
+- On an upright phone a light patch in her hair beside her far cheek went at 17.5 (as QA found):
+  *fixed* by decision 53.
+- Her eyes: offer one in-between (halfway at 17.5, on him at 17.58: it fits the atlas), not built.
+- If the turn is found quick, hold in twelfths, not eighths (decision 48 corrected).
+
+#### Decisions (main session)
+
+59. **The artist sees the film first**: 12.0–36.0 with this build's own mix, on a desktop (and an
+    upright phone, the two-shot to the empty clearing); then the turn's closer looks. The flipbook's
+    in-context clip is joined with the same mix.
+60. **Her landing on the out-breath is tested** (her inhale peaks within a quarter second of the
+    turn's middle, and is falling as she lands).
+61. **Her eyes, three ways for the artist**: as built (one drawing), one in-between, two in-betweens,
+    her head side by side; the directors differ (the cinematic director would offer one, the creative
+    director two), so the artist chooses. One fits the atlas as it is; two need a 5×4 grid.
