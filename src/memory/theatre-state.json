@@ -3059,37 +3059,37 @@
         "type": "PositionalSequence",
         "markers": [
           {
-            "id": "m2s",
+            "id": "m2t",
             "label": "active",
             "position": 6
           },
           {
-            "id": "m2t",
+            "id": "m2u",
             "label": "exit",
             "position": 42.5
           },
           {
-            "id": "m2u",
+            "id": "m2v",
             "label": "residue",
             "position": 49.5
           },
           {
-            "id": "m2v",
+            "id": "m2w",
             "label": "end",
             "position": 53
           },
           {
-            "id": "m2w",
+            "id": "m2x",
             "label": "music:cicadas",
             "position": 0.05
           },
           {
-            "id": "m2x",
+            "id": "m2y",
             "label": "music:woods",
             "position": 0.05
           },
           {
-            "id": "m2y",
+            "id": "m2z",
             "label": "sfx:cicada-last",
             "position": 48.5
           }
@@ -4056,6 +4056,19 @@
                   },
                   {
                     "id": "k28",
+                    "position": 17.5,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 0.001
+                  },
+                  {
+                    "id": "k29",
                     "position": 18,
                     "connectedRight": false,
                     "handles": [
@@ -4068,7 +4081,7 @@
                     "value": 0.019
                   },
                   {
-                    "id": "k29",
+                    "id": "k2a",
                     "position": 18.083333333333332,
                     "connectedRight": false,
                     "handles": [
@@ -4081,7 +4094,7 @@
                     "value": 0.058
                   },
                   {
-                    "id": "k2a",
+                    "id": "k2b",
                     "position": 18.166666666666668,
                     "connectedRight": false,
                     "handles": [
@@ -4094,7 +4107,7 @@
                     "value": 0.122
                   },
                   {
-                    "id": "k2b",
+                    "id": "k2c",
                     "position": 18.25,
                     "connectedRight": false,
                     "handles": [
@@ -4107,7 +4120,7 @@
                     "value": 0.21
                   },
                   {
-                    "id": "k2c",
+                    "id": "k2d",
                     "position": 18.333333333333332,
                     "connectedRight": false,
                     "handles": [
@@ -4120,7 +4133,7 @@
                     "value": 0.317
                   },
                   {
-                    "id": "k2d",
+                    "id": "k2e",
                     "position": 18.416666666666668,
                     "connectedRight": false,
                     "handles": [
@@ -4133,7 +4146,7 @@
                     "value": 0.438
                   },
                   {
-                    "id": "k2e",
+                    "id": "k2f",
                     "position": 18.5,
                     "connectedRight": false,
                     "handles": [
@@ -4146,7 +4159,7 @@
                     "value": 0.562
                   },
                   {
-                    "id": "k2f",
+                    "id": "k2g",
                     "position": 18.583333333333332,
                     "connectedRight": false,
                     "handles": [
@@ -4159,7 +4172,7 @@
                     "value": 0.683
                   },
                   {
-                    "id": "k2g",
+                    "id": "k2h",
                     "position": 18.666666666666668,
                     "connectedRight": false,
                     "handles": [
@@ -4172,7 +4185,7 @@
                     "value": 0.79
                   },
                   {
-                    "id": "k2h",
+                    "id": "k2i",
                     "position": 18.75,
                     "connectedRight": false,
                     "handles": [
@@ -4185,7 +4198,7 @@
                     "value": 0.878
                   },
                   {
-                    "id": "k2i",
+                    "id": "k2j",
                     "position": 18.833333333333332,
                     "connectedRight": false,
                     "handles": [
@@ -4198,7 +4211,7 @@
                     "value": 0.942
                   },
                   {
-                    "id": "k2j",
+                    "id": "k2k",
                     "position": 18.916666666666668,
                     "connectedRight": false,
                     "handles": [
@@ -4211,7 +4224,7 @@
                     "value": 0.981
                   },
                   {
-                    "id": "k2k",
+                    "id": "k2l",
                     "position": 19,
                     "connectedRight": false,
                     "handles": [
@@ -4234,12 +4247,12 @@
           },
           "figure:a": {
             "trackData": {
-              "t2l": {
+              "t2m": {
                 "type": "BasicKeyframedTrack",
                 "__debugName": "figure:a:[\"eyes\"]",
                 "keyframes": [
                   {
-                    "id": "k2m",
+                    "id": "k2n",
                     "position": 0,
                     "connectedRight": false,
                     "handles": [
@@ -4252,7 +4265,7 @@
                     "value": 0
                   },
                   {
-                    "id": "k2n",
+                    "id": "k2o",
                     "position": 24,
                     "connectedRight": false,
                     "handles": [
@@ -4266,12 +4279,12 @@
                   }
                 ]
               },
-              "t2o": {
+              "t2p": {
                 "type": "BasicKeyframedTrack",
                 "__debugName": "figure:a:[\"look\"]",
                 "keyframes": [
                   {
-                    "id": "k2p",
+                    "id": "k2q",
                     "position": 0,
                     "connectedRight": false,
                     "handles": [
@@ -4284,7 +4297,7 @@
                     "value": 0
                   },
                   {
-                    "id": "k2q",
+                    "id": "k2r",
                     "position": 24.5,
                     "connectedRight": true,
                     "handles": [
@@ -4297,7 +4310,7 @@
                     "value": 0
                   },
                   {
-                    "id": "k2r",
+                    "id": "k2s",
                     "position": 25,
                     "connectedRight": true,
                     "handles": [
@@ -4313,8 +4326,8 @@
               }
             },
             "trackIdByPropPath": {
-              "[\"eyes\"]": "t2l",
-              "[\"look\"]": "t2o"
+              "[\"eyes\"]": "t2m",
+              "[\"look\"]": "t2p"
             }
           }
         }
@@ -4352,32 +4365,32 @@
         "type": "PositionalSequence",
         "markers": [
           {
-            "id": "m3m",
+            "id": "m3n",
             "label": "active",
             "position": 6
           },
           {
-            "id": "m3n",
+            "id": "m3o",
             "label": "exit",
             "position": 16
           },
           {
-            "id": "m3o",
+            "id": "m3p",
             "label": "residue",
             "position": 21
           },
           {
-            "id": "m3p",
+            "id": "m3q",
             "label": "end",
             "position": 24
           },
           {
-            "id": "m3q",
+            "id": "m3r",
             "label": "music:cicadas",
             "position": 0.05
           },
           {
-            "id": "m3r",
+            "id": "m3s",
             "label": "music:woods",
             "position": 0.05
           }
@@ -4385,12 +4398,12 @@
         "tracksByObject": {
           "window": {
             "trackData": {
-              "t2z": {
+              "t30": {
                 "type": "BasicKeyframedTrack",
                 "__debugName": "window:[\"sketch\"]",
                 "keyframes": [
                   {
-                    "id": "k30",
+                    "id": "k31",
                     "position": 1.5,
                     "connectedRight": true,
                     "handles": [
@@ -4403,7 +4416,7 @@
                     "value": 0
                   },
                   {
-                    "id": "k31",
+                    "id": "k32",
                     "position": 3.5,
                     "connectedRight": true,
                     "handles": [
@@ -4417,12 +4430,12 @@
                   }
                 ]
               },
-              "t32": {
+              "t33": {
                 "type": "BasicKeyframedTrack",
                 "__debugName": "window:[\"reveal\"]",
                 "keyframes": [
                   {
-                    "id": "k33",
+                    "id": "k34",
                     "position": 2.5,
                     "connectedRight": true,
                     "handles": [
@@ -4435,7 +4448,7 @@
                     "value": 0
                   },
                   {
-                    "id": "k34",
+                    "id": "k35",
                     "position": 6,
                     "connectedRight": true,
                     "handles": [
@@ -4449,12 +4462,12 @@
                   }
                 ]
               },
-              "t35": {
+              "t36": {
                 "type": "BasicKeyframedTrack",
                 "__debugName": "window:[\"wash\"]",
                 "keyframes": [
                   {
-                    "id": "k36",
+                    "id": "k37",
                     "position": 0,
                     "connectedRight": false,
                     "handles": [
@@ -4467,7 +4480,7 @@
                     "value": 0
                   },
                   {
-                    "id": "k37",
+                    "id": "k38",
                     "position": 6,
                     "connectedRight": true,
                     "handles": [
@@ -4483,19 +4496,19 @@
               }
             },
             "trackIdByPropPath": {
-              "[\"sketch\"]": "t2z",
-              "[\"reveal\"]": "t32",
-              "[\"wash\"]": "t35"
+              "[\"sketch\"]": "t30",
+              "[\"reveal\"]": "t33",
+              "[\"wash\"]": "t36"
             }
           },
           "light": {
             "trackData": {
-              "t38": {
+              "t39": {
                 "type": "BasicKeyframedTrack",
                 "__debugName": "light:[\"y\"]",
                 "keyframes": [
                   {
-                    "id": "k39",
+                    "id": "k3a",
                     "position": 0,
                     "connectedRight": true,
                     "handles": [
@@ -4508,7 +4521,7 @@
                     "value": -0.2
                   },
                   {
-                    "id": "k3a",
+                    "id": "k3b",
                     "position": 6,
                     "connectedRight": true,
                     "handles": [
@@ -4522,12 +4535,12 @@
                   }
                 ]
               },
-              "t3b": {
+              "t3c": {
                 "type": "BasicKeyframedTrack",
                 "__debugName": "light:[\"radius\"]",
                 "keyframes": [
                   {
-                    "id": "k3c",
+                    "id": "k3d",
                     "position": 0,
                     "connectedRight": true,
                     "handles": [
@@ -4540,7 +4553,7 @@
                     "value": 0.2
                   },
                   {
-                    "id": "k3d",
+                    "id": "k3e",
                     "position": 6,
                     "connectedRight": true,
                     "handles": [
@@ -4554,12 +4567,12 @@
                   }
                 ]
               },
-              "t3e": {
+              "t3f": {
                 "type": "BasicKeyframedTrack",
                 "__debugName": "light:[\"warmth\"]",
                 "keyframes": [
                   {
-                    "id": "k3f",
+                    "id": "k3g",
                     "position": 0,
                     "connectedRight": true,
                     "handles": [
@@ -4572,7 +4585,7 @@
                     "value": 2800
                   },
                   {
-                    "id": "k3g",
+                    "id": "k3h",
                     "position": 16,
                     "connectedRight": true,
                     "handles": [
@@ -4586,12 +4599,12 @@
                   }
                 ]
               },
-              "t3h": {
+              "t3i": {
                 "type": "BasicKeyframedTrack",
                 "__debugName": "light:[\"intensity\"]",
                 "keyframes": [
                   {
-                    "id": "k3i",
+                    "id": "k3j",
                     "position": 0,
                     "connectedRight": true,
                     "handles": [
@@ -4604,7 +4617,7 @@
                     "value": 0
                   },
                   {
-                    "id": "k3j",
+                    "id": "k3k",
                     "position": 4,
                     "connectedRight": true,
                     "handles": [
@@ -4617,7 +4630,7 @@
                     "value": 0.35
                   },
                   {
-                    "id": "k3k",
+                    "id": "k3l",
                     "position": 16,
                     "connectedRight": true,
                     "handles": [
@@ -4630,7 +4643,7 @@
                     "value": 0.2
                   },
                   {
-                    "id": "k3l",
+                    "id": "k3m",
                     "position": 21,
                     "connectedRight": true,
                     "handles": [
@@ -4646,10 +4659,10 @@
               }
             },
             "trackIdByPropPath": {
-              "[\"y\"]": "t38",
-              "[\"radius\"]": "t3b",
-              "[\"warmth\"]": "t3e",
-              "[\"intensity\"]": "t3h"
+              "[\"y\"]": "t39",
+              "[\"radius\"]": "t3c",
+              "[\"warmth\"]": "t3f",
+              "[\"intensity\"]": "t3i"
             }
           }
         }

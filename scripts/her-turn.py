@@ -29,16 +29,20 @@ from one drawing, honestly, as a rotation:
   layer is an inverse warp of the painting, resampled (Lanczos, within the painting's own range;
   averaged where it is squeezed): her lines are moved, never redrawn.
 - **Her far cheek's outline is a silhouette,** not paint on her skin: it moves as the model's outline
-  does (about half as far), and her cheek between it and her eye widens, as a far cheek coming round
-  does; her far eye turns with her face, never widened.
+  does (about a third as far), and her cheek between it and her mouth widens, as a far cheek coming
+  round does. The push that does it reaches 20 px in from the outline, short of her mouth.
 - **Her eyes** are on him first (the film's own iris move, `gazeB` in src/memory/living/woodland.ts,
-  as the two-shot shader draws it); as her head comes round they ease back in their sockets, still on
-  him (`KEEP` of their turn remains).
-- **Checked** as it runs: not turned, it is the panel (to 2/255); turned, no more than 6% of her
-  drawn line is squeezed or stretched past 0.75-1.35 (some is the turn: her far cheek coming round).
+  as the two-shot shader draws it): the first drawing is her eyes on him, her head not yet turned, so
+  her eyes lead in either shot. As her head comes round they ease back in their sockets, still on
+  him (`KEEP` of their turn remains). Her far eye, coming round toward us, widens by about a quarter,
+  as a far eye does.
+- **Checked** as it runs: not turned, it is the panel (to 2/255); turned, feature by feature, her
+  eyes, brows and mouth go no further than the turn itself takes them, her jaw line and ear stay
+  rigid, and the rest of her lines keep their weight (`STRAIN`).
 
-One drawing for each of the timeline's steps (`TURN_STEPS`, src/memory/defs.ts) and the last, each
-the 2x crop round her head (lossless), and turn.json (where the crop lies, how far each drawing is):
+One drawing of her eyes on him (`TURN_EYES`, src/memory/defs.ts), one for each of the timeline's
+steps (`TURN_STEPS`) and the last, each the 2x crop round her head (lossless), and turn.json (where
+the crop lies, how far each drawing is):
 
     references/woodland/drawings/turn/b-turn-01@2x.webp ... and turn.json
 
@@ -137,9 +141,13 @@ NECK = [(234, 240), (250, 243), (272, 245), (300, 242), (330, 236)] + NECK_R + \
 JAW = [(234, 240), (250, 243), (272, 245), (300, 242), (330, 236), (349, 236)]
 COLLAR = [(276, 312), (300, 313), (330, 313), (360, 311), (388, 303)]
 DRAWN = [FAR_OUT, NECK_R, NECK_L, EAR_OUT]
-# Her far eye (crop px: centre, radii grown 4 px, angle): it turns with her face, never widened by
-# her far cheek coming round.
+# Her features, where the turn must keep her drawn lines' weight (crop px: centre, radii, angle).
+# Her far eye widens by about a quarter as it comes round toward us, as a far eye does; nothing else
+# may squeeze or stretch her eyes, brows or mouth beyond what the turn itself does.
+NEAR_EYE = ((250.0, 147.0), (26.0, 15.0), -0.42)
 FAR_EYE = ((324.0, 119.2), (18.6, 11.8), 0.29)
+BROWS = [((247.0, 123.0), (22.0, 8.0), 0.0), ((314.0, 93.0), (22.0, 8.0), 0.0)]
+MOUTH = ((318.0, 160.0), (30.0, 26.0), 0.0)
 # Her far cheek's outline (the line's centre), below the lock over her temple.
 FAR = [(354, 132), (360, 140), (366, 152), (369, 164), (370, 176), (370, 188), (369, 200), (367, 212), (361, 220)]
 
@@ -503,11 +511,14 @@ class Head:
         m = cv2.GaussianBlur(grown.astype(np.float32), (0, 0), 3.0)
         return z * (1 - m) + zp * m
 
-    def far_push(self, z, far_in=40.0, psi=math.radians(-20.0)):
+    def far_push(self, z, far_in=20.0, psi=math.radians(-20.0)):
         """How far to push the paint near her far cheek's outline back toward her neck's axis, so it
         keeps pace with the model's outline: from the model's outline before and after a turn (signed
         distances), at each point of the drawn one; along it, fading out under the lock at her temple
-        and toward her chin; inward over `far_in` px; only on her skin and the line itself."""
+        and toward her chin; either side of it over `far_in` px, nowhere else; inside, only on her
+        skin and the line itself. (`far_in` ends short of her mouth's far corner, 23 px in: at 40 the
+        push stretched it 1.7 times, lengthening her mouth; and it once reached all round her head,
+        loosening her ear's rim and her jaw line: the skeptic's review, 2026-10-19.)"""
         k = 4
 
         def outline(p):
@@ -537,12 +548,7 @@ class Head:
         skin = (0.3 * r + 0.59 * g + 0.11 * b > 0.6) & (r > g) & (g > b) & (r - b > 0.15)
         inside = self.head > 0.5
         where = cv2.GaussianBlur(((skin & inside) | (dist < 4) | ~inside).astype(np.float32), (0, 0), 2.5)
-        (ex, ey), (rx, ry), ang = FAR_EYE
-        cs, sn = math.cos(ang), math.sin(ang)
-        dx, dy = self.X[..., 0] - ex, self.X[..., 1] - ey
-        eye = np.hypot((dx * cs + dy * sn) / rx, (-dx * sn + dy * cs) / ry)
-        where = where * smoothstep(1.0, 1.6, eye)
-        return val * where * np.where(inside, 1 - smoothstep(0, far_in, dist), 1.0)
+        return val * where * (1 - smoothstep(0, far_in, dist))
 
     # -- the turn ----------------------------------------------------------------------------------
 
@@ -569,7 +575,8 @@ class Head:
         B = resample(self.back, bx, by)
         F = resample(np.where(self.soft[..., None], self.inner, img).astype(np.float32), fx, fy)
         A = resample(self.front_a, fx, fy, cv2.INTER_LINEAR, cv2.BORDER_CONSTANT)[..., None]
-        err = max(float(fres[self.front_a > 0.5].max()), float(bres.max()))
+        # (Where each can be seen: under her chin, hidden by her, the hair's can be off a pixel or two.)
+        err = max(float(fres[A[..., 0] > 0.02].max()), float(bres[A[..., 0] < 0.98].max()))
         return np.clip(F * A + B * (1 - A), 0, 1), err
 
 
@@ -602,25 +609,55 @@ def looking(img, eye, gaze):
 
 
 def strain(head, psi):
-    """How much the turn squeezes or stretches her drawn lines (the area of each of her inked pixels
-    afterward, 1 unchanged): the inked pixels of her head and neck, and the share outside 0.75-1.35."""
+    """How much the turn squeezes or stretches her drawn lines, feature by feature (a mouth's corner
+    is too few pixels to show in her whole head's numbers): for her inked pixels in each, the share
+    whose area changes past 0.75-1.35, the 1st and 99th percentile of that change, and the most any
+    is stretched in one direction (1 unchanged)."""
     D = head.motion(head.zF, head.wF, psi)
-    dxx, dxy = np.gradient(D[..., 0], axis=1), np.gradient(D[..., 0], axis=0)
-    dyx, dyy = np.gradient(D[..., 1], axis=1), np.gradient(D[..., 1], axis=0)
-    det = (1 + dxx) * (1 + dyy) - dxy * dyx
-    r, g, b = head.panel[..., 0], head.panel[..., 1], head.panel[..., 2]
-    lum = 0.3 * r + 0.59 * g + 0.11 * b
+    a, b = 1 + np.gradient(D[..., 0], axis=1), np.gradient(D[..., 0], axis=0)
+    c, d = np.gradient(D[..., 1], axis=1), 1 + np.gradient(D[..., 1], axis=0)
+    det = a * d - b * c
+    q, s = a * a + b * b + c * c + d * d, np.sqrt((a * a + b * b - c * c - d * d) ** 2 + 4 * (a * c + b * d) ** 2)
+    most = np.sqrt(0.5 * (q + s))
+    r, g, bl = head.panel[..., 0], head.panel[..., 1], head.panel[..., 2]
+    lum = 0.3 * r + 0.59 * g + 0.11 * bl
     gm = np.hypot(*np.gradient(cv2.GaussianBlur(lum, (0, 0), 0.7)))
     inked = (gm > 0.06) & (lum < 0.5) & (head.front_a > 0.98)
-    v = det[inked]
-    return v, float(((v < 0.75) | (v > 1.35)).mean())
+
+    def ellipse(e):
+        (ex, ey), (rx, ry), ang = e
+        cs, sn = math.cos(ang), math.sin(ang)
+        dx, dy = head.X[..., 0] - ex, head.X[..., 1] - ey
+        return np.hypot((dx * cs + dy * sn) / rx, (-dx * sn + dy * cs) / ry) < 1
+
+    parts = {'near eye': ellipse(NEAR_EYE), 'far eye': ellipse(FAR_EYE), 'brows': ellipse(BROWS[0]) | ellipse(BROWS[1]),
+             'mouth': ellipse(MOUTH), 'jaw line': line_dist(JAW) < 8, 'ear': line_dist(EAR_OUT) < 8,
+             'far outline': line_dist(FAR_OUT) < 10}
+    parts['the rest'] = ~np.logical_or.reduce(list(parts.values()))
+    parts['all'] = np.ones_like(inked)
+    out = {}
+    for name, m in parts.items():
+        v = det[inked & m]
+        out[name] = (float(((v < 0.75) | (v > 1.35)).mean()), float(np.percentile(v, 1)), float(np.percentile(v, 99)), float(most[inked & m].max()))
+    return out
+
+
+# How far each feature's inked pixels may go (share outside 0.75-1.35, least area, most area, most
+# stretch). Her eyes, brows and mouth only as far as the turn itself takes them (her far eye about a
+# quarter wider; her mouth 1.3 times, as a mouth turning toward us lengthens); her jaw line and ear
+# rigid; her far outline a silhouette, re-drawn as it comes round; the rest as before.
+STRAIN = {'near eye': (0.0, 0.8, 1.2, 1.2), 'far eye': (0.0, 1.0, 1.35, 1.35), 'brows': (0.0, 0.85, 1.35, 1.35),
+          'mouth': (0.0, 0.9, 1.35, 1.35), 'jaw line': (0.02, 0.75, 1.2, 1.25), 'ear': (0.02, 0.75, 1.1, 1.15),
+          'far outline': (0.45, 0.4, 1.8, 1.8), 'the rest': (0.05, 0.6, 1.4, 1.65), 'all': (0.06, 0.6, 1.6, 1.8)}
 
 
 def steps():
-    """How far she has turned at each drawing: the timeline's `TURN_STEPS`, then all the way."""
+    """How far she has turned at each drawing: her eyes on him before her head moves (`TURN_EYES`),
+    the timeline's `TURN_STEPS`, then all the way."""
     src = open(os.path.join(ROOT, 'src', 'memory', 'defs.ts')).read()
+    eyes = float(re.search(r'export const TURN_EYES\s*=\s*([\d.]+)', src).group(1))
     body = re.search(r'export const TURN_STEPS\s*=\s*\[([^\]]*)\]', src).group(1)
-    return [float(v) for v in re.findall(r'[-\d.]+', body)] + [1.0]
+    return [eyes] + [float(v) for v in re.findall(r'[-\d.]+', body)] + [1.0]
 
 
 def main():
@@ -636,12 +673,15 @@ def main():
     off = np.abs(still - panel).max(-1)
     assert np.percentile(off, 99.9) <= 2 / 255 + 1e-6 and off.max() <= 12 / 255, \
         f'not turned, the rig should be the panel: p99.9 {np.percentile(off, 99.9) * 255:.1f}/255, max {off.max() * 255:.0f}/255 at {np.unravel_index(off.argmax(), off.shape)}'
-    v, outside = strain(head, math.radians(-ANGLE))
-    print(f'her-turn: not turned, the panel to {off.max() * 255:.0f}/255; turned, her inked pixels\' area {np.percentile(v, 1):.2f}-{np.percentile(v, 99):.2f} '
-          f'(p1-p99), {outside * 100:.1f}% outside 0.75-1.35')
-    # (Some change is the turn itself: her far cheek comes round, her ear goes back. Past this, lines
-    # thin to dots or thicken, as they did before the jaw and the ear were made rigid: 21% outside.)
-    assert outside <= 0.06 and np.percentile(v, 1) >= 0.6 and np.percentile(v, 99) <= 1.6, 'the turn squeezes or stretches her lines'
+    parts = strain(head, math.radians(-ANGLE))
+    print(f'her-turn: not turned, the panel to {off.max() * 255:.0f}/255; turned, her inked pixels outside 0.75-1.35 in area: ' +
+          ', '.join(f'{k} {v[0] * 100:.0f}%' for k, v in parts.items()) + f'; her mouth stretched at most {parts["mouth"][3]:.2f}')
+    # (Past these, lines thin to dots or thicken, as her jaw line and ear's rim did before they were
+    # made rigid, and her mouth lengthened while her far cheek's push reached it.)
+    for k, (share, lo, hi, most) in parts.items():
+        s_max, lo_min, hi_max, most_max = STRAIN[k]
+        assert share <= s_max + 1e-9 and lo >= lo_min and hi <= hi_max and most <= most_max, \
+            f'the turn squeezes or stretches her {k}: {share * 100:.1f}% outside, area {lo:.2f}-{hi:.2f}, stretch {most:.2f}'
     os.makedirs(OUT, exist_ok=True)
     for old in os.listdir(OUT):
         if old.startswith('b-turn-'):

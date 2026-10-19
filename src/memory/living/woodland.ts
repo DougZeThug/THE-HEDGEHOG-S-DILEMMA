@@ -76,8 +76,9 @@ const BLINKS = {
   // second before the cut; his again in the two-shot, before her look (the creative director's
   // beat sheet: "both look up; he blinks once"). His in the two-shot stays: without it his face
   // would move only on cue (the skeptic's review of the evaluations, 2026-10-18). None of hers:
-  // from her look to the cut her head is the artist's drawing of her turned to him, and her lids
-  // are drawn for the panel's eyes; and they look at each other from his look to the cut.)
+  // from her look to the cut her head is a drawing of her turned to him, and her lids are drawn
+  // for the panel's eyes; and in that hold anything on her face becomes a beat ("no need for
+  // another gesture": the artist; the skeptic, 2026-10-19).)
   a: [13.4, TWO_SHOT.hisBlink],
   b: [],
 };
@@ -161,8 +162,9 @@ export const WOODLAND: LivingSpec = {
     gazeB: [-0.45, 0.1],
     breath: 0.45,
     span: [TWO_SHOT.from, TWO_SHOT.to],
-    // (His blink too: a return never cuts in on a half-shut lid. Her turn whole, its start and its
-    // end: a return never cuts into it.)
-    beats: [TWO_SHOT.hisBlink, TWO_SHOT.herEyes, TWO_SHOT.herTurn, TWO_SHOT.herTurn + TURN_STEPS.length / 12, TWO_SHOT.hisEyes, TWO_SHOT.hisRoll],
+    // (His blink too: a return never cuts in on a half-shut lid. Her turn whole, its start, its
+    // middle and its end, under a second apart: a return never cuts into it, not even at the one
+    // instant exactly half a second from both ends.)
+    beats: [TWO_SHOT.hisBlink, TWO_SHOT.herEyes, TWO_SHOT.herTurn, TWO_SHOT.herTurn + TURN_STEPS.length / 24, TWO_SHOT.herTurn + TURN_STEPS.length / 12, TWO_SHOT.hisEyes, TWO_SHOT.hisRoll],
   },
 };

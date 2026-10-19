@@ -370,16 +370,17 @@ export const DOOR: MemoryDef = {
  *   15.0–27.0 4 cut: the two of them close, one frame, held (the artist's own panel: both faces,
  *             and their hands lying almost touching in the grass between them, as drawn, never
  *             moved). Both looking up, each breathing in their own time; he blinks (16.2). Her eyes
- *             go to him (17.5) and her head follows (18.0: the artist's own drawing of her turned
- *             to him, a cut, held); he is looking at the sky. Her head goes back to the sky (21.5),
- *             her eyes after it (22.0). A breath each. His eyes go to her (24.0), his head a little
- *             after (24.5): he looks at her only when she can't see.
+ *             go to him (17.5) and her head follows, a little (18.0–19.0: her own head from the
+ *             panel, turned 14° toward him, on twos), and she stays looking at him; he is looking
+ *             at the sky. His eyes go to her (24.0), his head a little after (24.5), and he stays
+ *             too. (Where there is only the wide, on an upright screen, his look is too small to
+ *             see there: her look goes unanswered.)
  *             (The cicada over them, and the two either side, are quiet through it. The artist's
  *             shot list had him look first and her notice: reversed, and recorded, in the review
  *             of 2026-10-18.)
- *   27.0–34.5 5 the wide again, cut while he is still looking; both looking up, settled: the
- *             longest shot (nothing in its first second); the cicada over them again (28.0); the
- *             air dying down; one blink (31.6); still from 32, both between breaths at the cut
+ *   27.0–34.5 5 the wide again, cut while they are looking at each other: the longest shot
+ *             (nothing in its first second); the cicada over them again (28.0); the air dying
+ *             down; still from 32, both between breaths at the cut
  *   34.5      6 a cut, on one frame, in that stillness: the same clearing, the same view, at dusk,
  *             and nobody there. No sound marks it: the cicada over them sings straight across it,
  *             the grass keeps moving
@@ -409,13 +410,25 @@ export const CUT = 34.5;
 export const TWO_SHOT = { from: 15.0, hisBlink: 16.2, herEyes: 17.5, herTurn: 18.0, hisEyes: 24.0, hisRoll: 24.5, to: 27.0 };
 /**
  * Her turn, drawn on twos (`figure:b.turn`: how far her head has turned, 0 the panel's .. 1 turned a
- * little toward him, `scripts/her-turn.py`): how far at each drawing. A head's own movement, eased
- * in and out (minimum jerk) over fifteen drawings, a second and a quarter; the first and last, too
- * near their neighbours to see, are left out. The scene shows, at each, the drawing nearest to how
- * far she has turned. Toward him from `herTurn`, her eyes leading by half a second; never back (the
- * artist: "She should glance toward him, settle into that gaze, and simply remain there").
+ * little toward him, `scripts/her-turn.py`): how far at each drawing, one a twelfth of a second from
+ * `herTurn`, then all the way at 19.0. A head's own movement, eased in and out (minimum jerk, a curve
+ * of fifteen drawings; its first and last, too near their neighbours to see, are left out). The
+ * scene shows, at each, the drawing nearest to how far she has turned. Toward him from `herTurn`,
+ * her eyes leading by half a second; never back (the artist: "She should glance toward him, settle
+ * into that gaze, and simply remain there"). (A longer settle, the curve's time taken to the 0.8th
+ * power over a second and a half, was weighed and not built: its last drawings move a few tenths
+ * of a pixel, and its peak half a pixel less a drawing; no one would see it: the skeptic's review,
+ * 2026-10-19.)
  */
 export const TURN_STEPS = [0.019, 0.058, 0.122, 0.21, 0.317, 0.438, 0.562, 0.683, 0.79, 0.878, 0.942, 0.981];
+/**
+ * Her eyes on him before her head moves: the first of her turn's drawings (`figure:b.turn` from
+ * `herEyes`; turned nowhere you could see), so that her eyes lead her head in either shot. (The
+ * wide's soft eye deformers barely move her irises: on an upright screen her eyes went to him
+ * with her head, at 18.0, the biggest change in the whole gesture: the skeptic's review,
+ * 2026-10-19.)
+ */
+export const TURN_EYES = 0.001;
 /**
  * The artist's shot list (2026-10-17): 1 the room remembers (the pencil, the lean), 2 crossing
  * in, 3 the wide afternoon, 4 he looks toward her, 5 she notices, 6 their hands, 7 the wide
@@ -542,14 +555,14 @@ export const WOODLAND: MemoryDef = {
         'figure:a.breath': [[0, 1]],
         'figure:b.breath': [[0, 1]],
         'figure:b.foot': [[0, 0], [12.4, 0], [12.9, 0.8], [13.8, 0.8], [14.3, 0]],
-        // Her look: her eyes go to him (a drawing), her head follows (the artist's drawing of her
-        // turned to him, through the drawings on the way there, one a twelfth of a second: held,
-        // never mixed), and stays, in both shots, to the cut. (The eyes are forced still while a
-        // drawing is shown: its eyes are drawn on him. Without drawings on the way, the nearest is
-        // the panel's or hers: the straight cut.)
+        // Her look: her eyes go to him (a drawing of her eyes on him), her head follows (her own
+        // head turned a little toward him, a drawing a twelfth of a second: held, never mixed), and
+        // stays, in both shots, to the cut. (The eyes are forced still while a drawing is shown:
+        // its eyes are drawn on him. `figure:b.eyes` moves them only without the drawings.)
         'figure:b.eyes': [[0, 0, 'hold'], [T.herEyes, 1, 'hold']],
         'figure:b.turn': [
           [0, 0, 'hold'],
+          [T.herEyes, TURN_EYES, 'hold'],
           ...TURN_STEPS.map((f, i): Key => [T.herTurn + i / 12, f, 'hold']),
           [T.herTurn + TURN_STEPS.length / 12, 1, 'hold'],
         ],
