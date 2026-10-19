@@ -1500,3 +1500,9 @@ hair beside her far jaw keeps its strands. No pop at 17.5, 18.0 or 19.0.
 61. **Her eyes, three ways for the artist**: as built (one drawing), one in-between, two in-betweens,
     her head side by side; the directors differ (the cinematic director would offer one, the creative
     director two), so the artist chooses. One fits the atlas as it is; two need a 5×4 grid.
+
+Measured on the new film (`test-output/review/woodland/context5/`): on an upright phone at 17.5 her
+eyes change (157 pixels over 24/255) and nothing else of her does (146 before, along her hair; the
+strand beside her far cheek stays: its largest change 11/255, 68 before). His look, filmed beside
+her rebuilt turn for the first time: his eyes go to her at 24.0, his head rolls a little from 24.67
+to 24.92, and they look at each other from then to the cut.
