@@ -163,8 +163,10 @@ def flow(a, b):
 
 
 def paper(img):
-    """How much of each pixel is drawing, not the sheet's paper (the cutter's own key)."""
-    return cut.smooth(0.035, 0.12, np.sqrt(((img - cut.IVORY) ** 2).sum(-1)))[..., None]
+    """How much of each pixel is drawing, not the sheet's paper (the cutter's own key), and how far
+    its colour is from the paper's (an edge half paper is half as far)."""
+    d = np.sqrt(((img - cut.IVORY) ** 2).sum(-1))[..., None]
+    return cut.smooth(0.035, 0.12, d), d
 
 
 def shifted(img, f):
@@ -209,15 +211,15 @@ def main():
         w = float(smooth(BLEND[0], BLEND[1], f))
         if w <= 0 or w >= 1:
             one = warped(panel, P, to) if w <= 0 else warped(take, T, to)
-            return one, paper(one)
+            return (one, *paper(one))
         a, b = warped(panel, P, to), warped(take, T, to)
         fl = flow(a, b)
         a, b = shifted(a, -w * fl), shifted(b, (1 - w) * fl)
         # (Blended where both are drawn; where one is paper, the other's drawing as it is: mixed with
         # the paper, the cutter's key reads it as solid and pale, a halo round her hair.)
-        ka, kb = paper(a), paper(b)
+        (ka, da), (kb, db) = paper(a), paper(b)
         colour = ((1 - w) * ka * a + w * kb * b) / np.maximum((1 - w) * ka + w * kb, 1e-6)
-        return colour, np.maximum(ka, kb)
+        return colour, np.maximum(ka, kb), np.maximum(da, db)
 
     sheet = cut.arr(Image.open(os.path.join(cut.REF, '02-characters.webp')).convert('RGB').resize((1448, 1086), Image.LANCZOS))
     lay1 = cv2.resize(lay[..., 0], (N // 2, N // 2), interpolation=cv2.INTER_AREA)[..., None]
@@ -228,11 +230,11 @@ def main():
         c, sh = (i + 0.5) / DRAWINGS, SMEAR if i == DRAWINGS // 2 else SHUTTER
         f0, f1 = minjerk(c - sh / (2 * DRAWINGS)), minjerk(c + sh / (2 * DRAWINGS))
         parts = [moment(x) for x in np.linspace(f0, f1, max(1, min(9, round((f1 - f0) / 0.02) + 1)))]
-        # (What the exposure saw: the drawing wherever it passed, its colours averaged; the paper only
-        # where it never did.)
-        seen = np.sum([k for _, k in parts], 0)
-        colour = np.sum([k * c for c, k in parts], 0) / np.maximum(seen, 1e-6)
-        drawn = np.max([k for _, k in parts], 0)
+        # (What the exposure saw: the drawing wherever it passed, its colours averaged, the purest
+        # most, so no edge half paper pales the hair; the paper only where it never did.)
+        weights = [k * d * d for _, k, d in parts]
+        colour = np.sum([q * c for (c, _, _), q in zip(parts, weights)], 0) / np.maximum(np.sum(weights, 0), 1e-6)
+        drawn = np.max([k for _, k, _ in parts], 0)
         head = colour * drawn + cut.IVORY * (1 - drawn)
         head = np.clip(head * lay + panel * (1 - lay), 0, 1)
         out2 = top2.copy()
