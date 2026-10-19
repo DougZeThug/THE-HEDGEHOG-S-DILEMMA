@@ -1284,8 +1284,9 @@ holds.
   neck twists, all of it at the jaw and none at the collar.
 - *The turn.* 14° about her neck's axis (the fitted axis leans 24.5° into the picture and read as a
   roll of her head; 10° is used). Her far cheek's outline moves as the model's silhouette does, about
-  half as far as her paint, so her far cheek comes round; her far eye turns with her face, never
-  widened.
+  a third as far as her paint (6 px against 22 in the 2× crop), so her far cheek comes round; the
+  push that does it reaches 20 px in from the outline, short of her mouth. Her far eye, coming round
+  toward us, widens by about a quarter, as a far eye does.
 - *Two layers.* Her head and neck in front; her hair and the rest behind, filled under her with the
   hair beside her. The hair near her head follows it a little and none does beyond 60 px; where her
   edge draws back from the hair behind it, that hair goes with it (over 48 px), and where her face
@@ -1293,19 +1294,92 @@ holds.
   it, so the rig at 0° is the panel.
 - *Resampled once per layer:* Lanczos, clamped to the local range (no pale halos beside strands),
   supersampled 4× where the warp stretches.
-- *Her eyes* are on him first (the film's own iris move at 17.5); as her head comes round they ease
-  back 35% in their sockets, still on him.
-- *On twos:* thirteen drawings at the minimum-jerk curve's fractions, 18.0–19.0, then held to the
-  cut. `scripts/two-shot.py` lays them into the panel and cuts the two-shot's and the wide's heads
+- *Her eyes* are on him first: the first drawing is her eyes on him, her head not yet turned (the
+  film's own iris move), at 17.5, in either shot; as her head comes round they ease back 35% in
+  their sockets, still on him.
+- *On twos:* her eyes at 17.5, then thirteen drawings at the minimum-jerk curve's fractions,
+  18.0–19.0, then held to the cut. `scripts/two-shot.py` lays them into the panel and cuts the two-shot's and the wide's heads
   (one 4×4 atlas each, with gutters), inside a region that takes every pixel any drawing changes.
 
 **Checked on every build** (the build fails otherwise).
 - At 0° the rig is the panel: 99.9% of pixels within 2/255.
-- Turned, her inked pixels keep their weight: 5.2% of them change area by more than 0.75–1.35 (limit
-  6%; it was 21% before the jaw and ear were made rigid, when the jaw line went to dots and the ear's
-  rim stair-stepped). What remains is the turn itself: her far cheek coming round, her ear going back.
+- Turned, feature by feature, her inked pixels keep their weight. Her eyes, brows and mouth go no
+  further than the turn itself takes them (none of their inked pixels changes area by more than
+  0.75–1.35; her mouth stretches 1.29 at most, as a mouth turning toward us lengthens); her jaw line
+  and ear stay rigid (0% out of band; before they were made rigid the jaw line went to dots and the
+  ear's rim stair-stepped); her far outline is a silhouette, re-drawn as it comes round (37% of its
+  stroke out of band, 0.48–1.66); the rest 3%. In all, 5% (21% before).
+- The warps are exact where they can be seen (within 0.15 px).
 - No drawing changes anything under the region's soft edge by more than 3/255.
 
 Measured once (optical flow over her head, drawing to drawing): every step moves as far as the ease
 says, to 0.04 px (median), and the same way (deviation from one motion field: 0.1 px median, 1.4 px
-at the 99th percentile, in the 2× crop). No snaps.
+at the 99th percentile, in the 2× crop). The drawings have no snaps; the film had one on upright
+screens, at 18.0 (decision 45).
+
+#### The reviews (the creative, cinematic and technical directors; then the skeptic)
+
+The three specialists reviewed the prototype and the first build (e2f80bf); the skeptic reviewed
+their reviews, the plan made from them, and the build after the first fixes (6a16632), recording
+its own phone film.
+
+- **All three:** it is her own face turning, the first version of her turn that is. Creative: adopt
+  it at 14° and add nothing to her face; carry the same pose into the wide and the phones; his look
+  at 24.0 now meets hers (consider 25.5); offer the artist a blink in the hold. Cinematic: the last
+  drawing's edges break up (the stroke under her ear dotted, the ear's rim stair-stepped), on screen
+  for 8 s close; the flipbook isn't the film; hair smeared beside her far jaw; try a longer settle
+  (B: the curve's time to the 0.8th power, over 1.5 s). Technical: drawn contours squashed like
+  surface paint (the jaw line to 0.155 of its area), the drag squeezing hair where her face passes
+  over it, fill smudges on her collar from the first drawing, and no check catching any of it.
+- **The skeptic:** protect the rotation from further "improvements". None of the three looked at an
+  upright screen, where her eyes did not lead: they went to him with her head at 18.0, the biggest
+  single change in the gesture. B cannot be seen. The far cheek's push stretched her mouth's far
+  corner 1.7 times, and the far-eye mask did nothing; a whole-head strain number cannot see a mouth
+  (45 of 3,465 inked pixels). His look is answered on desktops and unanswered on phones: put that
+  to the artist, not "24.0 or 25.5".
+
+#### Decisions (main session, after the skeptic)
+
+43. **Her own head, turned 14°**, in both shots and on every screen, in place of take b. Nothing is
+    added to her face: no mouth, lid or brow change (the creative director). 14° sits in the
+    cinematic director's 12–15° band; at 20° her ear and neck break up and her painted light starts
+    to contradict the sun.
+44. **Her lines keep their weight** (the technical artist's fixes, all built): her jaw line rigid in
+    a band either side of it; her ear a flap hinged at her cheek, rigid past its rim; no surface of
+    the head steeper than a set slope near its outline; the hair behind her drawn after her edge
+    only where that edge draws back from it, over 48 px (the technical artist's one-way drag, not
+    the cinematic director's 4–6 px: with no drag a dark dotted smear opens behind her far jaw, as
+    the skeptic found taking each part out); the soft edge split into her colour and what lies
+    behind it (the collar smudges gone; at 0° the rig is the panel); Lanczos, clamped, supersampled
+    where the warp stretches.
+45. **Her eyes lead on every screen**: her eyes on him, her head not yet turned, are the turn's first
+    drawing, from 17.5, in both shots (the skeptic). On desktops nothing changes: the drawing's eyes
+    are the shader's look, drawn the same way.
+46. **Her far cheek comes round; her mouth doesn't lengthen.** The push reaches 20 px in from the
+    outline, short of her mouth's far corner (stretched 1.29 now, as the turn alone does; 1.73 at
+    40 px), and only either side of the outline (it had leaked round her head to her ear's rim and
+    her jaw line). Without a push, her far outline would slide with her paint (17 px against 6)
+    and her far cheek stay as narrow as drawn, which reads as a picture sliding (the cinematic
+    director). The far-eye mask is gone: at this reach it does nothing. The record said her far eye
+    is "never widened": it widens by about a quarter, as a far eye coming round toward us does.
+47. **Checked feature by feature** on every build (the skeptic), as above.
+48. **Timing as built (A), not B.** B's fastest drawing moves half a pixel less (at 1280 wide) and
+    its last drawings tenths of a pixel; A's own first two drawings already move under a pixel, so
+    the visible lead of her eyes is already 0.67 s. "She settles" means she stays: the 15.5 s hold
+    gives it. If the artist finds the turn quick, the last three drawings can each be held 1/8 s
+    (no new drawings).
+49. **His look: put to the artist, not changed.** On desktops her look is answered: his eyes go to
+    her at 24.0, three seconds close, then the wide. On upright screens, where there is only the
+    wide, his eye move is too small to see, so it isn't. (a) As now; (b) unanswered everywhere: his
+    look removed (it is a stand-in: moved irises, a 2° roll); (c) answered everywhere: his eyes drawn
+    for the wide. Moving it to 25.5 changes the wait, not the reading.
+50. **No blink for her in the hold**, offered only if the artist finds it lifeless: from 19.0 to 24.0
+    nothing else moves on either face, so a blink there becomes a beat ("no need for another
+    gesture").
+51. **The flipbook is the film**: the recorded frames, 12 drawings a second (the loop at 80 and 90 ms
+    alternately, with black before it repeats), every drawing as filmed, her head enlarged frame by
+    frame.
+52. A beat at the middle of her turn: the two-shot can no longer come back at the one instant (18.5)
+    half a second from both its ends. Kept from the technical artist's smaller findings: the head
+    drawing follows the grass's sway under its soft edge (already built, one line), and the atlas
+    cell's guard (exact for any number of columns).

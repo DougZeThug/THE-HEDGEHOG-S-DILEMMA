@@ -12,7 +12,10 @@ drew them), shown at twice its size (the upscale you chose). In it:
   there: her own face from the panel, turned (`scripts/her-turn.py`);
 - then his eyes go to her, and he stays there too: the shot cuts back to the wide with them still
   looking at each other, and they are still looking when it cuts to the empty clearing at dusk
-  (you: "She should glance toward him, settle into that gaze, and simply remain there").
+  (you: "She should glance toward him, settle into that gaze, and simply remain there"). On an
+  upright phone there is only the wide, where his look is too small to see: there, hers goes
+  unanswered. Tell me which you want everywhere: answered (his look drawn for the wide too),
+  unanswered (his look taken out), or as it is.
 
 Her look is your drawing, turned. **His look is not**: there is no drawing of it, so his irises are
 moved inside his eye openings (the lash line stays as drawn) and his head rolls about 2°. That is a
@@ -21,8 +24,8 @@ stand-in.
 **Her turn** is made from the panel alone, nothing redrawn: a head is fitted under your painting of
 her (her pose from points of her face; skull, face, nose, chin; her ear; her neck) and turned 14°
 about her neck, on twos over a second, easing in and out as a head does; her hair on the grass
-stays, the hair near her head follows a little, and her eyes, already on him, ease back in their
-sockets as her head comes round. Your drawing of her turned further (`../drawings/b-look-full-b.webp`)
+stays, the hair near her head follows a little, and her eyes, on him half a second before her head
+moves, ease back in their sockets as it comes round. Your drawing of her turned further (`../drawings/b-look-full-b.webp`)
 is no longer used: the turn you asked for is a slight one, and a drawing that turned her 70-90°
 could only be reached by bending one picture into another, which read as morphing. If you would
 like her turned more, or less, or sooner, say so: it is a number.
