@@ -1383,3 +1383,17 @@ its own phone film.
     half a second from both its ends. Kept from the technical artist's smaller findings: the head
     drawing follows the grass's sway under its soft edge (already built, one line), and the atlas
     cell's guard (exact for any number of columns).
+
+#### Measured on the film (`test-output/review/woodland/turn4/`: desktop 1280×720, 16.5–21.0; an upright phone, 17.25–19.75; 12 drawings a second)
+
+Pixels in her head changing by more than 24/255 from one frame to the next (breathing and the grass
+alone: 270–630 on desktop, 0–4 on the phone):
+- **Desktop.** Her eyes at 17.5: 908 (the earlier build, the shader moving her irises: 898; her eyes
+  drawn and her eyes moved by the shader differ by at most 37/255, in 38 pixels). At 18.0, 478:
+  nothing jumps. Her head: 1,384 at 18.08, rising to 4,900 at 18.58 and back to 760 at 19.0; from
+  19.08 the breathing alone again. One rise and fall, no frame out of line with its neighbours.
+- **Upright phone.** Her eyes at 17.5: 307. At 18.0: 0 (the skeptic had measured 339 there, her eyes
+  going to him with her head). Her head: from 18.17 (22) to 18.58 (251) and gone by 18.92. Her eyes
+  lead on every screen now.
+- **The cut back to the wide at 27.0** (recorded on the build before the last fixes, which kept the
+  pose): the same pose either side, the wide's own drawing of her turned, at its size.
