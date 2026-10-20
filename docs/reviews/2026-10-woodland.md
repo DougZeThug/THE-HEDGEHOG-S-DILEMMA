@@ -2450,6 +2450,9 @@ The technical artist reviewed the same test. On the rig:
      barely widens. The turn is read from her nose moving more than her cheeks, her far eye
      opening, and her near side narrowing toward her ear. The cinematic director's "a picture
      sliding" (decision 46) was weighed against the artist's "very fat"; the artist's eye decides.
+     Measured settled (optical flow, 2× crop):
+     - from her far mouth corner to her outline, her cheek widens 5.0 px (14.5 before);
+     - from her far eye to her outline, 0.6 px (10.3 before).
 144. **Her neck stays a neck** (the artist; decision 44's neck reversed).
      - It is a cylinder about its own centre line. Its sides stay where they are while it twists,
        from all of the turn at her jaw to none at her collar. Her chin slides across it.
@@ -2458,6 +2461,8 @@ The technical artist reviewed the same test. On the rig:
      - The skin under her jaw and chin, out of sight until they slide off it, lies in their shadow.
        It is bounded by her neck's own side carried up, and drawn with the outline of her neck's
        side.
+     - Measured settled: her neck is 4.9 px narrower near her collar (14.1 before). What remains
+       comes from her neck's axis leaning 10° into the picture.
      - Fixed on the way:
        - a pale strip under her jaw (the shadow carried up behind it);
        - her chin's heavy outline lying as a shard on bright skin;
