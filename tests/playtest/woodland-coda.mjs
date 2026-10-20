@@ -5,7 +5,8 @@
 // you to" on the wall under "five more minutes", as the review film had it (the hardest layout:
 // the opening's own unfinished line sits under that phrase's place). WALL=east writes the woodland's
 // line on that wall instead, as the room writes it where the visitor looks: near NEAR='u,v' (metres
-// along and up the wall; 3.2,1.6 by default, its middle).
+// along and up the wall; 3.2,1.6 by default, its middle). AT='u,v' then moves it there exactly (a
+// place the room writes it at, found by woodland-coda-walls.ts), so two runs can be compared.
 //
 //   npm run build && npx vite preview --port 4173 &
 //   node tests/playtest/woodland-coda.mjs          (OUT=test-output/review/woodland/coda NAME=ours)
@@ -40,9 +41,15 @@ await page.evaluate(() => {
   if (b && !b.hidden) b.click();
 });
 await page.waitForFunction(() => window.__hedgehog.score.stage === 'done', null, { timeout: 120000 });
-await page.evaluate(async ({ stay, wall, near }) => {
+await page.evaluate(async ({ stay, wall, near, at }) => {
   const a = window.__hedgehog;
   if (wall) a.text.write({ key: 'memory:more-minutes', text: 'five more minutes', hand: 'pencil', size: 's', surface: wall, near: { u: near[0], v: near[1] }, purpose: 'recall', ttl: 0, now: a.time, source: 'more-minutes', start: false }), a.text.writeOn('memory:more-minutes', { instant: true });
+  if (wall && at) {
+    const own = a.text.items.get('memory:more-minutes');
+    own.placement.u = at[0];
+    own.placement.v = at[1];
+    a.text.position(own);
+  }
   else a.text.setShown('more-minutes');
   if (stay) a.text.writeOn('stay', { upto: 4, instant: true });
   for (let i = 0; i < 100 && !a.text.anchorOf('more-minutes'); i++) await new Promise((r) => setTimeout(r, 50));
@@ -52,7 +59,7 @@ await page.evaluate(async ({ stay, wall, near }) => {
   a.rig.pos.set(c.x + n.x * 2.4, 0, c.z + n.z * 2.4);
   a.rig.yaw = Math.atan2(n.x, n.z);
   a.rig.pitch = 0.1;
-}, { stay: !!process.env.STAY, wall: process.env.WALL ?? '', near: (process.env.NEAR ?? '3.2,1.6').split(',').map(Number) });
+}, { stay: !!process.env.STAY, wall: process.env.WALL ?? '', near: (process.env.NEAR ?? '3.2,1.6').split(',').map(Number), at: process.env.AT ? process.env.AT.split(',').map(Number) : null });
 await page.waitForTimeout(1000);
 await page.screenshot({ path: `${OUT}/${NAME}-0-before.png` });
 await page.evaluate(() => window.__hedgehog.playMemory('woodland', 'more-minutes', 'afternoon'));
