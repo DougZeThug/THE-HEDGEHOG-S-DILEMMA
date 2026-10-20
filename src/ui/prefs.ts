@@ -1,7 +1,10 @@
 export interface Prefs {
   volume: number;
   muted: boolean;
+  /** Captions for what is heard: off unless the visitor chooses them (the artist, 2026-10-19). */
   captions: boolean;
+  /** The visitor chose captions on or off themselves (a default saved with another preference doesn't count). */
+  captionsChosen?: boolean;
   speech: boolean;
   intensity: 'gentle' | 'full';
   reducedMotion: boolean;
@@ -32,7 +35,7 @@ function safeSet(k: string, v: string | null) {
 export function defaultPrefs(): Prefs {
   const reduced = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
   const touch = typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches;
-  return { volume: 0.75, muted: false, captions: true, speech: false, intensity: 'full', reducedMotion: reduced, quality: touch ? 'low' : 'medium' };
+  return { volume: 0.75, muted: false, captions: false, speech: false, intensity: 'full', reducedMotion: reduced, quality: touch ? 'low' : 'medium' };
 }
 
 export function loadPrefs(): Prefs {
@@ -44,7 +47,10 @@ export function loadPrefs(): Prefs {
     return {
       volume: typeof p.volume === 'number' ? Math.min(1, Math.max(0, p.volume)) : d.volume,
       muted: typeof p.muted === 'boolean' ? p.muted : d.muted,
-      captions: typeof p.captions === 'boolean' ? p.captions : d.captions,
+      // (Captions were on by default until 2026-10-19: one saved along with another preference
+      // then is a default, not a choice.)
+      captions: p.captionsChosen && typeof p.captions === 'boolean' ? p.captions : d.captions,
+      captionsChosen: !!p.captionsChosen,
       speech: typeof p.speech === 'boolean' ? p.speech : d.speech,
       intensity: p.intensity === 'gentle' || p.intensity === 'full' ? p.intensity : d.intensity,
       // Only a choice the visitor made overrides the system setting; a default saved along with

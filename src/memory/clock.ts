@@ -4,10 +4,20 @@
  * fall behind its music; the room's frame dt is clamped to 0.1 s for its own reasons, and must
  * not be used here. While the context is suspended, real (unclamped) frame time is used instead.
  * Hidden or in settings, the App passes `paused` and the memory doesn't move at all.
+ *
+ * The sound is the master: however long a frame took while it ran, the image catches up with what
+ * was heard (a stall left uncapped; the cue dispatcher restarts a bed or the music part-way in), so
+ * the picture's cut and the sound's stay one instant (capped at a second, a stall left the picture
+ * behind its sound for the rest of the memory: the sound designer's review of the woodland's score,
+ * 2026-10-19). A vignette keeps the cap (`cap` 1): its lines are what it is, and a stall it jumped
+ * would pass a line by; capped, the vignette is late by the rest of the stall instead, and every
+ * line is said (QA, 2026-10-19).
  */
 export class MemoryClock {
   private lastAudio: number | null = null;
   private lastReal: number | null = null;
+
+  constructor(private readonly cap = Infinity) {}
 
   /**
    * @param real   performance.now() / 1000
@@ -19,10 +29,21 @@ export class MemoryClock {
     this.lastAudio = running ? audio : null;
     this.lastReal = real;
     if (paused || prevR === null) return 0;
-    const dt = running && prevA !== null ? audio - prevA : real - prevR;
-    // A long stall (a hidden tab the browser kept running, a debugger) is not time the memory
-    // lived through; anything beyond a second becomes a jump, which plays nothing it passes.
-    return Math.max(0, Math.min(1, dt));
+    // The sound ran on through a long frame: the image follows it.
+    if (running && prevA !== null) return Math.max(0, Math.min(this.cap, audio - prevA));
+    // Without sound running, a long stall (a debugger) is not time the memory lived through:
+    // anything beyond a second becomes a jump, which plays nothing it passes.
+    return Math.max(0, Math.min(1, real - prevR));
+  }
+
+  /**
+   * Measure the next frame from now: the moment the memory began (its first sounds were scheduled
+   * from this audio time), so its first frame moves by the time since, and position 0 is that
+   * instant on both clocks.
+   */
+  prime(real: number, audio: number, running: boolean): void {
+    this.lastAudio = running ? audio : null;
+    this.lastReal = real;
   }
 
   reset(): void {

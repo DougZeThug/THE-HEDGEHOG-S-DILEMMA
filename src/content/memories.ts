@@ -18,6 +18,13 @@ export interface SceneMemory {
   commit: number;
   /** Seconds before looking away may end it. */
   minHold: number;
+  /**
+   * A painted memory counts as seen only once it has been entered and played to here (its own
+   * seconds), not after `minHold` (or 8 s) watched: the woodland's heart is her look, 18 s in (a
+   * visitor who turned away as it took them in, at 9 s, was counted for good: the interaction
+   * designer's review, 2026-10-18).
+   */
+  seenAt?: number;
   /** The longest it plays (the controller closes it then). */
   maxHold: number;
   /** First visit, and returning visits in turn. */
@@ -52,11 +59,26 @@ export interface SceneMemory {
   afterFinished?: string;
   /** Heard this many times (over all visits), it no longer comes. */
   maxSeen?: number;
+  /** Its line is kept off the walls until the memory offers it (it belongs to that moment). */
+  reserved?: boolean;
+  /** Once it has played, no other painted memory is offered in that visit (it ends the arc). */
+  last?: boolean;
+  /** Seconds from its start to its very end (withdrawal and tail), if longer than the usual ~28. */
+  span?: number;
 }
 
 export const SCENE_MEMORIES: SceneMemory[] = [
   // The discoverable first memory: early, armed by reading or touching the line.
   { id: 'cereal', phraseId: 'cereal', earliest: 20, latest: 150, arc: 'first', arm: 2.5, commit: 1.0, minHold: 10, maxHold: 22, variants: { first: 'first', revisit: ['later'] }, lookBack: true },
+  // Company that becomes absence inside one memory: two people in a clearing, a hand, the dusk
+  // (docs/reviews/2026-10-woodland.md). Offered once another memory has been, ahead of the bedroom
+  // (it takes a first visit's late place; the bedroom comes on a visit after it). Nothing painted
+  // comes after it in that visit. A return visit meets the clearing again, empty, kept in the wall.
+  {
+    // (seenAt: her look, defs.ts TWO_SHOT.herTurn; tested.)
+    id: 'woodland', phraseId: 'more-minutes', earliest: 200, arc: 'afterAnother', arm: 2.5, commit: 1.0, minHold: 12, seenAt: 18, maxHold: 42.5, span: 53,
+    variants: { first: 'afternoon', revisit: ['empty'] }, lookBack: false, offer: { phases: ['contradiction', 'transform'], apart: 120 }, reserved: true, last: true,
+  },
   // Peace with a cost: the longest, once the room has begun to contradict itself.
   {
     id: 'bedroom', phraseId: 'happiest-unneeded', earliest: 150, arm: 2.5, commit: 1.0, minHold: 12, maxHold: 26,
@@ -68,7 +90,7 @@ export const SCENE_MEMORIES: SceneMemory[] = [
   // to the door and stops; a return visit, they only pass.
   {
     id: 'door', phraseId: 'door-open', earliest: 240, arc: 'afterAnother', arm: 2.5, commit: 1.0, minHold: 9, maxHold: 18,
-    variants: { first: 'approach', revisit: ['passing'] }, lookBack: false, offer: { phases: ['contradiction', 'transform'], apart: 120, wall: 'south' },
+    variants: { first: 'approach', revisit: ['passing'] }, lookBack: false, offer: { phases: ['contradiction', 'transform'], apart: 120, wall: 'south' }, reserved: true,
   },
 ];
 

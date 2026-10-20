@@ -733,6 +733,57 @@ export class WallText {
     return true;
   }
 
+  /**
+   * Write a line under another inside a place on its wall (`within`, in the writing group's metres,
+   * as the memory window gives a painting's place): just under it and close, clear of what is
+   * already written there (decisions 122, 133, 136 and 137). The places kept for lines not yet shown
+   * give way, and are found again elsewhere on their wall; a line with its own place close by
+   * waits, as does one with no room left on its wall. The ids of the lines that wait (the room keeps
+   * them off the walls from then on), or null, and nothing written, if nothing fits.
+   */
+  writeWithin(o: { key: string; text: string; hand: Hand; size: Size; under: string; within: { cx: number; cy: number; w: number; h: number }; purpose: Exclude<Purpose, 'phrase'>; now: number; source?: string; start?: boolean }): string[] | null {
+    if (this.items.has(o.key)) return null;
+    const anchor = this.items.get(o.under)?.placement;
+    if (!anchor || anchor.surface === 'floor' || anchor.surface === 'ceiling') return null;
+    const size = surfaceSize(anchor.surface), s = this.room.scale;
+    const within = { u: o.within.cx / s + size.w / 2, v: o.within.cy + size.h / 2, w: o.within.w / s, h: o.within.h };
+    const m = measureText(o.text, o.hand, o.size);
+    // (A line not yet on any wall keeps a place: one with no place of its own can go elsewhere, one
+    // with its own place can only wait, as can one made ahead (the opening's) and not yet written.)
+    const slots = new Map<Placement, string>(), own = new Map<Placement, string>();
+    for (const [id, pl] of this.placements) {
+      const made = this.items.get(id);
+      if (!made) (PHRASE_BY_ID.get(id)?.at ? own : slots).set(pl, id);
+      else if (made.placement === pl && made.vis <= 0.05 && made.target <= 0) own.set(pl, id);
+    }
+    // (What is already written on that wall, drawings too, its own line aside.)
+    const written = [...this.items.values()].filter((it) => it.key !== o.under && it.placement.surface === anchor.surface && (it.vis > 0.05 || it.target > 0)).map((it) => it.placement);
+    const found = this.layout.findUnder(anchor, m.w, m.h, within, (p) => slots.has(p), written, (p) => own.has(p));
+    if (!found) return null;
+    for (const p of found.displaced) this.layout.remove(p);
+    const pl = this.layout.add({ surface: anchor.surface, ...found.rect, rot: (((hashString(o.key) % 100) / 100) - 0.5) * 0.04 });
+    // (Kept clear for the rest of the visit: nothing placed after it, those lines included, comes
+    // within 20 cm.)
+    this.layout.add({ surface: anchor.surface, u: pl.u, v: pl.v, w: pl.w + 0.4, h: pl.h + 0.4, rot: 0 });
+    // (A line moved has no place of its own: it goes elsewhere on its wall, or, with no room left
+    // there, waits with the others rather than go to another wall: QA, 2026-10-20.)
+    const waiting = found.waiting.map((p) => own.get(p)!);
+    for (const p of found.displaced) {
+      const id = slots.get(p)!;
+      const moved = this.layout.placeOn(PHRASE_BY_ID.get(id)!, (q) => measureText(q.text, q.hand, q.size));
+      if (moved) this.placements.set(id, moved);
+      else {
+        this.placements.delete(id);
+        waiting.push(id);
+      }
+    }
+    const it = this.create(o.key, o.text, o.hand, o.size, pl, o.purpose);
+    it.source = o.source;
+    it.expires = 0;
+    if (o.start !== false) this.writeOn(o.key);
+    return waiting;
+  }
+
   private makeLine(key: string, surface: Surface, seed: number): LineItem {
     const mat = new THREE.MeshStandardMaterial({
       color: new THREE.Color('#4a4b50'),

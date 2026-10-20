@@ -21,13 +21,19 @@ const BASE = process.env.BASE ?? 'http://localhost:4173/';
 const OUT = process.env.OUT ?? `test-output/review/memories/${process.env.MEMORY ?? 'cereal'}`;
 const PROFILES = (process.env.PROFILES ?? 'desktop,phone').split(',');
 const MEMORY = process.env.MEMORY ?? 'cereal';
-const VARIANT = process.env.VARIANT ?? { cereal: 'first', bedroom: 'morning', door: 'approach' }[MEMORY];
-const PHRASE = { cereal: 'cereal', bedroom: 'happiest-unneeded', door: 'door-open' }[MEMORY];
+const VARIANT = process.env.VARIANT ?? { cereal: 'first', bedroom: 'morning', door: 'approach', woodland: 'afternoon' }[MEMORY];
+const PHRASE = { cereal: 'cereal', bedroom: 'happiest-unneeded', door: 'door-open', woodland: 'more-minutes' }[MEMORY];
 // Stages: [name, sequence position or null for the untouched wall], per memory.
 const STAGES = {
   cereal: [['0-untouched', null], ['1-first-drawing', 1.8], ['2-developing', 3.8], ['3-active', 9], ['4-active-late', 20], ['5-dissolving', 24.5], ['6-drawing-alone', 26.2], ['7-residue', 29]],
   bedroom: [['0-untouched', null], ['1-first-drawing', 2.6], ['2-developing', 5.5], ['3-active', 9], ['4-curtain', 11.4], ['5-active-late', 22], ['6-dissolving', 28.5], ['7-drawing-alone', 30.6]],
   door: [['0-untouched', null], ['1-first-drawing', 1.6], ['2-developing', 3.4], ['3-active', 6.5], ['4-shadow', 11], ['5-weight', 14.3], ['6-dissolving', 19.5], ['7-drawing-alone', 21]],
+  // The woodland (docs/reviews/2026-10-woodland.md): the artist's eight shots.
+  woodland: VARIANT === 'empty'
+    ? [['0-untouched', null], ['1-first-drawing', 2.6], ['2-developing', 5], ['3-active', 10], ['4-dissolving', 18], ['5-drawing-alone', 20.6]]
+    : [['00-untouched', null], ['01-pencil', 2.5], ['02-pencil-more', 4.5], ['03-colour', 6.5], ['04-carried', 8.5], ['05-crossing', 9.6], ['06-wide', 12.3], ['07-two', 16.5], ['08-her-look', 19.5], ['09-his-look', 25.5], ['10-wide-again', 31.0],
+       // The cut (34.5 s): the last frame before it and the first after it, then the empty clearing.
+       ['11-last-frame-before-cut', 34.5 - 1 / 60], ['12-first-frame-after-cut', 34.5], ['13-empty-dusk', 39.5], ['14-returning', 44.5], ['15-wall', 47.5], ['16-white-room', 51.0]],
 }[MEMORY];
 mkdirSync(OUT, { recursive: true });
 
@@ -80,7 +86,7 @@ for (const profile of PROFILES) {
   const shots = [];
   for (const [name, pos] of STAGES) {
     if (pos === null) {
-      await page.screenshot({ path: `${OUT}/${profile}-${name}.png` });
+      await page.screenshot({ path: `${OUT}/${profile}-${name}.png`, timeout: 180000 });
       shots.push(name);
       // Now it begins.
       const ok = await page.evaluate(([m, v, p]) => window.__hedgehog.playMemory(m, p, v), [MEMORY, VARIANT, PHRASE]);
@@ -89,7 +95,32 @@ for (const profile of PROFILES) {
     }
     const st = await page.evaluate((p) => window.__hedgehog.heldAt(p), pos);
     await page.waitForTimeout(name.includes('residue') || name.includes('alone') ? 3000 : 1200);
-    await page.screenshot({ path: `${OUT}/${profile}-${name}.png` });
+    // (Generous: under load, software GL can take most of a minute for a frame.)
+    await page.screenshot({ path: `${OUT}/${profile}-${name}.png`, timeout: 180000 });
+    // A living scene drawn black (nothing reached its target) is a failure, whatever the frame.
+    const blank = await page.evaluate(() => {
+      const a = window.__hedgehog;
+      const sc = a.living?.memory.prepared.living?.scene;
+      if (!sc) return false;
+      const T = sc.target, b = new Uint8Array(4);
+      let most = 0;
+      for (let i = 1; i < 6; i++) for (let j = 1; j < 6; j++) {
+        a.renderer.readRenderTargetPixels(T, Math.floor((T.width * i) / 6), Math.floor((T.height * j) / 6), 1, 1, b);
+        most = Math.max(most, b[0], b[1], b[2]);
+      }
+      return most < 8;
+    });
+    if (blank) errors.push(`the living scene is blank at ${name}`);
+    // The woodland's two-shot is shown (not silently the wide) on a screen that can frame it, and
+    // the wide on one that can't (an upright phone: decisions 7 and 21).
+    if (['07-two', '08-her-look', '09-his-look'].includes(name)) {
+      const { shown, framed } = await page.evaluate(() => {
+        const pl = window.__hedgehog.living?.memory.prepared.living, n = pl?.spec.near, a = innerWidth / innerHeight;
+        return { shown: pl?.scene.shot ?? -1, framed: !!n && a >= n.aspect[0] && a <= n.aspect[1] };
+      });
+      const want = framed ? 1 : 0;
+      if (shown !== want) errors.push(`${name} shows shot ${shown}, not ${want}`);
+    }
     shots.push(`${name} (${st.state} @ ${st.position})`);
   }
   const programs1 = await page.evaluate(() => window.__hedgehog.renderer.info.programs.length);
@@ -103,8 +134,13 @@ for (const profile of PROFILES) {
   // Again, start to finish: what a memory leaves behind must not grow (the window's own noise and
   // blank textures are uploaded once, the first time it is drawn).
   await page.evaluate(([m, v, p]) => window.__hedgehog.playMemory(m, p, v), [MEMORY, VARIANT, PHRASE]);
-  await page.evaluate(() => window.__hedgehog.heldAt(12));
-  await page.waitForTimeout(800);
+  // (The woodland's through the two-shot and her turn, so what they make is let go too: its
+  // one-texel ground map leaked, a texture a play, unseen while this pass stopped at 12 s: QA,
+  // 2026-10-18; it stopped before her turn's drawings until QA, 2026-10-19.)
+  for (const p of MEMORY === 'woodland' && VARIANT !== 'empty' ? [2.5, 6.5, 8.5, 9.6, 12.3, 16.5, 17.6, 18.5, 19.5] : [12]) {
+    await page.evaluate((x) => window.__hedgehog.heldAt(x), p);
+    await page.waitForTimeout(1200);
+  }
   await page.evaluate(() => {
     window.__hedgehog.heldAt(null);
     window.__hedgehog.endLivingMemory('depart');
@@ -117,3 +153,10 @@ for (const profile of PROFILES) {
 }
 writeFileSync(`${OUT}/memories.json`, JSON.stringify(report, null, 2));
 await browser.close();
+// It fails (exits non-zero) on an error, a program compiled after entry, what a memory leaves
+// behind growing, or a memory still living after it was let go.
+const failed = Object.entries(report.profiles).filter(([, p]) => p.errors.length || p.programsAfter !== p.programsAtBoot || p.texturesAfterSecond !== p.texturesAfter || p.stillLiving);
+if (failed.length) {
+  console.error(`failed: ${failed.map(([k]) => k).join(', ')}`);
+  process.exitCode = 1;
+}

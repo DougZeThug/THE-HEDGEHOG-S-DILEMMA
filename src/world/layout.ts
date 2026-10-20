@@ -201,7 +201,62 @@ export class SurfaceLayout {
     return null;
   }
 
+  /**
+   * A place for a line written under another, inside a region of its wall (decisions 122 and 133:
+   * the line where the woodland's painting was, `within` its former place): just under `anchor` and
+   * close to it, as a hand writes the next line under its own (its top 2–15 cm under the anchor's
+   * foot, beginning within 25 cm of where the anchor begins, or, a longer line, centred under it to
+   * within 15 cm: decision 141), nearest first to just under its start, a little in; never above it
+   * or beside it, nor hanging off to one side, where it reads as a line of its own. It keeps `clearance` (20 cm) from all writing, so it is
+   * never read as another line's answer, nor run on into one: from the writing in `clear` (what is
+   * already on the wall), and from every place on the wall, unless `movable` says that place can go
+   * elsewhere (a line not yet shown; those come back in `displaced`, to be placed again) or `waits`
+   * says its line can wait (a line's own place, not yet written: only overlapping it stops it; those
+   * within 20 cm come back in `waiting`, their lines to be kept off the wall from then on, decision
+   * 137). Null if nothing fits: then nothing is written.
+   */
+  findUnder(anchor: Placement, w: number, h: number, within: Rect, movable: (p: Placement) => boolean, clear: readonly Rect[] = [], waits: (p: Placement) => boolean = () => false, clearance = 0.2): { rect: Rect; displaced: Placement[]; waiting: Placement[] } | null {
+    const size = surfaceSize(anchor.surface);
+    const foot = anchor.v - anchor.h / 2;
+    const iu = anchor.u - anchor.w / 2 + w / 2 + anchor.w * 0.08, iv = foot - h / 2 - 0.04;
+    // Where it may begin, against where the anchor begins.
+    const start = anchor.u - anchor.w / 2, left = Math.max(0.25, (w - anchor.w) / 2 + 0.15), right = 0.25;
+    const cands: Rect[] = [];
+    for (let gap = 0.02; gap <= 0.15 + 1e-9; gap += 0.01)
+      for (let u = start - left + w / 2; u <= start + right + w / 2 + 1e-9; u += 0.02) {
+        const r = { u, v: foot - gap - h / 2, w, h };
+        const onWall = r.u - w / 2 >= 0.05 && r.u + w / 2 <= size.w - 0.05 && r.v - h / 2 >= 0.12;
+        const inPlace = r.u - w / 2 >= within.u - within.w / 2 && r.u + w / 2 <= within.u + within.w / 2 && r.v - h / 2 >= within.v - within.h / 2 && r.v + h / 2 <= within.v + within.h / 2;
+        if (onWall && inPlace) cands.push(r);
+      }
+    cands.sort((a, b) => Math.hypot(a.u - iu, a.v - iv) - Math.hypot(b.u - iu, b.v - iv));
+    const placed = this.placed.get(anchor.surface)!;
+    for (const r of cands) {
+      if (clear.some((q) => overlaps(r, q, clearance))) continue;
+      const near = placed.filter((q) => q !== anchor && overlaps(r, q, clearance));
+      const displaced = near.filter(movable), waiting = near.filter((q) => !movable(q));
+      if (waiting.every((q) => waits(q) && !overlaps(r, q, 0.015))) return { rect: r, displaced, waiting };
+    }
+    return null;
+  }
+
   place(p: Phrase, measure: Measure): Placement {
+    const mine = this.placeOn(p, measure);
+    if (mine) return mine;
+    const { w, h } = measure(p);
+    const size = surfaceSize(p.surface);
+    const rot = p.hand === 'typed' ? 0 : ((hashString(p.id) % 1000) / 1000 - 0.5) * 0.05;
+    // The wall is full: the writing goes onto another wall rather than over other writing.
+    for (const other of ['south', 'west', 'north', 'east'] as Surface[]) {
+      if (other === p.surface) continue;
+      const o = this.scan(other, w, h, 0.02);
+      if (o) return this.add({ surface: other, ...o, rot });
+    }
+    return this.add({ surface: p.surface, u: size.w / 2, v: 1.6, w, h, rot });
+  }
+
+  /** A place for `p` on its own wall (its own place, if it has one), or null if there's no room. */
+  placeOn(p: Phrase, measure: Measure): Placement | null {
     const { w, h } = measure(p);
     const size = surfaceSize(p.surface);
     const rot = p.hand === 'typed' ? 0 : ((hashString(p.id) % 1000) / 1000 - 0.5) * 0.05;
@@ -217,14 +272,7 @@ export class SurfaceLayout {
       this.findIn(p.surface, w, h, [0.02, 0.98], [0.2, size.h - 0.1], 0.02, 200) ??
       this.scan(p.surface, w, h, 0.02) ??
       this.scan(p.surface, w, h, 0);
-    if (r) return this.add({ surface: p.surface, ...r, rot });
-    // The wall is full: the writing goes onto another wall rather than over other writing.
-    for (const other of ['south', 'west', 'north', 'east'] as Surface[]) {
-      if (other === p.surface) continue;
-      const o = this.scan(other, w, h, 0.02);
-      if (o) return this.add({ surface: other, ...o, rot });
-    }
-    return this.add({ surface: p.surface, u: size.w / 2, v: 1.6, w, h, rot });
+    return r ? this.add({ surface: p.surface, ...r, rot }) : null;
   }
 }
 

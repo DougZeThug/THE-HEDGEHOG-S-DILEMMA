@@ -68,7 +68,9 @@ export function seedState(sheets: Record<string, SheetSeed>, revision = 'seed'):
     sheetsById[sheetId] = {
       staticOverrides: { byObject },
       sequence: {
-        subUnitsPerUnit: 30,
+        // (sixtieths: every twelfth, her turn's drawings, lies on Studio's grid; on thirtieths, a
+        // key nudged there snapped up to 1/60 s off it: QA, 2026-10-20)
+        subUnitsPerUnit: 60,
         length: end,
         type: 'PositionalSequence',
         markers: seed.markers.map((m) => ({ id: id('m'), label: m.label, position: m.position })),

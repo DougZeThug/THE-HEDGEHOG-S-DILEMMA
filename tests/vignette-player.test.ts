@@ -3,6 +3,7 @@ import { VignettePlayer, type VignetteHost } from '../src/memory/VignettePlayer'
 import type { Effect, GapKind, VignetteDef } from '../src/content/vignettes';
 import type { Cue } from '../src/memory/cueSheet';
 import { FakeCtx, FakeNode } from './fakeAudio';
+import { MemoryClock } from '../src/memory/clock';
 
 /** A small vignette: two people, a pause, one line cut off, a light, a deliberate silence. */
 const DEF: VignetteDef = {
@@ -73,13 +74,43 @@ function run(p: VignettePlayer, ctx: FakeCtx, seconds: number, dt = 1 / 60) {
   for (let t = 0; t < seconds - 1e-9; t += dt) {
     p.step(dt);
     ctx.advance(dt);
+    // (A line's caption is shown as it is heard: on a timer, when the test's timers are fake.)
+    if (vi.isFakeTimers()) vi.advanceTimersByTime(dt * 1000);
   }
 }
 
 afterEach(() => vi.useRealTimers());
 
 describe('a vignette, played', () => {
+  it('a long frame never loses a line: its clock keeps its cap of a second (QA, 2026-10-19)', async () => {
+    vi.useFakeTimers();
+    for (const stall of [1.5, 2, 3]) {
+      for (const before of [0.5, 3, 7]) {
+        const s = setup();
+        const p = new VignettePlayer(DEF, 'first', s.host);
+        await p.prepare();
+        p.start();
+        // As the App steps it: the vignette's clock on the audio clock, frames of a sixtieth, and
+        // one long frame starting 0.4 s before a line.
+        const clock = new MemoryClock(1);
+        let real = 0, stalled = false;
+        clock.tick(real, s.ctx.currentTime, true);
+        while (p.position < 10) {
+          const frame: number = !stalled && p.position >= before - 0.4 ? stall : 1 / 60;
+          stalled ||= frame === stall;
+          s.ctx.advance(frame);
+          real += frame;
+          vi.advanceTimersByTime(frame * 1000);
+          p.step(clock.tick(real, s.ctx.currentTime, true));
+        }
+        vi.advanceTimersByTime(2000);
+        expect(s.captions.map((c) => c[0]), `a ${stall} s frame before the line at ${before}`).toEqual(['Have you seen my charger?', 'By the toaster.', "Hang on, I'll look—"]);
+      }
+    }
+  });
+
   it('says each line once, at its time on the audio clock, captioned as speech', async () => {
+    vi.useFakeTimers();
     const s = setup();
     const p = new VignettePlayer(DEF, 'first', s.host);
     await p.prepare();
@@ -183,6 +214,25 @@ describe('a vignette, played', () => {
         expect(Math.min(b1, b2) - Math.max(a1, a2), `${i}/${j}`).toBeLessThanOrEqual(0.3);
       }
     expect(s.ctx.sources.filter((x) => x.buffer?.duration === 1.2).length).toBe(2);
+  });
+
+  it('let go gracefully in the instant before a line, it is said and captioned as it is heard', async () => {
+    // (QA, 2026-10-20: a line is handed out 0.3 s ahead; let go in between, it was heard and never
+    // captioned.)
+    for (const before of [0.05, 0.15, 0.25]) {
+      vi.useFakeTimers();
+      const s = setup();
+      const p = new VignettePlayer(DEF, 'first', s.host);
+      await p.prepare();
+      p.start();
+      run(p, s.ctx, 3 - before);
+      p.release('natural');
+      run(p, s.ctx, 4);
+      const answer = s.ctx.sources.find((x) => x.buffer?.duration === 1.2);
+      expect(answer?.stopAt, `${before}`).toBeNull();
+      expect(s.captions.map((c) => c[0]), `${before}`).toContain('By the toaster.');
+      vi.useRealTimers();
+    }
   });
 
   it('let go gracefully mid-sentence, it is done only once the sentence has been said', async () => {

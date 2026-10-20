@@ -1,6 +1,7 @@
 import { DRAWINGS, DRAWING_BY_ID } from '../content/drawings';
 import { MemoryDirector, type PendingEcho } from './MemoryDirector';
 import { VIGNETTE_BY_ID, lineKey } from '../content/vignettes';
+import { SCENE_MEMORIES } from '../content/memories';
 import { Rng } from '../core/rng';
 import { EventScheduler } from '../core/scheduler';
 import { clamp, smoothstep } from '../core/math';
@@ -177,6 +178,18 @@ export class Director {
   aftermathLeft(): number {
     return Math.max(0, this.aftermathUntil - this.now);
   }
+  /**
+   * The room's music is over for this visit (the woodland's afternoon has been seen: its music
+   * was the last): nothing of the room's own plays again, its piano, its humming, or a tune a
+   * humming situation owed (left unpaid). The room itself carries on.
+   */
+  private _musicWithdrawn = false;
+  get musicWithdrawn(): boolean {
+    return this._musicWithdrawn;
+  }
+  withdrawMusic(): void {
+    this._musicWithdrawn = true;
+  }
 
   /** After a vignette, even the room finishing its own line waits (its quiet is part of it). */
   private vignetteQuietUntil = -Infinity;
@@ -322,7 +335,10 @@ export class Director {
       cancel: (rule) => d.scheduler.cancelWhere((e) => e.rule === rule),
       reveal: (rule, id, delay, mode, seconds) => d.reveal(id, delay, rule, mode, seconds),
       speak: (rule, p, position, delay, style, gain) => d.speakPhrase(rule, p, position, delay, style, gain),
-      musicReady: (sec) => d.scheduler.ready('music', d.now, sec),
+      musicReady: (sec) => !d.musicWithdrawn && d.scheduler.ready('music', d.now, sec),
+      get musicWithdrawn() {
+        return d.musicWithdrawn;
+      },
       markMusic: () => d.scheduler.mark('music', d.now),
       lastContribution: () => d.lastContrib,
       // A situation is a strong thing: it doesn't begin over a meeting, inside a held silence,
@@ -485,6 +501,15 @@ export class Director {
       this.ruleDrawings();
       this.ruleFinish();
       this.situations.tick(this.host);
+      // A memory and its aftermath are the memory's: stillness or closeness that grew while the
+      // visitor was carried, or in the quiet after it, is not theirs to be answered for, and both
+      // are counted again from when the aftermath ends (decision 117). What the visitor does is
+      // still answered, a first approach to the chair among it.
+      if (this.scenes.active || this.aftermath()) {
+        this.stillClock = 0;
+        this.stillVoiceOwed = false;
+        if (this.visitor.near && this.spokenFirstApproach) this.visitor.nearSince = this.visitor.t;
+      }
       // In a memory's aftermath, and inside a held silence, the room's own life waits; what the
       // visitor does is still answered. (That the room's own things never come together is the
       // scheduler's: they are spaced 4–7 s apart.)
@@ -570,6 +595,8 @@ export class Director {
 
   /** Keep the Director's model of what is visible in sync with the cues it lets through. */
   private accept(cue: Cue, rule: string): boolean {
+    // After the room's last music, none of its own again, nor anyone humming.
+    if (this._musicWithdrawn && (cue.type === 'music' || (cue.type === 'voice' && cue.kind === 'hum'))) return false;
     // A situation that took the chair's voice or the space beyond the walls after this was
     // queued keeps it: claims hold at the moment of sounding, not only when queued.
     if (cue.type === 'voice' && !rule.startsWith('sit:')) {
@@ -581,6 +608,8 @@ export class Director {
     // directly, not through the voice rules that already wait).
     if (this.scenes.active && ((cue.type === 'voice' && (!cue.finish || this.vignettePlaying)) || cue.type === 'sound' || cue.type === 'music')) return false;
     if (cue.type === 'reveal' && this.withheld().includes(cue.phraseId)) return false;
+    // (Nor is a line kept back written again in its own place: decision 137, QA 2026-10-20.)
+    if (cue.type === 'redraw' && this.keptBack.has(cue.phraseId)) return false;
     // A situation's own sounds wait out a memory's aftermath (those answering the visitor don't).
     if (this.aftermath() && rule.startsWith('sit:') && !/^sit:(residue|listening)/.test(rule) && (cue.type === 'voice' || cue.type === 'sound' || cue.type === 'music')) {
       this.queue(this.aftermathUntil - this.now + 1, cue, rule);
@@ -661,15 +690,21 @@ export class Director {
 
   /** Kept for its moment: the reserved lines, and the memory's line until the memory offers it. */
   private reserved(id: string): boolean {
-    // (The door's line belongs beneath the drawn door: never drifted onto a wall before that.)
-    return Director.RESERVED.has(id) || (id === Director.MEMORY.phraseId && !this.memoryOffered) || (id === 'door-open' && !this.scenes.wasOffered('door'));
+    // (The door's line belongs beneath the drawn door, the woodland's to its own offer: never
+    // drifted onto a wall before that.)
+    return Director.RESERVED.has(id) || (id === Director.MEMORY.phraseId && !this.memoryOffered) || this.heldForOffer(id);
   }
 
   private hiddenExcluding(): Set<string> {
     const out = new Set([...this.visible.keys(), ...Director.RESERVED, ...this.withheld()]);
     if (!this.memoryOffered) out.add(Director.MEMORY.phraseId);
-    if (!this.scenes.wasOffered('door')) out.add('door-open');
+    for (const m of SCENE_MEMORIES) if (this.heldForOffer(m.phraseId)) out.add(m.phraseId);
     return out;
+  }
+
+  /** A painted memory's line kept for its offer (`reserved`), not yet offered. */
+  private heldForOffer(id: string): boolean {
+    return SCENE_MEMORIES.some((m) => m.reserved && m.phraseId === id && !this.scenes.wasOffered(m.id));
   }
 
   /** Lines about leaving and staying, kept back while "I wanted you to" is unfinished. */
@@ -680,11 +715,12 @@ export class Director {
 
   /**
    * While a line is left unfinished, nothing answers it: not its echoes, not what contradicts
-   * it, not other lines about going or staying. The visitor finishes it, or nobody does.
+   * it, not other lines about going or staying. The visitor finishes it, or nobody does. And the
+   * lines kept back for the rest of the visit (`keepBack`).
    */
   private withheld(): string[] {
-    if (!this.unfinished.size) return [];
-    const out = new Set<string>();
+    if (!this.unfinished.size) return [...this.keptBack];
+    const out = new Set<string>(this.keptBack);
     for (const id of this.unfinished) {
       const p = PHRASE_BY_ID.get(id);
       for (const r of [...(p?.echoes ?? []), ...(p?.contradicts ?? [])]) out.add(r);
@@ -947,13 +983,21 @@ export class Director {
   private moved = new Set<string>();
   /** Lines the opening left unfinished on the wall. */
   private unfinished = new Set<string>();
+  /** Lines kept off the walls for the rest of the visit: their own place is beside the line written
+   *  where the woodland's painting was, and written there they would run on from it (decision 137). */
+  private keptBack = new Set<string>();
+  keepBack(ids: readonly string[]): void {
+    for (const id of ids) this.keptBack.add(id);
+  }
 
   /**
    * An unfinished line is finished when someone stays with it: a long look at it, or coming to
    * the chair. A voice says the whole sentence, and the hand writes the rest as it is heard.
    */
   private ruleFinish() {
-    if (!this.unfinished.size || this.now < 12) return;
+    // (Never in the afternoon's aftermath: a sentence finished under its line would caption it.
+    // After the other memories a long look is answered as ever: it is the visitor's.)
+    if (!this.unfinished.size || this.now < 12 || (this.aftermath() && this._musicWithdrawn)) return;
     // Not over a vignette: a heard memory has voices of its own (a painted one can take it).
     if (this.vignettePlaying || this.now < this.vignetteQuietUntil) return;
     const v = this.visitor;
@@ -1366,7 +1410,7 @@ export class Director {
       phase: this.phase,
       // (Never into a busy room: the line arrives into quiet, or waits. Nor into a memory's aftermath.)
       free: free && !this.aftermath() && !this.pacing.repeats('text', this.now, 8) && !this.pacing.crowded(this.now),
-      visibleFacing: (id) => this.visible.has(id) && PHRASE_BY_ID.get(id)?.surface === this.facing,
+      visibleFacing: (id) => this.visible.has(id) && !this.keptBack.has(id) && PHRASE_BY_ID.get(id)?.surface === this.facing,
       departing: this.departing,
       otherMemory: this.memoryAwaited(),
       facing: this.facing,
@@ -1631,11 +1675,12 @@ export class Director {
     }
   }
 
-  /** Warm memories return when the visitor is far away. */
+  /** Warm memories return when the visitor is far away (never once the afternoon has been seen:
+   * "That was a good day." after it would caption it, as the room's music would). */
   private ruleWarmResurface() {
     const f = this.field.v;
     const mem = this.memory;
-    if (!mem.warmMemories.length || f.solitude < 0.45 || this.visitor.distance < 2.2) return;
+    if (this._musicWithdrawn || !mem.warmMemories.length || f.solitude < 0.45 || this.visitor.distance < 2.2) return;
     if (!this.cool('resurface', 70) || this.pacing.holding(this.now) || this.attending() || this.pacing.crowded(this.now)) return;
     this.used('resurface');
     const id = mem.warmMemories[this.rng.int(0, mem.warmMemories.length - 1)];

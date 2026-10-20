@@ -257,7 +257,7 @@ export class MemoryDirector {
     const order = [...ALL_MEMORIES].sort((a, b) => rank(a) - rank(b));
     for (const m of order) {
       const t = this.tracks.get(m.id)!;
-      if (t.played || s.now < m.earliest) continue;
+      if (t.played || s.now < m.earliest || this.arcEnded(m)) continue;
       // An owed vignette whose line is already where they look: written again there, once.
       if (owed(m) && !t.reinked && s.visibleFacing(m.phraseId) && this.isAvailable(m.id) && this.vignetteAllows(m, s) && s.now >= t.notBefore) {
         t.reinked = true;
@@ -389,12 +389,31 @@ export class MemoryDirector {
     this.pending = [];
   }
 
+  /**
+   * Painted memories that may be offered within a minute or so: unplayed, unoffered, their place in
+   * the arc open. Their lines are often written only as they are offered, so their art and sound
+   * are fetched from here, not from the line (QA, 2026-10-20: the woodland's took 40 s on a slow
+   * connection, fetched when its line appeared).
+   */
+  comingSoon(now: number, kitchenPlayed = false): SceneMemory[] {
+    return ALL_MEMORIES.filter((m) => {
+      const t = this.tracks.get(m.id)!;
+      return m.kind !== 'vignette' && !t.played && !t.offered && now >= m.earliest - 60 && this.arcAllows(m, now, kitchenPlayed);
+    });
+  }
+
   /** Its place in the arc: company first, absence only after something. */
   private arcAllows(m: SceneMemory, now: number, kitchenPlayed: boolean): boolean {
+    if (this.arcEnded(m)) return false;
     const another = kitchenPlayed || [...this.tracks.entries()].some(([id, t]) => id !== m.id && t.played);
     if (m.arc === 'first') return !another && now <= (m.latest ?? Infinity);
     if (m.arc === 'afterAnother') return another;
     return true;
+  }
+
+  /** A memory that ends the arc (`last`) has played: no other painted memory comes this visit. */
+  private arcEnded(m: SceneMemory): boolean {
+    return m.kind !== 'vignette' && ALL_MEMORIES.some((x) => x.last && x.id !== m.id && this.tracks.get(x.id)!.played);
   }
 
   /**

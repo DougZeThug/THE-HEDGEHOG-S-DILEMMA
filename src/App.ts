@@ -7,7 +7,12 @@ import { Lighting, shadowMapSize } from './world/Lighting';
 import { lookFor, parseLook, LOOK_NAMES, LOOKS, type Look, type LookName } from './world/Style';
 import { MemoryLight } from './world/MemoryLight';
 import { MemoryWindow } from './world/MemoryWindow';
+import { Immersion, UPRIGHT } from './world/living/Immersion';
+import { Inside } from './world/living/Inside';
+import { washInputs, washOf } from './world/living/wash';
+import { warmLiving } from './world/living/materials';
 import { MemoryClock } from './memory/clock';
+import { fetchBlob } from './memory/fetched';
 import type { Lifecycle } from './memory/types';
 import type { LivingMemory } from './memory/runtime';
 import type { MemoryAudioHost } from './memory/MemoryAudio';
@@ -39,6 +44,8 @@ import { clamp } from './core/math';
 import { hashString } from './core/rng';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+/** How far the room goes down while the visitor is inside a living memory's painting (−26 dB). */
+const DEEP_HUSH = 0.95;
 
 type Mode = 'threshold' | 'room' | 'settings' | 'contribute' | 'departed';
 
@@ -97,8 +104,18 @@ export class App {
   /** The living memory playing now (at most one), and the writing it formed round. */
   private living: { memory: LivingMemory; id: string; key: string; anchor: NonNullable<ReturnType<WallText['anchorOf']>>; bled: boolean; hiddenSince: number | null; held: boolean;
     /** Seconds looking away from it, and watching it; why it was let go. */
-    awayFor: number; watched: number; minHold: number; why: string | null;
+    awayFor: number; watched: number; minHold: number; seenAt?: number; reached: number; deep: boolean; why: string | null;
+    /** Looking away from it now (last attention check); how many of its later descriptions are told. */
+    away: boolean; told: number;
+    /** The room's writing its painting has washed out (given back when it goes). */
+    washed: Set<string>;
+    /** Since when its sound has been stopped while it was visible; let go for it. */
+    downSince: number | null; gaveUp: boolean;
+    /** Its line where the painting was, if it has one: tried (once). */
+    coda: boolean;
   } | null = null;
+  /** Going into a living memory and back (src/world/living/Inside.ts). */
+  private inside!: Inside;
   private memoryClock = new MemoryClock();
   private memoryGen = 0;
   /**
@@ -112,7 +129,7 @@ export class App {
     /** When settings were opened over it (wall-clock seconds), or null. */
     settingsSince: number | null;
   } | null = null;
-  private vignetteClock = new MemoryClock();
+  private vignetteClock = new MemoryClock(1);
   private vignetteGen = 0;
   /**
    * `?vignette=<id>[&variant=<v>]`: play one, as a preview, a few seconds after the room is
@@ -128,6 +145,8 @@ export class App {
   studioTick: ((now: number) => void) | null = null;
   private memoryRuntime: Promise<typeof import('./memory/runtime')> | null = null;
   private memoryKey: string | null = null;
+  /** How far the memory's light washes its line this frame. */
+  private lightWash = 0;
   /** The piece of writing last touched (the memory's light falls where the visitor touched). */
   private lastTappedKey: string | null = null;
   /** How dark the chair's contact with the floor is, at full light (the look sets it). */
@@ -218,6 +237,9 @@ export class App {
 
     const samples = this.prefs.quality === 'high' ? 4 : this.prefs.quality === 'medium' ? 2 : 0;
     this.post = new Post(this.renderer, this.scene, this.rig.camera, samples);
+    const immersion = new Immersion(this.memoryWindow.noise);
+    this.post.addOverlay(immersion.pass);
+    this.inside = new Inside(this.rig, this.memoryWindow, immersion, this.post);
     this.setStyle(parseLook(params.get('style')));
     this.applyPrefs();
     this.onResize();
@@ -245,7 +267,11 @@ export class App {
     this.renderer.setRenderTarget(this.post.composer.readBuffer);
     this.renderer.compile(this.scene, this.rig.camera);
     this.renderer.setRenderTarget(null);
+    // A living memory's painting and the way into it: compiled now, kept (never compiled again).
+    warmLiving(this.renderer, this.memoryWindow.noise);
+    immersion.pass.enabled = true;
     this.post.render();
+    immersion.off();
     const enter = $<HTMLButtonElement>('enter');
     enter.disabled = false;
     enter.textContent = this.visits > 0 ? 'go in again' : 'go in';
@@ -423,14 +449,19 @@ export class App {
       load: async (asset, take) => {
         if (asset === 'synth:air') return (await import('./memory/synthAir')).synthAir(a.ctx.sampleRate, 7 + (take ?? 0));
         if (asset.startsWith('synth:')) {
+          const w = await import('./memory/synthWoods');
+          const kind = asset.slice(6) as (typeof w.WOODS_KINDS)[number];
+          if (w.WOODS_KINDS.includes(kind)) return w.synthWoods(a.ctx, kind);
+        }
+        if (asset.startsWith('synth:')) {
           const { synthSound, SYNTH_KINDS } = await import('./memory/synthSounds');
           const kind = asset.slice(6) as (typeof SYNTH_KINDS)[number];
           return SYNTH_KINDS.includes(kind) ? synthSound(a.ctx, kind, 1 + (take ?? 0)) : null;
         }
         if (!asset.startsWith('music/')) return voices.raw(asset, take);
         try {
-          const r = await fetch('./' + asset);
-          return r.ok ? await a.ctx.decodeAudioData(await r.arrayBuffer()) : null;
+          // (Fetched ahead with the memory's art, when its line was armed.)
+          return await a.ctx.decodeAudioData(await (await fetchBlob('./' + asset)).arrayBuffer());
         } catch {
           return null;
         }
@@ -477,7 +508,14 @@ export class App {
     let prepared: Awaited<ReturnType<typeof rt.prepare>>;
     try {
       rt = await this.memoryChunk();
-      prepared = await rt.prepare(id, variant, { renderer: this.renderer, audio: this.memoryAudioHost(), quality: this.prefs.quality });
+      prepared = await rt.prepare(id, variant, {
+        renderer: this.renderer,
+        audio: this.memoryAudioHost(),
+        quality: this.prefs.quality,
+        screen: { width: innerWidth * this.pixelRatio(), height: innerHeight * this.pixelRatio() },
+        noise: this.memoryWindow.noise,
+        reduced: this.prefs.reducedMotion,
+      });
     } catch (e) {
       console.warn('memory could not be prepared', e);
       return false;
@@ -489,10 +527,16 @@ export class App {
       return false;
     }
     // A switch released the one before: let it go at once rather than overlap.
-    if (this.living) {
-      this.living.memory.dispose(0.3);
-      this.memoryWindow.release();
-      this.living = null;
+    const before = this.living;
+    if (before) {
+      before.memory.dispose(0.3);
+      // (Disposed, it completes, and its completion lets go of the window and gives the room its
+      // words back (memoryState). Read after that, `this.living` was null: QA, 2026-10-18.)
+      if (this.living === before) {
+        this.memoryWindow.release();
+        for (const k of before.washed) this.text.wash(k, 0);
+        this.living = null;
+      }
     }
     // Opening from a drawing already on the wall: the painting's own drawn shape lies on it.
     let fixed: { cx: number; cy: number; w: number } | null = null;
@@ -505,6 +549,8 @@ export class App {
     // Anything already drawn on that wall is kept clear of (a painting never lands on a drawing).
     this.memoryWindow.avoid = fixed ? [] : this.drawingsOn(a.group);
     this.memoryWindow.setLayers(prepared.layers, prepared.size, prepared.band);
+    this.memoryWindow.setLiving(prepared.living ? { crop: prepared.living.crop, size: prepared.size, order: prepared.living.order } : null, !prepared.living && !!prepared.def.living);
+    this.inside.begin(hashString(a.key), this.prefs.reducedMotion);
     const memory = new rt.LivingMemory(prepared, {
       reduced: this.prefs.reducedMotion,
       gentle: this.prefs.intensity === 'gentle',
@@ -513,14 +559,25 @@ export class App {
         this.memoryState(s);
       },
     });
-    this.living = { memory, id, key: a.key, anchor: a, bled: false, hiddenSince: null, held: false, awayFor: 0, watched: 0, minHold: SCENE_BY_PHRASE.get(phraseId)?.minHold ?? 8, why: null };
+    const sm = SCENE_BY_PHRASE.get(phraseId);
+    this.living = { memory, id, key: a.key, anchor: a, bled: false, hiddenSince: null, held: false, awayFor: 0, watched: 0, minHold: sm?.minHold ?? 8, seenAt: sm?.seenAt, reached: 0, deep: false, why: null, away: false, told: 0, washed: new Set(), downSince: null, gaveUp: false, coda: false };
     this.memoryClock.reset();
     // The room hushes round it (and its music stops), until it lets go. For the door the white
-    // room itself goes to evening, so the landing's light is the brightest thing there.
+    // room itself goes to evening, so the landing's light is the brightest thing there. Nothing
+    // passes outside and the drone keeps its chord while it plays (a swell or a chord change under
+    // it is a score cue: the sound designer's and the skeptic's reviews, 2026-10-18).
     this.audio?.memoryHush(prepared.def.hush, 1.4);
+    this.ambience?.hold(this.time + prepared.def.sections.end);
+    // A memory whose music is the room's last: no chord of the room's under it (its reverb isn't
+    // hushed, and four of its five chords are a semitone from the woodland's key).
+    if (this.ambience && prepared.def.lastMusic === prepared.variant) this.ambience.score.drone = 0;
     if (prepared.def.roomDim) this.lighting.dimToChair(prepared.def.roomDim, prepared.def.maxHold + 4, this.time);
     if (this.director.scenes.active?.id !== id) this.director.memoryExternal(id);
-    memory.start();
+    // Its position 0 is this instant on the audio clock, for its first sounds and its first frame
+    // alike (the clock measures its first frame from here: QA, 2026-10-19).
+    const ctx = this.audio?.ctx;
+    this.memoryClock.prime(performance.now() / 1000, ctx?.currentTime ?? 0, ctx?.state === 'running');
+    memory.start(ctx?.currentTime);
     return true;
   }
 
@@ -528,17 +585,7 @@ export class App {
     const l = this.living;
     if (!l) return;
     // What the picture is, for a screen reader (not shown: the captions are for sounds).
-    if (s === 'active') {
-      let sr = document.getElementById('memory-sr');
-      if (!sr) {
-        sr = document.createElement('div');
-        sr.id = 'memory-sr';
-        sr.className = 'sr-only';
-        sr.setAttribute('aria-live', 'polite');
-        document.body.append(sr);
-      }
-      sr.textContent = l.memory.prepared.def.describe(l.memory.prepared.variant);
-    }
+    if (s === 'active') this.srRegion().textContent = l.memory.prepared.def.describe(l.memory.prepared.variant);
     // Letting go early: the room's own light comes back with it (over about 4 s).
     if (s === 'withdrawing' && l.memory.prepared.def.roomDim) this.lighting.dimToChair(l.memory.prepared.def.roomDim, 4, this.time);
     if (s === 'residue' || s === 'complete') {
@@ -547,18 +594,35 @@ export class App {
     }
 
     if (s === 'complete') {
+      // Its line where the painting was, if one long frame went past its moment (QA, 2026-10-20).
+      this.writeCoda(l);
+      // (A living memory that was never entered, only seen on its wall, hasn't been seen: it is
+      // offered again. Interaction review, 2026-10-17.)
+      const entered = this.inside.entered || !l.memory.prepared.living?.immerse;
+      // Whoever was carried in is back where they stood.
+      this.inside.end();
+      this.captions.dim = false;
       this.memoryWindow.release();
+      for (const k of l.washed) this.text.wash(k, 0);
       // Its recordings are let go too (a phone keeps little decoded audio; they load again if it returns).
       const p = l.memory.prepared;
       this.voices?.forget(Object.values(p.def.cues(p.variant).cues).map((c) => c.asset).filter((a) => a.startsWith('mem:')));
       l.memory.prepared.dispose();
       this.living = null;
-      // Seen: watched past its first moments. It ran to its end if nobody let it go early.
-      const seen = l.watched >= Math.min(l.minHold, 8);
+      // Seen: watched past its first moments (or, if it says where its heart is, played to there).
+      // It ran to its end if nobody let it go early. (A tab hidden for long ends it uncounted, as a
+      // vignette: it comes back, the same, another time.)
+      const seen = l.why !== 'hidden' && entered && (l.seenAt !== undefined ? l.reached >= l.seenAt : l.watched >= Math.min(l.minHold, 8));
       if (this.director.memoryEnded(l.id, seen, l.why === null || l.why === 'complete') && !this.forgotten) {
         const counts = readMemoryCounts();
         counts[l.id] = (counts[l.id] ?? 0) + 1;
         writeMemoryCounts(counts);
+      }
+      // Its music was the room's last: seen, the room's own never comes back this visit (the
+      // drone stays away, and the Director plays nothing); let go before then, the drone returns.
+      if (p.def.lastMusic === p.variant) {
+        if (seen) this.director.withdrawMusic();
+        if (this.ambience && !this.director.musicWithdrawn) this.ambience.score.drone = 1;
       }
       this.ambience?.hold(this.time + Math.max(12, this.director.aftermathLeft()));
     }
@@ -890,6 +954,7 @@ export class App {
     }
     const f = l.memory.controller.scrub(position);
     this.memoryWindow.update(f.final, this.rig.restingEye, 1);
+    this.drawLiving(l, f, 0);
     return { state: f.state, position: f.position, final: f.final };
   }
 
@@ -911,6 +976,13 @@ export class App {
     const fwd = cam.getWorldDirection(new THREE.Vector3());
     const half = Math.atan2(mesh.scale.x / 2, Math.max(0.1, dist));
     const away = fwd.angleTo(to) > half + THREE.MathUtils.degToRad(10);
+    l.away = away;
+    // Inside it, it is all there is: watched, never looked away from (leaving is a turn: Inside.ts).
+    if (this.inside.eff > 0.02) {
+      l.awayFor = 0;
+      l.watched += dt;
+      return;
+    }
     l.awayFor = away ? l.awayFor + dt : 0;
     if (!away) l.watched += dt;
     if (c.t < l.minHold) {
@@ -938,12 +1010,14 @@ export class App {
    */
   private prefetchMemories() {
     if (this.mode !== 'room' || (this.frameCount++ & 31) !== 0) return;
+    const soon = new Set(this.director.scenes.comingSoon(this.director.now).map((m) => m.id));
     for (const [phraseId, m] of SCENE_BY_PHRASE) {
-      if (this.prefetched.has(m.id) || !this.text.anchorOf(phraseId)) continue;
+      // Its line on a wall, or its offer near (a reserved line is written only as it is offered).
+      if (this.prefetched.has(m.id) || !(this.text.anchorOf(phraseId) || soon.has(m.id))) continue;
       this.prefetched.add(m.id);
       const variant = (readMemoryCounts()[m.id] ?? 0) > 0 ? m.variants.revisit[0] ?? m.variants.first : m.variants.first;
       const idle = (window as { requestIdleCallback?: (f: () => void) => void }).requestIdleCallback ?? ((f: () => void) => setTimeout(f, 200));
-      idle(() => void this.memoryChunk().then((rt) => rt.prefetch(m.id, variant, { quality: this.prefs.quality })));
+      idle(() => void this.memoryChunk().then((rt) => rt.prefetch(m.id, variant, { quality: this.prefs.quality, screen: { width: innerWidth, height: innerHeight } })));
     }
   }
   private frameCount = 0;
@@ -958,19 +1032,140 @@ export class App {
       const f = this.studioTick ? l.memory.controller.refresh() : l.memory.controller.frame;
       if (f) {
         this.memoryWindow.update(f.final, this.rig.restingEye, 1 / 60);
+        this.drawLiving(l, f, 0);
         this.bleedMemory(l, f);
       }
       return;
     }
-    const paused = this.mode === 'settings' || document.hidden;
+    // One reading of the audio clock for the frame: the memory's clock and every sound it schedules
+    // (or resumes, or brings back) use the same, so the picture and its sound never part.
+    const ctx = this.audio?.ctx;
+    const now = ctx?.currentTime, running = ctx?.state === 'running';
+    // With its sound stopped (a phone's call; the context still resuming after a hidden tab, or
+    // not yet running as it begins) it waits for it, so the two come back together: on real time
+    // it would run on ahead of its sound, which never finds it again. Stopped ten seconds while
+    // visible, it is let go uncounted, as a vignette is (QA, 2026-10-20).
+    const down = !!ctx && !running && !l.gaveUp;
+    if (down && !document.hidden && this.mode !== 'settings') {
+      l.downSince ??= performance.now();
+      if (performance.now() - l.downSince > 10000) {
+        l.gaveUp = true;
+        this.endLivingMemory('hidden');
+      }
+    } else l.downSince = null;
+    const paused = this.mode === 'settings' || document.hidden || (down && !l.gaveUp);
     const c = l.memory.controller;
-    if (paused !== c.isPaused) paused ? c.pause() : c.resume();
-    const dt = this.memoryClock.tick(performance.now() / 1000, this.audio?.ctx.currentTime ?? 0, this.audio?.ctx.state === 'running', paused);
+    if (paused !== c.isPaused) paused ? c.pause() : c.resume(now);
+    const dt = this.memoryClock.tick(performance.now() / 1000, now ?? 0, running, paused);
     this.judgeMemoryAttention(l, dt);
-    const frame = l.memory.step(dt);
+    const frame = l.memory.step(dt, now);
     if (frame) {
       this.memoryWindow.update(frame.final, this.rig.restingEye, dt);
+      this.drawLiving(l, frame, dt);
       this.bleedMemory(l, frame);
+    }
+  }
+
+  /**
+   * A living memory's frame: how far in (the carry, the settle), then its scene drawn for the
+   * part of the painting on the screen. The window is placed first (its painting's place is
+   * where the visitor is carried to).
+   */
+  private drawLiving(l: NonNullable<App['living']>, f: { t: number; state: Lifecycle; position: number; final: Record<string, number> }, dt: number) {
+    const pl = l.memory.prepared.living;
+    if (!pl) {
+      // (A living memory's revisit stays on the wall, as any memory, but lies under its writing as
+      // the scene did. Every other memory keeps its words on bare plaster, legible: washInputs.)
+      this.washUnderPainting(l, f.final);
+      return;
+    }
+    const aspect = innerWidth / innerHeight;
+    const upright = aspect < UPRIGHT;
+    // The shot on now, chosen first so the view frames it from its first frame. The two-shot only
+    // for someone taken all the way in; turned 14° from it, the wide until they settle facing it
+    // again (interaction and QA reviews, 2026-10-17 and 18). Only on a screen that can frame it
+    // (the spec's aspects: never upright, where a 16:9 two-shot holds one face and the wide holds
+    // both, with her look and his drawn in it; the reviews of 2026-10-18): elsewhere the dusk cut
+    // is its only cut.
+    const shot = pl.scene.choose(f.final, { inside: this.inside.taken, turn: this.inside.turned, t: f.t, now: this.time, aspect });
+    this.post.close = shot > 0 ? 1 : 0;
+    const focus = upright ? pl.spec.cover.upright : aspect > 2.0 ? pl.spec.cover.ultra : pl.spec.cover.wide;
+    const go = this.inside.step(dt, {
+      immerse: f.final['scene.immerse'] ?? 0,
+      focus,
+      held: l.held,
+      enter: pl.immerse,
+      away: l.away,
+      leavingNaturally: f.state === 'withdrawing' || f.state === 'residue',
+      approach: 'scene.approach' in f.final ? f.final['scene.approach'] : undefined,
+    }, { reduced: this.prefs.reducedMotion, aspect, scene: pl.scene.target.texture, group: l.anchor.group });
+    // The window was placed before the spread changed: place it again for this frame.
+    this.memoryWindow.update(f.final, this.rig.restingEye, 0);
+    l.reached = Math.max(l.reached, f.position);
+    // Inside the painting the white room's hum goes further down (it is not in the clearing), and
+    // comes back as the painting goes back to the wall (the sound designer's review, 2026-10-18).
+    const deep = this.inside.entered && (f.final['scene.immerse'] ?? 0) >= 0.9;
+    if (deep !== l.deep && f.state !== 'residue' && f.state !== 'complete') {
+      l.deep = deep;
+      this.audio?.memoryHush(deep ? DEEP_HUSH : l.memory.prepared.def.hush, deep ? 2.5 : 4.5);
+    }
+    this.washUnderPainting(l, f.final);
+    // (Its dusk is dark: a sound's caption over it, while it fills the view, is light words, not a
+    // pale pill; on the wall, in the white room, the pill.)
+    this.captions.dim = this.inside.entered && (f.final['scene.immerse'] ?? 0) >= 0.6 && (f.final['scene.after'] ?? 0) >= 0.5;
+    pl.scene.reduced = this.prefs.reducedMotion;
+    // (The two-shot's frame is the screen's: a narrower one sees less of its width, a wider one less of its height.)
+    pl.scene.update(this.renderer, f.t, f.final, { view: this.inside.view, parallax: new THREE.Vector2(), aspect });
+    // What changes later, told to a screen reader when it happens (not before: the cut is not given away).
+    const later = l.memory.prepared.def.announce?.(l.memory.prepared.variant) ?? [];
+    while (l.told < later.length && f.position >= later[l.told].at && f.state !== 'emerging') {
+      const line = later[l.told++];
+      // (A close-up's line only while it is shown; what happens inside only to someone taken in;
+      // the wall's own line only to someone it stayed on the wall for.)
+      const told = line.shot !== undefined ? shot === line.shot : line.inside ? this.inside.entered : line.wall ? !this.inside.entered : true;
+      if (told) this.srRegion().textContent = line.text;
+    }
+    const coda = l.memory.prepared.def.coda;
+    if (coda && dt > 0 && f.position >= coda.at) this.writeCoda(l);
+    if (go) this.endLivingMemory('interrupt');
+  }
+
+  /**
+   * Its line where the painting was (decisions 119–123): once, while it plays on unbroken to there,
+   * for someone taken all the way in; in the hand and size of its own line, under it, silently. A
+   * line whose own place is beside it is kept off the walls for the rest of the visit (137). As its
+   * position passes the line's moment, or, if no frame was drawn there (one long frame), as it ends.
+   */
+  private writeCoda(l: NonNullable<App['living']>): void {
+    const coda = l.memory.prepared.def.coda;
+    if (!coda || l.coda || l.held || coda.variant !== l.memory.prepared.variant || !this.inside.entered || !(l.why === null || l.why === 'complete') || this.mode !== 'room') return;
+    l.coda = true;
+    const own = this.text.items.get(l.key);
+    const waiting = own ? this.text.writeWithin({ key: `coda:${l.id}`, text: coda.text, hand: own.hand, size: own.size, under: l.key, within: this.memoryWindow.painting,
+      purpose: 'annotation', now: this.time, source: this.text.phraseOf(l.key) ?? undefined }) : null;
+    if (waiting) {
+      this.director.keepBack(waiting);
+      this.srRegion().textContent = `Written on the wall where the painting was: ${coda.text}`;
+    }
+  }
+
+  /**
+   * The room's writing under a living memory's painting, its own line too (`washOf`: each piece
+   * goes to a trace just ahead of the colour, and comes back with the pencil, or as the painting
+   * goes if it is let go early; reviews of 2026-10-17 and 18). A revisit without its own scene (no
+   * order map) has the colour everywhere at once, at the reveal's half way.
+   */
+  private washUnderPainting(l: NonNullable<App['living']>, final: Record<string, number>) {
+    const m = washInputs(l.memory.prepared.def, l.memory.prepared.living, final, l.memory.controller.weights.presence);
+    if (!m) return;
+    for (const it of this.text.items.values()) {
+      const a = this.text.anchorOfKey(it.key);
+      if (!a || a.group !== l.anchor.group) continue;
+      const w = washOf(a, this.memoryWindow.rect, m.colourAt, m.reveal, m.presence, m.hold);
+      if (w <= 0 && !l.washed.has(it.key)) continue;
+      // (Its own line may be in the memory's light as well: the more washed of the two.)
+      this.text.wash(it.key, it.key === this.memoryKey ? Math.max(w, this.lightWash) : w);
+      l.washed.add(it.key);
     }
   }
 
@@ -1232,7 +1427,8 @@ export class App {
     const dt = Math.min(0.1, this.clock.getDelta());
     this.time += dt;
     this.fps = this.fps * 0.95 + (1 / Math.max(dt, 1e-3)) * 0.05;
-    const running = this.mode === 'room' || this.mode === 'contribute';
+    // (A memory held at a position, as the editor and a capture hold it, holds the room too.)
+    const running = (this.mode === 'room' || this.mode === 'contribute') && !this.living?.held;
 
     // The opening holds light, image, sound and what the visitor may do; afterwards the room
     // is the Director's. Hints only once the room is theirs, and only if they haven't found out.
@@ -1264,7 +1460,8 @@ export class App {
       }
     }
 
-    if (!this.opening) this.rig.enabled = this.mode === 'room';
+    // (Inside a living memory, looking and walking are the memory's: src/world/living/Inside.ts.)
+    if (!this.opening) this.rig.enabled = this.mode === 'room' && !this.inside.locked;
     else if (this.mode !== 'room') this.rig.enabled = false;
     this.rig.update(dt, this.room, this.chair.group.position);
 
@@ -1285,6 +1482,7 @@ export class App {
         gazeChair: this.gazeChair,
         nearSurface: this.room.nearWall(this.rig.pos.x, this.rig.pos.z),
         kneeling: this.rig.kneeling,
+        carried: this.inside.carrying,
       };
       const cues = this.director.tick(dt, input, this.room.facing(this.rig.yaw));
       for (const c of cues) this.apply(c.cue);
@@ -1305,10 +1503,12 @@ export class App {
     // The chair's contact with the floor is there as the light on it is: none in the dark.
     (this.chair.contact.material as THREE.MeshBasicMaterial).opacity = this.chairContact * Math.min(1, this.lighting.keyLevel);
     (this.chair.seatShade.material as THREE.MeshBasicMaterial).opacity = this.chairContact * Math.min(1, this.lighting.panelLevel);
+    this.lightWash = 0;
     if (this.memoryKey) {
       // The light washes the words out a little (to about half their strength), then gives them back.
       const m = this.memoryLight.update(this.time);
-      this.text.wash(this.memoryKey, 0.35 * m);
+      this.lightWash = 0.35 * m;
+      this.text.wash(this.memoryKey, this.lightWash);
       if (!this.memoryLight.active) this.memoryKey = null;
     }
     this.stepLivingMemory();
@@ -1533,7 +1733,7 @@ export class App {
   // ─────────────────────────────── input ───────────────────────────────
 
   private interact() {
-    if (this.mode !== 'room') return;
+    if (this.mode !== 'room' || this.inside.locked) return;
     const d = this.rig.distanceToChair();
     if (this.rig.kneeling) {
       this.rig.setKneel(false);
@@ -1545,6 +1745,11 @@ export class App {
       return;
     }
     this.attendGaze();
+  }
+
+  /** Looking: the room's, or (inside a living memory) the memory's. */
+  private lookBy(dx: number, dy: number) {
+    if (!this.inside.look(dx, dy)) this.rig.look(dx, dy);
   }
 
   private attendGaze() {
@@ -1617,6 +1822,15 @@ export class App {
         return;
       }
       if (typing() || this.mode !== 'room') return;
+      // Inside a living memory: a new turn or step is the visitor's way out (Inside.ts); the
+      // room's other keys wait.
+      if (this.inside.locked) {
+        if (e.code === 'KeyM') this.setPref('muted', !this.prefs.muted);
+        if (!e.repeat) this.inside.freshKeys.add(e.code);
+        this.rig.keys.add(e.code);
+        if (e.code.startsWith('Arrow') || e.code === 'Tab' || e.code === 'Space') e.preventDefault();
+        return;
+      }
       if (e.code === 'Tab') {
         this.cyclePhrase(e.shiftKey ? -1 : 1);
         e.preventDefault();
@@ -1638,11 +1852,18 @@ export class App {
       this.rig.keys.add(e.code);
       if (e.code.startsWith('Arrow')) e.preventDefault();
     });
-    addEventListener('keyup', (e) => this.rig.keys.delete(e.code));
-    addEventListener('blur', () => this.rig.keys.clear());
+    addEventListener('keyup', (e) => {
+      this.rig.keys.delete(e.code);
+      this.inside.freshKeys.delete(e.code);
+    });
+    addEventListener('blur', () => {
+      this.rig.keys.clear();
+      this.inside.freshKeys.clear();
+    });
 
     // Mouse: pointer lock where possible, drag-to-look otherwise.
     let dragging = false;
+    let dragInside = false;
     let lastX = 0, lastY = 0, downX = 0, downY = 0, downT = 0;
     let lockWanted = false;
     canvas.addEventListener('pointerdown', (e) => {
@@ -1656,14 +1877,16 @@ export class App {
           return;
         }
         dragging = true;
+        dragInside = this.inside.locked;
         canvas.setPointerCapture(e.pointerId);
       }
     });
     canvas.addEventListener('pointermove', (e) => {
       if (this.mode !== 'room') return;
-      if (document.pointerLockElement === canvas) this.rig.look(e.movementX, e.movementY);
+      if (document.pointerLockElement === canvas) this.lookBy(e.movementX, e.movementY);
       else if (dragging && e.pointerType === 'mouse') {
-        this.rig.look((e.clientX - lastX) * 1.2, (e.clientY - lastY) * 1.2);
+        // (A drag begun before a living memory took the view isn't a turn away from it.)
+        if (!this.inside.locked || dragInside) this.lookBy((e.clientX - lastX) * 1.2, (e.clientY - lastY) * 1.2);
         lastX = e.clientX;
         lastY = e.clientY;
       }
@@ -1693,20 +1916,25 @@ export class App {
     });
 
     // Touch: left half walks (vertical) and turns (horizontal); right half looks; tap goes to things.
-    const touches = new Map<number, { side: 'L' | 'R'; x: number; y: number; sx: number; sy: number; t: number }>();
+    const touches = new Map<number, { side: 'L' | 'R'; x: number; y: number; sx: number; sy: number; t: number; inside: boolean }>();
     canvas.addEventListener('pointerdown', (e) => {
       // Touching the room while writing means: keep it to yourself after all.
       if (this.mode === 'contribute' && !$<HTMLInputElement>('contribute-input').value.trim()) this.closeContribute();
       if (e.pointerType === 'mouse' || this.mode !== 'room') return;
       canvas.setPointerCapture(e.pointerId);
-      touches.set(e.pointerId, { side: e.clientX < innerWidth / 2 ? 'L' : 'R', x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, t: e.timeStamp });
+      touches.set(e.pointerId, { side: e.clientX < innerWidth / 2 ? 'L' : 'R', x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, t: e.timeStamp, inside: this.inside.locked });
+      // A thumb put down to walk while inside a living memory is a way out (one already down isn't).
+      if (e.clientX < innerWidth / 2 && this.inside.locked) this.inside.freshThumb = true;
     });
     canvas.addEventListener('pointermove', (e) => {
       const t = touches.get(e.pointerId);
       if (!t || this.mode !== 'room') return;
       if (Math.hypot(e.clientX - t.sx, e.clientY - t.sy) > 14) this.dragged = true;
       // A half-screen swipe turns about 65° on a narrow phone, as on a wide screen.
-      if (t.side === 'R') this.rig.look((e.clientX - t.x) * 1.6 * clamp(640 / innerWidth, 1, 1.8), (e.clientY - t.y) * 1.6);
+      // (A drag begun before a living memory took the view isn't a turn away from it.)
+      if (t.side === 'R') {
+        if (!this.inside.locked || t.inside) this.lookBy((e.clientX - t.x) * 1.6 * clamp(640 / innerWidth, 1, 1.8), (e.clientY - t.y) * 1.6);
+      }
       else {
         // Walking: a thumb pushing up drifts sideways a little; that shouldn't turn the body.
         const dx = e.clientX - t.sx;
@@ -1721,7 +1949,10 @@ export class App {
       const t = touches.get(e.pointerId);
       if (!t) return;
       touches.delete(e.pointerId);
-      if (t.side === 'L') this.rig.touchMove.set(0, 0);
+      if (t.side === 'L') {
+        this.rig.touchMove.set(0, 0);
+        this.inside.freshThumb = false;
+      }
       if (e.type === 'pointerup' && this.mode === 'room' && Math.hypot(e.clientX - t.sx, e.clientY - t.sy) < 14 && e.timeStamp - t.t < 450) this.tapAt(e.clientX, e.clientY);
     };
     canvas.addEventListener('pointerup', endTouch);
@@ -1809,6 +2040,8 @@ export class App {
    * attention (the room is told), and turns and walks the visitor closer to read it.
    */
   private tapAt(x: number, y: number) {
+    // Inside a living memory a touch does nothing (leaving is turning away, or a step).
+    if (this.inside.locked) return;
     const cam = this.rig.camera;
     const ndc = new THREE.Vector2((x / innerWidth) * 2 - 1, -(y / innerHeight) * 2 + 1);
     this.raycaster.setFromCamera(ndc, cam);
@@ -1963,7 +2196,10 @@ export class App {
     const vol = $<HTMLInputElement>('opt-volume');
     vol.addEventListener('input', () => this.setPref('volume', Number(vol.value)));
     $<HTMLInputElement>('opt-mute').addEventListener('change', (e) => this.setPref('muted', (e.target as HTMLInputElement).checked));
-    $<HTMLInputElement>('opt-captions').addEventListener('change', (e) => this.setPref('captions', (e.target as HTMLInputElement).checked));
+    $<HTMLInputElement>('opt-captions').addEventListener('change', (e) => {
+      this.prefs.captionsChosen = true;
+      this.setPref('captions', (e.target as HTMLInputElement).checked);
+    });
     $<HTMLInputElement>('opt-speech').addEventListener('change', (e) => this.setPref('speech', (e.target as HTMLInputElement).checked));
     $<HTMLInputElement>('opt-motion').addEventListener('change', (e) => {
       this.prefs.reducedMotionChosen = true;

@@ -25,6 +25,13 @@ try {
 const BASE = process.env.BASE ?? 'http://localhost:4173/';
 const OUT = process.env.OUT ?? 'test-output/opening';
 mkdirSync(OUT, { recursive: true });
+// (Captions are off by default, a choice in settings: these runs check them, as a visitor who chose them.)
+const chooseCaptions = () => {
+  try {
+    const p = JSON.parse(localStorage.getItem('hh.prefs.v1') ?? '{}');
+    localStorage.setItem('hh.prefs.v1', JSON.stringify({ ...p, captions: true, captionsChosen: true }));
+  } catch {}
+};
 const browser = await chromium.launch({
   executablePath: process.env.CHROMIUM_PATH || undefined,
   args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'],
@@ -36,6 +43,7 @@ const check = (ok, what) => {
 };
 const newPhone = async () => {
   const ctx = await browser.newContext({ ...devices['iPhone 13'], deviceScaleFactor: 1 });
+  await ctx.addInitScript(chooseCaptions);
   const page = await ctx.newPage();
   const errors = [];
   page.on('pageerror', (e) => errors.push(String(e)));

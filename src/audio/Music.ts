@@ -43,7 +43,7 @@ export class Music {
     this.out.connect(a.buses.music);
     this.send = c.createGain();
     this.send.gain.value = 0.55;
-    this.out.connect(this.send).connect(a.reverbIn);
+    this.out.connect(this.send).connect(a.musicReverb);
   }
 
   get busy() {

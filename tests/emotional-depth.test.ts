@@ -6,6 +6,8 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { Director, returnYaw, ROOM_OWN, CLOSE_TURN } from '../src/state/Director';
 import { EventScheduler } from '../src/core/scheduler';
 import { VIGNETTE_BY_ID } from '../src/content/vignettes';
+import { PHRASES } from '../src/content/phrases';
+import { warmthOf } from '../src/state/Memory';
 import { PERSONAS, type Persona } from './playtest/personas';
 import { visit, type Development } from './playtest/measure';
 import { simulate } from './sim';
@@ -69,6 +71,66 @@ describe('the aftermath of a memory', () => {
     expect(answered).toBeGreaterThan(0);
   });
 
+  it('a still visitor carried through a memory to its end is not answered for that stillness: nothing of the room comes for 25 s', () => {
+    // (Decision 117: stillness and closeness that grew while the visitor was carried were counted
+    // as theirs, and answered as soon as the 6 s hold lifted: a whisper at +6.9 s in about one
+    // still ending in four.)
+    const leaks: string[] = [];
+    for (const seed of [1, 2, 3, 4, 5, 6, 7, 8]) {
+      for (const where of [{ x: 0.6, z: 2.6 }, { x: 0, z: 0.9 }]) {
+        const d = new Director({ seed });
+        d.release();
+        drive(d, (t) => ({ x: where.x + 0.4 * Math.sin(t / 2), z: where.z }), 0, 30);
+        (d.scenes as unknown as { active: unknown }).active = { id: 'woodland', since: d.now };
+        drive(d, () => ({ ...where, carried: true }), 0, 55);
+        d.memoryEnded('woodland', true, true);
+        d.withdrawMusic();
+        const after = drive(d, () => where, 0, 25);
+        for (const c of after) if (/^(still|near-|long-near|finish|resurface)/.test(c.rule) || ROOM_OWN.test(c.rule)) leaks.push(`seed ${seed} at ${where.z}: ${c.rule}`);
+      }
+    }
+    expect(leaks).toEqual([]);
+  });
+
+  it('a line kept back by the line written where the painting was is never written in its own place again that visit', () => {
+    // (Decision 137: its own place is beside that line; written there, it would run on from it.)
+    const reveals = (keep: string[]) => {
+      const d = new Director({ seed: 4 });
+      d.release();
+      d.keepBack(keep);
+      const out = new Set<string>();
+      for (const c of drive(d, (t) => ({ yaw: Math.sin(t * 0.2), facing: t % 30 < 15 ? 'north' : 'east' }), 0, 300)) if (c.cue.type === 'reveal') out.add(c.cue.phraseId);
+      return out;
+    };
+    const kept = [...reveals([])].slice(0, 4);
+    expect(kept.length).toBe(4);
+    const after = reveals(kept);
+    expect(kept.filter((id) => after.has(id))).toEqual([]);
+    expect(after.size).toBeGreaterThan(0);
+  });
+
+  it('over whole visits, a kept-back line is never revealed nor written again in its own place', () => {
+    // (QA, 2026-10-20: a memory's offer re-inked one there once a copy elsewhere had made it count
+    // as on the wall.) Every line with its own place on a wall is kept back from the start.
+    const keep = PHRASES.filter((p) => p.at && p.id !== 'stay' && p.surface !== 'floor' && p.surface !== 'ceiling').map((p) => p.id);
+    const release = Director.prototype.release;
+    Director.prototype.release = function (this: Director, o?: Parameters<Director['release']>[0]) {
+      release.call(this, o);
+      this.keepBack(keep);
+    };
+    const own: string[] = [];
+    try {
+      for (const p of PERSONAS)
+        for (const seed of [1, 2, 3, 4]) {
+          const r = visit(looped(p), 600, seed);
+          for (const c of r.director.log) if ((c.cue.type === 'reveal' || c.cue.type === 'redraw') && keep.includes(c.cue.phraseId)) own.push(`${p.id}:${seed} ${c.t}s ${c.rule} ${c.cue.type} ${c.cue.phraseId}`);
+        }
+    } finally {
+      Director.prototype.release = release;
+    }
+    expect(own).toEqual([]);
+  });
+
   it('nothing of the room’s own is postponed onto a memory while it plays', () => {
     for (const p of PERSONAS) {
       const r = visit(looped(p), 420, 2);
@@ -76,6 +138,70 @@ describe('the aftermath of a memory', () => {
         const during = r.devs.filter((e) => e.t > m.t && e.t < m.endsAt! - 0.5 && ROOM_OWN.test(e.rule) && (e.kind === 'voice' || e.kind === 'sound' || e.kind === 'music' || e.kind === 'silence'));
         expect(during.map((e) => `${p.id} ${e.t} ${e.rule}`)).toEqual([]);
       }
+    }
+  });
+});
+
+describe('after the afternoon (decision 118): two habits wait, a first approach does not', () => {
+  /** The woodland's afternoon, taken in and seen to its end: the room's last music. */
+  const afternoon = (d: Director) => {
+    (d.scenes as unknown as { active: unknown }).active = { id: 'woodland', since: d.now };
+    drive(d, () => ({ carried: true }), 0, 55);
+    d.memoryEnded('woodland', true, true);
+    d.withdrawMusic();
+  };
+
+  it('no warm line resurfaces once the afternoon has been seen (without it, they do)', () => {
+    const warm = PHRASES.filter((p) => warmthOf(p.dims) >= 0.9).map((p) => p.id);
+    let after = 0, without = 0;
+    for (const seed of [1, 2, 3, 4, 5, 6])
+      for (const seen of [true, false]) {
+        const d = new Director({ seed });
+        d.release();
+        // Two warm lines read for a while (they become warm memories), then far from the chair.
+        drive(d, (t) => ({ x: 2.4, z: 2.4, gazePhraseId: warm[Math.floor(t / 3) % 2] ?? null }), 0, 8);
+        if (seen) afternoon(d);
+        const n = drive(d, (t) => ({ x: 2.6 + 0.2 * Math.sin(t / 7), z: -2.4, yaw: 2 }), 0, 400).filter((c) => c.rule === 'resurface').length;
+        if (seen) after += n;
+        else without += n;
+      }
+    expect(after).toBe(0);
+    expect(without).toBeGreaterThan(0);
+  });
+
+  it("no unfinished sentence is finished in the afternoon's aftermath; after another memory, a long look is answered", () => {
+    let after = 0, other = 0;
+    for (const seed of [1, 2, 3, 4, 5, 6, 7, 8])
+      for (const woodland of [true, false]) {
+        const d = new Director({ seed });
+        d.release({ written: ['stay'], unfinished: ['stay'] });
+        drive(d, (t) => ({ x: 0.4 * Math.sin(t), z: 2.4 }), 0, 30);
+        if (woodland) afternoon(d);
+        else {
+          (d.scenes as unknown as { active: unknown }).active = { id: 'cereal', since: d.now };
+          drive(d, () => ({ carried: true }), 0, 30);
+          d.memoryEnded('cereal', true, true);
+        }
+        const n = drive(d, () => ({ gazePhraseId: 'stay', facing: 'north' }), 0, 24).filter((c) => c.rule.startsWith('finish')).length;
+        if (woodland) after += n;
+        else other += n;
+      }
+    expect(after).toBe(0);
+    expect(other).toBeGreaterThan(0);
+  });
+
+  it('a first approach to the chair in the aftermath is still answered', () => {
+    for (const seed of [1, 2, 3, 4, 5, 6, 7, 8]) {
+      const d = new Director({ seed });
+      d.release();
+      drive(d, (t) => ({ x: 2.4 + 0.3 * Math.sin(t / 3), z: -2.0 }), 0, 30);
+      (d.scenes as unknown as { active: unknown }).active = { id: 'woodland', since: d.now };
+      drive(d, () => ({ x: 2.4, z: -2.6, carried: true }), 0, 55);
+      d.memoryEnded('woodland', true, true);
+      d.withdrawMusic();
+      drive(d, () => ({ x: 2.4, z: -2.0 }), 0, 5);
+      const cues = drive(d, (t) => ({ x: Math.max(0, 2.4 - t), z: Math.min(0.6, -2.0 + t) }), 0, 15);
+      expect(cues.some((c) => c.rule === 'first-approach'), `seed ${seed}`).toBe(true);
     }
   });
 });
@@ -365,5 +491,29 @@ describe('review fixes', () => {
     q.note(105, { type: 'voice', kind: 'line', text: 'x', position: { kind: 'chair' } } as never, 'encounter:x:1');
     q.release(110);
     expect(q.intenseFree(117)).toBe(false);
+  });
+});
+
+describe("after the room's last music (the woodland's afternoon, seen)", () => {
+  /** Music, and anyone humming, in a visit of a visitor standing still facing one wall. */
+  const tunes = (withdrawAt: number | null, seed: number) => {
+    const d = new Director({ seed });
+    d.release();
+    const out: TimedCue[] = [];
+    for (let t = 0; t < 600; t += 0.1) {
+      if (withdrawAt !== null && Math.abs(t - withdrawAt) < 0.05) d.withdrawMusic();
+      const cues = d.tick(0.1, { ...base }, 'north');
+      if (t >= (withdrawAt ?? 0)) out.push(...cues);
+    }
+    return out.filter((c) => c.cue.type === 'music' || (c.cue.type === 'voice' && c.cue.kind === 'hum'));
+  };
+  it('the room plays no music of its own again that visit, and nobody hums', () => {
+    let before = 0;
+    for (const seed of [1, 2, 3, 4]) {
+      before += tunes(null, seed).length;
+      expect(tunes(30, seed), `seed ${seed}`).toEqual([]);
+    }
+    // (A still visitor's visit does have them, otherwise this would prove nothing.)
+    expect(before).toBeGreaterThan(0);
   });
 });

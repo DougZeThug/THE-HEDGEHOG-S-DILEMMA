@@ -24,6 +24,13 @@ const OUT = process.env.OUT ?? 'test-output/playtest';
 const SEED = process.env.SEED ?? '7';
 mkdirSync(OUT, { recursive: true });
 
+// (Captions are off by default, a choice in settings: these runs check them, as a visitor who chose them.)
+const chooseCaptions = () => {
+  try {
+    const p = JSON.parse(localStorage.getItem('hh.prefs.v1') ?? '{}');
+    localStorage.setItem('hh.prefs.v1', JSON.stringify({ ...p, captions: true, captionsChosen: true }));
+  } catch {}
+};
 const browser = await chromium.launch({
   executablePath: process.env.CHROMIUM_PATH || undefined,
   args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required', '--ignore-gpu-blocklist'],
@@ -32,6 +39,7 @@ const mobile = PERSONA !== 'desktop';
 const ctx = await browser.newContext(
   mobile ? { ...devices['iPhone 13'], deviceScaleFactor: 1 } : { viewport: { width: 1280, height: 760 } },
 );
+await ctx.addInitScript(chooseCaptions);
 const page = await ctx.newPage();
 const errors = [];
 page.on('pageerror', (e) => errors.push(String(e)));

@@ -326,7 +326,7 @@ node scripts/generate-dialogue.mjs --approve=… --reject=…           # after 
 
 ## Accessibility, comfort and privacy
 
-- Settings (`Esc`): volume, mute, captions (on by default), browser speech fallback, intensity (*gentle* halves light flashes, holds back the darkest extremes, softens voices and music, and makes silences less deep), reduced motion (follows the OS setting by default; removes head-bob, sway and grain animation, shortens transitions), quality.
+- Settings (`Esc`): volume, mute, captions (off by default, an accessibility choice: the artist's decision, 2026-10-19), browser speech fallback, intensity (*gentle* halves light flashes, holds back the darkest extremes, softens voices and music, and makes silences less deep), reduced motion (follows the OS setting by default; removes head-bob, sway and grain animation, shortens transitions), quality.
 - Keyboard-only exploration is complete (`Tab` to writing, `F` to approach, `C` for the chair). Touch is supported. The settings dialog traps focus.
 - No flashing; all light changes take seconds.
 - Privacy: nothing leaves the browser. Contributions exist only in memory for the current tab and vanish when it is closed; "forget what I wrote, and that I was here" removes them immediately and clears the visit count. The microphone is never used. Only preferences, a visit count, how many times each memory has been met, and one word, `close`, if the last visit stayed close to the chair (it turns the chair before the next visit opens), are stored (localStorage). Nothing about where anyone stood or what they wrote is kept. "Forget" clears all of it, and nothing of that visit is written afterwards.

@@ -1,5 +1,5 @@
 {
-  "spent": 807,
+  "spent": 2919,
   "entries": {
     "sfx-switch-1.mp3": {
       "key": "sfx:switch",
@@ -187,6 +187,86 @@
       "cost": 33,
       "at": "2026-10-14T23:01:12.866Z",
       "review": "rejected"
+    },
+    "woodland-air-1.mp3": {
+      "key": "woodland:air",
+      "text": "Wind moving gently through the leaves of a large broadleaf tree and through long summer grass in a quiet woodland clearing on a warm afternoon: soft continuous rustling with slow swells and small lulls, grass brushing, recorded close and clearly audible at an even level, natural. Nothing else: no birds, no insects, no cicadas, no voices, no music, no traffic, no aircraft, no rain, no microphone wind noise, no rumble.",
+      "duration": 30,
+      "cost": 330,
+      "at": "2026-10-19T21:19:25.122Z",
+      "review": "pending"
+    },
+    "woodland-air-2.mp3": {
+      "key": "woodland:air",
+      "text": "Wind moving gently through the leaves of a large broadleaf tree and through long summer grass in a quiet woodland clearing on a warm afternoon: soft continuous rustling with slow swells and small lulls, grass brushing, recorded close and clearly audible at an even level, natural. Nothing else: no birds, no insects, no cicadas, no voices, no music, no traffic, no aircraft, no rain, no microphone wind noise, no rumble.",
+      "duration": 30,
+      "cost": 330,
+      "at": "2026-10-19T21:19:31.226Z",
+      "review": "pending"
+    },
+    "woodland-bird-1.mp3": {
+      "key": "woodland:bird",
+      "text": "A single small woodland songbird singing one short, relaxed, warbling phrase from a tree on a summer afternoon, then silence. Recorded close with a directional microphone, clearly audible, no other birds, no insects, no wind, no reverb, no music.",
+      "duration": 4,
+      "cost": 44,
+      "at": "2026-10-19T21:19:32.761Z",
+      "review": "pending"
+    },
+    "woodland-bird-2.mp3": {
+      "key": "woodland:bird",
+      "text": "A single small woodland songbird singing one short, relaxed, warbling phrase from a tree on a summer afternoon, then silence. Recorded close with a directional microphone, clearly audible, no other birds, no insects, no wind, no reverb, no music.",
+      "duration": 4,
+      "cost": 44,
+      "at": "2026-10-19T21:19:34.235Z",
+      "review": "pending"
+    },
+    "woodland-bird-3.mp3": {
+      "key": "woodland:bird",
+      "text": "A single small woodland songbird singing one short, relaxed, warbling phrase from a tree on a summer afternoon, then silence. Recorded close with a directional microphone, clearly audible, no other birds, no insects, no wind, no reverb, no music.",
+      "duration": 4,
+      "cost": 44,
+      "at": "2026-10-19T21:19:35.735Z",
+      "review": "pending"
+    },
+    "woodland-evening-1.mp3": {
+      "key": "woodland:evening",
+      "text": "Evening cicadas (higurashi) at dusk in a Japanese cedar forest: several in the trees, each call a clear, ringing, metallic run of quick notes, 'kana-kana-kana', slowly falling in pitch over about five seconds, the calls overlapping and answering from different trees, a calm evening, recorded clearly at an even level. Nothing else: no other insects, no birds, no wind, no voices, no music, no traffic, no rain.",
+      "duration": 24,
+      "cost": 264,
+      "at": "2026-10-19T21:19:50.762Z",
+      "review": "pending"
+    },
+    "woodland-evening-2.mp3": {
+      "key": "woodland:evening",
+      "text": "Evening cicadas (higurashi) at dusk in a Japanese cedar forest: several in the trees, each call a clear, ringing, metallic run of quick notes, 'kana-kana-kana', slowly falling in pitch over about five seconds, the calls overlapping and answering from different trees, a calm evening, recorded clearly at an even level. Nothing else: no other insects, no birds, no wind, no voices, no music, no traffic, no rain.",
+      "duration": 24,
+      "cost": 264,
+      "at": "2026-10-19T21:19:53.660Z",
+      "review": "pending"
+    },
+    "woodland-dusk-1.mp3": {
+      "key": "woodland:dusk",
+      "text": "Evening cicadas (higurashi) at dusk in a cedar forest, heard from a clearing: separate calls from several trees, each a ringing run of quick notes, 'kana-kana-kana', that starts strong, then slows and falls in pitch over about five seconds and stops, a few seconds of quiet between calls, near and far trees answering. Recorded clearly at an even level. Nothing else: no other insects, no birds, no wind, no voices, no music.",
+      "duration": 24,
+      "cost": 264,
+      "at": "2026-10-19T22:17:17.364Z",
+      "review": "pending"
+    },
+    "woodland-dusk-2.mp3": {
+      "key": "woodland:dusk",
+      "text": "Evening cicadas (higurashi) at dusk in a cedar forest, heard from a clearing: separate calls from several trees, each a ringing run of quick notes, 'kana-kana-kana', that starts strong, then slows and falls in pitch over about five seconds and stops, a few seconds of quiet between calls, near and far trees answering. Recorded clearly at an even level. Nothing else: no other insects, no birds, no wind, no voices, no music.",
+      "duration": 24,
+      "cost": 264,
+      "at": "2026-10-19T22:17:20.389Z",
+      "review": "pending"
+    },
+    "woodland-dusk-3.mp3": {
+      "key": "woodland:dusk",
+      "text": "Evening cicadas (higurashi) at dusk in a cedar forest, heard from a clearing: separate calls from several trees, each a ringing run of quick notes, 'kana-kana-kana', that starts strong, then slows and falls in pitch over about five seconds and stops, a few seconds of quiet between calls, near and far trees answering. Recorded clearly at an even level. Nothing else: no other insects, no birds, no wind, no voices, no music.",
+      "duration": 24,
+      "cost": 264,
+      "at": "2026-10-19T22:17:23.331Z",
+      "review": "pending"
     }
   }
 }

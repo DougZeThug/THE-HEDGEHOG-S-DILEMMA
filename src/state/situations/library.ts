@@ -129,7 +129,8 @@ export const humming: SituationDef = {
   id: 'humming',
   maxLife: 600,
   owns: ['vf-hum'],
-  ready: (h, claimed) => h.now > 20 && h.visitor.deepStillFor > 5 && !claimed('beyond'),
+  // (Never once the room's music is over: a hum is a tune too.)
+  ready: (h, claimed) => h.now > 20 && h.visitor.deepStillFor > 5 && !claimed('beyond') && !h.musicWithdrawn,
   begin(c) {
     if (!c.claim('beyond')) return c.end('abort');
     const r = c.h.rng;

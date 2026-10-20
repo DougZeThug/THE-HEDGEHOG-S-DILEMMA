@@ -65,6 +65,11 @@ export interface Cue {
   /** What a caption says while it sounds (for visitors who can't hear it). */
   caption?: string;
   /**
+   * Seconds into it that its caption is shown (default: as it begins): a sound named once it is
+   * part of the place rather than as it begins, or a moment after a cut rather than on it.
+   */
+  captionAt?: number;
+  /**
    * Voices: the words spoken, captioned as speech (not as a sound) for as long as they sound,
    * and which side the speaker is on, so two people can be told apart in the captions.
    */
@@ -72,8 +77,17 @@ export interface Cue {
   side?: 'left' | 'right';
   /** Stop this many seconds into the file (a sentence cut off, a laugh that doesn't finish). */
   stopAfter?: number;
+  /**
+   * Cut at this point of the memory's own timeline (seconds), over 40 ms ending exactly there,
+   * however and whenever it was started (on time, part-way in after a stall, again after a
+   * pause): the afternoon's sounds at the woodland's cut to dusk, on the same instant of the audio
+   * clock as the evening's begin (cues whose markers stand there).
+   */
+  until?: number;
   /** Dry: no room around it (a voice on a phone, held to the ear). */
   dry?: boolean;
+  /** Music only: the place's air, wide (a stereo bed that keeps its stereo), not a point in it. */
+  wide?: boolean;
 }
 
 export interface CueSheet {
