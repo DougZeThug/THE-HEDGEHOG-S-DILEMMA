@@ -2253,3 +2253,13 @@ decision 119 said wrongly that it wraps.
        - a place that can move gives way;
        - the walls as laid out;
        - a kept-back line is never revealed (the test fails without the hold).
+     - Measured the same way:
+       - Early in a visit: 27 of 46 for both wordings, as under 133. One or two lines are kept
+         back in 16 of the 27. In the middle of the east wall, "I think I was happy then." and
+         "That was a good day." are both kept back.
+       - With fifteen of the room's first lines up, as by the time the woodland usually comes
+         (`SHOWN=15`, three choices of lines): 19–20 of 46, and 18 for the artist's wording.
+       - The other way offered under 133 (20 cm only from the opening's unfinished line and the
+         warm lines) writes it no more often: the lines up by then are the warm ones. The artist
+         is offered instead: as now, about four times in ten, or always written (lower down, or
+         further along, when there is no room just under).
