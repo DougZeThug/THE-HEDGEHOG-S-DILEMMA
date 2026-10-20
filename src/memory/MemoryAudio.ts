@@ -281,9 +281,13 @@ export class MemoryAudio implements AudioSink {
     this.live.add(live);
     src.start(at, from);
     if (cut) src.stop(at + stop + 0.02);
+    // Every caption is shown as its sound is heard, with the picture: a cue is handed out ahead of
+    // both, by up to the dispatch's lookahead (QA, 2026-10-20: a caption without its own moment came
+    // up 0.75 s before its sound).
     if (kind === 'voice') {
       // The words, for as long as they are said (a sentence that is cut off ends in a dash).
-      if (cue.text && (into === 0 || caption)) this.host.caption?.(cue.text, dur, true, cue.side);
+      const text = cue.text;
+      if (text && (into === 0 || caption)) this.later(shown, () => this.host.caption?.(text, dur, true, cue.side));
       return;
     }
     // A caption says what began, briefly (a bed or music isn't captioned for its whole length).
@@ -293,8 +297,7 @@ export class MemoryAudio implements AudioSink {
     const due = cue.captionAt === undefined ? 0 : cue.captionAt - into0;
     if (cue.caption && (into0 === 0 || caption || due > 0)) {
       const text = cue.caption, seconds = kind === 'sfx' ? Math.min(dur, 4) : 2.5;
-      if (cue.captionAt === undefined) this.host.caption?.(text, seconds);
-      else this.later(shown + Math.max(0, due), () => this.host.caption?.(text, seconds));
+      this.later(shown + Math.max(0, due), () => this.host.caption?.(text, seconds));
     }
   }
 

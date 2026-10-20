@@ -74,6 +74,8 @@ function run(p: VignettePlayer, ctx: FakeCtx, seconds: number, dt = 1 / 60) {
   for (let t = 0; t < seconds - 1e-9; t += dt) {
     p.step(dt);
     ctx.advance(dt);
+    // (A line's caption is shown as it is heard: on a timer, when the test's timers are fake.)
+    if (vi.isFakeTimers()) vi.advanceTimersByTime(dt * 1000);
   }
 }
 
@@ -81,6 +83,7 @@ afterEach(() => vi.useRealTimers());
 
 describe('a vignette, played', () => {
   it('a long frame never loses a line: its clock keeps its cap of a second (QA, 2026-10-19)', async () => {
+    vi.useFakeTimers();
     for (const stall of [1.5, 2, 3]) {
       for (const before of [0.5, 3, 7]) {
         const s = setup();
@@ -97,14 +100,17 @@ describe('a vignette, played', () => {
           stalled ||= frame === stall;
           s.ctx.advance(frame);
           real += frame;
+          vi.advanceTimersByTime(frame * 1000);
           p.step(clock.tick(real, s.ctx.currentTime, true));
         }
+        vi.advanceTimersByTime(2000);
         expect(s.captions.map((c) => c[0]), `a ${stall} s frame before the line at ${before}`).toEqual(['Have you seen my charger?', 'By the toaster.', "Hang on, I'll look—"]);
       }
     }
   });
 
   it('says each line once, at its time on the audio clock, captioned as speech', async () => {
+    vi.useFakeTimers();
     const s = setup();
     const p = new VignettePlayer(DEF, 'first', s.host);
     await p.prepare();

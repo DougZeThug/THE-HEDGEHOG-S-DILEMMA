@@ -50,11 +50,16 @@ function playThrough(ctx: FakeCtx, audio: MemoryAudio, d: CueDispatch, from: num
     const due = d.advance(p);
     if (due.length) audio.play(due);
     ctx.advance(dt);
+    // (A caption is shown as its sound is heard: on a timer, when the test's timers are fake.)
+    if (vi.isFakeTimers()) vi.advanceTimersByTime(dt * 1000);
   }
 }
 
+afterEach(() => vi.useRealTimers());
+
 describe('memory audio: scheduled on the audio clock, never twice, nothing left behind', () => {
   it('schedules each event at its marker time, ahead of when it is handed out', async () => {
+    vi.useFakeTimers();
     const { ctx, audio, captions } = setup();
     await audio.prepare();
     expect(audio.ready).toBe(true);
@@ -556,4 +561,60 @@ describe("the woodland's cut, driven as the App drives it (one reading of the au
       }
     }
   });
+});
+
+describe('captions: each shown as its sound is heard, with the picture', () => {
+  afterEach(() => vi.useRealTimers());
+  // (QA, 2026-10-20: handed out 0.75 s ahead, a caption without its own moment came up that much
+  // before its sound, in every memory.)
+  for (const latency of [0, 0.12]) {
+    it(`with its own moment or without, within a frame of the picture reaching it (output latency ${latency} s)`, async () => {
+      vi.useFakeTimers();
+      const sheet: CueSheet = {
+        room: [0.4, 3, 0.06],
+        cues: {
+          'music:woods': { asset: 'woods', gainDb: -14, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, until: 34.5, fadeOut: 3, caption: '[cicadas in the trees; a piano]', captionAt: 9.85 },
+          'sfx:mid': { asset: 'mid', gainDb: -20, place: { u: 0, v: 0, d: 1 }, caption: '[a floorboard, just outside]' },
+          'sfx:cicada-last': { asset: 'last', gainDb: -41, place: { u: 0.2, v: 0.3, d: 6 }, lowpass: 5000, caption: '[an evening cicada, far off]' },
+          'voice:line': { asset: 'line', gainDb: -12, place: { u: 0, v: 0, d: 1 }, text: 'Five more minutes.' },
+        },
+      };
+      const markers: Marker[] = [
+        { label: 'music:woods', position: 0.05 },
+        { label: 'sfx:mid', position: 20.0 },
+        { label: 'voice:line', position: 30.0 },
+        { label: 'sfx:cicada-last', position: 48.5 },
+      ];
+      const lengths: Record<string, number> = { woods: 34.5, last: 4.5, mid: 2, line: 1.5 };
+      const ctx = new FakeCtx();
+      Object.assign(ctx, { baseLatency: latency ? 0.02 : 0, outputLatency: latency ? latency - 0.02 : 0 });
+      const shown = new Map<string, number>();
+      let c: MemoryPlaybackController | null = null;
+      const host: MemoryAudioHost = {
+        ctx: ctx as unknown as BaseAudioContext, out: new FakeNode(ctx) as unknown as AudioNode,
+        load: async (asset) => ({ duration: lengths[asset] }) as AudioBuffer, impulse: () => ({}) as AudioBuffer,
+        intensity: 1, where: () => [0, 0, 0], caption: (t) => void (shown.has(t) || shown.set(t, c!.position)),
+      };
+      const audio = new MemoryAudio(host, sheet, markers);
+      const timeline: TimelineSource = { sections: { active: 6, exit: 42.5, residue: 49.5, end: 53 }, markers, at: () => ({}), dispose() {} };
+      c = new MemoryPlaybackController({ timeline, audio, weights: FULL, reduced: false, entrance: 2, sways: [], exit: 3, maxHold: 60, tail: 2, living: true });
+      await audio.prepare();
+      const clock = new MemoryClock();
+      ctx.currentTime = 100;
+      let real = 1000;
+      clock.prime(real, ctx.currentTime, true);
+      c.start(ctx.currentTime);
+      for (let i = 0; i < 20000 && c.state !== 'complete' && c.position < 50; i++) {
+        const frame = 1 / 60;
+        ctx.advance(frame);
+        real += frame;
+        vi.advanceTimersByTime(frame * 1000);
+        c.step(clock.tick(real, ctx.currentTime, true, false), ctx.currentTime);
+      }
+      for (const [text, at] of [['[cicadas in the trees; a piano]', 9.9], ['[a floorboard, just outside]', 20.0], ['Five more minutes.', 30.0], ['[an evening cicada, far off]', 48.5]] as const) {
+        expect(shown.get(text), text).toBeGreaterThan(at - 0.05);
+        expect(shown.get(text), text).toBeLessThan(at + 0.05);
+      }
+    });
+  }
 });
