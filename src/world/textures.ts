@@ -18,7 +18,9 @@ let grainCache: HTMLCanvasElement | null = null;
 /** Fine, irregular grain used for paper fibres and pencil tooth. */
 export function grainCanvas(): HTMLCanvasElement {
   if (grainCache) return grainCache;
-  const [c, g] = canvas(256, 256);
+  // (On the CPU, as the writing it is drawn into is: a GPU canvas as its pattern made each line's
+  // read-back wait seconds on software GL, QA 2026-10-20.)
+  const [c, g] = canvas(256, 256, true);
   const img = g.createImageData(256, 256);
   const r = new Rng(99);
   for (let i = 0; i < 256 * 256; i++) {
@@ -39,7 +41,7 @@ let waxCache: HTMLCanvasElement | null = null;
  */
 export function waxCanvas(): HTMLCanvasElement {
   if (waxCache) return waxCache;
-  const [c, g] = canvas(256, 256);
+  const [c, g] = canvas(256, 256, true);
   const r = new Rng(311);
   g.strokeStyle = '#000';
   g.lineCap = 'round';

@@ -216,6 +216,25 @@ describe('a vignette, played', () => {
     expect(s.ctx.sources.filter((x) => x.buffer?.duration === 1.2).length).toBe(2);
   });
 
+  it('let go gracefully in the instant before a line, it is said and captioned as it is heard', async () => {
+    // (QA, 2026-10-20: a line is handed out 0.3 s ahead; let go in between, it was heard and never
+    // captioned.)
+    for (const before of [0.05, 0.15, 0.25]) {
+      vi.useFakeTimers();
+      const s = setup();
+      const p = new VignettePlayer(DEF, 'first', s.host);
+      await p.prepare();
+      p.start();
+      run(p, s.ctx, 3 - before);
+      p.release('natural');
+      run(p, s.ctx, 4);
+      const answer = s.ctx.sources.find((x) => x.buffer?.duration === 1.2);
+      expect(answer?.stopAt, `${before}`).toBeNull();
+      expect(s.captions.map((c) => c[0]), `${before}`).toContain('By the toaster.');
+      vi.useRealTimers();
+    }
+  });
+
   it('let go gracefully mid-sentence, it is done only once the sentence has been said', async () => {
     const s = setup();
     const p = new VignettePlayer(DEF, 'first', s.host);

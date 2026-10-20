@@ -121,14 +121,20 @@ describe("the woodland's score", () => {
     for (const k of ticks) for (const [a, b, what] of looks) expect(k.t >= a && k.t < b, `a tick at ${k.t.toFixed(2)} s: ${what}`).toBe(false);
     for (const k of ticks) for (const [a, b, what] of moments) if (k.t >= a && k.t < b) expect(k.db, `a tick at ${k.t.toFixed(2)} s: ${what}`).toBeLessThanOrEqual(0);
     for (const k of ticks) expect(k.db).toBeLessThanOrEqual(2);
-    // (Faint: its ticks at least 30 dB under the melody's attacks, the loudest included.)
+    // (Faint, as the render set it: each tick's level, the loudest included, at least 30 dB under the
+    // melody's attacks. These are the render's own figures, not measured in the file; notes.json is
+    // that file's by its hash.)
     expect(score.crackleDb + Math.max(...ticks.map((k) => k.db))).toBeLessThanOrEqual(-30);
     expect(CUT - Math.max(...ticks.map((k) => k.t))).toBeGreaterThan(1);
     const times = ticks.map((k) => k.t).sort((a, b) => a - b);
     const gaps = times.slice(1).map((t, i) => t - times[i]);
     expect(Math.min(...gaps)).toBeGreaterThanOrEqual(0.0299);
-    const mean = gaps.reduce((a, b) => a + b, 0) / gaps.length;
-    const sd = Math.sqrt(gaps.reduce((a, b) => a + (b - mean) ** 2, 0) / gaps.length);
+    // Never periodic: the gaps between ticks vary (the gaps across a look, kept empty, aside: a steady
+    // train broken only by the looks would pass otherwise, QA 2026-10-20).
+    const within = gaps.filter((_, i) => !looks.some(([a, b]) => times[i] < b && times[i + 1] > a));
+    const mean = within.reduce((a, b) => a + b, 0) / within.length;
+    const sd = Math.sqrt(within.reduce((a, b) => a + (b - mean) ** 2, 0) / within.length);
+    expect(within.length).toBeGreaterThan(20);
     expect(sd / mean, 'never periodic').toBeGreaterThan(0.5);
   });
 

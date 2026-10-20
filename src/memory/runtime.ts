@@ -270,7 +270,8 @@ export async function prepare(id: string, variant: string, host: RuntimeHost): P
   const letGo = () => {
     for (const l of [...loaded, ...extra]) {
       l.texture.dispose();
-      l.bitmap.close();
+      // (The living scene's own entry has no bitmap: QA, 2026-10-20.)
+      l.bitmap?.close();
     }
     scene?.dispose();
     audio?.dispose(0);

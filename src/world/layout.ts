@@ -239,6 +239,22 @@ export class SurfaceLayout {
   }
 
   place(p: Phrase, measure: Measure): Placement {
+    const mine = this.placeOn(p, measure);
+    if (mine) return mine;
+    const { w, h } = measure(p);
+    const size = surfaceSize(p.surface);
+    const rot = p.hand === 'typed' ? 0 : ((hashString(p.id) % 1000) / 1000 - 0.5) * 0.05;
+    // The wall is full: the writing goes onto another wall rather than over other writing.
+    for (const other of ['south', 'west', 'north', 'east'] as Surface[]) {
+      if (other === p.surface) continue;
+      const o = this.scan(other, w, h, 0.02);
+      if (o) return this.add({ surface: other, ...o, rot });
+    }
+    return this.add({ surface: p.surface, u: size.w / 2, v: 1.6, w, h, rot });
+  }
+
+  /** A place for `p` on its own wall (its own place, if it has one), or null if there's no room. */
+  placeOn(p: Phrase, measure: Measure): Placement | null {
     const { w, h } = measure(p);
     const size = surfaceSize(p.surface);
     const rot = p.hand === 'typed' ? 0 : ((hashString(p.id) % 1000) / 1000 - 0.5) * 0.05;
@@ -254,14 +270,7 @@ export class SurfaceLayout {
       this.findIn(p.surface, w, h, [0.02, 0.98], [0.2, size.h - 0.1], 0.02, 200) ??
       this.scan(p.surface, w, h, 0.02) ??
       this.scan(p.surface, w, h, 0);
-    if (r) return this.add({ surface: p.surface, ...r, rot });
-    // The wall is full: the writing goes onto another wall rather than over other writing.
-    for (const other of ['south', 'west', 'north', 'east'] as Surface[]) {
-      if (other === p.surface) continue;
-      const o = this.scan(other, w, h, 0.02);
-      if (o) return this.add({ surface: other, ...o, rot });
-    }
-    return this.add({ surface: p.surface, u: size.w / 2, v: 1.6, w, h, rot });
+    return r ? this.add({ surface: p.surface, ...r, rot }) : null;
   }
 }
 

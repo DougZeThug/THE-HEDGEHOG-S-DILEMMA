@@ -608,6 +608,8 @@ export class Director {
     // directly, not through the voice rules that already wait).
     if (this.scenes.active && ((cue.type === 'voice' && (!cue.finish || this.vignettePlaying)) || cue.type === 'sound' || cue.type === 'music')) return false;
     if (cue.type === 'reveal' && this.withheld().includes(cue.phraseId)) return false;
+    // (Nor is a line kept back written again in its own place: decision 137, QA 2026-10-20.)
+    if (cue.type === 'redraw' && this.keptBack.has(cue.phraseId)) return false;
     // A situation's own sounds wait out a memory's aftermath (those answering the visitor don't).
     if (this.aftermath() && rule.startsWith('sit:') && !/^sit:(residue|listening)/.test(rule) && (cue.type === 'voice' || cue.type === 'sound' || cue.type === 'music')) {
       this.queue(this.aftermathUntil - this.now + 1, cue, rule);
@@ -1408,7 +1410,7 @@ export class Director {
       phase: this.phase,
       // (Never into a busy room: the line arrives into quiet, or waits. Nor into a memory's aftermath.)
       free: free && !this.aftermath() && !this.pacing.repeats('text', this.now, 8) && !this.pacing.crowded(this.now),
-      visibleFacing: (id) => this.visible.has(id) && PHRASE_BY_ID.get(id)?.surface === this.facing,
+      visibleFacing: (id) => this.visible.has(id) && !this.keptBack.has(id) && PHRASE_BY_ID.get(id)?.surface === this.facing,
       departing: this.departing,
       otherMemory: this.memoryAwaited(),
       facing: this.facing,

@@ -67,7 +67,8 @@ export class MemoryAudio implements AudioSink {
    *  lead, not yet reached by it) how long before the picture reaches its start. */
   private paused: { marker: Marker; at: number; wait: number }[] = [];
   private disposed = false;
-  private timers = new Set<ReturnType<typeof setTimeout>>();
+  /** Captions still to come, each with its sound: kept, shown or dropped with it. */
+  private timers = new Map<ReturnType<typeof setTimeout>, { f: () => void; l: Live }>();
   /** Sources fading out for a pause. */
   private fading = new Set<Live>();
 
@@ -287,7 +288,7 @@ export class MemoryAudio implements AudioSink {
     if (kind === 'voice') {
       // The words, for as long as they are said (a sentence that is cut off ends in a dash).
       const text = cue.text;
-      if (text && (into === 0 || caption)) this.later(shown, () => this.host.caption?.(text, dur, true, cue.side));
+      if (text && (into === 0 || caption)) this.later(shown, () => this.host.caption?.(text, dur, true, cue.side), live);
       return;
     }
     // A caption says what began, briefly (a bed or music isn't captioned for its whole length).
@@ -297,24 +298,33 @@ export class MemoryAudio implements AudioSink {
     const due = cue.captionAt === undefined ? 0 : cue.captionAt - into0;
     if (cue.caption && (into0 === 0 || caption || due > 0)) {
       const text = cue.caption, seconds = kind === 'sfx' ? Math.min(dur, 4) : 2.5;
-      this.later(shown + Math.max(0, due), () => this.host.caption?.(text, seconds));
+      this.later(shown + Math.max(0, due), () => this.host.caption?.(text, seconds), live);
     }
   }
 
-  /** Something to do `seconds` from now (a caption a moment into its sound), unless the memory
-   *  pauses, seeks, lets go or ends first. */
-  private later(seconds: number, f: () => void): void {
+  /** A caption `seconds` from now, as its sound `l` is heard (with the picture). */
+  private later(seconds: number, f: () => void, l: Live): void {
     if (seconds <= 0.02 || typeof setTimeout !== 'function') return f();
     const h = setTimeout(() => {
       this.timers.delete(h);
       f();
     }, seconds * 1000);
-    this.timers.add(h);
+    this.timers.set(h, { f, l });
   }
 
-  private cancelLater(): void {
-    for (const h of this.timers) clearTimeout(h);
-    this.timers.clear();
+  /**
+   * The captions still to come, when the memory lets go, pauses, seeks or ends: those whose sound
+   * will still be heard as it was (`keep`) wait for it; those whose sound has begun and is heard on
+   * a moment more (`now`) are shown at once; the rest go with their sound (QA, 2026-10-20: a
+   * sentence let go gracefully just before it was said was heard, uncaptioned).
+   */
+  private settleLater(keep: (l: Live) => boolean = () => false, now: (l: Live) => boolean = () => false): void {
+    for (const [h, t] of [...this.timers]) {
+      if (keep(t.l)) continue;
+      clearTimeout(h);
+      this.timers.delete(h);
+      if (now(t.l)) t.f();
+    }
   }
 
   private drop(l: Live): void {
@@ -375,7 +385,11 @@ export class MemoryAudio implements AudioSink {
   release(mode: 'natural' | 'interrupt', fade: number): void {
     if (this.released) return;
     this.released = true;
-    this.cancelLater();
+    // Let go naturally, a sentence or a one-shot plays on (begun or not), captioned as it is heard;
+    // interrupted, one that has begun is heard a moment more, and captioned at once.
+    const begun = (l: Live) => (l.kind === 'voice' || l.kind === 'sfx') && l.at <= this.now + 0.005;
+    if (mode === 'natural') this.settleLater((l) => l.kind === 'voice' || l.kind === 'sfx');
+    else this.settleLater(undefined, begun);
     for (const l of [...this.live]) {
       // Interrupted, a bed or music the picture hasn't reached yet (sent ahead of it by the lead:
       // the evening, let go in the last instant before the cut) goes at once, unseen.
@@ -419,7 +433,9 @@ export class MemoryAudio implements AudioSink {
     const t = this.now;
     const shown = now - this.lead;
     this.paused = [];
-    this.cancelLater();
+    // (A one-shot already ringing finishes: captioned at once. What is taken back, or said again,
+    // is captioned when it is.)
+    this.settleLater(undefined, (l) => l.kind === 'sfx' && l.at <= t + 0.005);
     for (const l of [...this.live]) {
       if (l.at > t + 0.005) {
         back.push(l.marker);
@@ -464,7 +480,7 @@ export class MemoryAudio implements AudioSink {
     if (this.disposed) return;
     this.released = false;
     this.paused = [];
-    this.cancelLater();
+    this.settleLater();
     for (const l of [...this.live]) this.fadeOut(l, l.kind === 'sfx' ? 0.05 : 0.3);
   }
 
@@ -488,7 +504,7 @@ export class MemoryAudio implements AudioSink {
     if (this.disposed) return;
     this.disposed = true;
     this.paused = [];
-    this.cancelLater();
+    this.settleLater();
     for (const l of [...this.live]) this.fadeOut(l, fade);
     const room = this.room, wet = this.wet;
     const done = () => {

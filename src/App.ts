@@ -594,6 +594,8 @@ export class App {
     }
 
     if (s === 'complete') {
+      // Its line where the painting was, if one long frame went past its moment (QA, 2026-10-20).
+      this.writeCoda(l);
       // (A living memory that was never entered, only seen on its wall, hasn't been seen: it is
       // offered again. Interaction review, 2026-10-17.)
       const entered = this.inside.entered || !l.memory.prepared.living?.immerse;
@@ -1123,22 +1125,28 @@ export class App {
       const told = line.shot !== undefined ? shot === line.shot : line.inside ? this.inside.entered : line.wall ? !this.inside.entered : true;
       if (told) this.srRegion().textContent = line.text;
     }
-    // Its line where the painting was (decisions 119–123): once, while it plays on unbroken to there,
-    // for someone taken all the way in; in the hand and size of its own line, under it, silently.
-    // A line whose own place is beside it is kept off the walls for the rest of the visit (137).
     const coda = l.memory.prepared.def.coda;
-    if (coda && !l.coda && dt > 0 && !l.held && coda.variant === l.memory.prepared.variant && f.position >= coda.at
-      && this.inside.entered && (l.why === null || l.why === 'complete') && this.mode === 'room') {
-      l.coda = true;
-      const own = this.text.items.get(l.key);
-      const waiting = own ? this.text.writeWithin({ key: `coda:${l.id}`, text: coda.text, hand: own.hand, size: own.size, under: l.key, within: this.memoryWindow.painting,
-        purpose: 'annotation', now: this.time, source: this.text.phraseOf(l.key) ?? undefined }) : null;
-      if (waiting) {
-        this.director.keepBack(waiting);
-        this.srRegion().textContent = `Written on the wall where the painting was: ${coda.text}`;
-      }
-    }
+    if (coda && dt > 0 && f.position >= coda.at) this.writeCoda(l);
     if (go) this.endLivingMemory('interrupt');
+  }
+
+  /**
+   * Its line where the painting was (decisions 119–123): once, while it plays on unbroken to there,
+   * for someone taken all the way in; in the hand and size of its own line, under it, silently. A
+   * line whose own place is beside it is kept off the walls for the rest of the visit (137). As its
+   * position passes the line's moment, or, if no frame was drawn there (one long frame), as it ends.
+   */
+  private writeCoda(l: NonNullable<App['living']>): void {
+    const coda = l.memory.prepared.def.coda;
+    if (!coda || l.coda || l.held || coda.variant !== l.memory.prepared.variant || !this.inside.entered || !(l.why === null || l.why === 'complete') || this.mode !== 'room') return;
+    l.coda = true;
+    const own = this.text.items.get(l.key);
+    const waiting = own ? this.text.writeWithin({ key: `coda:${l.id}`, text: coda.text, hand: own.hand, size: own.size, under: l.key, within: this.memoryWindow.painting,
+      purpose: 'annotation', now: this.time, source: this.text.phraseOf(l.key) ?? undefined }) : null;
+    if (waiting) {
+      this.director.keepBack(waiting);
+      this.srRegion().textContent = `Written on the wall where the painting was: ${coda.text}`;
+    }
   }
 
   /**
