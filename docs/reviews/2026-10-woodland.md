@@ -2514,3 +2514,158 @@ The technical artist reviewed the same test. On the rig:
      - the memory itself, recorded at true speed in the browser, on a desktop and an upright phone;
      - the turn before and now, side by side, in the two-shot's frame;
      - enlargements last, labelled with their size.
+
+### Her turn challenged (the skeptic) and tested (QA): 241b7e9
+
+**The skeptic** measured the committed drawings, the turn7 films and both browser recordings. Its
+findings:
+1. **[P1] A 3-1-2 stutter.** Every film and recording of the new turn held its drawings 3-1-2 frames,
+   while the "before" played clean twos. Four keys rounded to four places (18.1667 …) lay 33 µs
+   after their twelfth, so anything sampling on the 1/24 s grid showed them a frame late. Decision
+   148 wasn't true of turn7.
+2. **[P1] A dark wedge under her chin.** A hair-coloured wedge sat under her chin from drawing 05 to
+   the end: luminance 40–95 where the panel is skin, about 5–6 screen px in the desktop recording.
+   That is "her neck looks disconnected", for the 8 s the settled drawing is on screen.
+3. **[P1] Her face is narrower.** The fat cheek went because her far side now slides: settled, her
+   face is 5% narrower (ear to far outline 179.6 → 170.6 px), where the first rig kept its width.
+   Whether that reads as a turn or as shrinking is the artist's to judge, from variants.
+4. **[P1] Four changes at once.** The before-and-now film changed the rig, the curve, the eye
+   drawings and the cadence together. The artist faulted her face, not the timing.
+5. **[P2] Stretched hair.** The stretch moved into her hair: the band beside her far cheek is 1.5×
+   wider settled.
+6. **[P2] Decision 144 doesn't hold.** Neither "its sides stay where they are" nor "4.9 px narrower
+   near her collar" reproduces. The top of her neck leans toward him (near side 10–12 px, far side
+   4–8 px), and her neck is 0.5–4 px wider, not narrower.
+7. **[P2] The line lift is idle.** With `FAR_IN` at 0 the line lift's main purpose goes unused. Don't
+   present the rig as a pipeline until a second figure uses it.
+8. **[P2] The window is self-imposed.** The score leaves her look clear from 17.0 to 19.5, but the
+   turn ends at 19.0.
+
+It also named dead code (`strain()`, `STRAIN`) and stale claims in `defs.ts`, the README and the
+script.
+
+**QA** tested the built app at 241b7e9 on four profiles and re-ran both scripts, which reproduced the
+committed files byte for byte. Its findings:
+1. **[P1] The stutter, independently.** The skeptic's 1, from the timeline and the browser: at 12 fps
+   drawings 04, 07, 10 and 13 are skipped, and at 24 fps held half as long. That includes the films
+   sent to the artist.
+2. **[P2] Old descriptions.** `figure:b.turn` was still described as "how far her head has turned" in
+   Studio's sheet, in the scene and in `docs/memories.md`, which also named removed constants.
+3. **[P2] A gap at her ear.** Where her ear meets her jaw there is a gap between her meshes: turned a
+   hair's breadth, 7 px change by up to 88/255 as the hair shows through. Probably decision 149's
+   fleck.
+4. **[P2] A glint on phones.** In an upright phone's wide, a glint by her far eye changes by up to
+   74/255 between drawings 13 and 14, where the drawings differ by 14: lossy encoding of the wide's
+   head atlas.
+5. **[P2] Tests fitted to the numbers.** The turn's tests were fitted to today's numbers.
+
+Verified working:
+- every drawing at its time on desktop, both phones and reduced motion;
+- no pops at 17.5, 18.0 or 19.0;
+- nothing loaded or compiled during the turn;
+- returns can't cut into her look;
+- the screen-reader line at 18.5.
+
+### Decisions (main session)
+
+151. **Each drawing exactly on its twelfth** (the skeptic's 1, QA's 1).
+     - `turnDrawings` and `schedule()` key each drawing at (round(t·12) + i)/12, unrounded. That is
+       the same number a recorder's i/24 or i/60 gives.
+     - Tested by sampling 17–20 s at 12, 24 and 60 fps, and every film is checked for its holds (all
+       two frames).
+     - Decision 148 corrected: the turn7 films and recordings held 3-1-2, and are replaced.
+     - Live play was unaffected: its time is continuous.
+152. **Her chin's edge lies over her neck** (the skeptic's 2).
+     - **The cause.** Her matte was traced 2–3 px outside her chin's drawn line. That strip of hair
+       counted as hers and went over her neck with her chin, and her chin's soft edge lay over the
+       hair behind her instead of her neck.
+     - **Her matte ends at her line.** Within 8 px of her chin's line her matte now ends half a pixel
+       past its centre line, and what lay past it belongs to the hair. There, her colour and what is
+       behind her are both the panel's own, so unmoved nothing changes.
+     - **Two layers in depth.** Her head's soft edge lies over her neck where her neck is behind it.
+       It doesn't count where the panel already held what was behind that edge.
+     - **Measured.** Settled, the hair-dark pixels inside her neck under her chin go from 22 to 0. The
+       script fails above 2 (`chin_wedge`).
+     - **The hidden skin's outline is gone** (decision 144). It went with her chin, not her neck, and
+       lay across her neck as a stroke once her neck showed through.
+     - **Kept:** her chin's shadow on her neck (without it her chin's line lies on flat bright skin,
+       compared at 6×) and the hidden skin's fade at her neck's side.
+     - **One visible effect.** A faint line of the panel's own, the edge of the light along her
+       neck's far side, now moves a few pixels in from that side as her neck twists, as its surface
+       does.
+153. **No pixel falls between her meshes** (QA's 3).
+     - Her neck now continues behind her jaw from her ear to her chin. Before, it began at her jaw
+       line's start, 6 px short of her ear.
+     - A pixel that still falls between her two meshes inside her takes what is beside it.
+     - Turned a hair's breadth (0.01°), 1 px changes by more than 12/255 (37, skin to skin), against
+       7 px up to 88 before (the hair). The script fails above 2.
+     - QA traced decision 149's fleck by her ear to this gap. I can't find it in the new settled
+       drawing at 5×; the films will show.
+154. **How far her far outline moves is the artist's to choose** (the skeptic's 3 and 5).
+     - Measured settled (2× crop, along her turn):
+
+       | | her far outline moves | her ear | her face | her cheek stretches at most |
+       |---|---|---|---|---|
+       | A, now | 16.6 px | 6.8 | 9.8 px (5%) narrower | 1.24 |
+       | B, held a little (`--far-hold=0.4`, over 45 px) | 11.7 | 6.9 | 4.8 px narrower | 1.35 |
+       | C, held more (0.7) | 8.0 | 6.9 | 1.1 px narrower | 1.49 |
+       | the first rig (all the way, over 20 px) | 4.5 | 6.9 | 2.4 px wider | 2.0 ("very fat") |
+
+     - A stays until the artist chooses. B and C are drawn on the same schedule, and both pass every
+       check (their lines carry 0.94–0.98 of their ink). They are shown side by side at screen size,
+       at true speed.
+     - The skeptic's "stretch no more than 1.2×" can't be had by holding her outline: even A's cheek
+       stretches 1.24 where it comes round.
+     - The hair beside her far cheek is dragged by her outline, so B and C drag it less. `DRAG` isn't
+       widened: more of the hair on the grass would move.
+     - Decision 143 corrected: her cheek doesn't "barely widen". With her outline moving with her
+       face, her face narrows.
+155. **One change at a time** (the skeptic's 4).
+     - The before-and-now film shows the first rig drawn on this schedule (`--old`) against this
+       one, so only her face differs.
+     - The schedule itself (decision 147) is as the brief asks. It isn't changed before the artist
+       has seen it at true speed.
+     - If it reads as quick, hold the last drawings or slow the ease, landing by 19.4 (the score's
+       window ends at 19.5: the skeptic's 8). Check it against her breath again.
+156. **The line lift stays** (the skeptic's 7).
+     - Even with her outline moving with her face, her cheek stretches 1.24; B and C stretch it more.
+       The lift keeps her far outline's weight there (0.98), and draws her jaw line over her neck
+       from its own surface.
+     - If the artist keeps A, the skeptic's trial decides whether the lift stays: the lines carried
+       as paint, compared at screen size.
+     - The rig's docs now say that only her turn uses it so far.
+157. **Tests on the brief, not today's numbers** (QA's 5):
+     - a moment of 0.3–0.8 s between her eyes and her head;
+     - her head fastest within the first half of its drawings, not at once;
+     - no step over a quarter of the way, and the first under a twentieth;
+     - the exact-frame sampling of decision 151.
+158. **The wide's head cells whole texels apart** (QA's 4).
+     - **The pitch fixed.** The phone's atlas of the wide's heads was 478×441, so its 4×4 cells
+       began half a texel apart (119.5 × 110.25). Each change of drawing moved her by half a texel as
+       the shader sampled it. It is now 476×440 (91 KB, was 104), and both head atlases keep a whole
+       number of texels per cell at every size (`cut.save(..., multiple=4)`).
+     - **Measured,** sampled as the shader does: by her far eye at her last step, the change falls
+       from 22 to 12/255, about the drawings' own 14.
+     - **The blob QA measured is a different cause, and stays.** At sheet (558, 66), beside her far
+       eye, it changes 46/255 before and 42 now. There the drawings themselves change by 7: the
+       wide's figure cut keys her hair's edge afresh for each drawing, and amplifies it. Located, not
+       fixed; QA couldn't judge it on a real phone, and neither can I.
+     - **Lossless encoding** was tried and changed nothing there. Q=94's error by her far eye is
+       12–17/255, so it went back to q=94.
+159. **Old words corrected** (QA's 2, the skeptic's list).
+     - `figure:b.turn` is now described as "how far through her turn's drawings", in Studio's sheet,
+       the scene and `docs/memories.md`, whose notes on the turn now point to `docs/animation.md`.
+     - Decision 144's neck: its top goes a little way with her head, and it keeps its width.
+     - `defs.ts`, the script's notes and the rig's README no longer claim a gentle start on screen,
+       a delay on the hair, or a 1.8 stretch now.
+     - The dead `strain()` and `STRAIN` are removed.
+160. **What the artist is shown, and in what order** (replacing 150; the films in
+     `test-output/review/woodland/turn8/`, every one checked for two-frame holds):
+     - **The memory itself**, recorded at true speed in the browser, on a desktop and an upright
+       phone (`memory/`): the turn as it ships (A).
+     - **Before and now** on the same schedule, so only her face differs.
+     - **Her far outline three ways (A, B, C)**, side by side at screen size and at true speed, with
+       the settled still. The choice is theirs.
+     - **Enlargements last**, labelled with their size.
+     - **Said plainly:** the films sent before held her drawings 3-1-2, and these replace them.
+

@@ -737,8 +737,10 @@ def under_flowers(plate_rgb, mask):
     return plate_rgb * (1 - k) + src * k
 
 
-def save(a, path, sizes, lossless=False, q=90):
-    """`a`: HxWx{3,4} floats (RGBA premultiplied is stored straight, as WebP wants)."""
+def save(a, path, sizes, lossless=False, q=90, multiple=1):
+    """`a`: HxWx{3,4} floats (RGBA premultiplied is stored straight, as WebP wants). Each size's
+    width and height a multiple of `multiple` (an atlas that many cells a side keeps its cells whole
+    texels apart at every size)."""
     os.makedirs(os.path.dirname(path), exist_ok=True)
     if a.shape[2] == 4:
         al = a[..., 3:4]
@@ -749,8 +751,9 @@ def save(a, path, sizes, lossless=False, q=90):
     base, _ = os.path.splitext(path)
     for suffix, width in sizes.items():
         k = width / W
-        tw = max(1, round(im.width * k))
-        out = im if tw == im.width else im.resize((tw, max(1, round(im.height * k))), Image.LANCZOS)
+        tw = max(multiple, round(im.width * k / multiple) * multiple)
+        th = max(multiple, round(im.height * k / multiple) * multiple)
+        out = im if (tw, th) == im.size else im.resize((tw, th), Image.LANCZOS)
         out.save(base + suffix + '.webp', 'WEBP', lossless=lossless, quality=q, method=6)
 
 

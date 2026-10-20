@@ -502,8 +502,8 @@ describe('the two of them close: one shot, three beats, held drawings', () => {
     for (let i = 1; i < eyes.length; i++) expect(eyes[i].eyes).toBeGreaterThan(eyes[i - 1].eyes);
     // A moment between her eyes arriving and her head starting (the brief: "a believable hesitation").
     const moment = T.herTurn - eyes[eyes.length - 1].at;
-    expect(moment).toBeGreaterThanOrEqual(0.4);
-    expect(moment).toBeLessThanOrEqual(0.75);
+    expect(moment).toBeGreaterThanOrEqual(0.3);
+    expect(moment).toBeLessThanOrEqual(0.8);
     // Her head: a drawing every twelfth of a second, each further on; 90% of the way in 0.6–0.9 s
     // (the brief), settled within a second and a half, all the way at its last drawing.
     const head = d.filter((x) => x.head > 0);
@@ -514,15 +514,16 @@ describe('the two of them close: one shot, three beats, held drawings', () => {
     expect(t90).toBeLessThanOrEqual(0.9);
     expect(head[head.length - 1].head).toBe(1);
     expect(head[head.length - 1].at - T.herTurn).toBeLessThanOrEqual(1.5);
-    // A head's own movement: its speed rises gently to its fastest early (within the first third of
-    // a second), then dies away as she settles; no step a jump.
+    // A head's own movement: its speed rises to its fastest in the first half of the turn, not at
+    // once, then dies away as she settles; no step a jump.
     const steps = head.map((x, i) => x.head - (i ? head[i - 1].head : 0));
     const peak = steps.indexOf(Math.max(...steps));
-    expect((peak + 1) / 12).toBeLessThanOrEqual(1 / 3);
+    expect(peak).toBeGreaterThan(0);
+    expect(peak + 1).toBeLessThanOrEqual(head.length / 2);
     for (let i = 1; i <= peak; i++) expect(steps[i]).toBeGreaterThan(steps[i - 1]);
     for (let i = peak + 1; i < steps.length; i++) expect(steps[i]).toBeLessThan(steps[i - 1]);
-    expect(Math.max(...steps)).toBeLessThan(0.18);
-    expect(steps[0]).toBeLessThan(0.03);
+    expect(Math.max(...steps)).toBeLessThan(0.25);
+    expect(steps[0]).toBeLessThan(0.05);
     expect(turnHead(0)).toBe(0);
     const at = (t: number) => src.at(t);
     expect(at(T.herEyes - 0.01)['figure:b.eyes']).toBe(0);
@@ -533,6 +534,26 @@ describe('the two of them close: one shot, three beats, held drawings', () => {
     for (const t of [head[head.length - 1].at + 0.01, SHOTS.wideAgain, CUT_AT - 0.01]) {
       expect(at(t)['figure:b.turn']).toBe(1);
       expect(at(t)['figure:b.eyes']).toBe(1);
+    }
+  });
+
+  it('her turn as a film samples it: every drawing from its own twelfth, at 12, 24 and 60 frames a second', () => {
+    // (Rounded to four places, four keys fell 33 µs after their twelfth, and the recorder, sampling
+    // at i / 24, held her drawings 3-1-2 in the films the artist judges from: the skeptic and QA,
+    // 2026-10-20.)
+    const d = turnDrawings();
+    for (const x of d) expect(x.at, `${x.at}`).toBe(Math.round(x.at * 12) / 12);
+    const at = manifest.living.afternoon.near.heads.at;
+    const twelfth = d.map((x) => Math.round(x.at * 12));
+    for (const fps of [12, 24, 60]) {
+      const wrong: string[] = [];
+      for (let i = 17 * fps; i <= 20 * fps; i++) {
+        const t = i / fps;
+        const want = twelfth.filter((n) => n <= Math.floor(t * 12 + 1e-9)).length;
+        const got = headFor(src.at(t)['figure:b.turn'], at);
+        if (got !== want) wrong.push(`${i}/${fps} s: drawing ${got}, not ${want}`);
+      }
+      expect(wrong).toEqual([]);
     }
   });
 

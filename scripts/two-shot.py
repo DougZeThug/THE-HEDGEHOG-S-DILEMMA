@@ -440,7 +440,7 @@ def main():
     rk = region2[box_k]
     cels = [dressed(t2, k, day, d, sigma, light)[0][box_k] for t2 in tops]
     atlas, cells_grid = grid(cels + [np.dstack([rk, rk, rk, np.ones_like(rk)])])
-    cut.save(atlas, os.path.join(a_dir, 'near-heads.webp'), sizes, q=94)
+    cut.save(atlas, os.path.join(a_dir, 'near-heads.webp'), sizes, q=94, multiple=4)
     at = [f for _, f, _, _ in drawings]
     names = [n for n, _, _, _ in drawings]
 
@@ -473,7 +473,10 @@ def main():
     reg_t = cv2.resize(region1, (tw, th), interpolation=cv2.INTER_AREA)
     rt = reg_t[box_t]
     wide_atlas, wide_grid = grid(wides + [np.dstack([rt, rt, rt, np.ones_like(rt)])])
-    cut.save(wide_atlas, os.path.join(a_dir, 'heads.webp'), cut.LIVE, q=94)
+    # (each cell a whole number of texels at every size: at the phone's 478 px its cells began half a
+    # texel apart, and each change of drawing moved her by half a texel, a glint by her far eye
+    # changing by up to 74/255 at her last and smallest step: QA, 2026-10-20)
+    cut.save(wide_atlas, os.path.join(a_dir, 'heads.webp'), cut.LIVE, q=94, multiple=4)
 
     sw = sway_map(sheet1[:PH])
     cut.save(np.dstack([sw, sw, sw]), os.path.join(a_dir, 'near-maps.webp'), {'': cut.W}, lossless=True)

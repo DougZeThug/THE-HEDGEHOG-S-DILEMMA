@@ -85,9 +85,10 @@ export const SCENE: Schema[string] = {
  *   shoulder  B: her shoulder easing (0..1)
  *   settle    B: settling back into the grass (0..1)
  *   breath    how deep they breathe (1 as they do)
- *   turn      B: how far her head has turned to him, 0 as the panel has it .. 1 as the artist
- *             redrew it; the scene shows the drawing nearest to it (scripts/two-shot.py: the
- *             manifest's `at`), in either shot: held keys on twos, every change a cut
+ *   turn      B: how far through her turn's drawings she is: 0 the panel's own head, each drawing
+ *             at its own value (scripts/two-shot.py: the manifest's `at`), 1 the last, settled
+ *             toward him; the scene shows the drawing nearest to it, in either shot: held keys on
+ *             twos, every change a cut
  */
 export const FIGURE: Schema[string] = {
   head: [0, -0.06, 0.06],

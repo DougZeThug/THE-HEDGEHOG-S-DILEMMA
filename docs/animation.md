@@ -2,7 +2,7 @@
 
 How a painted figure in a memory moves here, and how to check that it reads as the person and not
 as a warped picture. It was built for her head turn in the woodland, the artist's production brief
-of 2026-10-20 (`docs/reviews/2026-10-woodland.md`, decisions 142–150). The tools are offline:
+of 2026-10-20 (`docs/reviews/2026-10-woodland.md`, decisions 142–160). The tools are offline:
 numpy, OpenCV, ffmpeg and the project's own browser recorder. No model, no network, no GPU.
 
 ## First: is it a drawing or a move?
@@ -18,7 +18,7 @@ numpy, OpenCV, ffmpeg and the project's own browser recorder. No model, no netwo
 
 ## Carrying a painting in depth
 
-`scripts/drawn-rig/` holds the two reusable pieces:
+`scripts/drawn-rig/` holds the two pieces meant to be reused (so far only her turn uses them):
 - `raster.py`: meshes over a painting's pixels, z-buffered. Whichever surface is nearer is seen, so
   nothing folds or tears.
 - `lines.py`: a painting's drawn lines lifted off its paint and drawn again at their weight.
@@ -26,14 +26,20 @@ numpy, OpenCV, ffmpeg and the project's own browser recorder. No model, no netwo
 `scripts/her-turn.py` (`Turned`) shows them put together for one figure:
 - **A shape under the paint.** Fit a generic head to landmarks. Give each part its own mesh and its
   own rotation weight: a skull turns whole; a neck twists from its jaw to its collar.
-- **Each part moves as that part does.** A neck is a cylinder: its sides stay put while it twists,
-  and a chin slides across it. Continue what a move can uncover (the skin under a jaw) behind what
-  covers it.
+- **Each part moves as that part does.** A neck is a cylinder twisting from all of the turn at its
+  jaw to none at its collar: its top goes a little way with the head, it keeps its width, and a chin
+  slides across it. Continue what a move can uncover (the skin under a jaw, from ear to chin) behind
+  what covers it, all along where the two meet.
+- **Soft edges over the next surface.** An edge's soft pixels are the painting's mix of the figure
+  and what was behind it. Once a part moves over another (a chin over its neck), its edge lies over
+  that part, not over the background; and where its matte ran past its drawn outline into the
+  background, cut the matte at the line.
 - **Shadows go with what casts them.** Split a cast shadow from the paint it lies on, and move it
   with its caster: the jaw's shadow with the jaw, not with the neck.
 - **Lines on their own surface.** Draw each surface's lines through that surface's motion,
   one-to-one, then join them by depth. Resample them with Lanczos, clamped to the ink's own range.
-- **Unmoved, it is the painting** (to 2/255). The script asserts this every run.
+- **Unmoved, it is the painting** (to 2/255), and moved a hair's breadth, still is. The script
+  asserts both every run.
 
 ## The faults this has already made (and how each looks)
 
@@ -45,6 +51,10 @@ numpy, OpenCV, ffmpeg and the project's own browser recorder. No model, no netwo
 | One motion field for every line | a line passing over another, one point in ten from the wrong one | one field for each surface |
 | Bilinear resampling of lines | a line moved part of a pixel loses up to a fifth of its darkness | clamped Lanczos |
 | One review frame for each drawing at 24 fps | the films ran at double speed: a snap no one built | each drawing held two frames |
+| Key times rounded to four places | four keys 33 µs after their twelfth: every film sampled on whole frames held the drawings 3-1-2 | keys exactly on their twelfths, tested at 12, 24 and 60 fps |
+| A matte traced past the chin's drawn line, its soft edge laid over the background | the hair went over her neck with her chin, a dark wedge under it while she settled | her matte ends at her line; her head's soft edge lies over her neck |
+| An outline drawn along the hidden skin under her jaw | it went with her chin and lay across her neck as a stroke | none: her neck's own edge is enough |
+| Two meshes that only touch, at her ear | a pixel fell between them and the hair showed, a speck from the first drawing | her neck continued behind her jaw from ear to chin; a seam takes what is beside it |
 
 ## The performance
 
@@ -65,13 +75,15 @@ numpy, OpenCV, ffmpeg and the project's own browser recorder. No model, no netwo
 ## Checking it
 
 In order, each before the next:
-1. **The script's own asserts.** Unmoved, it is the painting. Each feature's lines carry their ink
-   along their own centre lines (0.94–0.98 at her turn).
+1. **The script's own asserts.** Unmoved, and a hair's breadth moved, it is the painting. Each
+   feature's lines carry their ink along their own centre lines (0.94–0.98 at her turn). Settled, no
+   hair shows inside her neck under her chin.
 2. **Motion.** Optical flow between drawings at landmarks: one smooth rise and fall, no drawing out
    of line, parts that belong together within a pixel of each other.
 3. **Look at it.** A contact sheet of every drawing; the settled drawing beside the painting at
-   screen size and enlarged; films at true speed (each drawing two frames at 24 fps) and at a
-   quarter speed.
+   screen size and enlarged; films at true speed (each drawing two frames at 24 fps: count them, in
+   every film, the memory's own recordings too) and at a quarter speed. To judge one change, change
+   one thing: the same timing on both sides of a before and after.
 4. **In the memory.** `tests/playtest/record-woodland.mjs` records the real runtime, frame by frame
    at its exact position, with breath, grass and light. Record desktop and an upright phone. Judge
    it there, not in the test.

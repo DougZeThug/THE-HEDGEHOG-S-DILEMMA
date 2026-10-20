@@ -445,12 +445,12 @@ export const TWO_SHOT = { from: 15.0, hisBlink: 16.2, herEyes: 17.5, herTurn: 18
  * nearest drawing.
  * - Her eyes go to him first: drawings from `herEyes` (`eyes`: their share of the way, a soft dart).
  * - A moment.
- * - Her head from `herTurn`: `drawings` of it, a twelfth of a second apart. Its speed rises gently,
- *   is greatest at about a quarter of a second, then dies away as she settles (velocity
- *   t² e^(−t/`ease`), its last drawing all the way). It is 90% of the way at about two thirds of a
- *   second.
+ * - Her head from `herTurn`: `drawings` of it, a twelfth of a second apart. It is quickest at about
+ *   a quarter of a second, then slows as she settles (velocity t² e^(−t/`ease`), its last drawing all
+ *   the way). It is 90% of the way at about two thirds of a second; on screen its last four steps
+ *   are each under a pixel.
  * - As her head comes round her eyes ease back in their sockets, still on him.
- * - The hair on the grass follows a beat behind, its far ends last.
+ * - The hair on the grass goes with her head.
  * - Never back (the artist: "She should glance toward him, settle into that gaze, and simply remain
  *   there").
  *
@@ -473,11 +473,15 @@ export interface TurnDrawing {
 /** Her turn's drawings (scripts/her-turn.py `schedule` makes the same; tests check its turn.json against these). */
 export function turnDrawings(): TurnDrawing[] {
   const T = TWO_SHOT;
-  const out = TURN.eyes.map((eyes, i) => ({ at: T.herEyes + i / 12, eyes, head: 0 }));
+  // (Each exactly on its twelfth, the number a film's whole frames land on: rounded to four places,
+  // four of them fell 33 µs after it, and a film sampled at 24 fps held her drawings 3-1-2: the
+  // skeptic and QA, 2026-10-20.)
+  const twelfth = (t: number, i: number) => (Math.round(t * 12) + i) / 12;
+  const out = TURN.eyes.map((eyes, i) => ({ at: twelfth(T.herEyes, i), eyes, head: 0 }));
   const all = turnHead(TURN.drawings / 12);
-  for (let i = 1; i <= TURN.drawings; i++) out.push({ at: T.herTurn + i / 12, eyes: 1, head: turnHead(i / 12) / all });
+  for (let i = 1; i <= TURN.drawings; i++) out.push({ at: twelfth(T.herTurn, i), eyes: 1, head: turnHead(i / 12) / all });
   const r = (x: number, d: number) => Math.round(x * d) / d;
-  return out.map((d, k) => ({ at: r(d.at, 1e4), eyes: d.eyes, head: r(d.head, 1e6), turn: r((k + 1) / out.length, 1e4) }));
+  return out.map((d, k) => ({ at: d.at, eyes: d.eyes, head: r(d.head, 1e6), turn: r((k + 1) / out.length, 1e4) }));
 }
 /**
  * The artist's shot list (2026-10-17): 1 the room remembers (the pencil, the lean), 2 crossing

@@ -41,7 +41,7 @@ export interface FigureArt {
   limb: { box: [number, number, number, number]; axis: [number, number] };
 }
 
-/** Her turn (cells: its drawings, then the region they are laid in by), where its cells lie on the panel (sheet px, y down: x0, y0, w, h), how far into her turn each drawing is (0 the panel's head .. 1 turned to him), how many cells, and how they are laid out (columns, rows; each cell's inset in its frame, a fraction of its pitch across and up). */
+/** Her turn (cells: its drawings, then the region they are laid in by), where its cells lie on the panel (sheet px, y down: x0, y0, w, h), each drawing's `figure:b.turn` (how far through her turn's drawings: 0 the panel's head .. 1 the last), how many cells, and how they are laid out (columns, rows; each cell's inset in its frame, a fraction of its pitch across and up). */
 export interface HeadCels {
   texture: THREE.Texture;
   box: [number, number, number, number];
@@ -51,8 +51,8 @@ export interface HeadCels {
 }
 
 /**
- * Which of her heads to show for how far she has turned (`figure:b.turn`): 0 the panel's own, i + 1
- * the drawing `at[i]` of the way; the nearest, a tie going to the one further on.
+ * Which of her heads to show for how far through her turn's drawings she is (`figure:b.turn`): 0 the
+ * panel's own, i + 1 the drawing at `at[i]`; the nearest, a tie going to the one further on.
  */
 export function headFor(turn: number, at: readonly number[]): number {
   let cel = 0, best = Math.abs(turn);
