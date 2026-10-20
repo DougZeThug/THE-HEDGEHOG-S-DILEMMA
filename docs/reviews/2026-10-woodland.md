@@ -2263,3 +2263,45 @@ decision 119 said wrongly that it wraps.
          warm lines) writes it no more often: the lines up by then are the warm ones. The artist
          is offered instead: as now, about four times in ten, or always written (lower down, or
          further along, when there is no room just under).
+
+### QA (52b7bd6, 70c7829, 5f9401c, aeefcf6; placement at bc3d818 and 35eccce), and what was fixed
+
+QA verified that the four commits do what they claim (the line written and announced once, only
+when it should be; the aftermath holding; captions within a frame; the score byte for byte). Its
+findings, and what was done:
+
+138. **Fixed, with tests.**
+     - **Captions.** A vignette let go gracefully in the 0.3 s before a line said it uncaptioned (a
+       regression from 70c7829). At 0.12 s latency, a pause just after a one-shot began lost that
+       one-shot's caption. Each caption now goes with its own sound:
+       - let go naturally, a sentence or a one-shot plays on and is captioned as it is heard;
+       - interrupted or paused, one already begun is captioned at once.
+       Caption timing is now tested within 20 ms, at 0, 0.12 and 0.33 s of latency.
+     - **The line, past a long frame.** It is written as the memory ends if no frame was drawn
+       between its moment and the end. QA saw 3 of 18 runs skip it under software GL.
+     - **Kept-back lines (137).**
+       - A memory's offer could re-ink one in its own place once a copy elsewhere had made it count
+         as on the wall. Such re-inks are refused, and kept-back lines are left out of what faces
+         the visitor.
+       - A line the opening made ahead and hasn't written waits, as one with its own place does.
+         This is why QA saw the line pushed further left.
+       - A moved line stays on its own wall or waits. QA saw "humming" go to the west wall, 28.5 cm
+         off the floor.
+     - **The pencil's grain and the crayon's wax are CPU canvases**, as the writing drawn with them
+       is. Each line's read-back waited 8–55 s under software GL; 2 ms after.
+     - The runtime's cleanup no longer closes the living scene's missing bitmap.
+     - **Tests.** The three behaviours of 52b7bd6 had none; now each has a test with its control. The
+       score test says its crackle level is the render's own figure, and its periodicity check
+       leaves out the looks' gaps.
+139. **The crackle and the hiss made audible for the artist.** As built, both are probably below
+     hearing in the room's mix:
+     - the crackle's ticks sit a median 32 dB under everything in their 5 ms (300 Hz–2.5 kHz);
+     - the hiss sits 33 dB under the mix (300 Hz–4 kHz).
+     Two more clips raise only the texture (the version minus the piano alone):
+     - the hiss by 20 dB, now 13 dB under the mix;
+     - the crackle by 26 dB, its ticks now a median 7 dB under, 8 of 23 within 6 dB.
+     The note to the artist says so, and asks at what level they want one, if any.
+140. **For the creative director** (QA's finding 5). The line may hang well to the left of its line,
+     down to half overlap, and on an upright phone it can run off the screen. "I thought it would
+     last forever." (1.63 m) is wider than an upright phone shows at 2.4 m (about 1.3 m). Asked.
+     Not done: baking the line ahead, until a phone is measured with a long-task observer.

@@ -3,7 +3,8 @@ its sound (woodland-film-sound.py) as the room plays it (and again, for a visito
 with its captions: woodland-captions.mjs); and short clips of what each texture under the piano
 would be, for the artist to choose (decision 127): the piano alone, the bow and air raised so they
 can be heard, a soft hiss, the crackle, each from the first wide through her look to home (memory
-9.0–21.5). The pictures are the films already recorded from this build's memory (the sound changed,
+9.0–21.5); and the hiss and the crackle raised too (+20 and +26 dB), as built 30 dB or more under the
+piano where they sound (QA, 2026-10-20). The pictures are the films already recorded from this build's memory (the sound changed,
 not the picture): heart/ for the room, the way in and the dusk, context5/ for the two-shot and the
 second wide (her rebuilt turn); the room before and after held on their first and last frame.
 
@@ -67,6 +68,21 @@ def film(frames_dir, audio, out, start=0.0, end=None, caps=False):
     print(out)
 
 
+def raised(out, wav, base, db):
+    """`wav` with what it adds to `base` (the texture alone: as built minus the piano alone) raised
+    `db` dB, written beside it."""
+    import numpy as np
+    import soundfile as sf
+    x, sr = sf.read(os.path.join(out, wav), dtype='float64')
+    b, _ = sf.read(os.path.join(out, base), dtype='float64')
+    n = min(len(x), len(b))
+    y = b[:n] + 10 ** (db / 20) * (x[:n] - b[:n])
+    assert np.abs(y).max() < 0.89, 'raised past -1 dBFS'
+    path = os.path.join(out, f'{wav[:-4]}-raised-{db}dB.wav')
+    sf.write(path, y, sr, subtype='PCM_24')
+    return path
+
+
 OUT = sys.argv[1] if len(sys.argv) > 1 else 'test-output/review/woodland/sound'
 
 if __name__ == '__main__':
@@ -79,3 +95,5 @@ if __name__ == '__main__':
     film(d, os.path.join(out, 'A.wav'), os.path.join(out, 'woodland-film-with-captions-chosen.mp4'), caps=True)
     for wav, name in (('P.wav', 'clip-1-piano-alone'), ('W.wav', 'clip-2-bow-and-air'), ('H.wav', 'clip-3-hiss'), ('A.wav', 'clip-4-crackle')):
         film(d, os.path.join(out, wav), os.path.join(out, f'{name}.mp4'), PRE + 9.0, PRE + 21.5)
+    for wav, db, name in (('H.wav', 20, 'clip-3b-hiss-raised'), ('A.wav', 26, 'clip-4b-crackle-raised')):
+        film(d, raised(out, wav, 'P.wav', db), os.path.join(out, f'{name}.mp4'), PRE + 9.0, PRE + 21.5)
