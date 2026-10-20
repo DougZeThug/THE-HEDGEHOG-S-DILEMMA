@@ -1712,3 +1712,60 @@ generated beds under the synthesised ones; a few produced versions.
     holds 41% of the first wide's energy and 12% of the dusk's.
 91. **Paid generation**: 2,112 credits in all (the wind, the birds, five evening takes), of the
     118,746 at the start.
+
+### QA (169e0ef with 1d0e7d6), and what was fixed
+
+QA played the woodland in Chromium (desktop, and an emulated phone on slow connections): every cue
+loads and plays; captions, captions off, the screen reader's lines, the drone, the room's withdrawn
+music and the revisit behave as decided. But the cut did not land on one instant of the audio clock
+in any path measured, and the change broke the vignettes:
+- [P1] In a normal play-through the beds dispatched at the start were cut one frame early (17–100
+  ms: position 0 was pinned at the clock's first tick, the first sounds at `start()`).
+- [P1] Vignettes lost lines after a long frame (the uncapped clock; the vignette playtest failed).
+- [P1] The recordings were fetched only when the memory began (15 s on slow 4G).
+- [P2] A resume within a second of the cut gave silence, then a burst on the cut (the fade-in's ramp
+  outlasted the cut's, and the context orders them by time).
+- [P2] A let-go in the last 3 s stopped the afternoon on its files' ends, part-way down its fade.
+- [P2] After a seek the restarted afternoon lagged a frame; a pause saved the sound a frame ahead of
+  the frozen picture (0.3 s out on uneven frames); cues at one marker started a render quantum apart;
+  a cue falling due while the context resumed was lost.
+- [P2] The picture led the sound by its way to the ear (0.093 s in headless Chromium).
+
+### Decisions (main session)
+
+92. **One anchor** (QA): each frame reads the audio clock once; the memory's clock and every sound
+    scheduled, resumed or brought back use that reading and the position it stands for. The first
+    sounds and the first frame both start from the instant the memory begins (its clock primed
+    there); a pause remembers the place the frozen picture shows; the frame a resume moves on from
+    stands still and the sound comes back from there; a seek's restart begins where its step begins;
+    cues at one marker start together. Tested in the App's order (a slow first frame, stalls, pauses
+    on even and uneven frames, seeks; with and without latency): the afternoon is silent where the
+    evening is full, within 2 ms of the picture's cut (was 17 ms to 0.28 s out).
+93. **What is seen is what is heard** (QA; decision 63 reversed): the sound is sent ahead of the
+    picture by its way to the ear where the browser reports it (the context's buffering and the
+    output's latency, less 25 ms for the picture's own way to the screen, at most 0.3 s), read once per
+    memory so its cut never parts from its evening. A wired desktop gains almost nothing; earbuds that
+    report their latency gain 0.15–0.3 s. Whether iOS Safari reports earbuds' latency is still to be
+    checked on a device.
+94. **A resume just before the cut** rises only until the cut begins, to the level it has reached;
+    tested with the context's own ordering of events: no step anywhere in the gain.
+95. **A let-go just before the cut**: a file that ends sooner has faded out by its end.
+96. **Vignettes keep their cap of a second** (QA, the skeptic's question answered by the vignettes'
+    nature): a stall makes a vignette late and never passes a line by; a memory's clock stays
+    uncapped, so its picture keeps its sound. A one-shot a stall passed in the last 3 s (was 1) is
+    still played, late (the door's footsteps). The vignette playtest passes again (desktop and phone,
+    a hidden tab and leaving mid-line).
+97. **The sound stopped while visible** (a phone's call; the context still resuming after a hidden
+    tab): the memory waits for it, so the two come back together; after 3 s it plays on without it.
+98. **Prefetched**: a memory's recordings are fetched with its art when its line is armed (one cache
+    for both), and decoded when it is prepared.
+99. **Not done**: trimming the air file's last 2 s of digital silence (50 KB, not worth a re-bake).
+    For a device: iOS Safari's reported latency with earbuds, whether WebKit trims MP3 priming, how long
+    its context takes to resume after a hidden tab, and memory pressure from about 120 MB of decoded
+    audio on a 3 GB phone.
+100. **Captions off by default** (the artist, answering decision 86's open question: "Captions by
+     default should not show, its fine if its an accessibility choice"): every caption is off until
+     the visitor chooses it in settings ("show what is heard"), which the threshold's help now names;
+     once chosen it is remembered, and captions saved as the old default along with another
+     preference are not a choice. For a visitor who chooses them, the woodland's are as decided (86).
+     The screen reader's lines are unchanged. The playtests that check captions choose them first.

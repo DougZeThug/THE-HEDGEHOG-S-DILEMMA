@@ -43,7 +43,7 @@ Find what is actually broken, prove it, and make it reproducible. Guard accessib
 - Accessibility (`src/ui/`, `index.html`, `src/App.ts`, `src/style.css`):
   - settings dialog focus trap;
   - keyboard-only traversal (Tab to writing, F, C);
-  - captions on by default;
+  - captions off by default (the artist's decision, 2026-10-19), offered in settings ("show what is heard"), named in the threshold's help, reachable by keyboard and screen reader, and remembered once chosen;
   - reduced motion, both the OS setting and the in-app one;
   - the gentle intensity mode, no flashing, contrast of UI text;
   - screen-reader labels, `lang`, button names.

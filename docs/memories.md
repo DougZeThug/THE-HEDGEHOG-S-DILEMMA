@@ -11,14 +11,14 @@ A line on the wall can open into a memory: the light finds a pencil drawing unde
 | Procedural behaviours | `src/memory/behaviours.ts` (GSAP, paused) | the grammar every memory shares: emerge, dissolve, interrupted exit, residue |
 | Composition | `src/memory/compose.ts` | one writer per value: authored base × envelopes |
 | Playback | `src/memory/MemoryPlaybackController.ts` | the lifecycle `dormant → emerging → active → withdrawing → residue → complete`, interruption from any state, pause, scrub |
-| Clock | `src/memory/clock.ts` | a memory advances by the audio clock while sound runs; nothing else ticks |
-| Sound | `src/memory/MemoryAudio.ts`, `cueSheet.ts` | cue sheets on the memory bus; each event once, never on a seek |
+| Clock | `src/memory/clock.ts` | a memory advances by the audio clock while sound runs, however long a frame took (a vignette's is capped at a second); nothing else ticks |
+| Sound | `src/memory/MemoryAudio.ts`, `cueSheet.ts` | cue sheets on the memory bus; each event once, never on a seek; one anchor: every cue placed from the frame's one reading of the audio clock, sent ahead of the picture by the sound's reported way to the ear |
 | Renderer | `src/world/MemoryWindow.ts` | the painting multiplied into the lit plaster, plus its light; ink on top |
 | Runtime | `src/memory/runtime.ts` | a lazy chunk (GSAP, Theatre, the controller) that prepares and plays a memory |
 | Art | `public/memories/<id>/<variant>/<layer>.webp` | code-painted stand-ins (`src/memory/paint/`), replaceable; the woodland's cut from the artist's references (`scripts/cut-woodland.py`) |
 | Living scene | `src/memory/living/`, `src/world/living/` | a memory that is animated and entered (the woodland): its painting and people drawn into one render target; the way in and out |
 
-The App steps the playing memory once a frame (`App.stepLivingMemory`). GSAP's timelines are paused and seeked; its ticker is put back to sleep after every seek (a test fails otherwise). Theatre's sequence position is set by the controller and read back at once; production never plays a sequence.
+The App steps the playing memory once a frame (`App.stepLivingMemory`), with one reading of the audio clock that its clock and every sound it schedules, resumes or brings back share (its position 0 is the instant it began, for its first sounds and its first frame alike). If its sound stops while it is visible, it waits for it (three seconds at most). Its recordings are fetched with its art when its line is armed (`runtime.prefetch`). GSAP's timelines are paused and seeked; its ticker is put back to sleep after every seek (a test fails otherwise). Theatre's sequence position is set by the controller and read back at once; production never plays a sequence.
 
 ## Living memories (animated, and entered)
 

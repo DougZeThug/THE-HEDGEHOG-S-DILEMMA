@@ -15,7 +15,29 @@ export class FakeParam {
   setTargetAtTime(v: number, t: number) {
     this.events.push(['target', v, t]);
   }
-  cancelScheduledValues() {}
+  /** As Web Audio: every event at or after `t` is dropped. */
+  cancelScheduledValues(t: number) {
+    this.events = this.events.filter((e) => e[2] < t);
+  }
+  /**
+   * The value at context time `t` as Web Audio computes it: events ordered by time (not by call),
+   * a value held until the next event, a ramp running from the event before it.
+   */
+  valueAt(t: number, initial = 1): number {
+    const ev = this.events.map((e, i) => ({ kind: e[0], v: e[1], t: e[2], i })).sort((a, b) => a.t - b.t || a.i - b.i);
+    let pt = -Infinity, pv = initial;
+    for (const e of ev) {
+      if (e.t <= t) {
+        pt = e.t;
+        pv = e.v;
+        continue;
+      }
+      if (e.kind === 'ramp' && Number.isFinite(pt)) return pv + ((e.v - pv) * (t - pt)) / (e.t - pt);
+      if (e.kind === 'exp' && Number.isFinite(pt) && pv > 0 && e.v > 0) return pv * Math.pow(e.v / pv, (t - pt) / (e.t - pt));
+      return pv;
+    }
+    return pv;
+  }
 }
 export class FakeNode {
   out = new Set<FakeNode>();

@@ -219,4 +219,19 @@ describe('comfort', () => {
     savePrefs({ ...loadPrefs(), reducedMotion: false, reducedMotionChosen: true });
     expect(loadPrefs().reducedMotion).toBe(false);
   });
+  it('captions are off unless the visitor chooses them (a default saved with another preference is not a choice)', async () => {
+    const store = new Map<string, string>();
+    (globalThis as unknown as { localStorage: Storage }).localStorage = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v), removeItem: (k: string) => void store.delete(k) } as Storage;
+    (globalThis as unknown as { matchMedia: (q: string) => { matches: boolean } }).matchMedia = () => ({ matches: false });
+    const { loadPrefs, savePrefs } = await import('../src/ui/prefs');
+    expect(loadPrefs().captions).toBe(false);
+    // Saved while they were on by default (with a volume change): still off.
+    store.set('hh.prefs.v1', JSON.stringify({ volume: 0.4, captions: true }));
+    expect(loadPrefs().captions).toBe(false);
+    // Chosen in settings: kept, on or off.
+    savePrefs({ ...loadPrefs(), captions: true, captionsChosen: true });
+    expect(loadPrefs().captions).toBe(true);
+    savePrefs({ ...loadPrefs(), captions: false, captionsChosen: true });
+    expect(loadPrefs().captions).toBe(false);
+  });
 });

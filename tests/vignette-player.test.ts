@@ -3,6 +3,7 @@ import { VignettePlayer, type VignetteHost } from '../src/memory/VignettePlayer'
 import type { Effect, GapKind, VignetteDef } from '../src/content/vignettes';
 import type { Cue } from '../src/memory/cueSheet';
 import { FakeCtx, FakeNode } from './fakeAudio';
+import { MemoryClock } from '../src/memory/clock';
 
 /** A small vignette: two people, a pause, one line cut off, a light, a deliberate silence. */
 const DEF: VignetteDef = {
@@ -79,6 +80,30 @@ function run(p: VignettePlayer, ctx: FakeCtx, seconds: number, dt = 1 / 60) {
 afterEach(() => vi.useRealTimers());
 
 describe('a vignette, played', () => {
+  it('a long frame never loses a line: its clock keeps its cap of a second (QA, 2026-10-19)', async () => {
+    for (const stall of [1.5, 2, 3]) {
+      for (const before of [0.5, 3, 7]) {
+        const s = setup();
+        const p = new VignettePlayer(DEF, 'first', s.host);
+        await p.prepare();
+        p.start();
+        // As the App steps it: the vignette's clock on the audio clock, frames of a sixtieth, and
+        // one long frame starting 0.4 s before a line.
+        const clock = new MemoryClock(1);
+        let real = 0, stalled = false;
+        clock.tick(real, s.ctx.currentTime, true);
+        while (p.position < 10) {
+          const frame: number = !stalled && p.position >= before - 0.4 ? stall : 1 / 60;
+          stalled ||= frame === stall;
+          s.ctx.advance(frame);
+          real += frame;
+          p.step(clock.tick(real, s.ctx.currentTime, true));
+        }
+        expect(s.captions.map((c) => c[0]), `a ${stall} s frame before the line at ${before}`).toEqual(['Have you seen my charger?', 'By the toaster.', "Hang on, I'll look—"]);
+      }
+    }
+  });
+
   it('says each line once, at its time on the audio clock, captioned as speech', async () => {
     const s = setup();
     const p = new VignettePlayer(DEF, 'first', s.host);

@@ -21,6 +21,8 @@ export interface Due {
 
 /** What is state rather than an event: a bed or music still owed after a stall jumped past it. */
 const LASTING = /^(bed|music):/;
+/** How late a one-shot a stall passed may still be played (seconds). */
+const LATE_ONE_SHOT = 3;
 
 export class CueDispatch {
   private fired = new Set<string>();
@@ -44,16 +46,16 @@ export class CueDispatch {
       return [];
     }
     if (prev !== null && pos - prev > maxStep) {
-      // A stall (a slow frame) jumped forward while playing: one-shots it passed stay unheard,
-      // but a bed or the music it passed is still owed, started part-way in.
-      // A one-shot passed in the last second is still played, a little late (the footsteps
-      // that are the door's only event are not lost to one slow frame); older ones are not.
+      // A stall (a slow frame) jumped forward while playing: a bed or the music it passed is
+      // still owed, started part-way in. A one-shot passed in the last few seconds is still
+      // played, late (the footsteps that are the door's only event are not lost to one slow
+      // frame, which a memory's clock follows however long it took); older ones are not.
       const owed: Due[] = [];
       for (const m of this.markers) {
         const id = this.id(m);
         if (this.fired.has(id) || m.position < prev || m.position >= pos) continue;
         if (LASTING.test(m.label)) owed.push({ marker: m, delay: 0, late: pos - m.position });
-        else if (pos - m.position <= 1) owed.push({ marker: m, delay: 0 });
+        else if (pos - m.position <= LATE_ONE_SHOT) owed.push({ marker: m, delay: 0 });
       }
       this.seek(pos);
       for (const d of owed) this.fired.add(this.id(d.marker));

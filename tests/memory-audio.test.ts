@@ -1,9 +1,11 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { MemoryAudio, type MemoryAudioHost } from '../src/memory/MemoryAudio';
 import { MemoryClock } from '../src/memory/clock';
 import { CueDispatch } from '../src/memory/cueDispatch';
+import { MemoryPlaybackController } from '../src/memory/MemoryPlaybackController';
+import { FULL } from '../src/memory/compose';
 import type { CueSheet } from '../src/memory/cueSheet';
-import type { Marker } from '../src/memory/types';
+import type { Marker, TimelineSource } from '../src/memory/types';
 
 import { FakeCtx, FakeNode, FakeParam, FakeSource } from './fakeAudio';
 
@@ -257,6 +259,20 @@ describe('the memory clock', () => {
     expect(c.tick(10.6, 100.05, false, true)).toBe(0);
     expect(c.tick(14, 100.05, false)).toBe(1); // a long stall becomes a jump, capped
   });
+  it('primed where the memory begins, its first frame moves by the time since (its first sounds were scheduled from there)', () => {
+    const c = new MemoryClock();
+    c.prime(10, 100, true);
+    expect(c.tick(10.07, 100.07, true)).toBeCloseTo(0.07, 9);
+    // (Reset instead, the first frame would not move, and the picture would trail its first sounds.)
+    const r = new MemoryClock();
+    expect(r.tick(10.07, 100.07, true)).toBe(0);
+  });
+  it("a vignette's clock keeps its cap of a second (a stall makes it late rather than pass a line by)", () => {
+    const c = new MemoryClock(1);
+    c.tick(10, 100, true);
+    expect(c.tick(12, 102, true)).toBe(1);
+    expect(c.tick(12.02, 102.02, true)).toBeCloseTo(0.02, 9);
+  });
   it('the image catches up with the sound after a stall while it runs (never left behind it)', () => {
     const c = new MemoryClock();
     c.tick(10, 100, true);
@@ -266,5 +282,216 @@ describe('the memory clock', () => {
     // Back from suspended (no audio time on the frame before): one frame of real time.
     c.tick(11.6, 101.52, false);
     expect(c.tick(11.62, 101.53, true)).toBeCloseTo(0.02, 9);
+  });
+});
+
+describe("the woodland's cut, driven as the App drives it (one reading of the audio clock a frame)", () => {
+  afterEach(() => vi.useRealTimers());
+  const CUT = 34.5;
+  const SILENT = 1e-4;
+  const sheet: CueSheet = {
+    room: [0.4, 3, 0.06],
+    cues: {
+      'music:air': { asset: 'air', gainDb: -20, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true },
+      'music:day': { asset: 'day', gainDb: -20, place: { u: -0.3, v: 0.25, d: 1.5 }, dry: true, until: CUT, fadeOut: 3 },
+      'music:score': { asset: 'score', gainDb: -24, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, until: CUT, fadeOut: 3 },
+      'music:evening': { asset: 'evening', gainDb: -32, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, offset: 0.03, fadeIn: 0.04, fadeOut: 4, caption: '[evening]', captionAt: 1.54 },
+    },
+  };
+  const markers: Marker[] = [
+    { label: 'music:air', position: 0.05 },
+    { label: 'music:day', position: 0.05 },
+    { label: 'music:score', position: 8.2 },
+    { label: 'music:evening', position: CUT - 0.04 },
+  ];
+  // The files as the woodland's are: the day's insects and the score end on the cut.
+  const lengths: Record<string, number> = { air: 47, day: CUT, score: CUT - 8.2, evening: 20 };
+  const level = { day: 0.1, score: Math.pow(10, -24 / 20) };
+
+  function rig(latency = 0) {
+    vi.useFakeTimers();
+    const ctx = new FakeCtx();
+    // (A context that reports its way to the ear: its buffering and its output's latency.)
+    Object.assign(ctx, { baseLatency: latency ? 0.02 : 0, outputLatency: latency ? latency - 0.02 : 0 });
+    const captions: [string, number][] = [];
+    let c: MemoryPlaybackController | null = null;
+    const host: MemoryAudioHost = {
+      ctx: ctx as unknown as BaseAudioContext,
+      out: new FakeNode(ctx) as unknown as AudioNode,
+      load: async (asset) => ({ duration: lengths[asset] }) as AudioBuffer,
+      impulse: () => ({}) as AudioBuffer,
+      intensity: 1,
+      where: () => [0, 0, 0],
+      caption: (t) => captions.push([t, c!.position]),
+    };
+    const audio = new MemoryAudio(host, sheet, markers);
+    const gains = new Map<FakeSource, FakeParam>();
+    let last: FakeSource | null = null;
+    const mk = ctx.createBufferSource.bind(ctx), mg = ctx.createGain.bind(ctx);
+    ctx.createBufferSource = () => (last = mk());
+    ctx.createGain = () => {
+      const g = mg();
+      if (last && !gains.has(last)) gains.set(last, g.gain);
+      return g;
+    };
+    const timeline: TimelineSource = { sections: { active: 6, exit: 42.5, residue: 49.5, end: 53 }, markers, at: () => ({}), dispose() {} };
+    c = new MemoryPlaybackController({ timeline, audio, weights: FULL, reduced: false, entrance: 2, sways: [], exit: 3, maxHold: 60, tail: 2, living: true });
+    const by = (a: string) => ctx.sources.filter((x) => x.buffer && (x.buffer as { duration: number }).duration === lengths[a]);
+    return { ctx, audio, c, gains, captions, by };
+  }
+
+  interface Drive {
+    /** How long the memory's first frame takes (QA measured 70 ms). */
+    first?: number;
+    /** A long frame: [at position, seconds]. */
+    stall?: [number, number];
+    /** Settings opened (or the tab hidden): [at position, for seconds]; how long the frame it is
+     *  opened on takes (frames are uneven: QA measured the cut 0.3 s out from one). */
+    pause?: [number, number];
+    pauseFrame?: number;
+    /** Held by hand (the editor) at 30 s, at this position, then played on. */
+    seek?: number;
+    /** Let go (looked away from) at this position. */
+    letGo?: number;
+  }
+  /** Steps it as App.stepLivingMemory does; returns the audio time the picture reached the cut. */
+  function drive(r: ReturnType<typeof rig>, o: Drive = {}): number | null {
+    const { ctx, c } = r;
+    const clock = new MemoryClock();
+    ctx.currentTime = 100;
+    let real = 1000, first = true, stalled = false, pausedFor = 0, seeked = false, released: number | null = null;
+    let pictureCut: number | null = null;
+    // The memory begins: its first sounds scheduled at once, its clock primed with the same instant.
+    clock.prime(real, ctx.currentTime, true);
+    c.start(ctx.currentTime);
+    for (let i = 0; i < 20000 && c.state !== 'complete'; i++) {
+      if (released === null ? c.position >= 38 : real > released + 6) break;
+      let frame = 1 / 60;
+      if (first) frame = o.first ?? frame;
+      first = false;
+      if (o.stall && !stalled && c.position >= o.stall[0]) {
+        frame = o.stall[1];
+        stalled = true;
+      }
+      if (o.pause && o.pauseFrame && pausedFor === 0 && c.position >= o.pause[0]) frame = o.pauseFrame;
+      ctx.advance(frame);
+      real += frame;
+      vi.advanceTimersByTime(frame * 1000);
+      const now = ctx.currentTime;
+      const paused = !!o.pause && c.position >= o.pause[0] && pausedFor < o.pause[1];
+      if (paused) pausedFor += frame;
+      if (paused !== c.isPaused) paused ? c.pause() : c.resume(now);
+      if (o.seek !== undefined && !seeked && c.position >= 30) {
+        seeked = true;
+        c.scrub(o.seek);
+        clock.reset(); // (App.heldAt(null): plays on with no stale time from the hold)
+        continue;
+      }
+      if (o.letGo !== undefined && released === null && c.position >= o.letGo) {
+        released = real;
+        c.release('look-away');
+      }
+      const before = c.position;
+      c.step(clock.tick(real, now, true, paused), now);
+      if (pictureCut === null && before < CUT && c.position >= CUT) pictureCut = now - (c.position - CUT);
+    }
+    return pictureCut;
+  }
+
+  /** The audio time a source falls silent: its cut (a ramp to silence), or its file's end. */
+  const silentAt = (g: FakeParam) => g.events.filter((e) => e[0] === 'ramp' && e[1] <= SILENT + 1e-9).at(-1)?.[2] ?? Infinity;
+  const endsAt = (r: ReturnType<typeof rig>, s: FakeSource) =>
+    Math.min(silentAt(r.gains.get(s)!), s.startAt![0] + (s.buffer as { duration: number }).duration - s.startAt![1], s.stopAt ?? Infinity);
+
+  const cases: [string, Drive][] = [
+    ['a slow first frame (70 ms)', { first: 0.07 }],
+    ['a first frame of 100 ms and a 1.5 s stall at 20 s', { first: 0.1, stall: [20, 1.5] }],
+    ['a 1.5 s stall just before the cut', { stall: [32.5, 1.5] }],
+    ['paused for 2 s at 33.55 s', { pause: [33.55, 2] }],
+    ['paused for 5 s at 12 s', { pause: [12, 5] }],
+    ['paused for 2 s at 33.0 s, opened on a 0.3 s frame', { pause: [33.0, 2], pauseFrame: 0.3 }],
+    ['held by hand at 33.0 s and played on', { seek: 33.0 }],
+    ['held by hand at 33.2 s and played on', { seek: 33.2 }],
+  ];
+  for (const latency of [0, 0.12]) {
+    for (const [what, o] of cases) {
+      it(`the afternoon stops where the evening is full, on the picture's cut: ${what}${latency ? ', sound reaching the ear 0.12 s late' : ''}`, async () => {
+        const r = rig(latency);
+        await r.audio.prepare();
+        const cut = drive(r, o);
+        expect(cut).not.toBeNull();
+        // Sent ahead of the picture by the sound's own way to the ear (less a frame and a half of
+        // the picture's), so the two are met there.
+        const lead = latency ? latency - 0.025 : 0;
+        const evening = r.by('evening');
+        expect(evening.length).toBe(1);
+        expect(Math.abs(evening[0].startAt![0] + 0.04 - (cut! - lead))).toBeLessThan(0.002);
+        for (const a of ['day', 'score'] as const) {
+          const last = r.by(a).at(-1)!;
+          expect(Math.abs(endsAt(r, last) - (cut! - lead)), a).toBeLessThan(0.002);
+        }
+        // Cues marked at one position start together (one reading of the clock).
+        if (!o.seek && !o.pause) expect(r.by('air')[0].startAt![0]).toBe(r.by('day')[0].startAt![0]);
+        // Named a second and a half after the cut, as the picture has it.
+        const named = r.captions.find(([t]) => t === '[evening]');
+        expect(named).toBeDefined();
+        expect(Math.abs(named![1] - (CUT + 1.5))).toBeLessThan(1 / 60 + 1e-6);
+      });
+    }
+  }
+
+  it('a stall across the cut: the afternoon is cut on time (scheduled before it), the evening comes in on the first frame after, as far in as the picture is', async () => {
+    const r = rig();
+    await r.audio.prepare();
+    const cut = drive(r, { stall: [33.2, 1.5] })!;
+    const day = r.by('day').at(-1)!;
+    expect(Math.abs(endsAt(r, day) - cut)).toBeLessThan(0.002);
+    const [e] = r.by('evening');
+    // Its file's place at its start is where the timeline has got to: offset, then the time since its marker.
+    expect(e.startAt![1] - 0.03).toBeCloseTo(e.startAt![0] - (cut - 0.04), 6);
+  });
+
+  it('resumed just before the cut, the afternoon rises from where it was and is cut from there: no silence, no burst', async () => {
+    for (const at of [33.45, 33.55, 33.9, 34.2]) {
+      const r = rig();
+      await r.audio.prepare();
+      drive(r, { pause: [at, 2] });
+      for (const a of ['day', 'score'] as const) {
+        const srcs = r.by(a);
+        const back = srcs.at(-1)!;
+        if (srcs.length < 2) continue; // (too close to the cut to come back at all)
+        const g = r.gains.get(back)!, from = back.startAt![0], to = endsAt(r, back);
+        // Sampled as the context computes it (its events in time order): never a step.
+        let prev = g.valueAt(from), worst = 0;
+        for (let t = from; t <= to + 0.01; t += 0.001) {
+          const v = g.valueAt(t);
+          worst = Math.max(worst, Math.abs(v - prev));
+          prev = v;
+        }
+        expect(worst, `${a}, resumed at ${at}`).toBeLessThan(level[a] * 0.03);
+        expect(g.valueAt(to - 0.041), `${a}, resumed at ${at}`).toBeGreaterThan(0);
+        // (The day's file runs past the cut, which silences it; the score's ends on it.)
+        if (a === 'day') expect(g.valueAt(to + 0.001)).toBeLessThanOrEqual(SILENT + 1e-9);
+      }
+    }
+  });
+
+  it('let go in the last seconds, the afternoon fades out by the end of its files, never stopped part-way down', async () => {
+    for (const at of [31.6, 33.07, 34.2]) {
+      const r = rig();
+      await r.audio.prepare();
+      drive(r, { letGo: at });
+      // The evening never sounds (one already scheduled is stopped before it begins).
+      for (const e of r.by('evening')) expect(e.stopAt!, `let go at ${at}`).toBeLessThanOrEqual(e.startAt![0] + 1e-9);
+      for (const a of ['day', 'score'] as const) {
+        const s = r.by(a).at(-1)!;
+        const end = s.startAt![0] + lengths[a] - s.startAt![1];
+        const g = r.gains.get(s)!;
+        // Faded to silence by the file's end (not stopped by it part-way down).
+        expect(silentAt(g), `${a}, let go at ${at}`).toBeLessThanOrEqual(end + 1e-6);
+        expect(g.valueAt(end - 1e-3), `${a}, let go at ${at}`).toBeLessThan(level[a] * 0.05);
+        expect(s.stopAt!, `${a}, let go at ${at}`).toBeLessThanOrEqual(end + 0.021);
+      }
+    }
   });
 });

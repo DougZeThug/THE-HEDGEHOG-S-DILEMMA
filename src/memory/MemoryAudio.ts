@@ -116,9 +116,33 @@ export class MemoryAudio implements AudioSink {
     return this.host.ctx.state === 'running';
   }
 
-  play(due: Due[]): void {
+  /**
+   * How far ahead of the picture the sound is sent: its own way to the ear (the context's
+   * buffering and the output's latency, where the browser reports them: 0.09 s in a headless
+   * Chromium, 0.15–0.3 s through earbuds), less the picture's own way to the screen (about a frame
+   * and a half), never more than 0.3 s. Read once, when the first sound is scheduled, and kept for
+   * the whole memory (a lead that changed half-way would part its cut from its evening).
+   */
+  private lead = 0;
+  private leadRead = false;
+  private readLead(): void {
+    if (this.leadRead) return;
+    this.leadRead = true;
+    const c = this.host.ctx as BaseAudioContext & { baseLatency?: number; outputLatency?: number };
+    const way = (Number.isFinite(c.baseLatency) ? c.baseLatency! : 0) + (Number.isFinite(c.outputLatency) ? c.outputLatency! : 0);
+    this.lead = Math.max(0, Math.min(0.3, way - 0.025));
+  }
+
+  /**
+   * Schedule what fell due. `now` is the context time the clock read on this frame, the time the
+   * sequence's position stands for (the memory's one anchor: every cue, whenever it is handed out,
+   * resumed or brought back, keeps one mapping from the timeline to the audio clock); without it,
+   * the context's time now.
+   */
+  play(due: Due[], now = this.now): void {
     if (this.disposed || !this.running) return;
-    for (const d of due) this.start(d.marker, this.now + d.delay, d.late ?? 0, d.late ? 0.3 : undefined, true);
+    this.readLead();
+    for (const d of due) this.start(d.marker, now - this.lead + d.delay, d.late ?? 0, d.late ? 0.3 : undefined, true);
   }
 
   /** Start one marker's cue at context time `at`, `into` seconds into its own timeline. */
@@ -133,6 +157,16 @@ export class MemoryAudio implements AudioSink {
       return;
     }
     if (this.released && kind !== 'sfx') return; // nothing new to stay once the memory lets go
+    // Seconds from now until the picture reaches the point `into` of this cue (it sees what is
+    // heard), and where that was, for its caption.
+    const shown = at + this.lead - this.now, into0 = into;
+    if (at < this.now) {
+      // Already due (a stall, a resume, the sound sent ahead of the picture by its latency): a bed
+      // or the music joins where it has got to, so it stays on the memory's timeline; a one-shot
+      // or a sentence starts now, whole.
+      if (kind === 'bed' || kind === 'music') into += this.now - at;
+      at = this.now;
+    }
     const c = this.host.ctx;
     const src = c.createBufferSource();
     src.buffer = buf;
@@ -158,19 +192,23 @@ export class MemoryAudio implements AudioSink {
       gain.channelCountMode = 'explicit';
     }
     const level = Math.pow(10, cue.gainDb / 20) * (0.55 + 0.45 * this.host.intensity) * (kind === 'voice' ? this.host.level?.(cue.asset, buf) ?? 1 : 1);
-    const fadeIn = fade ?? cue.fadeIn ?? 0;
-    gain.gain.setValueAtTime(fadeIn > 0 ? 0 : level, at);
-    if (fadeIn > 0) gain.gain.linearRampToValueAtTime(level, at + fadeIn);
-    const nodes: AudioNode[] = [src, gain];
-    let node: AudioNode = gain;
-    src.connect(gain);
     const stop = Math.min(cue.stopAfter !== undefined && kind !== 'bed' ? Math.max(0.05, cue.stopAfter - from) : Infinity, until);
     const dur = kind === 'bed' ? stop : Math.min(buf.duration - from, stop);
     const cut = Number.isFinite(stop) && (kind === 'bed' || stop < buf.duration - from);
+    // A fade-in that a cut comes into (a resume just before it) rises only until the cut begins,
+    // to the level it has reached by then: its ramp may not outlast the cut's (the context orders
+    // them by time, and the cut's silence would come before its own fade had ended).
+    const fadeIn = fade ?? cue.fadeIn ?? 0;
+    const rise = cut ? Math.min(fadeIn, stop - 0.04) : fadeIn;
+    const reached = fadeIn > 0 ? level * Math.min(1, rise / fadeIn) : level;
+    gain.gain.setValueAtTime(fadeIn > 0 ? 0 : level, at);
+    if (fadeIn > 0) gain.gain.linearRampToValueAtTime(reached, at + rise);
+    const nodes: AudioNode[] = [src, gain];
+    let node: AudioNode = gain;
+    src.connect(gain);
     if (cut) {
-      // Cut off, not faded: a sentence that stops, but without a click (and from wherever a
-      // fade-in has reached by then, not from its full level).
-      gain.gain.setValueAtTime(level * (fadeIn > 0 ? Math.min(1, (stop - 0.04) / fadeIn) : 1), at + stop - 0.04);
+      // Cut off, not faded: a sentence that stops, but without a click.
+      gain.gain.setValueAtTime(reached, at + stop - 0.04);
       gain.gain.linearRampToValueAtTime(SILENT, at + stop);
     }
     if (cue.lowpass) {
@@ -238,11 +276,11 @@ export class MemoryAudio implements AudioSink {
     // (Also when it starts late or part-way in, after a stall: the caption is what a deaf visitor
     // has of it. Not when it comes back after a pause or a seek, unless its caption, given a
     // moment into it (`captionAt`), was still to come.)
-    const due = cue.captionAt === undefined ? 0 : cue.captionAt - into;
-    if (cue.caption && (into === 0 || caption || due > 0)) {
+    const due = cue.captionAt === undefined ? 0 : cue.captionAt - into0;
+    if (cue.caption && (into0 === 0 || caption || due > 0)) {
       const text = cue.caption, seconds = kind === 'sfx' ? Math.min(dur, 4) : 2.5;
       if (cue.captionAt === undefined) this.host.caption?.(text, seconds);
-      else this.later(at - this.now + Math.max(0, due), () => this.host.caption?.(text, seconds));
+      else this.later(shown + Math.max(0, due), () => this.host.caption?.(text, seconds));
     }
   }
 
@@ -339,19 +377,24 @@ export class MemoryAudio implements AudioSink {
         const left = l.src.buffer.duration - (Math.max(0, this.now - l.at) + l.from);
         if (left <= own + 4) continue;
       }
-      // Interrupted, music recedes just after the picture (a bed goes with it).
-      this.fadeOut(l, mode === 'natural' ? own : Math.min(own, l.kind === 'music' ? fade + 1.5 : fade));
+      // Interrupted, music recedes just after the picture (a bed goes with it); a file that ends
+      // sooner (cut where the memory cuts) has faded by its end, not stopped part-way down.
+      let f = mode === 'natural' ? own : Math.min(own, l.kind === 'music' ? fade + 1.5 : fade);
+      if (l.kind === 'music' && l.src.buffer) f = Math.min(f, Math.max(0.02, l.src.buffer.duration - (Math.max(0, this.now - l.at) + l.from) - 0.02));
+      this.fadeOut(l, f);
     }
   }
 
   /**
    * Settings opened, or the tab hidden: what hasn't sounded yet is taken back (returned, so the
    * dispatcher hands it out again), beds and music fade and remember where they were, and a
-   * one-shot already ringing finishes.
+   * one-shot already ringing finishes. `now`: the clock's time on the frame the picture stopped
+   * at, so each remembers the place the picture shows (not a frame later).
    */
-  pause(): Marker[] {
+  pause(now = this.now): Marker[] {
     const back: Marker[] = [];
     const t = this.now;
+    const shown = now - this.lead;
     this.paused = [];
     this.cancelLater();
     for (const l of [...this.live]) {
@@ -363,7 +406,7 @@ export class MemoryAudio implements AudioSink {
         back.push(l.marker);
         this.fadeOut(l, 0.25);
       } else if (l.kind !== 'sfx') {
-        this.paused.push({ marker: l.marker, at: this.into(l, t) });
+        this.paused.push({ marker: l.marker, at: this.into(l, shown) });
         this.fadeOut(l, 0.4);
       }
     }
@@ -375,10 +418,10 @@ export class MemoryAudio implements AudioSink {
     return Math.max(0, t - l.at) + l.from - (l.kind === 'music' ? l.cue.offset ?? 0 : l.src.loopStart);
   }
 
-  resume(): void {
+  /** Back where the picture is, on the frame it moves on from (`now`, the clock's time then). */
+  resume(now = this.now): void {
     if (this.disposed) return;
-    const t = this.now;
-    for (const p of this.paused) this.start(p.marker, t, p.at, 1);
+    for (const p of this.paused) this.start(p.marker, now - this.lead, p.at, 1);
     this.paused = [];
   }
 
@@ -395,15 +438,19 @@ export class MemoryAudio implements AudioSink {
     for (const l of [...this.live]) this.fadeOut(l, l.kind === 'sfx' ? 0.05 : 0.3);
   }
 
-  /** Playing on from `position` after a seek: the bed and the music it is inside, part-way in. */
-  resync(position: number): void {
+  /**
+   * Playing on from `position` after a seek: the bed and the music it is inside, part-way in.
+   * `now`: the clock's time that position stands for.
+   */
+  resync(position: number, now = this.now): void {
     if (this.disposed || !this.running) return;
+    this.readLead();
     const t = this.now;
     for (const m of this.markers) {
       const kind = cueKind(m.label);
       if (m.position > position || kind === 'sfx' || kind === 'voice' || kind === null) continue;
       if (kind === 'bed' && [...this.live].some((l) => l.marker === m && l.at <= t)) continue;
-      this.start(m, t, position - m.position, 0.3);
+      this.start(m, now - this.lead, position - m.position, 0.3);
     }
   }
 

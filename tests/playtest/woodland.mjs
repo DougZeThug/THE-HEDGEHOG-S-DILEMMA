@@ -152,9 +152,9 @@ for (const how of ['turn', 'step']) {
   await look(60);
   at.past = { shot: await shot(), turned: await turned() };
   // Turned back to face it (a held memory doesn't spring the turn back: its dt is 0), at a moment
-  // a return may land (never within half a second of a beat): after 1.2 s settled, the two of them
-  // close again (held, any frame).
-  await page.evaluate(() => window.__hedgehog.heldAt(18.6));
+  // a return may land (never within half a second of a beat: her turn's steps are beats too, 18.0,
+  // 18.5, 19.0): after 1.2 s settled, the two of them close again (held, any frame).
+  await page.evaluate(() => window.__hedgehog.heldAt(20.0));
   await look(-140);
   let back = null;
   const t0 = Date.now();
@@ -172,7 +172,7 @@ for (const how of ['turn', 'step']) {
   // after a render; it was 0, the page's paper showing through, until the painting went back).
   await page.setViewportSize({ width: 1100, height: 800 });
   await page.waitForTimeout(600);
-  await page.evaluate(() => window.__hedgehog.heldAt(18.7));
+  await page.evaluate(() => window.__hedgehog.heldAt(20.1));
   await drawn();
   at.alphaAfterResize = await page.evaluate(() => {
     const a = window.__hedgehog, gl = a.renderer.getContext();

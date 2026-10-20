@@ -180,10 +180,11 @@ describe('cue dispatch: every event once, never on a seek', () => {
     expect(got.map((g) => g.split(':')[0])).toEqual(['a', 'b', 'c']);
     for (const g of got) expect(Number(g.split(':')[1])).toBeLessThanOrEqual(0.3 + 1e-9);
   });
-  it('a jump plays nothing; seeking back re-arms what lies ahead', () => {
+  it('a long step plays only a one-shot it passed lately; seeking back re-arms what lies ahead', () => {
     const d = new CueDispatch(M, 0.3);
     d.advance(0);
-    expect(d.advance(4.5)).toEqual([]); // a jump past a and b: heard, not played
+    // A stall past a and b: b, 2.5 s behind, still played (late); a, 3.5 s behind, not.
+    expect(d.advance(4.5).map((x) => x.marker.label)).toEqual(['b']);
     expect(d.advance(4.55).map((x) => x.marker.label)).toEqual([]);
     expect(d.advance(4.75).map((x) => x.marker.label)).toEqual(['c']);
     d.seek(0.5);
@@ -191,7 +192,7 @@ describe('cue dispatch: every event once, never on a seek', () => {
     for (let p = 0.5; p <= 6; p += 0.05) for (const x of d.advance(p)) again.push(x.marker.label);
     expect(again).toEqual(['a', 'b', 'c']);
   });
-  it('a stall while playing: one-shots it passed stay unheard, a bed or music it passed starts part-way in', () => {
+  it('a stall while playing: a bed or music it passed starts part-way in, a one-shot from its start', () => {
     const d = new CueDispatch([{ label: 'bed:air', position: 1 }, { label: 'music:radio', position: 5.5 }, { label: 'sfx:spoon', position: 5.6 }], 0.3);
     const got: string[] = [];
     for (let p = 0; p < 5; p += 1 / 30) for (const x of d.advance(p)) got.push(x.marker.label);
@@ -201,10 +202,14 @@ describe('cue dispatch: every event once, never on a seek', () => {
     expect(jump[1].late).toBeUndefined(); // the spoon from its start, a little late
     for (let p = 5.92; p < 8; p += 1 / 30) for (const x of d.advance(p)) got.push(x.marker.label);
     expect(got).toEqual(['bed:air']); // nothing twice
-    // A long stall: a one-shot more than a second behind stays unheard.
+    // A long stall: a one-shot passed in its last three seconds is still played, late (a memory's
+    // clock follows a stall however long it was); one further behind stays unheard.
     const e = new CueDispatch([{ label: 'sfx:a', position: 2 }], 0.3);
     for (let p = 0; p < 1.5; p += 1 / 30) e.advance(p);
-    expect(e.advance(3.4)).toEqual([]);
+    expect(e.advance(4.9).map((x) => x.marker.label)).toEqual(['sfx:a']);
+    const f = new CueDispatch([{ label: 'sfx:a', position: 2 }], 0.3);
+    for (let p = 0; p < 1.5; p += 1 / 30) f.advance(p);
+    expect(f.advance(5.4)).toEqual([]);
   });
 
   it('a slowish frame (0.42–0.5 s) skips nothing', () => {
@@ -288,7 +293,8 @@ describe('the playback controller: one clock, a clear lifecycle', () => {
     expect(c.t).toBe(t);
     c.resume();
     run(c, 1);
-    expect(c.t).toBeCloseTo(t + 1, 6);
+    // (The frame it resumes on stands still: its sound comes back from where the picture stopped.)
+    expect(c.t).toBeCloseTo(t + 1 - 0.05, 6);
     expect(audio.log).toEqual(expect.arrayContaining(['pause', 'resume']));
   });
 

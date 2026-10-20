@@ -12,6 +12,7 @@ import { Inside } from './world/living/Inside';
 import { washInputs, washOf } from './world/living/wash';
 import { warmLiving } from './world/living/materials';
 import { MemoryClock } from './memory/clock';
+import { fetchBlob } from './memory/fetched';
 import type { Lifecycle } from './memory/types';
 import type { LivingMemory } from './memory/runtime';
 import type { MemoryAudioHost } from './memory/MemoryAudio';
@@ -108,6 +109,8 @@ export class App {
     away: boolean; told: number;
     /** The room's writing its painting has washed out (given back when it goes). */
     washed: Set<string>;
+    /** Its sound has run (it waits for it if it stops); since when it has been stopped; given up waiting. */
+    sounded: boolean; downSince: number | null; silent: boolean;
   } | null = null;
   /** Going into a living memory and back (src/world/living/Inside.ts). */
   private inside!: Inside;
@@ -124,7 +127,7 @@ export class App {
     /** When settings were opened over it (wall-clock seconds), or null. */
     settingsSince: number | null;
   } | null = null;
-  private vignetteClock = new MemoryClock();
+  private vignetteClock = new MemoryClock(1);
   private vignetteGen = 0;
   /**
    * `?vignette=<id>[&variant=<v>]`: play one, as a preview, a few seconds after the room is
@@ -455,8 +458,8 @@ export class App {
         }
         if (!asset.startsWith('music/')) return voices.raw(asset, take);
         try {
-          const r = await fetch('./' + asset);
-          return r.ok ? await a.ctx.decodeAudioData(await r.arrayBuffer()) : null;
+          // (Fetched ahead with the memory's art, when its line was armed.)
+          return await a.ctx.decodeAudioData(await (await fetchBlob('./' + asset)).arrayBuffer());
         } catch {
           return null;
         }
@@ -555,7 +558,7 @@ export class App {
       },
     });
     const sm = SCENE_BY_PHRASE.get(phraseId);
-    this.living = { memory, id, key: a.key, anchor: a, bled: false, hiddenSince: null, held: false, awayFor: 0, watched: 0, minHold: sm?.minHold ?? 8, seenAt: sm?.seenAt, reached: 0, deep: false, why: null, away: false, told: 0, washed: new Set() };
+    this.living = { memory, id, key: a.key, anchor: a, bled: false, hiddenSince: null, held: false, awayFor: 0, watched: 0, minHold: sm?.minHold ?? 8, seenAt: sm?.seenAt, reached: 0, deep: false, why: null, away: false, told: 0, washed: new Set(), sounded: false, downSince: null, silent: false };
     this.memoryClock.reset();
     // The room hushes round it (and its music stops), until it lets go. For the door the white
     // room itself goes to evening, so the landing's light is the brightest thing there. Nothing
@@ -568,7 +571,11 @@ export class App {
     if (this.ambience && prepared.def.lastMusic === prepared.variant) this.ambience.score.drone = 0;
     if (prepared.def.roomDim) this.lighting.dimToChair(prepared.def.roomDim, prepared.def.maxHold + 4, this.time);
     if (this.director.scenes.active?.id !== id) this.director.memoryExternal(id);
-    memory.start();
+    // Its position 0 is this instant on the audio clock, for its first sounds and its first frame
+    // alike (the clock measures its first frame from here: QA, 2026-10-19).
+    const ctx = this.audio?.ctx;
+    this.memoryClock.prime(performance.now() / 1000, ctx?.currentTime ?? 0, ctx?.state === 'running');
+    memory.start(ctx?.currentTime);
     return true;
   }
 
@@ -1024,12 +1031,27 @@ export class App {
       }
       return;
     }
-    const paused = this.mode === 'settings' || document.hidden;
+    // One reading of the audio clock for the frame: the memory's clock and every sound it schedules
+    // (or resumes, or brings back) use the same, so the picture and its sound never part.
+    const ctx = this.audio?.ctx;
+    const now = ctx?.currentTime, running = ctx?.state === 'running';
+    // With its sound stopped (a phone's call; the context still resuming after a hidden tab) it
+    // waits for it, so the two come back together (on real time it would run on ahead of it); for
+    // three seconds at most, then it plays on without it.
+    if (running) {
+      l.sounded = true;
+      l.downSince = null;
+      l.silent = false;
+    } else if (ctx && l.sounded && !l.silent) {
+      l.downSince ??= performance.now();
+      if (performance.now() - l.downSince > 3000) l.silent = true;
+    }
+    const paused = this.mode === 'settings' || document.hidden || (!!ctx && !running && l.sounded && !l.silent);
     const c = l.memory.controller;
-    if (paused !== c.isPaused) paused ? c.pause() : c.resume();
-    const dt = this.memoryClock.tick(performance.now() / 1000, this.audio?.ctx.currentTime ?? 0, this.audio?.ctx.state === 'running', paused);
+    if (paused !== c.isPaused) paused ? c.pause() : c.resume(now);
+    const dt = this.memoryClock.tick(performance.now() / 1000, now ?? 0, running, paused);
     this.judgeMemoryAttention(l, dt);
-    const frame = l.memory.step(dt);
+    const frame = l.memory.step(dt, now);
     if (frame) {
       this.memoryWindow.update(frame.final, this.rig.restingEye, dt);
       this.drawLiving(l, frame, dt);
@@ -2146,7 +2168,10 @@ export class App {
     const vol = $<HTMLInputElement>('opt-volume');
     vol.addEventListener('input', () => this.setPref('volume', Number(vol.value)));
     $<HTMLInputElement>('opt-mute').addEventListener('change', (e) => this.setPref('muted', (e.target as HTMLInputElement).checked));
-    $<HTMLInputElement>('opt-captions').addEventListener('change', (e) => this.setPref('captions', (e.target as HTMLInputElement).checked));
+    $<HTMLInputElement>('opt-captions').addEventListener('change', (e) => {
+      this.prefs.captionsChosen = true;
+      this.setPref('captions', (e.target as HTMLInputElement).checked);
+    });
     $<HTMLInputElement>('opt-speech').addEventListener('change', (e) => this.setPref('speech', (e.target as HTMLInputElement).checked));
     $<HTMLInputElement>('opt-motion').addEventListener('change', (e) => {
       this.prefs.reducedMotionChosen = true;

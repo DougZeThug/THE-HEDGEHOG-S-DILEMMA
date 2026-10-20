@@ -9,6 +9,7 @@ import type { Lifecycle, MemoryFrame, ReleaseReason } from './types';
 import type { WindowLayer, LayerKind } from '../world/MemoryWindow';
 import { LivingScene, type FigureArt, type HeadCels, type LivingArt, type NearArt, type Eye } from './living/LivingScene';
 import { WOODLAND as WOODLAND_SPEC, type LivingSpec } from './living/woodland';
+import { fetchBlob } from './fetched';
 
 /**
  * The memories' runtime: a lazy chunk (GSAP, Theatre.js, the controller and the memory's audio),
@@ -124,18 +125,6 @@ export interface Prepared {
   dispose(): void;
 }
 
-/** Fetched bytes, kept so a memory armed earlier starts without a network wait. */
-const fetched = new Map<string, Promise<Blob>>();
-function fetchBlob(url: string): Promise<Blob> {
-  let p = fetched.get(url);
-  if (!p) {
-    p = fetch(url).then((r) => (r.ok ? r.blob() : Promise.reject(new Error(`${url}: ${r.status}`))));
-    p.catch(() => fetched.delete(url));
-    fetched.set(url, p);
-  }
-  return p;
-}
-
 /**
  * `living`: drawn about 1:1 into a living scene's target (no mipmaps); `data`: numbers, not
  * colour (decoded straight, never premultiplied: a map's alpha is a channel of its own).
@@ -203,8 +192,10 @@ async function manifestOf(base: string, art: string): Promise<ArtManifest> {
 }
 
 /**
- * Fetch a memory's art ahead (when its line is armed), so beginning it waits on nothing but
- * decoding. Sounds are fetched by the voices' own loader when the memory is prepared.
+ * Fetch a memory's art and its recordings (`music/…`) ahead, when its line is armed, so beginning
+ * it waits on nothing but decoding (the woodland's recordings alone took 13 s on a slow phone
+ * connection when they were fetched only as it began: QA, 2026-10-19). Its spoken and recorded
+ * sounds (`mem:…`) are the voices' own loader's.
  */
 export async function prefetch(id: string, variant: string, host: Pick<RuntimeHost, 'quality' | 'base' | 'screen'>): Promise<void> {
   const def = MEMORIES[id];
@@ -217,7 +208,8 @@ export async function prefetch(id: string, variant: string, host: Pick<RuntimeHo
     const lm = manifest.living?.[v];
     const wall = manifest.variants[v].filter((l) => !(lm && l.name === 'scene')).map((l) => ({ file: l.file, suffix }));
     const files = lm ? [...wall, ...livingFiles(lm, suffix, !framesNear(host, SPECS[def.id] ?? WOODLAND_SPEC))] : wall;
-    await Promise.all(files.map((f) => fetchBlob(`${base}${def.art}/${f.file}${f.suffix}.webp`)));
+    const sounds = Object.values(def.cues(v).cues).map((c) => c.asset).filter((a) => a.startsWith('music/'));
+    await Promise.all([...files.map((f) => fetchBlob(`${base}${def.art}/${f.file}${f.suffix}.webp`)), ...sounds.map((a) => fetchBlob(`./${a}`))]);
   } catch {
     /* it will be fetched again when it is needed */
   }
@@ -468,11 +460,12 @@ export class LivingMemory {
     });
   }
 
-  start(): void {
-    this.controller.start();
+  /** `now`: the audio time its position 0 stands for (MemoryPlaybackController). */
+  start(now?: number): void {
+    this.controller.start(now);
   }
-  step(dt: number): MemoryFrame | null {
-    return this.controller.step(dt);
+  step(dt: number, now?: number): MemoryFrame | null {
+    return this.controller.step(dt, now);
   }
   release(why: ReleaseReason): void {
     this.controller.release(why);

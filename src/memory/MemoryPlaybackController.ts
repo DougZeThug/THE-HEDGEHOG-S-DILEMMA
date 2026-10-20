@@ -17,18 +17,26 @@ import type { Lifecycle, Marker, MemoryFrame, ReleaseReason, Sections, TimelineS
  * visitor turned away, walked off) freezes the authored timeline where it is and leaves through a
  * graceful procedural exit. A hard release (a switch, leaving, a long hide) ends it at once.
  */
+/**
+ * The sound's side. Every `now` is the AudioContext time the memory's clock read for the frame in
+ * question, the instant the sequence's position stands for: the one mapping from the timeline to
+ * the audio clock, so a cue is placed the same whenever it is handed out (absent: the context's
+ * time when called).
+ */
 export interface AudioSink {
-  /** Events due now or within the lookahead; `delay` is seconds ahead on the audio clock. */
-  play(due: Due[]): void;
+  /** Events due now or within the lookahead; `delay` is seconds ahead of `now`. */
+  play(due: Due[], now?: number): void;
   /** Leaving: beds fade over `fade` seconds; tails may run on. */
   release(mode: 'natural' | 'interrupt', fade: number): void;
-  /** Returns events it was handed but hadn't sounded yet, so they are handed out again on resume. */
-  pause(): Marker[] | void;
-  resume(): void;
+  /** Returns events it was handed but hadn't sounded yet, so they are handed out again on resume.
+   *  `now`: the frame the picture stopped on. */
+  pause(now?: number): Marker[] | void;
+  /** `now`: the frame the picture moves on from, where it stopped. */
+  resume(now?: number): void;
   /** The sequence was moved by hand: silent while held. */
   seek(position: number): void;
-  /** Playing on from `position` after a seek: what should be sounding there comes back. */
-  resync?(position: number): void;
+  /** Playing on from `position` (at `now`) after a seek: what should be sounding there comes back. */
+  resync?(position: number, now?: number): void;
   dispose(fade: number): void;
 }
 
@@ -71,6 +79,10 @@ export class MemoryPlaybackController {
   private readonly dispatch: CueDispatch;
   private last: MemoryFrame | null = null;
   private resyncDue = false;
+  /** The audio time the last frame's position stood for (the frame a pause leaves on screen). */
+  private lastNow: number | undefined;
+  /** Back from a pause: the frame it resumes on doesn't move (its sound comes back from there). */
+  private still = false;
 
   constructor(private o: PlaybackOptions) {
     this.life = lifeTimeline(this.env, { reduced: o.reduced, entrance: o.entrance, sways: o.sways });
@@ -116,12 +128,13 @@ export class MemoryPlaybackController {
     this.o.onState?.(s, this.why);
   }
 
-  start(): void {
+  /** `now`: the audio time position 0 stands for (the App's clock is primed with the same). */
+  start(now?: number): void {
     if (this._state !== 'dormant') return;
     this._t = 0;
     this.pos = 0;
     this.set('emerging');
-    this.step(0);
+    this.step(0, now);
   }
 
   /** The Director (or the controller itself, at its longest hold) lets the memory go. */
@@ -151,22 +164,36 @@ export class MemoryPlaybackController {
   pause(): void {
     if (this.paused) return;
     this.paused = true;
-    for (const m of this.o.audio?.pause() ?? []) this.dispatch.unfire(m);
+    for (const m of this.o.audio?.pause(this.lastNow) ?? []) this.dispatch.unfire(m);
   }
-  resume(): void {
+  /** `now`: the audio time of the frame it moves on from (that frame stands still). */
+  resume(now?: number): void {
     if (!this.paused) return;
     this.paused = false;
-    this.o.audio?.resume();
+    this.still = true;
+    this.lastNow = now;
+    this.o.audio?.resume(now);
   }
 
-  /** Advance by the room's dt. Returns the frame to draw, or null once complete. */
-  step(dt: number): MemoryFrame | null {
+  /**
+   * Advance by the room's dt (the memory's clock: the audio clock's own step while it runs).
+   * `now` is the audio time this frame's position stands for. Returns the frame to draw, or null
+   * once complete.
+   */
+  step(dt: number, now?: number): MemoryFrame | null {
     if (this._state === 'dormant' || this._state === 'complete') return null;
     if (this.paused) return this.last;
-    if (this.resyncDue && dt > 0) {
-      this.resyncDue = false;
-      this.o.audio?.resync?.(this.pos);
+    if (this.still) {
+      this.still = false;
+      dt = 0;
     }
+    if (this.resyncDue && dt > 0) {
+      // Playing on after a seek: what sounds there comes back from where this step starts, the
+      // audio time `dt` before this frame's.
+      this.resyncDue = false;
+      this.o.audio?.resync?.(this.pos, now === undefined ? undefined : now - dt);
+    }
+    this.lastNow = now;
     this._t += dt;
     const t = this._t;
     const s = this.s;
@@ -204,7 +231,7 @@ export class MemoryPlaybackController {
     const frame: MemoryFrame = { state: this._state, t, position: this.pos, base, env, final: compose(base, env, this.o.weights, this.o.living) };
     this.last = frame;
     const due = this.dispatch.advance(this.pos, limit);
-    if (due.length) this.o.audio?.play(due);
+    if (due.length) this.o.audio?.play(due, now);
     return frame;
   }
 

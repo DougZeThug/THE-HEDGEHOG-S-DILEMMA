@@ -1,5 +1,5 @@
 """Film A for the artist: the room before (5 s), the woodland, the room after (8 s), at speed, with
-its sound (woodland-film-sound.py) and its captions as a visitor sees them (woodland-captions.mjs);
+its sound (woodland-film-sound.py) and, for a visitor who chooses them, its captions (woodland-captions.mjs);
 and short clips of the alternatives. The pictures are the films already recorded from this build's
 memory (the sound changed, not the picture): heart/ for the room, the way in and the dusk,
 context5/ for the two-shot and the second wide (her rebuilt turn); the room before and after held
@@ -70,10 +70,10 @@ if __name__ == '__main__':
     out = OUT
     d, n = frames(out)
     print(n, 'frames,', n / FPS, 's')
-    # The master without captions (the music's beginning and end are the artist's to notice); the
-    # same as every visitor sees it by default, captions on (src/ui/prefs.ts).
+    # As every visitor has it: no captions (off by default: the artist, 2026-10-19); the same with
+    # captions on, as a visitor who chooses them in settings sees it (src/ui/prefs.ts).
     film(d, os.path.join(out, 'A.wav'), os.path.join(out, 'woodland-film-A.mp4'))
-    film(d, os.path.join(out, 'A.wav'), os.path.join(out, 'woodland-film-A-captions-as-visitors-see-them.mp4'), caps=True)
+    film(d, os.path.join(out, 'A.wav'), os.path.join(out, 'woodland-film-A-with-captions-chosen.mp4'), caps=True)
     film(d, os.path.join(out, 'A-phone.wav'), os.path.join(out, 'woodland-film-A-phone-speaker.mp4'))
     # The alternatives, from the cut to the two of them (15.0) to the room taking the painting back (43.5).
     film(d, os.path.join(out, 'B.wav'), os.path.join(out, 'alternative-never-home-15-43.mp4'), PRE + 15.0, PRE + 43.5)
