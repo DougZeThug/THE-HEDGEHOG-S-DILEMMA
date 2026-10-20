@@ -2,7 +2,9 @@
 // inside to its end, then the wall after it; when the line began (the memory's position), where it
 // went (under its own line, inside the painting's place) and what a screen reader was told.
 // LINE='…' replaces the words in the page, for the artist to compare. STAY=1 first puts "I wanted
-// you to" on the wall under "five more minutes", as the review film had it (the hardest layout).
+// you to" on the wall under "five more minutes", as the review film had it (the hardest layout:
+// the opening's own unfinished line sits under that phrase's place). WALL=east writes the woodland's
+// line on that wall instead, near its middle, as the room writes it where the visitor looks.
 //
 //   npm run build && npx vite preview --port 4173 &
 //   node tests/playtest/woodland-coda.mjs          (OUT=test-output/review/woodland/coda NAME=ours)
@@ -37,9 +39,10 @@ await page.evaluate(() => {
   if (b && !b.hidden) b.click();
 });
 await page.waitForFunction(() => window.__hedgehog.score.stage === 'done', null, { timeout: 120000 });
-await page.evaluate(async (stay) => {
+await page.evaluate(async ({ stay, wall }) => {
   const a = window.__hedgehog;
-  a.text.setShown('more-minutes');
+  if (wall) a.text.write({ key: 'memory:more-minutes', text: 'five more minutes', hand: 'pencil', size: 's', surface: wall, near: { u: 3.2, v: 1.6 }, purpose: 'recall', ttl: 0, now: a.time, source: 'more-minutes', start: false }), a.text.writeOn('memory:more-minutes', { instant: true });
+  else a.text.setShown('more-minutes');
   if (stay) a.text.writeOn('stay', { upto: 4, instant: true });
   for (let i = 0; i < 100 && !a.text.anchorOf('more-minutes'); i++) await new Promise((r) => setTimeout(r, 50));
   const it = a.text.items.get(a.text.anchorOf('more-minutes').key);
@@ -48,7 +51,7 @@ await page.evaluate(async (stay) => {
   a.rig.pos.set(c.x + n.x * 2.4, 0, c.z + n.z * 2.4);
   a.rig.yaw = Math.atan2(n.x, n.z);
   a.rig.pitch = 0.1;
-}, !!process.env.STAY);
+}, { stay: !!process.env.STAY, wall: process.env.WALL ?? '' });
 await page.waitForTimeout(1000);
 await page.screenshot({ path: `${OUT}/${NAME}-0-before.png` });
 await page.evaluate(() => window.__hedgehog.playMemory('woodland', 'more-minutes', 'afternoon'));
@@ -56,12 +59,9 @@ await page.evaluate((line) => {
   const d = window.__hedgehog.living.memory.prepared.def;
   if (line) d.coda = { ...d.coda, text: line };
 }, process.env.LINE ?? '');
-// Taken in, then on to the return (held, so that software GL's slow frames don't decide it).
-await page.evaluate(() => window.__hedgehog.heldAt(13));
-await page.waitForTimeout(600);
-await page.evaluate(() => window.__hedgehog.heldAt(null));
-await page.waitForTimeout(2500);
-const inside = await page.evaluate(() => window.__hedgehog.inside.entered);
+// Taken in as it is authored (played from its start, facing it: a jump past the way in misses it
+// under software GL's slow frames), then on to the return. Not taken in, nothing should be written.
+const inside = await page.waitForFunction(() => window.__hedgehog.inside.entered, null, { timeout: 40000 }).then(() => true, () => false);
 await page.evaluate(() => {
   const a = window.__hedgehog;
   a.__coda = null;
