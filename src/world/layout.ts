@@ -201,6 +201,31 @@ export class SurfaceLayout {
     return null;
   }
 
+  /**
+   * A place for a line written under another, inside a region of its wall (decision 122: the line
+   * where the woodland's painting was, `within` its former place): nearest first to just under the
+   * start of `anchor`, a little in, as a hand writes under its own line. Writing in the way stops it
+   * unless `movable` says that place can go elsewhere (a line not yet shown); those come back with
+   * it, to be placed again. Null if nothing fits.
+   */
+  findUnder(anchor: Placement, w: number, h: number, within: Rect, movable: (p: Placement) => boolean, pad = 0.015): { rect: Rect; displaced: Placement[] } | null {
+    const size = surfaceSize(anchor.surface);
+    const u0 = Math.max(within.u - within.w / 2, 0.05) + w / 2, u1 = Math.min(within.u + within.w / 2, size.w - 0.05) - w / 2;
+    const v0 = Math.max(within.v - within.h / 2, 0.12) + h / 2, v1 = Math.min(within.v + within.h / 2, size.h - 0.08) - h / 2;
+    if (u1 < u0 || v1 < v0) return null;
+    const iu = anchor.u - anchor.w / 2 + w / 2 + anchor.w * 0.08, iv = anchor.v - anchor.h / 2 - h / 2 - 0.04;
+    const cands: Rect[] = [];
+    for (let v = v0; v <= v1 + 1e-9; v += 0.02) for (let u = u0; u <= u1 + 1e-9; u += 0.02) cands.push({ u, v, w, h });
+    cands.sort((a, b) => Math.hypot(a.u - iu, a.v - iv) - Math.hypot(b.u - iu, b.v - iv));
+    const placed = this.placed.get(anchor.surface)!;
+    for (const r of cands) {
+      if (overlaps(r, anchor, pad)) continue;
+      const blocking = placed.filter((q) => q !== anchor && overlaps(r, q, pad));
+      if (blocking.every(movable)) return { rect: r, displaced: blocking };
+    }
+    return null;
+  }
+
   place(p: Phrase, measure: Measure): Placement {
     const { w, h } = measure(p);
     const size = surfaceSize(p.surface);

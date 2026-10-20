@@ -86,3 +86,17 @@ describe('the living memories, as defined and committed', () => {
     });
   }
 });
+
+describe("the woodland's line where the painting was (decisions 119–123)", () => {
+  it('only after its afternoon, once the room’s writing is back, before the memory ends', () => {
+    const def = MEMORIES.woodland;
+    expect(def.coda?.variant).toBe('afternoon');
+    const sketch = def.seed('afternoon').tracks['window.sketch'] as [number, number][];
+    // (The pencil has sunk and the room's writing is back a second before it is written.)
+    expect(sketch[sketch.length - 1][1]).toBe(0);
+    expect(def.coda!.at).toBeGreaterThanOrEqual(sketch[sketch.length - 1][0] + 1);
+    expect(def.coda!.at).toBeLessThan(def.sections.end);
+    for (const m of Object.values(MEMORIES)) if (m.id !== 'woodland') expect(m.coda, m.id).toBeUndefined();
+  });
+});
+

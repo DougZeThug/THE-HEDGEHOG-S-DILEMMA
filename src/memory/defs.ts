@@ -56,6 +56,13 @@ export interface MemoryDef {
    */
   announce?: (variant: string) => { at: number; text: string; inside?: boolean; wall?: boolean; shot?: number }[];
   /**
+   * A line written where the painting was, as it goes (the woodland's: decisions 119–123): once, at
+   * `at` (sequence seconds) of `variant`, in the hand and size of the memory's own line, under it
+   * and inside the painting's former place; only for someone taken in, to a memory that played on
+   * to there unbroken. Told to a screen reader as it is written.
+   */
+  coda?: { variant: string; at: number; text: string };
+  /**
    * A living memory (animated, and entered): its scene's object names in the timeline (`scene`,
    * `figure:a`, `figure:b`) are added to the schema, and the variants that have a living scene in
    * the art manifest are drawn by it (src/memory/living/). The others play on the wall as usual,
@@ -666,6 +673,10 @@ export const WOODLAND: MemoryDef = {
   hush: 0.7,
   living: true,
   lastMusic: 'afternoon',
+  // (The artist's idea, the words ours as they asked: in the afternoon's voice, saying only what
+  // they had; under "five more minutes". Written as the far cicada ends and the room's writing is
+  // back, done as the aftermath begins: the skeptic, 2026-10-20.)
+  coda: { variant: 'afternoon', at: 52.5, text: 'we had all afternoon' },
   describe: (v) => v === 'empty'
     ? 'A painting forms in the wall by the words: a clearing in a wood at dusk, a fallen log, a tree, the grass. Nobody is there.'
     : 'A pencil drawing forms in the wall by the words: a clearing in a wood, two young people lying in the grass.',

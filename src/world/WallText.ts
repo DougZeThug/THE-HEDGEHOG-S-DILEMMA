@@ -733,6 +733,37 @@ export class WallText {
     return true;
   }
 
+  /**
+   * Write a line under another inside a place on its wall (`within`, in the writing group's metres,
+   * as the memory window gives a painting's place): nearest under its start, as close as the wall
+   * allows (decision 122). The places kept for lines not yet shown give way, and are found again
+   * elsewhere. False, and nothing written, if nothing fits.
+   */
+  writeWithin(o: { key: string; text: string; hand: Hand; size: Size; under: string; within: { cx: number; cy: number; w: number; h: number }; purpose: Exclude<Purpose, 'phrase'>; now: number; source?: string; start?: boolean }): boolean {
+    if (this.items.has(o.key)) return false;
+    const anchor = this.items.get(o.under)?.placement;
+    if (!anchor || anchor.surface === 'floor' || anchor.surface === 'ceiling') return false;
+    const size = surfaceSize(anchor.surface), s = this.room.scale;
+    const within = { u: o.within.cx / s + size.w / 2, v: o.within.cy + size.h / 2, w: o.within.w / s, h: o.within.h };
+    const m = measureText(o.text, o.hand, o.size);
+    // (A line not yet on any wall, with no place of its own, keeps a place that can go elsewhere.)
+    const slots = new Map<Placement, string>();
+    for (const [id, pl] of this.placements) if (!this.items.has(id) && !PHRASE_BY_ID.get(id)?.at) slots.set(pl, id);
+    const found = this.layout.findUnder(anchor, m.w, m.h, within, (p) => slots.has(p));
+    if (!found) return false;
+    for (const p of found.displaced) this.layout.remove(p);
+    const pl = this.layout.add({ surface: anchor.surface, ...found.rect, rot: (((hashString(o.key) % 100) / 100) - 0.5) * 0.04 });
+    for (const p of found.displaced) {
+      const id = slots.get(p)!;
+      this.placements.set(id, this.layout.place(PHRASE_BY_ID.get(id)!, (q) => measureText(q.text, q.hand, q.size)));
+    }
+    const it = this.create(o.key, o.text, o.hand, o.size, pl, o.purpose);
+    it.source = o.source;
+    it.expires = 0;
+    if (o.start !== false) this.writeOn(o.key);
+    return true;
+  }
+
   private makeLine(key: string, surface: Surface, seed: number): LineItem {
     const mat = new THREE.MeshStandardMaterial({
       color: new THREE.Color('#4a4b50'),
