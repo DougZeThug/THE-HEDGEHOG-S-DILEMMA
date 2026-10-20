@@ -1830,3 +1830,180 @@ What it found:
      the picture's clock says.
 108. **Small fixes**: overdue sounds start a render quantum ahead, their offset advanced to match;
      the touch help names "···" for sound and captions.
+
+## The artist's direction: Ushio's "fable", "our film" and "past" (2026-10-20)
+
+After the films without wind, the artist wrote twice: "remember I said fable, our film, and past by
+kensuke ushio are the main inspiration". Asked which of those tracks' qualities the woodland's
+piano should take, they chose the piano's sound (an old upright heard close: soft, worn, its hammers
+and pedal audible, a small room), a faint texture under it, and loose, breathing time. They did not
+choose "fragments, not a tune": the tune and its form stay. Asked what the faint texture under the
+piano is in those tracks, they chose all four offered: the piano itself (its own resonance under
+the pedal, its keys and hammers, the room), strings (bowed, very quiet), a worn recording (tape or
+vinyl noise: soft hiss, crackle, slight wobble) and electronic air (soft synth pads, or a gentle
+electronic hum or hiss).
+
+### The proposal and its reviews (the sound designer, the creative director; the skeptic)
+
+The proposal: the same CC0 samples made softer and older (part-way to felt, a worn voicing, the top
+rolled off), the mechanism heard 24–30 dB under the notes, a practice room; rubato by the phrase
+(long notes 100–250 ms late, the approach to home slowing, the second time breathing differently); a
+bowed texture 15–20 dB under the piano.
+- **The sound designer**: buildable, but three of its numbers work against it. Late long notes land
+  on the looks and fail the test. 15–20 dB under the piano is level with it under both looks, since
+  nothing else in the clearing sounds between 250 Hz and 2.5 kHz. Felt and the roll-off act on a top
+  these samples don't have. First fix what most separates it from an upright heard close:
+  - the melody jumps across the stereo field (−9.4 to +5.6 dB, 10 dB between neighbours; mono
+    loses up to 3.7 dB on a note);
+  - the treble dies in 1–1.5 s (a halo, the undamped strings ringing on under the pedal);
+  - the mechanism is 35–43 dB down and masked (place it where it can be heard).
+  The texture under a level rule (at least 8 dB under the piano in every 400 ms block) and spectral
+  limits (at most 10% of its energy above 2.5 kHz and 2% above 4 kHz), as two synthesised variants
+  (bowed, air). Linger after the long notes; home 120 ms late.
+- **The creative director**: nothing slows anywhere. This afternoon leans in and never lets go; the
+  cut does the letting go. Hesitate on pickups, long notes on time or a touch early, home on the grid,
+  the turn a habit. The texture should be the piano's own strings or nothing: a held layer surfaces at
+  the end of both looks and scores them, and a layer belonging to nothing is the white room's drone.
+  One named fault (F5's sour unison), not general wear. Keep the top, no felt thump. Decision 85
+  holds.
+- **The skeptic**: both argue over what can't be heard (a long note moved 60–130 ms), and each now
+  refuses part of what the artist chose. The creative director's "bloom only" refuses "all four",
+  and the sound designer's separate layers can't be told apart at the level they must sit at. One
+  build, two films, one question. Time: the creative director's rule at the sound designer's size
+  (linger at the top, lilt the turn). Texture: the halo always; a bowed grain inside it and a sparse
+  crackle as traces; electronic air folded into the halo; no hiss floor (it would surface in the
+  two-shot) and no tape wow; the F5 unison as the wobble; every substitution told to the artist.
+
+### Decisions (main session, after the skeptic)
+
+109. **The three tracks are the brief for the music** (the artist).
+     - Decision 65 gives way on softness, wear, closeness and strict time. It holds on the white
+       room's own felt thump and closing sweep, which stay the room's.
+     - Decision 75 gives way to a texture that is the piano's (113); decision 84 gives way to 112.
+     - Decisions 67 and 68 hold (the windows; the cut).
+     - Decision 85 holds: as the playing moves toward tender, the major harmony is what keeps it from
+       sad (the creative director, from the research on performance cues).
+110. **An old upright, heard at the bench** (the sound designer's findings 4, 6 and 7; the
+     skeptic's 5).
+     - **Placement.** Each note is its sample's two sides summed without their phase differences
+       (their power kept, the louder side's phase), placed by pitch (−0.2 at F2 to +0.15 at A♭5),
+       with the sample's own side 24 dB down.
+       - The sound designer's mid plus side at −12 dB left C5 and D♭5 5 dB off their place. The
+         samples' own sides differ by up to 15 dB at a fundamental (C5), and C5's plain sum loses
+         3.9 dB there.
+     - **One sample a key**: the alternates, and their matching, are gone.
+     - **The room is the samples' own kind**: a coincident pair at the player's head.
+       - Each reflection reaches both sides at once, weighted by where it comes from: the floor, the
+         wall behind the piano, the ceiling, the side walls, the wall behind the bench and four later
+         ones, at 2.8–18 ms and 15–25 dB under, each wall taking some of the top.
+       - A tail 15 dB under: 0.35 s below 1 kHz, 0.25 s above.
+       - The sound designer's per-side delays put F5 8 dB off its place, and the mono sum rippled from
+         −21 to +5.5 dB over 250 Hz–2 kHz.
+     - **The mechanism, heard by where it falls**:
+       - the key in its bed 10–15 ms before each string (−30 dB re its attack, one at −28 for a
+         left-hand chord);
+       - the pedal's thump 40–80 ms after each chord (−36);
+       - the dampers' brush at each change (−32; −38 at the cadence's quick change);
+       - the last change silent, and nothing in the picture's moments.
+     - **No felt, no thump, no top roll-off**: the soft layer has nothing above 2.5 kHz to roll off.
+     - **One fault of its own**: F5's second string 2.5 cents sharp, a beat of about 1 Hz on its two
+       long notes, both in the wides. The treble keeps its own measured tuning.
+111. **The strings ring on under the pedal** ("the piano itself"; the sound designer's finding 5, the
+     skeptic's 4).
+     - Each note's first three partials, measured in its sample, ring as a unison's three strings
+       a fraction of a hertz apart.
+     - They rise as the note's own sound falls, ring at the strings' rate while the pedal holds (T60
+       8 s at C5, 5 s an octave up, 11 s an octave down), and stop in 0.1 s at the change.
+     - Each long note's own band two seconds in sits about 28 dB under its peak. The second A♭5 was
+       52 dB under: its sample is faded out by 0.8 s.
+     - In both films, always on.
+112. **Breathing time: one habit both times, nothing slower** (the creative director's rule at the
+     skeptic's size). Before the hands' ±12 ms:
+     - the step down after the high A♭5 comes late: G♭5 100 ms after its time, a touch lighter;
+     - the long F5 and E♭5 come on time, with their chord's bass and tenth 30 ms ahead;
+     - the turn lilts: F5 +15 ms, E♭5 +45 ms;
+     - home, the leading tones, the go-round and both A♭5s stay where they were.
+     No slowing into home (it would answer her look) or into the cut. Not taken: the sound
+     designer's +120 ms into home, his late turn after ii and the second A♭5's +110 ms; nor the
+     creative director's early long notes, which are inaudible as time and only rush the pickup.
+113. **The texture: all four, each the piano's** (the artist's four; the skeptic's findings 2–3; the
+     creative director's guardrails as its rules).
+     - **The piano itself**: 110–111, in both films.
+     - **Strings**: a trace of bow in the piano's own strings: a faint stick-slip rasp at each ringing
+       string's period, through its partials, 11 dB under its ring and cut with it.
+     - **Electronic air**: a breath round the ringing partials (a narrow band of air on each, wide), 9
+       dB under the ring and cut with it.
+     - **A worn recording**: a sparse crackle, 1–3 ticks a second at random, 300 Hz–3 kHz, peaks about
+       33 dB under the melody's median attack. None above its median in the picture's moments, and none
+       in the last second before the cut.
+     - **Rules for everything added**:
+       - it rises only with a chord, never while the piano decays;
+       - it sounds no pitch the piano isn't sounding;
+       - nothing of it below 250 Hz;
+       - at most 10% of its energy above 2.5 kHz, and 2% above 4 kHz;
+       - at least 8 dB under the piano in every 400 ms block;
+       - no pitch moving.
+     - **Not built, and said to the artist**:
+       - a hiss floor: it rides the piano's 4.5 dB dip while the place hushes 8–11 dB, so it would
+         surface in the two-shot (the noise removed twice: 101–102);
+       - tape wow: pitch moving; the wobble is the piano's own F instead;
+       - a separate pad: detuned pairs held under a chord are the white room's drone, which 64 keeps
+         out of the woodland;
+       - a separate synthesised bow: it swelled like the wind and had no bow's rasp;
+       - ElevenLabs takes: held. If the artist wants strings that sound like strings, a real bow at
+         the edge of sound, or a small batch after a dry run.
+114. **One build, two films, one question** (the skeptic's finding 6).
+     - Film A has everything. Film B is the piano alone: its ring, mechanism and room, without the
+       bow, the air and the crackle.
+     - The room plays A until the artist says otherwise.
+     - The artist plays A on their own phone; no phone-model film this time.
+115. **Tests** (the creative director's finding 8, the skeptic's 7).
+     - The windows extend to the mechanism and to the crackle's louder ticks; notes.json lists them.
+     - Each long note's level at each look's start is recorded.
+     - σ 12 ms is kept, and the shipped seed is checked.
+116. **Levels** (the sound designer's finding 9, the skeptic's 4). SCORE_DB −28.5 and the 4.5 dB dip
+     stay for the first build. spans.py is re-run after the halo; if the two-shot steps forward,
+     level comes off the whole piano, not off the halo.
+
+### Built, and measured (before mastering unless said)
+
+- **Placement**: each melody note within 1.45 dB of its place (its own band, first 0.3 s, in the mix);
+  mono loses at most 0.21 dB a note; L/R correlation 0.96. Centroid 622 Hz; 0.01% of the energy
+  above 2.5 kHz.
+- **The ring**: each long note's own band two seconds in, re its peak: A♭5 −24.4 and −34.3 (the
+  unison's beat in a trough), F5 −29.8 and −30.3, E♭5 −22.2 and −21.7 (their samples ring on by
+  themselves; their halo is at its floor). At each look's start: the E♭5 is 11 dB under its peak as
+  her eyes move (17.5), and the A♭5 25.6 dB under as his do (24.0; its sample alone is about 35 dB
+  under by then).
+- **Time**: the test passes at the shipped take (humanising seed 12; with the habit, seed 11's
+  hands played the second time 0.95 louder than the first, against the test's one level). Home is
+  due 0.24 s after the cut, and the last note comes 0.61 s before it. 115 of 200 seeds pass every
+  rule: the velocity rules (±6 of the mean, the second time no louder) are what fail the others.
+- **The texture** (bow −14 dB and air −14 dB under each note's falling sound, above 400 Hz only;
+  crackle −34 dB under the melody's median attack):
+  - per 400 ms block, at least 8.8 dB under the piano (median 13.6);
+  - inside the looks it never rises by more than 0.4 dB from block to block;
+  - 0.1% of its energy is above 2.5 kHz, 0.05% above 4 kHz, none below 250 Hz;
+  - the crackle: 1.7 ticks a second, none above its median on a moment, the last 1.1 s before the cut;
+    on the phone model in the two-shot, its median tick is 35 dB and its loudest 30 dB under the
+    melody's median attack.
+- **The mechanism**: 47 sounds, none on a moment; the last change is silent.
+- **The low mids**: the ring, texture, mechanism and room add 1.1 dB to the piano's 125–500 Hz and 2.1
+  dB to its whole band, so the low mids' share falls 1 dB. The room adds most of it (1.1 dB, 1.4
+  overall).
+- **Against the place** (spans.py, the film's stems; before → now):
+
+  | | Before | Now |
+  |---|---|---|
+  | Entry | −8.3 | −8.7 |
+  | First wide | −4.7 | −5.2 |
+  | After the gust | −10.5 | −11.1 |
+  | Two-shot | −0.8 | −1.4 |
+  | Second wide | −5.9 | −6.5 |
+  | Last 2 s | +0.6 | +0.5 |
+  | Overall | −4.6 | −5.2 |
+
+  The cut still falls 4.2 LU. Nothing stepped forward, so SCORE_DB and the dip stay (116). The piano
+  alone measures within 0.3 LU of A.
+- **Films**: `test-output/review/woodland/sound/woodland-film-A.mp4` (as the room plays it),
+  `woodland-film-A-with-captions-chosen.mp4` and `woodland-film-B-piano-alone.mp4`.

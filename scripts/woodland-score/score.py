@@ -1,7 +1,9 @@
-"""The woodland's score, as decided after the reviews of 2026-10-19 (decisions 65–68, 77–83).
+"""The woodland's score, as decided after the reviews of 2026-10-19 and 2026-10-20 (decisions
+65–68, 77–83, 112).
 
-One plain tune, someone playing an upright for nobody, in its own steady time (4/4 at about 71 a
-minute), the same both times but for a player's small differences. Already going round when we
+One plain tune, someone playing an upright for nobody, at about 71 a minute, the same both times but
+for a player's small differences, with one habit of breathing (it lingers at the top and lilts the
+turn; nothing slows). Already going round when we
 arrive: the last chord of a go-round still ringing as the painting opens out and the sound comes up
 with the clearing's own (scripts/woodland-score/render.py), its turnaround a little ahead, then the
 tune, which comes home once (21.2, between her look and his), then the tune again, cut after the
@@ -50,6 +52,15 @@ HAND = [(0.0, 49, 65), (4.0, 41, 61), (9.0, 51, 66), (13.0, 44, 60), (14.0, 49, 
 # cinematic director's evaluation found the strict tune's A♭5 on the arrival, at every tempo.
 EARLY = 0.31
 
+# Breathing time (decision 112): one habit, the same both times, before the hands' own unevenness.
+# The step down after the high A♭5 comes late (the G♭5, a touch lighter); the long F5 and E♭5 come on
+# time, their chord's bass and tenth a little ahead of them; the turn lilts. Home, the leading tones,
+# the go-round and both A♭5s stay on their beats, and nothing slows: not into home (it would answer
+# her look), nor into the cut. (beat: seconds late, velocity)
+HABIT = {3.5: (0.100, -2), 12.0: (0.015, 0), 12.5: (0.045, 0)}
+# On these beats the chord comes this far ahead of the melody (elsewhere the melody leads it by 12 ms).
+BASS_FIRST = {4.0: 0.030, 9.0: 0.030}
+
 # The picture's moments no note may begin in (tests/woodland-score.test.ts is the authority; these
 # are its values, for the humanising below to keep clear of).
 MOMENTS = [(9.6, 10.0), (11.6, 12.0), (13.2, 13.8), (16.0, 16.6), (14.3, 15.7), (17.0, 19.5), (23.5, 25.5), (26.3, 27.7), (27.8, 28.2)]
@@ -60,19 +71,22 @@ def statement(start, tune=TUNE, hand=HAND, last=None, mel_vel=44, hand_vel=34, f
     `first`: nothing struck before then; `early`: beats played EARLY seconds ahead."""
     out = []
     shift = lambda b: -EARLY if early is not None and b in early else 0.0
-    for b, m, d in tune:
+    onset = lambda b: start + b * BEAT + shift(b) - (0.0 if b in BASS_FIRST else 0.012) + HABIT.get(b, (0.0, 0))[0]
+    for j, (b, m, d) in enumerate(tune):
         if last is not None and b > last:
             break
-        t = start + b * BEAT + shift(b)
+        t = onset(b)
         if t < first:
             continue
         # A player leans a little on what begins a bar, and plays the quick notes a touch lighter.
-        v = mel_vel + (2 if b % 4 == 0 else -2 if b % 1 else 0)
-        out.append(Note(t - 0.012, M[m], v, d * BEAT - 0.03 - shift(b), 'r'))
+        v = mel_vel + (2 if b % 4 == 0 else -2 if b % 1 else 0) + HABIT.get(b, (0.0, 0))[1]
+        # Held to just before the next (a late note opens no gap, and its neighbour gives way).
+        dur = onset(tune[j + 1][0]) - t - 0.03 if j + 1 < len(tune) else d * BEAT - 0.03 - shift(b)
+        out.append(Note(t, M[m], v, dur, 'r'))
     for b, bass, tenth in hand:
         if last is not None and b > last:
             break
-        t = start + b * BEAT + shift(b)
+        t = start + b * BEAT + shift(b) - BASS_FIRST.get(b, 0.0)
         if t < first:
             continue
         n = 4.0 if b < 13 else 1.0
@@ -82,10 +96,12 @@ def statement(start, tune=TUNE, hand=HAND, last=None, mel_vel=44, hand_vel=34, f
     return out
 
 
-def humanise(notes, seed=11):
+def humanise(notes, seed=12):
     """Someone's hands, not a sequencer: each note a little early or late (about 12 ms, at most 25,
     a chord's notes together) and a little harder or softer (±3), neither drifting; never into one
-    of the picture's moments (a nudge that would land in one goes the other way)."""
+    of the picture's moments (a nudge that would land in one goes the other way). The seed is the
+    take: with the breathing habit, 11's hands played the second time a shade louder than the first
+    (the test's one level), 12's don't."""
     rng = np.random.default_rng(seed)
     chords = {}
     for n in sorted(notes, key=lambda n: n.t):
@@ -108,13 +124,6 @@ def performance(form='A'):
     included so that it is still ringing when the file begins; the file fades in from there."""
     notes = (statement(S0, TUNE, HAND, first=7.5, early={15.0, 15.5}) + statement(S1, TUNE, HAND, early={0.0, 0.5})
              + statement(S2, TUNE, HAND, last=13.0))
-    # Repeats voiced from the neighbouring sample: a repeated pitch alternates its source (counted
-    # on form A, so that B differs from A only where its notes do).
-    seen = {}
-    for n in sorted(notes, key=lambda n: n.t):
-        k = seen.get(n.midi, 0)
-        n.alt = k % 2
-        seen[n.midi] = k + 1
     notes = humanise(notes)
     if form == 'B':
         home = S1 + 14 * BEAT

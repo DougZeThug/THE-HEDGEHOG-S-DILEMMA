@@ -4,6 +4,8 @@
  * on the film's drawings, not as authored); the same tune both times, one level, one bass note a
  * bar, played by hands (never a copy to the millisecond); home once, between the looks; the second
  * time, the last note a little before the cut, and the cut before home. Heard only in the afternoon.
+ * Nothing of the instrument's own sounds or the recording's crackle stands out on the picture's
+ * moments either (decisions 110, 113 and 115).
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -19,11 +21,29 @@ interface Score {
   notes: { t: number; midi: number; vel: number; dur: number; hand: 'r' | 'l' }[];
   /** Struck before the file begins: still ringing as it comes up (the go-round already under way). */
   ringing: { t: number; midi: number }[];
+  /** The mechanism heard: each key in its bed, each pedal down and up. */
+  mechanism: { t: number; kind: string }[];
+  /** The recording's crackle: each tick, in dB re their median. */
+  crackle: { t: number; db: number }[];
 }
 const score = JSON.parse(readFileSync('scripts/woodland-score/notes.json', 'utf8')) as Score;
 const melody = score.notes.filter((n) => n.hand === 'r');
 const HOME = 73; // D♭5
 const [S1, S2] = score.statements;
+const settled = TWO_SHOT.herTurn + TURN_STEPS.length / 12;
+/** The picture's moments, as the film's drawings show them. */
+const moments: [number, number, string][] = [
+  // (The painting comes to rest at 9.75–9.83; the gust is seen from 11.75 and heard from 11.9: the
+  // cinematic director's evaluation, 2026-10-19.)
+  [9.6, 10.0, 'the painting coming to rest'],
+  ...WOODLAND.gusts.map((g): [number, number, string] => [g.at + 0.1, g.at + 0.5, 'the gust arriving']),
+  ...WOODLAND.blinks.a.map((b): [number, number, string] => [b - 0.2, b + 0.4, 'his blink']),
+  [SHOTS.two - 0.7, SHOTS.two + 0.7, 'the cut to the two of them'],
+  [TWO_SHOT.herEyes - 0.5, settled + 0.5, 'her look'],
+  [TWO_SHOT.hisEyes - 0.5, TWO_SHOT.hisRoll + 1, 'his look'],
+  [SHOTS.wideAgain - 0.7, SHOTS.wideAgain + 0.7, 'the cut back to the wide'],
+  [TIMES.near[2][0] - 0.2, TIMES.near[2][0] + 0.2, "the near cicada's return"],
+];
 
 describe("the woodland's score", () => {
   it('is the file the memory plays: from where its cue begins to the cut, and nothing after it', () => {
@@ -37,19 +57,6 @@ describe("the woodland's score", () => {
   });
 
   it("no note begins on any of the picture's moments", () => {
-    const settled = TWO_SHOT.herTurn + TURN_STEPS.length / 12;
-    const moments: [number, number, string][] = [
-      // (As the film's drawings show them: the painting comes to rest at 9.75–9.83; the gust is seen
-      // from 11.75 and heard from 11.9: the cinematic director's evaluation, 2026-10-19.)
-      [9.6, 10.0, 'the painting coming to rest'],
-      ...WOODLAND.gusts.map((g): [number, number, string] => [g.at + 0.1, g.at + 0.5, 'the gust arriving']),
-      ...WOODLAND.blinks.a.map((b): [number, number, string] => [b - 0.2, b + 0.4, 'his blink']),
-      [SHOTS.two - 0.7, SHOTS.two + 0.7, 'the cut to the two of them'],
-      [TWO_SHOT.herEyes - 0.5, settled + 0.5, 'her look'],
-      [TWO_SHOT.hisEyes - 0.5, TWO_SHOT.hisRoll + 1, 'his look'],
-      [SHOTS.wideAgain - 0.7, SHOTS.wideAgain + 0.7, 'the cut back to the wide'],
-      [TIMES.near[2][0] - 0.2, TIMES.near[2][0] + 0.2, "the near cicada's return"],
-    ];
     for (const n of score.notes) for (const [a, b, what] of moments) expect(n.t >= a && n.t < b, `${n.t.toFixed(2)} s: ${what}`).toBe(false);
     // Both looks fall inside long notes: the last struck before each is still held when it ends
     // (she looks, and he does, while the music simply goes on).
@@ -84,6 +91,26 @@ describe("the woodland's score", () => {
     const bars = new Map<number, number>();
     for (const b of chords) bars.set(Math.floor(b / 4), (bars.get(Math.floor(b / 4)) ?? 0) + 1);
     for (const [bar, count] of bars) expect(count, `bar ${bar}`).toBeLessThanOrEqual(bar % 4 === 3 ? 2 : 1);
+  });
+
+  it("nothing of the instrument stands out on the picture's moments, nor the recording's crackle; neither marks the cut", () => {
+    // The key's wood and the pedal sound beside the notes, never on a moment; the last pedal change,
+    // in the stillness before the cut, is silent.
+    expect(score.mechanism.length).toBeGreaterThan(20);
+    for (const m of score.mechanism) for (const [a, b, what] of moments) expect(m.t >= a && m.t < b, `${m.kind} at ${m.t.toFixed(2)} s: ${what}`).toBe(false);
+    const lastChord = Math.max(...score.notes.filter((n) => n.hand === 'l').map((n) => n.t));
+    for (const m of score.mechanism) if (m.kind.startsWith('pedal')) expect(Math.abs(m.t - lastChord) > 0.15, `${m.kind} at ${m.t.toFixed(2)} s`).toBe(true);
+    // The crackle: about two ticks a second at random, the same everywhere, none above its median on a
+    // moment, and none in the last second (its stop is not a needle lifting).
+    const ticks = score.crackle;
+    expect(ticks.length / (CUT - SCORE_FROM)).toBeGreaterThan(1);
+    expect(ticks.length / (CUT - SCORE_FROM)).toBeLessThan(3);
+    for (const k of ticks) for (const [a, b, what] of moments) if (k.t >= a && k.t < b) expect(k.db, `a tick at ${k.t.toFixed(2)} s: ${what}`).toBeLessThanOrEqual(0);
+    expect(CUT - ticks[ticks.length - 1].t).toBeGreaterThan(1);
+    const gaps = ticks.slice(1).map((k, i) => k.t - ticks[i].t);
+    const mean = gaps.reduce((a, b) => a + b, 0) / gaps.length;
+    const sd = Math.sqrt(gaps.reduce((a, b) => a + (b - mean) ** 2, 0) / gaps.length);
+    expect(sd / mean, 'never periodic').toBeGreaterThan(0.5);
   });
 
   it('comes home once, between her look and his; the second time the cut takes the note before home', () => {

@@ -1,19 +1,21 @@
 """A small offline sampler for the woodland's score: Upright Piano KW (FreePats, CC0: a Kawai upright
-in a living room, recorded at the player's head), played softly, with its pedal and a little of its
-mechanism, in a small room of its own. Notes are events in seconds; the render covers [t0, t1) of
-that time, so its last sample can fall exactly on a cut.
+in a living room, recorded at the player's head), played softly, as an old upright heard at the bench
+(decisions 109–113 of docs/reviews/2026-10-woodland.md): each note in its place, its strings ringing
+on while the pedal holds them, its mechanism where it can be heard, a small room of the samples' own
+kind, one fault of its own; and, as a switch, the faint texture under it (a trace of bow in its
+strings, a breath of air round them; the recording's crackle is `crackle`). Notes are events in
+seconds; the render covers [t0, t1) of that time, so its last sample can fall exactly on a cut.
 
-Its samples are a minor third apart in two velocity layers: each note is repitched from the nearest
-(and a repeat may be voiced from the next nearest, so that it isn't a copy), to a piano's own stretch
-from where each sample was measured (tuning.json, from tuning.py). `felt` 1 damps it toward a felt
-piano; the score is played as the upright is (0): a felt piano is the white room's own (src/audio/
-Music.ts), and its warmth is what a phone's speaker loses first (the reviews of 2026-10-19).
+Its samples are a minor third apart in two velocity layers: each note is repitched from the nearest,
+its bass to a piano's own stretch from where each sample was measured, its treble keeping its own
+small mistuning (tuning.json, from tuning.py). No felt: a felt piano, its thump and its closing sweep,
+are the white room's own (src/audio/Music.ts).
 """
 import json
 import math
 import os
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from fractions import Fraction
 
 import numpy as np
@@ -30,7 +32,6 @@ class Note:
     vel: int          # 1..127
     dur: float        # key held (s); the pedal may hold it longer
     hand: str = 'r'
-    alt: int = 0      # 1: voiced from the neighbouring sample (a repeat that isn't a copy)
 
 
 @dataclass
@@ -93,31 +94,56 @@ def repitch(x, cents):
     return signal.resample_poly(x, r.numerator, r.denominator, axis=0).astype(np.float32)
 
 
+def aligned_mid(x):
+    """A stereo recording's two sides summed without their phase differences. At a fundamental the
+    coincident pair in that living room can hear the room's field out of step (the C5 sample's sides
+    are 15 dB apart there, and their plain sum loses 3.9 dB). Each moment and frequency keeps the two
+    sides' mean power, and the phase of their sum weighted by their levels (the louder side leads,
+    with no hard switch)."""
+    nper, hop = 2048, 512
+    _, _, Z = signal.stft(x.T, fs=SR, nperseg=nper, noverlap=nper - hop, boundary='even', padded=True)
+    L, R = Z[0], Z[1]
+    mag = np.sqrt((np.abs(L) ** 2 + np.abs(R) ** 2) / 2)
+    ph = np.angle(L * np.abs(L) + R * np.abs(R))
+    _, y = signal.istft(mag * np.exp(1j * ph), fs=SR, nperseg=nper, noverlap=nper - hop, boundary=True)
+    return y[:len(x)].astype(np.float32)
+
+
+def pan(midi):
+    """A key's place as the player hears it (constant power, 1 a side at the centre): the bass a
+    little left, the top a little right."""
+    p = float(np.interp(midi, [41, 80], [-0.2, 0.15]))
+    return math.cos((p + 1) * math.pi / 4) * math.sqrt(2), math.sin((p + 1) * math.pi / 4) * math.sqrt(2)
+
+
+def ring(midi):
+    """How long a string rings on when it is free (T60, s): long in the bass, short at the top."""
+    return float(np.interp(midi, [48, 60, 72, 84], [14.0, 11.0, 8.0, 5.0]))
+
+
 class Piano:
-    def __init__(self, sfz, seed=7):
+    def __init__(self, sfz, seed=7, fault=None):
         self.regions = parse_sfz(sfz)
         self.cache = {}
-        self.matched = {}
         self.rng = np.random.default_rng(seed)
+        # A fault of its own (key -> cents): that key's second string a little off, a slow beat on its
+        # long notes (somebody's piano, not a preset's wear).
+        self.fault = fault or {}
         tj = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tuning.json')
         self.tuning = json.load(open(tj)) if os.path.exists(tj) else {}
 
-    def region(self, midi, vel, alt=0):
-        """The sample for a key: its own (alt 0), or the next nearest of the same layer (alt 1), so
-        that a repeated note is a different string's recording, a few semitones repitched."""
+    def region(self, midi, vel):
+        """The sample for a key: the nearest of its layer (a repeat is the same string)."""
         layer = [r for r in self.regions if r.lovel <= vel <= r.hivel and os.path.exists(r.path)]
         own = [r for r in layer if r.lo <= midi <= r.hi]
         if not own:  # (no loud layer for this key: the soft one)
             layer = [r for r in self.regions if os.path.exists(r.path)]
             own = [r for r in layer if r.lo <= midi <= r.hi]
-        best = min(own, key=lambda r: abs(r.center - midi))
-        if not alt:
-            return best
-        others = sorted({r.center: r for r in layer if r.center != best.center and r.lovel == best.lovel}.values(), key=lambda r: abs(r.center - midi))
-        return others[0] if others and abs(others[0].center - midi) <= 4 else best
+        return min(own, key=lambda r: abs(r.center - midi))
 
     def sample(self, r, need_s):
-        """The region's sample at 48 kHz, looped (if it loops) to at least `need_s` seconds."""
+        """The region's sample at 48 kHz, looped (if it loops) to at least `need_s` seconds, as its
+        mid (its two sides summed without their phase differences) and its side."""
         key = (r.path, round(need_s, 1) if r.loop else 0)
         if key in self.cache:
             return self.cache[key]
@@ -128,30 +154,22 @@ class Piano:
             reps = int(math.ceil((need_s * sr - a) / max(1, b - a))) + 1
             x = np.concatenate([body] + [tail] * reps)
         y = signal.resample_poly(x, 160, 147, axis=0).astype(np.float32)  # 44.1 -> 48 kHz
+        y = np.stack([aligned_mid(y), (y[:, 0] - y[:, 1]) / 2], -1).astype(np.float32)
         self.cache[key] = y
         return y
 
-    def match(self, n: Note):
-        """The gain that brings a key's alternate sample to its own sample's level (each sample was
-        normalised on its own: a repeat voiced from its neighbour was up to 2–3 dB louder)."""
-        key = (n.midi, n.vel > 80)
-        if key not in self.matched:
-            def level(alt):
-                r = self.region(n.midi, n.vel, alt)
-                x = repitch(self.sample(r, 1.0), 100 * (n.midi - r.center))
-                seg = x[int(0.02 * SR):int(0.6 * SR)]
-                return float(np.sqrt((seg ** 2).mean()) + 1e-9)
-            self.matched[key] = level(0) / level(1)
-        return self.matched[key]
-
-    def voice(self, n: Note, off: float, felt=1.0):
-        """One note from its onset to its release `off` (s after onset) and its ring after."""
-        r = self.region(n.midi, n.vel, n.alt)
+    def voice(self, n: Note, off: float):
+        """One note from its onset to its release `off` (s after onset) and its ring after: one
+        sample a key, a little louder or softer each time it is struck; its mid placed by pitch, its
+        own side 24 dB down (the room gives the width: the sample's sides are its living room's)."""
+        r = self.region(n.midi, n.vel)
         rel = 0.12 + 0.35 * np.clip((60 - n.midi) / 36, 0, 1)   # bass dampers are slower
         need = off + rel + 0.05
-        x = self.sample(r, need)
+        x0 = self.sample(r, need)
         measured = self.tuning.get(os.path.basename(r.path), 0.0)
-        x = repitch(x, 100 * (n.midi - r.center) + stretch(n.midi) - measured)
+        # (The treble keeps its own small mistuning, as measured; the bass is brought to the stretch.)
+        cents = 100 * (n.midi - r.center) + stretch(n.midi) - (measured if n.midi < 60 else 0.0)
+        x = repitch(x0, cents)
         n_on = min(len(x), int((off + rel) * SR))
         y = x[:n_on].copy()
         if r.cutoff:  # (the library's own voicing for this sample)
@@ -161,58 +179,221 @@ class Piano:
         if k < len(y):
             tt = np.arange(len(y) - k) / SR
             y[k:] *= np.exp(-tt / (rel / 4.6))[:, None]
-        # touch: soft playing is darker, and felt darker still; the attack's edge rounded
-        g = (n.vel / 127.0) ** 1.8 * (self.match(n) if n.alt else 1.0)
-        # (felt 1: damped toward a felt piano; 0: the upright as it is, only soft playing's darkening)
-        fc = (1700 + 22 * n.vel) if felt >= 1 else (3200 + 60 * n.vel)
-        sos = signal.butter(2 if felt >= 1 else 1, min(fc, SR * 0.45), 'low', fs=SR, output='sos')
+        # touch: soft playing is darker; the hammer's edge rounded over 4 ms
+        g = (n.vel / 127.0) ** 1.8 * 10 ** (self.rng.uniform(-0.5, 0.5) / 20)
+        sos = signal.butter(1, min(3200 + 60 * n.vel, SR * 0.45), 'low', fs=SR, output='sos')
         y = signal.sosfilt(sos, y, axis=0).astype(np.float32)
-        a = int(0.007 * SR)
-        y[:a] *= (0.35 + 0.65 * (0.5 - 0.5 * np.cos(np.linspace(0, np.pi, a))))[:, None]
-        # the felt's own thump, under the note
-        th = int(0.03 * SR)
-        noise = self.rng.standard_normal((th, 2)).astype(np.float32)
-        noise = signal.sosfilt(signal.butter(2, 420, 'low', fs=SR, output='sos'), noise, axis=0)
-        noise *= np.exp(-np.arange(th) / (0.008 * SR))[:, None] * 0.05 * felt
-        y[:th] += noise * float(np.abs(y).max() + 1e-6)
+        a = int(0.004 * SR)
+        y[:a] *= (0.2 + 0.8 * (0.5 - 0.5 * np.cos(np.linspace(0, np.pi, a))))[:, None]
+        # its fault: the key's second string a few cents off, from 10 ms, 8 dB under
+        if n.midi in self.fault:
+            x2 = repitch(x0, cents + self.fault[n.midi])[:len(y)]
+            d = int(0.010 * SR)
+            y2 = np.zeros_like(y)
+            y2[d:len(x2)] = x2[d:len(y)]
+            if k < len(y2):
+                y2[k:] *= np.exp(-np.arange(len(y2) - k) / SR / (rel / 4.6))[:, None]
+            y += signal.sosfilt(sos, y2, axis=0).astype(np.float32) * 10 ** (-8 / 20)
+        mid, side = y[:, 0], y[:, 1] * 10 ** (-24 / 20)
+        gl, gr = pan(n.midi)
+        y = np.stack([gl * mid + side, gr * mid - side], -1).astype(np.float32)
         return y * g, k, rel
 
 
-def mechanism(rng, kind, level):
-    """The instrument's own small sounds: a key's wood, a damper settling, the pedal."""
-    if kind == 'key':
-        n, lo, hi, tau = int(0.012 * SR), 900, 3200, 0.003
-    elif kind == 'damper':
-        n, lo, hi, tau = int(0.05 * SR), 150, 1200, 0.012
-    else:  # pedal
-        n, lo, hi, tau = int(0.14 * SR), 60, 2200, 0.04
-    x = rng.standard_normal((n, 2)).astype(np.float32)
-    x = signal.sosfilt(signal.butter(2, [lo, hi], 'band', fs=SR, output='sos'), x, axis=0)
-    x *= np.exp(-np.arange(n) / (tau * SR))[:, None]
-    return x / (np.abs(x).max() + 1e-9) * level
+def modal(rng, modes, dur, noise=0.0):
+    """An impulse (and a breath of noise) through damped resonators: wood and felt, not a click.
+    modes: [(Hz, Q, gain)]."""
+    n = int(dur * SR)
+    x = np.zeros(n)
+    x[0] = 1.0
+    if noise:
+        x += rng.standard_normal(n) * noise * np.exp(-np.arange(n) / (0.003 * SR))
+    out = np.zeros(n)
+    for f, q, g in modes:
+        b, a = signal.iirpeak(f, q, fs=SR)
+        out += signal.lfilter(b, a, x) * g
+    out *= np.exp(-np.arange(n) / (dur / 4 * SR))
+    return out / (np.abs(out).max() + 1e-12)
 
 
-def room(seconds=0.55, seed=3):
-    """A small, soft room (a house's): early reflections and a short diffuse tail."""
+def knock(rng):
+    """The key bottoming in its bed: 6–12 ms of wood (about 650, 1250, 2300 Hz)."""
+    jit = lambda f: f * rng.uniform(0.93, 1.07)
+    return modal(rng, [(jit(650), rng.uniform(12, 18), 1.0), (jit(1250), rng.uniform(12, 18), 0.7), (jit(2300), 15, 0.35)], rng.uniform(0.006, 0.012), 0.3)
+
+
+def pedal_down(rng):
+    """The pedal's thump: 60–200 Hz, about 50 ms."""
+    return modal(rng, [(rng.uniform(70, 90), 4, 1.0), (rng.uniform(140, 180), 5, 0.6)], 0.05, 0.4)
+
+
+def pedal_up(rng):
+    """The dampers settling on the strings: a felt brush, 200 Hz–2 kHz, 60–120 ms."""
+    n = int(rng.uniform(0.06, 0.12) * SR)
+    x = rng.standard_normal(n)
+    x = signal.sosfilt(signal.butter(2, [200, 2000], 'band', fs=SR, output='sos'), x)
+    x *= np.sin(np.linspace(0, np.pi, n)) ** 2
+    return x / (np.abs(x).max() + 1e-12)
+
+
+def room(seed=3):
+    """A small room heard from the bench, as the samples were (a coincident pair at the player's
+    head): each reflection reaches both sides at once, a little louder on its own side, so the two
+    sides comb alike and a note keeps its place (and a phone's mono loses nothing). Each wall takes
+    some of the top. The floor, the wall behind the piano, the ceiling, the side walls, the wall behind
+    the bench, then a few later ones; a tail from 15 ms, 0.35 s under 1 kHz and 0.25 s over, 15 dB
+    under the direct sound and a little wider than it. For the dry sound's mid; no direct sound."""
     rng = np.random.default_rng(seed)
-    n = int(seconds * SR)
+    n = int(0.6 * SR)
+    ir = np.zeros((n, 2))
+    # (ms after the direct sound, dB, from (degrees, + left), the wall's top)
+    refl = [(2.8, -15, 0, 9000), (4.1, -17, 15, 7000), (5.6, -18, -10, 6000), (6.7, -19, 75, 5000),
+            (8.9, -20, -80, 5000), (11.8, -21, 180, 4000), (13.4, -23, 40, 3500), (15.9, -24, -55, 3000),
+            (18.2, -25, 120, 3000)]
+    for ms, dbv, ang, fc in refl:
+        i = int(round(ms / 1000 * SR))
+        th = math.radians(ang)
+        imp = np.zeros(n - i)
+        imp[0] = 10 ** (dbv / 20)
+        imp = signal.sosfilt(signal.butter(1, fc, 'low', fs=SR, output='sos'), imp)
+        ir[i:, 0] += (0.5 + 0.5 * math.cos(th - math.pi / 4)) * imp
+        ir[i:, 1] += (0.5 + 0.5 * math.cos(th + math.pi / 4)) * imp
     t = np.arange(n) / SR
-    ir = rng.standard_normal((n, 2)).astype(np.float32) * np.exp(-t / (seconds / 6.9))[:, None]
-    ir = signal.sosfilt(signal.butter(1, 3500, 'low', fs=SR, output='sos'), ir, axis=0)
-    for ms, g in ((7, 0.5), (11, 0.4), (17, 0.3), (23, 0.22), (31, 0.16)):
-        i = int(ms / 1000 * SR)
-        ir[i, 0] += g
-        ir[i + int(0.0007 * SR), 1] += g * 0.9
-    ir[:int(0.003 * SR)] = 0
-    return ir / np.sqrt((ir ** 2).sum(0, keepdims=True))
+    noise = rng.standard_normal((n, 2))
+
+    def tail(x):
+        lo = signal.sosfilt(signal.butter(2, 1000, 'low', fs=SR, output='sos'), x) * np.exp(-6.91 * t / 0.35)
+        hi = signal.sosfilt(signal.butter(2, 1000, 'high', fs=SR, output='sos'), x) * np.exp(-6.91 * t / 0.25)
+        return (lo + hi) * np.clip((t - 0.015) / 0.01, 0, 1)
+    m, s = tail(noise[:, 0]), tail(noise[:, 1])
+    m /= np.sqrt((m ** 2).sum())
+    s *= 10 ** (-4 / 20) / np.sqrt((s ** 2).sum())
+    tl = np.stack([m + s, m - s], -1)
+    tl *= 10 ** (-15 / 20) / np.sqrt((tl ** 2).sum(0).mean())
+    return ir + tl
 
 
-def render(piano, notes, pedal, t0, t1, wet=0.16, felt=1.0, mech=1.0, seed=11):
-    """[t0, t1) of the performance: notes held by the keys or the pedal (`pedal`: [(down, up)]),
-    mechanism, the room. The render's last sample is t1 (nothing after it)."""
+def partials(y, f0, lowest=250.0):
+    """A note's own partials near 1, 2 and 3 times its pitch (none under `lowest`), found in its first
+    half second: [(Hz, amplitude re its strongest)], lowest first."""
+    mono = y.mean(1) if y.ndim == 2 else y
+    seg = mono[int(0.05 * SR):int(0.55 * SR)]
+    if len(seg) < 4096:
+        return []
+    spec = np.abs(np.fft.rfft(seg * np.hanning(len(seg))))
+    fr = np.fft.rfftfreq(len(seg), 1 / SR)
+    out = []
+    for k in (1, 2, 3):
+        fk = f0 * k
+        if fk < lowest:
+            continue
+        sel = (fr > fk * 0.985) & (fr < fk * 1.015)
+        if not sel.any():
+            continue
+        i = int(np.argmax(spec * sel))
+        f = fr[i]
+        if 0 < i < len(spec) - 1:  # (between bins: the peak's own frequency)
+            a_, b_, c_ = np.log(spec[i - 1:i + 2] + 1e-12)
+            f += 0.5 * (a_ - c_) / (a_ - 2 * b_ + c_) * (fr[1] - fr[0])
+        out.append((float(f), float(spec[i] / (spec.max() + 1e-12))))
+    return out
+
+
+def halo(y, f0, start, until, level, t60, rel=0.1, at=2.0, seed=0, bow_db=None, air_db=None):
+    """The strings left free by the pedal, ringing on with a note (decision 111): its own partials, as
+    a unison's three strings a fraction of a hertz apart, rising as its own sound falls and ringing
+    at the strings' slower rate while the pedal is down, then stopped by the dampers. `level`: what
+    its lowest partial's band holds `at` seconds in, in dB re that band's peak over the first 0.3 s
+    (the halo makes up what the note's own sound lacks, and is never less than 8 dB under that).
+    Returns the ring (mono) and, with `bow_db` or `air_db`, the texture in it (decision 113): a trace
+    of bow, a stick-slip rasp at the string's period rung through its partials, placed with it; and a
+    breath of air round each partial, wide. Each is that many dB under the note's whole sound (its own
+    and its ring) as it falls: it never rises once the note is struck, and is cut with it."""
+    rng = np.random.default_rng(seed)
+    n = int((until - start + rel) * SR)
+    parts = partials(y, f0)
+    if n <= 0 or not parts:
+        return np.zeros(max(n, 0)), None
+    t = np.arange(n) / SR
+    out = np.zeros(n)
+    for f, amp in parts:
+        # (a slow shimmer between the three strings, never one sine against the note's own partial)
+        for d in (-0.45, 0.1, 0.6):
+            out += amp / math.sqrt(3) * np.sin(2 * np.pi * (f + d * rng.uniform(0.7, 1.3)) * t + rng.uniform(0, 2 * np.pi))
+    env = (1 - np.exp(-t / 0.25)) * np.exp(-6.91 * t / t60)
+    end = int((until - start) * SR)
+    if end < n:
+        env[end:] *= np.exp(-np.arange(n - end) / SR / (rel / 4.6))
+    out *= env
+    fk, amp = parts[0]
+    mono = y.mean(1) if y.ndim == 2 else y
+    band = signal.sosfilt(signal.butter(2, [fk * 0.97, fk * 1.03], 'band', fs=SR, output='sos'), mono[:int((at + 0.3) * SR)])
+    w = int(0.05 * SR)
+    pk = max(float(np.sqrt((band[j:j + w] ** 2).mean())) for j in range(0, int(0.3 * SR), w))
+    own = band[int((at - 0.25) * SR):int((at + 0.25) * SR)]
+    own_p = float((own ** 2).mean()) if len(own) else 0.0
+    want = (pk * 10 ** (level / 20)) ** 2
+    need = math.sqrt(max(want - own_p, want * 10 ** (-8 / 10)))
+    e_at = (1 - math.exp(-at / 0.25)) * math.exp(-6.91 * at / t60)
+    out *= need / (amp / math.sqrt(2) * e_at + 1e-12)
+    if bow_db is None and air_db is None:
+        return out, None
+    # the note's whole sound as it falls (its peak in the attack, then never rising)
+    whole = out.copy()
+    m_ = min(n, len(mono))
+    whole[:m_] += mono[:m_]
+    w = int(0.05 * SR)
+    fall = np.sqrt(np.convolve(whole ** 2, np.ones(w) / w, 'same'))
+    k0 = int(np.argmax(fall[:int(0.1 * SR)]))
+    fall[k0:] = np.minimum.accumulate(fall[k0:])
+    fall[:k0] = fall[k0] * np.arange(k0) / max(k0, 1)
+    tex = np.zeros((n, 2))
+    # (nothing of it held under 400 Hz: no texture in the left hand's register)
+    high = [(f, a_) for f, a_ in parts if f >= 400.0]
+    if not high:
+        return out, None
+    if bow_db is not None:
+        # the bow's slips, at the string's period, a little uneven in time and strength, and its hair
+        per = SR / f0
+        gaps = per * (1 + 0.02 * rng.standard_normal(int(n / per) + 2))
+        pos = np.cumsum(gaps).astype(int)
+        pos = pos[pos < n]
+        exc = np.zeros(n)
+        exc[pos] = rng.lognormal(0, 0.5, len(pos))
+        exc += 0.15 * exc.std() * rng.standard_normal(n)
+        bow = np.zeros(n)
+        for f, a_ in high:
+            b, a = signal.iirpeak(f, 40, fs=SR)
+            bow += a_ * signal.lfilter(b, a, exc)
+        bow *= fall * 10 ** (bow_db / 20) / (float(np.sqrt((bow ** 2).mean())) + 1e-12)
+        tex += bow[:, None]
+    if air_db is not None:
+        mid, side = np.zeros(n), np.zeros(n)
+        for f, a_ in high:
+            b, a = signal.iirpeak(f, f / 12.0, fs=SR)   # (about 12 Hz wide)
+            mid += a_ * signal.lfilter(b, a, rng.standard_normal(n))
+            side += a_ * signal.lfilter(b, a, rng.standard_normal(n))
+        # (a little wider than the ring: its own side 6 dB under its mid)
+        side *= 10 ** (-6 / 20)
+        air = np.stack([mid + side, mid - side], -1)
+        air *= fall[:, None] * 10 ** (air_db / 20) / (float(np.sqrt((air ** 2).mean(0).mean())) + 1e-12)
+        tex += air
+    return out, tex
+
+
+def render(piano, notes, pedal, t0, t1, wet=1.0, mech=1.0, halo_db=-28.0, texture=False, quiet=(), seed=11, info=None):
+    """[t0, t1) of the performance: notes held by the keys or the pedal (`pedal`: [(down, up)]), the
+    strings ringing on while the pedal holds them, the mechanism (the key's wood, the pedal), the
+    room; with `texture`, the trace of bow and the breath of air in the ringing strings. Nothing of
+    the mechanism sounds inside a `quiet` window (the picture's moments), nor at the last pedal
+    change. `info`, if a dict, is given the melody's median attack (`attack`, RMS over its first 40
+    ms) and each mechanism sound (`mechanism`: [(s, kind)]). The render's last sample is t1."""
     rng = np.random.default_rng(seed)
     tail = 3.0
     out = np.zeros((int((t1 - t0 + tail) * SR), 2), np.float32)
+    mech_out = np.zeros_like(out)
+    hush = lambda tt: any(a <= tt < b for a, b in quiet)
+    events = []
 
     def held_until(n):
         end = n.t + n.dur
@@ -221,39 +402,94 @@ def render(piano, notes, pedal, t0, t1, wet=0.16, felt=1.0, mech=1.0, seed=11):
                 return u
         return end
 
+    def add(buf, y, i):
+        j0, j1 = max(0, i), min(len(buf), i + len(y))
+        if j1 > j0:
+            buf[j0:j1] += y[j0 - i:j1 - i]
+
+    attacks = []
     for n in notes:
         if n.t >= t1 + tail:
             continue
         off = held_until(n) - n.t
-        y, k, rel = piano.voice(n, off, felt)
+        y, k, rel = piano.voice(n, off)
         i = int(round((n.t - t0) * SR))
-        j0, j1 = max(0, i), min(len(out), i + len(y))
-        if j1 > j0:
-            out[j0:j1] += y[j0 - i:j1 - i]
-        if mech:
-            m = mechanism(rng, 'key', 0.0025 * mech * (n.vel / 64))
-            if 0 <= i < len(out) - len(m):
-                out[i:i + len(m)] += m
-            e = i + k
-            m = mechanism(rng, 'damper', 0.0018 * mech)
-            if 0 <= e < len(out) - len(m):
-                out[e:e + len(m)] += m
-    if mech:
-        for d, u in pedal:
-            for tt, lv in ((d, 0.003), (u, 0.0022)):
-                i = int(round((tt - t0) * SR))
-                m = mechanism(rng, 'pedal', lv * mech)
-                if 0 <= i < len(out) - len(m):
-                    out[i:i + len(m)] += m
+        add(out, y, i)
+        att = float(np.sqrt((y[:int(0.04 * SR)] ** 2).mean()))
+        if n.hand == 'r':
+            attacks.append(att)
+        if halo_db is not None:
+            f0 = 440 * 2 ** ((n.midi - 69) / 12)
+            h, tex = halo(y, f0, n.t, held_until(n), halo_db, ring(n.midi), seed=int(n.t * 1000) + n.midi,
+                          bow_db=-14.0 if texture else None, air_db=-14.0 if texture else None)
+            gl, gr = pan(n.midi)
+            add(out, np.stack([h * gl, h * gr], -1).astype(np.float32), i)
+            if tex is not None:
+                add(out, (tex * np.array([[gl, gr]])).astype(np.float32), i)
+        # the key in its bed, 10–15 ms before the string (one for a left-hand chord: the bass)
+        if mech and not (n.hand == 'l' and n.midi >= 60):
+            lead = rng.uniform(0.010, 0.015)
+            m = knock(rng) * att * 10 ** ((-28 if n.hand == 'l' else -30 + rng.uniform(-2.5, 2.5)) / 20) * mech
+            if not hush(n.t) and not hush(n.t - lead) and t0 <= n.t - lead < t1:
+                i2 = i - int(lead * SR)
+                add(mech_out, np.stack([m, m], -1).astype(np.float32), i2)
+                events.append((n.t - lead, 'key'))
+    if mech and attacks:
+        ref = float(np.median(attacks))
+        downs = [d for d, u in pedal]
+        for j, (d, u) in enumerate(pedal):
+            # (the last change, the V chord's in the stillness before the cut, is silent: its down,
+            # and the up that makes way for it)
+            last_down = j == len(pedal) - 1
+            last_up = j >= len(pedal) - 2
+            # down: 40–80 ms after the chord; up: at the change (the cadence's quick V–I change light)
+            for tt, kind in ((d + rng.uniform(0.04, 0.08), 'down'), (u, 'up')):
+                if hush(tt) or (kind == 'down' and last_down) or (kind == 'up' and last_up) or not (t0 <= tt < t1):
+                    continue
+                quick = kind == 'up' and any(0 < dd - d < 1.0 for dd in downs if dd > d)
+                lvl = (-36 if kind == 'down' else (-38 if quick else -32)) + rng.uniform(-2.5, 2.5)
+                m = (pedal_down(rng) if kind == 'down' else pedal_up(rng)) * ref * 10 ** (lvl / 20) * mech
+                add(mech_out, np.stack([m, m], -1).astype(np.float32), int(round((tt - t0) * SR)))
+                events.append((tt, 'pedal ' + kind))
+    if info is not None:
+        info['attack'] = float(np.median(attacks)) if attacks else 0.0
+        info['mechanism'] = sorted(events)
+    dry = out + mech_out
     ir = room()
-    wetsig = np.stack([signal.fftconvolve(out[:, c], ir[:, c])[:len(out)] for c in range(2)], -1).astype(np.float32)
-    mix = out * (1 - wet) + wetsig * wet
+    mid = dry.mean(1)
+    wetsig = np.stack([signal.fftconvolve(mid, ir[:, c])[:len(dry)] for c in range(2)], -1).astype(np.float32)
+    mix = dry + wetsig * wet
     mix = signal.sosfilt(signal.butter(2, 32, 'high', fs=SR, output='sos'), mix, axis=0).astype(np.float32)
     return mix[:int(round((t1 - t0) * SR))]
 
 
-def declick(x, ms=4):
-    k = int(ms / 1000 * SR)
-    x = x.copy()
-    x[-k:] *= np.linspace(1, 0, k)[:, None] ** 2
-    return x
+def crackle(t0, t1, level, quiet=(), clear=1.0, rate=2.0, seed=19):
+    """A worn recording's crackle (decision 113): ticks at random, about `rate` a second (never
+    periodic), 1–2 ms of 300 Hz–3 kHz, one side or both; at their median `level` (RMS over the tick),
+    a few up to twice that. None above its median inside a `quiet` window, none in the last `clear`
+    seconds (its stop is not a needle lifting). Returns the signal and its ticks [(s, dB re median)]."""
+    rng = np.random.default_rng(seed)
+    n = int(round((t1 - t0) * SR))
+    out = np.zeros((n, 2))
+    band = signal.butter(2, [300, 3000], 'band', fs=SR, output='sos')
+    ticks = []
+    t = t0
+    while True:
+        t += rng.exponential(1 / rate)
+        if t >= t1 - clear:
+            break
+        db = float(np.clip(rng.normal(0, 2.5), -8, 6))
+        if any(a <= t < b for a, b in quiet):
+            db = min(db, 0.0)
+        L = int(rng.uniform(0.001, 0.002) * SR)
+        burst = np.concatenate([rng.standard_normal(L) * np.hanning(L), np.zeros(int(0.002 * SR))])
+        burst = signal.sosfilt(band, burst)
+        burst *= level * 10 ** (db / 20) / (float(np.sqrt((burst[:L] ** 2).mean())) + 1e-12)
+        i = int(round((t - t0) * SR))
+        j = min(n, i + len(burst))
+        side = rng.random()
+        gains = (1.0, 0.0) if side < 0.3 else (0.0, 1.0) if side < 0.6 else (0.8, 0.8)
+        for c in range(2):
+            out[i:j, c] += burst[:j - i] * gains[c]
+        ticks.append((t, db))
+    return out.astype(np.float32), ticks

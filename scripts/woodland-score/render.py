@@ -1,9 +1,12 @@
 """Render the woodland's score (scripts/woodland-score/score.py) on the sampler (piano.py): the
 memory's file, public/music/woodland-score.mp3, from 8.2 s of the memory (SCORE_FROM in
 src/memory/defs.ts) to the cut at 34.5, where it ends (25 ms), mastered to −23 LUFS (the cue
-sheet sets its level in the room); its notes, for the test that keeps them off the picture's
-moments (notes.json); and the other form, never home, for the artist to compare
-(test-output/review/woodland/sound/woodland-score-b.mp3).
+sheet sets its level in the room), with the faint texture under it (decision 113: a trace of bow
+and a breath of air in its ringing strings, the recording's crackle); its notes, its mechanism
+and its crackle, for the test that keeps them off the picture's moments (notes.json); and, for the
+artist to compare, the piano alone (its ring, mechanism and room, no texture: decision 114) and the
+other form, never home (test-output/review/woodland/sound/woodland-score-piano-alone.mp3 and
+woodland-score-b.mp3).
 
   python3 -m venv .venv-audio && .venv-audio/bin/pip install numpy scipy soundfile
   .venv-audio/bin/python scripts/woodland-score/render.py <the Upright Piano KW folder>
@@ -22,8 +25,8 @@ import soundfile as sf
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from loud import integrated  # noqa: E402
-from piano import SR, Piano, render  # noqa: E402
-from score import BEAT, CUT, S1, S2, performance  # noqa: E402
+from piano import SR, Piano, crackle, render  # noqa: E402
+from score import BEAT, CUT, MOMENTS, S1, S2, performance  # noqa: E402
 
 ROOT = os.path.normpath(os.path.join(HERE, '..', '..'))
 FROM = 8.2
@@ -31,6 +34,11 @@ FROM = 8.2
 # distance from the place stays the same as in the wides (measured: tests/playtest/woodland-audio.ts;
 # 4.5 since the wind, the two-shot's bed, came down: the artist, 2026-10-20).
 DIP_DB = float(os.environ.get('DIP_DB', 4.5))
+# Its one fault (decision 110): F5's second string 2.5 cents sharp, a beat of about 1 Hz on its two
+# long notes.
+FAULT = {77: 2.5}
+# The crackle's ticks at their median, under the melody's median attack (dB; decision 113).
+CRACKLE_DB = -34.0
 
 
 def smooth(e0, e1, x):
@@ -47,12 +55,19 @@ def mp3(x, path):
 
 
 def main(library):
-    p = Piano(os.path.join(library, 'UprightPianoKW-20220221.sfz'))
-    for form, out in (('A', os.path.join(ROOT, 'public/music/woodland-score.mp3')),
-                      ('B', os.path.join(ROOT, 'test-output/review/woodland/sound/woodland-score-b.mp3'))):
+    p = Piano(os.path.join(library, 'UprightPianoKW-20220221.sfz'), fault=FAULT)
+    versions = (('A', True, os.path.join(ROOT, 'public/music/woodland-score.mp3')),
+                ('A', False, os.path.join(ROOT, 'test-output/review/woodland/sound/woodland-score-piano-alone.mp3')),
+                ('B', True, os.path.join(ROOT, 'test-output/review/woodland/sound/woodland-score-b.mp3')))
+    for form, texture, out in versions:
         notes, pedal = performance(form)
+        info = {}
         # From a little before the file, so that the go-round's last chord is ringing when it begins.
-        x = render(p, notes, pedal, FROM - 1.2, CUT, felt=0.0, wet=0.12)[int(round(1.2 * SR)):]
+        x = render(p, notes, pedal, FROM - 1.2, CUT, texture=texture, quiet=MOMENTS, info=info)[int(round(1.2 * SR)):]
+        ticks = []
+        if texture:
+            c, ticks = crackle(FROM, CUT, info['attack'] * 10 ** (CRACKLE_DB / 20), quiet=MOMENTS)
+            x = x + c[:len(x)]
         t = FROM + np.arange(len(x)) / SR
         # It comes into hearing with the clearing, a little behind it (the clearing opens 6.5–10.5:
         # src/memory/synthWoods.ts), never as the loudest thing there (both directors' evaluations:
@@ -70,11 +85,13 @@ def main(library):
         mp3(x.astype(np.float32), out)
         heard = [n for n in notes if n.t >= FROM]
         print(f'{out}: {len(x) / SR:.2f} s, peak {20 * np.log10(np.abs(x).max()):.1f} dBFS, {len(heard)} notes struck')
-        if form == 'A':
+        if form == 'A' and texture:
             row = lambda n: {'t': round(n.t, 4), 'midi': n.midi, 'vel': n.vel, 'dur': round(n.dur, 4), 'hand': n.hand}
             json.dump({'from': FROM, 'cut': CUT, 'beat': BEAT, 'statements': [round(S1, 4), round(S2, 4)],
                        'notes': [row(n) for n in sorted(heard, key=lambda n: n.t)],
-                       'ringing': [row(n) for n in sorted(notes, key=lambda n: n.t) if n.t < FROM]},
+                       'ringing': [row(n) for n in sorted(notes, key=lambda n: n.t) if n.t < FROM],
+                       'mechanism': [{'t': round(tt, 4), 'kind': k} for tt, k in info['mechanism'] if FROM <= tt < CUT],
+                       'crackle': [{'t': round(tt, 4), 'db': round(db, 1)} for tt, db in ticks]},
                       open(os.path.join(HERE, 'notes.json'), 'w'), indent=1)
 
 

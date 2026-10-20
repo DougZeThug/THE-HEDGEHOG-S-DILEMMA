@@ -1,18 +1,19 @@
-"""Film A for the artist: the room before (5 s), the woodland, the room after (8 s), at speed, with
-its sound (woodland-film-sound.py) and, for a visitor who chooses them, its captions (woodland-captions.mjs);
-and short clips of the alternatives. The pictures are the films already recorded from this build's
-memory (the sound changed, not the picture): heart/ for the room, the way in and the dusk,
-context5/ for the two-shot and the second wide (her rebuilt turn); the room before and after held
-on their first and last frame.
+"""The films for the artist: the room before (5 s), the woodland, the room after (8 s), at speed, with
+its sound (woodland-film-sound.py): A as the room plays it, the piano with the faint texture under it
+(and A again, for a visitor who chooses them, with its captions: woodland-captions.mjs), and B, the
+piano alone (decision 114). The pictures are the films already recorded from this build's memory
+(the sound changed, not the picture): heart/ for the room, the way in and the dusk, context5/ for
+the two-shot and the second wide (her rebuilt turn); the room before and after held on their first
+and last frame.
 
   npm run build
   .venv-audio/bin/python tests/playtest/woodland-film.py test-output/review/woodland/sound
 
-once the sound of each version is made first, into <out dir>/A.wav (as built; and A-phone.wav)
-and B.wav (the score's other form, never home):
+once the sound of each version is made first, into <out dir>/A.wav (as built) and P.wav (the piano
+alone, scripts/woodland-score/render.py's woodland-score-piano-alone.mp3):
   PRE=5 POST=8 GAIN=0 STEMS=<out>/stems-A OUT=<out>/mix npx vite-node tests/playtest/woodland-audio.ts
-  PRE=5 POST=8 GAIN=0 STEMS=<out>/stems-B OUT=<out>/mix OVERRIDE='{"music:score":{"asset":"<out>/woodland-score-b.mp3"}}' npx vite-node tests/playtest/woodland-audio.ts
-  .venv-audio/bin/python tests/playtest/woodland-film-sound.py <out>/stems-A <out>/A.wav <out>/A-phone.wav   (and B)
+  PRE=5 POST=8 GAIN=0 STEMS=<out>/stems-P OUT=<out>/mix OVERRIDE='{"music:score":{"asset":"<abs out>/woodland-score-piano-alone.mp3"}}' npx vite-node tests/playtest/woodland-audio.ts
+  .venv-audio/bin/python tests/playtest/woodland-film-sound.py <out>/stems-A <out>/A.wav   (and P)
   node tests/playtest/woodland-captions.mjs <out>/caps
 """
 import os
@@ -73,7 +74,4 @@ if __name__ == '__main__':
     # captions on, as a visitor who chooses them in settings sees it (src/ui/prefs.ts).
     film(d, os.path.join(out, 'A.wav'), os.path.join(out, 'woodland-film-A.mp4'))
     film(d, os.path.join(out, 'A.wav'), os.path.join(out, 'woodland-film-A-with-captions-chosen.mp4'), caps=True)
-    film(d, os.path.join(out, 'A-phone.wav'), os.path.join(out, 'woodland-film-A-phone-speaker.mp4'))
-    # The alternatives, from the cut to the two of them (15.0) to the room taking the painting back (43.5).
-    film(d, os.path.join(out, 'B.wav'), os.path.join(out, 'alternative-never-home-15-43.mp4'), PRE + 15.0, PRE + 43.5)
-    film(d, os.path.join(out, 'A.wav'), os.path.join(out, 'as-built-15-43.mp4'), PRE + 15.0, PRE + 43.5)
+    film(d, os.path.join(out, 'P.wav'), os.path.join(out, 'woodland-film-B-piano-alone.mp4'))
