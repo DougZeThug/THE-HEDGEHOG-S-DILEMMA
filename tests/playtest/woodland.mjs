@@ -156,14 +156,18 @@ for (const how of ['turn', 'step']) {
   // 18.5, 19.0): after 1.2 s settled, the two of them close again (held, any frame).
   await page.evaluate(() => window.__hedgehog.heldAt(20.0));
   await look(-140);
+  // (Its 1.2 s is the room's own time, which software GL's slow frames advance by a tenth of a
+  // second each: waited for in that time, up to 4 s of it, not the wall's.)
   let back = null;
-  const t0 = Date.now();
-  while (Date.now() - t0 < 8000) {
+  const t0 = Date.now(), r0 = await page.evaluate(() => window.__hedgehog.time);
+  while (Date.now() - t0 < 90000) {
     const s = await shot();
+    const since = (await page.evaluate(() => window.__hedgehog.time)) - r0;
     if (s === 1) {
-      back = { after: (Date.now() - t0) / 1000, turned: await turned() };
+      back = { after: +since.toFixed(2), turned: await turned() };
       break;
     }
+    if (since > 4) break;
     await page.waitForTimeout(200);
   }
   at.back = back;
