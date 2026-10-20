@@ -206,12 +206,14 @@ export class SurfaceLayout {
    * the line where the woodland's painting was, `within` its former place): just under `anchor` and
    * close to it, as a hand writes the next line under its own (its top 2–15 cm under the anchor's
    * foot, overlapping at least half the narrower of the two), nearest first to just under its start,
-   * a little in; never above it or beside it. Writing in the way stops it unless `movable` says that
-   * place can go elsewhere (a line not yet shown); those come back with it, to be placed again. It
-   * keeps 20 cm clear of the writing in `clear` (what is already on the wall), so it is never read as
-   * another line's answer, nor run on into one. Null if nothing fits: then nothing is written.
+   * a little in; never above it or beside it. It keeps `clearance` (20 cm) from all writing, so it is
+   * never read as another line's answer, nor run on into one: from the writing in `clear` (what is
+   * already on the wall), and from every place on the wall unless `movable` says that place can go
+   * elsewhere (a line not yet shown); those come back with it, to be placed again. A place that can't
+   * move (a line's own) stops it, written yet or not: written later, that line would sit beside it.
+   * Null if nothing fits: then nothing is written.
    */
-  findUnder(anchor: Placement, w: number, h: number, within: Rect, movable: (p: Placement) => boolean, clear: readonly Rect[] = [], pad = 0.015): { rect: Rect; displaced: Placement[] } | null {
+  findUnder(anchor: Placement, w: number, h: number, within: Rect, movable: (p: Placement) => boolean, clear: readonly Rect[] = [], clearance = 0.2): { rect: Rect; displaced: Placement[] } | null {
     const size = surfaceSize(anchor.surface);
     const foot = anchor.v - anchor.h / 2;
     const iu = anchor.u - anchor.w / 2 + w / 2 + anchor.w * 0.08, iv = foot - h / 2 - 0.04;
@@ -227,8 +229,8 @@ export class SurfaceLayout {
     cands.sort((a, b) => Math.hypot(a.u - iu, a.v - iv) - Math.hypot(b.u - iu, b.v - iv));
     const placed = this.placed.get(anchor.surface)!;
     for (const r of cands) {
-      if (clear.some((q) => overlaps(r, q, 0.2))) continue;
-      const blocking = placed.filter((q) => q !== anchor && overlaps(r, q, pad));
+      if (clear.some((q) => overlaps(r, q, clearance))) continue;
+      const blocking = placed.filter((q) => q !== anchor && overlaps(r, q, clearance));
       if (blocking.every(movable)) return { rect: r, displaced: blocking };
     }
     return null;

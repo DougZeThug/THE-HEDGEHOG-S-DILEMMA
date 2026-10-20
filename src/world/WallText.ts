@@ -755,6 +755,9 @@ export class WallText {
     if (!found) return false;
     for (const p of found.displaced) this.layout.remove(p);
     const pl = this.layout.add({ surface: anchor.surface, ...found.rect, rot: (((hashString(o.key) % 100) / 100) - 0.5) * 0.04 });
+    // (Kept clear for the rest of the visit: nothing placed after it, those lines included, comes
+    // within 20 cm.)
+    this.layout.add({ surface: anchor.surface, u: pl.u, v: pl.v, w: pl.w + 0.4, h: pl.h + 0.4, rot: 0 });
     for (const p of found.displaced) {
       const id = slots.get(p)!;
       this.placements.set(id, this.layout.place(PHRASE_BY_ID.get(id)!, (q) => measureText(q.text, q.hand, q.size)));
