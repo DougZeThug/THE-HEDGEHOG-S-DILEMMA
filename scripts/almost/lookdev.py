@@ -51,6 +51,7 @@ def main():
     sc = bpy.context.scene
     performance.calibrate(figs)
     performance.resolve(figs)
+    build.warm_fibres(figs)     # (grown where the film grows them: at its first pose)
     ka, _, kb = str(opts.get('pose', 'together+together')).partition('+')
     performance.apply(figs, {'a': performance.A[ka], 'b': performance.B[kb or 'together']})
     for view in views:

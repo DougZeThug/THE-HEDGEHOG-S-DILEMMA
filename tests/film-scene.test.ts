@@ -59,7 +59,7 @@ const gl = { getRenderTarget: () => null, setRenderTarget: () => {}, render: () 
 const view = new THREE.Vector4(0, 0, 1, 1);
 const make = () => {
   const video = new FakeVideo();
-  const scene = new FilmScene({ video: video as unknown as HTMLVideoElement, fps: 24, frames: 744 }, { width: 16, height: 16, reduced: false });
+  const scene = new FilmScene({ video: video as unknown as HTMLVideoElement, fps: 24, frames: Math.round(FILM_SECONDS * 24) }, { width: 16, height: 16, reduced: false });
   return { video, scene };
 };
 const settle = () => new Promise((r) => setTimeout(r, 0));
@@ -70,8 +70,8 @@ describe('a film as a living memory', () => {
     expect(scene.frameAt({ 'scene.film': 0 })).toBe(0);
     expect(scene.frameAt({ 'scene.film': 1 })).toBe(24);
     expect(scene.frameAt({ 'scene.film': 12.5 })).toBe(300);
-    expect(scene.frameAt({ 'scene.film': 30.999 })).toBe(743);
-    expect(scene.frameAt({ 'scene.film': 40 })).toBe(743);
+    expect(scene.frameAt({ 'scene.film': FILM_SECONDS - 0.001 })).toBe(Math.round(FILM_SECONDS * 24) - 1);
+    expect(scene.frameAt({ 'scene.film': FILM_SECONDS + 9 })).toBe(Math.round(FILM_SECONDS * 24) - 1);
     expect(scene.frameAt({ 'scene.film': -1 })).toBe(0);
     expect(scene.frameAt({})).toBe(0);
     expect(scene.choose()).toBe(0);
@@ -164,7 +164,7 @@ describe('a film as a living memory', () => {
     scene.update(gl, 50, { 'scene.film': FILM_SECONDS }, { view });
     scene.update(gl, 50 + 1 / 60, { 'scene.film': FILM_SECONDS }, { view });
     expect(video.paused).toBe(true);
-    expect(video.currentTime).toBeCloseTo(743.5 / 24, 9);
+    expect(video.currentTime).toBeCloseTo((FILM_SECONDS * 24 - 0.5) / 24, 9);
   });
 
   it('let go: the video stops and its blob URL is released', () => {
@@ -194,7 +194,7 @@ describe('Almost on its timeline', () => {
     const full = imm.find(([, v]) => v === 1)!;
     expect(full[0]).toBeLessThan(FILM_AT);
     // Out once the film is all but over, on its held last moments.
-    expect(ALMOST_SECTIONS.exit).toBeGreaterThan(FILM_AT + 29);
+    expect(ALMOST_SECTIONS.exit).toBeGreaterThan(FILM_AT + FILM_SECONDS - 1.5);
     expect(ALMOST_SECTIONS.exit).toBeLessThanOrEqual(FILM_AT + FILM_SECONDS);
   });
 

@@ -5,20 +5,28 @@ so each photograph only needs the part of the picture that changed since the las
 
     --res WxH       the open-matte frame (default 1280x1440). Both crops come from the same
                     photographs: a 16:9 band for wide screens and a 9:16 crop for upright phones.
-    --samples N     (default 96)
-    --draft         blocking: no fibres, 16 samples, half size
+    --samples N     (default 80)
+    --draft         blocking: no fibres, 16 samples, half size, denoised regions as PNG
     --only A-B      photographs A..B only (in order of first use)
 
 **Photograph 0** is rendered whole.
 
 **Each later photograph** renders only the region where anything changed since the one before:
-- the moving parts, both before and after;
-- their shadows on the table, the floor and the wall;
-- padded.
+- the vertices that moved, where they were and where they are;
+- their shadows from the bulb on the table top and on the wall above the table's far edge (the
+  floor is never in frame);
+- padded (more where her long hair moved: its fibres are 7 mm).
 
-It is rendered with the same fixed seed, so nothing that stood still differs. It is written to
-DIR/regions/NNNN.png, with its place in DIR/regions.json. `assemble.py` pastes the regions in order
-into whole photographs, then lays the frames out by the exposure sheet.
+**What a photograph is made of.** It is rendered with the same fixed seed and no dither, and
+written noisy: DIR/regions/NNNN.exr (the image and the denoiser's albedo and normal), with its place
+in DIR/regions.json. Pasted into the photograph before it, nothing that stood still differs by a
+bit. `develop.py` pastes them in order and denoises each whole photograph once. (Each region
+denoised alone re-made the room round it every photograph, so the room shimmered in rectangles:
+the technical artist's review, 2026-10-20.) `assemble.py` lays the developed photographs out by
+the exposure sheet.
+
+**The fibres.** They are grown once, at the rest pose, before the first photograph (a tiny warm-up
+render), so every run grows the same fibres.
 
 Re-running resumes: regions already on disk are kept. A region depends on the photograph before
 it, so change a pose and re-render from that photograph on (`--only`).
@@ -40,7 +48,9 @@ import kitchen  # noqa: E402
 import performance  # noqa: E402
 import xsheet  # noqa: E402
 
-PAD = 26          # pixels round a change (fibres, soft shadows, the lens's blur, the denoiser's reach)
+PAD = 30          # pixels round a change (fibres, soft shadows, the lens's blur)
+PAD_HAIR = 50     # round a change of her long hair (its fibres are 7 mm, about 40 px)
+SEEN_WALL_Z = 0.047   # the back wall is seen above the table's far edge down to about here
 
 
 def movers(figs):
@@ -84,7 +94,9 @@ def project(pts):
 
 
 def shadows(pts):
-    """Where the bulb throws the shadows of `pts`: on the table top, else the floor, and the wall."""
+    """Where the bulb throws the shadows of `pts` that can be seen: on the table top, and on the wall
+    above the table's far edge. (A shadow on the floor, or one the table already casts, is never in
+    frame.)"""
     L = np.array(bpy.data.objects['bulb light'].location)
     zt = kitchen.TABLE_TOP
     x0, x1 = kitchen.TABLE_X
@@ -96,27 +108,32 @@ def shadows(pts):
     S = L + (pts - L) * t[:, None]
     on_table = below & (pts[:, 2] > zt) & (S[:, 0] > x0) & (S[:, 0] < x1) & (S[:, 1] > y0) & (S[:, 1] < y1)
     out.append(S[on_table])
-    tf = np.where(below, (0.0 - L[2]) / np.where(below, dz, -1), np.inf)
-    F = L + (pts - L) * tf[:, None]
-    out.append(F[below & ~on_table])
     dy = pts[:, 1] - L[1]
     back = dy > 1e-6
     tw = np.where(back, (kitchen.WALL_Y - L[1]) / np.where(back, dy, 1), np.inf)
     Wp = L + (pts - L) * tw[:, None]
-    out.append(Wp[back & (Wp[:, 2] > 0) & (Wp[:, 2] < 0.4)])
+    # (a ray going down past the table's far edge, from above it, is stopped by the table)
+    tz = np.where(back & below, (zt - L[2]) / np.where(below, dz, -1), np.inf)
+    cross = L + (pts - L) * tz[:, None]
+    blocked = (pts[:, 2] > zt) & (Wp[:, 2] < zt) & (cross[:, 1] < y1)
+    out.append(Wp[back & ~on_table & ~blocked & (Wp[:, 2] > SEEN_WALL_Z) & (Wp[:, 2] < 0.4)])
     return np.concatenate(out) if out else np.zeros((0, 3))
 
 
 def changed_region(s0, s1):
-    """The pixel box (x0, y0, x1, y1; y down) holding everything that differs between two poses."""
+    """The pixel box (x0, y0, x1, y1; y down) holding everything that differs between two poses:
+    the vertices that moved (where they were and where they are) and their shadows."""
     pts = []
+    hair = False
     for name, b in s1.items():
         a = s0.get(name)
         if a is None or a.shape != b.shape:
             pts.append(b)
             continue
-        if np.abs(a - b).max() > 2e-6:
-            pts += [a, b]
+        moved = np.abs(a - b).max(axis=1) > 2e-6
+        if moved.any():
+            pts += [a[moved], b[moved]]
+            hair = hair or 'long hair' in name or 'front hair' in name
     if not pts:
         return None
     P = np.concatenate(pts)
@@ -126,10 +143,11 @@ def changed_region(s0, s1):
     x, y = project(P)
     sc = bpy.context.scene
     W, H = sc.render.resolution_x, sc.render.resolution_y
-    x0 = int(max(0, np.floor(x.min()) - PAD))
-    x1 = int(min(W, np.ceil(x.max()) + PAD))
-    y0 = int(max(0, np.floor(y.min()) - PAD))
-    y1 = int(min(H, np.ceil(y.max()) + PAD))
+    pad = PAD_HAIR if hair else PAD
+    x0 = int(max(0, np.floor(x.min()) - pad))
+    x1 = int(min(W, np.ceil(x.max()) + pad))
+    y0 = int(max(0, np.floor(y.min()) - pad))
+    y1 = int(min(H, np.ceil(y.max()) + pad))
     if x1 - x0 < 8 or y1 - y0 < 8:
         return None
     return x0, y0, x1, y1
@@ -152,6 +170,20 @@ def render_region(path, box):
     bpy.ops.render.render(write_still=True)
 
 
+def noisy_exr():
+    """Regions as they come off the sensor: no denoiser, no dither, float, with the denoiser's
+    albedo and normal passes (develop.py denoises each whole photograph once)."""
+    sc = bpy.context.scene
+    sc.cycles.use_denoising = False
+    sc.render.dither_intensity = 0.0
+    sc.view_layers[0].cycles.denoising_store_passes = True
+    im = sc.render.image_settings
+    im.media_type = 'MULTI_LAYER_IMAGE'     # (Blender 5: a multilayer EXR is a media type)
+    im.file_format = 'OPEN_EXR_MULTILAYER'
+    im.color_depth = '16'
+    im.exr_codec = 'ZIP'
+
+
 def main():
     opts = build.args()
     out = opts['out']
@@ -159,7 +191,7 @@ def main():
     if '--res' not in sys.argv:
         opts['res'] = (640, 720) if draft else (1280, 1440)
     if '--samples' not in sys.argv:
-        opts['samples'] = 16 if draft else 96
+        opts['samples'] = 16 if draft else 80
     os.makedirs(os.path.join(out, 'regions'), exist_ok=True)
     figs = build.setup(opts)
     sc = bpy.context.scene
@@ -169,8 +201,13 @@ def main():
                 if m.type == 'PARTICLE_SYSTEM':
                     m.show_render = False
         sc.cycles.max_bounces = 4
+    else:
+        noisy_exr()
+    ext = 'png' if draft else 'exr'
     performance.calibrate(figs)
     performance.resolve(figs)
+    if not draft:
+        build.warm_fibres(figs)
     a, b, frames, unique = xsheet.frames()
     order = sorted(unique.items(), key=lambda kv: kv[1])
     lo, hi = 0, len(order) - 1
@@ -178,7 +215,10 @@ def main():
         lo, hi = (int(x) for x in str(opts['only']).split('-'))
     meta_path = os.path.join(out, 'regions.json')
     meta = json.load(open(meta_path)) if os.path.exists(meta_path) else {}
-    meta.update({'size': list(opts['res']), 'fps': xsheet.FPS, 'frames': [u for _, _, u in frames]})
+    vs = sc.view_settings
+    meta.update({'size': list(opts['res']), 'fps': xsheet.FPS, 'frames': [u for _, _, u in frames], 'format': ext,
+                 'view': {'transform': vs.view_transform, 'look': vs.look, 'exposure': vs.exposure, 'gamma': vs.gamma,
+                          'display': sc.display_settings.display_device}})
     meta.setdefault('photos', {})
     objs = movers(figs)
     prev = None
@@ -191,7 +231,7 @@ def main():
         pb = performance.mix(performance.B[db[0]], performance.B[db[1]], db[2])
         performance.apply(figs, {'a': pa, 'b': pb})
         snap = snapshot(objs)
-        path = os.path.join(out, 'regions', f'{u:04d}.png')
+        path = os.path.join(out, 'regions', f'{u:04d}.{ext}')
         if u >= lo and not os.path.exists(path):
             box = None if prev is None else changed_region(prev, snap)
             if prev is not None and box is None:

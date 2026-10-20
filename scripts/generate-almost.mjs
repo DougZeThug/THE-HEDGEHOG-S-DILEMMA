@@ -80,7 +80,8 @@ if (estimate > budget) {
   console.error('Over budget. Nothing was generated.');
   process.exit(1);
 }
-const balance = balanceAllows(await readBalance(KEY), estimate);
+const account = await readBalance(KEY);
+const balance = balanceAllows(account, estimate);
 console.log(`balance: ${balance.note}`);
 if (!balance.ok) process.exit(1);
 
@@ -97,7 +98,11 @@ for (const j of todo) {
   }
   writeFileSync(join(OUT, j.file), Buffer.from(await res.arrayBuffer()));
   const cost = Number(res.headers.get('character-cost') ?? NaN);
-  ledger.entries[j.file] = { key: `almost:${j.id}`, text: j.text, duration: j.seconds, cost: Number.isFinite(cost) ? cost : null, at: new Date().toISOString(), review: 'pending' };
+  // (what the take was made with and under which plan: its terms decide what it may be used for)
+  ledger.entries[j.file] = {
+    key: `almost:${j.id}`, text: j.text, duration: j.seconds, cost: Number.isFinite(cost) ? cost : null, at: new Date().toISOString(), review: 'pending',
+    model: 'eleven_text_to_sound_v2', influence: j.influence, loop: !!j.loop, tier: account.known ? account.tier : null, request: res.headers.get('request-id'),
+  };
   if (Number.isFinite(cost)) ledger.spent += cost;
   writeFileSync(LEDGER, JSON.stringify(ledger, null, 2) + '\n');
   console.log(`✓ ${j.file}${Number.isFinite(cost) ? ` (${cost} credits)` : ''}`);

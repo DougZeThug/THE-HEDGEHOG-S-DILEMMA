@@ -570,7 +570,7 @@ export class App {
     this.ambience?.hold(this.time + prepared.def.sections.end);
     // A memory whose music is the room's last: no chord of the room's under it (its reverb isn't
     // hushed, and four of its five chords are a semitone from the woodland's key).
-    if (this.ambience && prepared.def.lastMusic === prepared.variant) this.ambience.score.drone = 0;
+    if (this.ambience && (prepared.def.lastMusic === prepared.variant || prepared.def.drone === false)) this.ambience.score.drone = 0;
     if (prepared.def.roomDim) this.lighting.dimToChair(prepared.def.roomDim, prepared.def.maxHold + 4, this.time);
     if (this.director.scenes.active?.id !== id) this.director.memoryExternal(id);
     // Its position 0 is this instant on the audio clock, for its first sounds and its first frame
@@ -623,6 +623,8 @@ export class App {
       if (p.def.lastMusic === p.variant) {
         if (seen) this.director.withdrawMusic();
         if (this.ambience && !this.director.musicWithdrawn) this.ambience.score.drone = 1;
+      } else if (p.def.drone === false && this.ambience && !this.director.musicWithdrawn) {
+        this.ambience.score.drone = 1;
       }
       this.ambience?.hold(this.time + Math.max(12, this.director.aftermathLeft()));
     }

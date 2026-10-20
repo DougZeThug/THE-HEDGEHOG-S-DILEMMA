@@ -23,10 +23,10 @@ KEYS = [
     ('3  the corner rises under his fingertip', 'lift2', 'touched'),
     ('4  she starts', 'lift2', 'startle1'),
     ('5  his hand left in the air', 'after drop', 'withdrawn'),
-    ('5  into his lap, turned away', 'lap left', 'withdrawn'),
-    ('6  she looks at him', 'lap', 'look'),
-    ('6  she lays her arm nearer him', 'lap', 'offer2'),
-    ('8  almost', 'lap', 'lower'),
+    ('5  into his lap', 'lap left', 'withdrawn'),
+    ('6  she looks at him', 'lap left', 'look'),
+    ('6  she lays her arm nearer him', 'lap left', 'offer2'),
+    ('8  almost', 'lap breathe', 'lower'),
 ]
 
 
@@ -47,6 +47,8 @@ def main():
                     m.show_render = False
     performance.calibrate(figs)
     performance.resolve(figs)
+    if not draft:
+        build.warm_fibres(figs)     # (grown where the film grows them: at its first pose)
     tmp = tempfile.mkdtemp()
     cells = []
     for i, (caption, ka, kb) in enumerate(KEYS):

@@ -66,49 +66,48 @@ class Track:
 
 def sheet():
     """The performance, beat by beat (frames at 24 a second; the cinematic and creative directors'
-    reviews of 2026-10-20 set the spacing). The film's clock starts once the visitor is inside: its
-    first frame is held on the wall while the fibres and the colour come."""
+    reviews of 2026-10-20 set the spacing, the skeptic's cut it). The film's clock starts once the
+    visitor is inside: its first frame is held on the wall while the fibres and the colour come, so
+    "together" on the sheet is short."""
     a, b = Track('together'), Track('together')
-    # 1. together (0-4 s): still, as they have sat many evenings; one slow breath each (in over four
-    # drawings on fours, out over five), not together
-    a.hold(24, 'together').move('breathe', 4, 4, 'inout').move('together', 5, 4, 'inout')
-    b.hold(44).move('breathe', 4, 4, 'inout').move('together', 5, 4, 'inout')
-    # 2. noticing (4 s): his eyes, then his head, go to the fold on her sleeve, and stay there
-    a.to_frame(96).move('notice', 6, 2, 'out', 'noticing')
-    # 3. reaching (5.25 s): the wrist lifts first; across in goes; a hesitation in which the fingers
+    # 1. together (0-2.5 s): still, as they have sat many evenings; one slow breath of his, deep
+    # enough to be seen (in over four drawings on fours, out over five)
+    a.hold(8, 'together').move('breathe', 4, 4, 'inout').move('together', 5, 4, 'inout')
+    # 2. noticing (2.5 s): his eyes, then his head, go from his cup to the fold on her sleeve, and
+    # stay there
+    a.to_frame(60).move('notice', 6, 2, 'out', 'noticing')
+    # 3. reaching (3.75 s): the wrist lifts first; across in goes; a hesitation in which the fingers
     # draw in a little; on; low and level from his side to the fold
-    a.to_frame(126).move('lift', 5, 2, 'in', 'reach')
+    a.to_frame(90).move('lift', 5, 2, 'in', 'reach')
     a.move('carry', 6, 2, 'linear').move('hesitate', 4, [2, 2, 2, 3], 'out')
     a.hold(6, 'hesitation').move('hesitate curl', 1, 6, 'linear')
     a.move('approach', 5, 2, 'inout').move('near', 4, [2, 2, 3, 3], 'out').hold(1)
-    a.move('touch', 2, 2, 'out', 'touch')                       # fingertip on the fold from 192
+    a.move('touch', 2, 2, 'out', 'touch')                       # fingertip on the fold from 156
     # 4. the corner rises under his fingertip, one drawing after the other; then, on ones, she
     # starts (a blink, the flinch, the arm snatched back), and lays her arm down again nearer her
     a.move('lift1', 1, 2, 'linear').move('lift2', 1, 4, 'linear')
-    b.to_frame(194).move('touched half', 1, 2, 'linear', 'contact').move('touched', 1, 4, 'linear')
+    b.to_frame(158).move('touched half', 1, 2, 'linear', 'contact').move('touched', 1, 4, 'linear')
     b.move('startle1', 1, 1, 'linear', 'startle').move('startle2', 1, 1, 'linear').move('startle3', 1, 2, 'linear')
     b.move('settle', 2, 2, 'out').move('withdrawn', 2, 3, 'inout')
     # 5. realisation: his hand stays in the air where her sleeve was; drops a little; a blink; back
-    # across the table a little quicker than it came (reluctant to start), and down into his lap
-    a.to_frame(222, 'suspended').move('after drop', 2, 2, 'out').hold(6)
+    # across the table a little quicker than it came (reluctant to start), turned along the edge
+    # and slipped down past it into his lap
+    a.to_frame(186, 'suspended').move('after drop', 2, 2, 'out').hold(6)
     a.move('blink', 1, 2, 'linear', 'blink').move('half blink', 1, 2, 'linear').move('after drop', 1, 2, 'linear')
-    a.to_frame(248).move('back1', 4, 2, 'in', 'withdraws').move('back2', 3, 3, 'linear')
-    a.move('back3', 3, [2, 3, 3], 'linear').move('back3b', 2, 2, 'linear').move('back4', 2, 2, 'linear')
-    a.move('lap left', 4, [2, 2, 3, 3], 'out', 'into his lap')
-    # his other hand follows it, after a moment
-    a.to_frame(306).move('lap right', 3, 2, 'in', 'the other hand too').move('lap right lift', 2, 2, 'linear')
-    a.move('lap right down', 2, 2, 'linear').move('lap', 3, 2, 'out')
-    # (a small silence: nothing moves, 326-353; the fridge goes on)
+    a.to_frame(212).move('back1', 4, 2, 'in', 'withdraws').move('back2', 3, 3, 'linear')
+    a.move('back3', 3, 2, 'linear').move('turn', 2, 2, 'linear').move('edge', 2, 2, 'linear').move('slip', 2, 2, 'linear')
+    a.move('lap left', 4, 2, 'out', 'into his lap')
+    # (silence: nothing moves, 255-295; the fridge goes on)
     # 6. she looks at him, then lifts her arm, a hesitation in the air, and lays it down nearer him
-    b.to_frame(354).move('look', 6, 2, 'inout', 'she looks at him')
-    b.to_frame(402).move('offer1', 8, 2, 'inout', 'the offer')
+    b.to_frame(295).move('look', 6, 2, 'inout', 'she looks at him')
+    b.to_frame(343).move('offer1', 8, 2, 'inout', 'the offer')
     b.hold(16, 'hesitation').move('offer2', 8, 2, 'inout')
-    # 7. too late: his hands stay in his lap; one slow breath, held at its top, and nothing follows
-    a.to_frame(474).move('lap breathe', 4, 4, 'inout', 'too late').hold(8).move('lap', 5, 4, 'inout')
-    # 8. almost: her eyes go down to the table between them; they sit; one breath of hers
-    b.to_frame(546).move('lower', 12, 2, 'inout', 'almost')
-    b.to_frame(620).move('lower breathe', 4, 4, 'inout').move('lower', 5, 4, 'inout')
-    end = 744
+    # 7. too late: his hand stays in his lap; one slow breath, and at its top his head turns a few
+    # degrees toward her (the almost), held; then back, and nothing follows
+    a.to_frame(415).move('lap breathe', 4, 4, 'inout', 'too late').hold(8).move('lap left', 5, 4, 'inout')
+    # 8. almost: four seconds after her offer her eyes go down to the table between them; they sit
+    b.to_frame(487).move('lower', 12, 2, 'inout', 'almost')
+    end = 679
     a.to_frame(end)
     b.to_frame(end)
     return a, b, end

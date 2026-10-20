@@ -37,8 +37,9 @@ def key_all(figs, frame):
             sl = fig.sleeves[side][0]
             sl.data.shape_keys.key_blocks['bunch'].keyframe_insert('value', frame=frame)
         if hasattr(fig, 'flap'):
-            for name in ('lift', 'after'):
-                fig.flap.data.shape_keys.key_blocks[name].keyframe_insert('value', frame=frame)
+            for ob in (fig.flap, fig.flap_stitch):
+                for name in ('lift', 'after'):
+                    ob.data.shape_keys.key_blocks[name].keyframe_insert('value', frame=frame)
     for key in ('a', 'b'):
         pivot = bpy.data.objects.get(f'chair {key} pivot')
         if pivot is not None:

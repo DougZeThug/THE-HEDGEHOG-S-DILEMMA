@@ -274,7 +274,12 @@
       "duration": 22,
       "cost": 242,
       "at": "2026-10-20T20:47:18.732Z",
-      "review": "pending"
+      "review": "pending",
+      "model": "eleven_text_to_sound_v2",
+      "influence": 0.5,
+      "loop": true,
+      "tier": "creator",
+      "tierReadAt": "2026-10-20"
     },
     "almost-clock-1.mp3": {
       "key": "almost:clock",
@@ -282,7 +287,12 @@
       "duration": 6,
       "cost": 66,
       "at": "2026-10-20T20:47:20.732Z",
-      "review": "pending"
+      "review": "pending",
+      "model": "eleven_text_to_sound_v2",
+      "influence": 0.6,
+      "loop": false,
+      "tier": "creator",
+      "tierReadAt": "2026-10-20"
     },
     "almost-reach-1.mp3": {
       "key": "almost:reach",
@@ -290,7 +300,12 @@
       "duration": 4,
       "cost": 44,
       "at": "2026-10-20T20:47:22.830Z",
-      "review": "pending"
+      "review": "pending",
+      "model": "eleven_text_to_sound_v2",
+      "influence": 0.55,
+      "loop": false,
+      "tier": "creator",
+      "tierReadAt": "2026-10-20"
     },
     "almost-reach-2.mp3": {
       "key": "almost:reach",
@@ -298,7 +313,12 @@
       "duration": 4,
       "cost": 44,
       "at": "2026-10-20T20:47:24.582Z",
-      "review": "pending"
+      "review": "pending",
+      "model": "eleven_text_to_sound_v2",
+      "influence": 0.55,
+      "loop": false,
+      "tier": "creator",
+      "tierReadAt": "2026-10-20"
     },
     "almost-reach-3.mp3": {
       "key": "almost:reach",
@@ -306,7 +326,12 @@
       "duration": 4,
       "cost": 44,
       "at": "2026-10-20T20:47:26.291Z",
-      "review": "pending"
+      "review": "pending",
+      "model": "eleven_text_to_sound_v2",
+      "influence": 0.55,
+      "loop": false,
+      "tier": "creator",
+      "tierReadAt": "2026-10-20"
     },
     "almost-touch-1.mp3": {
       "key": "almost:touch",
@@ -314,7 +339,12 @@
       "duration": 2,
       "cost": 22,
       "at": "2026-10-20T20:47:28.090Z",
-      "review": "pending"
+      "review": "pending",
+      "model": "eleven_text_to_sound_v2",
+      "influence": 0.6,
+      "loop": false,
+      "tier": "creator",
+      "tierReadAt": "2026-10-20"
     },
     "almost-touch-2.mp3": {
       "key": "almost:touch",
@@ -322,7 +352,12 @@
       "duration": 2,
       "cost": 22,
       "at": "2026-10-20T20:47:29.991Z",
-      "review": "pending"
+      "review": "pending",
+      "model": "eleven_text_to_sound_v2",
+      "influence": 0.6,
+      "loop": false,
+      "tier": "creator",
+      "tierReadAt": "2026-10-20"
     },
     "almost-drag-1.mp3": {
       "key": "almost:drag",
@@ -330,7 +365,12 @@
       "duration": 2,
       "cost": 22,
       "at": "2026-10-20T20:47:31.934Z",
-      "review": "pending"
+      "review": "pending",
+      "model": "eleven_text_to_sound_v2",
+      "influence": 0.6,
+      "loop": false,
+      "tier": "creator",
+      "tierReadAt": "2026-10-20"
     },
     "almost-drag-2.mp3": {
       "key": "almost:drag",
@@ -338,7 +378,12 @@
       "duration": 2,
       "cost": 22,
       "at": "2026-10-20T20:47:33.926Z",
-      "review": "pending"
+      "review": "pending",
+      "model": "eleven_text_to_sound_v2",
+      "influence": 0.6,
+      "loop": false,
+      "tier": "creator",
+      "tierReadAt": "2026-10-20"
     },
     "almost-drag-3.mp3": {
       "key": "almost:drag",
@@ -346,7 +391,12 @@
       "duration": 2,
       "cost": 22,
       "at": "2026-10-20T20:47:36.241Z",
-      "review": "pending"
+      "review": "pending",
+      "model": "eleven_text_to_sound_v2",
+      "influence": 0.6,
+      "loop": false,
+      "tier": "creator",
+      "tierReadAt": "2026-10-20"
     },
     "almost-scrape-1.mp3": {
       "key": "almost:scrape",
@@ -354,7 +404,12 @@
       "duration": 2,
       "cost": 22,
       "at": "2026-10-20T20:47:38.152Z",
-      "review": "pending"
+      "review": "pending",
+      "model": "eleven_text_to_sound_v2",
+      "influence": 0.6,
+      "loop": false,
+      "tier": "creator",
+      "tierReadAt": "2026-10-20"
     },
     "almost-scrape-2.mp3": {
       "key": "almost:scrape",
@@ -362,7 +417,12 @@
       "duration": 2,
       "cost": 22,
       "at": "2026-10-20T20:47:40.092Z",
-      "review": "pending"
+      "review": "pending",
+      "model": "eleven_text_to_sound_v2",
+      "influence": 0.6,
+      "loop": false,
+      "tier": "creator",
+      "tierReadAt": "2026-10-20"
     },
     "almost-scrape-3.mp3": {
       "key": "almost:scrape",
@@ -370,7 +430,12 @@
       "duration": 2,
       "cost": 22,
       "at": "2026-10-20T20:47:42.244Z",
-      "review": "pending"
+      "review": "pending",
+      "model": "eleven_text_to_sound_v2",
+      "influence": 0.6,
+      "loop": false,
+      "tier": "creator",
+      "tierReadAt": "2026-10-20"
     },
     "almost-settle-1.mp3": {
       "key": "almost:settle",
@@ -378,7 +443,12 @@
       "duration": 3,
       "cost": 33,
       "at": "2026-10-20T20:47:44.069Z",
-      "review": "pending"
+      "review": "pending",
+      "model": "eleven_text_to_sound_v2",
+      "influence": 0.55,
+      "loop": false,
+      "tier": "creator",
+      "tierReadAt": "2026-10-20"
     },
     "almost-settle-2.mp3": {
       "key": "almost:settle",
@@ -386,7 +456,12 @@
       "duration": 3,
       "cost": 33,
       "at": "2026-10-20T20:47:45.713Z",
-      "review": "pending"
+      "review": "pending",
+      "model": "eleven_text_to_sound_v2",
+      "influence": 0.55,
+      "loop": false,
+      "tier": "creator",
+      "tierReadAt": "2026-10-20"
     },
     "almost-offer-1.mp3": {
       "key": "almost:offer",
@@ -394,7 +469,12 @@
       "duration": 3,
       "cost": 33,
       "at": "2026-10-20T20:47:47.579Z",
-      "review": "pending"
+      "review": "pending",
+      "model": "eleven_text_to_sound_v2",
+      "influence": 0.55,
+      "loop": false,
+      "tier": "creator",
+      "tierReadAt": "2026-10-20"
     },
     "almost-offer-2.mp3": {
       "key": "almost:offer",
@@ -402,7 +482,12 @@
       "duration": 3,
       "cost": 33,
       "at": "2026-10-20T20:47:49.293Z",
-      "review": "pending"
+      "review": "pending",
+      "model": "eleven_text_to_sound_v2",
+      "influence": 0.55,
+      "loop": false,
+      "tier": "creator",
+      "tierReadAt": "2026-10-20"
     }
   }
 }

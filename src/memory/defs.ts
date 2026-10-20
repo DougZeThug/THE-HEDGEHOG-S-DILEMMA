@@ -47,6 +47,11 @@ export interface MemoryDef {
    * (the artist's brief of 2026-10-19; the creative and cinematic directors' reviews).
    */
   lastMusic?: string;
+  /**
+   * `false`: the room's drone is silent while it plays, and comes back after (a film with no score:
+   * a chord under it would be one; the sound designer's review of "Almost", 2026-10-20).
+   */
+  drone?: false;
   /** What the picture is, for a screen reader (announced once, when it has formed). */
   describe: (variant: string) => string;
   /**
@@ -751,12 +756,14 @@ export const WOODLAND: MemoryDef = {
  * kitchen's (the fridge, the clock: the room's two indifferent clocks) and the film's (the wool, the
  * wood, the chair), both laid by scripts/almost/sound.py.
  */
-export const ALMOST_SECTIONS: Sections = { active: 6, exit: 40, residue: 47, end: 50 };
+export const ALMOST_SECTIONS: Sections = { active: 6, exit: 37.5, residue: 44.5, end: 47.5 };
 /** The film: where it begins on the timeline (half a second after the visitor is inside), and its length (s). */
 export const FILM_AT = 10.3;
-export const FILM_SECONDS = 744 / 24;
+export const FILM_SECONDS = 679 / 24;
 /** Its story's moments (seconds into the film: scripts/almost/xsheet.py). */
-export const FILM_BEATS = { notice: 4.0, reach: 5.25, touch: 8.0, startle: 8.33, lap: 11.58, silence: 13.25, look: 14.75, offer: 16.75, tooLate: 19.75, almost: 22.75 };
+export const FILM_BEATS = {
+  notice: 60 / 24, reach: 90 / 24, touch: 156 / 24, startle: 164 / 24, lap: 255 / 24, look: 295 / 24, offer: 343 / 24, tooLate: 415 / 24, almost: 487 / 24,
+};
 /** Its two sounds' levels on the files as laid (scripts/almost/sound.py, at the film mix's own
  *  balance, so the same). Set by measure: the kitchen's hum (-37.5 LUFS on its file) about where
  *  the woodland's place round its piano is (-47 on the memory bus). Stand-ins until the artist has
@@ -781,8 +788,8 @@ export const ALMOST: MemoryDef = {
         // The fibres through the plaster, then the colour as a wash out from under the lamp (the
         // two clocks are scripts/almost/emergence.py's: tests/memory-defs.test.ts). Back: the
         // colour goes first, toward the lamp, then the fibres, the lamp's last.
-        'window.sketch': [[1.5, 0], [5.5, 1], [46.5, 1], [48.0, 0]],
-        'window.reveal': [[5.0, 0, 'linear'], [7.2, 1], [44.0, 1], [46.0, 0]],
+        'window.sketch': [[1.5, 0], [5.5, 1], [S.exit + 6.5, 1], [S.exit + 8, 0]],
+        'window.reveal': [[5.0, 0, 'linear'], [7.2, 1], [S.exit + 4, 1], [S.exit + 6, 0]],
         'window.presence': [[0, 1]],
         'window.parallax': [[0, 0]],
         // The room's writing under the picture goes to a trace as the colour reaches it, and comes
@@ -798,7 +805,7 @@ export const ALMOST: MemoryDef = {
         'layer:scene.opacity': [[0, 1]],
         // The fibres sink as the colour comes (the film is felt, not a drawing over it), and come
         // back up as it goes.
-        'layer:fibres.opacity': [[0, 1], [7.2, 1], [8.6, 0], [44.0, 0], [45.6, 1]],
+        'layer:fibres.opacity': [[0, 1], [7.2, 1], [8.6, 0], [S.exit + 4, 0], [S.exit + 5.6, 1]],
         // The way in, one move, as the woodland's (shaped in Inside.ts).
         'scene.approach': [[1.0, 0, 'linear'], [10.0, 1], [S.exit + 1, 1, 'linear'], [S.exit + 5, 0]],
         'scene.immerse': [[0, 0, 'hold'], [6.2, 0, 'linear'], [8.2, 0.68, 'linear'], [9.8, 1, 'hold'], [S.exit, 1, 'linear'], [S.exit + 2, 0.72, 'linear'], [S.exit + 5, 0]],
@@ -819,11 +826,12 @@ export const ALMOST: MemoryDef = {
     // A small kitchen: its room is in the files (scripts/almost/sound.py), none added.
     room: [0.3, 2, 0.04],
     cues: {
-      // The fridge and the clock, through the wall first, then the kitchen's own air; they go on
-      // after the picture has gone, a moment.
-      'music:kitchen': { asset: 'music/almost-kitchen.mp3', gainDb: KITCHEN_DB, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, fadeIn: 2.5, fadeOut: 3, caption: '[a fridge humming; a clock ticking]', captionAt: 1.2 },
+      // The fridge and the clock, through the wall first (muffled in the file until the picture
+      // opens), then the kitchen itself; they go on after the picture has gone, on the memory's own
+      // release, until the room's hum (the same mains) takes over.
+      'music:kitchen': { asset: 'music/almost-kitchen.mp3', gainDb: KITCHEN_DB, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, fadeIn: 2.5, caption: '[a fridge humming; a clock ticking]', captionAt: 1.2 },
       // The wool, the wood and the chair, laid to the film's frames (it begins with the film).
-      'music:film': { asset: 'music/almost-film.mp3', gainDb: FILM_DB, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, fadeOut: 2, caption: '[her chair scrapes back]', captionAt: FILM_BEATS.startle + 0.05 },
+      'music:film': { asset: 'music/almost-film.mp3', gainDb: FILM_DB, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, fadeOut: 2, caption: '[her chair creaks]', captionAt: FILM_BEATS.startle + 0.05 },
     },
   }),
   sways: [],
@@ -831,18 +839,19 @@ export const ALMOST: MemoryDef = {
   maxHold: 20,
   tail: 2,
   hush: 0.7,
+  drone: false,
   living: true,
   describe: () => 'Wool fibres come through the wall by the words, then colour: a small kitchen at night, two figures made of felt sitting side by side at a wooden table under a hanging lamp.',
   // (Only what is seen, in order, at least 3.5 s apart, never what it means.)
   announce: () => [
     { at: FILM_AT + 0.5, text: 'It opens until it is all there is: a kitchen at night. Two figures made of felt sit side by side at the table, under the lamp.', inside: true },
     { at: FILM_AT + 0.5, text: 'The picture comes alive on the wall: two figures made of felt sit side by side at a kitchen table, under the lamp.', wall: true },
-    { at: FILM_AT + FILM_BEATS.reach, text: 'Her sleeve is folded back at the cuff. His hand moves toward it across the table, a little at a time.' },
-    { at: FILM_AT + FILM_BEATS.startle + 0.45, text: 'His fingertip touches the fold. She starts and draws her arm back.' },
-    { at: FILM_AT + FILM_BEATS.lap + 1.0, text: 'His hand stays in the air, then goes back to his lap.' },
-    { at: FILM_AT + FILM_BEATS.offer - 0.15, text: 'She looks at him. She lifts her arm and lays it down a little nearer him.' },
-    { at: FILM_AT + FILM_BEATS.tooLate + 0.45, text: 'His hands stay in his lap.' },
-    { at: FILM_AT + FILM_BEATS.almost + 1.4, text: 'Her eyes go down to the table between them. They sit.' },
+    { at: FILM_AT + FILM_BEATS.reach + 0.3, text: 'Her sleeve is folded back at the cuff. His hand moves toward it across the table, a little at a time.' },
+    { at: FILM_AT + FILM_BEATS.startle + 0.75, text: 'His fingertip touches the fold. She starts and draws her arm back.' },
+    { at: FILM_AT + FILM_BEATS.lap + 0.5, text: 'His hand stays in the air, then goes back to his lap.' },
+    { at: FILM_AT + FILM_BEATS.offer + 0.4, text: 'She looks at him. She lifts her arm and lays it down a little nearer him.' },
+    { at: FILM_AT + FILM_BEATS.tooLate + 0.95, text: 'His hand stays in his lap. His head turns a little toward her, and back.' },
+    { at: FILM_AT + FILM_BEATS.almost + 1.5, text: 'Her eyes go down to the table between them. They sit.' },
     { at: ALMOST_SECTIONS.exit, text: 'The picture goes back into the wall.' },
   ],
 };

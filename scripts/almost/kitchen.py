@@ -20,6 +20,7 @@ TABLE_TOP = 0.112          # top surface height (75 cm real)
 TABLE_X = (-0.112, 0.112)
 TABLE_Y = (-0.128, 0.0)    # the far edge, nearest the figures, at y = 0
 TOP_T = 0.0065             # thickness of the top
+WARP = 0.0004              # the top rises this much toward its middle (old wood is never flat)
 WALL_Y = 0.150             # the back wall's face
 SEAT_Z = 0.071             # chair seat surface
 CHAIR_X = {'a': -0.041, 'b': 0.041}   # a strip of chair back between their near elbows (reviews, 2026-10-20)
@@ -55,7 +56,7 @@ def table_wood():
     y0 = n.math('ADD', centre, n.math('MULTIPLY', n.math('SUBTRACT', r1, 0.5), 0.05))
     rise = n.add('ShaderNodeTexNoise', _noise_dimensions='2D', Vector=n.add('ShaderNodeCombineXYZ', X=n.math('MULTIPLY', x, 14.0), Y=n.math('ADD', pid, 3.1)).outputs['Vector'],
                  Scale=1.0, Detail=1.0)
-    z0 = n.math('SUBTRACT', n.math('SUBTRACT', TABLE_TOP - 0.004, n.math('MULTIPLY', r2, 0.010)), n.math('MULTIPLY', rise.outputs['Fac'], 0.010))
+    z0 = n.math('SUBTRACT', n.math('SUBTRACT', TABLE_TOP - 0.004, n.math('MULTIPLY', r2, 0.010)), n.math('MULTIPLY', rise.outputs['Fac'], 0.025))
     bend = n.add('ShaderNodeTexNoise', _noise_dimensions='2D', Vector=n.add('ShaderNodeCombineXYZ', X=n.math('MULTIPLY', x, 6.0), Y=pid).outputs['Vector'],
                  Scale=1.0, Detail=2.0)
     yy = n.math('SUBTRACT', n.math('ADD', y, n.math('MULTIPLY', n.math('SUBTRACT', bend.outputs['Fac'], 0.5), 0.012)), y0)
@@ -64,6 +65,10 @@ def table_wood():
     jitter = n.add('ShaderNodeTexNoise', _noise_dimensions='3D', Vector=n.add('ShaderNodeMapping', Vector=obj, Scale=(0.15, 1.0, 1.0)).outputs['Vector'],
                    Scale=160.0, Detail=3.0)
     r = n.math('ADD', r, n.math('MULTIPLY', jitter.outputs['Fac'], 0.0007))
+    # (a good year and a dry one: each ring its own width, ±0.8 mm, not corduroy)
+    years = n.add('ShaderNodeTexNoise', _noise_dimensions='1D', W=n.math('ADD', n.math('MULTIPLY', r, 260.0), n.math('MULTIPLY', pid, 5.7)),
+                  Scale=1.0, Detail=1.0)
+    r = n.math('ADD', r, n.math('MULTIPLY', n.math('SUBTRACT', years.outputs['Fac'], 0.5), 0.0016))
     ring = n.math('FRACT', n.math('DIVIDE', r, 0.0019))
     late = n.math('MULTIPLY', n.math('SMOOTHSTEP' if False else 'GREATER_THAN', ring, 0.70), n.math('LESS_THAN', ring, 0.95))
     soft = n.math('POWER', ring, 3.0)
@@ -238,6 +243,15 @@ def clock_face():
 # -- geometry -------------------------------------------------------------------------------------
 
 
+def top_at(x, y):
+    """The table top's height at (x, y), warp and all (what a hand laid there rests on)."""
+    u = (x - TABLE_X[0]) / (TABLE_X[1] - TABLE_X[0])
+    v = (y - TABLE_Y[0]) / (TABLE_Y[1] - TABLE_Y[0])
+    if not (0.0 <= u <= 1.0 and 0.0 <= v <= 1.0):
+        return TABLE_TOP
+    return TABLE_TOP + WARP * math.sin(u * math.pi) * math.sin(v * math.pi * 0.7 + 0.3)
+
+
 def plank_top(name, x0, x1, y0, y1, z, t, mat, seed=0):
     """The table top: a slab with softened, unevenly worn edges and a slight warp."""
     bm = bmesh.new()
@@ -247,7 +261,7 @@ def plank_top(name, x0, x1, y0, y1, z, t, mat, seed=0):
         for j in range(ny + 1):
             u, v = i / nx, j / ny
             x, y = x0 + (x1 - x0) * u, y0 + (y1 - y0) * v
-            warp = 0.0004 * math.sin(u * math.pi) * math.sin(v * math.pi * 0.7 + 0.3)
+            warp = WARP * math.sin(u * math.pi) * math.sin(v * math.pi * 0.7 + 0.3)
             verts[i, j, 1] = bm.verts.new((x, y, z + warp))
             verts[i, j, 0] = bm.verts.new((x, y, z - t + warp))
     for i in range(nx):
@@ -365,8 +379,8 @@ def chair_painted(mat, x, y):
     return parts
 
 
-def lamp(shade_mat, dark):
-    """A modest enamel pendant: a deep dome, white inside, on a cloth cord. Deep, so it flags its
+def lamp(shade_mat, inside_mat, dark):
+    """A modest enamel pendant: a deep dome, cream inside, on a cloth cord. Deep, so it flags its
     own bulb: a pool on the table between them, the table's ends and the room in the dark."""
     bm = bmesh.new()
     prof = [(0.0295, 0.0), (0.0285, 0.004), (0.0262, 0.011), (0.0228, 0.018), (0.018, 0.025), (0.012, 0.030), (0.0072, 0.033), (0.0058, 0.036)]
@@ -384,6 +398,10 @@ def lamp(shade_mat, dark):
     ob = lib.mesh_object('lamp shade', bm, shade_mat, subdiv=1)
     sol = ob.modifiers.new('enamel', 'SOLIDIFY')
     sol.thickness = 0.0007
+    # (the inner shell is the inside: its own cream enamel, which the bulb lights; a material that
+    # asked whether a face was seen from behind never saw the inside, which faces the bulb)
+    ob.data.materials.append(inside_mat)
+    sol.material_offset = 1
     ob.modifiers.move(1, 0)
     cord = lib.cylinder('lamp cord', 0.0011, 0.2, center=(LAMP.x, LAMP.y, LAMP.z + 0.135), material=dark)
     cap = lib.cylinder('lamp socket', 0.0052, 0.011, center=(LAMP.x, LAMP.y, LAMP.z + 0.032), material=dark, bevel=0.001)
@@ -417,6 +435,9 @@ def window(frame_mat):
     parts.append(lib.rounded_box('meeting rail', (x1 - x0, 0.006, 0.004), center=((x0 + x1) / 2, WALL_Y - 0.001, (z0 + z1) / 2), bevel=0.0005, material=frame_mat))
     parts.append(lib.rounded_box('glazing bar', (0.0028, 0.005, z1 - z0), center=((x0 + x1) / 2, WALL_Y - 0.0005, (z0 + z1) / 2), bevel=0.0004, material=frame_mat))
     pane = lib.rounded_box('glass', (x1 - x0, 0.0008, z1 - z0), center=((x0 + x1) / 2, WALL_Y + 0.001, (z0 + z1) / 2), bevel=0, material=glass())
+    # (the night outside comes through it: as a shadow-caster the glass kept the window's light
+    # out of the room, and the table had no cool side)
+    pane.visible_shadow = False
     parts.append(pane)
     out = lib.rounded_box('outside', (0.5, 0.002, 0.4), center=((x0 + x1) / 2, WALL_Y + 0.09, (z0 + z1) / 2), bevel=0, material=night(0.25))
     parts.append(out)
@@ -445,28 +466,41 @@ def fridge(mat, handle_mat):
 
 
 def cup(glaze_mat, clay_mat):
-    """A chipped cup by A's right hand: ivory glaze, a chip at the rim showing the clay."""
+    """A chipped cup by A's right hand: ivory glaze, a notch out of the rim showing the clay."""
     c = Vector((-0.082, -0.040, TABLE_TOP))
     bm = bmesh.new()
     seg = 48
     prof = [(0.0, 0.0), (0.0068, 0.0), (0.0074, 0.0012), (0.0078, 0.006), (0.0083, 0.0128), (0.0085, 0.0138),
             (0.0078, 0.0138), (0.0076, 0.0125), (0.0071, 0.006), (0.0064, 0.0016), (0.0, 0.0016)]
+    # the chip: 3 mm of the rim's top, toward the lens, knocked 0.6 mm down (most at its middle)
+    notch = -math.pi / 4
+
+    def chipped(k):
+        d = math.remainder(2 * math.pi * k / seg - notch, 2 * math.pi) * 0.0085
+        return max(0.0, 1.0 - (d / 0.0016) ** 2)
     rings = []
-    for r, h in prof:
-        rings.append([bm.verts.new(c + Vector((r * math.cos(2 * math.pi * k / seg), r * math.sin(2 * math.pi * k / seg), h))) for k in range(seg)])
-    for a, b in zip(rings, rings[1:]):
+    for i, (r, h) in enumerate(prof):
+        ring = []
         for k in range(seg):
-            bm.faces.new((a[k], a[(k + 1) % seg], b[(k + 1) % seg], b[k]))
+            dz = -0.0006 * chipped(k) * {4: 0.4, 5: 1.0, 6: 1.0, 7: 0.5}.get(i, 0.0)
+            th = 2 * math.pi * k / seg
+            ring.append(bm.verts.new(c + Vector((r * math.cos(th), r * math.sin(th), h + dz))))
+        rings.append(ring)
+    for i, (a, b) in enumerate(zip(rings, rings[1:])):
+        for k in range(seg):
+            f = bm.faces.new((a[k], a[(k + 1) % seg], b[(k + 1) % seg], b[k]))
+            if 4 <= i <= 6 and max(chipped(k), chipped(k + 1)) > 0.3:
+                f.material_index = 1
     bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-6)
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     ob = lib.mesh_object('cup', bm, glaze_mat, subdiv=1)
+    ob.data.materials.append(clay_mat)
     handle = lib.tube('cup handle', [c + Vector((-0.0078, 0.0, 0.0115)), c + Vector((-0.0118, 0.0, 0.0105)), c + Vector((-0.0128, 0.0, 0.0068)),
                                      c + Vector((-0.0112, 0.0, 0.0035)), c + Vector((-0.0076, 0.0, 0.003))],
                       [0.0011] * 5, segments=12, material=glaze_mat, subdiv=1, flatten=0.7, up=(0, 1, 0))
     # tea, low in the cup
     tea = lib.cylinder('tea', 0.0068, 0.0004, center=c + Vector((0, 0, 0.0062)), material=bpy.data.materials.get('tea') or _tea())
-    chip = lib.egg('chip', (0.0026, 0.0018, 0.0017), center=c + Vector((0.0058, -0.0058, 0.0136)), wob=0.2, material=clay_mat, subdiv=1)
-    return [ob, handle, tea, chip]
+    return [ob, handle, tea]
 
 
 def _tea():
@@ -542,7 +576,8 @@ def build(collection):
     pale_oak = lib.wood('oiled oak', srgb('#a88d6a'), grain_scale=110.0, rings=4.0, wear=0.45)
     sage_paint = lib.painted('sage paint', srgb('#8e9878'), rough=0.7, texture=0.1, scale=260.0, chips=srgb('#a88a64'))
     cream_paint = lib.painted('cream paint', srgb('#ddd2b6'), rough=0.6, texture=0.08, scale=300.0, chips=srgb('#9b8c70'))
-    shade = enamel('lamp enamel', srgb('#9aa287'), inside=srgb('#d9cdb0'), chips=srgb('#2b2b28'))
+    shade = enamel('lamp enamel', srgb('#9aa287'), chips=srgb('#2b2b28'))
+    shade_inside = enamel('lamp enamel inside', srgb('#d9cdb0'))
     fridge_enamel = enamel('fridge enamel', srgb('#d9d0b6'), chips=srgb('#5c574c'))
     dark = lib.painted('dark cloth', srgb('#2a2622'), rough=0.8)
     chrome = metal('chrome', srgb('#c8c8c4'), rough=0.25)
@@ -563,7 +598,7 @@ def build(collection):
     # (The clock is heard, never seen: a visible clock in a film whose tragedy is its timing is the
     # symbol the brief warns against. The dishcloth was in neither crop, and a second fold.)
     parts['fridge'] = fridge(fridge_enamel, chrome)
-    parts['lamp'] = lamp(shade, dark)
+    parts['lamp'] = lamp(shade, shade_inside, dark)
     parts['cup'] = cup(glaze, clay)
     parts['floor'] = floor(floorboards(), cream_paint)
     # each chair on its own pivot (on the floor under the seat), so it can scrape back a little

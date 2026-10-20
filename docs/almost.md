@@ -22,8 +22,9 @@ is "THE HEDGEHOG'S DILEMMA, MEMORY II — ALMOST" (2026-10-20).
 | The scene | `scripts/almost/build.py` | the camera (42 mm at 28.5 cm, f/11, focus between the hands and the faces), the lights, render settings; `--pose`, `--still` and `--save` for single frames |
 | The performance | `scripts/almost/performance.py` | the key poses and how a pose is put on the puppets: wrists placed and the elbow solved clear of the table, a hand laid on the wood until its felt just meets it, his fingertip brought to the fold's corner; every pose's arms then baked in full, so in-betweens are continuous |
 | The exposure sheet | `scripts/almost/xsheet.py` | which drawing each of the 744 frames photographs: mostly twos, the startle on ones, breaths on fours, long holds. `python3 scripts/almost/xsheet.py` prints it |
-| Photographing | `scripts/almost/render.py` | one render per unique pair of drawings (about 150); after the first, only the region that changed (the moving felt, its shadows on the table, floor and wall) |
-| Assembly | `scripts/almost/assemble.py` | regions pasted into whole photographs, frames in exposure-sheet order, then the review crops (16:9, 9:16) and the room's copies (VP9 and H.264, full and half size) |
+| Photographing | `scripts/almost/render.py` | one render per unique pair of drawings (158); after the first, only the region that changed (the felt that moved, where it was and where it is, and its shadows on the table and the wall), written noisy, with the denoiser's albedo and normal |
+| Developing | `scripts/almost/develop.py` | each region pasted into the noisy photograph before it, the whole photograph denoised once and seen through the film's view (AgX); outside the region nothing differs by a bit |
+| Assembly | `scripts/almost/assemble.py` | the developed photographs in exposure-sheet order, made 8-bit with one fixed dither; then the review crops (16:9, 9:16) and the room's copies (VP9 and H.264, full and half size) |
 | Checks | `scripts/almost/check.py` | every photograph posed and measured: nothing into the table or into the other figure, no resting hand above the wood |
 | QA sheets | `scripts/almost/posesheet.py`, `strips.py`, `tile.py` | the pose sheet (the story's ten key poses, captioned); motion strips (chosen frames of a film side by side) |
 | Sound | `scripts/generate-almost.mjs`, `scripts/almost/sound.py` | ElevenLabs takes of the small material sounds; the fridge and the room made in code; all laid on the exposure sheet's frames |
@@ -42,9 +43,12 @@ $B -b --factory-startup --python scripts/almost/build.py -- --pose lift2+touched
 # 2. the pose sheet and the contact check
 $B -b --factory-startup --python scripts/almost/posesheet.py -- --out posesheet.jpg
 $B -b --factory-startup --python scripts/almost/check.py -- --out check.json
-# 3. the photographs: open matte 1280×1440, 96 samples (about 3 hours on 4 cores); --draft for
-#    640×720 at 16 samples without fibres (about 25 minutes). It resumes where it stopped.
+# 3. the photographs: open matte 1280×1440, 80 samples, noisy; then developed (about 10 s each).
+#    --draft: 640×720 at 16 samples, without fibres, denoised as rendered (about 30 minutes; no
+#    developing). Both resume where they stopped; after re-rendering from photograph N on,
+#    develop with --from N.
 $B -b --factory-startup --python scripts/almost/render.py -- --out film/
+$B -b --factory-startup --python scripts/almost/develop.py -- film/
 # 4. the soundtrack and the room's two sounds
 python3 scripts/almost/sound.py film/almost.wav --stems film/stems
 # 5. the films: review crops with sound, the room's silent copies, and the first photograph
@@ -64,9 +68,17 @@ npm run memories:seed -- --force=almost-film
 ## How it moves
 
 - **Stop motion, not smoothed.** Each frame is a photograph of a pose. A held frame is the same
-  photograph, so nothing flickers on a hold: fibres are seeded and grown from the deforming
-  surface, and the render's seed is fixed. Movement is on twos, the startle on ones, and breaths on
-  fours. Spacing comes from eases on the in-betweens: slow out of a hold, slow into the next.
+  photograph. Movement is on twos, the startle on ones, and breaths on fours. Spacing comes from
+  eases on the in-betweens: slow out of a hold, slow into the next.
+- **What stands still stays still.**
+  - The fibres are grown once, at the rest pose, before the first photograph, and then carried by
+    the felt. (Grown again at each pose, they moved against it; the technical artist measured it.)
+  - The render's seed is fixed and there is no dither, so a region pasted into the photograph
+    before it changes nothing that did not move.
+  - Each whole photograph is denoised once: denoised alone, each region re-made the room round it,
+    and the room shimmered in rectangles.
+  - On the test photographs, outside each region no pixel of the 8-bit frames changes. Inside it,
+    the change is on the figures; the wall and table behind them change by a level or less.
 - **Contact is solved, not hoped for.**
   - A resting hand is tipped until its lowest felt meets the wood.
   - A touch moves the wrist until the index fingertip is at the fold's corner, wherever her

@@ -156,18 +156,22 @@ def lowest(ob):
     return z
 
 
-def rest_hand(fig, side, wrist_xy, heading, table_z=TABLE_Z, roll=0.0, squash=0.0002, tuck=None):
+def rest_hand(fig, side, wrist_xy, heading, table_z=None, roll=0.0, squash=0.0002, tuck=None, rise=0.0):
     """Lay a forearm on the table and let its hand drape from the wrist onto the wood: the wrist at
     the sleeve's height, the hand tipped down until its lowest felt just meets the table (pressed
     in by `squash`). `heading` is the way the fingers point across the table; `roll` turns the hand
-    on its side (degrees, + toward the little finger)."""
+    on its side (degrees, + toward the little finger). The table's height is the top's own, where
+    the wrist lies (it is warped by up to 0.4 mm); `rise` holds the wrist up off it (something
+    under it: her folded cuff)."""
+    if table_z is None:
+        table_z = kitchen.top_at(wrist_xy[0], wrist_xy[1])
     vl = bpy.context.view_layer
     hand = next(o for o in fig.objects if o.name == f'{fig.key} hand.{side}')
     # (the sleeve's own felt lying on the wood, pressed in a little, never into it: check.py)
-    wz = table_z + fig.spec['sleeve'][4] + 0.0001
+    wz = table_z + fig.spec['sleeve'][4] + 0.0001 + rise
     # the same arm lying the same way has the same answer (the body above it may differ only a
     # little: the tilt is re-checked once and searched again only if it no longer touches)
-    key = (fig.key, side, round(wrist_xy[0], 6), round(wrist_xy[1], 6), round(heading[0], 4), round(heading[1], 4), round(roll, 3), tuck,
+    key = (fig.key, side, round(wrist_xy[0], 6), round(wrist_xy[1], 6), round(heading[0], 4), round(heading[1], 4), round(roll, 3), tuck, rise,
            tuple(round(fig.arm.pose.bones[f'{f}{j}.{side}'].rotation_quaternion.x, 4) for f in puppets.FINGERS for j in (1, 2)))
     cache = _REST_CACHE
     h = Vector((heading[0], heading[1], 0.0)).normalized()
@@ -320,9 +324,12 @@ def apply(figs, p):
         fig = figs[key]
         q = p.get(key, {})
         if 'cuff' in q and hasattr(fig, 'flap'):
-            keys = fig.flap.data.shape_keys.key_blocks
-            for k, v in q['cuff'].items():
-                keys[k].value = v
+            for ob in (fig.flap, fig.flap_stitch):
+                keys = ob.data.shape_keys.key_blocks
+                for k, v in q['cuff'].items():
+                    # (set only when it changes: setting a shape key grows the fibres on it again)
+                    if abs(keys[k].value - v) > 1e-6:
+                        keys[k].value = v
         for side in 'LR':
             curl(fig, side, q.get(f'curl.{side}'))
             a = q.get(f'arm.{side}')
@@ -336,7 +343,7 @@ def apply(figs, p):
             w = a['wrist']
             if len(w) == 2:
                 # resting on the table: the hand drapes onto the wood
-                rest_hand(fig, side, w, a['fingers'], roll=a.get('roll', 0.0), tuck=a.get('tuck'))
+                rest_hand(fig, side, w, a['fingers'], roll=a.get('roll', 0.0), tuck=a.get('tuck'), rise=a.get('rise', 0.0))
             else:
                 place_arm(fig, side, w, a['fingers'], a['back'], a.get('on', 'table'), tuck=a.get('tuck'))
         vl.update()
@@ -346,7 +353,10 @@ def apply(figs, p):
             f = posed_tail(fig, f'forearm.{side}') - posed_head(fig, f'forearm.{side}')
             bend = math.degrees(u.angle(f))
             sl = fig.sleeves[side][0]
-            sl.data.shape_keys.key_blocks['bunch'].value = max(0.0, min(1.3, bend / 85.0))
+            kb = sl.data.shape_keys.key_blocks['bunch']
+            bunch = round(max(0.0, min(1.3, bend / 85.0)), 3)
+            if abs(kb.value - bunch) > 1e-6:
+                kb.value = bunch
     vl.update()
 
 
@@ -385,8 +395,10 @@ def _with(base, **changes):
 A = {}
 # (Wrists are where the chairs now stand, 3 mm further apart than in the prototype: a strip of
 # chair back between their near elbows, which are tucked in toward their own bodies.)
+# He looks at his own cup and his hand by it, so his noticing the fold is a turn of attention you
+# can see; he ends looking there again (the skeptic's review, 2026-10-20).
 A['together'] = {
-    'spine': (3, 0.5, 2), 'chest': (5, 0, 3), 'neck': (2, 0, 2), 'head': (9, -1.5, 6),
+    'spine': (3, 0.5, 2), 'chest': (5, 0, 3), 'neck': (2, 0, -2), 'head': (11, -1.5, -8),
     'shoulder.L': (0, 4), 'shoulder.R': (-1, 3),
     'arm.L': dict(wrist=(-0.0245, -0.0205), fingers=(-0.30, -0.95), tuck=0.013),
     # his other hand rests by his cup (the two arms are not a mirror)
@@ -394,16 +406,17 @@ A['together'] = {
     'curl.L': {'all': (8, 10), 'index': (4, 6)}, 'curl.R': {'all': (14, 16)},
     'lids': (0.0, 0.0),
 }
-A['breathe'] = _with(A['together'], chest=(4, 0, 3), shoulder__L=(1, 4), shoulder__R=(0, 3))
+# (one breath, deep enough to be seen: a breath of a degree read as nothing at the film's size)
+A['breathe'] = _with(A['together'], chest=(3, 0, 3), head=(10, -1.5, -8), shoulder__L=(2, 4), shoulder__R=(1, 3))
 # 2. noticing: his eyes, then his head, go to the fold on her sleeve
 A['notice'] = _with(A['together'], head=(15, -2, 22), neck=(4, 0, 5), chest=(5, 0.5, 4), spine=(3, 1.0, 2), lids=(-0.25, -0.25))
 # 3. reaching: the wrist lifts first, the fingers trailing; across in three goes, a hesitation (the
 # fingers drawing in a little further while it lasts), on
 A['lift'] = _with(A['notice'], spine=(3, 1.5, 2), shoulder__L=(1, 6),
-                  arm__L=dict(wrist=(-0.0222, -0.0228, T + 0.0088), fingers=(0.25, -0.88, -0.45), back=(0.1, -0.35, 0.9), on='air'),
+                  arm__L=dict(wrist=(-0.0222, -0.0228, T + 0.0108), fingers=(0.25, -0.88, -0.45), back=(0.1, -0.35, 0.9), on='air'),
                   curl__L={'all': (14, 18), 'index': (8, 10)})
 A['carry'] = _with(A['lift'], spine=(3, 2.5, 3), chest=(5, 1.5, 5), shoulder__L=(2, 8),
-                   arm__L=dict(wrist=(-0.0135, -0.0242, T + 0.0108), fingers=(0.55, -0.75, -0.40), back=(0.1, -0.35, 0.9), on='air'))
+                   arm__L=dict(wrist=(-0.0135, -0.0242, T + 0.0116), fingers=(0.55, -0.75, -0.40), back=(0.1, -0.35, 0.9), on='air'))
 A['hesitate'] = _with(A['carry'], arm__L=dict(wrist=(-0.0075, -0.0248, T + 0.0094), fingers=(0.74, -0.58, -0.34), back=(0.12, -0.25, 0.95), on='air'),
                       curl__L={'all': (18, 22), 'index': (10, 12)})
 A['hesitate curl'] = _with(A['hesitate'], curl__L={'all': (21, 25), 'index': (13, 15)})
@@ -425,86 +438,83 @@ A['after touch'] = dict(A['touch'])
 A['blink'] = _with(A['touch'], lids=(1.0, 1.0))
 A['half blink'] = _with(A['touch'], lids=(0.5, 0.5))
 # then back across the table, a little quicker than he came, and down off its edge into his lap;
-# his look goes from her sleeve, down and to his own side (embarrassed: never at her)
+# his look goes from her sleeve, down and to his own side (embarrassed: never at her). (The wrist
+# a centimetre up: lower, the curled fingers of the in-betweens went 2 mm into the wood.)
 A['back1'] = _with(A['notice'], spine=(3, 2.0, 3), chest=(6, 1.5, 4), shoulder__L=(0, 7), head=(16, -2, 16),
-                   arm__L=dict(wrist=(-0.0060, -0.0200, T + 0.0080), fingers=(0.10, -0.90, -0.45), back=(0.0, -0.3, 0.95), on='air'),
+                   arm__L=dict(wrist=(-0.0060, -0.0200, T + 0.0105), fingers=(0.10, -0.90, -0.45), back=(0.0, -0.3, 0.95), on='air'),
                    curl__L={'all': (20, 24), 'index': (16, 18)}, lids=(0.15, 0.15))
 A['back2'] = _with(A['back1'], spine=(3, 1.0, 2), chest=(7, 0.5, 3), shoulder__L=(-1, 5), head=(15, -1.5, 8),
-                   arm__L=dict(wrist=(-0.0175, -0.0150, T + 0.0074), fingers=(-0.20, -0.92, -0.30), back=(0.0, -0.3, 0.95), on='air'))
-# (level over the wood until the wrist is at its edge, then turned down past it, between the table
-# and his body: turned down while still over the wood, its fingers went into the table)
+                   arm__L=dict(wrist=(-0.0175, -0.0150, T + 0.0099), fingers=(-0.20, -0.92, -0.30), back=(0.0, -0.3, 0.95), on='air'))
+# (level over the wood until the wrist is at its edge)
 A['back3'] = _with(A['back2'], shoulder__L=(-2, 3), head=(14, -1, 3), neck=(3, 0, 1),
                    arm__L=dict(wrist=(-0.0260, -0.0010, T + 0.0088), fingers=(-0.30, -0.90, -0.30), back=(0.0, -0.3, 0.95), on='air'))
-# (lifted off the wood a little, fingers curled in, and turned down in the air: there are 9 mm
-# between the table's edge and his jumper, and turned down any lower its fingers swept through
-# the wood)
-A['back3b'] = _with(A['back3'], head=(13, -1, 1),
-                    arm__L=dict(wrist=(-0.0272, 0.0045, T + 0.0145), fingers=(-0.20, -0.26, -0.94), back=(0.0, -0.95, 0.25), on='air'),
-                    curl__L={'all': (34, 40), 'index': (30, 35)})
-# (then down through the gap between the table's edge and his body, upright, its palm to him)
-A['back4'] = _with(A['back3b'], head=(13, -1, 0),
-                   arm__L=dict(wrist=(-0.0275, 0.0045, T + 0.0040), fingers=(-0.15, -0.05, -0.99), back=(0.0, -1.0, 0.1), on='air'))
-# 7. too late: a little lower than he sat at first, turned some twenty degrees from her, toward his
-# own side and his cup; nothing hangs
-A['lap left'] = _with(A['back3'], spine=(3, 0.0, 1), chest=(7, 0.0, 0), neck=(3, 0, 0), head=(12, -1, -8), shoulder__L=(-3, 3),
+# then turned to lie along the edge (level, over the wood), rolled onto its little finger's side
+# as a hand drawn back to the body turns, and slipped edge-first down the 9 mm between the table
+# and his jumper: no rise (lifted and turned down in the air, it read as a raised paw: the
+# skeptic's review; turned and rolled at once, its fingers swept through the wood)
+A['turn'] = _with(A['back3'], head=(13, -1, 1),
+                  arm__L=dict(wrist=(-0.0258, 0.0012, T + 0.0090), fingers=(-0.95, -0.22, -0.20), back=(-0.05, -0.20, 0.98), on='air'),
+                  curl__L={'all': (16, 20), 'index': (12, 14)})
+A['edge'] = _with(A['turn'], head=(13, -1, 0),
+                  arm__L=dict(wrist=(-0.0262, 0.0042, T + 0.0070), fingers=(-0.88, -0.05, -0.45), back=(-0.10, -0.99, 0.05), on='air'),
+                  curl__L={'all': (18, 22), 'index': (14, 16)})
+A['slip'] = _with(A['edge'], head=(13, -1, -4),
+                  arm__L=dict(wrist=(-0.0272, 0.0040, T - 0.0060), fingers=(-0.55, -0.05, -0.83), back=(-0.05, -1.0, 0.05), on='air'))
+# 7. too late: looking at his cup and his other hand by it again, as at first, a few degrees lower;
+# nothing hangs
+A['lap left'] = _with(A['back3'], spine=(3, 0.0, 1), chest=(7, 0.0, 0), neck=(3, 0, 0), head=(13, -1, -8), shoulder__L=(-3, 3),
                       arm__L=dict(wrist=(-0.0315, 0.0080, 0.0930), fingers=(-0.20, -0.75, -0.62), back=(0.0, -0.5, 0.85), on='down'),
                       curl__L={'all': (22, 26), 'index': (18, 20)}, lids=(0.1, 0.1))
-# his other hand, from beside his cup: drawn back to the edge, turned down past it, into his lap
-A['lap right'] = _with(A['lap left'], shoulder__R=(-2, 2),
-                       arm__R=dict(wrist=(-0.0600, -0.0040, T + 0.0080), fingers=(0.15, -0.95, -0.25), back=(0.0, -0.3, 0.95), on='air'),
-                       curl__R={'all': (18, 22)})
-A['lap right lift'] = _with(A['lap right'],
-                            arm__R=dict(wrist=(-0.0580, 0.0045, T + 0.0145), fingers=(0.12, -0.26, -0.96), back=(0.0, -0.95, 0.25), on='air'),
-                            curl__R={'all': (34, 40)})
-A['lap right down'] = _with(A['lap right lift'],
-                            arm__R=dict(wrist=(-0.0560, 0.0045, T + 0.0035), fingers=(0.10, -0.05, -0.99), back=(0.0, -1.0, 0.1), on='air'))
-A['lap'] = _with(A['lap right down'], shoulder__R=(-3, 2),
-                 arm__R=dict(wrist=(-0.0508, 0.0070, 0.0930), fingers=(0.35, -0.75, -0.55), back=(0.0, -0.5, 0.85), on='down'),
-                 curl__R={'all': (22, 26)})
-# his one slow breath after her offer: he gathers himself, and nothing follows
-A['lap breathe'] = _with(A['lap'], chest=(5, 0, 0), shoulder__L=(-2, 4), shoulder__R=(-2, 3), head=(11, -1, -8))
+# his one slow breath after her offer, and at its top his head turns a few degrees toward her: the
+# almost. Then back, and nothing follows.
+A['lap breathe'] = _with(A['lap left'], chest=(5, 0, 0), shoulder__L=(-2, 4), shoulder__R=(-2, 3), neck=(3, 0, 1), head=(12, -1, -2))
 
 B = {}
-# 1. together: inward and a little tired, looking at the table in front of her, not at the lens
+# 1. together: inward and a little tired, looking at the table in front of her, not at the lens.
+# Her near forearm lies angled in toward her own middle, its elbow out a little, so the side of
+# the cuff with the fold faces him and the lens. (Tucked in, the forearm pointed at the lens and
+# her hand hid the fold in every held pose: the skeptic's review; scripts/almost/seen.py.)
 B['together'] = {
     'spine': (0, -0.5, -1), 'chest': (-1, 0, -2), 'neck': (2, 0, 2), 'head': (10, 0, 5),
     'shoulder.L': (0, 1), 'shoulder.R': (1, 3),
-    'arm.R': dict(wrist=(0.0215, -0.0215), fingers=(0.30, -0.95), tuck=0.012),
+    'arm.R': dict(wrist=(0.0265, -0.0205), fingers=(0.42, -0.91), tuck=0.026),
     'arm.L': dict(wrist=(0.0575, 0.0050, 0.0915), fingers=(-0.55, -0.7, -0.2), back=(0.0, 0.3, 1.0), on='down'),
     'curl.L': {'all': (20, 25)}, 'curl.R': {'all': (10, 12), 'index': (6, 8)},
     'cuff': {'lift': 0.0, 'after': 0.0}, 'lids': (0.0, 0.0), 'chair': (0.0, 0.0), 'root': (0.0, 0.0, 0.0),
 }
-B['breathe'] = _with(B['together'], chest=(-2, 0, -2), shoulder__L=(1, 1), shoulder__R=(2, 3))
 B['touched half'] = _with(B['together'], cuff={'lift': 0.3, 'after': 0.0})
 B['touched'] = _with(B['together'], cuff={'lift': 0.55, 'after': 0.0})
 # 4. the startle: a reflex, not a stance. On ones: a blink, the neck and shoulders flinching forward
-# and up, the arm snatched back (most of it on the first frame); her head goes with her body. The
-# chair moves a millimetre on the second frame.
+# and up, the arm snatched back (most of it on the first frame), its elbow back and down along her
+# side: nothing moves toward him (held to the table, the elbow could only swing out toward his
+# hand: the skeptic's review). Her head goes with her body. The chair moves a millimetre on the
+# second frame.
+STARTLE_ELBOW = (0.0190, 0.0200, T + 0.0030)
 B['startle1'] = _with(B['together'], spine=(1, -0.5, -1), chest=(1, 0, -2), head=(13, 0, 5), shoulder__R=(4, 0), shoulder__L=(2, 0), lids=(1.0, 1.0),
-                      arm__R=dict(wrist=(0.0247, -0.0130, T + 0.0080), fingers=(0.30, -0.95, -0.10), back=(0.05, 0.2, 1.0), on='table'),
+                      arm__R=dict(wrist=(0.0290, -0.0110, T + 0.0090), fingers=(0.35, -0.93, -0.10), back=(0.05, 0.2, 1.0), on=STARTLE_ELBOW),
                       cuff={'lift': 0.2, 'after': 0.0})
 B['startle2'] = _with(B['startle1'], spine=(0, 2.0, 2), chest=(0, 1.5, 3), head=(12, 0.5, 5), shoulder__R=(5, -4), lids=(0.5, 0.5),
-                      arm__R=dict(wrist=(0.0268, -0.0074, T + 0.0100), fingers=(0.20, -0.90, -0.20), back=(0.05, 0.2, 1.0), on='table'),
+                      arm__R=dict(wrist=(0.0305, -0.0070, T + 0.0105), fingers=(0.30, -0.90, -0.20), back=(0.05, 0.2, 1.0), on=STARTLE_ELBOW),
                       cuff={'lift': 0.0, 'after': 0.6}, chair=(0.0006, 0.8), root=(0.0, 0.0006, 0.0))
 B['startle3'] = _with(B['startle2'], spine=(-0.5, 2.6, 2.5), chest=(-0.5, 1.8, 3.5), head=(11, 1.0, 5), shoulder__R=(4, -6), lids=(0.0, 0.0),
-                      arm__R=dict(wrist=(0.0278, -0.0046, T + 0.0105), fingers=(0.15, -0.85, -0.30), back=(0.05, 0.2, 1.0), on='table'),
+                      arm__R=dict(wrist=(0.0310, -0.0050, T + 0.0105), fingers=(0.28, -0.88, -0.30), back=(0.05, 0.2, 1.0), on=STARTLE_ELBOW),
                       cuff={'lift': 0.0, 'after': 1.0}, chair=(0.0010, 1.2), root=(0.0, 0.0010, 0.0))
-# the release: shoulders down, the forearm laid back on the wood a centimetre nearer her, the fold
-# still there; she looks at her own wrist, where she was touched
+# the release: shoulders down, the forearm laid back on the wood a centimetre nearer her, angled in
+# as before, the fold still there and toward him; she looks at her own wrist, where she was touched
 B['settle'] = _with(B['startle3'], spine=(-0.5, 2.0, 2), chest=(0, 1.2, 2), neck=(3, 0, 0), head=(16, 0.5, -6), shoulder__R=(2, -3), shoulder__L=(1, 0),
-                    arm__R=dict(wrist=(0.0275, -0.0125), fingers=(0.20, -0.98), tuck=0.012))
+                    arm__R=dict(wrist=(0.0320, -0.0105), fingers=(0.48, -0.88), tuck=0.029))
 B['withdrawn'] = _with(B['settle'], head=(17, 0.5, -8), shoulder__R=(1, -2))
 # 6. repair: she looks from her wrist to him (the first time she looks at him), then lifts her arm,
 # a hesitation in the air, and lays it back on the table nearer him than before, the fold toward
 # him; a lean toward him so small it could be missed
 B['look'] = _with(B['withdrawn'], head=(8, 0, -20), neck=(2, 0, -4), chest=(-1, 1.0, 0))
+# (her elbow slides out toward him on the wood as the wrist lifts: the lean is in the arm)
 B['offer1'] = _with(B['look'], spine=(-0.5, 0.0, 0), chest=(-0.5, -0.5, -2),
-                    arm__R=dict(wrist=(0.0230, -0.0110, T + 0.0080), fingers=(-0.05, -0.98, -0.15), back=(0.0, 0.1, 1.0), on='table'))
+                    arm__R=dict(wrist=(0.0235, -0.0125, T + 0.0075), fingers=(0.25, -0.96, -0.10), back=(0.0, 0.1, 1.0), on='table', tuck=0.030))
 B['offer2'] = _with(B['offer1'], spine=(0, -2.5, -3), chest=(0, -1.5, -5), shoulder__R=(1, 5), head=(8, -1, -18),
-                    arm__R=dict(wrist=(0.0140, -0.0165), fingers=(-0.10, -0.99), tuck=0.011))
-# 8. almost: her eyes go down to the table between them; she breathes once
+                    arm__R=dict(wrist=(0.0170, -0.0170), fingers=(0.30, -0.95), tuck=0.034, rise=0.0002))
+# 8. almost: her eyes go down to the table between them; they sit
 B['lower'] = _with(B['offer2'], head=(14, -1, -8), neck=(3, 0, -2), lids=(0.0, 0.0))
-B['lower breathe'] = _with(B['lower'], chest=(-1, -1.5, -5), shoulder__R=(2, 5), shoulder__L=(1, 1))
 
 
 def resolve(figs):

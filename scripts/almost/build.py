@@ -167,6 +167,25 @@ def lights():
     return ob
 
 
+def warm_fibres(figs):
+    """Grow the fibres at the first photograph's pose before anything is photographed: a 4×4 px,
+    one-sample render. (Blender grows them at the first pose it renders in a run, and carries
+    them from there: a run resumed, or begun part-way, otherwise grew them at another pose.)"""
+    import performance
+    sc = bpy.context.scene
+    r = sc.render
+    keep = (r.use_border, r.use_crop_to_border, r.border_min_x, r.border_max_x, r.border_min_y, r.border_max_y,
+            sc.cycles.samples, r.filepath)
+    performance.apply(figs, {'a': performance.A['together'], 'b': performance.B['together']})
+    r.use_border, r.use_crop_to_border = True, True
+    r.border_min_x, r.border_max_x = 0.5, 0.5 + 4.0 / r.resolution_x
+    r.border_min_y, r.border_max_y = 0.5, 0.5 + 4.0 / r.resolution_y
+    sc.cycles.samples = 1
+    bpy.ops.render.render(write_still=False)
+    (r.use_border, r.use_crop_to_border, r.border_min_x, r.border_max_x, r.border_min_y, r.border_max_y,
+     sc.cycles.samples, r.filepath) = keep
+
+
 def render_settings(opts):
     sc = bpy.context.scene
     sc.render.engine = 'CYCLES'
@@ -174,13 +193,15 @@ def render_settings(opts):
     cy.device = 'CPU'
     cy.samples = opts['samples']
     cy.use_adaptive_sampling = True
-    cy.adaptive_threshold = 0.015
+    cy.adaptive_threshold = 0.02
     cy.use_denoising = True
     cy.denoiser = 'OPENIMAGEDENOISE'
     cy.denoising_input_passes = 'RGB_ALBEDO_NORMAL'
     cy.seed = 0
-    cy.max_bounces, cy.diffuse_bounces, cy.glossy_bounces = 8, 4, 3
-    cy.transmission_bounces, cy.transparent_max_bounces = 6, 8
+    # (fewer bounces than first set: the picture's level 1% lower, the render a fifth quicker:
+    # the technical artist's measurements, 2026-10-20)
+    cy.max_bounces, cy.diffuse_bounces, cy.glossy_bounces = 4, 2, 1
+    cy.transmission_bounces, cy.transparent_max_bounces = 2, 4
     cy.caustics_reflective = cy.caustics_refractive = False
     cy.sample_clamp_indirect = 4.0
     sc.render.resolution_x, sc.render.resolution_y = opts['res']

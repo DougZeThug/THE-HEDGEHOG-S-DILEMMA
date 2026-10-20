@@ -3,13 +3,17 @@ figure, and a resting hand is on the wood, not above it.
 
     blender -b --factory-startup --python scripts/almost/check.py -- [--out REPORT.json] [--only A-B]
 
-For each photograph, posed as render.py poses it:
-- **dip:** the deepest any sleeve, hand or the folded cuff goes into the tabletop (its slab: under it
-  is the lap), where it is over the wood. Stuffed felt may press in up to `performance.SQUASH`
-  (0.7 mm, a tenth of a sleeve's radius: an elbow resting on the table's edge), and 0.3 mm more for
-  the knit's own relief.
+For each photograph, posed as render.py poses it, on the surfaces the camera sees (subdivided as
+they are rendered, not the cage posing works on):
+- **dip:** the deepest any sleeve, hand or the folded cuff goes inside the table top (its own
+  surface, worn edges and all: under it is the lap). Stuffed felt may press in up to
+  `performance.SQUASH` (0.7 mm, a tenth of a sleeve's radius: an elbow resting on the table's
+  edge), and 0.3 mm more for the knit's own relief.
 - **into:** the deepest his hand goes inside her sleeve or its fold (along her surface's normal).
 - **gap:** for a hand meant to be resting, how far its lowest felt is above the wood.
+
+Depths are to the nearest surface, so one deeper than half the top's thickness (3.25 mm) reads as
+its distance to the underside: still a fault.
 
 Prints one line per photograph that fails, and a summary.
 """
@@ -18,6 +22,8 @@ import os
 import sys
 
 import bpy
+import numpy as np
+from mathutils import Vector
 from mathutils.bvhtree import BVHTree
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -34,45 +40,42 @@ GAP_OK = 0.0006
 
 
 def verts(ob):
+    """World positions of the evaluated (subdivided) mesh's vertices, and its triangles."""
     dg = bpy.context.evaluated_depsgraph_get()
     ev = ob.evaluated_get(dg)
     me = ev.to_mesh()
-    mw = ev.matrix_world
-    out = [mw @ v.co for v in me.vertices]
-    tris = []
+    co = np.empty(len(me.vertices) * 3, np.float64)
+    me.vertices.foreach_get('co', co)
+    M = np.array(ev.matrix_world)
+    co = co.reshape(-1, 3) @ M[:3, :3].T + M[:3, 3]
     me.calc_loop_triangles()
-    for t in me.loop_triangles:
-        tris.append(tuple(t.vertices))
+    tri = np.empty(len(me.loop_triangles) * 3, np.int32)
+    me.loop_triangles.foreach_get('vertices', tri)
     ev.to_mesh_clear()
-    return out, tris
+    return co, tri.reshape(-1, 3)
 
 
-def dip(points):
-    """The deepest any point is inside the tabletop's slab (under it is the lap: no fault)."""
-    T, B = kitchen.TABLE_TOP, kitchen.TABLE_TOP - kitchen.TOP_T
+def tree(ob):
+    co, tri = verts(ob)
+    return BVHTree.FromPolygons([Vector(p) for p in co], [tuple(t) for t in tri]), co
+
+
+def inside(points, bvh, reach=0.005):
+    """The deepest any of `points` is inside the closed surface in `bvh` (to its nearest surface)."""
     worst = 0.0
     for p in points:
-        if p.y < -0.0008 and kitchen.TABLE_X[0] < p.x < kitchen.TABLE_X[1] and B < p.z < T:
-            worst = max(worst, min(T - p.z, p.z - B))
-    return worst
-
-
-def into(points, ob):
-    """How deep `points` go inside `ob` (by its surface normal at the nearest point)."""
-    vs, tris = verts(ob)
-    if not tris:
-        return 0.0
-    bvh = BVHTree.FromPolygons(vs, tris)
-    worst = 0.0
-    for p in points:
-        hit = bvh.find_nearest(p, 0.004)
-        if hit[0] is None:
+        loc, nrm, _, _ = bvh.find_nearest(Vector(p), reach)
+        if loc is None:
             continue
-        loc, nrm, _, d = hit
-        depth = -(p - loc).dot(nrm)
-        if depth > worst:
-            worst = depth
+        depth = -(Vector(p) - loc).dot(nrm)
+        worst = max(worst, depth)
     return worst
+
+
+def near(points, lo, hi, pad):
+    """Only the points within `pad` of the box lo..hi (the rest cannot touch it)."""
+    m = np.all((points > lo - pad) & (points < hi + pad), axis=1)
+    return points[m]
 
 
 def main():
@@ -85,13 +88,20 @@ def main():
                 m.show_viewport = False
     performance.calibrate(figs)
     performance.resolve(figs)
+    obj = {o.name: o for o in bpy.data.objects}
+    parts = {k: [obj[n] for n in (f'{k} sleeve.L', f'{k} sleeve.R', f'{k} hand.L', f'{k} hand.R', f'{k} cuff fold.R') if n in obj] for k in 'ab'}
+    # (the surfaces as rendered: posing turned their subdivision off)
+    for ob in parts['a'] + parts['b']:
+        for m in ob.modifiers:
+            if m.type == 'SUBSURF':
+                m.show_viewport, m.levels = True, m.render_levels
+    table, table_co = tree(obj['table top'])
+    t_lo, t_hi = table_co.min(axis=0), table_co.max(axis=0)
     a, b, frames, unique = xsheet.frames()
     order = sorted(unique.items(), key=lambda kv: kv[1])
     lo, hi = 0, len(order) - 1
     if opts.get('only'):
         lo, hi = (int(x) for x in str(opts['only']).split('-'))
-    obj = {o.name: o for o in bpy.data.objects}
-    parts = {k: [obj[n] for n in (f'{k} sleeve.L', f'{k} sleeve.R', f'{k} hand.L', f'{k} hand.R', f'{k} cuff fold.R') if n in obj] for k in 'ab'}
     report = []
     bad = 0
     for (ia, ib), u in order:
@@ -102,15 +112,15 @@ def main():
         pb = performance.mix(performance.B[db[0]], performance.B[db[1]], db[2])
         performance.apply(figs, {'a': pa, 'b': pb})
         row = {'photo': u, 'a': da[1], 'b': db[1]}
-        for k in 'ab':
-            for ob in parts[k]:
-                d = dip(verts(ob)[0])
-                if d > DIP_OK:
-                    row.setdefault('dip', {})[ob.name] = round(d * 1000, 2)
-        hand = verts(obj['a hand.L'])[0]
+        co = {ob.name: verts(ob)[0] for ob in parts['a'] + parts['b']}
+        for name, pts in co.items():
+            d = inside(near(pts, t_lo, t_hi, 0.002), table)
+            if d > DIP_OK:
+                row.setdefault('dip', {})[name] = round(d * 1000, 2)
+        hand = co['a hand.L']
         for name in ('b sleeve.R', 'b cuff fold.R'):
-            if name in obj:
-                d = into(hand, obj[name])
+            if name in co:
+                d = inside(near(hand, co[name].min(axis=0), co[name].max(axis=0), 0.004), tree(obj[name])[0], 0.004)
                 if d > INTO_OK:
                     row.setdefault('into', {})[name] = round(d * 1000, 2)
         # a hand meant to rest (its wrist given as two numbers: on the table)
@@ -118,8 +128,7 @@ def main():
             for side in 'LR':
                 arm = p.get(f'arm.{side}')
                 if arm and 'wrist' in arm and len(arm['wrist']) == 2:
-                    z = min(v.z for v in verts(obj[f'{k} hand.{side}'])[0])
-                    g = z - kitchen.TABLE_TOP
+                    g = co[f'{k} hand.{side}'][:, 2].min() - kitchen.TABLE_TOP
                     if g > GAP_OK:
                         row.setdefault('gap', {})[f'{k} hand.{side}'] = round(g * 1000, 2)
         failed = any(x in row for x in ('dip', 'into', 'gap'))

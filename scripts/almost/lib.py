@@ -195,10 +195,14 @@ def fuzz(ob, count, length, material=None, children=6, rough=0.004, seed=1, root
     ps.hair_length = length
     ps.emit_from = 'FACE'
     ps.use_even_distribution = True
-    ps.use_advanced_hair = True   # lengths come from the emission speeds: `length` along the normal, a
-    v = length / 4.0                 # random part as long again in any direction, so fibres stand at
-    ps.normal_factor = v * lie       # every angle and length, as on worked felt (`lie` < 1: lying down more)
-    ps.factor_random = v * spread
+    ps.use_advanced_hair = True   # lengths come from the emission speeds (along the normal, and along
+    v = length / 4.0                 # the comb), a quarter of the length
+    # No random speed: it is drawn in world space, so hair grown again at another pose (Blender grows
+    # it again whenever a shape key on its surface is set) leaned every fibre another way, and fibres
+    # moved against the felt between photographs (the technical artist's review, 2026-10-20). Their
+    # variety comes from the children's roughness instead, which is in the hair's own space.
+    ps.normal_factor = v * (0.35 + 0.65 * lie)
+    ps.factor_random = 0.0
     ps.tangent_factor = v * comb
     ps.render_type = 'PATH'
     ps.display_step, ps.render_step = 2, steps
@@ -208,9 +212,10 @@ def fuzz(ob, count, length, material=None, children=6, rough=0.004, seed=1, root
     ps.child_radius = child_radius
     ps.roughness_1 = rough
     ps.roughness_1_size = 0.4
-    ps.roughness_endpoint = rough * 0.8
+    # (every angle and length, as on worked felt: tips scattered and paths wandered, per fibre)
+    ps.roughness_endpoint = max(rough * 0.8, 0.3 * length * spread)
     ps.roughness_end_shape = 1.0
-    ps.roughness_2 = rough * 0.5
+    ps.roughness_2 = max(rough * 0.5, 0.5 * length * spread)
     ps.roughness_2_size = 1.0
     ps.clump_factor = clump
     if kink:
@@ -314,11 +319,14 @@ def scaled(c, k):
     return tuple(min(1.0, x * k) for x in c)
 
 
-def felt(name, color, coords='object', sheen=1.0, mottle=0.16, speck=0.22, flecks=None, bump=0.5, sss=0.15, dimples=True):
-    """Needle felt: matted wool, matte, glowing a little where light grazes it (sheen), light
-    scattering a short way into its fibres, mottled where it was felted thicker or thinner, flecked
-    with lighter and darker fibres of the blend (`flecks`: a colour, else lighter and darker of the
-    felt's own), pitted by the needle, and fibrous at the scale of a millimetre."""
+def felt(name, color, coords='object', sheen=1.0, mottle=0.16, speck=0.22, flecks=None, bump=0.5, sss=0.15, dimples=True, fleck_tones=(1.35, 0.62)):
+    """Needle felt: matted wool, matte, glowing a little where light grazes it (sheen), mottled
+    where it was felted thicker or thinner, flecked with lighter and darker fibres of the blend
+    (`flecks`: a colour, else `fleck_tones` of the felt's own), pitted here and there by the needle,
+    uneven as needled wool is, and fibrous at the scale of a millimetre. (No light scattering
+    into it: at this size it was invisible and cost 38% of the render; `sss` is kept for the
+    callers but unused. Round flecks and deep, even pits read as polystyrene: the technical
+    artist's review, 2026-10-20.)"""
     mat = bpy.data.materials.new(name)
     n = Nodes(mat)
     p = n.coords(coords)
@@ -326,13 +334,14 @@ def felt(name, color, coords='object', sheen=1.0, mottle=0.16, speck=0.22, fleck
     big = n.add('ShaderNodeTexNoise', _noise_dimensions='3D', Vector=p, Scale=22.0, Detail=2.0, Roughness=0.5)
     dark, light = scaled(color, 1.0 - mottle), scaled(color, 1.0 + mottle * 0.7)
     col = n.mix(lumps.outputs['Fac'], rgba(dark), rgba(light))
-    # fibres of the blend: two high-frequency fields, thresholded into short flecks
-    f1 = n.add('ShaderNodeTexNoise', _noise_dimensions='3D', Vector=n.add('ShaderNodeMapping', Vector=p, Scale=(1.0, 1.0, 3.0), Rotation=(0.4, 0.9, 0.2)).outputs['Vector'], Scale=900.0, Detail=3.0)
-    f2 = n.add('ShaderNodeTexNoise', _noise_dimensions='3D', Vector=n.add('ShaderNodeMapping', Vector=p, Scale=(3.0, 1.0, 1.0), Rotation=(1.1, 0.3, 0.7)).outputs['Vector'], Scale=900.0, Detail=3.0)
-    lightf = n.math('MULTIPLY', n.math('GREATER_THAN', f1.outputs['Fac'], 0.66), speck)
-    darkf = n.math('MULTIPLY', n.math('LESS_THAN', f2.outputs['Fac'], 0.34), speck)
-    col = n.mix(lightf, col, rgba(flecks[0] if flecks else scaled(color, 1.35)))
-    col = n.mix(darkf, col, rgba(flecks[1] if flecks else scaled(color, 0.62)))
+    # fibres of the blend: two high-frequency fields stretched tenfold along two directions,
+    # thresholded into thin streaks (a fibre of another tone lying in the felt, not a dot)
+    f1 = n.add('ShaderNodeTexNoise', _noise_dimensions='3D', Vector=n.add('ShaderNodeMapping', Vector=p, Scale=(1.0, 1.0, 10.0), Rotation=(0.4, 0.9, 0.2)).outputs['Vector'], Scale=900.0, Detail=3.0)
+    f2 = n.add('ShaderNodeTexNoise', _noise_dimensions='3D', Vector=n.add('ShaderNodeMapping', Vector=p, Scale=(1.0, 1.0, 10.0), Rotation=(1.1, 0.3, 2.0)).outputs['Vector'], Scale=900.0, Detail=3.0)
+    lightf = n.math('MULTIPLY', n.math('GREATER_THAN', f1.outputs['Fac'], 0.78), speck)
+    darkf = n.math('MULTIPLY', n.math('LESS_THAN', f2.outputs['Fac'], 0.22), speck)
+    col = n.mix(lightf, col, rgba(flecks[0] if flecks else scaled(color, fleck_tones[0])))
+    col = n.mix(darkf, col, rgba(flecks[1] if flecks else scaled(color, fleck_tones[1])))
     # surface: fine fibrous noise, the needle's pits, the stuffing's lumps
     fine = n.add('ShaderNodeTexNoise', _noise_dimensions='3D', Vector=p, Scale=2400.0, Detail=10.0, Roughness=0.72)
     # matted fibres: stretched noise in three directions, the strongest wins (a fibre lying on top)
@@ -344,33 +353,44 @@ def felt(name, color, coords='object', sheen=1.0, mottle=0.16, speck=0.22, fleck
     h = n.math('ADD', n.math('MULTIPLY', fine.outputs['Fac'], 0.35), n.math('MULTIPLY', fibres, 0.7))
     h = n.math('ADD', h, n.math('MULTIPLY', n.math('MAXIMUM', f1.outputs['Fac'], f2.outputs['Fac']), 0.2))
     if dimples:
+        # the needle's pits: shallow, and only here and there (one cell in three or so)
         vor = n.add('ShaderNodeTexVoronoi', _voronoi_dimensions='3D', Vector=p, Scale=520.0, Randomness=1.0)
         pit = n.math('SUBTRACT', 1.0, n.math('MINIMUM', n.math('DIVIDE', vor.outputs['Distance'], 0.22), 1.0))
-        h = n.math('SUBTRACT', h, n.math('MULTIPLY', pit, 0.55))
+        some = n.math('GREATER_THAN', n.add('ShaderNodeSeparateColor', Color=vor.outputs['Color']).outputs[0], 0.6)
+        h = n.math('SUBTRACT', h, n.math('MULTIPLY', n.math('MULTIPLY', pit, some), 0.15))
+    # needled unevenness, a few millimetres across
+    needled = n.add('ShaderNodeTexNoise', _noise_dimensions='3D', Vector=p, Scale=280.0, Detail=3.0, Roughness=0.5)
+    h = n.math('ADD', h, n.math('MULTIPLY', needled.outputs['Fac'], 0.45))
     h = n.math('ADD', h, n.math('ADD', n.math('MULTIPLY', lumps.outputs['Fac'], 0.7), n.math('MULTIPLY', big.outputs['Fac'], 1.2)))
     col = n.mix(n.math('MULTIPLY', n.math('SUBTRACT', big.outputs['Fac'], 0.5), 0.6, clamp=True), col, rgba(scaled(color, 0.86)))
     col = n.mix(n.math('MULTIPLY', n.math('SUBTRACT', fibres, 0.5), 0.5, clamp=True), col, rgba(scaled(color, 1.12)))
     bmp = n.add('ShaderNodeBump', Strength=min(1.0, bump * 2.0), Distance=0.0005, Height=h)
     bsdf = n.add('ShaderNodeBsdfPrincipled', **{'Base Color': col, 'Roughness': 0.96, 'Sheen Weight': sheen,
                                                'Sheen Roughness': 0.38, 'Sheen Tint': rgba(scaled(color, 1.5)),
-                                               'Subsurface Weight': sss * 0.5, 'Subsurface Radius': (1.0, 0.55, 0.4),
-                                               'Subsurface Scale': 0.0006, 'Specular IOR Level': 0.15,
+                                               'Subsurface Weight': 0.0, 'Specular IOR Level': 0.15,
                                                'Normal': bmp.outputs['Normal']})
     n.out(bsdf.outputs['BSDF'])
     return mat
 
 
 def fiber(name, color, lift=1.08):
-    """Loose wool fibres (the particle hair over felt and knit): a little lighter than the felt they
-    stand off, as a fibre catching the light is."""
+    """Loose wool fibres (the particle hair over felt and knit): a fibre's own scattering (the
+    Chiang hair model), so a backlit fibre glows rather than going dark as an opaque surface does;
+    rough, without the glint of human hair, a little lighter than the felt it stands off, and
+    every fibre a little different."""
     mat = bpy.data.materials.new(name)
     n = Nodes(mat)
-    info = n.add('ShaderNodeHairInfo')
-    col = n.mix(n.math('MULTIPLY', info.outputs['Random'], 0.5), rgba(scaled(color, lift)), rgba(scaled(color, lift * 0.8)))
-    # wool is matte: scattered light and a soft sheen, not the glint of human hair
-    b = n.add('ShaderNodeBsdfPrincipled', **{'Base Color': col, 'Roughness': 0.85, 'Sheen Weight': 0.35, 'Sheen Roughness': 0.5,
-                                            'Sheen Tint': rgba(scaled(color, 1.4)), 'Specular IOR Level': 0.15,
-                                            'Subsurface Weight': 0.1, 'Subsurface Radius': (1.0, 0.6, 0.4), 'Subsurface Scale': 0.0002})
+    # (the model's own 'Random Color' is for melanin only: each fibre's shade comes from its random)
+    rand = n.add('ShaderNodeHairInfo').outputs['Random']
+    col = n.mix(rand, rgba(scaled(color, lift * 0.93)), rgba(scaled(color, lift * 1.11)))
+    b = n.add('ShaderNodeBsdfHairPrincipled')
+    b.model, b.parametrization = 'CHIANG', 'COLOR'
+    n.link(col, b.inputs['Color'])
+    b.inputs['Roughness'].default_value = 0.5
+    b.inputs['Radial Roughness'].default_value = 0.8
+    b.inputs['Coat'].default_value = 0.0
+    b.inputs['IOR'].default_value = 1.55
+    b.inputs['Random Roughness'].default_value = 0.2
     n.out(b.outputs['BSDF'])
     return mat
 
@@ -416,8 +436,7 @@ def knit(name, color, stitch=(0.0019, 0.0016), coords='uv', rib=False, depth=0.5
     col = n.mix(n.math('MULTIPLY', mottle.outputs['Fac'], 0.3), shade, rgba(scaled(color, 0.85)))
     bsdf = n.add('ShaderNodeBsdfPrincipled', **{'Base Color': col, 'Roughness': 0.94, 'Sheen Weight': 1.0,
                                                'Sheen Roughness': 0.42, 'Sheen Tint': rgba(scaled(fuzz_color or color, 1.5)),
-                                               'Subsurface Weight': 0.1, 'Subsurface Radius': (1.0, 0.55, 0.4),
-                                               'Subsurface Scale': 0.0008, 'Specular IOR Level': 0.16,
+                                               'Subsurface Weight': 0.0, 'Specular IOR Level': 0.16,
                                                'Normal': bmp.outputs['Normal']})
     n.out(bsdf.outputs['BSDF'])
     return mat
