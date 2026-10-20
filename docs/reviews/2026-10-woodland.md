@@ -2007,3 +2007,80 @@ bowed texture 15–20 dB under the piano.
   alone measures within 0.3 LU of A.
 - **Films**: `test-output/review/woodland/sound/woodland-film-A.mp4` (as the room plays it),
   `woodland-film-A-with-captions-chosen.mp4` and `woodland-film-B-piano-alone.mp4`.
+
+## The artist's idea: a line where the painting was (2026-10-20)
+
+The artist: "I also think it would be more powerful if text got written on the wall where the
+animation was after it ends such as 'I thought it would last forever.' Or something in that vein,
+that fits the moment and the overall installation, your choice." They asked for the music first.
+
+### The proposal and its reviews (the creative director, the technical artist, the interaction designer; the skeptic)
+
+The proposal: one line, always the same ("I thought we had more time."), in the same pencil a size
+smaller, under "five more minutes" inside the painting's former place, written about 2 s after the
+room's writing comes back, only after a memory run to its end; kept for the visit.
+- **The creative director**: right in principle (the memory given back to the writer's hand, the
+  diorama's own medium), but the proposed words and the artist's example speak in the dusk's voice:
+  they tell the visitor why to be sad, which the brief forbids. "we had all afternoon" (lowercase, no
+  full stop), in the afternoon's voice, written after a silence, xs, never on a later visit. The work
+  has removed words over the empty clearing three times.
+- **The technical artist**: cheap and safe to render, but the placement fails. The woodland's line is
+  written on whichever wall the visitor faced, and no existing write places a line under it inside
+  the painting's rect (free in 6–27% of endings). xs is a smudge from where the visitor is put back;
+  use s. The memory completes at 55.0 s or later, not 53.
+- **The interaction designer**: the aftermath leaks. Stillness and closeness built up while the
+  visitor was carried are answered as soon as the 6 s hold lifts: a whisper at +6.9 s in about one
+  still ending in four, which would land on the line. Fix that first. Then the line as the last
+  stroke of the withdrawal (50.3 s), at s, gated on the memory's own position and on being taken in.
+- **The skeptic**: build it; fix the leak first, in its own commit. Write at memory position 52.5,
+  where the far cicada ends: the wall is white, the words have been back a second, the painting's
+  place is still live, and the line is done as the aftermath begins (50.3 is inside the wash; 55.5
+  and "after a silence" land late, on the room's habits). "we had all afternoon" is right, but not
+  because the artist's line is a cliché ("forever" is their own word for this memory): it only says
+  what they had, and under "five more minutes" it becomes the contradiction. Show the artist both.
+  Pencil s, one line. One placement rule, not a specification: inside the painting's former place,
+  nearest under the line, slots of lines not yet shown giving way. Two more of the room's habits
+  would caption it (finishing an unfinished sentence, warm resurfacing).
+
+### Decisions (main session, after the skeptic)
+
+117. **The aftermath holds** (the interaction designer's finding 1, the skeptic's 1). While a memory
+     plays and through its aftermath, stillness and closeness are not counted: the still clock and
+     any voice it owes are cleared, and closeness to the chair (after the first approach) is held.
+     Both count again from when the aftermath ends. What the visitor does is still answered, a first
+     approach to the chair among it. Tested: a still visitor carried through a memory to its end,
+     standing or by the chair, gets nothing of the room's own for 25 s (16 runs; before, 18 voices
+     leaked). The journey's quiet after a memory is 25 s for every persona.
+118. **Two habits wait** (the skeptic's finding 6). An unfinished sentence is never finished in the
+     afternoon's aftermath ("I wanted you to stay." under "five more minutes" would caption it); after
+     the other memories, a long look is answered as ever (held in every aftermath, the reader heard no
+     recorded voice in the first 90 s). No warm memory resurfaces once the afternoon has been seen
+     ("That was a good day." after it), as the room's music doesn't (decision 64).
+119. **The words: "we had all afternoon"** (the creative director, the skeptic; the artist gave us the
+     choice). Lowercase, no full stop. It says only what they had; under "five more minutes" it is the
+     contradiction of asking for five more minutes when you had all afternoon. The artist is shown it
+     beside their own line ("I thought it would last forever.", which wraps to two lines at this size),
+     and one string changes it.
+120. **When: memory position 52.5** (the skeptic's finding 2): the far cicada has ended, the wall is
+     white and the words have been back 1.2 s, the painting's place is still live, and the Director
+     drops the room's own writing while the memory is active. Written at the hand's own pace (about 3
+     s), silently, whether or not they are looking; done as the aftermath begins. Only when the
+     afternoon reached that position while playing, in the room, with the visitor taken in and the
+     memory not let go early. So once in a lifetime of visits: the afternoon plays only until it is
+     counted.
+121. **Pencil s, one line**, the size of "five more minutes" (the technical artist's 3, the
+     interaction designer's 3, the skeptic's 4): the one size known to read from where the visitor
+     is put back.
+122. **Where: inside the painting's former place, nearest under the line** (the skeptic's 5, the
+     technical artist's P0s): candidates inside the rect the painting took, nearest first to just
+     under the start of the woodland's own line (read from its own key, never the phrase's blank
+     layout slot); the first whose only obstacles are slots of lines not yet shown wins, and those
+     lines are placed again elsewhere on their wall. If none fits, nothing is written and nothing is
+     announced.
+123. **Its identity**: `source: 'more-minutes'`, so a look at it counts as a look at "five more
+     minutes"; a key that doesn't start with `memory:`; no phrase entry. Announced to a screen
+     reader as it begins: "Written on the wall where the painting was: we had all afternoon."
+124. **Not done**: a size smaller (xs), two lines, 50.3 s over the wash, a silence of 6–8 s after
+     completion, a graphite sound under the hand, a line on a later visit, baking it ahead (the
+     room bakes every line on demand; ahead only if a phone shows a hitch there), the specification's
+     alignment rules, capturing the painting at the residue, a pacing hold for it.

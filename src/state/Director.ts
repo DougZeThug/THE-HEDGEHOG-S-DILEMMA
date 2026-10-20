@@ -501,6 +501,15 @@ export class Director {
       this.ruleDrawings();
       this.ruleFinish();
       this.situations.tick(this.host);
+      // A memory and its aftermath are the memory's: stillness or closeness that grew while the
+      // visitor was carried, or in the quiet after it, is not theirs to be answered for, and both
+      // are counted again from when the aftermath ends (decision 117). What the visitor does is
+      // still answered, a first approach to the chair among it.
+      if (this.scenes.active || this.aftermath()) {
+        this.stillClock = 0;
+        this.stillVoiceOwed = false;
+        if (this.visitor.near && this.spokenFirstApproach) this.visitor.nearSince = this.visitor.t;
+      }
       // In a memory's aftermath, and inside a held silence, the room's own life waits; what the
       // visitor does is still answered. (That the room's own things never come together is the
       // scheduler's: they are spaced 4–7 s apart.)
@@ -977,7 +986,9 @@ export class Director {
    * the chair. A voice says the whole sentence, and the hand writes the rest as it is heard.
    */
   private ruleFinish() {
-    if (!this.unfinished.size || this.now < 12) return;
+    // (Never in the afternoon's aftermath: a sentence finished under its line would caption it.
+    // After the other memories a long look is answered as ever: it is the visitor's.)
+    if (!this.unfinished.size || this.now < 12 || (this.aftermath() && this._musicWithdrawn)) return;
     // Not over a vignette: a heard memory has voices of its own (a painted one can take it).
     if (this.vignettePlaying || this.now < this.vignetteQuietUntil) return;
     const v = this.visitor;
@@ -1655,11 +1666,12 @@ export class Director {
     }
   }
 
-  /** Warm memories return when the visitor is far away. */
+  /** Warm memories return when the visitor is far away (never once the afternoon has been seen:
+   * "That was a good day." after it would caption it, as the room's music would). */
   private ruleWarmResurface() {
     const f = this.field.v;
     const mem = this.memory;
-    if (!mem.warmMemories.length || f.solitude < 0.45 || this.visitor.distance < 2.2) return;
+    if (this._musicWithdrawn || !mem.warmMemories.length || f.solitude < 0.45 || this.visitor.distance < 2.2) return;
     if (!this.cool('resurface', 70) || this.pacing.holding(this.now) || this.attending() || this.pacing.crowded(this.now)) return;
     this.used('resurface');
     const id = mem.warmMemories[this.rng.int(0, mem.warmMemories.length - 1)];

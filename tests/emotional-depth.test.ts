@@ -69,6 +69,27 @@ describe('the aftermath of a memory', () => {
     expect(answered).toBeGreaterThan(0);
   });
 
+  it('a still visitor carried through a memory to its end is not answered for that stillness: nothing of the room comes for 25 s', () => {
+    // (Decision 117: stillness and closeness that grew while the visitor was carried were counted
+    // as theirs, and answered as soon as the 6 s hold lifted: a whisper at +6.9 s in about one
+    // still ending in four.)
+    const leaks: string[] = [];
+    for (const seed of [1, 2, 3, 4, 5, 6, 7, 8]) {
+      for (const where of [{ x: 0.6, z: 2.6 }, { x: 0, z: 0.9 }]) {
+        const d = new Director({ seed });
+        d.release();
+        drive(d, (t) => ({ x: where.x + 0.4 * Math.sin(t / 2), z: where.z }), 0, 30);
+        (d.scenes as unknown as { active: unknown }).active = { id: 'woodland', since: d.now };
+        drive(d, () => ({ ...where, carried: true }), 0, 55);
+        d.memoryEnded('woodland', true, true);
+        d.withdrawMusic();
+        const after = drive(d, () => where, 0, 25);
+        for (const c of after) if (/^(still|near-|long-near|finish|resurface)/.test(c.rule) || ROOM_OWN.test(c.rule)) leaks.push(`seed ${seed} at ${where.z}: ${c.rule}`);
+      }
+    }
+    expect(leaks).toEqual([]);
+  });
+
   it('nothing of the room’s own is postponed onto a memory while it plays', () => {
     for (const p of PERSONAS) {
       const r = visit(looped(p), 420, 2);
