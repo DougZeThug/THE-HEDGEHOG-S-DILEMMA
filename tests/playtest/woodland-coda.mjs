@@ -58,7 +58,8 @@ await page.evaluate(async ({ stay, wall, near, at }) => {
   a.rig.cancelAttend();
   a.rig.pos.set(c.x + n.x * 2.4, 0, c.z + n.z * 2.4);
   a.rig.yaw = Math.atan2(n.x, n.z);
-  a.rig.pitch = 0.1;
+  // (Looking at it from the eye's height, a little below: where the line under it goes.)
+  a.rig.pitch = Math.atan2(c.y - 0.15 - 1.58, 2.4);
 }, { stay: !!process.env.STAY, wall: process.env.WALL ?? '', near: (process.env.NEAR ?? '3.2,1.6').split(',').map(Number), at: process.env.AT ? process.env.AT.split(',').map(Number) : null });
 await page.waitForTimeout(1000);
 await page.screenshot({ path: `${OUT}/${NAME}-0-before.png` });
