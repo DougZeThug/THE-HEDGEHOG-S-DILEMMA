@@ -56,7 +56,8 @@ foreshortens, and the picture reads as a warped illustration. So:
 
 ## Checking a result
 
-- Unmoved, and a hair's breadth moved, it is the painting (asserts in the script).
+- Unmoved, and a hair's breadth moved, it is the painting, but for single pixels where its meshes
+  meet (asserts in the script, bounding how many and by how much).
 - Each feature's lines carry the ink they were drawn with: `line_weight` in `scripts/her-turn.py`.
 - Motion from drawing to drawing is one smooth rise and fall, with no frame out of line (optical
   flow at landmarks). Parts that must move together, like a chin with a mouth, move within a pixel

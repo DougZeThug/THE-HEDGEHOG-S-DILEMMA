@@ -76,6 +76,9 @@ FACES = (370, 100, 240, 105)
 GRADE = 0.7
 # The painting's grass where they lie (plate px: x0, y0, x1, y1): the bed's colour, and the ground.
 MEADOW = (330, 462, 1290, 773)
+# How much her 1x drawing must change at a pixel (of 1) before the wide's cut there is made again,
+# and how far the cut's alpha may jump in one drawing where her drawing changes less than 3 RECUT.
+RECUT, FLIP = 10 / 255, 0.4
 UPSCALED = os.path.join(cut.REF, 'upscaled')
 
 
@@ -456,11 +459,30 @@ def main():
     th, tw = plain.shape[:2]
     box_t = (slice(round(by * t), round((by + bh) * t)), slice(round(bx * t), round((bx + bw) * t)))
     wides = []
+    # (Each drawing's cut keeps the cut a pixel already has wherever her drawing hasn't changed there
+    # since that cut was made, by more than `RECUT`: cut afresh each time, an island of paper between
+    # strands of her hair beside her far eye flipped at her last and smallest step, a glint of 77/255
+    # as she lands, in a phone's wide: QA and the cinematic director, 2026-10-20.)
+    fx0, fy0, fx1, fy1 = cut.FIG_CROP
+    held, held_from = plain.copy(), sheet_full[fy0:fy1, fx0:fx1].copy()
     for _, _, _, small in drawings:
         full1 = sheet_full.copy()
         full1[cy // 2:(cy + ch) // 2, cx // 2:(cx + cw) // 2] = small * lay + full1[cy // 2:(cy + ch) // 2, cx // 2:(cx + cw) // 2] * (1 - lay)
         wide, _, _, _, _ = cut.figures(cut.img(full1), cut.load('04-day.webp'))
-        wides.append(wide[box_t])
+        now = full1[fy0:fy1, fx0:fx1]
+        change = np.abs(now - held_from).max(-1)
+        moved = change > RECUT
+        moved_t = cv2.resize(moved.astype(np.float32), (tw, th), interpolation=cv2.INTER_AREA) > 0
+        # (and where the cut's own alpha jumps further than her drawing's change there accounts for,
+        # the jump is the cut's: a gap between strands of her hair beside her far eye opened drawing by
+        # drawing, alpha 0.94 down to 0.37, then the cut took it for enclosed and closed it at once, a
+        # cream fleck as she lands)
+        change_t = cv2.resize(cv2.dilate(change.astype(np.float32), np.ones((3, 3), np.uint8)), (tw, th), interpolation=cv2.INTER_AREA)
+        jump = (np.abs(wide[..., 3] - held[..., 3]) > FLIP) & (change_t < 3 * RECUT)
+        jump = cv2.dilate(jump.astype(np.uint8), np.ones((3, 3), np.uint8)) > 0
+        held = np.where((moved_t & ~jump)[..., None], wide, held)
+        held_from = np.where(moved[..., None], now, held_from)
+        wides.append(held[box_t])
     # (Her eyes on him change nothing of her but her eyes: her hair's outline and its colour stay
     # the wide's own, as the two-shot's do.)
     yy, xx = np.mgrid[0:wides[0].shape[0], 0:wides[0].shape[1]]

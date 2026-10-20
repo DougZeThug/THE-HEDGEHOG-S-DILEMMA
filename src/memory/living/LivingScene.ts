@@ -674,7 +674,7 @@ export class LivingScene {
     };
     chest('chestA', s.chest.a, ba * deep);
     chest('chestB', s.chest.b, bb * deep);
-    // Her turn: the drawing nearest to how far she has turned (`figure:b.turn`), held, in either
+    // Her turn: the drawing nearest to how far through her turn's drawings she is (`figure:b.turn`), held, in either
     // shot; while one is shown, nothing of the rig made for the panel's face moves it.
     const heads = near ? this.art.near!.heads : this.art.heads ?? null;
     const cel = heads ? headFor(val('figure:b.turn', 0), heads.at) : 0;

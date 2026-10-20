@@ -38,7 +38,8 @@ numpy, OpenCV, ffmpeg and the project's own browser recorder. No model, no netwo
   with its caster: the jaw's shadow with the jaw, not with the neck.
 - **Lines on their own surface.** Draw each surface's lines through that surface's motion,
   one-to-one, then join them by depth. Resample them with Lanczos, clamped to the ink's own range.
-- **Unmoved, it is the painting** (to 2/255), and moved a hair's breadth, still is. The script
+- **Unmoved, it is the painting** (to 2/255), and moved a hair's breadth, still is, but for one
+  pixel by her ear (37/255, skin to skin). The script
   asserts both every run.
 
 ## The faults this has already made (and how each looks)
@@ -53,7 +54,8 @@ numpy, OpenCV, ffmpeg and the project's own browser recorder. No model, no netwo
 | One review frame for each drawing at 24 fps | the films ran at double speed: a snap no one built | each drawing held two frames |
 | Key times rounded to four places | four keys 33 µs after their twelfth: every film sampled on whole frames held the drawings 3-1-2 | keys exactly on their twelfths, tested at 12, 24 and 60 fps |
 | A matte traced past the chin's drawn line, its soft edge laid over the background | the hair went over her neck with her chin, a dark wedge under it while she settled | her matte ends at her line; her head's soft edge lies over her neck |
-| An outline drawn along the hidden skin under her jaw | it went with her chin and lay across her neck as a stroke | none: her neck's own edge is enough |
+| The hidden skin under her jaw left plain at its edge | a pale streak, and her neck's lines stopping short under her chin, frayed | the lines of her neck's edge as painted just below, carried on up it (not its light: that lit the shadow under her chin) |
+| A wide's figure cut made afresh for every drawing | a gap in her hair taken for enclosed at her last step, a cream fleck as she lands | each pixel keeps its cut while her drawing there barely changes, and through a jump the drawing doesn't account for |
 | Two meshes that only touch, at her ear | a pixel fell between them and the hair showed, a speck from the first drawing | her neck continued behind her jaw from ear to chin; a seam takes what is beside it |
 
 ## The performance
@@ -64,7 +66,7 @@ numpy, OpenCV, ffmpeg and the project's own browser recorder. No model, no netwo
 - **Every part on its own clock.** Her eyes go to him first, then a moment, then her head. As her
   head comes round, her eyes ease back in their sockets and stay on him. Code that moves every part
   at once, on the same curve, by the same amount, reads as mechanical.
-- **An ease with a gentle start and a settle:** velocity t² e^(−t/b), cut off and renormalised at
+- **An ease that sets off at once and settles long:** velocity t² e^(−t/b), cut off and renormalised at
   the last drawing, so there is no jump onto it.
 - **Fit the score.** The woodland's score leaves her look clear from 17.0 to 19.5 s, and its notes
   either side are composed to the picture. A change to her timing has to fit inside that window, or
@@ -75,7 +77,8 @@ numpy, OpenCV, ffmpeg and the project's own browser recorder. No model, no netwo
 ## Checking it
 
 In order, each before the next:
-1. **The script's own asserts.** Unmoved, and a hair's breadth moved, it is the painting. Each
+1. **The script's own asserts**, at every drawing, on each rig that draws one. Unmoved, and a hair's
+   breadth moved, it is the painting (but for a pixel by her ear). Each
    feature's lines carry their ink along their own centre lines (0.94–0.98 at her turn). Settled, no
    hair shows inside her neck under her chin.
 2. **Motion.** Optical flow between drawings at landmarks: one smooth rise and fall, no drawing out

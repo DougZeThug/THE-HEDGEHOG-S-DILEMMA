@@ -2669,3 +2669,91 @@ Verified working:
      - **Enlargements last**, labelled with their size.
      - **Said plainly:** the films sent before held her drawings 3-1-2, and these replace them.
 
+
+### Her turn at 8909d60: the cinematic director and QA, and decisions
+
+**The cinematic director** (the turn as built, and her far outline A/B/C):
+- The turn reads as her own face turning toward him, coherent from drawing to drawing on clean
+  twos, and no longer snaps.
+- **A is recommended.** B and C bring back 56% and 72% of the cheek widening the artist rejected:
+  decision 143's measure gives A +4.6 px, B +7.5, C +9.6 and the first rig +13.4.
+- **The choice and the timing shouldn't be judged from fragments.** Silent 3-second clips and a
+  side-by-side triptych make the eye follow one face. Show it in context with sound, and A, B and C
+  one after another.
+- **A frayed end where her chin line meets her neck:** a 1-px tick and a pale sliver, through the
+  hold.
+- **The hair beside her far cheek** moves as a stretched band in A (median 1.29).
+- **The phone glint,** as QA's 1 below.
+- **Timing:** visible movement runs 18.17–18.75 after a 0.58 s pause. Holding the last drawings
+  would change nothing visible.
+
+**QA** (8909d60, built app, four profiles):
+- **No P0 or P1.** Every drawing is on its twelfth at 12, 24 and 60 fps. Every film holds two
+  frames. Both scripts reproduce the commit byte for byte. The wedge and the ear speck are gone.
+- **The phone glint is unchanged on screen,** 77/255 over 7 px.
+- **The new checks run once,** on the two-shot's rig only.
+- **Studio's grid** (thirtieths) can't hold her twelfths.
+- **Old words and loose assertions** remain.
+
+### Decisions (main session)
+
+161. **A is advised** (the cinematic director's 1).
+     - The note to the artist says plainly that B carries over half and C about three quarters of
+       the widening they called very fat. B is the fallback if A reads as sliding.
+     - If neither satisfies, no fourth hold value: the cheek coming into view must be painted, by
+       the artist or an approved generation (one key drawing of her settled far cheek).
+162. **Judged in context, with sound, one face at a time** (the cinematic director's 2).
+     - The memory is recorded at 15.0–24.5 s with the current mix (the desktop two-shot, A).
+     - A, B and C are shown one after another, full frame, 15.0–20.0 s each with black between, with
+       the same sound. They are laid into the panel, so without her breath and the grass.
+     - The triptych and the quarter-speed enlargements are for after the choice.
+163. **Her neck's edge goes on up behind her chin** (the cinematic director's 3; decision 152's
+     removal corrected).
+     - **Measured.** The hidden skin's edge moves with her neck's side (6.1–6.8 px against 6.8 at
+       the corner; her chin moves 21.8). An outline along it lies along her neck's outline, not
+       across it. The stroke decision 152 saw was the panel's own faint line inside the light along
+       her neck's edge.
+     - **Now:** the lines of her neck's edge, as painted 2.5 px below the corner (`EDGE_REF`), carry
+       on up the hidden skin: its outline and the line inside it.
+     - **Not the light between them:** carried up, it lit the shadow under her chin as a bright patch.
+     - **Tried and reverted:** giving her neck the pixels of its lines just below the corner. It
+       barely changed the hook, and threw off the jaw line's ink check.
+     - **Left:**
+       - the end of her chin's line bends a pixel or two where it met her neck's corner;
+       - a pale speck at that end in drawings 06–08 (the top of the light along her neck's edge,
+         carried with her chin), which predates this round.
+164. **Timing stays until the artist has seen it in context** (the cinematic director's 6; decision
+     155 corrected).
+     - If it reads as quick, re-time the first and middle drawings (a first step of about a screen
+       pixel) and land by 19.4.
+     - Holding the last drawings would change nothing visible: each of them moves a pixel or less.
+165. **The hair beside her far cheek** (the cinematic director's 4) is weighed after the artist's
+     choice: B and C stretch it less (1.24, 1.20). A wider fall-off moves more of the hair on the
+     grass.
+166. **The phone glint, fixed where it starts** (QA's 1, the cinematic director's 5; decision 158
+     corrected: my 42/255 sampled from the atlas understated what QA measured on screen).
+     - **Traced.** A gap between strands of her hair beside her far eye opens drawing by drawing as
+       her hair moves: the cut's alpha falls from 0.94 to 0.37. At her last drawing the wide's cut
+       takes it for enclosed and closes it (0.94), a cream fleck as she lands.
+     - **The fix** (`scripts/two-shot.py`). Each drawing's cut for the wide keeps a pixel's earlier
+       cut in two cases:
+       - where her drawing there hasn't changed by more than 10/255 since (`RECUT`);
+       - where the cut's alpha jumps by more than 0.4 (`FLIP`) while her drawing changes by less than
+         30/255.
+     - **Measured,** composited over the plate's green:
+       - by her far eye at her last step, 116 → 15/255 on phones and 119 → 22 on desktop;
+       - pixels changing more than 24/255 across her head at that step, 611 → 13;
+       - earlier steps unchanged.
+     - **Measured on screen** in the browser recordings (below).
+167. **The checks cover what they claim** (QA's 2).
+     - The hair's-breadth check and the chin check run at every drawing, on both rigs (the
+       two-shot's and the wide's).
+     - A hair's breadth is bounded by size too: no more than 2 px over 12/255, none over 40/255.
+168. **Studio's grid in sixtieths** (QA's 3).
+     - The seed now writes sixtieths, so every twelfth lies on Studio's grid. Only Studio uses it.
+     - The woodland afternoon is reseeded. Other sheets keep thirtieths until they are reseeded;
+       their keys lie on both grids.
+169. **Old words** (QA's 4).
+     - The scene's comment and `docs/animation.md` are corrected: "an ease that sets off at once
+       and settles long", and "but for one pixel by her ear".
+     - The turn's tests check each drawing exactly on its twelfth.

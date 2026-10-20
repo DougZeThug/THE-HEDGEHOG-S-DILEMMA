@@ -495,10 +495,11 @@ describe('the two of them close: one shot, three beats, held drawings', () => {
     const d = turnDrawings();
     expect(changes.map(([, f]) => f)).toEqual(d.map((x) => x.turn));
     changes.forEach(([t], i) => expect(Math.abs(t - d[i].at)).toBeLessThanOrEqual(1 / 120 + 1e-9));
+    d.forEach((x) => expect(x.at).toBe(Math.round(x.at * 12) / 12));
     // Her eyes first: drawings of her eyes going to him (a soft dart), her head not yet turned.
     const eyes = d.filter((x) => x.head === 0);
     expect(eyes.map((x) => x.eyes)).toEqual(TURN.eyes);
-    eyes.forEach((x, i) => expect(x.at).toBeCloseTo(T.herEyes + i / 12, 4));
+    eyes.forEach((x, i) => expect(x.at).toBe((Math.round(T.herEyes * 12) + i) / 12));
     for (let i = 1; i < eyes.length; i++) expect(eyes[i].eyes).toBeGreaterThan(eyes[i - 1].eyes);
     // A moment between her eyes arriving and her head starting (the brief: "a believable hesitation").
     const moment = T.herTurn - eyes[eyes.length - 1].at;
@@ -507,7 +508,7 @@ describe('the two of them close: one shot, three beats, held drawings', () => {
     // Her head: a drawing every twelfth of a second, each further on; 90% of the way in 0.6–0.9 s
     // (the brief), settled within a second and a half, all the way at its last drawing.
     const head = d.filter((x) => x.head > 0);
-    head.forEach((x, i) => expect(x.at).toBeCloseTo(T.herTurn + (i + 1) / 12, 4));
+    head.forEach((x, i) => expect(x.at).toBe((Math.round(T.herTurn * 12) + i + 1) / 12));
     for (let i = 1; i < head.length; i++) expect(head[i].head).toBeGreaterThan(head[i - 1].head);
     const t90 = head.find((x) => x.head >= 0.9)!.at - T.herTurn;
     expect(t90).toBeGreaterThanOrEqual(0.6);

@@ -3054,7 +3054,7 @@
         }
       },
       "sequence": {
-        "subUnitsPerUnit": 30,
+        "subUnitsPerUnit": 60,
         "length": 53,
         "type": "PositionalSequence",
         "markers": [

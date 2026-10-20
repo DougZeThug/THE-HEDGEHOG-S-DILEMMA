@@ -627,6 +627,9 @@ CHIN_SHADOW = (18.0, 26.0)
 # Her chin's outline, where turning takes it over her neck: within this of it (px) she ends at her
 # drawn line, this far past its centre line, then fading over a pixel.
 CHIN_LINE, LINE_HALF = 8.0, 0.5
+# Her neck's edge carried up behind her chin is her neck's edge as painted this far below the corner
+# where her chin's line meets it (px).
+EDGE_REF = 2.5
 
 
 def resampled(pts, n):
@@ -692,7 +695,7 @@ class Turned:
         side = (self.X - j) @ np.array([d[1], -d[0]])
         near_chin = line_dist(FAR_OUT[-6:]) < 25
         self.hidden = head & ((dist <= r_n + 2) | near_chin) & (below > 0) & ~(near_chin & (side >= 1.5))
-        self.near_chin = near_chin & self.hidden
+        self.near_chin, self.side = near_chin & self.hidden, side
         self.hidden_alpha = np.where(self.near_chin, smoothstep(1.0, -1.0, side), 1.0)
         self.zN = np.where(self.hidden, np.maximum(zN, self.zH + 4.0), zN)
         self.wN = np.where(self.hidden, 1.0, wN)
@@ -734,8 +737,8 @@ class Turned:
         sel = self.chin_zone[cy, cx] & (line_dist(chin)[cy, cx] < 5)
         on[cy[sel], cx[sel]] = True
         c_near, _ = nearest_on_mask(on, self.X)
-        d = unit(np.subtract(chin[-1], chin[0]))
-        past = (self.X - c_near) @ np.array([d[1], -d[0]])
+        dc = unit(np.subtract(chin[-1], chin[0]))
+        past = (self.X - c_near) @ np.array([dc[1], -dc[0]])
         self.aH = np.where(self.chin_zone, h.front_a * (1 - smoothstep(LINE_HALF, LINE_HALF + 1, past)), h.front_a)
         self.back = np.where((self.chin_zone & (self.aH < 1))[..., None], panel, self.back).astype(np.float32)
         neck_core = neck & ~head
@@ -763,10 +766,20 @@ class Turned:
         self.shade = (1 - m[..., None] * (1 - shade_c / lit_c)).astype(np.float32)
         self.neck_lit = (self.fills / self.shade).astype(np.float32)
         self.zJ = zj
-        # (the skin behind her jaw and chin, seen as they slide off it, lies in their shadow; an outline
-        # drawn along its edge went with her chin, not her neck, and lay across her neck as a stroke
-        # once her chin's edge showed her neck behind it: none)
-        self.neck_fill = np.broadcast_to(shade_c, (N, N, 3)).astype(np.float32)
+        # (the skin behind her jaw and chin, seen as they slide off it, lies in their shadow; along its
+        # edge against the hair, the lines of her neck's own edge as painted just below her chin (its
+        # outline and the line inside it, not the light between: carried up, that lit the shadow under
+        # her chin), carried on up and moving as her neck's side does. Plain, the skin there read as a
+        # pale streak; with only her outline carried up, the line inside it stopped short under her
+        # chin, frayed: the cinematic director, 2026-10-20.)
+        n = np.array([d[1], -d[0]])
+        ref = j + EDGE_REF * d
+        qx, qy = [(ref[k] + self.side * n[k]).astype(np.float32) for k in (0, 1)]
+        edge = cv2.remap(panel.astype(np.float32), qx, qy, cv2.INTER_LINEAR) @ np.array([0.3, 0.59, 0.11], np.float32)
+        ink = np.clip(edge / (shade_c @ np.array([0.3, 0.59, 0.11])), 0, 1)
+        band = smoothstep(-8.0, -5.0, self.side) * self.near_chin
+        self.neck_fill = (shade_c * (1 - band * (1 - ink))[..., None]).astype(np.float32)
+        self.hidden_alpha = np.where(self.near_chin, cv2.remap(h.front_a.astype(np.float32), qx, qy, cv2.INTER_LINEAR), 1.0)
         grow = lambda m: cv2.dilate(m.astype(np.uint8), np.ones((5, 5), np.uint8)) > 0
         head_mesh = grow(head) & ~(neck_core & (h.head < 0.02))
         neck_mesh = (grow(neck) & ~head) | self.hidden | (neck & head)
@@ -1045,11 +1058,13 @@ def woodland_gaze():
     return np.array([float(v) for v in re.search(r'gazeB:\s*\[([-\d.]+),\s*([-\d.]+)\]', spec).groups()])
 
 
-def chin_wedge(rig, psi):
-    """How many pixels inside her neck under her chin, turned by `psi`, are as dark as the hair behind
-    her and not her lines: where her chin moved off her neck, the hair once showed through, a dark
-    wedge under her chin all the while she settled (the skeptic, 2026-10-20)."""
-    pic, best = rig.render(psi, rig.panel)
+def chin_wedge(rig, psi, pic=None, best=None):
+    """How many pixels inside her neck under her chin, turned by `psi` (`pic` and `best` as rendered,
+    if they are), are as dark as the hair behind her and not her lines: where her chin moved off her
+    neck, the hair once showed through, a dark wedge under her chin all the while she settled (the
+    skeptic, 2026-10-20)."""
+    if pic is None:
+        pic, best = rig.render(psi, rig.panel)
     lum = pic @ np.array([0.3, 0.59, 0.11])
     line = cv2.dilate((rig.ink(psi, best).min(-1) < 0.8).astype(np.uint8), np.ones((3, 3), np.uint8)) > 0  # (and their soft edges)
     near = np.hypot(*(rig.X - NECK_R[0]).transpose(2, 0, 1)) < 26
@@ -1082,15 +1097,15 @@ def main():
     for name, v in weight.items():
         lo, hi = WEIGHT[name]
         assert lo <= v <= hi, f'turned, her {name} carries {v:.2f} of its ink (allowed {lo}-{hi})'
-    # (A hair's breadth turned, still the panel: a pixel fell between her head's mesh and her neck's
-    # by her ear, and the hair behind her showed there as a speck from the first drawing on: QA,
-    # 2026-10-20. And turned, no hair inside her neck under her chin.)
-    nudged, _ = rig.render(math.radians(-0.01), panel)
-    moved = np.abs(nudged - still).max(-1)
-    assert np.percentile(moved, 99.9) <= 2 / 255 + 1e-6 and (moved > 12 / 255).sum() <= 2, \
-        f'a hair\'s breadth turned, the rig should still be the panel: {(moved > 12 / 255).sum()} px moved more than 12/255, at most {moved.max() * 255:.0f}/255'
-    wedge = chin_wedge(rig, math.radians(-ANGLE))
-    assert wedge <= 2, f'turned, {wedge} px of the hair behind her show inside her neck under her chin'
+    # (A hair's breadth turned, still the panel but for a pixel by her ear, skin to skin: a pixel fell
+    # between her head's mesh and her neck's there, and the hair behind her showed as a speck from
+    # the first drawing on: QA, 2026-10-20. Checked on the wide's rig too, below.)
+    def hairs_breadth(r, src, still_):
+        nudged, _ = r.render(math.radians(-0.01), src)
+        moved = np.abs(nudged - still_).max(-1)
+        assert np.percentile(moved, 99.9) <= 2 / 255 + 1e-6 and (moved > 12 / 255).sum() <= 2 and moved.max() <= 40 / 255, \
+            f'a hair\'s breadth turned, the rig should still be the panel: {(moved > 12 / 255).sum()} px moved more than 12/255, at most {moved.max() * 255:.0f}/255'
+    hairs_breadth(rig, panel, still)
     # The wide is cut from the sheet's own painting, not the upscale: the same turn of it (rendered
     # at 2x from it, brought down), laid on it only as the change the turn makes, so wherever she
     # doesn't move the wide stays the sheet exactly (laying in the upscale changed her hair's outline
@@ -1100,6 +1115,7 @@ def main():
     rig1 = Turned(one2)
     still1, _ = rig1.render(0.0, one2)
     assert np.percentile(np.abs(still1 - one2).max(-1), 99.9) <= 2 / 255 + 1e-6, 'not turned, the rig should be the sheet'
+    hairs_breadth(rig1, one2, still1)
     down = lambda a: cv2.resize(a.astype(np.float32), (N // 2, N // 2), interpolation=cv2.INTER_AREA).astype(np.float64)
     base1 = down(still1)
     drawings, times, ease, whole = schedule()
@@ -1117,7 +1133,13 @@ def main():
             img, img1 = looking(img, e, g), looking(img1, e, g)
         # (the hair behind her with her head: a spring after it, its far ends later, moved under a
         # screen pixel and opened a seam beside her neck: the cinematic director, 2026-10-20)
-        pics = [r.render(psi, src)[0] for r, src in ((rig, img), (rig1, img1))]
+        pics = []
+        for r, src, which in ((rig, img, 'two-shot'), (rig1, img1, 'wide')):
+            pic, best = r.render(psi, src)
+            # (and at every drawing, in both, no hair inside her neck under her chin)
+            wedge = chin_wedge(r, psi, pic, best)
+            assert wedge <= 2, f'{name} ({which}): {wedge} px of the hair behind her show inside her neck under her chin'
+            pics.append(pic)
         save(pics[0], f'{name}@2x.webp')
         save(one + down(pics[1]) - base1, f'{name}@1x.webp')
         fractions[name] = d['turn']
