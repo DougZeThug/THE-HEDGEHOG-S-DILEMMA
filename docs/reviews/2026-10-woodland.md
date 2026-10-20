@@ -2217,3 +2217,19 @@ decision 119 said wrongly that it wraps.
      seen, so the line is never written in that browser. The room's own reason for its words is
      given: their hands lie almost touching and never move, and the line says what they had, never
      closed. Decision 118 is mentioned. The hardest layout is shown only as what now writes nothing.
+136. **20 cm from every place on its wall, for the rest of the visit** (found checking the new stills
+     before sending them). It kept 20 cm only from what was already written, and a line's own place
+     never moves: on the east wall it went 1.5 cm beside the empty place of "That was a good day."
+     (crayon, at its own place), and would have run on into it once the room wrote that line there.
+     The creative director's finding 2 named that very line.
+     - Now every place within 20 cm stops it, unless that place can go elsewhere: a line not yet
+       shown is moved, as before; a line's own place, written or not, stops it.
+     - Nothing placed after it comes within 20 cm, the moved lines included: its margin is kept in
+       the layout.
+     - The cost, in the layout model (120 endings): written about three times in four on a quiet
+       wall (before, nearly always), about half with a third of the lines up (before, three in
+       four), about a quarter with half up (unchanged). The artist's wording, longer, is written as
+       often except with a fifth of the lines up (half, against three in four). By three minutes
+       a visit has had 11–15 lines written (the engine playtest), and the woodland comes after 200 s.
+     - Tested: kept clear of a line's own place, empty or written, while a place that can move gives
+       way; on the walls as laid out, 20 cm from every place that stays.
