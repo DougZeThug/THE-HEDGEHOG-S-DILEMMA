@@ -53,17 +53,25 @@ HAND = [(0.0, 49, 65), (4.0, 41, 61), (9.0, 51, 66), (13.0, 44, 60), (14.0, 49, 
 EARLY = 0.31
 
 # Breathing time (decision 112): one habit, the same both times, before the hands' own unevenness.
-# The step down after the high A♭5 comes late (the G♭5, a touch lighter); the long F5 and E♭5 come on
-# time, their chord's bass and tenth a little ahead of them; the turn lilts. Home, the leading tones,
-# the go-round and both A♭5s stay on their beats, and nothing slows: not into home (it would answer
-# her look), nor into the cut. (beat: seconds late, velocity)
-HABIT = {3.5: (0.100, -2), 12.0: (0.015, 0), 12.5: (0.045, 0)}
+# The step down after the high A♭5 comes late (the G♭5); the long F5 and E♭5 come on time, their
+# chord's bass and tenth a little ahead of them; the turn lilts. Home, the leading tones, the
+# go-round and both A♭5s stay on their beats, and nothing slows: not into home (it would answer her
+# look), nor into the cut. (beat: seconds late)
+HABIT = {3.5: 0.100, 12.0: 0.015, 12.5: 0.045}
 # On these beats the chord comes this far ahead of the melody (elsewhere the melody leads it by 12 ms).
 BASS_FIRST = {4.0: 0.030, 9.0: 0.030}
+# Breaths in the pedal (decision 128): it lifts a little early before two bar lines (statement,
+# beat), and after home the first time the hands and the pedal lift together before the go-round,
+# so the dampers are heard in the clear and home's ring clears. No note moves.
+LIFTS = [(1, 4.0), (2, 9.0)]
+LIFT_EARLY = 0.15
+HOME_LIFT = 0.15
 
 # The picture's moments no note may begin in (tests/woodland-score.test.ts is the authority; these
 # are its values, for the humanising below to keep clear of).
 MOMENTS = [(9.6, 10.0), (11.6, 12.0), (13.2, 13.8), (16.0, 16.6), (14.3, 15.7), (17.0, 19.5), (23.5, 25.5), (26.3, 27.7), (27.8, 28.2)]
+# Her look and his, among them: nothing of the recording's crackle sounds in either (decision 129).
+LOOKS = [(17.0, 19.5), (23.5, 25.5)]
 
 
 def statement(start, tune=TUNE, hand=HAND, last=None, mel_vel=44, hand_vel=34, first=8.2, early=None):
@@ -71,7 +79,7 @@ def statement(start, tune=TUNE, hand=HAND, last=None, mel_vel=44, hand_vel=34, f
     `first`: nothing struck before then; `early`: beats played EARLY seconds ahead."""
     out = []
     shift = lambda b: -EARLY if early is not None and b in early else 0.0
-    onset = lambda b: start + b * BEAT + shift(b) - (0.0 if b in BASS_FIRST else 0.012) + HABIT.get(b, (0.0, 0))[0]
+    onset = lambda b: start + b * BEAT + shift(b) - (0.0 if b in BASS_FIRST else 0.012) + HABIT.get(b, 0.0)
     for j, (b, m, d) in enumerate(tune):
         if last is not None and b > last:
             break
@@ -79,9 +87,11 @@ def statement(start, tune=TUNE, hand=HAND, last=None, mel_vel=44, hand_vel=34, f
         if t < first:
             continue
         # A player leans a little on what begins a bar, and plays the quick notes a touch lighter.
-        v = mel_vel + (2 if b % 4 == 0 else -2 if b % 1 else 0) + HABIT.get(b, (0.0, 0))[1]
-        # Held to just before the next (a late note opens no gap, and its neighbour gives way).
-        dur = onset(tune[j + 1][0]) - t - 0.03 if j + 1 < len(tune) else d * BEAT - 0.03 - shift(b)
+        v = mel_vel + (2 if b % 4 == 0 else -2 if b % 1 else 0)
+        # Held to just before the next (a late note opens no gap, and its neighbour gives way); the
+        # last let go before the next go-round's first (an early one isn't held longer for it: the
+        # go-round's E♭ rang a ninth over the first bar).
+        dur = onset(tune[j + 1][0]) - t - 0.03 if j + 1 < len(tune) else d * BEAT - 0.03
         out.append(Note(t, M[m], v, dur, 'r'))
     for b, bass, tenth in hand:
         if last is not None and b > last:
@@ -132,10 +142,21 @@ def performance(form='A'):
                 n.midi = M['Eb5']
             elif abs(n.t - home) < 0.05 and n.hand == 'l':
                 n.midi = 44 if n.midi == 49 else 60
-    # The pedal: down just after each left-hand chord, lifted (changed) at the next.
+    # The pedal: down just after each left-hand chord, lifted (changed) at the next; a little early
+    # before the LIFTS' chords.
     pedal = []
     lh = sorted({round(n.t, 3) for n in notes if n.hand == 'l'})
     starts = [t for i, t in enumerate(lh) if i == 0 or t - lh[i - 1] > 0.2]
+    lifts = [(S1, S2)[k - 1] + b * BEAT - BASS_FIRST.get(b, 0.0) for k, b in LIFTS]
     for a, b in zip(starts, starts[1:] + [S2 + 16 * BEAT]):
-        pedal.append((a + 0.04, b - 0.01))
+        early = LIFT_EARLY if any(abs(b - x) < 0.08 for x in lifts) else 0.01
+        pedal.append((a + 0.04, b - early))
+    # After home the first time: the hands and the pedal lift together before the go-round.
+    go = [n for n in notes if n.hand == 'r' and abs(n.t - (S1 + 15 * BEAT - 0.012)) < 0.05]
+    if go:
+        lift = go[0].t - HOME_LIFT
+        for n in notes:
+            if n.t < lift < n.t + n.dur and n.t > S1 + 13.5 * BEAT:
+                n.dur = lift - n.t
+        pedal = [(d, min(u, lift)) if d < lift < u else (d, u) for d, u in pedal]
     return notes, pedal

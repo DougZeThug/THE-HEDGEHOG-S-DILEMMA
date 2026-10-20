@@ -9,6 +9,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { CUT, MEMORIES, SCORE_FROM, SHOTS, TURN_STEPS, TWO_SHOT, WOODLAND as DEF } from '../src/memory/defs';
 import { WOODLAND } from '../src/memory/living/woodland';
 import { TIMES } from '../src/memory/synthWoods';
@@ -25,6 +26,12 @@ interface Score {
   mechanism: { t: number; kind: string }[];
   /** The recording's crackle: each tick, in dB re their median. */
   crackle: { t: number; db: number }[];
+  /** The crackle's median tick under the melody's median attack (dB). */
+  crackleDb: number;
+  /** The file these notes are of (the first 16 of its SHA-256). */
+  sha256: string;
+  /** In each look, the largest rise from one 400 ms block to the next: the held note's band, above 500 Hz, and the strings' ring alone in that band (dB). */
+  looks: { from: number; to: number; held: number; band: number; above500: number; ring: number }[];
 }
 const score = JSON.parse(readFileSync('scripts/woodland-score/notes.json', 'utf8')) as Score;
 const melody = score.notes.filter((n) => n.hand === 'r');
@@ -47,6 +54,8 @@ const moments: [number, number, string][] = [
 
 describe("the woodland's score", () => {
   it('is the file the memory plays: from where its cue begins to the cut, and nothing after it', () => {
+    // (These notes are of the shipped file: a render writes both.)
+    expect(createHash('sha256').update(readFileSync('public/music/woodland-score.mp3')).digest('hex').slice(0, 16)).toBe(score.sha256);
     expect(score.from).toBe(SCORE_FROM);
     expect(score.cut).toBe(CUT);
     for (const n of score.notes) expect(n.t).toBeGreaterThanOrEqual(SCORE_FROM);
@@ -97,20 +106,43 @@ describe("the woodland's score", () => {
     // The key's wood and the pedal sound beside the notes, never on a moment; the last pedal change,
     // in the stillness before the cut, is silent.
     expect(score.mechanism.length).toBeGreaterThan(20);
+    for (const m of score.mechanism) expect(['key', 'pedal up']).toContain(m.kind);
     for (const m of score.mechanism) for (const [a, b, what] of moments) expect(m.t >= a && m.t < b, `${m.kind} at ${m.t.toFixed(2)} s: ${what}`).toBe(false);
     const lastChord = Math.max(...score.notes.filter((n) => n.hand === 'l').map((n) => n.t));
     for (const m of score.mechanism) if (m.kind.startsWith('pedal')) expect(Math.abs(m.t - lastChord) > 0.15, `${m.kind} at ${m.t.toFixed(2)} s`).toBe(true);
-    // The crackle: about two ticks a second at random, the same everywhere, none above its median on a
-    // moment, and none in the last second (its stop is not a needle lifting).
+    // The crackle: about two ticks a second at random, never two together (they'd be heard as one,
+    // louder), none in either look, none above its median on another moment, and none in the last
+    // second (its stop is not a needle lifting).
     const ticks = score.crackle;
     expect(ticks.length / (CUT - SCORE_FROM)).toBeGreaterThan(1);
     expect(ticks.length / (CUT - SCORE_FROM)).toBeLessThan(3);
+    const looks = moments.filter(([, , what]) => what === 'her look' || what === 'his look');
+    expect(looks.length).toBe(2);
+    for (const k of ticks) for (const [a, b, what] of looks) expect(k.t >= a && k.t < b, `a tick at ${k.t.toFixed(2)} s: ${what}`).toBe(false);
     for (const k of ticks) for (const [a, b, what] of moments) if (k.t >= a && k.t < b) expect(k.db, `a tick at ${k.t.toFixed(2)} s: ${what}`).toBeLessThanOrEqual(0);
-    expect(CUT - ticks[ticks.length - 1].t).toBeGreaterThan(1);
-    const gaps = ticks.slice(1).map((k, i) => k.t - ticks[i].t);
+    for (const k of ticks) expect(k.db).toBeLessThanOrEqual(2);
+    // (Faint: its ticks at least 30 dB under the melody's attacks, the loudest included.)
+    expect(score.crackleDb + Math.max(...ticks.map((k) => k.db))).toBeLessThanOrEqual(-30);
+    expect(CUT - Math.max(...ticks.map((k) => k.t))).toBeGreaterThan(1);
+    const times = ticks.map((k) => k.t).sort((a, b) => a - b);
+    const gaps = times.slice(1).map((t, i) => t - times[i]);
+    expect(Math.min(...gaps)).toBeGreaterThanOrEqual(0.0299);
     const mean = gaps.reduce((a, b) => a + b, 0) / gaps.length;
     const sd = Math.sqrt(gaps.reduce((a, b) => a + (b - mean) ** 2, 0) / gaps.length);
     expect(sd / mean, 'never periodic').toBeGreaterThan(0.5);
+  });
+
+  it('nothing swells back in a look: the held note and the piano above 500 Hz only fall (the ring in step as it is struck)', () => {
+    // (Decision 125: the ring's three strings beat a fault's worth on every note, and the high A♭
+    // came back up 7–9 dB between his eyes and his roll.)
+    expect(score.looks.map((l) => [l.from, l.to])).toEqual(moments.filter(([, , w]) => w === 'her look' || w === 'his look').map(([a, b]) => [a, b]));
+    for (const l of score.looks) {
+      // The ring only falls; the piano above 500 Hz too. (The recorded E♭5's own strings beat a
+      // little late in her look, 1.5 dB from one block to the next, as in every version before.)
+      expect(l.ring, `the ring in ${l.from}–${l.to}`).toBeLessThanOrEqual(0.5);
+      expect(l.above500, `above 500 Hz in ${l.from}–${l.to}`).toBeLessThanOrEqual(1);
+      expect(l.band, `the held note's band in ${l.from}–${l.to}`).toBeLessThanOrEqual(2);
+    }
   });
 
   it('comes home once, between her look and his; the second time the cut takes the note before home', () => {

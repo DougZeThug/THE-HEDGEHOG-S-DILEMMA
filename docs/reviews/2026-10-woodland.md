@@ -2084,3 +2084,90 @@ room's writing comes back, only after a memory run to its end; kept for the visi
      completion, a graphite sound under the hand, a line on a later visit, baking it ahead (the
      room bakes every line on demand; ahead only if a phone shows a hitch there), the specification's
      alignment rules, capturing the painting at the residue, a pacing hold for it.
+
+### The build evaluated (the creative director, the sound designer) and tested (QA), and decisions
+
+All three measured re-renders of b06217c that matched the shipped file (none of them can hear it).
+- **The creative director**: "the piano itself" is honoured and the time loosened in kind, but
+  strings and electronic air exist in name only: fused into the piano's own partials, sharing its
+  onsets, pitches and decay, they would be heard as its tone. The ring is the build's most exposed
+  sound. The high A♭ is a synthesised ring a third of a second after it is struck, pulsing about once
+  a second, and it came back up 7–9 dB between his eyes and his roll. Every ringing note beat a
+  fault's worth, so the F's one fault wasn't one. Crackle reached into both looks, two ticks 0.1 ms
+  apart summing over the rule on his. B wasn't quite the same piano as A. The note to the artist
+  overclaimed.
+- **The sound designer**: placement, mono, correlation, the low mids and the texture's broadband rule
+  are met, and the departures from his numbers (the aligned mid, the coincident room) were right. But
+  a bass note's texture, set against its whole sound, was crowded into its one or two upper partials,
+  1–7 dB under the note there, under both looks. The ring carries most of every long note and beats
+  11–28 dB at 0.55–1.2 Hz on all of them, the drone's own construction. The mechanism sat about 15 dB
+  under its spec (normalised to its sample peak), and the pedal's thump came 40 ms late. Confined to
+  the melody, the bow and the air are below hearing. The go-round's last E♭ rang a ninth through the
+  first bar (since 97f0d35), and F5's second string began with a step.
+- **QA**: the shipped file holds (gapless 26.300 s in FFmpeg and Chromium, silent on the cut,
+  byte-for-byte re-renders, the cue sheet and decoded budget unchanged, the films in sync). It found
+  the step, the tick pair and B's piano too, plus four holes in the test: coincident ticks, a tick out
+  of order, a crackle 20 dB louder, an unknown mechanism kind. Outside this commit: captions without
+  their own moment came up 0.64–0.75 s before their sound in every memory, since the hand-out went to
+  0.75 s ahead (decision 105). The library's own low-pass on three bass samples was read and never
+  applied.
+
+### Decisions (main session)
+
+125. **The ring is one string's, mostly** (the sound designer's finding 2, the creative director's 1).
+     Each partial's three strings are at 1, 0.4 and 0.2, a twentieth to a tenth of a hertz apart and
+     in step as it is struck. A ring of four seconds only falls, never swells back. It blooms within a
+     few hundredths of a second, under the note's own attack: the looks begin as their notes are
+     struck. F5's ring carries its fault in its second string (about 1 Hz at its fundamental, 2 and 3
+     at its partials), so its F is the note that beats (−4/+3 dB about its decay; every other ring
+     within ±0.5).
+126. **The texture only in the melody's strings** (the sound designer's finding 1).
+127. **The bow and the air, and a hiss, for the artist to hear and choose** (the sound designer's
+     finding 4, the creative director's 3). Confined to the melody, the bow and the air are below
+     hearing, so A was B plus the crackle: a question the artist couldn't answer. They are sent the
+     piano with its crackle, as the room now plays it, and short clips that make each texture audible
+     on purpose: the piano alone, the bow and air raised 10 dB, a soft hiss (pink from 300 Hz, rolled
+     off above 4 kHz, 28 LU under the piano, stepping back with the clearing's hush, 5 dB more than
+     the piano's dip), and the crackle. What they choose is then built properly (a real bow, or a
+     batch generated after a dry run, if they want strings that sound like strings).
+128. **The mechanism heard** (the sound designer's finding 3, the creative director's 6, QA's 7).
+     Its sounds are set by their loudest 10 ms. The key's wood is 38 dB under its note's attack: 8 of
+     its 29 knocks stand above everything else in their band. The pedal's thump is gone (heard
+     nowhere, and late). The pedal lifts a little early, 0.15 s, at three phrase ends: after the
+     high A♭ (12.55), after home before the go-round (21.88, where the hands lift too and home's
+     ring clears) and before the second time's ii (30.35). There the dampers brush is 24 dB under
+     the melody's attack; it stands near everything else only at the last of them.
+129. **The crackle** (the sound designer's finding 5, the creative director's 2, QA's 3).
+     - Never in the looks.
+     - Ticks at least 30 ms apart, within ±1.5 dB of their median and never 2 dB over.
+     - Every tick in both ears, a little to one side.
+     - 300 Hz–2.5 kHz, its median tick 36 dB under the melody's median attack. On the phone model
+       that's 33.5 dB under, the loudest 30.4.
+     - The test now also checks the gap, the order, the absolute level and the mechanism's kinds,
+       and ties notes.json to the file by its hash.
+130. **Small fixes**:
+     - Each version is rendered from its own piano and matched on the piano, not the mix. The
+       piano alone had come out 0.5 dB louder.
+     - The go-round's last E♭ is let go before the next statement.
+     - F5's second string fades in over 10 ms.
+     - The habit's −2 velocity is gone (smaller than the hands' ±3).
+     - The library's low-pass on its C3, D♯3 and C4 samples is applied, as it plays them.
+     - The look test records the ring alone. The ring may not rise (0.08 dB in her look, 0 in his).
+       The held note's band may rise 2 dB: the recorded E♭5's own strings beat 1.9 dB late in her
+       look, as in every version.
+     - notes.json records the toolchain.
+     - `tests/playtest/woodland-spans.py` is committed for the loudness table.
+131. **Captions with their sounds** (QA's finding 1). Every caption, a voice's words included, is
+     shown as its sound is heard, with the picture. It was shown as its cue was handed out, up to
+     0.75 s ahead. Tested at output latencies of 0 and 0.12 s: each within a frame. Three tests that
+     read captions at hand-out now let time pass.
+132. **The note to the artist** (the creative director's finding 4): what is likely heard and what
+     isn't; the ring is made, not recorded; the F is the one beat; the hiss's real problem (the
+     piano's dip against the clearing's hush, which an envelope of its own answers). "(Ushio's own
+     way)" is sourced: it is how he describes the faint violin in "Reze" (Real Sound, 2025).
+
+Measured after these (woodland-spans.py, the piano against the place): entry −9.0, first wide −4.2,
+after the gust −10.5, two-shot −1.4, second wide −7.0, last 2 s +0.2, overall −5.1 LU; the cut falls
+4.1 LU. Placement within 1.5 dB, mono 0.2 dB at worst, correlation 0.975. The films and clips are in
+`test-output/review/woodland/sound/`: `woodland-film.mp4` (as the room plays it), its captions, and
+`clip-1-piano-alone`, `clip-2-bow-and-air`, `clip-3-hiss`, `clip-4-crackle` (memory 9.0–21.5).

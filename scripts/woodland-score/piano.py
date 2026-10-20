@@ -70,8 +70,11 @@ def parse_sfz(path):
         loop = None
         if r.get('loop_mode', 'no_loop') == 'loop_continuous' and 'loop_start' in r:
             loop = (int(r['loop_start']), int(r['loop_end']))
+        # (Its own voicing: a low-pass on some of the bass samples, as the library plays them; QA,
+        # 2026-10-20: it was read and never applied.)
         out.append(Region(int(r['lokey']), int(r['hikey']), int(r['pitch_keycenter']), int(r.get('lovel', 0)),
-                          int(r.get('hivel', 127)), loop, os.path.join(base, r['sample'].replace('\\', '/'))))
+                          int(r.get('hivel', 127)), loop, os.path.join(base, r['sample'].replace('\\', '/')),
+                          float(r['cutoff']) if 'cutoff' in r else None))
     return out
 
 
@@ -191,6 +194,7 @@ class Piano:
             d = int(0.010 * SR)
             y2 = np.zeros_like(y)
             y2[d:len(x2)] = x2[d:len(y)]
+            y2[d:2 * d] *= np.linspace(0, 1, d)[:, None]   # (in over 10 ms, never a step)
             if k < len(y2):
                 y2[k:] *= np.exp(-np.arange(len(y2) - k) / SR / (rel / 4.6))[:, None]
             y += signal.sosfilt(sos, y2, axis=0).astype(np.float32) * 10 ** (-8 / 20)
@@ -200,9 +204,17 @@ class Piano:
         return y * g, k, rel
 
 
+def loudest10(x):
+    """A sound's loudest 10 ms (RMS): the level the mechanism's sounds are set by (decision 128)."""
+    w = int(0.010 * SR)
+    if len(x) <= w:
+        return float(np.sqrt((x ** 2).mean())) + 1e-12
+    return float(np.sqrt(np.convolve(x ** 2, np.ones(w) / w, 'valid').max())) + 1e-12
+
+
 def modal(rng, modes, dur, noise=0.0):
     """An impulse (and a breath of noise) through damped resonators: wood and felt, not a click.
-    modes: [(Hz, Q, gain)]."""
+    modes: [(Hz, Q, gain)]. Its loudest 10 ms at 1."""
     n = int(dur * SR)
     x = np.zeros(n)
     x[0] = 1.0
@@ -213,7 +225,7 @@ def modal(rng, modes, dur, noise=0.0):
         b, a = signal.iirpeak(f, q, fs=SR)
         out += signal.lfilter(b, a, x) * g
     out *= np.exp(-np.arange(n) / (dur / 4 * SR))
-    return out / (np.abs(out).max() + 1e-12)
+    return out / loudest10(out)
 
 
 def knock(rng):
@@ -222,18 +234,14 @@ def knock(rng):
     return modal(rng, [(jit(650), rng.uniform(12, 18), 1.0), (jit(1250), rng.uniform(12, 18), 0.7), (jit(2300), 15, 0.35)], rng.uniform(0.006, 0.012), 0.3)
 
 
-def pedal_down(rng):
-    """The pedal's thump: 60–200 Hz, about 50 ms."""
-    return modal(rng, [(rng.uniform(70, 90), 4, 1.0), (rng.uniform(140, 180), 5, 0.6)], 0.05, 0.4)
-
-
 def pedal_up(rng):
-    """The dampers settling on the strings: a felt brush, 200 Hz–2 kHz, 60–120 ms."""
+    """The dampers settling on the strings: a felt brush, 200 Hz–2 kHz, 60–120 ms (its loudest 10
+    ms at 1)."""
     n = int(rng.uniform(0.06, 0.12) * SR)
     x = rng.standard_normal(n)
     x = signal.sosfilt(signal.butter(2, [200, 2000], 'band', fs=SR, output='sos'), x)
     x *= np.sin(np.linspace(0, np.pi, n)) ** 2
-    return x / (np.abs(x).max() + 1e-12)
+    return x / loudest10(x)
 
 
 def room(seed=3):
@@ -299,10 +307,13 @@ def partials(y, f0, lowest=250.0):
     return out
 
 
-def halo(y, f0, start, until, level, t60, rel=0.1, at=2.0, seed=0, bow_db=None, air_db=None):
-    """The strings left free by the pedal, ringing on with a note (decision 111): its own partials, as
-    a unison's three strings a fraction of a hertz apart, rising as its own sound falls and ringing
-    at the strings' slower rate while the pedal is down, then stopped by the dampers. `level`: what
+def halo(y, f0, start, until, level, t60, rel=0.1, at=2.0, seed=0, bow_db=None, air_db=None, fault=None):
+    """The strings left free by the pedal, ringing on with a note (decisions 111, 125): its own
+    partials, each a unison's three strings, one carrying it and two quieter a twentieth to a tenth
+    of a hertz from it, all in step as it is struck, so the ring only falls through a ring of four
+    seconds (it never swells back); `fault` (cents) puts a key's own fault in its second string, so
+    that key's ring beats and no other's does. It rises as the note's own sound falls, rings at the
+    strings' slower rate while the pedal is down, then is stopped by the dampers. `level`: what
     its lowest partial's band holds `at` seconds in, in dB re that band's peak over the first 0.3 s
     (the halo makes up what the note's own sound lacks, and is never less than 8 dB under that).
     Returns the ring (mono) and, with `bow_db` or `air_db`, the texture in it (decision 113): a trace
@@ -317,10 +328,13 @@ def halo(y, f0, start, until, level, t60, rel=0.1, at=2.0, seed=0, bow_db=None, 
     t = np.arange(n) / SR
     out = np.zeros(n)
     for f, amp in parts:
-        # (a slow shimmer between the three strings, never one sine against the note's own partial)
-        for d in (-0.45, 0.1, 0.6):
-            out += amp / math.sqrt(3) * np.sin(2 * np.pi * (f + d * rng.uniform(0.7, 1.3)) * t + rng.uniform(0, 2 * np.pi))
-    env = (1 - np.exp(-t / 0.25)) * np.exp(-6.91 * t / t60)
+        phase = rng.uniform(0, 2 * np.pi)
+        second = f * (2 ** (fault / 1200) - 1) if fault else rng.uniform(0.05, 0.11)
+        for a_, d in ((1.0, 0.0), (0.4, second), (0.2, -rng.uniform(0.03, 0.08))):
+            out += amp * a_ * np.sin(2 * np.pi * (f + d) * t + phase)
+    # (It blooms within a few hundredths of a second of the strike, under the note's own attack: a
+    # slower bloom swelled the held note back up in the looks, which begin as it is struck.)
+    env = (1 - np.exp(-t / 0.05)) * np.exp(-6.91 * t / t60)
     end = int((until - start) * SR)
     if end < n:
         env[end:] *= np.exp(-np.arange(n - end) / SR / (rel / 4.6))
@@ -334,8 +348,8 @@ def halo(y, f0, start, until, level, t60, rel=0.1, at=2.0, seed=0, bow_db=None, 
     own_p = float((own ** 2).mean()) if len(own) else 0.0
     want = (pk * 10 ** (level / 20)) ** 2
     need = math.sqrt(max(want - own_p, want * 10 ** (-8 / 10)))
-    e_at = (1 - math.exp(-at / 0.25)) * math.exp(-6.91 * at / t60)
-    out *= need / (amp / math.sqrt(2) * e_at + 1e-12)
+    e_at = (1 - math.exp(-at / 0.05)) * math.exp(-6.91 * at / t60)
+    out *= need / (amp * 1.0954 / math.sqrt(2) * e_at + 1e-12)   # (1.0954: the three strings' power)
     if bow_db is None and air_db is None:
         return out, None
     # the note's whole sound as it falls (its peak in the attack, then never rising)
@@ -368,20 +382,17 @@ def halo(y, f0, start, until, level, t60, rel=0.1, at=2.0, seed=0, bow_db=None, 
         bow *= fall * 10 ** (bow_db / 20) / (float(np.sqrt((bow ** 2).mean())) + 1e-12)
         tex += bow[:, None]
     if air_db is not None:
-        mid, side = np.zeros(n), np.zeros(n)
+        air = np.zeros((n, 2))
         for f, a_ in high:
             b, a = signal.iirpeak(f, f / 12.0, fs=SR)   # (about 12 Hz wide)
-            mid += a_ * signal.lfilter(b, a, rng.standard_normal(n))
-            side += a_ * signal.lfilter(b, a, rng.standard_normal(n))
-        # (a little wider than the ring: its own side 6 dB under its mid)
-        side *= 10 ** (-6 / 20)
-        air = np.stack([mid + side, mid - side], -1)
+            for c in range(2):   # (each side its own: air, not a width)
+                air[:, c] += a_ * signal.lfilter(b, a, rng.standard_normal(n))
         air *= fall[:, None] * 10 ** (air_db / 20) / (float(np.sqrt((air ** 2).mean(0).mean())) + 1e-12)
         tex += air
     return out, tex
 
 
-def render(piano, notes, pedal, t0, t1, wet=1.0, mech=1.0, halo_db=-28.0, texture=False, quiet=(), seed=11, info=None):
+def render(piano, notes, pedal, t0, t1, wet=1.0, mech=1.0, halo_db=-28.0, texture=False, texture_db=0.0, quiet=(), seed=11, info=None):
     """[t0, t1) of the performance: notes held by the keys or the pedal (`pedal`: [(down, up)]), the
     strings ringing on while the pedal holds them, the mechanism (the key's wood, the pedal), the
     room; with `texture`, the trace of bow and the breath of air in the ringing strings. Nothing of
@@ -420,37 +431,41 @@ def render(piano, notes, pedal, t0, t1, wet=1.0, mech=1.0, halo_db=-28.0, textur
             attacks.append(att)
         if halo_db is not None:
             f0 = 440 * 2 ** ((n.midi - 69) / 12)
+            # (The texture only in the melody's strings: a bass note's, set against its whole sound,
+            # crowded into its one or two upper partials, under both looks: decision 126.)
+            tx = texture and n.hand == 'r'
             h, tex = halo(y, f0, n.t, held_until(n), halo_db, ring(n.midi), seed=int(n.t * 1000) + n.midi,
-                          bow_db=-14.0 if texture else None, air_db=-14.0 if texture else None)
+                          bow_db=-14.0 + texture_db if tx else None, air_db=-14.0 + texture_db if tx else None,
+                          fault=piano.fault.get(n.midi))
             gl, gr = pan(n.midi)
             add(out, np.stack([h * gl, h * gr], -1).astype(np.float32), i)
             if tex is not None:
                 add(out, (tex * np.array([[gl, gr]])).astype(np.float32), i)
-        # the key in its bed, 10–15 ms before the string (one for a left-hand chord: the bass)
+        # the key in its bed, 10–15 ms before the string (one for a left-hand chord: the bass), its
+        # loudest 10 ms 38 dB under the note's attack (decision 128)
         if mech and not (n.hand == 'l' and n.midi >= 60):
             lead = rng.uniform(0.010, 0.015)
-            m = knock(rng) * att * 10 ** ((-28 if n.hand == 'l' else -30 + rng.uniform(-2.5, 2.5)) / 20) * mech
+            m = knock(rng) * att * 10 ** ((-36 if n.hand == 'l' else -38 + rng.uniform(-2.5, 2.5)) / 20) * mech
             if not hush(n.t) and not hush(n.t - lead) and t0 <= n.t - lead < t1:
                 i2 = i - int(lead * SR)
                 add(mech_out, np.stack([m, m], -1).astype(np.float32), i2)
                 events.append((n.t - lead, 'key'))
     if mech and attacks:
         ref = float(np.median(attacks))
-        downs = [d for d, u in pedal]
+        ups = [u for d, u in pedal]
         for j, (d, u) in enumerate(pedal):
-            # (the last change, the V chord's in the stillness before the cut, is silent: its down,
-            # and the up that makes way for it)
-            last_down = j == len(pedal) - 1
-            last_up = j >= len(pedal) - 2
-            # down: 40–80 ms after the chord; up: at the change (the cadence's quick V–I change light)
-            for tt, kind in ((d + rng.uniform(0.04, 0.08), 'down'), (u, 'up')):
-                if hush(tt) or (kind == 'down' and last_down) or (kind == 'up' and last_up) or not (t0 <= tt < t1):
-                    continue
-                quick = kind == 'up' and any(0 < dd - d < 1.0 for dd in downs if dd > d)
-                lvl = (-36 if kind == 'down' else (-38 if quick else -32)) + rng.uniform(-2.5, 2.5)
-                m = (pedal_down(rng) if kind == 'down' else pedal_up(rng)) * ref * 10 ** (lvl / 20) * mech
-                add(mech_out, np.stack([m, m], -1).astype(np.float32), int(round((tt - t0) * SR)))
-                events.append((tt, 'pedal ' + kind))
+            # The dampers settling at each change (the cadence's quick V–I change light); the last
+            # change, the V chord's in the stillness before the cut, silent. (No thump as the pedal
+            # goes down: it was heard nowhere: decision 128.)
+            if j >= len(pedal) - 2 or hush(u) or not (t0 <= u < t1):
+                continue
+            quick = j + 1 < len(pedal) and pedal[j + 1][0] - d < 1.0
+            # (Where the pedal lifts a little early, a breath, the brush is heard in the clear.)
+            breath = j + 1 < len(pedal) and pedal[j + 1][0] - u > 0.12
+            lvl = (-24 if breath else -38 if quick else -32) + rng.uniform(-2.5, 2.5)
+            m = pedal_up(rng) * ref * 10 ** (lvl / 20) * mech
+            add(mech_out, np.stack([m, m], -1).astype(np.float32), int(round((u - t0) * SR)))
+            events.append((u, 'pedal up'))
     if info is not None:
         info['attack'] = float(np.median(attacks)) if attacks else 0.0
         info['mechanism'] = sorted(events)
@@ -463,33 +478,51 @@ def render(piano, notes, pedal, t0, t1, wet=1.0, mech=1.0, halo_db=-28.0, textur
     return mix[:int(round((t1 - t0) * SR))]
 
 
-def crackle(t0, t1, level, quiet=(), clear=1.0, rate=2.0, seed=19):
-    """A worn recording's crackle (decision 113): ticks at random, about `rate` a second (never
-    periodic), 1–2 ms of 300 Hz–3 kHz, one side or both; at their median `level` (RMS over the tick),
-    a few up to twice that. None above its median inside a `quiet` window, none in the last `clear`
-    seconds (its stop is not a needle lifting). Returns the signal and its ticks [(s, dB re median)]."""
+def crackle(t0, t1, level, quiet=(), clear=1.0, rate=2.0, seed=19, never=()):
+    """A worn recording's crackle (decisions 113, 129): ticks at random, about `rate` a second (never
+    periodic, never closer than 30 ms), 1–2 ms of 300 Hz–2.5 kHz, in both ears a little to one side;
+    at their median `level` (RMS over the tick), within ±1.5 dB of it and never 2 dB over. None at
+    all inside a `never` window (the looks), none above its median inside a `quiet` one, none in the
+    last `clear` seconds (its stop is not a needle lifting). Returns the signal and its ticks [(s, dB
+    re median)]."""
     rng = np.random.default_rng(seed)
     n = int(round((t1 - t0) * SR))
     out = np.zeros((n, 2))
-    band = signal.butter(2, [300, 3000], 'band', fs=SR, output='sos')
+    band = signal.butter(2, [300, 2500], 'band', fs=SR, output='sos')
     ticks = []
     t = t0
     while True:
-        t += rng.exponential(1 / rate)
+        t += max(0.030, rng.exponential(1 / rate))
         if t >= t1 - clear:
             break
-        db = float(np.clip(rng.normal(0, 2.5), -8, 6))
-        if any(a <= t < b for a, b in quiet):
-            db = min(db, 0.0)
+        db = float(np.clip(rng.normal(0, 1.5), -4, 2))
+        bal = rng.uniform(-6, 6)
         L = int(rng.uniform(0.001, 0.002) * SR)
         burst = np.concatenate([rng.standard_normal(L) * np.hanning(L), np.zeros(int(0.002 * SR))])
+        if any(a <= t < b for a, b in never):
+            continue
+        if any(a <= t < b for a, b in quiet):
+            db = min(db, 0.0)
         burst = signal.sosfilt(band, burst)
         burst *= level * 10 ** (db / 20) / (float(np.sqrt((burst[:L] ** 2).mean())) + 1e-12)
         i = int(round((t - t0) * SR))
         j = min(n, i + len(burst))
-        side = rng.random()
-        gains = (1.0, 0.0) if side < 0.3 else (0.0, 1.0) if side < 0.6 else (0.8, 0.8)
-        for c in range(2):
-            out[i:j, c] += burst[:j - i] * gains[c]
+        gl, gr = 10 ** (min(0.0, -bal) / 20), 10 ** (min(0.0, bal) / 20)
+        out[i:j, 0] += burst[:j - i] * gl
+        out[i:j, 1] += burst[:j - i] * gr
         ticks.append((t, db))
     return out.astype(np.float32), ticks
+
+
+def hiss(t0, t1, level, seed=23):
+    """A soft tape hiss, for the artist to hear (decision 127): pink, from 300 Hz, rolled off above
+    4 kHz, each side its own, steady at `level` (RMS)."""
+    rng = np.random.default_rng(seed)
+    n = int(round((t1 - t0) * SR))
+    x = rng.standard_normal((n + 4800, 2))
+    b = [0.049922035, -0.095993537, 0.050612699, -0.004408786]
+    a = [1, -2.494956002, 2.017265875, -0.522189400]
+    x = signal.lfilter(b, a, x, axis=0)[4800:]
+    x = signal.sosfilt(signal.butter(2, 300, 'high', fs=SR, output='sos'), x, axis=0)
+    x = signal.sosfilt(signal.butter(2, 4000, 'low', fs=SR, output='sos'), x, axis=0)
+    return (x * level / (np.sqrt((x ** 2).mean()) + 1e-12)).astype(np.float32)

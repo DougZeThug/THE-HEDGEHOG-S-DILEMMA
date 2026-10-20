@@ -1,19 +1,21 @@
 """The films for the artist: the room before (5 s), the woodland, the room after (8 s), at speed, with
-its sound (woodland-film-sound.py): A as the room plays it, the piano with the faint texture under it
-(and A again, for a visitor who chooses them, with its captions: woodland-captions.mjs), and B, the
-piano alone (decision 114). The pictures are the films already recorded from this build's memory
-(the sound changed, not the picture): heart/ for the room, the way in and the dusk, context5/ for
-the two-shot and the second wide (her rebuilt turn); the room before and after held on their first
-and last frame.
+its sound (woodland-film-sound.py) as the room plays it (and again, for a visitor who chooses them,
+with its captions: woodland-captions.mjs); and short clips of what each texture under the piano
+would be, for the artist to choose (decision 127): the piano alone, the bow and air raised so they
+can be heard, a soft hiss, the crackle, each from the first wide through her look to home (memory
+9.0–21.5). The pictures are the films already recorded from this build's memory (the sound changed,
+not the picture): heart/ for the room, the way in and the dusk, context5/ for the two-shot and the
+second wide (her rebuilt turn); the room before and after held on their first and last frame.
 
   npm run build
   .venv-audio/bin/python tests/playtest/woodland-film.py test-output/review/woodland/sound
 
-once the sound of each version is made first, into <out dir>/A.wav (as built) and P.wav (the piano
-alone, scripts/woodland-score/render.py's woodland-score-piano-alone.mp3):
+once the sound of each is made first, into <out dir>/A.wav (as built), P.wav (the piano alone),
+W.wav (the bow and air raised) and H.wav (a soft hiss), from scripts/woodland-score/render.py's files:
   PRE=5 POST=8 GAIN=0 STEMS=<out>/stems-A OUT=<out>/mix npx vite-node tests/playtest/woodland-audio.ts
   PRE=5 POST=8 GAIN=0 STEMS=<out>/stems-P OUT=<out>/mix OVERRIDE='{"music:score":{"asset":"<abs out>/woodland-score-piano-alone.mp3"}}' npx vite-node tests/playtest/woodland-audio.ts
-  .venv-audio/bin/python tests/playtest/woodland-film-sound.py <out>/stems-A <out>/A.wav   (and P)
+  (and stems-W from woodland-score-aid-bow-air.mp3, stems-H from woodland-score-aid-hiss.mp3)
+  .venv-audio/bin/python tests/playtest/woodland-film-sound.py <out>/stems-A <out>/A.wav   (and P, W, H)
   node tests/playtest/woodland-captions.mjs <out>/caps
 """
 import os
@@ -25,7 +27,8 @@ ROOT = 'test-output/review/woodland'
 FPS = 12
 PRE = 5.0          # film seconds before the memory
 # (text, memory seconds it is shown at, seconds it holds before fading): MemoryAudio and Captions.
-CAPS = [(0, 0.0, 3.7), (1, 9.9, 3.7), (2, 36.0, 3.7), (3, 48.2, 5.2)]
+# Each is shown as its sound is heard (the cue's marker, or its captionAt: src/memory/defs.ts).
+CAPS = [(0, 0.0, 3.7), (1, 9.9, 3.7), (2, 36.0, 3.7), (3, 48.5, 5.2)]
 
 
 def frames(out):
@@ -72,6 +75,7 @@ if __name__ == '__main__':
     print(n, 'frames,', n / FPS, 's')
     # As every visitor has it: no captions (off by default: the artist, 2026-10-19); the same with
     # captions on, as a visitor who chooses them in settings sees it (src/ui/prefs.ts).
-    film(d, os.path.join(out, 'A.wav'), os.path.join(out, 'woodland-film-A.mp4'))
-    film(d, os.path.join(out, 'A.wav'), os.path.join(out, 'woodland-film-A-with-captions-chosen.mp4'), caps=True)
-    film(d, os.path.join(out, 'P.wav'), os.path.join(out, 'woodland-film-B-piano-alone.mp4'))
+    film(d, os.path.join(out, 'A.wav'), os.path.join(out, 'woodland-film.mp4'))
+    film(d, os.path.join(out, 'A.wav'), os.path.join(out, 'woodland-film-with-captions-chosen.mp4'), caps=True)
+    for wav, name in (('P.wav', 'clip-1-piano-alone'), ('W.wav', 'clip-2-bow-and-air'), ('H.wav', 'clip-3-hiss'), ('A.wav', 'clip-4-crackle')):
+        film(d, os.path.join(out, wav), os.path.join(out, f'{name}.mp4'), PRE + 9.0, PRE + 21.5)
