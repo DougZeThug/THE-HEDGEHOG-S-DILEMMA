@@ -1780,3 +1780,11 @@ in any path measured, and the change broke the vignettes:
        4.5 LU under the place (3.5 in the two-shot, 1.5 over in the last 2 s, where the breeze dies
        and the tune turns).
      - The cut still falls 4.6 LU. The wind across it is now 10.6 LU under the evening.
+102. **No wind** (the artist: "You can just get rid of the wind sound, the breeze is supposed to be
+     super light anyways"). The wind is gone from the afternoon, from across the cut and from the
+     revisit; the breeze is seen, not heard. Its takes stay in `audition/woodland/` (paid for, not
+     shipped). The piano is named once with the cicadas, "[cicadas in the trees; a piano]", where the
+     wind's caption was, and the screen reader's afternoon has "a light breeze in the trees". The
+     piano came down 2 dB more, so it stays about 4.5 LU under the place (in the two-shot, where only
+     the far chorus sounds, level with it); the cut falls 4.2 LU. Decision 73's switch, and the
+     version without the wind across the cut, are gone with it.

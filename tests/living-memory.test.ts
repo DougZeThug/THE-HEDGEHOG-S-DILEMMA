@@ -594,16 +594,14 @@ describe('the woodland, heard', () => {
     expect(energy(x, 34.0, 34.5) / energy(x, 33.0, 33.5)).toBeGreaterThan(0.7);
     expect(x.length).toBe(Math.ceil(CUT_AT * RATE));
   });
-  it('the afternoon ends on the cut and the evening begins on it, already singing; only the wind goes on across it', () => {
+  it('the afternoon ends on the cut and the evening begins on it, already singing; nothing goes on across it', () => {
     const sheet = WOODLAND_DEF.cues('afternoon').cues;
     const markers = WOODLAND_DEF.seed('afternoon').markers.filter((m) => sheet[m.label]);
+    // (No wind: the breeze is seen, not heard: the artist, 2026-10-20.)
+    expect(Object.values(sheet).some((c) => /air/.test(c.asset))).toBe(false);
     for (const m of markers) {
       const c = sheet[m.label];
-      if (m.label === 'music:air') {
-        // The one sound across it: one file, no cut, nothing of the room's round it.
-        expect(c.until).toBeUndefined();
-        expect(c.dry).toBe(true);
-      } else if (m.position < CUT_AT && m.label !== 'music:evening') {
+      if (m.position < CUT_AT && m.label !== 'music:evening') {
         expect(c.until, m.label).toBe(CUT_AT);
         // (Nothing of the afternoon rings on past it in the memory's room.)
         if (m.label !== 'sfx:bird-1' && m.label !== 'sfx:bird-2') expect(c.dry, m.label).toBe(true);
@@ -630,13 +628,13 @@ describe('the woodland, heard', () => {
     const p = sheet['music:score'];
     expect(p.dry).toBe(true);
     expect(p.caption).toBeUndefined();
-    const air = sheet['music:air'], airAt = markers.find((m) => m.label === 'music:air')!.position;
-    expect(air.caption).toMatch(/a piano/);
-    expect(airAt + air.captionAt!).toBeGreaterThan(9.85);
+    const place = sheet['music:woods'], placeAt = markers.find((m) => m.label === 'music:woods')!.position;
+    expect(place.caption).toMatch(/a piano/);
+    expect(placeAt + place.captionAt!).toBeGreaterThan(9.85);
     // (A music caption is held 3.7 s and fades for 1.4: src/ui/Captions.ts.)
-    expect(airAt + air.captionAt! + 3.7 + 1.4).toBeLessThanOrEqual(SHOTS.two + 0.01);
-    // The revisit: the evening and its calm air, nothing of the afternoon's.
-    expect(Object.values(WOODLAND_DEF.cues('empty').cues).map((c) => c.asset).sort()).toEqual(['music/woodland-air-empty.mp3', 'music/woodland-evening-empty.mp3']);
+    expect(placeAt + place.captionAt! + 3.7 + 1.4).toBeLessThanOrEqual(SHOTS.two + 0.01);
+    // The revisit: the evening alone, nothing of the afternoon's.
+    expect(Object.values(WOODLAND_DEF.cues('empty').cues).map((c) => c.asset).sort()).toEqual(['music/woodland-evening-empty.mp3']);
   });
   it('the woods neither swell nor fall on either cut of the two-shot, and stay level through it (nothing scores the looks)', async () => {
     const [l, r] = await renderWoods();

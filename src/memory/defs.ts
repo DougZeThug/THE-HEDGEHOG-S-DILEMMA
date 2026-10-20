@@ -375,9 +375,9 @@ export const DOOR: MemoryDef = {
  *             carries them on, square to it; it opens out until it is all there is (8.2–9.8); as
  *             it opens, a piano, already playing (8.5): someone at an upright, for nobody, a plain
  *             tune going round in its own time (scripts/woodland-score/)
- *   10.5–15.0 3 an ordinary afternoon: the wide, both looking up; breathing; the wind in the leaves
- *             and the long grass, a far bird; a gust crosses the clearing (11.5); her crossed foot
- *             rocks a while; his blink; cicadas, quieter than the wind
+ *   10.5–15.0 3 an ordinary afternoon: the wide, both looking up; breathing; cicadas in the trees,
+ *             a far bird; a light gust crosses the clearing (11.5: seen, not heard); her crossed
+ *             foot rocks a while; his blink
  *   15.0–27.0 4 cut: the two of them close, one frame, held (the artist's own panel: both faces,
  *             and their hands lying almost touching in the grass between them, as drawn, never
  *             moved). Both looking up, each breathing in their own time; he blinks (16.2). Her eyes
@@ -396,9 +396,9 @@ export const DOOR: MemoryDef = {
  *             again, the same, toward home
  *   34.5      6 a cut, on one frame, in that stillness: the same clearing, the same view, at dusk,
  *             and nobody there. The piano stops on it, a note before home (due at 34.77), with
- *             everything of the afternoon's (its insects, its warmth); the evening's cicadas are
- *             already singing, far off in the trees; only the wind goes on, the same, in the same
- *             grass (the artist's brief of 2026-10-19)
+ *             everything of the afternoon's (its insects); the evening's cicadas are already
+ *             singing, far off in the trees (the artist's brief of 2026-10-19; no wind: the breeze is
+ *             light, seen and not heard, the artist, 2026-10-20)
  *   34.5–42.5 the empty clearing at dusk, held; the evening cicadas; the evening's breeze dying
  *             down in the grass; no music
  *   42.5–46.5 out: carried back, the painting gathers itself to the wall
@@ -463,14 +463,12 @@ export const TURN_EYES = 0.001;
 // skeptic's second review, 2026-10-17.)
 export const SHOTS = { two: TWO_SHOT.from, wideAgain: TWO_SHOT.to };
 /** The air (`scene.breeze`): never still; steady and gustless into the cut and across it; the
- *  evening's calm. (The sound's leaves follow it: src/memory/synthWoods.ts.) */
+ *  evening's calm. Seen, not heard (the artist: "the breeze is supposed to be super light"). */
 export const BREEZE_KEYS: [number, number][] = [[0, 0.6], [5.5, 0.6], [10.5, 1], [SHOTS.wideAgain, 1], [32.0, 0.5], [37, 0.5], [39, 0.3]];
-/** The woodland's recorded sound against its insects (dB on the files as baked), set by measure.
- *  The wind 6 dB under where it was first set (and darker, its gust smaller: it was the loudest
- *  thing in the clearing, "too loud", the artist, 2026-10-20), the piano kept about 4.5 LU under
- *  the place round it. */
-const AIR_DB = -20;
-const SCORE_DB = -26.5;
+/** The woodland's recorded sound against its insects (dB on the files as baked), set by measure:
+ *  the piano about 4.5 LU under the place round it. (There is no wind: it read as a noise louder
+ *  than anything in the clearing, and the breeze is light: the artist, 2026-10-20.) */
+const SCORE_DB = -28.5;
 const EVENING_DB = -32;
 // (The revisit stays on the wall, still: a short hold, its stillness the answer.)
 const EMPTY_SECTIONS: Sections = { active: 6, exit: 16, residue: 21, end: 24 };
@@ -482,7 +480,6 @@ export const WOODLAND: MemoryDef = {
   layers: ['scene', 'sketch', 'sketch-after', 'light'],
   sections: WOODLAND_SECTIONS,
   markers: [
-    { label: 'music:air', position: 0.05 },
     { label: 'music:cicadas', position: 0.05 },
     { label: 'music:woods', position: 0.05 },
     { label: 'music:score', position: SCORE_FROM },
@@ -521,7 +518,6 @@ export const WOODLAND: MemoryDef = {
           { label: 'exit', position: S.exit },
           { label: 'residue', position: S.residue },
           { label: 'end', position: S.end },
-          { label: 'music:air', position: 0.05 },
           { label: 'music:evening', position: 0.05 },
         ],
       };
@@ -624,11 +620,10 @@ export const WOODLAND: MemoryDef = {
     // dry: nothing of the afternoon rings on past it).
     const room: [number, number, number] = [0.4, 3, 0.06];
     if (variant === 'empty') {
-      // The revisit: the empty clearing at dusk, on the wall: the evening's cicadas and its calm air.
+      // The revisit: the empty clearing at dusk, on the wall: the evening's cicadas.
       return {
         room,
         cues: {
-          'music:air': { asset: 'music/woodland-air-empty.mp3', gainDb: AIR_DB, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, fadeOut: 4 },
           'music:evening': { asset: 'music/woodland-evening-empty.mp3', gainDb: EVENING_DB, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, fadeOut: 4, caption: '[evening cicadas, far off]', captionAt: 1.5 },
         },
       };
@@ -640,17 +635,13 @@ export const WOODLAND: MemoryDef = {
     return {
       room,
       cues: {
-        // The wind in the leaves and the long grass: the painting's own air (its breeze, its gust
-        // from the left), less of it beyond the wall; the one sound of the afternoon that goes on
-        // across the cut, unchanged, then calms with the evening's breeze.
-        // Named once, as the place (the piano a part of it), when the painting has come to rest and
-        // gone again before the cut to the two of them; never with a note.
-        'music:air': { asset: 'music/woodland-air.mp3', gainDb: AIR_DB, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, fadeOut: 4, caption: '[wind in the leaves; a piano]', captionAt: 9.85 },
         // The cicada nearest them, in the tree over them, first heard from beyond the wall; a lull
         // while the two of them are close (her look, his); cut off by the cut, mid-phrase.
         'music:cicadas': { asset: 'synth:cicadas', gainDb: -20, place: { u: -0.3, v: 0.25, d: 1.5 }, dry: true, until: CUT, fadeOut: 3, caption: '[cicadas, beyond the wall]' },
-        // The rest of the day's insects: two more cicadas, the chorus in the trees.
-        'music:woods': { asset: 'synth:woods', gainDb: -14, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, until: CUT, fadeOut: 3 },
+        // The rest of the day's insects: two more cicadas, the chorus in the trees. Named once, as
+        // the place (the piano a part of it), when the painting has come to rest and gone again
+        // before the cut to the two of them; never with a note.
+        'music:woods': { asset: 'synth:woods', gainDb: -14, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, until: CUT, fadeOut: 3, caption: '[cicadas in the trees; a piano]', captionAt: 9.85 },
         // Two far birds in the trees at the clearing's edge, in the wides (none while they are close).
         'sfx:bird-1': { asset: 'music/woodland-bird-1.mp3', gainDb: -12, place: { u: -0.4, v: 0.35, d: 14 }, lowpass: 5500, until: CUT },
         'sfx:bird-2': { asset: 'music/woodland-bird-2.mp3', gainDb: -12, place: { u: 0.45, v: 0.3, d: 18 }, lowpass: 7500, until: CUT },
@@ -684,8 +675,8 @@ export const WOODLAND: MemoryDef = {
   // the wide. His look can be seen only close (in the wide it is too small), so it is told only
   // there: the creative director, 2026-10-19.)
   announce: (v) => v === 'empty' ? [] : [
-    { at: 10.5, text: 'It opens until it is all there is: a summer afternoon, the wind in the trees.', inside: true },
-    { at: 10.5, text: 'The painting comes alive on the wall: a summer afternoon, the wind in the trees.', wall: true },
+    { at: 10.5, text: 'It opens until it is all there is: a summer afternoon, a light breeze in the trees.', inside: true },
+    { at: 10.5, text: 'The painting comes alive on the wall: a summer afternoon, a light breeze in the trees.', wall: true },
     { at: TWO_SHOT.from, text: 'Closer: the two of them side by side in the grass, looking up.', shot: 1 },
     { at: TWO_SHOT.herTurn + 0.5, text: 'Her eyes go to him, then her head, a little.', inside: true },
     { at: TWO_SHOT.hisEyes + 1.5, text: 'He turns his eyes to her.', shot: 1 },

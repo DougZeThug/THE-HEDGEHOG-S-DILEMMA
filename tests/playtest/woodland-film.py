@@ -8,12 +8,11 @@ on their first and last frame.
   npm run build
   .venv-audio/bin/python tests/playtest/woodland-film.py test-output/review/woodland/sound
 
-once the sound of each version is made first, into <out dir>/A.wav (as built; and A-phone.wav),
-B.wav (the score's other form, never home) and W.wav (the wind ending at the cut):
+once the sound of each version is made first, into <out dir>/A.wav (as built; and A-phone.wav)
+and B.wav (the score's other form, never home):
   PRE=5 POST=8 GAIN=0 STEMS=<out>/stems-A OUT=<out>/mix npx vite-node tests/playtest/woodland-audio.ts
   PRE=5 POST=8 GAIN=0 STEMS=<out>/stems-B OUT=<out>/mix OVERRIDE='{"music:score":{"asset":"<out>/woodland-score-b.mp3"}}' npx vite-node tests/playtest/woodland-audio.ts
-  PRE=5 POST=8 GAIN=0 STEMS=<out>/stems-W OUT=<out>/mix OVERRIDE='{"music:air":{"until":34.5}}' npx vite-node tests/playtest/woodland-audio.ts
-  .venv-audio/bin/python tests/playtest/woodland-film-sound.py <out>/stems-A <out>/A.wav <out>/A-phone.wav   (and B, W)
+  .venv-audio/bin/python tests/playtest/woodland-film-sound.py <out>/stems-A <out>/A.wav <out>/A-phone.wav   (and B)
   node tests/playtest/woodland-captions.mjs <out>/caps
 """
 import os
@@ -77,5 +76,4 @@ if __name__ == '__main__':
     film(d, os.path.join(out, 'A-phone.wav'), os.path.join(out, 'woodland-film-A-phone-speaker.mp4'))
     # The alternatives, from the cut to the two of them (15.0) to the room taking the painting back (43.5).
     film(d, os.path.join(out, 'B.wav'), os.path.join(out, 'alternative-never-home-15-43.mp4'), PRE + 15.0, PRE + 43.5)
-    film(d, os.path.join(out, 'W.wav'), os.path.join(out, 'alternative-no-wind-across-the-cut-15-43.mp4'), PRE + 15.0, PRE + 43.5)
     film(d, os.path.join(out, 'A.wav'), os.path.join(out, 'as-built-15-43.mp4'), PRE + 15.0, PRE + 43.5)
