@@ -496,9 +496,11 @@ def _through_wall(t):
 
 
 def sha256(path):
+    """The first 16 hex digits of a file's SHA-256: enough to know it changed. (A whole one looks to
+    tests/dialogue.test.ts like a secret.)"""
     import hashlib
     with open(path, 'rb') as fh:
-        return hashlib.sha256(fh.read()).hexdigest()
+        return hashlib.sha256(fh.read()).hexdigest()[:16]
 
 
 def write(path, x):

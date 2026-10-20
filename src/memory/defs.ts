@@ -764,12 +764,12 @@ export const FILM_SECONDS = 679 / 24;
 export const FILM_BEATS = {
   notice: 60 / 24, reach: 90 / 24, touch: 156 / 24, startle: 164 / 24, lap: 255 / 24, look: 295 / 24, offer: 343 / 24, tooLate: 415 / 24, almost: 487 / 24,
 };
-/** Its two sounds' levels on the files as laid (scripts/almost/sound.py, at the film mix's own
- *  balance, so the same). Set by measure: the kitchen's hum (-37.5 LUFS on its file) about where
- *  the woodland's place round its piano is (-47 on the memory bus). Stand-ins until the artist has
- *  listened. */
-const KITCHEN_DB = -10;
-const FILM_DB = -10;
+/** Its two sounds' levels (scripts/almost/sound.py lays both at the film mix's own balance, so the
+ *  same gain for each). Set by what is heard, A-weighted: the kitchen's file is -52 dBFS(A), so -61
+ *  on the memory bus, by the woodland's dusk (-59.6). (By loudness a 120 Hz hum counts for more
+ *  than it sounds: the sound designer's review.) Stand-ins until the artist has listened. */
+const KITCHEN_DB = -9;
+const FILM_DB = -9;
 
 export const ALMOST: MemoryDef = {
   id: 'almost',
@@ -785,11 +785,13 @@ export const ALMOST: MemoryDef = {
     const S = ALMOST_SECTIONS;
     return {
       tracks: {
-        // The fibres through the plaster, then the colour as a wash out from under the lamp (the
-        // two clocks are scripts/almost/emergence.py's: tests/memory-defs.test.ts). Back: the
-        // colour goes first, toward the lamp, then the fibres, the lamp's last.
-        'window.sketch': [[1.5, 0], [5.5, 1], [S.exit + 6.5, 1], [S.exit + 8, 0]],
-        'window.reveal': [[5.0, 0, 'linear'], [7.2, 1], [S.exit + 4, 1], [S.exit + 6, 0]],
+        // The wool through the plaster, then the colour through the wool (the two clocks are
+        // scripts/almost/emergence.py's: tests/memory-defs.test.ts). Back, nothing runs in order:
+        // the colour sinks into the wool all at once, then the wool into the plaster (the layers'
+        // opacities, below). Run backwards, the two of them went first and left the lamp over an
+        // empty table: the woodland's ending again (the skeptic's review, 2026-10-20).
+        'window.sketch': [[1.5, 0], [5.5, 1]],
+        'window.reveal': [[5.0, 0, 'linear'], [7.2, 1]],
         'window.presence': [[0, 1]],
         'window.parallax': [[0, 0]],
         // The room's writing under the picture goes to a trace as the colour reaches it, and comes
@@ -802,10 +804,10 @@ export const ALMOST: MemoryDef = {
         'light.warmth': [[0, 2700]],
         'light.intensity': [[0, 0]],
         'light.roomSpill': [[0, 0]],
-        'layer:scene.opacity': [[0, 1]],
-        // The fibres sink as the colour comes (the film is felt, not a drawing over it), and come
-        // back up as it goes.
-        'layer:fibres.opacity': [[0, 1], [7.2, 1], [8.6, 0], [S.exit + 4, 0], [S.exit + 5.6, 1]],
+        'layer:scene.opacity': [[0, 1], [S.exit + 4, 1], [S.exit + 6, 0]],
+        // The wool sinks as the colour comes (the film is felt, not a drawing over it), comes back
+        // up as the colour goes, and goes into the plaster after it.
+        'layer:fibres.opacity': [[0, 1], [7.2, 1], [8.6, 0], [S.exit + 4, 0], [S.exit + 5.6, 1], [S.exit + 6.5, 1], [S.exit + 8, 0]],
         // The way in, one move, as the woodland's (shaped in Inside.ts).
         'scene.approach': [[1.0, 0, 'linear'], [10.0, 1], [S.exit + 1, 1, 'linear'], [S.exit + 5, 0]],
         'scene.immerse': [[0, 0, 'hold'], [6.2, 0, 'linear'], [8.2, 0.68, 'linear'], [9.8, 1, 'hold'], [S.exit, 1, 'linear'], [S.exit + 2, 0.72, 'linear'], [S.exit + 5, 0]],

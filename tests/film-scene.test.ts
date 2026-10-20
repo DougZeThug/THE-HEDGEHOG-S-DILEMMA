@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import * as THREE from 'three';
@@ -207,6 +208,15 @@ describe('Almost on its timeline', () => {
     expect(at('KITCHEN_AT')).toBe(marker('music:kitchen'));
     expect(at('FILM_AT')).toBe(marker('music:film'));
     expect(marker('music:film')).toBe(FILM_AT);
+  });
+
+  it("its two sounds were made from the exposure sheet and the mix as they are now", () => {
+    // (sound.py --publish records what it laid them on; change the sheet or the mix and they are
+    // laid again, or the clock and the sleeves fall off the frames they belong to)
+    const made = JSON.parse(readFileSync(join(__dirname, '../public/music/almost-sound.json'), 'utf8'));
+    const sha = (f: string) => createHash('sha256').update(readFileSync(join(__dirname, '..', f))).digest('hex').slice(0, 16);
+    expect(made.xsheet).toBe(sha('scripts/almost/xsheet.py'));
+    expect(made.sound).toBe(sha('scripts/almost/sound.py'));
   });
 
   it("its screen-reader lines are in order and at least 3.5 s apart", () => {
