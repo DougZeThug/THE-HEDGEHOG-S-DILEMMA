@@ -52,15 +52,16 @@ describe('wall layout', () => {
   });
 });
 
-describe('a line under another, inside a place on its wall (the line where the painting was: decisions 122, 133)', () => {
+describe('a line under another, inside a place on its wall (the line where the painting was: decisions 122, 133, 137, 141)', () => {
   const W = 1.11, H = 0.17; // "we had all afternoon" in the pencil at s
   const inside = (r: { u: number; v: number; w: number; h: number }, z: { u: number; v: number; w: number; h: number }) =>
     r.u - r.w / 2 >= z.u - z.w / 2 - 1e-9 && r.u + r.w / 2 <= z.u + z.w / 2 + 1e-9 && r.v - r.h / 2 >= z.v - z.h / 2 - 1e-9 && r.v + r.h / 2 <= z.v + z.h / 2 + 1e-9;
-  /** Just under its line and close: its top 2–15 cm under the line's foot, overlapping half the narrower. */
+  /** Just under its line and close: its top 2–15 cm under the line's foot, beginning within 25 cm of
+   *  where the line begins, or, a longer line, centred under it to within 15 cm (decision 141). */
   const under = (r: { u: number; v: number; w: number; h: number }, a: Placement) => {
     const gap = a.v - a.h / 2 - (r.v + r.h / 2);
-    const overlap = Math.min(r.u + r.w / 2, a.u + a.w / 2) - Math.max(r.u - r.w / 2, a.u - a.w / 2);
-    return gap >= 0.02 - 1e-9 && gap <= 0.15 + 1e-9 && overlap >= 0.5 * Math.min(r.w, a.w) - 1e-9;
+    const start = r.u - r.w / 2 - (a.u - a.w / 2);
+    return gap >= 0.02 - 1e-9 && gap <= 0.15 + 1e-9 && start >= -Math.max(0.25, (r.w - a.w) / 2 + 0.15) - 1e-9 && start <= 0.25 + 1e-9;
   };
 
   it('on a clear wall, just under the start of its line, a little in', () => {
@@ -86,17 +87,16 @@ describe('a line under another, inside a place on its wall (the line where the p
     if (got) expect(overlaps(got.rect, near, 0.2)).toBe(false);
   });
 
-  it('20 cm from a place that stays; a place that can go elsewhere gives way; a line’s own place, not yet written, waits', () => {
-    // (Where "That was a good day." keeps its place on the east wall, beside where the line would go.)
-    const at = (l: SurfaceLayout) => [l.add({ surface: 'east', u: 3.56, v: 1.535, w: 0.9, h: 0.21, rot: 0 }), l.add({ surface: 'east', u: 4.48, v: 1.25, w: 1.37, h: 0.29, rot: 0 })];
+  it('20 cm from a place that stays, or nothing; a place that can go elsewhere gives way; a line’s own place, not yet written, waits', () => {
+    // (A line with its place a little to the right of where the line would go, and lower.)
+    const at = (l: SurfaceLayout) => [l.add({ surface: 'east', u: 3.56, v: 1.535, w: 0.9, h: 0.21, rot: 0 }), l.add({ surface: 'east', u: 4.78, v: 1.25, w: 1.37, h: 0.29, rot: 0 })];
     const within = { u: 3.62, v: 1.2, w: 3.2, h: 1.8 };
     const ideal = (a: Placement) => a.u - a.w / 2 + W / 2 + a.w * 0.08;
-    // Something there that stays (a drawing): 20 cm from it, still under its line.
+    // Something there that stays (a drawing): 20 cm from it would mean hanging off to the left of its
+    // line, where it reads as a line of its own; so nothing.
     const l1 = new SurfaceLayout(new Rng(1));
-    const [a1, stays] = at(l1);
-    const got = l1.findUnder(a1, W, H, within, () => false)!;
-    expect(under(got.rect, a1)).toBe(true);
-    expect(overlaps(got.rect, stays, 0.2)).toBe(false);
+    const [a1] = at(l1);
+    expect(l1.findUnder(a1, W, H, within, () => false)).toBeNull();
     // A line not yet shown, with no place of its own: it is moved, and the line goes where it would.
     const l2 = new SurfaceLayout(new Rng(1));
     const [a2, slot] = at(l2);
@@ -111,12 +111,36 @@ describe('a line under another, inside a place on its wall (the line where the p
     expect(waits.waiting).toEqual([own]);
     expect(overlaps(waits.rect, own, 0.015)).toBe(false);
     expect(under(waits.rect, a3)).toBe(true);
-    expect(waits.rect.u).toBeGreaterThan(got.rect.u);
-    // Written, it is writing like any other: 20 cm.
+    // Written, it is writing like any other: 20 cm, so here nothing.
     const l4 = new SurfaceLayout(new Rng(1));
     const [a4, written] = at(l4);
-    const clear = l4.findUnder(a4, W, H, within, () => false, [written], (p) => p === written)!;
-    expect(overlaps(clear.rect, written, 0.2)).toBe(false);
+    expect(l4.findUnder(a4, W, H, within, () => false, [written], (p) => p === written)).toBeNull();
+  });
+
+  it('never hanging off to one side: it begins within 25 cm of where its line begins, a longer line centred at most', () => {
+    // (QA, 2026-10-20: at half overlap the line began 0.62 m left of "five more minutes", and the
+    // artist's longer wording 0.96 m: read as a line of its own, or the plea as its caption.)
+    const layout = new SurfaceLayout(new Rng(1));
+    const anchor = layout.add({ surface: 'east', u: 3, v: 1.6, w: 0.9, h: 0.21, rot: 0 });
+    // Taken just under it and a little to the right: the place left is too far to the left.
+    layout.add({ surface: 'east', u: 3.5, v: 1.35, w: 0.9, h: 0.2, rot: 0 });
+    expect(layout.findUnder(anchor, W, H, { u: 3, v: 1.4, w: 3.2, h: 1.8 }, () => false)).toBeNull();
+    // The artist's wording (1.63 m) on a clear wall: from where its line begins, at most centred.
+    const l2 = new SurfaceLayout(new Rng(1));
+    const a2 = l2.add({ surface: 'east', u: 3, v: 1.6, w: 0.9, h: 0.21, rot: 0 });
+    const got = l2.findUnder(a2, 1.63, H, { u: 3, v: 1.4, w: 3.2, h: 1.8 }, () => false)!;
+    expect(under(got.rect, a2)).toBe(true);
+    // With the place on its right taken, it may sit centred under its line, no further left.
+    const taken = (u: number) => {
+      const l = new SurfaceLayout(new Rng(1));
+      const a = l.add({ surface: 'east', u: 3, v: 1.6, w: 0.9, h: 0.21, rot: 0 });
+      l.add({ surface: 'east', u, v: 1.35, w: 0.4, h: 0.2, rot: 0 });
+      return { a, got: l.findUnder(a, 1.63, H, { u: 3, v: 1.4, w: 3.2, h: 1.8 }, () => false) };
+    };
+    const centred = taken(4.1);
+    expect(under(centred.got!.rect, centred.a)).toBe(true);
+    expect(Math.abs(centred.got!.rect.u - centred.a.u)).toBeLessThanOrEqual(0.15);
+    expect(taken(3.95).got).toBeNull();
   });
 
   it('on the walls as laid out: under its line, close, inside the painting’s place, 20 cm from everything but places that give way or wait', () => {

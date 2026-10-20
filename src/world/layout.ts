@@ -205,8 +205,9 @@ export class SurfaceLayout {
    * A place for a line written under another, inside a region of its wall (decisions 122 and 133:
    * the line where the woodland's painting was, `within` its former place): just under `anchor` and
    * close to it, as a hand writes the next line under its own (its top 2–15 cm under the anchor's
-   * foot, overlapping at least half the narrower of the two), nearest first to just under its start,
-   * a little in; never above it or beside it. It keeps `clearance` (20 cm) from all writing, so it is
+   * foot, beginning within 25 cm of where the anchor begins, or, a longer line, centred under it to
+   * within 15 cm: decision 141), nearest first to just under its start, a little in; never above it
+   * or beside it, nor hanging off to one side, where it reads as a line of its own. It keeps `clearance` (20 cm) from all writing, so it is
    * never read as another line's answer, nor run on into one: from the writing in `clear` (what is
    * already on the wall), and from every place on the wall, unless `movable` says that place can go
    * elsewhere (a line not yet shown; those come back in `displaced`, to be placed again) or `waits`
@@ -218,10 +219,11 @@ export class SurfaceLayout {
     const size = surfaceSize(anchor.surface);
     const foot = anchor.v - anchor.h / 2;
     const iu = anchor.u - anchor.w / 2 + w / 2 + anchor.w * 0.08, iv = foot - h / 2 - 0.04;
-    const need = 0.5 * Math.min(w, anchor.w);
+    // Where it may begin, against where the anchor begins.
+    const start = anchor.u - anchor.w / 2, left = Math.max(0.25, (w - anchor.w) / 2 + 0.15), right = 0.25;
     const cands: Rect[] = [];
     for (let gap = 0.02; gap <= 0.15 + 1e-9; gap += 0.01)
-      for (let u = anchor.u - anchor.w / 2 - w / 2 + need; u <= anchor.u + anchor.w / 2 + w / 2 - need + 1e-9; u += 0.02) {
+      for (let u = start - left + w / 2; u <= start + right + w / 2 + 1e-9; u += 0.02) {
         const r = { u, v: foot - gap - h / 2, w, h };
         const onWall = r.u - w / 2 >= 0.05 && r.u + w / 2 <= size.w - 0.05 && r.v - h / 2 >= 0.12;
         const inPlace = r.u - w / 2 >= within.u - within.w / 2 && r.u + w / 2 <= within.u + within.w / 2 && r.v - h / 2 >= within.v - within.h / 2 && r.v + h / 2 <= within.v + within.h / 2;

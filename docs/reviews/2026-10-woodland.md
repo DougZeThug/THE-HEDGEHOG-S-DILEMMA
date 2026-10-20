@@ -2305,3 +2305,37 @@ findings, and what was done:
      down to half overlap, and on an upright phone it can run off the screen. "I thought it would
      last forever." (1.63 m) is wider than an upright phone shows at 2.4 m (about 1.3 m). Asked.
      Not done: baking the line ahead, until a phone is measured with a long-task observer.
+
+### The line's placement after QA, evaluated (the creative director), and decisions
+
+141. **Where it begins, not how much it overlaps** (the creative director, on QA's finding 5).
+     - Half overlap let the line hang:
+       - In the middle of the east wall ours began 0.44–0.62 m left of "five more minutes".
+       - The artist's longer wording almost always began 0.5–0.96 m left.
+     - How it reads, by how far left it begins:
+       - up to about 20 cm: the hand's next line;
+       - at 44 cm: a stagger;
+       - from 60 cm: a line of its own;
+       - at 0.96 m: "five more minutes" becomes a caption over it.
+     - Now the line begins within 25 cm of where "five more minutes" begins, either side. A longer
+       line may instead sit centred under it, to within 15 cm. The 2–15 cm gap, the 20 cm clearance
+       and the nearest-first order stand.
+     - Measured (`tests/playtest/woodland-coda-walls.ts`):
+       - ours: under 25 of 46 places early (was 27), 18 with fifteen lines up (was 19–20);
+       - the artist's wording: 5 and 4 (was 27 and 18), nearly centred;
+       - a 15 cm limit would leave ours 12. Not taken: the corners' 16–22 cm still read as the
+         next line.
+     - Phones. The brief was wrong: an upright phone shows about 2.1 m of wall from 2.4 m, not 1.3 m
+       (on a narrow screen the view widens to 88° vertically, `CameraRig.setAspect`). Ours is whole
+       from about 1.6 m, and its start is in view whenever its line's start is. Nothing is placed by
+       the device. The artist's wording, begun under its line, loses its end ("forever.") from
+       2.4 m; centred, it fits from about 2.2 m.
+     - "Always write it" is withdrawn from the artist's choices: lower down, it reads as another
+       line's answer; further along, it hangs. The wording and the rule are one choice, and the note
+       says so.
+     - Not sent to the skeptic: a narrow change inside the creative director's discipline, with the
+       measured costs in hand.
+     - Tested:
+       - never hanging: with the place just under taken, nothing rather than further left;
+       - the longer wording, at most centred;
+       - the decision 137 cases under the new limit.
