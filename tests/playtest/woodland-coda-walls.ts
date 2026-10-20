@@ -5,13 +5,18 @@
  * eye level; under it, each wording is placed as WallText.writeWithin places it. Counts where it is
  * written, and which lines it keeps back. The painting's place follows its line as in a woodland run
  * (`woodland-coda.mjs`: 6.5 cm along and 11.6 cm down from the line's centre, kept on the wall).
+ * SHOWN=n first writes n of the room's lines, as a visit has by the time the woodland comes (the
+ * ordinary lines it starts with, then others of the first lines, chosen by SEED).
  *
  *   npm run build && npx vite preview --port 4173 &
- *   npx vite-node tests/playtest/woodland-coda-walls.ts
+ *   npx vite-node tests/playtest/woodland-coda-walls.ts          (SHOWN=15 SEED=1)
  */
 import { createRequire } from 'node:module';
 import { execSync } from 'node:child_process';
 import { PHRASES } from '../../src/content/phrases';
+import { MEMORY_BY_PHRASE } from '../../src/content/memories';
+import { Director } from '../../src/state/Director';
+import { Rng } from '../../src/core/rng';
 
 type Got = { du: number; gap: number; kept: string[] } | null;
 type Row = { wall: string; at: [number, number]; got: Record<string, Got> };
@@ -27,6 +32,11 @@ const BASE = process.env.BASE ?? 'http://localhost:4173/';
 // The two wordings as the browser measures them (pencil, s: woodland-coda.mjs reports them).
 const WORDINGS: Record<string, [number, number]> = { 'we had all afternoon': [1.107, 0.211], 'I thought it would last forever.': [1.632, 0.211] };
 const OWN = PHRASES.filter((p) => p.at).map((p) => p.id);
+// The lines a visit has written by then: the room's first ones, then others it could write first.
+const pool = PHRASES.filter((p) => p.tier === 'arrival' && p.surface !== 'floor' && p.surface !== 'ceiling' && !MEMORY_BY_PHRASE.has(p.id) && !Director.RESERVED.has(p.id)).map((p) => p.id);
+const rng = new Rng(Number(process.env.SEED ?? 1));
+const rest = pool.filter((id) => !Director.FIRST_WRITTEN.includes(id)).sort(() => rng.next() - 0.5);
+const SHOWN = [...Director.FIRST_WRITTEN, ...rest].slice(0, Number(process.env.SHOWN ?? 0));
 
 const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required'] });
 const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
@@ -39,8 +49,9 @@ await page.evaluate(() => {
   if (b && !b.hidden) b.click();
 });
 await page.waitForFunction(() => (window as any).__hedgehog.score.stage === 'done', null, { timeout: 120000 });
-const rows: Row[] = await page.evaluate(({ own, wordings }: { own: string[]; wordings: Record<string, [number, number]> }) => {
+const rows: Row[] = await page.evaluate(({ own, wordings, shown }: { own: string[]; wordings: Record<string, [number, number]>; shown: string[] }) => {
   const a = (window as any).__hedgehog, T = a.text, L = T.layout;
+  for (const id of shown) T.setShown(id);
   const ownIds = new Set(own);
   const out: Row[] = [];
   const seen = new Set<string>();
@@ -69,7 +80,8 @@ const rows: Row[] = await page.evaluate(({ own, wordings }: { own: string[]; wor
         T.items.delete(key);
       }
   return out;
-}, { own: OWN, wordings: WORDINGS });
+}, { own: OWN, wordings: WORDINGS, shown: SHOWN });
+console.log(`${SHOWN.length} of the room's lines on the walls first${SHOWN.length ? `: ${SHOWN.join(' ')}` : ''}`);
 for (const r of rows)
   console.log(`${r.wall.padEnd(5)} ${r.at.join(',').padEnd(10)}`, Object.entries(r.got).map(([t, g]) => `${t.slice(0, 12)}: ${g ? `${g.du >= 0 ? '+' : ''}${g.du} along, ${g.gap} under${g.kept.length ? `, keeps back ${g.kept.join(' ')}` : ''}` : '-'}`).join(' | '));
 for (const t of Object.keys(WORDINGS)) {

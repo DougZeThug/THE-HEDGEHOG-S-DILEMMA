@@ -98,6 +98,8 @@ const report = await page.evaluate(() => {
   }
   return {
     nearest,
+    // The lines whose own place is beside it, kept off the walls for the rest of the visit (137).
+    keptBack: [...(a.director.keptBack ?? [])],
     written: !!it, text: it?.mesh.userData.text ?? null, coda: a.__coda,
     line: pl ? { surface: pl.surface, u: +pl.u.toFixed(3), v: +pl.v.toFixed(3), w: +pl.w.toFixed(3), h: +pl.h.toFixed(3) } : null,
     under: an ? { surface: an.surface, u: +an.u.toFixed(3), v: +an.v.toFixed(3), w: +an.w.toFixed(3), h: +an.h.toFixed(3) } : null,
