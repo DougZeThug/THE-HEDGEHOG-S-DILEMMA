@@ -34,11 +34,13 @@ const STAGES = {
     : [['00-untouched', null], ['01-pencil', 2.5], ['02-pencil-more', 4.5], ['03-colour', 6.5], ['04-carried', 8.5], ['05-crossing', 9.6], ['06-wide', 12.3], ['07-two', 16.5], ['08-her-look', 19.5], ['09-his-look', 25.5], ['10-wide-again', 31.0],
        // The cut (34.5 s): the last frame before it and the first after it, then the empty clearing.
        ['11-last-frame-before-cut', 34.5 - 1 / 60], ['12-first-frame-after-cut', 34.5], ['13-empty-dusk', 39.5], ['14-returning', 44.5], ['15-wall', 47.5], ['16-white-room', 51.0]],
-  // Almost (docs/almost.md): the fibres through the plaster, the colour, the way in, the film's
-  // beats (its first frame held until 10.3 s), and the way back out.
+  // Almost (docs/almost.md): the wool through the plaster, the colour, the way in, the film's
+  // beats (its first frame held until 10.3 s: src/memory/defs.ts FILM_BEATS), and the way back out
+  // (the colour into the wool at once, then the wool into the plaster).
   almost: [['00-untouched', null], ['01-fibres', 2.5], ['02-fibres-more', 4.5], ['03-colour', 6.3], ['04-carried', 8.5], ['05-inside', 10.0],
-    ['06-together', 12.0], ['07-reach', 16.5], ['08-touch', 18.45], ['09-startle', 18.7], ['10-hand-in-air', 19.8], ['11-silence', 24.0],
-    ['12-her-look', 25.6], ['13-offer', 29.0], ['14-almost', 36.0], ['15-returning', 43.0], ['16-fibres-going', 46.8], ['17-white-room', 49.5]],
+    ['06-notice', 13.2], ['07-reach', 15.3], ['08-touch', 16.85], ['09-startle', 17.2], ['10-hand-in-air', 18.0], ['11-silence', 22.0],
+    ['12-her-look', 23.2], ['13-offer', 26.7], ['14-almost', 32.5], ['15-returning', 40.0], ['16-colour-going', 42.5], ['17-fibres-going', 44.8],
+    ['18-white-room', 48.5]],
 }[MEMORY];
 mkdirSync(OUT, { recursive: true });
 

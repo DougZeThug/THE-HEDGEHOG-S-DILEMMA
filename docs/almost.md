@@ -1,10 +1,11 @@
 # Almost (memory II): how it is made
 
-A felt stop-motion film of about 31 s. Two figures made of felt sit side by side at a kitchen
-table at night, under a hanging lamp. He notices that her sleeve is folded back at the cuff and
-reaches to put it right. His fingertip lifts the fold, and she starts. His hand stays in the air,
-then goes back to his lap. After a silence she lays her arm a little nearer him, but his hands
-stay in his lap. They sit. Nothing is said, and there is no music.
+A felt stop-motion film of 28 s. Two figures made of felt sit side by side at a kitchen table at
+night, under a hanging lamp. He looks at his cup, then notices that her sleeve is folded back at the
+cuff, and reaches to put it right. His fingertip lifts the fold, and she starts. His hand stays in
+the air, then goes back to his lap. After a silence she looks at him, and lays her arm down a little
+nearer him, the fold toward him. He breathes, and for a moment his head turns toward her; his hand
+stays in his lap. They sit. Nothing is said, and there is no music.
 
 The white room opens it from the line "your hand, almost". Wool fibres come through the plaster,
 the colour follows, the visitor is taken in, the film plays, and it goes back into the wall.
@@ -21,7 +22,7 @@ is "THE HEDGEHOG'S DILEMMA, MEMORY II — ALMOST" (2026-10-20).
 | Shared geometry and materials | `scripts/almost/lib.py` | felt, knit, wood, paint, thread; the fibre helper; rest-position coordinates, so no texture swims on a bending body |
 | The scene | `scripts/almost/build.py` | the camera (42 mm at 28.5 cm, f/11, focus between the hands and the faces), the lights, render settings; `--pose`, `--still` and `--save` for single frames |
 | The performance | `scripts/almost/performance.py` | the key poses and how a pose is put on the puppets: wrists placed and the elbow solved clear of the table, a hand laid on the wood until its felt just meets it, his fingertip brought to the fold's corner; every pose's arms then baked in full, so in-betweens are continuous |
-| The exposure sheet | `scripts/almost/xsheet.py` | which drawing each of the 744 frames photographs: mostly twos, the startle on ones, breaths on fours, long holds. `python3 scripts/almost/xsheet.py` prints it |
+| The exposure sheet | `scripts/almost/xsheet.py` | which drawing each of the 679 frames photographs (134 photographs): mostly twos, the startle on ones, breaths on fours, long holds. `python3 scripts/almost/xsheet.py` prints it |
 | Photographing | `scripts/almost/render.py` | one render per unique pair of drawings (158); after the first, only the region that changed (the felt that moved, where it was and where it is, and its shadows on the table and the wall), written noisy, with the denoiser's albedo and normal |
 | Developing | `scripts/almost/develop.py` | each region pasted into the noisy photograph before it, the whole photograph denoised once and seen through the film's view (AgX); outside the region nothing differs by a bit |
 | Assembly | `scripts/almost/assemble.py` | the developed photographs in exposure-sheet order, made 8-bit with one fixed dither; then the review crops (16:9, 9:16) and the room's copies (VP9 and H.264, full and half size) |
@@ -91,6 +92,15 @@ npm run memories:seed -- --force=almost-film
 - **His touch comes from his side,** low and level, with the index and middle fingers leading. His
   elbow is out to his side and back, so his forearm crosses the table. Aimed straight at her
   wrist, the forearm pointed into the lens and read as a post.
+- **The fold is in the picture whenever it is held.** Her near forearm lies angled in toward her
+  own middle, so the side of the cuff with the fold faces him and the lens; in her offer her elbow
+  slides out toward him on the wood. `seen.py` counts the lining the camera sees in each held pose
+  (748-848 pixels at 1280 wide; at least 120).
+- **Her startle** sends her elbow back and down along her side: nothing of hers moves toward him.
+  **His hand goes to his lap** by turning along the table's edge, rolling onto its little finger's
+  side and slipping down past it: no lift, which read as a raised paw.
+- **The ending answers the opening.** He begins and ends looking at his cup and his hand by it; only
+  what the story changed differs: his reaching hand is in his lap, and her arm lies nearer him.
 
 ## How the room plays it
 

@@ -3,6 +3,8 @@ order they grow in, the order the colour follows, and the wall's copy of the fil
 
     python3 scripts/almost/emergence.py STILL.png MASK.png [--variant film] [--film-frames N] [--out DIR]
 
+(N defaults to the exposure sheet's length.)
+
 STILL is the film's first photograph, whole: the open matte, 1280×1440 (`assemble.py --stills 0`).
 MASK is masks.py's render of the same pose: R the two figures, G their hands and her folded cuff.
 
@@ -31,6 +33,9 @@ import sys
 import cv2
 import numpy as np
 from PIL import Image
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import xsheet  # noqa: E402
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 OUT = os.path.join(ROOT, 'public', 'memories', 'almost')
@@ -174,7 +179,7 @@ def main():
     still, mask_path = a[0], a[1]
     opt = {a[i][2:]: a[i + 1] for i in range(2, len(a) - 1, 2)}
     variant = opt.get('variant', 'film')
-    frames = int(opt.get('film-frames', 744))
+    frames = int(opt.get('film-frames', xsheet.sheet()[2]))
     img = cv2.imread(still, cv2.IMREAD_COLOR)
     H, W = img.shape[:2]
     mask = cv2.resize(cv2.imread(mask_path, cv2.IMREAD_COLOR), (W, H), interpolation=cv2.INTER_LINEAR)
