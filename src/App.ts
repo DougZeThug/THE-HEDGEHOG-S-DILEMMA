@@ -109,8 +109,8 @@ export class App {
     away: boolean; told: number;
     /** The room's writing its painting has washed out (given back when it goes). */
     washed: Set<string>;
-    /** Its sound has run (it waits for it if it stops); since when it has been stopped; given up waiting. */
-    sounded: boolean; downSince: number | null; silent: boolean;
+    /** Since when its sound has been stopped while it was visible; let go for it. */
+    downSince: number | null; gaveUp: boolean;
   } | null = null;
   /** Going into a living memory and back (src/world/living/Inside.ts). */
   private inside!: Inside;
@@ -558,7 +558,7 @@ export class App {
       },
     });
     const sm = SCENE_BY_PHRASE.get(phraseId);
-    this.living = { memory, id, key: a.key, anchor: a, bled: false, hiddenSince: null, held: false, awayFor: 0, watched: 0, minHold: sm?.minHold ?? 8, seenAt: sm?.seenAt, reached: 0, deep: false, why: null, away: false, told: 0, washed: new Set(), sounded: false, downSince: null, silent: false };
+    this.living = { memory, id, key: a.key, anchor: a, bled: false, hiddenSince: null, held: false, awayFor: 0, watched: 0, minHold: sm?.minHold ?? 8, seenAt: sm?.seenAt, reached: 0, deep: false, why: null, away: false, told: 0, washed: new Set(), downSince: null, gaveUp: false };
     this.memoryClock.reset();
     // The room hushes round it (and its music stops), until it lets go. For the door the white
     // room itself goes to evening, so the landing's light is the brightest thing there. Nothing
@@ -1006,8 +1006,10 @@ export class App {
    */
   private prefetchMemories() {
     if (this.mode !== 'room' || (this.frameCount++ & 31) !== 0) return;
+    const soon = new Set(this.director.scenes.comingSoon(this.director.now).map((m) => m.id));
     for (const [phraseId, m] of SCENE_BY_PHRASE) {
-      if (this.prefetched.has(m.id) || !this.text.anchorOf(phraseId)) continue;
+      // Its line on a wall, or its offer near (a reserved line is written only as it is offered).
+      if (this.prefetched.has(m.id) || !(this.text.anchorOf(phraseId) || soon.has(m.id))) continue;
       this.prefetched.add(m.id);
       const variant = (readMemoryCounts()[m.id] ?? 0) > 0 ? m.variants.revisit[0] ?? m.variants.first : m.variants.first;
       const idle = (window as { requestIdleCallback?: (f: () => void) => void }).requestIdleCallback ?? ((f: () => void) => setTimeout(f, 200));
@@ -1035,18 +1037,19 @@ export class App {
     // (or resumes, or brings back) use the same, so the picture and its sound never part.
     const ctx = this.audio?.ctx;
     const now = ctx?.currentTime, running = ctx?.state === 'running';
-    // With its sound stopped (a phone's call; the context still resuming after a hidden tab) it
-    // waits for it, so the two come back together (on real time it would run on ahead of it); for
-    // three seconds at most, then it plays on without it.
-    if (running) {
-      l.sounded = true;
-      l.downSince = null;
-      l.silent = false;
-    } else if (ctx && l.sounded && !l.silent) {
+    // With its sound stopped (a phone's call; the context still resuming after a hidden tab, or
+    // not yet running as it begins) it waits for it, so the two come back together: on real time
+    // it would run on ahead of its sound, which never finds it again. Stopped ten seconds while
+    // visible, it is let go uncounted, as a vignette is (QA, 2026-10-20).
+    const down = !!ctx && !running && !l.gaveUp;
+    if (down && !document.hidden && this.mode !== 'settings') {
       l.downSince ??= performance.now();
-      if (performance.now() - l.downSince > 3000) l.silent = true;
-    }
-    const paused = this.mode === 'settings' || document.hidden || (!!ctx && !running && l.sounded && !l.silent);
+      if (performance.now() - l.downSince > 10000) {
+        l.gaveUp = true;
+        this.endLivingMemory('hidden');
+      }
+    } else l.downSince = null;
+    const paused = this.mode === 'settings' || document.hidden || (down && !l.gaveUp);
     const c = l.memory.controller;
     if (paused !== c.isPaused) paused ? c.pause() : c.resume(now);
     const dt = this.memoryClock.tick(performance.now() / 1000, now ?? 0, running, paused);

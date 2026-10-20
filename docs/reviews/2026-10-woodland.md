@@ -1788,3 +1788,45 @@ in any path measured, and the change broke the vignettes:
      piano came down 2 dB more, so it stays about 4.5 LU under the place (in the two-shot, where only
      the far chorus sounds, level with it); the cut falls 4.2 LU. Decision 73's switch, and the
      version without the wind across the cut, are gone with it.
+
+### QA (bdcd6e1), and what was fixed
+
+On every normal path QA measured, the one anchor held. At the start, through pauses (uneven frames
+included), seeks, resumes just before the cut and a quick hidden-tab return, the afternoon went
+silent at the moment the evening reached full level, 0.00 ms apart. Both sounded 70 ms ahead of the
+picture's cut, the headless browser's lead. Vignettes, captions and the let-go fades were fixed.
+What it found:
+- [P1] After the three-second "play on without its sound", or a memory begun before its sound
+  ran, the sound never found the picture again. The piano ran 1.5–3.3 s into the dusk, or the
+  evening never came; cues due meanwhile were lost.
+- [P1] The woodland's recordings were prefetched only when its reserved line was written, seconds
+  before it began: 41 s to start on slow 4G.
+- [P2] The evening was handed out only 0.3 s ahead, so a slow frame, or a lead near its 0.3 s cap,
+  brought it in after the afternoon had gone.
+- [P2] A let-go in the instant before the cut let the evening (already sent ahead) fade for 4 s
+  without its picture.
+- [P2] Back from a hidden tab, the pause's fade-out played on over the restart.
+- [P2] The touch help never named the settings button.
+- [P2] Overdue cues could start a render quantum late.
+
+### Decisions (main session)
+
+103. **A memory waits for its sound** (QA): while its context isn't running (a call, a tab coming
+     back, or not yet running as it begins) the memory is held, and it is let go uncounted after
+     ten seconds visible without it, as a vignette is. It never plays on silent. Sounds that fell
+     due while the sound couldn't run are handed back and handed out again.
+104. **Prefetched as it may be offered** (QA): a memory's art and recordings are fetched as soon as
+     it may be offered within a minute (its arc open, near its earliest), not only when its line is
+     on a wall: the woodland's line is written only as it is offered.
+105. **Handed out 0.75 s ahead** (QA): room for the lead (up to 0.3 s) and a slow frame just before
+     the cut; a sound joined late comes up over its own fade (the evening's 40 ms), not 0.3 s.
+     Tested with frames of 0.35 and 0.6 s at 34.1 and a lead at its cap.
+106. **Interrupted, what the picture hasn't reached goes at once** (QA): a bed or music the picture
+     hasn't reached yet (the evening, sent ahead by the lead) fades in 30 ms, unseen.
+107. **A pause remembers where the picture is** (QA, and found in its tests): a sound begun ahead of
+     the frozen picture (by the lead) begins that far ahead again on resume (it had restarted 0.26
+     s early); what faded for the pause and never finished stops as the restart begins. Back within
+     the lead of the cut, nothing of the afternoon comes back and the evening joins as far in as
+     the picture's clock says.
+108. **Small fixes**: overdue sounds start a render quantum ahead, their offset advanced to match;
+     the touch help names "···" for sound and captions.

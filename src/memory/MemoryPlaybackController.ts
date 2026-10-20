@@ -24,8 +24,9 @@ import type { Lifecycle, Marker, MemoryFrame, ReleaseReason, Sections, TimelineS
  * time when called).
  */
 export interface AudioSink {
-  /** Events due now or within the lookahead; `delay` is seconds ahead of `now`. */
-  play(due: Due[], now?: number): void;
+  /** Events due now or within the lookahead; `delay` is seconds ahead of `now`. Returns those it
+   *  couldn't schedule (its sound not running), to be handed out again. */
+  play(due: Due[], now?: number): Marker[] | void;
   /** Leaving: beds fade over `fade` seconds; tails may run on. */
   release(mode: 'natural' | 'interrupt', fade: number): void;
   /** Returns events it was handed but hadn't sounded yet, so they are handed out again on resume.
@@ -86,7 +87,9 @@ export class MemoryPlaybackController {
 
   constructor(private o: PlaybackOptions) {
     this.life = lifeTimeline(this.env, { reduced: o.reduced, entrance: o.entrance, sways: o.sways });
-    this.dispatch = new CueDispatch(o.timeline.markers);
+    // (Handed out up to 0.75 s ahead: the sound is sent ahead of the picture by up to 0.3 s, and
+    // a slow frame just before the cut must not leave the evening to come in late: QA, 2026-10-20.)
+    this.dispatch = new CueDispatch(o.timeline.markers, 0.75);
   }
 
   get state(): Lifecycle {
@@ -231,7 +234,7 @@ export class MemoryPlaybackController {
     const frame: MemoryFrame = { state: this._state, t, position: this.pos, base, env, final: compose(base, env, this.o.weights, this.o.living) };
     this.last = frame;
     const due = this.dispatch.advance(this.pos, limit);
-    if (due.length) this.o.audio?.play(due, now);
+    if (due.length) for (const m of this.o.audio?.play(due, now) ?? []) this.dispatch.unfire(m);
     return frame;
   }
 

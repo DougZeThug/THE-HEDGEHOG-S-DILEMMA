@@ -82,7 +82,8 @@ describe('memory audio: scheduled on the audio clock, never twice, nothing left 
     audio.resync(15);
     const back = ctx.sources.slice(1);
     expect(back.map((x) => x.loop)).toEqual([true, false]); // the bed, then the music
-    expect(back[1].startAt![1]).toBeCloseTo(6, 6); // 15 − 9 s into the music
+    // 15 − 9 s into the music, from a render quantum ahead (it was already due).
+    expect(back[1].startAt![1]).toBeCloseTo(6 + 128 / ctx.sampleRate, 6);
     playThrough(ctx, audio, d, 15, 18);
     expect(ctx.sources.length).toBe(3); // the spoon and the steps behind the seek never sounded
   });
@@ -111,7 +112,7 @@ describe('memory audio: scheduled on the audio clock, never twice, nothing left 
     audio.resume();
     const bedAgain = ctx.sources[2];
     expect(bedAgain.loop).toBe(true);
-    expect(bedAgain.startAt![0]).toBeCloseTo(ctx.currentTime, 6);
+    expect(bedAgain.startAt![0]).toBeCloseTo(ctx.currentTime + 128 / ctx.sampleRate, 6);
     // It carries on from about 4.3 s into the bed's own timeline (loop-wrapped into the file).
     expect(bedAgain.startAt![1]).toBeCloseTo(0.05 + ((6.3 + 1 / 30 - 2) % 7.9), 1);
   });
@@ -173,6 +174,7 @@ describe('a cut on one instant of the audio clock (the woodland: the afternoon s
   const lengths: Record<string, number> = { air: 47, day: 40, score: 32, evening: 20 };
   function run(stallAt: number | null, stall = 1.5) {
     const ctx = new FakeCtx();
+    ctx.sampleRate = 48000; // (a real context's rate: a render quantum of 2.7 ms)
     const host: MemoryAudioHost = {
       ctx: ctx as unknown as BaseAudioContext,
       out: new FakeNode(ctx) as unknown as AudioNode,
@@ -223,7 +225,8 @@ describe('a cut on one instant of the audio clock (the woodland: the afternoon s
       expect(evening.length).toBe(1);
       const begins = evening[0].startAt![0];
       // Already under way: three seconds into its take.
-      expect(evening[0].startAt![1]).toBeCloseTo(3, 6);
+      // (Joined a render quantum ahead when a stall made it late: as far into its take.)
+      expect(evening[0].startAt![1] - (evening[0].startAt![0] - (100 + CUT))).toBeCloseTo(3, 6);
       for (const a of ['score', 'day']) {
         const [s] = by(a);
         expect(Math.abs(silentAt(gains.get(s)!) - begins), a).toBeLessThan(0.003);
@@ -353,16 +356,28 @@ describe("the woodland's cut, driven as the App drives it (one reading of the au
     seek?: number;
     /** Let go (looked away from) at this position. */
     letGo?: number;
+    /** The context stops (a phone's call): [at position, for seconds of wall time]; its clock
+     *  stands still meanwhile, and the App holds the memory until it runs again. */
+    suspend?: [number, number];
+    /** The context isn't running yet as the memory begins: for this many seconds. */
+    startSuspended?: number;
   }
-  /** Steps it as App.stepLivingMemory does; returns the audio time the picture reached the cut. */
+  /** Steps it as App.stepLivingMemory does; returns the audio time the picture reached the cut
+   *  (and when its sound came back, if it stopped). */
+  let resumedAt = -Infinity;
   function drive(r: ReturnType<typeof rig>, o: Drive = {}): number | null {
+    resumedAt = -Infinity;
     const { ctx, c } = r;
     const clock = new MemoryClock();
     ctx.currentTime = 100;
     let real = 1000, first = true, stalled = false, pausedFor = 0, seeked = false, released: number | null = null;
-    let pictureCut: number | null = null;
+    let pictureCut: number | null = null, downUntil = -Infinity, suspended = false;
+    if (o.startSuspended) {
+      ctx.state = 'suspended';
+      downUntil = real + o.startSuspended;
+    }
     // The memory begins: its first sounds scheduled at once, its clock primed with the same instant.
-    clock.prime(real, ctx.currentTime, true);
+    clock.prime(real, ctx.currentTime, ctx.state === 'running');
     c.start(ctx.currentTime);
     for (let i = 0; i < 20000 && c.state !== 'complete'; i++) {
       if (released === null ? c.position >= 38 : real > released + 6) break;
@@ -374,11 +389,21 @@ describe("the woodland's cut, driven as the App drives it (one reading of the au
         stalled = true;
       }
       if (o.pause && o.pauseFrame && pausedFor === 0 && c.position >= o.pause[0]) frame = o.pauseFrame;
-      ctx.advance(frame);
+      if (o.suspend && !suspended && c.position >= o.suspend[0]) {
+        suspended = true;
+        ctx.state = 'suspended';
+        downUntil = real + o.suspend[1];
+      }
+      if (ctx.state === 'suspended' && real >= downUntil) {
+        ctx.state = 'running';
+        resumedAt = ctx.currentTime;
+      }
+      // (A suspended context's clock stands still.)
+      if (ctx.state === 'running') ctx.advance(frame);
       real += frame;
       vi.advanceTimersByTime(frame * 1000);
-      const now = ctx.currentTime;
-      const paused = !!o.pause && c.position >= o.pause[0] && pausedFor < o.pause[1];
+      const now = ctx.currentTime, running = ctx.state === 'running';
+      const paused = (!!o.pause && c.position >= o.pause[0] && pausedFor < o.pause[1]) || !running;
       if (paused) pausedFor += frame;
       if (paused !== c.isPaused) paused ? c.pause() : c.resume(now);
       if (o.seek !== undefined && !seeked && c.position >= 30) {
@@ -392,7 +417,7 @@ describe("the woodland's cut, driven as the App drives it (one reading of the au
         c.release('look-away');
       }
       const before = c.position;
-      c.step(clock.tick(real, now, true, paused), now);
+      c.step(clock.tick(real, now, running, paused), now);
       if (pictureCut === null && before < CUT && c.position >= CUT) pictureCut = now - (c.position - CUT);
     }
     return pictureCut;
@@ -412,8 +437,13 @@ describe("the woodland's cut, driven as the App drives it (one reading of the au
     ['paused for 2 s at 33.0 s, opened on a 0.3 s frame', { pause: [33.0, 2], pauseFrame: 0.3 }],
     ['held by hand at 33.0 s and played on', { seek: 33.0 }],
     ['held by hand at 33.2 s and played on', { seek: 33.2 }],
+    ['the sound stopped 5 s at 31 s (a call), the memory waiting for it', { suspend: [31, 5] }],
+    ['the sound stopped 2 s at 34.2 s', { suspend: [34.2, 2] }],
+    ['begun with its sound not yet running (2 s)', { startSuspended: 2 }],
+    ['a 0.6 s frame at 34.1 s', { stall: [34.1, 0.6] }],
+    ['a 0.35 s frame at 34.12 s', { stall: [34.12, 0.35] }],
   ];
-  for (const latency of [0, 0.12]) {
+  for (const latency of [0, 0.12, 0.32]) {
     for (const [what, o] of cases) {
       it(`the afternoon stops where the evening is full, on the picture's cut: ${what}${latency ? ', sound reaching the ear 0.12 s late' : ''}`, async () => {
         const r = rig(latency);
@@ -421,17 +451,32 @@ describe("the woodland's cut, driven as the App drives it (one reading of the au
         const cut = drive(r, o);
         expect(cut).not.toBeNull();
         // Sent ahead of the picture by the sound's own way to the ear (less a frame and a half of
-        // the picture's), so the two are met there.
-        const lead = latency ? latency - 0.025 : 0;
-        const evening = r.by('evening');
-        expect(evening.length).toBe(1);
-        expect(Math.abs(evening[0].startAt![0] + 0.04 - (cut! - lead))).toBeLessThan(0.002);
-        for (const a of ['day', 'score'] as const) {
-          const last = r.by(a).at(-1)!;
-          expect(Math.abs(endsAt(r, last) - (cut! - lead)), a).toBeLessThan(0.002);
+        // the picture's, at most 0.3 s), so the two are met there.
+        const lead = latency ? Math.min(0.3, latency - 0.025) : 0;
+        // (The sound stopping round the cut: what began before it, ahead of the picture by the
+        // lead, is taken back and begins again with the picture, never overlapping itself.)
+        const evening = r.by('evening').filter((e) => e.stopAt === null || e.stopAt > e.startAt![0]);
+        const last = evening.at(-1)!;
+        for (const e of evening.slice(0, -1)) expect(silentAt(r.gains.get(e)!)).toBeLessThanOrEqual(last.startAt![0] + 0.005);
+        if (!o.suspend) expect(evening.length).toBe(1);
+        const due = cut! - lead - 0.04;
+        if (resumedAt > due) {
+          // Its sound came back after the evening was due (sent ahead by the lead, the sound had
+          // passed the cut when it stopped): nothing of the afternoon comes back, and the evening
+          // joins as far into its take as the picture's clock says.
+          for (const a of ['day', 'score'] as const) for (const x of r.by(a)) expect(silentAt(r.gains.get(x)!), a).toBeLessThanOrEqual(resumedAt + 0.05);
+          expect(last.startAt![1] - 0.03).toBeCloseTo(last.startAt![0] - due, 3);
+        } else {
+          expect(Math.abs(last.startAt![0] - due)).toBeLessThan(0.002);
+          for (const a of ['day', 'score'] as const) {
+            const x = r.by(a).at(-1)!;
+            expect(Math.abs(endsAt(r, x) - (cut! - lead)), a).toBeLessThan(0.002);
+          }
         }
-        // Cues marked at one position start together (one reading of the clock).
-        if (!o.seek && !o.pause) expect(r.by('air')[0].startAt![0]).toBe(r.by('day')[0].startAt![0]);
+        // Cues marked at one position start together (one reading of the clock); and what was due
+        // as it began is heard, however long its sound took to run.
+        if (!o.seek && !o.pause && !o.suspend) expect(r.by('air')[0].startAt![0]).toBe(r.by('day')[0].startAt![0]);
+        expect(r.by('air').length).toBeGreaterThan(0);
         // Named a second and a half after the cut, as the picture has it.
         const named = r.captions.find(([t]) => t === '[evening]');
         expect(named).toBeDefined();
@@ -474,6 +519,23 @@ describe("the woodland's cut, driven as the App drives it (one reading of the au
         if (a === 'day') expect(g.valueAt(to + 0.001)).toBeLessThanOrEqual(SILENT + 1e-9);
       }
     }
+  });
+
+  it('let go in the instant before the cut (the evening already sent ahead by the lead), the evening goes at once, unseen', async () => {
+    const r = rig(0.12);
+    await r.audio.prepare();
+    drive(r, { letGo: 34.42 });
+    for (const e of r.by('evening')) expect(e.stopAt! - e.startAt![0], 'the evening').toBeLessThan(0.15);
+  });
+
+  it('back from a hidden tab, what faded for the pause is gone before its restart sounds', async () => {
+    const r = rig();
+    await r.audio.prepare();
+    drive(r, { pause: [20, 3] });
+    const [first, again] = r.by('day');
+    expect(again).toBeDefined();
+    // (Its fade had been cut short by the context suspending with it; it stops as the restart begins.)
+    expect(first.stopAt!).toBeLessThanOrEqual(again.startAt![0] + 0.05);
   });
 
   it('let go in the last seconds, the afternoon fades out by the end of its files, never stopped part-way down', async () => {
