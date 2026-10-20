@@ -86,25 +86,40 @@ describe('a line under another, inside a place on its wall (the line where the p
     if (got) expect(overlaps(got.rect, near, 0.2)).toBe(false);
   });
 
-  it('keeps clear of a line’s own place, written or not, while a place that can go elsewhere gives way', () => {
-    // ("That was a good day." keeps its place on the east wall, beside where the line would go:
-    // written later, it would run on from it.)
-    const layout = new SurfaceLayout(new Rng(1));
-    const anchor = layout.add({ surface: 'east', u: 3.56, v: 1.535, w: 0.9, h: 0.21, rot: 0 });
-    const own = layout.add({ surface: 'east', u: 4.48, v: 1.25, w: 1.37, h: 0.29, rot: 0 });
-    const got = layout.findUnder(anchor, W, H, { u: 3.62, v: 1.2, w: 3.2, h: 1.8 }, () => false)!;
-    expect(under(got.rect, anchor)).toBe(true);
-    expect(overlaps(got.rect, own, 0.2)).toBe(false);
-    // A line not yet shown, with no place of its own, in the same place: it is moved instead.
+  it('20 cm from a place that stays; a place that can go elsewhere gives way; a line’s own place, not yet written, waits', () => {
+    // (Where "That was a good day." keeps its place on the east wall, beside where the line would go.)
+    const at = (l: SurfaceLayout) => [l.add({ surface: 'east', u: 3.56, v: 1.535, w: 0.9, h: 0.21, rot: 0 }), l.add({ surface: 'east', u: 4.48, v: 1.25, w: 1.37, h: 0.29, rot: 0 })];
+    const within = { u: 3.62, v: 1.2, w: 3.2, h: 1.8 };
+    const ideal = (a: Placement) => a.u - a.w / 2 + W / 2 + a.w * 0.08;
+    // Something there that stays (a drawing): 20 cm from it, still under its line.
+    const l1 = new SurfaceLayout(new Rng(1));
+    const [a1, stays] = at(l1);
+    const got = l1.findUnder(a1, W, H, within, () => false)!;
+    expect(under(got.rect, a1)).toBe(true);
+    expect(overlaps(got.rect, stays, 0.2)).toBe(false);
+    // A line not yet shown, with no place of its own: it is moved, and the line goes where it would.
     const l2 = new SurfaceLayout(new Rng(1));
-    const a2 = l2.add({ surface: 'east', u: 3.56, v: 1.535, w: 0.9, h: 0.21, rot: 0 });
-    const slot = l2.add({ surface: 'east', u: 4.48, v: 1.25, w: 1.37, h: 0.29, rot: 0 });
-    const moved = l2.findUnder(a2, W, H, { u: 3.62, v: 1.2, w: 3.2, h: 1.8 }, (p) => p === slot)!;
+    const [a2, slot] = at(l2);
+    const moved = l2.findUnder(a2, W, H, within, (p) => p === slot)!;
     expect(moved.displaced).toEqual([slot]);
-    expect(Math.abs(moved.rect.u - (a2.u - a2.w / 2 + W / 2 + a2.w * 0.08))).toBeLessThanOrEqual(0.02);
+    expect(Math.abs(moved.rect.u - ideal(a2))).toBeLessThanOrEqual(0.02);
+    // A line's own place, not yet written: the line may come as close as to anything else (never
+    // over it), and that line waits (kept off the walls from then on, decision 137).
+    const l3 = new SurfaceLayout(new Rng(1));
+    const [a3, own] = at(l3);
+    const waits = l3.findUnder(a3, W, H, within, () => false, [], (p) => p === own)!;
+    expect(waits.waiting).toEqual([own]);
+    expect(overlaps(waits.rect, own, 0.015)).toBe(false);
+    expect(under(waits.rect, a3)).toBe(true);
+    expect(waits.rect.u).toBeGreaterThan(got.rect.u);
+    // Written, it is writing like any other: 20 cm.
+    const l4 = new SurfaceLayout(new Rng(1));
+    const [a4, written] = at(l4);
+    const clear = l4.findUnder(a4, W, H, within, () => false, [written], (p) => p === written)!;
+    expect(overlaps(clear.rect, written, 0.2)).toBe(false);
   });
 
-  it('on the walls as laid out: under its line, close, inside the painting’s place, 20 cm from everything but places of lines not yet shown', () => {
+  it('on the walls as laid out: under its line, close, inside the painting’s place, 20 cm from everything but places that give way or wait', () => {
     let written = 0, tried = 0;
     for (const surface of ['north', 'east', 'south', 'west'] as const)
       for (let i = 0; i < 15; i++) {
@@ -119,24 +134,25 @@ describe('a line under another, inside a place on its wall (the line where the p
         // Its painting round it, kept on the wall (3.2 × 1.8 m).
         const within = { u: Math.min(Math.max(anchor.u, 1.65), size.w - 1.65), v: Math.min(Math.max(anchor.v - 0.4, 1.0), size.h - 1.0), w: 3.2, h: 1.8 };
         // Some lines are already on the walls (every third), the rest not yet shown; a line with a
-        // place of its own (`at`) never moves, as in WallText.writeWithin.
+        // place of its own (`at`) never moves, and waits, as in WallText.writeWithin.
         const ids = [...lay.keys()];
         const shownIds = new Set(ids.filter((_, k) => k % 3 === 0));
         const shown = ids.filter((id) => shownIds.has(id) && lay.get(id)!.surface === surface).map((id) => lay.get(id)!);
-        const movable = (p: Placement) => ids.some((id) => lay.get(id) === p && !shownIds.has(id) && !PHRASES.find((x) => x.id === id)?.at);
+        const unshown = (p: Placement, own: boolean) => ids.some((id) => lay.get(id) === p && !shownIds.has(id) && !!PHRASES.find((x) => x.id === id)?.at === own);
+        const movable = (p: Placement) => unshown(p, false), waits = (p: Placement) => unshown(p, true);
         tried++;
-        const got = layout.findUnder(anchor, W, H, within, movable, shown);
+        const got = layout.findUnder(anchor, W, H, within, movable, shown, waits);
         if (!got) continue;
         written++;
         expect(under(got.rect, anchor)).toBe(true);
         expect(inside(got.rect, within)).toBe(true);
         expect(overlaps(got.rect, anchor, 0.015)).toBe(false);
         for (const q of shown) expect(overlaps(got.rect, q, 0.2)).toBe(false);
-        for (const q of layout.placed.get(surface)!) if (q !== anchor && !got.displaced.includes(q)) expect(overlaps(got.rect, q, 0.2)).toBe(false);
+        for (const q of layout.placed.get(surface)!) if (q !== anchor && !got.displaced.includes(q) && !got.waiting.includes(q)) expect(overlaps(got.rect, q, 0.2)).toBe(false);
         for (const q of got.displaced) expect(movable(q)).toBe(true);
+        for (const q of got.waiting) expect(waits(q) && !overlaps(got.rect, q, 0.015)).toBe(true);
       }
-    // (Written in a good share of endings, about half with a third of the lines up; where the place
-    // under its line is crowded, nothing.)
+    // (Written in a good share of endings; where the place under its line is crowded, nothing.)
     expect(written / tried).toBeGreaterThan(0.3);
   });
 

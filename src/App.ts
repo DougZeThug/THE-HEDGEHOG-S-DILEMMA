@@ -1125,14 +1125,18 @@ export class App {
     }
     // Its line where the painting was (decisions 119–123): once, while it plays on unbroken to there,
     // for someone taken all the way in; in the hand and size of its own line, under it, silently.
+    // A line whose own place is beside it is kept off the walls for the rest of the visit (137).
     const coda = l.memory.prepared.def.coda;
     if (coda && !l.coda && dt > 0 && !l.held && coda.variant === l.memory.prepared.variant && f.position >= coda.at
       && this.inside.entered && (l.why === null || l.why === 'complete') && this.mode === 'room') {
       l.coda = true;
       const own = this.text.items.get(l.key);
-      if (own && this.text.writeWithin({ key: `coda:${l.id}`, text: coda.text, hand: own.hand, size: own.size, under: l.key, within: this.memoryWindow.painting,
-        purpose: 'annotation', now: this.time, source: this.text.phraseOf(l.key) ?? undefined }))
+      const waiting = own ? this.text.writeWithin({ key: `coda:${l.id}`, text: coda.text, hand: own.hand, size: own.size, under: l.key, within: this.memoryWindow.painting,
+        purpose: 'annotation', now: this.time, source: this.text.phraseOf(l.key) ?? undefined }) : null;
+      if (waiting) {
+        this.director.keepBack(waiting);
         this.srRegion().textContent = `Written on the wall where the painting was: ${coda.text}`;
+      }
     }
     if (go) this.endLivingMemory('interrupt');
   }

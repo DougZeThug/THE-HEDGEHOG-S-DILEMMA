@@ -713,11 +713,12 @@ export class Director {
 
   /**
    * While a line is left unfinished, nothing answers it: not its echoes, not what contradicts
-   * it, not other lines about going or staying. The visitor finishes it, or nobody does.
+   * it, not other lines about going or staying. The visitor finishes it, or nobody does. And the
+   * lines kept back for the rest of the visit (`keepBack`).
    */
   private withheld(): string[] {
-    if (!this.unfinished.size) return [];
-    const out = new Set<string>();
+    if (!this.unfinished.size) return [...this.keptBack];
+    const out = new Set<string>(this.keptBack);
     for (const id of this.unfinished) {
       const p = PHRASE_BY_ID.get(id);
       for (const r of [...(p?.echoes ?? []), ...(p?.contradicts ?? [])]) out.add(r);
@@ -980,6 +981,12 @@ export class Director {
   private moved = new Set<string>();
   /** Lines the opening left unfinished on the wall. */
   private unfinished = new Set<string>();
+  /** Lines kept off the walls for the rest of the visit: their own place is beside the line written
+   *  where the woodland's painting was, and written there they would run on from it (decision 137). */
+  private keptBack = new Set<string>();
+  keepBack(ids: readonly string[]): void {
+    for (const id of ids) this.keptBack.add(id);
+  }
 
   /**
    * An unfinished line is finished when someone stays with it: a long look at it, or coming to

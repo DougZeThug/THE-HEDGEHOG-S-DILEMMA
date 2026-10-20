@@ -90,6 +90,23 @@ describe('the aftermath of a memory', () => {
     expect(leaks).toEqual([]);
   });
 
+  it('a line kept back by the line written where the painting was is never written in its own place again that visit', () => {
+    // (Decision 137: its own place is beside that line; written there, it would run on from it.)
+    const reveals = (keep: string[]) => {
+      const d = new Director({ seed: 4 });
+      d.release();
+      d.keepBack(keep);
+      const out = new Set<string>();
+      for (const c of drive(d, (t) => ({ yaw: Math.sin(t * 0.2), facing: t % 30 < 15 ? 'north' : 'east' }), 0, 300)) if (c.cue.type === 'reveal') out.add(c.cue.phraseId);
+      return out;
+    };
+    const kept = [...reveals([])].slice(0, 4);
+    expect(kept.length).toBe(4);
+    const after = reveals(kept);
+    expect(kept.filter((id) => after.has(id))).toEqual([]);
+    expect(after.size).toBeGreaterThan(0);
+  });
+
   it('nothing of the room’s own is postponed onto a memory while it plays', () => {
     for (const p of PERSONAS) {
       const r = visit(looped(p), 420, 2);

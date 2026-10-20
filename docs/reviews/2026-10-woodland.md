@@ -2233,3 +2233,23 @@ decision 119 said wrongly that it wraps.
        a visit has had 11–15 lines written (the engine playtest), and the woodland comes after 200 s.
      - Tested: kept clear of a line's own place, empty or written, while a place that can move gives
        way; on the walls as laid out, 20 cm from every place that stays.
+137. **A line's own place waits, and its line is kept back** (measured in the browser after 136). The
+     layout model behind 133 and 136 measured text about a third narrower than the browser draws
+     it; its figures were wrong. In the browser's own layout early in a visit, "five more minutes"
+     was written where the room writes it near 72 points at eye level on the four walls, and landed
+     in 46 places (`tests/playtest/woodland-coda-walls.ts`). The room keeps a place for each of its
+     120 lines from the start, so it lands in the few gaps left. Under 133 the line was written in
+     27 of those 46; under 136 in 12 (the artist's wording, 11). 136 turned away most places under
+     it for the empty places of lines with their own, close by.
+     - A line's own place, not yet written, now waits: only overlapping it stops the line, as under
+       133. A line whose own place is within 20 cm is kept off the walls for the rest of the visit
+       (`Director.keepBack`, through the gate every reveal passes), so it is never written beside it.
+       The walls aren't kept between visits, so the two never meet.
+     - The rest of 136 stands. The line keeps 20 cm from what is written and from places that stay.
+       Places of lines not yet shown give way within 20 cm. Nothing placed later comes within 20 cm.
+     - Tested:
+       - an empty own place waits and is returned;
+       - written, a line's place keeps 20 cm, as does a place that stays;
+       - a place that can move gives way;
+       - the walls as laid out;
+       - a kept-back line is never revealed (the test fails without the hold).

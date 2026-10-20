@@ -736,23 +736,26 @@ export class WallText {
   /**
    * Write a line under another inside a place on its wall (`within`, in the writing group's metres,
    * as the memory window gives a painting's place): just under it and close, clear of what is
-   * already written there (decisions 122 and 133). The places kept for lines not yet shown give way,
-   * and are found again elsewhere. False, and nothing written, if nothing fits.
+   * already written there (decisions 122, 133, 136 and 137). The places kept for lines not yet shown
+   * give way, and are found again elsewhere; a line with its own place close by waits. The ids of
+   * the lines that wait (the room keeps them off the walls from then on), or null, and nothing
+   * written, if nothing fits.
    */
-  writeWithin(o: { key: string; text: string; hand: Hand; size: Size; under: string; within: { cx: number; cy: number; w: number; h: number }; purpose: Exclude<Purpose, 'phrase'>; now: number; source?: string; start?: boolean }): boolean {
-    if (this.items.has(o.key)) return false;
+  writeWithin(o: { key: string; text: string; hand: Hand; size: Size; under: string; within: { cx: number; cy: number; w: number; h: number }; purpose: Exclude<Purpose, 'phrase'>; now: number; source?: string; start?: boolean }): string[] | null {
+    if (this.items.has(o.key)) return null;
     const anchor = this.items.get(o.under)?.placement;
-    if (!anchor || anchor.surface === 'floor' || anchor.surface === 'ceiling') return false;
+    if (!anchor || anchor.surface === 'floor' || anchor.surface === 'ceiling') return null;
     const size = surfaceSize(anchor.surface), s = this.room.scale;
     const within = { u: o.within.cx / s + size.w / 2, v: o.within.cy + size.h / 2, w: o.within.w / s, h: o.within.h };
     const m = measureText(o.text, o.hand, o.size);
-    // (A line not yet on any wall, with no place of its own, keeps a place that can go elsewhere.)
-    const slots = new Map<Placement, string>();
-    for (const [id, pl] of this.placements) if (!this.items.has(id) && !PHRASE_BY_ID.get(id)?.at) slots.set(pl, id);
+    // (A line not yet on any wall keeps a place: one with no place of its own can go elsewhere, one
+    // with its own place can only wait.)
+    const slots = new Map<Placement, string>(), own = new Map<Placement, string>();
+    for (const [id, pl] of this.placements) if (!this.items.has(id)) (PHRASE_BY_ID.get(id)?.at ? own : slots).set(pl, id);
     // (What is already written on that wall, drawings too, its own line aside.)
     const written = [...this.items.values()].filter((it) => it.key !== o.under && it.placement.surface === anchor.surface && (it.vis > 0.05 || it.target > 0)).map((it) => it.placement);
-    const found = this.layout.findUnder(anchor, m.w, m.h, within, (p) => slots.has(p), written);
-    if (!found) return false;
+    const found = this.layout.findUnder(anchor, m.w, m.h, within, (p) => slots.has(p), written, (p) => own.has(p));
+    if (!found) return null;
     for (const p of found.displaced) this.layout.remove(p);
     const pl = this.layout.add({ surface: anchor.surface, ...found.rect, rot: (((hashString(o.key) % 100) / 100) - 0.5) * 0.04 });
     // (Kept clear for the rest of the visit: nothing placed after it, those lines included, comes
@@ -766,7 +769,7 @@ export class WallText {
     it.source = o.source;
     it.expires = 0;
     if (o.start !== false) this.writeOn(o.key);
-    return true;
+    return found.waiting.map((p) => own.get(p)!);
   }
 
   private makeLine(key: string, surface: Surface, seed: number): LineItem {

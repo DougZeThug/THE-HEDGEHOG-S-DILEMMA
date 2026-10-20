@@ -208,12 +208,13 @@ export class SurfaceLayout {
    * foot, overlapping at least half the narrower of the two), nearest first to just under its start,
    * a little in; never above it or beside it. It keeps `clearance` (20 cm) from all writing, so it is
    * never read as another line's answer, nor run on into one: from the writing in `clear` (what is
-   * already on the wall), and from every place on the wall unless `movable` says that place can go
-   * elsewhere (a line not yet shown); those come back with it, to be placed again. A place that can't
-   * move (a line's own) stops it, written yet or not: written later, that line would sit beside it.
-   * Null if nothing fits: then nothing is written.
+   * already on the wall), and from every place on the wall, unless `movable` says that place can go
+   * elsewhere (a line not yet shown; those come back in `displaced`, to be placed again) or `waits`
+   * says its line can wait (a line's own place, not yet written: only overlapping it stops it; those
+   * within 20 cm come back in `waiting`, their lines to be kept off the wall from then on, decision
+   * 137). Null if nothing fits: then nothing is written.
    */
-  findUnder(anchor: Placement, w: number, h: number, within: Rect, movable: (p: Placement) => boolean, clear: readonly Rect[] = [], clearance = 0.2): { rect: Rect; displaced: Placement[] } | null {
+  findUnder(anchor: Placement, w: number, h: number, within: Rect, movable: (p: Placement) => boolean, clear: readonly Rect[] = [], waits: (p: Placement) => boolean = () => false, clearance = 0.2): { rect: Rect; displaced: Placement[]; waiting: Placement[] } | null {
     const size = surfaceSize(anchor.surface);
     const foot = anchor.v - anchor.h / 2;
     const iu = anchor.u - anchor.w / 2 + w / 2 + anchor.w * 0.08, iv = foot - h / 2 - 0.04;
@@ -230,8 +231,9 @@ export class SurfaceLayout {
     const placed = this.placed.get(anchor.surface)!;
     for (const r of cands) {
       if (clear.some((q) => overlaps(r, q, clearance))) continue;
-      const blocking = placed.filter((q) => q !== anchor && overlaps(r, q, clearance));
-      if (blocking.every(movable)) return { rect: r, displaced: blocking };
+      const near = placed.filter((q) => q !== anchor && overlaps(r, q, clearance));
+      const displaced = near.filter(movable), waiting = near.filter((q) => !movable(q));
+      if (waiting.every((q) => waits(q) && !overlaps(r, q, 0.015))) return { rect: r, displaced, waiting };
     }
     return null;
   }
