@@ -2757,3 +2757,73 @@ Verified working:
      - The scene's comment and `docs/animation.md` are corrected: "an ease that sets off at once
        and settles long", and "but for one pixel by her ear".
      - The turn's tests check each drawing exactly on its twelfth.
+170. **Measured on screen** (decision 166, as QA asked). In the upright phone's recording at her last
+     step (19.0), nothing in her head changes by more than 24/255, and beside her far eye by no more
+     than 12. The recording before measured 65 over 29 pixels there.
+
+### Her turn: the final assessment (the brief's last deliverable, 2026-10-20, at b97041c)
+
+The brief asked for confirmed improvements kept apart from remaining limitations, and for no claim
+of quality on the strength of the implementation. Only the artist can say whether the turn reads
+as her and whether it is emotionally right. Nothing below claims either.
+
+**Confirmed** (measured, reproducible):
+- **The artist's two faults are gone.**
+  - Her far cheek no longer swells. It stretches at most 1.24 where it comes round, against 2.0 in
+    the first rig.
+  - Her neck no longer narrows. It keeps its width (0.5–4 px wider; the first rig was 7–11 px
+    narrower).
+- **Her drawing survives the turn.**
+  - Each feature's lines keep 94–98% of their ink.
+  - Unmoved, and moved a hair's breadth, the rig is the painting to 2/255, but for one pixel by her
+    ear (37/255, skin to skin).
+  - Both are checked at every drawing, on both rigs, on every build.
+- **Her neck stays joined to her head.**
+  - No hair shows inside her neck under her chin at any drawing (22 px → 0), checked on every
+    build.
+  - Her neck's outline carries on up behind her chin, and nothing falls between her meshes by her
+    ear.
+- **The performance the brief describes, on the clock the music leaves.**
+  - Her eyes go to him first (17.5 s, two drawings).
+  - A pause (0.58 s as seen).
+  - Her head turns 14° over a second, 90% of the way at 0.66 s, visibly from 18.17 to 18.75.
+  - No return, no smile.
+  - The cinematic director: it reads as her own face turning toward him, coherent from drawing to
+    drawing, with no snap. Its brisk start reads as a decision to turn.
+- **It plays as built.**
+  - Every drawing lands on its twelfth and is held two frames: in every film and in the memory's
+    own recordings, at 12, 24 and 60 fps, on desktop, both phones and reduced motion (QA).
+  - Nothing loads or compiles during her look, a return can't cut into it, and seeking is exact.
+  - On phones, no fleck appears as she lands (decision 170).
+- **A toolkit, written down and reproducible.**
+  - `scripts/drawn-rig/`: z-buffered meshes over a painting, and its lines lifted and drawn again at
+    their weight.
+  - `docs/animation.md`: when to draw and when to move, the faults made and how each looks, and how
+    to check.
+  - The checks built into `scripts/her-turn.py`.
+  - Both scripts reproduce their output byte for byte (QA).
+  - Only her turn has used the toolkit so far.
+- **The sequence around her look stands as recorded.**
+  - The visitor is inside the woodland from 9.8 s to the way out at 42.5 s (about 33 s).
+  - It cuts hard to the empty clearing at dusk, with no impressions of their bodies.
+  - The cicadas, the piano and the change of sound at the cut; no dialogue.
+
+**Remaining limitations:**
+- **Her settled face is 5.7% narrower** in A, as it ships. B and C trade that for the cheek
+  widening the artist rejected. The artist chooses. If neither is right, the cheek coming into view
+  must be painted.
+- **"Loose strands respond" is not delivered.** Her hair moves with her head. The hair beside her
+  far cheek moves as a stretched band (median 1.29 in A, its strands' detail down about 15%).
+- **The depth under her face is a generic head** fitted to 13 points (rms 8.4 px). The only other
+  drawing of her disagrees with the panel, so it couldn't be calibrated. A wrong depth makes no
+  error, only a slightly wrong motion.
+- **Her painted light turns with her skin.** At 14° it doesn't contradict the sun.
+- **The visible turn is 0.58 s,** at the bottom of the brief's 0.6–0.9 s. Its last four steps are
+  each under a screen pixel.
+- **Small marks at her chin's corner:** the end of her chin's line bends a pixel or two, and a pale
+  speck shows there mid-turn.
+- **No one has seen it in real time.** Every review worked from frames, films and recordings made
+  offline, and only one film has its sound. The artist hasn't yet seen any of the fixes.
+- **Not claimed:** professional quality. It meets the brief's measurable terms and avoids every
+  rejection criterion that could be measured. Whether it is "smooth but emotionally artificial" can
+  only be judged by watching it, and that is the artist's to judge.
