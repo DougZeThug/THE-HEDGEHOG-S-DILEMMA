@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import * as THREE from 'three';
 import { FilmScene, filmType } from '../src/memory/living/FilmScene';
 import { ALMOST, ALMOST_SECTIONS, FILM_AT, FILM_SECONDS } from '../src/memory/defs';
@@ -88,6 +90,14 @@ describe('a film as a living memory', () => {
     scene.update(gl, 5, { 'scene.film': 12.51 }, { view });
     expect(video.paused).toBe(true);
     expect(video.currentTime).toBeCloseTo(300.5 / 24, 9);
+  });
+
+  it("a held position doesn't play, however the memory's clock runs on", () => {
+    const { video, scene } = make();
+    for (let i = 0; i < 30; i++) scene.update(gl, 20 + i / 60, { 'scene.film': 6 }, { view });
+    expect(video.plays).toBe(0);
+    expect(video.paused).toBe(true);
+    expect(video.currentTime).toBeCloseTo((6 * 24 + 0.5) / 24, 9);
   });
 
   it('a seek that lands later is drawn when it lands', () => {
@@ -186,6 +196,17 @@ describe('Almost on its timeline', () => {
     // Out once the film is all but over, on its held last moments.
     expect(ALMOST_SECTIONS.exit).toBeGreaterThan(FILM_AT + 29);
     expect(ALMOST_SECTIONS.exit).toBeLessThanOrEqual(FILM_AT + FILM_SECONDS);
+  });
+
+  it('its sounds were laid offline on the timeline that plays', () => {
+    // (scripts/almost/sound.py places the kitchen and the film's sounds, and the clock's ticks,
+    // from these two moments: moved here without running it again, the ticks drift off the film.)
+    const py = readFileSync(join(__dirname, '../scripts/almost/sound.py'), 'utf8');
+    const at = (name: string) => Number(py.match(new RegExp(`^${name} = ([\\d.]+)`, 'm'))![1]);
+    const marker = (label: string) => ALMOST.markers.find((m) => m.label === label)!.position;
+    expect(at('KITCHEN_AT')).toBe(marker('music:kitchen'));
+    expect(at('FILM_AT')).toBe(marker('music:film'));
+    expect(marker('music:film')).toBe(FILM_AT);
   });
 
   it("its screen-reader lines are in order and at least 3.5 s apart", () => {

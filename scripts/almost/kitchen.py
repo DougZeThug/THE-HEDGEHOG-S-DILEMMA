@@ -24,8 +24,8 @@ WALL_Y = 0.150             # the back wall's face
 SEAT_Z = 0.071             # chair seat surface
 CHAIR_X = {'a': -0.041, 'b': 0.041}   # a strip of chair back between their near elbows (reviews, 2026-10-20)
 CHAIR_Y = 0.031          # (room between their laps and the table's edge for a hand to go down)
-LAMP = Vector((0.0, -0.016, 0.224))  # the shade's bottom rim centre
-BULB_UP = 0.019                       # the bulb sits this far up inside the shade
+LAMP = Vector((0.0, -0.016, 0.233))  # the shade's bottom rim centre (just above the 16:9 frame: its light, not its rim)
+BULB_UP = 0.021                       # the bulb sits this far up inside the shade
 
 PALETTE = {
     'amber': srgb('#e0a253'), 'cream': srgb('#e6dcc2'), 'ivory': srgb('#efe6cf'), 'tobacco': srgb('#6e4a2c'),
@@ -69,7 +69,9 @@ def table_wood():
     soft = n.math('POWER', ring, 3.0)
     streak = n.add('ShaderNodeTexNoise', _noise_dimensions='3D', Vector=n.add('ShaderNodeMapping', Vector=obj, Scale=(0.03, 1.0, 1.0)).outputs['Vector'],
                    Scale=1400.0, Detail=2.0)
-    early, latec = srgb('#a17c55'), srgb('#583a20')
+    # (an old tobacco varnish, half the albedo of the first pine: the felt hands and the fold read
+    # light on it, and the lamp's pool shows its fall-off: the directors' reviews, 2026-10-20)
+    early, latec = srgb('#75593c'), srgb('#3e2816')
     figure = n.add('ShaderNodeTexNoise', _noise_dimensions='3D', Vector=obj, Scale=30.0, Detail=3.0)
     col = n.mix(n.math('MULTIPLY', figure.outputs['Fac'], 0.6), rgba(early), rgba(scaled(early, 0.8)))
     col = n.mix(n.math('ADD', n.math('MULTIPLY', late, 0.42), n.math('MULTIPLY', soft, 0.18)), col, rgba(latec))
@@ -89,7 +91,7 @@ def table_wood():
     wear_y = n.math('MAXIMUM', 0.0, n.math('SUBTRACT', 1.0, n.math('DIVIDE', n.math('ABSOLUTE', y), 0.035)))
     wear_n = n.add('ShaderNodeTexNoise', _noise_dimensions='3D', Vector=obj, Scale=140.0, Detail=4.0)
     wear = n.math('MULTIPLY', wear_y, n.math('MULTIPLY', wear_n.outputs['Fac'], 1.3), clamp=True)
-    col = n.mix(n.math('MULTIPLY', wear, 0.45), col, rgba(srgb('#c3a079')))
+    col = n.mix(n.math('MULTIPLY', wear, 0.45), col, rgba(srgb('#9a7a58')))
     grime = n.add('ShaderNodeTexNoise', _noise_dimensions='3D', Vector=obj, Scale=45.0, Detail=5.0, Roughness=0.7)
     col = n.mix(n.math('MULTIPLY', n.math('SUBTRACT', grime.outputs['Fac'], 0.45), 0.9, clamp=True), col, rgba(srgb('#3b2716')))
     # scratches, mostly along the grain, a few across
@@ -293,7 +295,7 @@ def table(mat):
 
 
 def chair_spindle(mat, x, y, seed=1):
-    """A's chair: a stained spindle-back kitchen chair."""
+    """B's chair: a spindle-back kitchen chair, painted."""
     parts = []
     sw, sd, st = 0.054, 0.05, 0.0045
     parts.append(lib.rounded_box('seat', (sw, sd, st), center=(x, y, SEAT_Z - st / 2), bevel=0.0012, material=mat))
@@ -308,6 +310,41 @@ def chair_spindle(mat, x, y, seed=1):
     for k in range(4):
         sx = (k - 1.5) * 0.0095
         parts.append(lib.cylinder('spindle', 0.0014, 0.064, center=(x + sx, back_y, SEAT_Z + 0.034), material=mat))
+    return parts
+
+
+def chair_ladder(mat, x, y):
+    """A's chair: the white room's own chair at the puppets' size (src/world/Chair.ts), half
+    recognised: a plain ladder-back in pale oiled wood, square legs, the back posts raked back and
+    running on above a wider top rail to rounded caps, two slats, the middle one not quite level."""
+    parts = []
+    sw, sd, st = 0.054, 0.050, 0.0045
+    parts.append(lib.rounded_box('seat', (sw, sd, st), center=(x, y, SEAT_Z - st / 2), bevel=0.0012, material=mat))
+    leg = 0.0048
+    for sx in (-1, 1):
+        parts.append(lib.rounded_box('chair leg', (leg, leg, SEAT_Z - st), center=(x + sx * (sw / 2 - 0.0035), y - sd / 2 + 0.0035, (SEAT_Z - st) / 2), bevel=0.0006, material=mat))
+    # the back posts: from the floor, raked back, on above the top rail (the left a little short)
+    rake = 0.0075
+    rail_z = SEAT_Z + 0.072
+    for sx, top in ((-1, SEAT_Z + 0.0815), (1, SEAT_Z + 0.0835)):
+        x0, y0 = x + sx * (sw / 2 - 0.0035), y + sd / 2 - 0.0035
+        a, b = Vector((x0, y0, 0.0)), Vector((x0 - sx * 0.0015, y0 + rake, top))
+        post = lib.rounded_box('back post', (leg, leg, (b - a).length), bevel=0.0006, material=mat)
+        d = (b - a).normalized()
+        post.data.transform(Matrix.Translation((a + b) / 2) @ Vector((0, 0, 1)).rotation_difference(d).to_matrix().to_4x4())
+        parts.append(post)
+        parts.append(lib.egg('post cap', (leg * 0.5, leg * 0.5, leg * 0.26), center=(b.x, b.y, top + leg * 0.12), wob=0.0, material=mat, subdiv=1))
+    # the top rail and two slats, following the rake
+    def back_y(z):
+        return y + sd / 2 - 0.0035 + rake * z / (SEAT_Z + 0.083)
+    for z, h, tilt in ((rail_z, 0.0105, 0.0), (rail_z - 0.019, 0.0068, math.radians(3.2)), (rail_z - 0.037, 0.0068, 0.0)):
+        slat = lib.rounded_box('slat', (sw - 0.002, 0.0034, h), bevel=0.0007, material=mat)
+        slat.data.transform(Matrix.Translation((x, back_y(z) + 0.0004, z)) @ Matrix.Rotation(tilt, 4, 'Y') @ Matrix.Rotation(-math.atan2(rake, SEAT_Z + 0.083), 4, 'X'))
+        parts.append(slat)
+    # square stretchers, low at the sides
+    for sx in (-1, 1):
+        parts.append(lib.rounded_box('stretcher', (0.0032, sd - 0.006, 0.0032), center=(x + sx * (sw / 2 - 0.0035), y, 0.018), bevel=0.0004, material=mat))
+    parts.append(lib.rounded_box('stretcher', (sw - 0.006, 0.0032, 0.0032), center=(x, y - sd / 2 + 0.0035, 0.029), bevel=0.0004, material=mat))
     return parts
 
 
@@ -329,9 +366,10 @@ def chair_painted(mat, x, y):
 
 
 def lamp(shade_mat, dark):
-    """An enamel pendant: a shallow dome, white inside, on a cloth cord."""
+    """A modest enamel pendant: a deep dome, white inside, on a cloth cord. Deep, so it flags its
+    own bulb: a pool on the table between them, the table's ends and the room in the dark."""
     bm = bmesh.new()
-    prof = [(0.036, 0.0), (0.0345, 0.003), (0.031, 0.009), (0.0265, 0.016), (0.020, 0.023), (0.013, 0.028), (0.0075, 0.031), (0.006, 0.034)]
+    prof = [(0.0295, 0.0), (0.0285, 0.004), (0.0262, 0.011), (0.0228, 0.018), (0.018, 0.025), (0.012, 0.030), (0.0072, 0.033), (0.0058, 0.036)]
     seg = 64
     rings = []
     for r, h in prof:
@@ -340,7 +378,7 @@ def lamp(shade_mat, dark):
         for k in range(seg):
             bm.faces.new((a[k], a[(k + 1) % seg], b[(k + 1) % seg], b[k]))
     # a rolled rim
-    rim = [bm.verts.new((LAMP.x + 0.0365 * math.cos(2 * math.pi * k / seg), LAMP.y + 0.0365 * math.sin(2 * math.pi * k / seg), LAMP.z - 0.0008)) for k in range(seg)]
+    rim = [bm.verts.new((LAMP.x + 0.0300 * math.cos(2 * math.pi * k / seg), LAMP.y + 0.0300 * math.sin(2 * math.pi * k / seg), LAMP.z - 0.0008)) for k in range(seg)]
     for k in range(seg):
         bm.faces.new((rim[k], rim[(k + 1) % seg], rings[0][(k + 1) % seg], rings[0][k]))
     ob = lib.mesh_object('lamp shade', bm, shade_mat, subdiv=1)
@@ -348,7 +386,7 @@ def lamp(shade_mat, dark):
     sol.thickness = 0.0007
     ob.modifiers.move(1, 0)
     cord = lib.cylinder('lamp cord', 0.0011, 0.2, center=(LAMP.x, LAMP.y, LAMP.z + 0.135), material=dark)
-    cap = lib.cylinder('lamp socket', 0.0052, 0.011, center=(LAMP.x, LAMP.y, LAMP.z + 0.03), material=dark, bevel=0.001)
+    cap = lib.cylinder('lamp socket', 0.0052, 0.011, center=(LAMP.x, LAMP.y, LAMP.z + 0.032), material=dark, bevel=0.001)
     bulb = lib.egg('bulb', (0.010, 0.010, 0.013), center=(LAMP.x, LAMP.y, LAMP.z + BULB_UP), wob=0.0, material=lib.emission('bulb glow', srgb('#ffd59a'), 30.0), subdiv=1)
     bulb.visible_shadow = False
     return [ob, cord, cap, bulb]
@@ -501,7 +539,7 @@ def build(collection):
     """Build the set into `collection`; returns a dict of named parts for the shot to refer to."""
     wood = table_wood()
     paper = wallpaper()
-    stain = lib.wood('stained pine', srgb('#5b3b22'), grain_scale=90.0, rings=5.0, wear=0.3)
+    pale_oak = lib.wood('oiled oak', srgb('#a88d6a'), grain_scale=110.0, rings=4.0, wear=0.45)
     sage_paint = lib.painted('sage paint', srgb('#8e9878'), rough=0.7, texture=0.1, scale=260.0, chips=srgb('#a88a64'))
     cream_paint = lib.painted('cream paint', srgb('#ddd2b6'), rough=0.6, texture=0.08, scale=300.0, chips=srgb('#9b8c70'))
     shade = enamel('lamp enamel', srgb('#9aa287'), inside=srgb('#d9cdb0'), chips=srgb('#2b2b28'))
@@ -516,8 +554,10 @@ def build(collection):
     before = set(bpy.data.objects)
     parts = {}
     parts['table'] = table(wood)
-    parts['chair a'] = chair_spindle(stain, CHAIR_X['a'], CHAIR_Y)
-    parts['chair b'] = chair_painted(sage_paint, CHAIR_X['b'], CHAIR_Y)
+    # (his chair is the white room's chair, in pale oiled wood; hers a sage-painted spindle-back:
+    # the creative director's review, 2026-10-20)
+    parts['chair a'] = chair_ladder(pale_oak, CHAIR_X['a'], CHAIR_Y)
+    parts['chair b'] = chair_spindle(sage_paint, CHAIR_X['b'], CHAIR_Y)
     parts['wall'] = wall(paper)
     parts['window'], parts['window box'] = window(cream_paint)
     # (The clock is heard, never seen: a visible clock in a film whose tragedy is its timing is the

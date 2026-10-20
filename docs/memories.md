@@ -42,6 +42,29 @@ The woodland ("five more minutes", `docs/reviews/2026-10-woodland.md`) is the fi
 
 In Studio (`?memory&studio`, choose `woodland` / `afternoon`): select `scene` and drag the held keys of `after` and `people` together (they are one frame); move `scene.immerse`'s last two keys and the `exit` marker to change the hold; `figure:b.hand` is her reach (0 drawn back, 1 where the drawing has it), `figure:a.hand` his answer. The shots are `SHOTS` in `src/memory/defs.ts` (the second wide the longest); the synthesised sound reads its times from there (`TIMES` in `synthWoods.ts`: the cut, the shots, the air), and what is heard of a gust follows the canopy's sway.
 
+### A film as a living memory: Almost
+
+"Almost" (`docs/almost.md`, `docs/reviews/2026-10-almost.md`) is a felt stop-motion film photographed
+offline in Blender (`scripts/almost/`). It is played in the woodland's place:
+- **The scene** is `src/memory/living/FilmScene.ts`. A muted, inline video (VP9, or H.264 where VP9
+  doesn't play) is drawn into the same render target, so the wall's window, the way in and the way
+  out are the woodland's.
+- **One clock.** The timeline key `scene.film` (its seconds) decides the frame. Playing, the video
+  plays and is pulled back when it drifts more than a frame and a half. Held, seeked or recorded, it
+  is paused on the exact frame.
+- **The way in.** The film's first frame is held while it comes through the plaster as wool fibres,
+  then colour (`window.sketch` and `window.reveal` over its order map,
+  `scripts/almost/emergence.py`). It starts half a second after the visitor is inside.
+- **Its sound** is two cues: the kitchen through the wall, and the film's own material sounds. The
+  video is silent.
+- **The open-matte frame** (1280×1440) covers a wide screen with its 16:9 band, and an upright phone
+  with its 9:16 crop between their faces (`src/memory/living/almost.ts`).
+- **The fallback.** If no video plays, the memory is its first photograph, still, as any memory.
+
+To change when the film starts or how long its first frame is held, move `scene.film`'s keys in
+Studio (`almost` / `film`), together with the `music:film` marker. To change the film itself,
+re-render (`docs/almost.md`).
+
 ## Authoring in Theatre Studio (development only)
 
 ```

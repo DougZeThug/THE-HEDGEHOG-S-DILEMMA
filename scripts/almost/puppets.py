@@ -65,10 +65,14 @@ SPECS = {
         nose=dict(size=(0.0062, 0.0047, 0.0054), z=-0.0036, push=0.48),
         mouth=dict(z=-0.0100, w=0.0036, curve=-0.0002, tilt=0.0002),
         ear=dict(size=(0.0023, 0.0046, 0.0068), z=-0.0005, y=0.0012),
-        skin=srgb('#dcc2aa'), hand_col=srgb('#b38a6c'), blush=srgb('#d49a8c'), nose_col=srgb('#d8b3a0'), eye_col=srgb('#211915'), mouth_col=srgb('#7a4b41'),
+        skin=srgb('#cba98b'), hand_col=srgb('#b38a6c'), blush=srgb('#d49a8c'), nose_col=srgb('#d8b3a0'), eye_col=srgb('#211915'), mouth_col=srgb('#7a4b41'),
         hair=dict(style='bald', color=srgb('#55402e'), grey=srgb('#8f877c'), thick=0.0015),
         jumper=('knit', P['rust']), trousers=srgb('#3e3a33'), shoes=srgb('#2e2a26'),
-        hand=0.90,
+        # (a tenth smaller head and bigger hands than first made: a third of the seated height is a
+        # child's proportion, and the hands carry the story, on a phone too: the creative
+        # director's review, 2026-10-20)
+        head_scale=0.90,
+        hand=1.035,
     ),
     # B: the one who startles. Slimmer, upright; a longer face, eyes closer, a small straight nose;
     # dark ash hair drawn back into a small bun; a felted blue-grey cardigan over a cream shirt.
@@ -88,10 +92,11 @@ SPECS = {
         nose=dict(size=(0.0042, 0.0030, 0.0037), z=-0.0033, push=0.50, sculpt=0.085),
         mouth=dict(z=-0.0101, w=0.0029, curve=0.0, tilt=0.0003),
         ear=dict(size=(0.0022, 0.0045, 0.0066), z=0.0005, y=0.0012),
-        skin=srgb('#e4d1bf'), hand_col=srgb('#c19a80'), blush=srgb('#dba697'), nose_col=srgb('#dfbfae'), eye_col=srgb('#1d1816'), mouth_col=srgb('#86594d'),
+        skin=srgb('#dcc4ae'), hand_col=srgb('#c19a80'), blush=srgb('#dba697'), nose_col=srgb('#dfbfae'), eye_col=srgb('#1d1816'), mouth_col=srgb('#86594d'),
         hair=dict(style='hat', color=srgb('#d2b27c'), hat=srgb('#57524c'), front=0.56, back=-0.10, thick=0.0026, crown=(0.0, 0.006, 0.020), part=0.0),
-        jumper=('felt', P['bluegrey']), shirt=srgb('#e8ddc4'), trousers=srgb('#4a4e50'), shoes=srgb('#2b2725'),
-        hand=0.86,
+        jumper=('felt', P['bluegrey']), shirt=srgb('#b0a48a'), trousers=srgb('#4a4e50'), shoes=srgb('#2b2725'),
+        head_scale=0.90,
+        hand=0.99,
     ),
 }
 
@@ -102,7 +107,8 @@ SPECS = {
 def skin(name, spec, cheeks=()):
     """The figure's felt skin, with a needle-felted blush on the cheeks: a little rose worked into
     the surface, soft-edged, not painted."""
-    mat = lib.felt(name, spec['skin'], coords='rest', sheen=0.9, mottle=0.10, speck=0.12, bump=0.4, sss=0.22)
+    # (less sheen and glow than first made: with them the faces read as vinyl and foam)
+    mat = lib.felt(name, spec['skin'], coords='rest', sheen=0.55, mottle=0.16, speck=0.18, bump=0.65, sss=0.09)
     if cheeks:
         n = Nodes.__new__(Nodes)
         n.mat, n.nt, n.x = mat, mat.node_tree, 2000
@@ -169,7 +175,7 @@ def strand_felt(name, color):
 def materials(key, spec):
     m = {}
     m['skin'] = skin(f'{key} skin', spec)
-    m['hand'] = lib.felt(f'{key} hand felt', spec['hand_col'], coords='rest', sheen=0.9, mottle=0.12, speck=0.16, bump=0.55, sss=0.2)
+    m['hand'] = lib.felt(f'{key} hand felt', spec['hand_col'], coords='rest', sheen=0.55, mottle=0.16, speck=0.2, bump=0.75, sss=0.08)
     m['hand fibre'] = lib.fiber(f'{key} hand fibre', spec['hand_col'], lift=1.0)
     m['nose'] = lib.felt(f'{key} nose', spec['nose_col'], coords='rest', sheen=0.8, mottle=0.08, speck=0.1, bump=0.4, sss=0.25)
     m['eye'] = lib.thread(f'{key} eye knot', spec['eye_col'], coords='rest', sheen=0.4, rough=0.42)
@@ -198,10 +204,11 @@ def materials(key, spec):
         m['jumper'] = lib.felt(f'{key} cardigan', colour, coords='rest', sheen=1.0, mottle=0.14, speck=0.28,
                                flecks=(scaled(colour, 1.45), srgb('#4b5560')), bump=0.55)
         m['lining'] = lib.felt(f'{key} lining', P['ivory'], coords='rest', sheen=0.8, mottle=0.06, speck=0.1, bump=0.35, dimples=False)
+        m['lining fibre'] = lib.fiber(f'{key} lining fibre', P['ivory'], lift=1.0)
         m['shirt'] = lib.felt(f'{key} shirt', spec['shirt'], coords='rest', sheen=0.5, mottle=0.06, speck=0.08, bump=0.3, dimples=False)
         m['roll'] = lib.knit(f'{key} roll neck', spec['shirt'], coords='uv', rib=True, stitch=(0.0011, 0.0013), depth=0.4)
         m['button'] = lib.glazed(f'{key} button', srgb('#6b5038'), rough=0.35, dirt=0.3)
-        m['hem thread'] = lib.thread(f'{key} hem thread', srgb('#c4b493'), coords='rest', sheen=0.5)
+        m['hem thread'] = lib.thread(f'{key} hem thread', srgb('#a89874'), coords='rest', sheen=0.4)
     m['seam'] = lib.thread(f'{key} seam', scaled(colour, 0.8), coords='rest', sheen=0.4)
     m['jumper fibre'] = lib.fiber(f'{key} jumper fibre', colour, lift=1.3)
     m['trousers'] = lib.felt(f'{key} trousers', spec['trousers'], coords='rest', sheen=0.7)
@@ -368,8 +375,9 @@ def path_tube(part, pts, radii, weight, segs=16, cap_end=True, cap_start=False, 
     return rings, dense, along
 
 
-def deformed_sphere(part, center, size, shape, weight, seed, u=48, v=32):
-    """A head-like stuffed sphere: `shape(x, y, z)` (unit sphere point) returns a scale vector."""
+def deformed_sphere(part, center, size, shape, weight, seed, u=48, v=32, lumps=0.0):
+    """A head-like stuffed sphere: `shape(x, y, z)` (unit sphere point) returns a scale vector;
+    `lumps` adds broad unevenness, as wool sits when it is stuffed and needled by hand."""
     bm = part.bm
     tmp = bmesh.new()
     bmesh.ops.create_uvsphere(tmp, u_segments=u, v_segments=v, radius=1.0)
@@ -380,6 +388,8 @@ def deformed_sphere(part, center, size, shape, weight, seed, u=48, v=32):
         q = Vector((x * size[0] / 2 * s[0], y * size[1] / 2 * s[1], z * size[2] / 2 * s[2]))
         nrm = q.normalized()
         q += nrm * lib.wobble(q, 0.3 * max(size), 0.018 * max(size), seed).dot(nrm)
+        if lumps:
+            q += nrm * lib.wobble(q, 0.75 * max(size), lumps * max(size), seed + 101).dot(nrm)
         lut[tv] = part.vert(Vector(center) + q, weight(Vector(center) + q))
     for tf in tmp.faces:
         bm.faces.new([lut[tv] for tv in tf.verts])
@@ -589,7 +599,9 @@ class Figure:
         self.build_armature()
         s, M = self.spec, self.mats
         self.body()
+        n0 = len(self.objects)
         self.head()
+        self.scale_head(self.objects[n0:])
         self.lid_bones()
         for side in 'LR':
             self.sleeve(side)
@@ -600,6 +612,25 @@ class Figure:
             self.cuff_fold('R')
         self.fuzz()
         return self
+
+    def scale_head(self, objs):
+        """Make the head smaller (`head_scale`), with everything on it: the face, the beard or the
+        hat, and the hair as far down as the jaw, all toward the chin. Hair lying on the shoulders
+        stays where it lies, blended over the neck. (Textures keep their rest positions, so they
+        shrink with it.)"""
+        k = self.spec.get('head_scale', 1.0)
+        if abs(k - 1.0) < 1e-6:
+            return
+        h = self.spec['head']
+        P = Vector(h['at']) - Vector((0.0, 0.0, h['size'][2] * 0.5))
+        lo, hi = P.z - 0.004, P.z + 0.002
+        for ob in objs:
+            me = ob.data
+            for v in me.vertices:
+                w = sstep(lo, hi, v.co.z)
+                v.co = P + (v.co - P) * (1.0 + (k - 1.0) * w)
+            me.update()
+        self.lid_frames = {sd: (P + (c - P) * k, n, sx) for sd, (c, n, sx) in self.lid_frames.items()}
 
     def body(self):
         s, M = self.spec, self.mats
@@ -782,7 +813,8 @@ class Figure:
             sy += relief
             return (sx + h['lop'] * z * 0.3, sy, sz)
         part = Part('head')
-        deformed_sphere(part, H, h['size'], shape, lambda p: hw, s['seed'], u=64, v=48)
+        # (not a sphere: a head needled by hand is uneven: the creative director's review)
+        deformed_sphere(part, H, h['size'], shape, lambda p: hw, s['seed'], u=64, v=48, lumps=0.022)
         bm = part.bm
         bm.normal_update()
         bvh = BVHTree.FromBMesh(bm)
@@ -1422,6 +1454,26 @@ class Figure:
                 me.vertices[vi].co = co + delta
                 for kb in keys:
                     kb.data[vi].co = kb.data[vi].co + delta
+        # 1b. a few soft wrinkles round the sleeve just above the cuff, where it was pushed up
+        # without looking (on the shape keys too, so they go where the sleeve goes)
+        for ii, idxs in enumerate(ring_idx):
+            e = s_end - along[ii]
+            if not 0.0035 < e < 0.017:
+                continue
+            env = math.sin(math.pi * (e - 0.0035) / 0.0135) ** 2
+            c = dense[ii][0]
+            for vi in idxs:
+                co = me.vertices[vi].co.copy()
+                rv = co - c
+                rv = rv - D * rv.dot(D)
+                if rv.length < 1e-9:
+                    continue
+                th = math.atan2(rv.dot(across), rv.dot(up))
+                ridge = math.sin(e * 2 * math.pi / 0.0052 + 1.7 * math.sin(th + 0.4) + 0.6 * th) * 0.00024 * env
+                delta = rv.normalized() * ridge
+                me.vertices[vi].co = co + delta
+                for kb in keys:
+                    kb.data[vi].co = kb.data[vi].co + delta
         # 2. the flap: the triangle of cloth beyond the crease, mirrored across it onto the sleeve
         fw = {f'forearm.{side}': 1.0}
         part = Part(f'cuff fold.{side}')
@@ -1434,8 +1486,9 @@ class Figure:
                 P = A2 + (C2 - A2) * a + (B2 - C2) * a * b
                 Q = reflect(P)
                 crease = max(0.0, 1.0 - (1.0 - b) * a * 6.0)            # 1 on the crease
-                # never pressed flat: the free corner stands off a little, the edge waves
-                lift = T * (1.15 + 0.35 * crease) + 0.00055 * a ** 2.5 * (1 - b) + 0.00012 * math.sin(a * math.pi * 3.2) * (1 - b)
+                # never pressed flat: the crease a soft roll of cloth, not a pressed edge; the free
+                # corner stands off a little; the edge waves
+                lift = T * (1.15 + 1.1 * crease ** 2) + 0.00055 * a ** 2.5 * (1 - b) + 0.00012 * math.sin(a * math.pi * 3.2) * (1 - b)
                 lift += 0.00018 * lib.wobble(Vector((a, b, 0.3)), 0.4, 1.0, s['seed'] + 17).x
                 pos = end - D * Q.y + radial(Q.x / r) * (r + lift)
                 grid[i, j] = part.vert(pos, fw)
@@ -1484,8 +1537,9 @@ class Figure:
             for aa in (a0, a1):
                 P = A2 + (C2 - A2) * aa + (B2 - C2) * aa * (0.09 + 0.02 * w.y)
                 Q = reflect(P)
-                pts.append(end - D * Q.y + radial(Q.x / r) * (r + T * 1.15 + 0.00025 * aa * aa + 0.00055 + 0.00012))
-            path_tube(stitch, pts, [0.00012, 0.00012], lambda p, t: fw, segs=5, cap_end=True, cap_start=True)
+                # (sunk into the cloth, a dash of thread, not a bead on it)
+                pts.append(end - D * Q.y + radial(Q.x / r) * (r + T * 1.15 + 0.00025 * aa * aa + 0.00052))
+            path_tube(stitch, pts, [0.00008, 0.00008], lambda p, t: fw, segs=5, cap_end=True, cap_start=True, flatten=0.6, up=radial(Q.x / r))
             a = a1 + 0.03 + 0.006 * w.z
             k += 1
         stitch.finish(self, [M['hem thread']], subdiv=0)
@@ -1500,7 +1554,9 @@ class Figure:
         for ob in self.objects:
             n = ob.name.split(' ', 1)[1]
             if n == 'head':
-                lib.fuzz(ob, 7500, 0.0012, M['skin fibre'], children=4, rough=0.0005, seed=11, root=0.000009, tip=0.000003, lie=0.35)
+                # (a halo where the lamp grazes the head, as the pompom has: before, fibres a
+                # twentieth of a pixel lay flat and the heads read as polystyrene)
+                lib.fuzz(ob, 12000, 0.0017, M['skin fibre'], children=5, rough=0.0007, seed=11, root=0.000013, tip=0.000004, lie=0.65, clump=0.25)
             elif n == 'hair':
                 if self.spec['hair']['style'] == 'tousled':
                     # loose wool, falling from the crown in soft clumps
@@ -1539,8 +1595,11 @@ class Figure:
                 lib.fuzz(ob, 9000, 0.0022 if knit else 0.0016, M['jumper fibre'], children=5, rough=0.0008, seed=14, root=0.000011, tip=0.000004, lie=0.6)
             elif n.startswith('sleeve'):
                 lib.fuzz(ob, 4000, 0.0022 if knit else 0.0016, M['jumper fibre'], children=5, rough=0.0008, seed=15 + len(n), root=0.000011, tip=0.000004, lie=0.6)
+            elif n.startswith('cuff fold'):
+                # (its cut edge and its face fuzzy, as felt is where it was cut)
+                lib.fuzz(ob, 700, 0.0011, M['lining fibre'], children=4, rough=0.0005, seed=41, root=0.000010, tip=0.000004, lie=0.55)
             elif n.startswith('hand'):
-                lib.fuzz(ob, 900, 0.0008, M['hand fibre'], children=4, rough=0.0004, seed=16 + len(n), root=0.000009, tip=0.000003, lie=0.3)
+                lib.fuzz(ob, 1800, 0.00125, M['hand fibre'], children=5, rough=0.0005, seed=16 + len(n), root=0.000012, tip=0.000004, lie=0.6, clump=0.2)
 
 
 def build(collection):

@@ -69,7 +69,7 @@ export class FilmScene {
   private readonly material: THREE.ShaderMaterial;
   private readonly quad: THREE.PlaneGeometry;
   private readonly lastView = new THREE.Vector4(-1, -1, -1, -1);
-  private lastT = -1;
+  private lastFilm = -1;
   private disposed = false;
   /** The video refused to play (no autoplay): the film is stepped frame by frame instead. */
   private stepOnly = false;
@@ -118,16 +118,18 @@ export class FilmScene {
    * One frame: keep the video on the timeline's frame, then draw the part of the film on the
    * screen (`view`, film uv) when it shows something new. Returns whether it drew.
    */
-  update(renderer: THREE.WebGLRenderer, t: number, v: Values, o: { view: THREE.Vector4; parallax?: THREE.Vector2; aspect?: number }): boolean {
+  update(renderer: THREE.WebGLRenderer, _t: number, v: Values, o: { view: THREE.Vector4; parallax?: THREE.Vector2; aspect?: number }): boolean {
     if (this.disposed) return false;
     const video = this.art.video;
     const fps = this.art.fps;
     const frame = this.frameAt(v);
     const want = (frame + 0.5) / fps;
     const film = v['scene.film'] ?? 0;
-    // Playing: the memory's time advancing as a clock does, inside the film.
-    const advancing = t > this.lastT + 1e-6 && t - this.lastT < 0.5 && film > 0 && film < this.duration - 1 / fps;
-    this.lastT = t;
+    // Playing: the film's own time advancing as a clock does, inside the film. (Not the memory's
+    // clock: its position can be held while its clock runs on, and the video would then play and
+    // be pulled back every frame and a half.)
+    const advancing = film > this.lastFilm + 1e-6 && film - this.lastFilm < 0.5 && film > 0 && film < this.duration - 1 / fps;
+    this.lastFilm = film;
     if (advancing && !this.stepOnly) {
       if (video.paused) {
         if (!this.starting) {

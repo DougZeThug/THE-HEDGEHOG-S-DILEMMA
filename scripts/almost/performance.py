@@ -390,7 +390,7 @@ A['together'] = {
     'shoulder.L': (0, 4), 'shoulder.R': (-1, 3),
     'arm.L': dict(wrist=(-0.0245, -0.0205), fingers=(-0.30, -0.95), tuck=0.013),
     # his other hand rests by his cup (the two arms are not a mirror)
-    'arm.R': dict(wrist=(-0.0625, -0.0215), fingers=(-0.22, -0.97)),
+    'arm.R': dict(wrist=(-0.0600, -0.0215), fingers=(-0.22, -0.97)),
     'curl.L': {'all': (8, 10), 'index': (4, 6)}, 'curl.R': {'all': (14, 16)},
     'lids': (0.0, 0.0),
 }

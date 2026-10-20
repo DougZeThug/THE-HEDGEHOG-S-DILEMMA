@@ -101,14 +101,19 @@ def photos(d, meta):
         yield u, cur
 
 
+# BT.709 both ways: converted with its matrix, and tagged so (FFmpeg converts with BT.601 unless
+# told, and browsers decode untagged HD video as BT.709: the colours shift).
+TAGS = ['-colorspace', 'bt709', '-color_primaries', 'bt709', '-color_trc', 'bt709', '-color_range', 'tv']
+
+
 def encoder(path, w, h, fps, audio=None, scale=None):
-    vf = ['format=yuv420p']
+    vf = ['scale=out_color_matrix=bt709:out_range=tv', 'format=yuv420p']
     if scale:
-        vf.insert(0, f'scale={scale[0]}:{scale[1]}:flags=lanczos')
+        vf[0] = f'scale={scale[0]}:{scale[1]}:flags=lanczos:out_color_matrix=bt709:out_range=tv'
     cmd = ['ffmpeg', '-y', '-loglevel', 'error', '-f', 'rawvideo', '-pix_fmt', 'bgr24', '-s', f'{w}x{h}', '-r', str(fps), '-i', '-']
     if audio:
         cmd += ['-i', audio, '-c:a', 'aac', '-b:a', '192k', '-shortest']
-    cmd += ['-vf', ','.join(vf), '-c:v', 'libx264', '-crf', '16', '-preset', 'slow', '-r', str(fps), '-movflags', '+faststart', path]
+    cmd += ['-vf', ','.join(vf), '-c:v', 'libx264', '-crf', '16', '-preset', 'slow', '-r', str(fps), *TAGS, '-movflags', '+faststart', path]
     return subprocess.Popen(cmd, stdin=subprocess.PIPE)
 
 
@@ -118,7 +123,7 @@ def web_encoders(d, w, h, fps):
     out = []
     for suffix, (ww, hh) in (('', (w, h)), ('@low', (w // 2, h // 2))):
         base = ['ffmpeg', '-y', '-loglevel', 'error', '-f', 'rawvideo', '-pix_fmt', 'bgr24', '-s', f'{w}x{h}', '-r', str(fps), '-i', '-',
-                '-vf', f'scale={ww}:{hh}:flags=lanczos,format=yuv420p', '-an', '-r', str(fps), '-g', str(fps)]
+                '-vf', f'scale={ww}:{hh}:flags=lanczos:out_color_matrix=bt709:out_range=tv,format=yuv420p', '-an', '-r', str(fps), '-g', str(fps), *TAGS]
         vp9 = base + ['-c:v', 'libvpx-vp9', '-b:v', '0', '-crf', '31' if not suffix else '33', '-row-mt', '1', '-tile-columns', '2',
                       '-deadline', 'good', '-cpu-used', '2', os.path.join(d, f'film{suffix}.webm')]
         h264 = base + ['-c:v', 'libx264', '-crf', '20' if not suffix else '22', '-preset', 'slow', '-profile:v', 'high', '-level', '4.0',

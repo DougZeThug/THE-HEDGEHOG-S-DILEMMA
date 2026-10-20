@@ -757,9 +757,12 @@ export const FILM_AT = 10.3;
 export const FILM_SECONDS = 744 / 24;
 /** Its story's moments (seconds into the film: scripts/almost/xsheet.py). */
 export const FILM_BEATS = { notice: 4.0, reach: 5.25, touch: 8.0, startle: 8.33, lap: 11.58, silence: 13.25, look: 14.75, offer: 16.75, tooLate: 19.75, almost: 22.75 };
-/** Its two sounds' levels on the files as laid (scripts/almost/sound.py), against the woodland's. */
-const KITCHEN_DB = -6;
-const FILM_DB = -6;
+/** Its two sounds' levels on the files as laid (scripts/almost/sound.py, at the film mix's own
+ *  balance, so the same). Set by measure: the kitchen's hum (-37.5 LUFS on its file) about where
+ *  the woodland's place round its piano is (-47 on the memory bus). Stand-ins until the artist has
+ *  listened. */
+const KITCHEN_DB = -10;
+const FILM_DB = -10;
 
 export const ALMOST: MemoryDef = {
   id: 'almost',
@@ -820,7 +823,7 @@ export const ALMOST: MemoryDef = {
       // after the picture has gone, a moment.
       'music:kitchen': { asset: 'music/almost-kitchen.mp3', gainDb: KITCHEN_DB, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, fadeIn: 2.5, fadeOut: 3, caption: '[a fridge humming; a clock ticking]', captionAt: 1.2 },
       // The wool, the wood and the chair, laid to the film's frames (it begins with the film).
-      'music:film': { asset: 'music/almost-film.mp3', gainDb: FILM_DB, place: { u: 0, v: 0, d: 1.5 }, wide: true, dry: true, fadeOut: 2, caption: '[her chair scrapes back]', captionAt: FILM_BEATS.startle + 0.05 },
+      'music:film': { asset: 'music/almost-film.mp3', gainDb: FILM_DB, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, fadeOut: 2, caption: '[her chair scrapes back]', captionAt: FILM_BEATS.startle + 0.05 },
     },
   }),
   sways: [],

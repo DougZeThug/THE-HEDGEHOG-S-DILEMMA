@@ -121,7 +121,9 @@ def lights():
     cool fill from behind; the room itself nearly black."""
     sc = bpy.context.scene
     bulb = bpy.data.lights.new('bulb', 'POINT')
-    bulb.energy = 1.6
+    # (higher and deeper in a smaller shade since the reviews of 2026-10-20: the same light on the
+    # hands, a smaller pool, the table's ends and the room in the dark)
+    bulb.energy = 1.9
     bulb.shadow_soft_size = 0.0055
     bulb.color = (1.0, 0.71, 0.42)
     ob = lib.link(bpy.data.objects.new('bulb light', bulb))
@@ -140,8 +142,10 @@ def lights():
     world = bpy.data.worlds.new('night room')
     world.use_nodes = True
     bg = world.node_tree.nodes['Background']
-    bg.inputs[0].default_value = (*srgb('#141c2a'), 1.0)
-    bg.inputs[1].default_value = 0.02
+    # (the night's own cool in the shadows: shadowed walls blue against the lamp's warm pool,
+    # not a sepia cast)
+    bg.inputs[0].default_value = (*srgb('#18223a'), 1.0)
+    bg.inputs[1].default_value = 0.055
     sc.world = world
     # the lamp's light coming back off the wall and ceiling behind them: a faint warm edge on their
     # backs and on every fibre standing off their felt (no source anyone would see)
@@ -152,6 +156,14 @@ def lights():
     bo.location = (0.0, 0.105, 0.245)
     bo.rotation_euler = (math.radians(-128), 0, 0)
     bo.visible_camera = bo.visible_glossy = False
+    # the ceiling over the lamp, lit faintly by what escapes its top: a sheen on the enamel, so the
+    # shade is a shape in the dark and not a hole (no source anyone would see)
+    ceil = bpy.data.lights.new('ceiling', 'AREA')
+    ceil.shape, ceil.size, ceil.size_y = 'RECTANGLE', 0.22, 0.22
+    ceil.energy, ceil.color = 0.07, (1.0, 0.82, 0.62)
+    co = lib.link(bpy.data.objects.new('ceiling light', ceil))
+    co.location = (kitchen.LAMP.x, kitchen.LAMP.y + 0.01, kitchen.LAMP.z + 0.075)
+    co.visible_camera = False
     return ob
 
 
