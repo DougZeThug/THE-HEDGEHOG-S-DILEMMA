@@ -465,9 +465,12 @@ export const SHOTS = { two: TWO_SHOT.from, wideAgain: TWO_SHOT.to };
 /** The air (`scene.breeze`): never still; steady and gustless into the cut and across it; the
  *  evening's calm. (The sound's leaves follow it: src/memory/synthWoods.ts.) */
 export const BREEZE_KEYS: [number, number][] = [[0, 0.6], [5.5, 0.6], [10.5, 1], [SHOTS.wideAgain, 1], [32.0, 0.5], [37, 0.5], [39, 0.3]];
-/** The woodland's recorded sound against its insects (dB on the files as baked), set by measure. */
-const AIR_DB = -14;
-const SCORE_DB = -24;
+/** The woodland's recorded sound against its insects (dB on the files as baked), set by measure.
+ *  The wind 6 dB under where it was first set (and darker, its gust smaller: it was the loudest
+ *  thing in the clearing, "too loud", the artist, 2026-10-20), the piano kept about 4.5 LU under
+ *  the place round it. */
+const AIR_DB = -20;
+const SCORE_DB = -26.5;
 const EVENING_DB = -32;
 // (The revisit stays on the wall, still: a short hold, its stillness the answer.)
 const EMPTY_SECTIONS: Sections = { active: 6, exit: 16, residue: 21, end: 24 };

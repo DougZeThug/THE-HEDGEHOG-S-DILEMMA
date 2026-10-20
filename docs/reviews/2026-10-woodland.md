@@ -1769,3 +1769,14 @@ in any path measured, and the change broke the vignettes:
      once chosen it is remembered, and captions saved as the old default along with another
      preference are not a choice. For a visitor who chooses them, the woodland's are as decided (86).
      The screen reader's lines are unchanged. The playtests that check captions choose them first.
+101. **The wind down** (the artist, on hearing the film: "The wind or whatever that noise is, is too
+     loud"). Measured, it was the loudest thing in the clearing: 8 LU over the piano at the gust, 5
+     in the two-shot. Over half its energy was above 4 kHz, a hiss.
+     - Its takes are now treated as distant trees: a 3.5 kHz lowpass and a −4 dB shelf over 2.5 kHz,
+       its 300 Hz warmth +6 dB (was +12.5). Under a tenth of its energy is above 4 kHz.
+     - Its gust swells 8 dB over the breeze (was 13), and its level sits 6 dB under where it was set:
+       7 LU quieter through the afternoon, 9.5 LU at the gust.
+     - The piano came down 2.5 dB and dips 4.5 dB through the two-shot (was 2.5), so it stays about
+       4.5 LU under the place (3.5 in the two-shot, 1.5 over in the last 2 s, where the breeze dies
+       and the tune turns).
+     - The cut still falls 4.6 LU. The wind across it is now 10.6 LU under the evening.

@@ -110,6 +110,20 @@ function biquad(x: Float32Array, type: 'lowpass' | 'highpass' | 'peak' | 'highsh
   }
 }
 
+/**
+ * The wind's takes as the trees round a clearing are heard, not leaves at the microphone: their
+ * body a little warmer, room left for the piano's tune (600–1200 Hz), and their top taken off (it
+ * was a hiss, over half its energy above 4 kHz: "the wind or whatever that noise is, is too loud",
+ * the artist, 2026-10-20; now under a tenth).
+ */
+function distant(c: Float32Array): void {
+  biquad(c, 'highpass', 90, 0.7);
+  biquad(c, 'peak', 300, 0.8, 6);
+  biquad(c, 'peak', 850, 1, -3);
+  biquad(c, 'lowpass', 3500, 0.707);
+  biquad(c, 'highshelf', 2500, 0.7, -4);
+}
+
 /** A lowpass whose corner moves (`f(t)`, Hz), in blocks of 64 samples, its state carried. */
 function sweep(x: Float32Array, f: (t: number) => number, from: number): void {
   let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
@@ -247,20 +261,14 @@ mkdirSync(OUT, { recursive: true });
   const still = (t: number, [a, b]: [number, number]) => smooth(a - 0.5, a, t) * (1 - smooth(b, b + 0.5, t));
   const strength = (t: number) => 0.6 + 0.4 * Math.max(still(t, [31.5, 38]), still(t, [17.0, 19.2]), still(t, [23.5, 25.0]));
   const air = levelled(join2(A, B, 21, 2, 47), strength);
-  // (Its top softened and its body brought up: the takes are bright, close rustle, and the
-  // afternoon's warmth is in the low middle; a little room left for the piano's tune, 600–1200 Hz.)
-  for (const c of air) {
-    biquad(c, 'highpass', 90, 0.7);
-    biquad(c, 'peak', 300, 0.8, 12.5);
-    biquad(c, 'peak', 850, 1, -3);
-    biquad(c, 'highshelf', 5000, 0.7, -9);
-  }
-  // (−36 dBFS on the breeze alone: the gust, half again its weight, peaks a few dB under full scale.)
+  air.forEach(distant);
+  // (−36 dBFS on the breeze alone: the gust swells over it by about 8 dB.)
   level(air, -36);
   const open = (t: number) => 0.25 + 0.75 * smooth(6.5, 10.5, t);
   const going = (t: number) => 1 - smooth(43, 45, t);
-  // As the leaves were (synthWoods): the breeze, and a gust of half again its weight over it.
-  const env = (t: number) => (0.15 * curve(BREEZE_KEYS, t) + 0.5 * Math.pow(heard(t).strength, 1.5)) / 0.15 * open(t) * going(t);
+  // As the leaves were (synthWoods): the breeze, and a gust over it (it had swelled by 13 dB, the
+  // loudest thing in the clearing: "too loud", the artist, 2026-10-20).
+  const env = (t: number) => (0.15 * curve(BREEZE_KEYS, t) + 0.25 * Math.pow(heard(t).strength, 1.5)) / 0.15 * open(t) * going(t);
   for (let i = 0; i < air[0].length; i++) {
     const t = i / RATE, g = env(t), pan = leavesPan(t) * 0.6;
     air[0][i] *= g * Math.sqrt(1 - pan);
@@ -328,11 +336,7 @@ function evening(len: number, from: number, recede: boolean): Stereo {
   }
   encode('woodland-evening-empty', eve);
   const air = slice(levelled(decode(`${TAKES}/woodland-air-2.mp3`), () => 0.6), 4, 25);
-  for (const c of air) {
-    biquad(c, 'highpass', 90, 0.7);
-    biquad(c, 'peak', 300, 0.8, 12.5);
-    biquad(c, 'highshelf', 5000, 0.7, -9);
-  }
+  air.forEach(distant);
   // (At the afternoon's own level, so the evening stands over its air as it does after the cut.)
   level(air, -36);
   for (let i = 0; i < air[0].length; i++) {

@@ -28,8 +28,9 @@ from score import BEAT, CUT, S1, S2, performance  # noqa: E402
 ROOT = os.path.normpath(os.path.join(HERE, '..', '..'))
 FROM = 8.2
 # How far it steps back while the clearing is hushed round the two of them (dB), so that its
-# distance from the place stays the same as in the wides (measured: tests/playtest/woodland-audio.ts).
-DIP_DB = float(os.environ.get('DIP_DB', 2.5))
+# distance from the place stays the same as in the wides (measured: tests/playtest/woodland-audio.ts;
+# 4.5 since the wind, the two-shot's bed, came down: the artist, 2026-10-20).
+DIP_DB = float(os.environ.get('DIP_DB', 4.5))
 
 
 def smooth(e0, e1, x):
