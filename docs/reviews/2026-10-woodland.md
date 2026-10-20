@@ -2059,8 +2059,8 @@ room's writing comes back, only after a memory run to its end; kept for the visi
 119. **The words: "we had all afternoon"** (the creative director, the skeptic; the artist gave us the
      choice). Lowercase, no full stop. It says only what they had; under "five more minutes" it is the
      contradiction of asking for five more minutes when you had all afternoon. The artist is shown it
-     beside their own line ("I thought it would last forever.", which wraps to two lines at this size),
-     and one string changes it.
+     beside their own line ("I thought it would last forever."; it fits one line at this size, 1.63
+     m, as measured in the browser), and one string changes it.
 120. **When: memory position 52.5** (the skeptic's finding 2): the far cicada has ended, the wall is
      white and the words have been back 1.2 s, the painting's place is still live, and the Director
      drops the room's own writing while the memory is active. Written at the hand's own pace (about 3
@@ -2171,3 +2171,49 @@ after the gust −10.5, two-shot −1.4, second wide −7.0, last 2 s +0.2, over
 4.1 LU. Placement within 1.5 dB, mono 0.2 dB at worst, correlation 0.975. The films and clips are in
 `test-output/review/woodland/sound/`: `woodland-film.mp4` (as the room plays it), its captions, and
 `clip-1-piano-alone`, `clip-2-bow-and-air`, `clip-3-hiss`, `clip-4-crackle` (memory 9.0–21.5).
+
+### The line as built, evaluated (the creative director), and decisions
+
+Seen in the browser (`tests/playtest/woodland-coda.mjs`): written once at the memory's 52.5–53,
+announced as it began, in both wordings. The creative director: the core keeps faith with the
+three removals (only after the clearing has sunk, the room's own silent pencil, once, naming no
+feeling), but the placement fails. The nearest free place anywhere in the painting's 3.2 × 1.8 m
+put the line above "five more minutes" when the opening's own "I wanted you to" sat underneath (a
+stanza read top-down, the plain fact first and the plea its punchline), or 34 cm under it past the
+place kept for "That was a good day." (once that line is written, the coda reads as its answer), in
+about a third of endings in the creative director's model. The note to the artist was misleading
+too: its "usual case" was a near-bare wall the harness made, the stills carried two things a real
+visit wouldn't have just then ("Esc to pause"; "We ate cereal for dinner and it was perfect."
+written seconds before the memory), the artist's wording was shown only in the worst layout, and
+decision 119 said wrongly that it wraps.
+
+### Decisions (main session)
+
+133. **Under its line, close, clear of other writing, or nothing** (the creative director's findings
+     1–2). The line goes only just under "five more minutes":
+     - its top 2–15 cm under that line's foot;
+     - overlapping at least half the narrower of the two;
+     - nearest first to just under its start, a little in.
+     It is never written above or beside it. It keeps 20 cm clear of everything already written on
+     that wall, drawings included. Places kept for lines not yet shown still give way, but a line's
+     own authored place never moves. If nothing fits, nothing is written or announced.
+     - In a quiet room it is nearly always written; with half the room's lines on the walls, about a
+       quarter of the time. The creative director's model, with the walls as visits fill them, gives
+       about half.
+     - The artist is told so, and offered the other way: kept clear only of the lines decision 118
+       names (the opening's unfinished line, the warm lines), written more often. Its direction and
+       closeness stay.
+     - Tested: on a clear wall just under its start; never above (a line written just under its own
+       line) or beside; on the walls as laid out, under, close, clear and inside the painting's
+       place; nothing where nothing can move.
+134. **When stays at 52.5** (the creative director's finding 4, speculative). The creative director
+     would start the hand about 2 s later (54.5): at 52.5 the far cicada's last quarter-second is
+     still sounding. The skeptic's reasons for 52.5 stand: the visitor is most likely still facing
+     the wall they were put back facing, and the painting's place is live. The artist is offered the
+     later start.
+135. **The note to the artist redone** (the creative director's finding 3). Both wordings are shown
+     on a wall as a visit writes "five more minutes", with what else is on it said plainly. The
+     consequence of "once" is spelled out: let go after her look, and the afternoon still counts as
+     seen, so the line is never written in that browser. The room's own reason for its words is
+     given: their hands lie almost touching and never move, and the line says what they had, never
+     closed. Decision 118 is mentioned. The hardest layout is shown only as what now writes nothing.

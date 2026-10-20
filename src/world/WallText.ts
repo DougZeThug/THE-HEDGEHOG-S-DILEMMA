@@ -735,9 +735,9 @@ export class WallText {
 
   /**
    * Write a line under another inside a place on its wall (`within`, in the writing group's metres,
-   * as the memory window gives a painting's place): nearest under its start, as close as the wall
-   * allows (decision 122). The places kept for lines not yet shown give way, and are found again
-   * elsewhere. False, and nothing written, if nothing fits.
+   * as the memory window gives a painting's place): just under it and close, clear of what is
+   * already written there (decisions 122 and 133). The places kept for lines not yet shown give way,
+   * and are found again elsewhere. False, and nothing written, if nothing fits.
    */
   writeWithin(o: { key: string; text: string; hand: Hand; size: Size; under: string; within: { cx: number; cy: number; w: number; h: number }; purpose: Exclude<Purpose, 'phrase'>; now: number; source?: string; start?: boolean }): boolean {
     if (this.items.has(o.key)) return false;
@@ -749,7 +749,9 @@ export class WallText {
     // (A line not yet on any wall, with no place of its own, keeps a place that can go elsewhere.)
     const slots = new Map<Placement, string>();
     for (const [id, pl] of this.placements) if (!this.items.has(id) && !PHRASE_BY_ID.get(id)?.at) slots.set(pl, id);
-    const found = this.layout.findUnder(anchor, m.w, m.h, within, (p) => slots.has(p));
+    // (What is already written on that wall, drawings too, its own line aside.)
+    const written = [...this.items.values()].filter((it) => it.key !== o.under && it.placement.surface === anchor.surface && (it.vis > 0.05 || it.target > 0)).map((it) => it.placement);
+    const found = this.layout.findUnder(anchor, m.w, m.h, within, (p) => slots.has(p), written);
     if (!found) return false;
     for (const p of found.displaced) this.layout.remove(p);
     const pl = this.layout.add({ surface: anchor.surface, ...found.rect, rot: (((hashString(o.key) % 100) / 100) - 0.5) * 0.04 });
