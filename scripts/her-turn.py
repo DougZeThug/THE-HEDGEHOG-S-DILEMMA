@@ -1,49 +1,47 @@
 """
 Her turn toward him, the two-shot's one gesture (docs/reviews/2026-10-woodland.md): her own painted
-head, from the character sheet's top panel, turned in 3D about her neck. Offline and free: no model,
-no network.
+head, from the character sheet's top panel, turned a little toward him as a drawing carried in depth
+(the artist's production brief, 2026-10-20). Offline and free: numpy and OpenCV, no model, no network.
 
-    python3 scripts/her-turn.py
+    python3 scripts/her-turn.py          # her turn's drawings, for the memory
+    python3 scripts/her-turn.py --old    # the first rig's (decisions 43-52), for comparison only
 
-The earlier turns bent the panel's head into the artist's drawing of her turned to him, a turn of
-70-90 degrees between two drawings that don't agree, and read as morphing ("still not a natural turn
-at all"). The artist then asked for a slight turn that settles and stays. A slight turn can be made
-from one drawing, honestly, as a rotation:
+A new angle of a face is a new drawing; none exists at 14 degrees, and the only other drawing of her,
+take b, is turned 70-90 degrees and disagrees with the panel (the bends between them read as
+morphing). So her own head is turned, the way scripts/drawn-rig/README.md describes:
 
 - **A head under the paint.** Her pose is fitted from thirteen points of her face (eyes, nose, mouth,
-  chin, brows, hairline, ear) to a generic head. On it are a cranium and a face: a midline profile
-  (forehead, nose, mouth, chin), a width, a cross-section, and the nose as a ridge; no surface steeper
-  than `SLOPE` toward its outline (a head's sides go nearly edge-on there, and paint on them swelled
-  or shrank). Her ear is a flap hinged at her cheek, its slant halved (a drawn ear is flatter than a
-  real one), rigid out past its outline; her jaw line holds rigid in a band either side of it; her
-  neck takes its depth from her jaw. So her drawn lines keep their weight.
-- **The turn.** About her neck's axis (the fitted head's up axis, leaning a little into the
-  picture), toward him, by `ANGLE`. Her head turns whole; her neck twists, all of it at the jaw and
-  none at the collar; the hair near her head follows it a little and the hair lying on the grass
-  stays, nothing moving further than `HAIR_REACH` from her head.
-- **Two layers.** In front: her head and neck. Behind: her hair and the rest, filled under her with
-  the hair beside her (`stretch_fill`). Her soft edge is split between them, her colour over the
-  colour behind it, so not turned they make the panel exactly. Where an edge of hers draws back from
-  what lies behind it (far cheek, chin, the neck's far side), that goes with it, so the turn never
-  uncovers anything the painting doesn't have; where she passes over it, she simply covers it. Each
-  layer is an inverse warp of the painting, resampled (Lanczos, within the painting's own range;
-  averaged where it is squeezed): her lines are moved, never redrawn.
-- **Her far cheek's outline is a silhouette,** not paint on her skin: it moves as the model's outline
-  does (about a third as far), and her cheek between it and her mouth widens, as a far cheek coming
-  round does. The push that does it reaches 20 px in from the outline, short of her mouth.
-- **Her eyes** are on him first (the film's own iris move, `gazeB` in src/memory/living/woodland.ts,
-  as the two-shot shader draws it): the first drawing is her eyes on him, her head not yet turned, so
-  her eyes lead in either shot. As her head comes round they ease back in their sockets, still on
-  him (`KEEP` of their turn remains). Her far eye, coming round toward us, widens by about a quarter,
-  as a far eye does.
-- **Checked** as it runs: not turned, it is the panel (to 2/255); turned, feature by feature, her
-  eyes, brows and mouth go no further than the turn itself takes them, her jaw line and ear stay
-  rigid, and the rest of her lines keep their weight (`STRAIN`).
+  chin, brows, hairline, ear) to a generic head: a cranium and a face (a midline profile, a width, a
+  cross-section, the nose as a ridge), no surface steeper than `SLOPE` toward its outline, her ear
+  a flap hinged at her cheek. Her outline turns with her face: held back where her far cheek comes
+  round (`FAR_IN`), the paint between stretched and her cheek swelled (the artist, 2026-10-20).
+- **Her paint on meshes.** Her head is one rigid body: skull, face, chin, jaw line, ear and the hair on
+  her skull. Her neck is its own mesh, a cylinder about its centre line, so its sides stay where they
+  are while it twists, from all of the turn at her jaw to none at her collar (carried with her jaw,
+  its far side went with her chin and it narrowed: the artist, 2026-10-20). It goes on up behind her
+  jaw out of sight, and her chin slides across it. The shadow her jaw casts on it is split from its
+  paint and goes with her jaw. The meshes are z-buffered together (scripts/drawn-rig/raster.py):
+  whichever is nearer is seen. Nothing is inverted, nothing folds.
+- **Her lines are drawn again, not stretched** (scripts/drawn-rig/lines.py). They are lifted off her
+  paint, and each is carried by its centre line with its cross-section rigid. Where her far cheek
+  comes round, its paint stretches while her outline keeps its weight. Her eyes are carried whole,
+  as drawn.
+- **Behind her**, the hair beside her is continued under her (`stretch_fill`). It has its own smooth
+  turn, fading out by `HAIR_REACH`. It is dragged by every edge of hers that draws back from it, and
+  by every edge where no line is drawn (her hair at her crown and temples is one with the hair beyond).
+  Her soft edge is split so that, not turned, the rig is the panel exactly.
+- **The performance** is src/memory/defs.ts `TURN` (mirrored by `schedule()`):
+  - her eyes go to him first, in two drawings, as the two-shot shader draws a look (`gazeB` in
+    src/memory/living/woodland.ts);
+  - a moment;
+  - her head turns, on twos, its speed rising gently and dying away as she settles;
+  - as it comes round her eyes ease back in their sockets, still on him (`KEEP`).
+- **Checked** as it runs: not turned, it is the panel (to 2/255); turned, each feature's lines carry
+  the ink they were drawn with (`WEIGHT`).
 
-One drawing of her eyes on him (`TURN_EYES`, src/memory/defs.ts), one for each of the timeline's
-steps (`TURN_STEPS`) and the last: each the 2x crop round her head from the upscaled panel (the
-two-shot's), and the 1x crop from the sheet's own painting (the wide's: the change the turn makes,
-laid on the sheet), lossless; and turn.json (where the crop lies, how far each drawing is):
+Each drawing is the 2x crop round her head from the upscaled panel (the two-shot's), and the 1x crop
+from the sheet's own painting (the wide's: the change the turn makes, laid on the sheet), lossless,
+with turn.json (where the crop lies, each drawing's `figure:b.turn` and its schedule):
 
     references/woodland/drawings/turn/b-turn-01@2x.webp, b-turn-01@1x.webp ... and turn.json
 
@@ -581,6 +579,303 @@ class Head:
         return np.clip(F * A + B * (1 - A), 0, 1), err
 
 
+# -- the drawn rig (the artist's production brief, 2026-10-20) ------------------------------------
+#
+# Her head as a drawing carried in depth: her paint on meshes over the pixels it covers in the panel,
+# at the depths of the head above, z-buffered together (nothing inverted, nothing folded); her drawn
+# lines lifted off her paint and drawn again where her surface takes them, at their own weight; her
+# eyes carried whole; her neck, and the hair behind her, each moving as they do.
+
+def _rig_module(name):
+    spec = importlib.util.spec_from_file_location(f'drawn_rig_{name}', os.path.join(ROOT, 'scripts', 'drawn-rig', f'{name}.py'))
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    return m
+
+
+raster = _rig_module('raster')
+drawn = _rig_module('lines')
+
+# Her far cheek's band, this far in from its outline (px), set deeper so her far outline moves as the
+# model's silhouette does: none. Held back like that (7 px against her features' 22) the paint between
+# stretched up to 1.8 times, and her cheek swelled ("her left cheek becomes very fat": the artist,
+# 2026-10-20); her outline now moves with her face, 17 px, and her nose, eyes and near side carry
+# the turn.
+FAR_IN = 0.0
+# Her eyes are carried whole, as drawn: their openings grown by this much (lids, lashes, irises).
+EYE_GROW = 1.35
+# How far behind the nearest surface at a pixel a line may lie and still be seen there (depth px).
+LINE_DEPTH = 4.5
+# How widely the motion of her edges is carried out into the hair behind her (px).
+EDGE_SMOOTH = 6.0
+# The shortest piece of a centre line that may move with a surface of its own (px).
+SHORTEST = 6
+# Her neck: a cylinder about its own centre line, so its sides stay where they are as it twists
+# (carried with her jaw, its far side went with her chin and pinched it: "her neck narrows to a
+# strange degree", the artist, 2026-10-20); continued up behind her jaw this far, hidden until her
+# chin slides off it. The shadow her jaw casts on it goes with her jaw, as far as this below it.
+NECK_HIDDEN, JAW_SHADOW = 40.0, 40.0
+# How far her chin's shadow reaches past its outline where it meets her neck: in full, then fading out.
+CHIN_SHADOW = (18.0, 26.0)
+
+
+def resampled(pts, n):
+    """A polyline resampled to `n` points evenly along it."""
+    p = np.asarray(pts, np.float64)
+    seg = np.r_[0, np.cumsum(np.linalg.norm(np.diff(p, axis=0), axis=1))]
+    s = np.linspace(0, seg[-1], n)
+    return np.stack([np.interp(s, seg, p[:, 0]), np.interp(s, seg, p[:, 1])], 1)
+
+
+def ellipse_mask(e, grow=1.0):
+    (ex, ey), (rx, ry), ang = e
+    m = np.zeros((N, N), np.uint8)
+    cv2.ellipse(m, (int(round(ex)), int(round(ey))), (int(rx * grow), int(ry * grow)), math.degrees(ang), 0, 360, 1, -1)
+    return m > 0
+
+
+class Turned:
+    """Her head turned as a drawing carried in depth (see the module's notes)."""
+
+    def __init__(self, panel):
+        self.panel = panel
+        h = self.h = Head(panel)
+        Y, X = np.mgrid[0:N, 0:N].astype(np.float64)
+        self.X = np.stack([X, Y], -1)
+        head, neck = h.head > 0.5, h.neck > 0.5
+        self.head_m = head
+        # Her head: one rigid body (skull, face, chin, jaw line, ear, the hair on her skull) at the
+        # template's depth, face or cranium, whichever is nearer; no steeper than `SLOPE` toward its
+        # outline; her ear a flap; her far cheek's band deeper.
+        zc, _ = h.surface(*h.cranium())
+        zf, _ = h.surface(*h.face())
+        fm = cv2.GaussianBlur(h.head, (0, 0), 1.0) + 1e-3
+        z = masked_blur(h.ear_depth(slope_limited(fillnan(np.fmin(zc, zf)), SLOPE)), fm, 3.0)
+        self.zH = masked_blur(z + h.far_push(z, far_in=FAR_IN), fm, 1.5) if FAR_IN > 0 else z
+        # Her neck.
+        L, R = resampled(NECK_L[::-1], 200), resampled(NECK_R, 200)  # from her jaw to her collar
+        C, r = (L + R) / 2, np.linalg.norm(R - L, axis=1) / 2
+        line = np.full((N, N), 255, np.uint8)
+        cv2.polylines(line, [np.round(C).astype(np.int32)], False, 0, 1)
+        dist, lab = cv2.distanceTransformWithLabels(line, cv2.DIST_L2, 5, labelType=cv2.DIST_LABEL_PIXEL)
+        on = np.argwhere(line == 0)
+        k = np.linalg.norm(on[:, None, ::-1] - C[None], axis=2).argmin(1)
+        tr, tc = np.zeros(lab.max() + 1), np.zeros((lab.max() + 1, 2))
+        tr[lab[on[:, 0], on[:, 1]]], tc[lab[on[:, 0], on[:, 1]]] = r[k], C[k]
+        r_n, c_n = tr[lab], tc[lab]
+        uxy = np.linalg.norm(self.h.u[:2])
+        s = ((c_n - h.axis[:2]) @ (h.u[:2] / uxy)) / uxy
+        zcyl = h.axis[2] + s * h.u[2] - np.sqrt(np.clip(r_n ** 2 - dist ** 2, 0, None))
+        zj, dj = nearest_on(JAW, self.zH)
+        zN = zcyl
+        dc = line_dist(COLLAR)
+        wN = 1 - smoothstep(0, 1, np.clip(dj / np.maximum(dj + dc, 1e-3), 0, 1))
+        # (behind her jaw line, and behind her chin's own outline where it meets her neck: the skin
+        # under her jaw that joins her chin to her neck, seen once her chin slides off her neck's
+        # corner; without it the hair behind her showed between them)
+        below = np.zeros((N, N), np.uint8)
+        under_jaw = np.array(JAW + FAR_OUT[-6:][::-1][1:], np.float64)
+        cv2.fillPoly(below, [np.round(np.concatenate([under_jaw, (under_jaw - [0, NECK_HIDDEN])[::-1]])).astype(np.int32)], 1)
+        # (bounded by her neck's own side carried on up from its corner: past it, behind her chin, is
+        # the hair; to there, her outline's soft edge)
+        j, d = np.array(NECK_R[0], np.float64), unit(np.subtract(NECK_R[2], NECK_R[0]))
+        side = (self.X - j) @ np.array([d[1], -d[0]])
+        near_chin = line_dist(FAR_OUT[-6:]) < 25
+        self.hidden = head & ((dist <= r_n + 2) | near_chin) & (below > 0) & ~(near_chin & (side >= 1.5))
+        self.near_chin, self.side = near_chin & self.hidden, side
+        self.hidden_alpha = np.where(self.near_chin, smoothstep(1.0, -1.0, side), 1.0)
+        self.zN = np.where(self.hidden, np.maximum(zN, self.zH + 4.0), zN)
+        self.wN = np.where(self.hidden, 1.0, wN)
+        self.zF, self.wF = np.where(head, self.zH, self.zN), np.where(head, 1.0, self.wN)
+        # Behind her: the hair beside her continued under her (`stretch_fill`), under her soft edge
+        # too, there blended toward what the soft-edge split implies is behind her (exact, but
+        # ill-conditioned where she is nearly opaque: once her edge moved off it, a bright dotted
+        # line); her edge's colour whatever then makes the panel (so a line in her soft edge stays
+        # hers).
+        A = h.front_a[..., None]
+        fill = stretch_fill(panel.astype(np.float32), h.front_a > 0.004)
+        behind = np.clip((panel - A * h.inner) / np.maximum(1 - A, 1e-3), 0, 1)
+        kk = smoothstep(0.6, 0.98, A)
+        back = np.where(h.soft[..., None], behind * (1 - kk) + fill * kk, fill)
+        inner = np.clip((panel - (1 - A) * back) / np.maximum(A, 1e-3), 0, 1)
+        lum = lambda c: c @ np.array([0.3, 0.59, 0.11])
+        miss = (np.abs(inner * A + (1 - A) * back - panel).max(-1) > 2 / 255) & h.soft
+        # (nor where that would make her edge much darker than her own colour there: against dark hair
+        # it went black, and once her chin moved over her neck it showed as a dark shard)
+        miss |= h.soft & (lum(inner) < lum(h.inner) - 0.12)
+        self.back = np.where(miss[..., None], behind, back).astype(np.float32)
+        self.inner = np.where(miss[..., None], h.inner, inner)
+        # Her paint, her lines lifted off it (her eyes carried whole, as drawn).
+        own = np.where(h.soft[..., None], self.inner, panel)
+        self.eyes = ellipse_mask(NEAR_EYE, EYE_GROW) | ellipse_mask(FAR_EYE, EYE_GROW)
+        self.fills, ink, lines, centre = drawn.split(own, h.front_a > 0.02, self.eyes)
+        self.lines = drawn.Lines(ink, lines, centre)
+        neck_core = neck & ~head
+        # Her neck's own paint, lit, and the shadow her jaw casts on it (a darker wedge just under her
+        # jaw line), split so the shadow can go with her jaw: shade * lit is her neck's paint.
+        lum = 0.3 * self.fills[..., 0] + 0.59 * self.fills[..., 1] + 0.11 * self.fills[..., 2]
+        core = neck_core & (h.front_a > 0.99)
+        lit_c = np.median(self.fills[core & (lum > 0.665) & (lum < 0.76)], 0)
+        shade_c = np.median(self.fills[core & (lum > 0.5) & (lum < 0.645) & (dj < JAW_SHADOW)], 0)
+        l_lit, l_shade = lit_c @ [0.3, 0.59, 0.11], shade_c @ [0.3, 0.59, 0.11]
+        under = core & (dj < JAW_SHADOW)
+        m = np.where(under, np.clip((l_lit - lum) / (l_lit - l_shade), 0, 1), 0)
+        # (and on up behind her jaw, as it is just under it, so that moved with her jaw it still meets
+        # her jaw line: short of it, a pale line opened between them)
+        up, _ = nearest_on_mask(under, m)
+        m = np.where(self.hidden | (head & (dj < 8)), up, m)
+        # (and under her chin's own outline where it meets her neck, out over the hair there: her chin
+        # slides onto her neck as she turns, and its heavy outline, drawn against her dark hair, lay on
+        # bright skin with no shadow under it, a dark shard; moved with her jaw, this shadow lies only
+        # where her chin has come onto her neck)
+        chin = FAR_OUT[-6:]
+        d_chin = line_dist(chin)
+        beyond = ~head & ~(neck_core & (h.front_a > 0.5)) & (d_chin < CHIN_SHADOW[1])
+        m = np.where(beyond, np.maximum(m, 1 - smoothstep(*CHIN_SHADOW, d_chin)), m)
+        self.shade = (1 - m[..., None] * (1 - shade_c / lit_c)).astype(np.float32)
+        self.neck_lit = (self.fills / self.shade).astype(np.float32)
+        self.zJ = zj
+        # (the skin behind her jaw and chin, seen as they slide off it, lies in their shadow; along its
+        # edge against the hair, her neck's own outline carried on up, as dark as it is drawn just below
+        # her chin: without it the skin there read as a pale streak in her hair)
+        rim = np.array([self.lines.ink[y, x].min() for x, y in NECK_R[1:4]]).min()
+        ink = 1 - (1 - rim) * np.exp(-0.5 * ((self.side + 1.0) / 0.7) ** 2)
+        self.neck_fill = (np.broadcast_to(shade_c, (N, N, 3)) * np.where(self.near_chin, ink, 1.0)[..., None]).astype(np.float32)
+        grow = lambda m: cv2.dilate(m.astype(np.uint8), np.ones((5, 5), np.uint8)) > 0
+        head_mesh = grow(head) & ~(neck_core & (h.head < 0.02))
+        neck_mesh = (grow(neck) & ~head) | self.hidden | (neck & head)
+        self.meshes = []
+        for mask, zm, wm, hidden_too in ((head_mesh, self.zH, np.ones((N, N)), False), (neck_mesh, self.zN, self.wN, True)):
+            xy, T = raster.pixel_mesh(mask)
+            xi, yi = xy[:, 0].astype(int), xy[:, 1].astype(int)
+            self.meshes.append((np.c_[xy, zm[yi, xi]], xy, T, wm[yi, xi], hidden_too))
+        # (a line lies on the surface drawn there: her head's, out to its mesh's edge, else her neck's)
+        self.zL = np.where(head_mesh, self.zH, self.zN).astype(np.float32)
+        self.wL = np.where(head_mesh, 1.0, self.wN).astype(np.float32)
+        cx, cy = self.lines.centre[:, 0].astype(int), self.lines.centre[:, 1].astype(int)
+        self.centre3 = np.c_[self.lines.centre, self.zL[cy, cx]]
+        self.centre_w = self.wL[cy, cx]
+        # (each line pixel lies on the surface its centre line does, and is seen or hidden with it:
+        # judged by the surface under each pixel, the half of her jaw line over her neck was hidden
+        # behind her own jaw)
+        self.zL = self.centre3[self.lines.nearest, 2].astype(np.float32)
+        self.wL = self.centre_w[self.lines.nearest].astype(np.float32)
+        # Her head's lines and her neck's, each drawn through its own surface's motion, one-to-one
+        # (all of them through one field, her jaw line moving over her neck's lines had two sources
+        # at once, and one point in ten of it came from the wrong one).
+        # (a centre line crossing from her head onto her neck is split there; a piece of it too short
+        # to be a line of its own goes with the surface the rest of it is on: a 3 px stub of her jaw
+        # line, moved with her neck, broke off under her ear)
+        on_head = head_mesh.copy()
+        cx, cy = self.lines.centre[:, 0].astype(int), self.lines.centre[:, 1].astype(int)
+        for side in (True, False):
+            pts = np.zeros((N, N), np.uint8)
+            sel = on_head[cy, cx] == side
+            pts[cy[sel], cx[sel]] = 1
+            n, lab, stats, _ = cv2.connectedComponentsWithStats(pts, connectivity=8)
+            small = (stats[:, cv2.CC_STAT_AREA] < SHORTEST)
+            small[0] = False
+            on_head[small[lab]] = not side
+        self.surfaces = [(self.lines.only(on_head), np.ones((N, N)), self.zH),
+                         (self.lines.only(~on_head), self.wN, self.zN)]
+        # The hair behind her: its own smooth turn, fading away from her head; dragged by her edges
+        # that draw back from it as she turns (over `DRAG` px), and by every edge where no line is
+        # drawn (her hair at her crown and temples is one with the hair beyond it).
+        DF = self.front_motion(math.radians(-ANGLE))
+        gy, gx = np.gradient(cv2.GaussianBlur(h.d_front.astype(np.float32), (0, 0), 2.0))
+        nrm = np.stack([gx, gy], -1)
+        nrm /= np.linalg.norm(nrm, axis=-1, keepdims=True) + 1e-6
+        edge = (h.d_front > 0) & (h.d_front <= 2)
+        rec = np.clip(-(DF * nrm).sum(-1) / 4.0, 0, 1)
+        rec = np.where(np.minimum.reduce([line_dist(p) for p in DRAWN]) <= 4, rec, 1.0)
+        rec_out, _ = nearest_on_mask(edge, rec)
+        self.drag = cv2.GaussianBlur(((1 - smoothstep(0, DRAG, h.d_front)) * rec_out).astype(np.float32), (0, 0), 3.0).astype(np.float64)
+        self.hair_full = self.hair_motion(math.radians(-ANGLE))
+
+    def front_motion(self, psi):
+        """Where each pixel of her goes with her head turned by `psi` (her head rigid, her neck
+        twisting), and past her, where her edges near it go, smoothly (copied from the one nearest,
+        it jumped where that one changed, 4.7 px between neighbours, and cut a strand at her far
+        temple: the technical artist, 2026-10-20)."""
+        P = np.concatenate([self.X, self.zF[..., None]], -1)
+        D = self.h.rotate(P, psi * self.wF)[..., :2] - self.X
+        front = self.h.front_a > 0.5
+        D_out, _ = nearest_on_mask(front, D)
+        edge = (front & (cv2.distanceTransform(front.astype(np.uint8), cv2.DIST_L2, 5) <= 2)).astype(np.float32)
+        num = cv2.GaussianBlur((D * edge[..., None]).astype(np.float32), (0, 0), EDGE_SMOOTH)
+        den = cv2.GaussianBlur(edge, (0, 0), EDGE_SMOOTH)[..., None]
+        D_out = np.where(den > 1e-4, num / np.maximum(den, 1e-6), D_out)
+        return np.where(front[..., None], D, D_out)
+
+    def hair_motion(self, psi):
+        """Where the hair behind her goes with her head turned by `psi`."""
+        P = np.concatenate([self.X, self.h.zB[..., None]], -1)
+        DB = self.h.rotate(P, psi * self.h.wB)[..., :2] - self.X
+        t = self.drag[..., None]
+        return self.front_motion(psi) * t + DB * (1 - t)
+
+    def ink(self, psi, best=None):
+        """Her lines with her head turned by `psi`, each surface's through its own motion, seen where
+        their surface is the nearest (`best`: the depth seen at each pixel; none: all of them)."""
+        out = np.ones((N, N, 3), np.float32)
+        for lines, w, z in self.surfaces:
+            cx, cy = lines.centre[:, 0].astype(int), lines.centre[:, 1].astype(int)
+            moved = self.h.rotate(np.c_[lines.centre, z[cy, cx]], psi * w[cy, cx])[:, :2]
+            P = np.concatenate([self.X, z[..., None]], -1)
+            around = self.h.rotate(P, psi * w)[..., :2] - self.X
+            out *= lines.draw(moved, None if best is None else self.visible(psi, best), around)
+        return out
+
+    def visible(self, psi, best):
+        """Whether a line is seen at each output pixel, given where in the drawing it comes from: where
+        the surface it lies on is the nearest there (`best`, the depth seen at each pixel)."""
+
+        def test(mx, my):
+            zs = cv2.remap(self.zL, mx, my, cv2.INTER_NEAREST, borderMode=cv2.BORDER_REPLICATE)
+            ws = cv2.remap(self.wL, mx, my, cv2.INTER_NEAREST, borderMode=cv2.BORDER_REPLICATE)
+            zl = self.h.rotate(np.stack([mx, my, zs], -1).astype(np.float64), psi * ws)[..., 2]
+            return zl <= best + LINE_DEPTH
+        return test
+
+    def render(self, psi, img, hair=None):
+        """`img` (the crop, her eyes already drawn) with her head turned by `psi` (radians; negative
+        is toward him), and the hair behind her `hair` of the way round with it (a number, or one for
+        each pixel; by default as far as her head). Returns the picture and the depth seen at each
+        pixel."""
+        h = self.h
+        own = np.where(h.soft[..., None], self.inner, img)
+        tex = np.where(self.eyes[..., None], own, self.fills).astype(np.float32)
+        hidden_tex = np.where(self.hidden[..., None], self.neck_fill, self.neck_lit).astype(np.float32)
+        alpha = h.front_a.astype(np.float32)
+        hidden_alpha = np.where(self.hidden, self.hidden_alpha * alpha, alpha).astype(np.float32)
+        best = np.full((N, N), np.inf)
+        col = np.zeros((N, N, 3), np.float32)
+        alp = np.zeros((N, N), np.float32)
+        on_neck = np.zeros((N, N), bool)
+        hidden = self.hidden.astype(np.float32)
+        for P, uv, T, w, neck in self.meshes:
+            Q = h.rotate(P, psi * w) + [0.5, 0.5, 0.0]  # (the rasterizer's pixel centres are at +0.5)
+            UV, Z, F = raster.rasterize(Q, T, uv, N, N)
+            hit = (F >= 0) & (Z < best)
+            mx, my = UV[..., 0].astype(np.float32), UV[..., 1].astype(np.float32)
+            c = cv2.remap(hidden_tex if neck else tex, mx, my, cv2.INTER_CUBIC, borderMode=cv2.BORDER_REFLECT)
+            a = cv2.remap(hidden_alpha if neck else alpha, mx, my, cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
+            col[hit], alp[hit], best[hit] = c[hit], a[hit], Z[hit]
+            # (her neck's own paint, not the skin behind her jaw, which is already in its shadow)
+            on_neck[hit] = neck & (cv2.remap(hidden, mx, my, cv2.INTER_NEAREST)[hit] < 0.5) if neck else False
+        # the shadow her jaw casts, where her jaw now is (on her neck, wherever her neck is seen)
+        P = np.concatenate([self.X, self.zJ[..., None]], -1)
+        jx, jy, _ = inverse(h.rotate(P, np.full((N, N), psi))[..., :2] - self.X)
+        shade = cv2.remap(self.shade, jx, jy, cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT, borderValue=(1.0, 1.0, 1.0))
+        col = np.where(on_neck[..., None], col * shade, col)
+        col = np.clip(col * self.ink(psi, best), 0, 1)
+        frac = np.asarray(psi / math.radians(-ANGLE) if hair is None else hair, np.float64)
+        bx, by, _ = inverse(self.hair_full * (frac[..., None] if frac.ndim else frac))
+        behind = resample(self.back, bx, by)
+        a = np.clip(alp, 0, 1)[..., None]
+        return np.clip(col * a + behind * (1 - a), 0, 1), best
+
+
 def looking(img, eye, gaze):
     """`img` (the crop, 2x) with one eye looking by `gaze`, as the two-shot shader's `looking()` draws
     it (src/world/living/materials.ts): inside the opening the iris moves along it and the white fills
@@ -662,69 +957,142 @@ def sheet_crop():
     return cut.arr(img)[0:N // 2, CX // 2:(CX + N) // 2].astype(np.float64)
 
 
-def steps():
-    """How far she has turned at each drawing: her eyes on him before her head moves (`TURN_EYES`),
-    the timeline's `TURN_STEPS`, then all the way."""
+def turn_head(t, ease):
+    """How far her head has turned `t` s after it starts: its speed rises gently, is greatest at
+    2 * `ease`, and dies away slowly as she settles (velocity t^2 e^(-t/ease); src/memory/defs.ts
+    `turnHead`)."""
+    x = max(0.0, t) / ease
+    return 1 - math.exp(-x) * (1 + x + x * x / 2)
+
+
+def schedule():
+    """Her turn's drawings, as src/memory/defs.ts `turnDrawings` makes them (checked against it in
+    tests/living-memory.test.ts): when each is shown (s into the memory), her eyes' share of the way
+    to him, her head's share of its turn, and the `figure:b.turn` that shows it. And the two-shot's
+    times, and the head's ease."""
     src = open(os.path.join(ROOT, 'src', 'memory', 'defs.ts')).read()
-    eyes = float(re.search(r'export const TURN_EYES\s*=\s*([\d.]+)', src).group(1))
-    body = re.search(r'export const TURN_STEPS\s*=\s*\[([^\]]*)\]', src).group(1)
-    return [eyes] + [float(v) for v in re.findall(r'[-\d.]+', body)] + [1.0]
+    times = {k: float(v) for k, v in re.findall(r'(\w+):\s*([\d.]+)', re.search(r'export const TWO_SHOT\s*=\s*\{([^}]*)\}', src).group(1))}
+    turn = re.search(r'export const TURN\s*=\s*\{([^}]*)\}', src).group(1)
+    eyes = [float(v) for v in re.search(r'eyes:\s*\[([^\]]*)\]', turn).group(1).split(',')]
+    ease = float(re.search(r'ease:\s*([\d.]+)', turn).group(1))
+    count = int(re.search(r'drawings:\s*(\d+)', turn).group(1))
+    out = [(times['herEyes'] + i / 12, e, 0.0) for i, e in enumerate(eyes)]
+    whole = turn_head(count / 12, ease)
+    out += [(times['herTurn'] + i / 12, 1.0, turn_head(i / 12, ease) / whole) for i in range(1, count + 1)]
+    n = len(out)
+    return [{'at': round(a, 4), 'eyes': e, 'head': round(s, 6), 'turn': round((k + 1) / n, 4)} for k, (a, e, s) in enumerate(out)], times, ease, whole
+
+
+def features(rig):
+    """Her drawn features' regions on the crop (her brows, mouth, jaw line, ear, far outline: her
+    eyes are carried whole, as painted, not as lines; her jaw line's own, not her neck's outline that
+    meets it, which stays as her jaw moves)."""
+    return {'brows': ellipse_mask(BROWS[0]) | ellipse_mask(BROWS[1]), 'mouth': ellipse_mask(MOUTH),
+            'jaw line': (line_dist(JAW) < 8) & rig.head_m, 'ear': line_dist(EAR_OUT) < 8, 'far outline': line_dist(FAR_OUT) < 10}
+
+
+def line_weight(rig, psi):
+    """How much ink each of her features' lines carries turned, against not turned (1 unchanged), along
+    their own centre lines: the ink where each centre-line point went against the ink where it was (the
+    darkest within a pixel of it). A line drawn again at its weight keeps its ink; one squeezed thin or
+    hidden loses it. Her lines as the picture draws them, seen or hidden."""
+    _, best = rig.render(psi, rig.panel)
+    a = 1 - rig.ink(0.0).min(-1)
+    b = 1 - rig.ink(psi, best).min(-1)
+    dark = lambda x: cv2.dilate(x.astype(np.float32), np.ones((3, 3), np.uint8))
+    sample = lambda m, p: cv2.remap(dark(m), p[:, 0].astype(np.float32).reshape(-1, 1), p[:, 1].astype(np.float32).reshape(-1, 1), cv2.INTER_LINEAR).ravel()
+    moved = rig.h.rotate(rig.centre3, psi * rig.centre_w)[:, :2]
+    before, after = sample(a, rig.lines.centre), sample(b, moved)
+    cx, cy = rig.lines.centre[:, 0].astype(int), rig.lines.centre[:, 1].astype(int)
+    return {name: float(after[m[cy, cx]].sum() / max(before[m[cy, cx]].sum(), 1e-6)) for name, m in features(rig).items()}
+
+
+# How much ink each feature's lines may lose or gain turned (the turn changes how much of a line is
+# seen only where it comes round or goes away: her far outline and ear).
+WEIGHT = {'brows': (0.85, 1.15), 'mouth': (0.85, 1.2), 'jaw line': (0.85, 1.15), 'ear': (0.8, 1.15), 'far outline': (0.8, 1.2)}
+
+
+def main_old():
+    """The first rig (decisions 43-52), on the same drawings' schedule: for comparison only, into
+    test-output/review/woodland/turn-old/."""
+    top2, k = ts.source('02-characters', os.path.join(cut.REF, '02-characters.webp'))
+    panel = top2[0:N, CX:CX + N].astype(np.float64)
+    eyes = json.load(open(ts.MANIFEST))['living']['afternoon']['near']['eyes']['b']
+    gaze = woodland_gaze()
+    head = Head(panel)
+    out = os.path.join(ROOT, 'test-output', 'review', 'woodland', 'turn-old')
+    os.makedirs(out, exist_ok=True)
+    for i, d in enumerate(schedule()[0], 1):
+        img = panel.copy()
+        for e in eyes:
+            img = looking(img, e, gaze * d['eyes'] * (1 - (1 - KEEP) * d['head']))
+        pic, _ = head.render(math.radians(-ANGLE * d['head']), img)
+        Image.fromarray((np.clip(pic, 0, 1) * 255 + 0.5).astype(np.uint8)).save(os.path.join(out, f'b-turn-{i:02d}@2x.webp'), 'WEBP', lossless=True, method=6)
+    print(f'her-turn: the first rig\'s drawings in {os.path.relpath(out, ROOT)}')
+
+
+def woodland_gaze():
+    spec = open(os.path.join(ROOT, 'src', 'memory', 'living', 'woodland.ts')).read()
+    return np.array([float(v) for v in re.search(r'gazeB:\s*\[([-\d.]+),\s*([-\d.]+)\]', spec).groups()])
 
 
 def main():
+    if '--old' in sys.argv:
+        return main_old()
     top2, k = ts.source('02-characters', os.path.join(cut.REF, '02-characters.webp'))
     assert k == 2, 'needs references/woodland/upscaled/ (scripts/upscale.py)'
     panel = top2[0:N, CX:CX + N].astype(np.float64)
     eyes = json.load(open(ts.MANIFEST))['living']['afternoon']['near']['eyes']['b']
-    spec = open(os.path.join(ROOT, 'src', 'memory', 'living', 'woodland.ts')).read()
-    gaze = np.array([float(v) for v in re.search(r'gazeB:\s*\[([-\d.]+),\s*([-\d.]+)\]', spec).groups()])
-    head = Head(panel)
+    gaze = woodland_gaze()
+    rig = Turned(panel)
     # (Checks: not turned, the rig is the panel; turned, her lines keep their weight.)
-    still, _ = head.render(0.0, panel)
+    still, _ = rig.render(0.0, panel)
     off = np.abs(still - panel).max(-1)
     assert np.percentile(off, 99.9) <= 2 / 255 + 1e-6 and off.max() <= 12 / 255, \
         f'not turned, the rig should be the panel: p99.9 {np.percentile(off, 99.9) * 255:.1f}/255, max {off.max() * 255:.0f}/255 at {np.unravel_index(off.argmax(), off.shape)}'
-    parts = strain(head, math.radians(-ANGLE))
-    print(f'her-turn: not turned, the panel to {off.max() * 255:.0f}/255; turned, her inked pixels outside 0.75-1.35 in area: ' +
-          ', '.join(f'{k} {v[0] * 100:.0f}%' for k, v in parts.items()) + f'; her mouth stretched at most {parts["mouth"][3]:.2f}')
-    # (Past these, lines thin to dots or thicken, as her jaw line and ear's rim did before they were
-    # made rigid, and her mouth lengthened while her far cheek's push reached it.)
-    for k, (share, lo, hi, most) in parts.items():
-        s_max, lo_min, hi_max, most_max = STRAIN[k]
-        assert share <= s_max + 1e-9 and lo >= lo_min and hi <= hi_max and most <= most_max, \
-            f'the turn squeezes or stretches her {k}: {share * 100:.1f}% outside, area {lo:.2f}-{hi:.2f}, stretch {most:.2f}'
+    weight = line_weight(rig, math.radians(-ANGLE))
+    print('her-turn: not turned, the panel to %.0f/255; turned, her lines\' ink against as drawn: ' % (off.max() * 255) +
+          ', '.join(f'{k} {v:.2f}' for k, v in weight.items()))
+    for name, v in weight.items():
+        lo, hi = WEIGHT[name]
+        assert lo <= v <= hi, f'turned, her {name} carries {v:.2f} of its ink (allowed {lo}-{hi})'
     # The wide is cut from the sheet's own painting, not the upscale: the same turn of it (rendered
     # at 2x from it, brought down), laid on it only as the change the turn makes, so wherever she
     # doesn't move the wide stays the sheet exactly (laying in the upscale changed her hair's outline
     # there: QA, 2026-10-19).
     one = sheet_crop()
     one2 = np.clip(cv2.resize(one, (N, N), interpolation=cv2.INTER_LANCZOS4), 0, 1)
-    head1 = Head(one2)
-    still1, _ = head1.render(0.0, one2)
+    rig1 = Turned(one2)
+    still1, _ = rig1.render(0.0, one2)
     assert np.percentile(np.abs(still1 - one2).max(-1), 99.9) <= 2 / 255 + 1e-6, 'not turned, the rig should be the sheet'
     down = lambda a: cv2.resize(a.astype(np.float32), (N // 2, N // 2), interpolation=cv2.INTER_AREA).astype(np.float64)
     base1 = down(still1)
+    drawings, times, ease, whole = schedule()
     os.makedirs(OUT, exist_ok=True)
     for old in os.listdir(OUT):
         if old.startswith('b-turn-'):
             os.remove(os.path.join(OUT, old))
     save = lambda a, name: Image.fromarray((np.clip(a, 0, 1) * 255 + 0.5).astype(np.uint8)).save(os.path.join(OUT, name), 'WEBP', lossless=True, method=6)
-    fractions, worst = {}, 0.0
-    for i, s in enumerate(steps(), 1):
-        name, psi, g = f'b-turn-{i:02d}', math.radians(-ANGLE * s), gaze * (1 - (1 - KEEP) * s)
+    fractions, plan = {}, {}
+    for i, d in enumerate(drawings, 1):
+        name, psi = f'b-turn-{i:02d}', math.radians(-ANGLE * d['head'])
+        g = gaze * d['eyes'] * (1 - (1 - KEEP) * d['head'])
         img, img1 = panel.copy(), one2.copy()
         for e in eyes:
             img, img1 = looking(img, e, g), looking(img1, e, g)
-        out, err = head.render(psi, img)
-        out1, err1 = head1.render(psi, img1)
-        worst = max(worst, err, err1)
-        save(out, f'{name}@2x.webp')
-        save(one + down(out1) - base1, f'{name}@1x.webp')
-        fractions[name] = round(s, 4)
+        # (the hair behind her with her head: a spring after it, its far ends later, moved under a
+        # screen pixel and opened a seam beside her neck: the cinematic director, 2026-10-20)
+        pics = [r.render(psi, src)[0] for r, src in ((rig, img), (rig1, img1))]
+        save(pics[0], f'{name}@2x.webp')
+        save(one + down(pics[1]) - base1, f'{name}@1x.webp')
+        fractions[name] = d['turn']
+        plan[name] = {k: d[k] for k in ('at', 'eyes', 'head')}
+        print(f'her-turn: {name} at {d["at"]:.3f} s: eyes {d["eyes"]:.2f}, head {d["head"]:.3f}', flush=True)
     with open(os.path.join(OUT, 'turn.json'), 'w') as fh:
-        json.dump({'crop': [CX, 0, N, N], 'scale': 2, 'angle': ANGLE, 'tilt': TILT, 'keep': KEEP, 'drawings': fractions}, fh, indent=2)
+        json.dump({'crop': [CX, 0, N, N], 'scale': 2, 'angle': ANGLE, 'tilt': TILT, 'keep': KEEP, 'rig': 'drawn',
+                   'drawings': fractions, 'schedule': plan}, fh, indent=2)
         fh.write('\n')
-    print(f'her-turn: {len(fractions)} drawings to {ANGLE} deg (pose fit rms {head.rms:.1f} px, warps within {worst:.2f} px)')
+    print(f'her-turn: {len(fractions)} drawings to {ANGLE} deg (pose fit rms {rig.h.rms:.1f} px)')
 
 
 if __name__ == '__main__':

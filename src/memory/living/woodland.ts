@@ -1,4 +1,4 @@
-import { TURN_STEPS, TWO_SHOT } from '../defs';
+import { TWO_SHOT, turnDrawings } from '../defs';
 import type { BreathProfile, Gust } from './performance';
 
 /**
@@ -162,9 +162,8 @@ export const WOODLAND: LivingSpec = {
     gazeB: [-0.45, 0.1],
     breath: 0.45,
     span: [TWO_SHOT.from, TWO_SHOT.to],
-    // (His blink too: a return never cuts in on a half-shut lid. Her turn whole, its start, its
-    // middle and its end, under a second apart: a return never cuts into it, not even at the one
-    // instant exactly half a second from both ends.)
-    beats: [TWO_SHOT.hisBlink, TWO_SHOT.herEyes, TWO_SHOT.herTurn, TWO_SHOT.herTurn + TURN_STEPS.length / 24, TWO_SHOT.herTurn + TURN_STEPS.length / 12, TWO_SHOT.hisEyes, TWO_SHOT.hisRoll],
+    // (His blink too: a return never cuts in on a half-shut lid. Her turn whole, every drawing of
+    // it: a return never cuts into it, nor into the moment between her eyes and her head.)
+    beats: [TWO_SHOT.hisBlink, ...turnDrawings().map((d) => d.at), TWO_SHOT.herTurn, TWO_SHOT.hisEyes, TWO_SHOT.hisRoll].sort((a, b) => a - b),
   },
 };

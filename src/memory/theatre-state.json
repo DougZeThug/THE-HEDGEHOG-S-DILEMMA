@@ -4085,11 +4085,11 @@
                       0
                     ],
                     "type": "bezier",
-                    "value": 0.001
+                    "value": 0.0714
                   },
                   {
                     "id": "k29",
-                    "position": 18,
+                    "position": 17.5833,
                     "connectedRight": false,
                     "handles": [
                       0.5,
@@ -4098,11 +4098,11 @@
                       0
                     ],
                     "type": "bezier",
-                    "value": 0.019
+                    "value": 0.1429
                   },
                   {
                     "id": "k2a",
-                    "position": 18.083333333333332,
+                    "position": 18.0833,
                     "connectedRight": false,
                     "handles": [
                       0.5,
@@ -4111,11 +4111,11 @@
                       0
                     ],
                     "type": "bezier",
-                    "value": 0.058
+                    "value": 0.2143
                   },
                   {
                     "id": "k2b",
-                    "position": 18.166666666666668,
+                    "position": 18.1667,
                     "connectedRight": false,
                     "handles": [
                       0.5,
@@ -4124,7 +4124,7 @@
                       0
                     ],
                     "type": "bezier",
-                    "value": 0.122
+                    "value": 0.2857
                   },
                   {
                     "id": "k2c",
@@ -4137,11 +4137,11 @@
                       0
                     ],
                     "type": "bezier",
-                    "value": 0.21
+                    "value": 0.3571
                   },
                   {
                     "id": "k2d",
-                    "position": 18.333333333333332,
+                    "position": 18.3333,
                     "connectedRight": false,
                     "handles": [
                       0.5,
@@ -4150,11 +4150,11 @@
                       0
                     ],
                     "type": "bezier",
-                    "value": 0.317
+                    "value": 0.4286
                   },
                   {
                     "id": "k2e",
-                    "position": 18.416666666666668,
+                    "position": 18.4167,
                     "connectedRight": false,
                     "handles": [
                       0.5,
@@ -4163,7 +4163,7 @@
                       0
                     ],
                     "type": "bezier",
-                    "value": 0.438
+                    "value": 0.5
                   },
                   {
                     "id": "k2f",
@@ -4176,11 +4176,11 @@
                       0
                     ],
                     "type": "bezier",
-                    "value": 0.562
+                    "value": 0.5714
                   },
                   {
                     "id": "k2g",
-                    "position": 18.583333333333332,
+                    "position": 18.5833,
                     "connectedRight": false,
                     "handles": [
                       0.5,
@@ -4189,11 +4189,11 @@
                       0
                     ],
                     "type": "bezier",
-                    "value": 0.683
+                    "value": 0.6429
                   },
                   {
                     "id": "k2h",
-                    "position": 18.666666666666668,
+                    "position": 18.6667,
                     "connectedRight": false,
                     "handles": [
                       0.5,
@@ -4202,7 +4202,7 @@
                       0
                     ],
                     "type": "bezier",
-                    "value": 0.79
+                    "value": 0.7143
                   },
                   {
                     "id": "k2i",
@@ -4215,11 +4215,11 @@
                       0
                     ],
                     "type": "bezier",
-                    "value": 0.878
+                    "value": 0.7857
                   },
                   {
                     "id": "k2j",
-                    "position": 18.833333333333332,
+                    "position": 18.8333,
                     "connectedRight": false,
                     "handles": [
                       0.5,
@@ -4228,11 +4228,11 @@
                       0
                     ],
                     "type": "bezier",
-                    "value": 0.942
+                    "value": 0.8571
                   },
                   {
                     "id": "k2k",
-                    "position": 18.916666666666668,
+                    "position": 18.9167,
                     "connectedRight": false,
                     "handles": [
                       0.5,
@@ -4241,7 +4241,7 @@
                       0
                     ],
                     "type": "bezier",
-                    "value": 0.981
+                    "value": 0.9286
                   },
                   {
                     "id": "k2l",

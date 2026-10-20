@@ -439,26 +439,46 @@ export const SCORE_FROM = 8.2;
  */
 export const TWO_SHOT = { from: 15.0, hisBlink: 16.2, herEyes: 17.5, herTurn: 18.0, hisEyes: 24.0, hisRoll: 24.5, to: 27.0 };
 /**
- * Her turn, drawn on twos (`figure:b.turn`: how far her head has turned, 0 the panel's .. 1 turned a
- * little toward him, `scripts/her-turn.py`): how far at each drawing, one a twelfth of a second from
- * `herTurn`, then all the way at 19.0. A head's own movement, eased in and out (minimum jerk, a curve
- * of fifteen drawings; its first and last, too near their neighbours to see, are left out). The
- * scene shows, at each, the drawing nearest to how far she has turned. Toward him from `herTurn`,
- * her eyes leading by half a second; never back (the artist: "She should glance toward him, settle
- * into that gaze, and simply remain there"). (A longer settle, the curve's time taken to the 0.8th
- * power over a second and a half, was weighed and not built: its last drawings move a few tenths
- * of a pixel, and its peak half a pixel less a drawing; no one would see it: the skeptic's review,
- * 2026-10-19.)
+ * Her turn (`scripts/her-turn.py`; the artist's production brief, 2026-10-20): her own painted head,
+ * as a drawing carried in depth, turned a little toward him, drawn on twos. `figure:b.turn` is how
+ * far through its drawings she is (0 the panel's own head, 1 settled toward him); the scene shows the
+ * nearest drawing.
+ * - Her eyes go to him first: drawings from `herEyes` (`eyes`: their share of the way, a soft dart).
+ * - A moment.
+ * - Her head from `herTurn`: `drawings` of it, a twelfth of a second apart. Its speed rises gently,
+ *   is greatest at about a quarter of a second, then dies away as she settles (velocity
+ *   t² e^(−t/`ease`), its last drawing all the way). It is 90% of the way at about two thirds of a
+ *   second.
+ * - As her head comes round her eyes ease back in their sockets, still on him.
+ * - The hair on the grass follows a beat behind, its far ends last.
+ * - Never back (the artist: "She should glance toward him, settle into that gaze, and simply remain
+ *   there").
+ *
+ * All of it lies inside 17.5–19.0: the score leaves her look clear from 17.0 to 19.5 (its notes
+ * either side are composed to the picture: scripts/woodland-score/score.py `MOMENTS`).
  */
-export const TURN_STEPS = [0.019, 0.058, 0.122, 0.21, 0.317, 0.438, 0.562, 0.683, 0.79, 0.878, 0.942, 0.981];
-/**
- * Her eyes on him before her head moves: the first of her turn's drawings (`figure:b.turn` from
- * `herEyes`; turned nowhere you could see), so that her eyes lead her head in either shot. (The
- * wide's soft eye deformers barely move her irises: on an upright screen her eyes went to him
- * with her head, at 18.0, the biggest change in the whole gesture: the skeptic's review,
- * 2026-10-19.)
- */
-export const TURN_EYES = 0.001;
+export const TURN = { eyes: [0.6, 1], ease: 0.13, drawings: 12 };
+/** How far the ease has gone `t` s after `herTurn`, 0..1 (scripts/her-turn.py `turn_head`). */
+export function turnHead(t: number): number {
+  const x = Math.max(0, t) / TURN.ease;
+  return 1 - Math.exp(-x) * (1 + x + (x * x) / 2);
+}
+/** One of her turn's drawings: when it is shown (s), her eyes' and her head's share of the way, and the `figure:b.turn` that shows it. */
+export interface TurnDrawing {
+  at: number;
+  eyes: number;
+  head: number;
+  turn: number;
+}
+/** Her turn's drawings (scripts/her-turn.py `schedule` makes the same; tests check its turn.json against these). */
+export function turnDrawings(): TurnDrawing[] {
+  const T = TWO_SHOT;
+  const out = TURN.eyes.map((eyes, i) => ({ at: T.herEyes + i / 12, eyes, head: 0 }));
+  const all = turnHead(TURN.drawings / 12);
+  for (let i = 1; i <= TURN.drawings; i++) out.push({ at: T.herTurn + i / 12, eyes: 1, head: turnHead(i / 12) / all });
+  const r = (x: number, d: number) => Math.round(x * d) / d;
+  return out.map((d, k) => ({ at: r(d.at, 1e4), eyes: d.eyes, head: r(d.head, 1e6), turn: r((k + 1) / out.length, 1e4) }));
+}
 /**
  * The artist's shot list (2026-10-17): 1 the room remembers (the pencil, the lean), 2 crossing
  * in, 3 the wide afternoon, 4 he looks toward her, 5 she notices, 6 their hands, 7 the wide
@@ -593,17 +613,12 @@ export const WOODLAND: MemoryDef = {
         'figure:a.breath': [[0, 1]],
         'figure:b.breath': [[0, 1]],
         'figure:b.foot': [[0, 0], [12.4, 0], [12.9, 0.8], [13.8, 0.8], [14.3, 0]],
-        // Her look: her eyes go to him (a drawing of her eyes on him), her head follows (her own
+        // Her look: her eyes go to him (drawings of her eyes on him), her head follows (her own
         // head turned a little toward him, a drawing a twelfth of a second: held, never mixed), and
         // stays, in both shots, to the cut. (The eyes are forced still while a drawing is shown:
         // its eyes are drawn on him. `figure:b.eyes` moves them only without the drawings.)
         'figure:b.eyes': [[0, 0, 'hold'], [T.herEyes, 1, 'hold']],
-        'figure:b.turn': [
-          [0, 0, 'hold'],
-          [T.herEyes, TURN_EYES, 'hold'],
-          ...TURN_STEPS.map((f, i): Key => [T.herTurn + i / 12, f, 'hold']),
-          [T.herTurn + TURN_STEPS.length / 12, 1, 'hold'],
-        ],
+        'figure:b.turn': [[0, 0, 'hold'], ...turnDrawings().map((d): Key => [d.at, d.turn, 'hold'])],
         // His look: his eyes go to her (a drawing), his head rolls a little toward her after them
         // (about 2°: the rig was made for the wide), and he stays looking at her, across the cut
         // back to the wide, to the cut to dusk.

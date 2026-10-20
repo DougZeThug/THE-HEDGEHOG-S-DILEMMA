@@ -2339,3 +2339,173 @@ findings, and what was done:
        - never hanging: with the place just under taken, nothing rather than further left;
        - the longer wording, at most centred;
        - the decision 137 cases under the new limit.
+
+
+### Her turn as a drawing carried in depth (the artist's production brief, 2026-10-20)
+
+The brief takes the animation pipeline on, with her head turn as its proving ground.
+- **Required performance:**
+  - her eyes go to him first;
+  - after a believable hesitation, her head turns 10–15° over about 0.6–0.9 s;
+  - her skull stays held by the ground and her neck turns with it;
+  - her cheeks, nose, eyes, jaw, ears and hair change as one anatomy;
+  - most of her hair stays on the grass;
+  - she settles, looking at him: no return, no smile.
+- **Rejected if:**
+  - her face morphs or her skull changes volume;
+  - her chin or jaw slides on its own, or her neck comes loose;
+  - her hair moves as one flat sheet;
+  - an in-between is incoherent or not her;
+  - it snaps, reads as a warped illustration, or is smooth but emotionally artificial.
+- "Do not repeatedly patch the previous implementation if the character representation itself is
+  inadequate."
+
+**What was read.** Three research agents cloned and read the six named repositories and the tools the
+brief lists. They ran nothing and checked licences.
+- ClaudeAnimationBase, opus-video-skills and both PDoom repositories draw characters as code. Their
+  turns step through drawn views under a smear ("Never project 3D"). At 10–15° they do nothing at
+  all.
+- awesome-claude-video's 59 cases hold no open, Claude-directed head turn on a detailed painted
+  human. The nearest open method is rigc's (MIT): parts painted on a cylinder at their own depths.
+  It reads as a turn from 8° to 16°, on flat vector art.
+- opus-video-studio's model routes need Apple Silicon or paid cloud generation; only its code route
+  runs here.
+- What carries over is practice, not technique: frames as pure functions of time; contact sheets,
+  strips and crops; "code moves every part at once, on the same curve, by the same amount" as the
+  signature of mechanical motion. Disney's Meander, used on *Paperman*, re-inks 2D strokes along a
+  simple 3D stand-in's motion instead of warping them. That is the one technique adopted from
+  outside.
+- Neither kit was installed. opus-video-skills triggers on any "animation" request and brings rules
+  that contradict this brief ("subtle reads as nothing").
+
+**The strategies** (1 poor .. 5 good):
+
+| | faithful to the art | anatomy | subtle acting | timing | repeatable | revisable | this machine | simplicity | future memories |
+|---|---|---|---|---|---|---|---|---|---|
+| A procedural (code redraws her) | 1 | 2 | 3 | 5 | 5 | 4 | 4 | 2 | 2 |
+| B key drawings, frame by frame | 5 (if the artist draws) | 4 | 5 | 4 | 3 | 2 | 5 | 4 | 3 |
+| C layered 2D cut-out | 4 | 2 | 3 | 5 | 5 | 4 | 5 | 4 | 4 |
+| D 2.5D/3D-assisted (paint on a fitted shape) | 4 | 4 | 4 | 5 | 5 | 4 | 4 | 3 | 4 |
+| E hybrid | 5 | 4–5 | 4–5 | 5 | 5 | 4 | 4 | 3 | 5 |
+
+- **A:** can't paint her face.
+- **B:** right in principle, but the drawings don't exist. The only other drawing of her is a 70–90°
+  turn that disagrees with the panel. Making new drawings needs a model this machine can't run, or
+  paid generation nobody has approved.
+- **C:** slides features across a fixed outline, the artist's own objection.
+- **D:** her first rotation (decisions 43–52). It stretches her lines with her paint, and moves her
+  hair as one sheet with her skin. Each failure was patched by its own exception: a rigid band at
+  her jaw, a rigid ear, a slope cap, a push at her far cheek.
+- **E**, decided:
+  - D's fitted shape carries her paint;
+  - her lines are lifted off it and drawn again at their weight;
+  - her eyes are carried whole;
+  - head, neck and the hair behind her move as separate layers in depth;
+  - the acting is authored as B would author it.
+
+**Built** (`scripts/her-turn.py`, `scripts/drawn-rig/`): her head, her neck and the hair behind her
+as meshes over the panel's pixels, at the fitted head's depths, z-buffered together; her lines
+lifted (inpainted under) and redrawn along their centre lines, each surface's through its own motion.
+Unturned, it is the panel to 2/255.
+
+**The test, reviewed** (`test-output/review/woodland/turn5/`; the creative and cinematic directors):
+- **Same turn on screen.** At its size on screen it was the old rig's turn, every landmark within
+  0.4 px (both). The far cheek's outline kept its ink, the one visible gain.
+- **Double speed.** The test's films played at double speed (both, verified): one frame a drawing
+  at 24 fps. The hesitation lasted 0.29 s, the turn about 0.25 s.
+- **The hair spring.** It lagged the hair on the grass a beat behind her head: under a screen pixel,
+  and it opened a pale ghost of her neck's outline in the hair for four drawings (cinematic).
+- **Other faults:** a wandering ink speck under her near jaw, and her far outline drawn lighter
+  (cinematic).
+
+**The artist, on the turn:** "her face morphs on the turn her left cheek (right looking on) becomes
+very fat, and her neck narrows to a strange degree."
+- Both are in the committed turn and in the test.
+- **Her far cheek** was the band (decision 46) that held her far outline to the model's silhouette:
+  7 px against her features' 22. The paint between stretched up to 1.8 times in area, so her cheek
+  swelled instead of turning.
+- **Her neck** took its depth from her jaw over its first 45 px, so its far side went with her chin,
+  about 20 px toward him, while its near side stayed: pinched.
+
+The technical artist reviewed the same test. On the rig:
+- **Lines.** The redrawn lines kept 100–103% of their ink but went soft: they were resampled
+  bilinearly, and every drawing shimmered.
+- **The hair behind her.** It tore where her edge's motion was copied outward from the nearest edge
+  pixel: a hard cut through the strands at her far temple, and a kinked strand beside her neck.
+- **Atlas.** 23 drawings would cost phones 57% more texture memory, for drawings that barely moved.
+
+#### Decisions (main session, after the artist's note and the three reviews)
+
+142. **Her turn is a drawing carried in depth** (strategy E; `scripts/her-turn.py` `Turned`,
+     `scripts/drawn-rig/`, `docs/animation.md`).
+     - Her head, her neck and the hair behind her are meshes at the fitted head's depths,
+       z-buffered.
+     - Her lines are lifted off her paint and drawn again at their weight, each surface's through
+       its own motion.
+     - Her eyes are carried whole.
+     - The first rig stays in the script as `--old`, for comparison only. Its drawings are in git
+       (8460867) for rollback.
+143. **Her far cheek turns with her face** (the artist; decision 46 reversed). There is no band
+     holding her outline back. Her far outline moves 17 px against her features' 22, so her cheek
+     barely widens. The turn is read from her nose moving more than her cheeks, her far eye
+     opening, and her near side narrowing toward her ear. The cinematic director's "a picture
+     sliding" (decision 46) was weighed against the artist's "very fat"; the artist's eye decides.
+144. **Her neck stays a neck** (the artist; decision 44's neck reversed).
+     - It is a cylinder about its own centre line. Its sides stay where they are while it twists,
+       from all of the turn at her jaw to none at her collar. Her chin slides across it.
+     - The shadow her jaw casts on it is split from its paint (a darker wedge just under her jaw
+       line) and goes with her jaw.
+     - The skin under her jaw and chin, out of sight until they slide off it, lies in their shadow.
+       It is bounded by her neck's own side carried up, and drawn with the outline of her neck's
+       side.
+     - Fixed on the way:
+       - a pale strip under her jaw (the shadow carried up behind it);
+       - her chin's heavy outline lying as a shard on bright skin;
+       - a pale sliver where her neck's side was missing its outline.
+145. **Her lines keep their weight, measured on every build.** Along their own centre lines, each
+     feature's lines carry 94–98% of the ink they were drawn with: brows 0.95, mouth 0.94, jaw line
+     0.96, ear 0.97, far outline 0.97 (`WEIGHT` in place of the old `STRAIN`).
+     - **Lanczos.** Lines are resampled with Lanczos, clamped to the ink's own range (the technical
+       artist; bilinear lost up to a fifth of a thin line's darkness).
+     - **One field per surface.** Each surface's lines are drawn through that surface's motion,
+       because a single field for all of them had two sources where her jaw line passes over her
+       neck's lines, and one point in ten came from the wrong one.
+     - **Short pieces.** A piece of a centre line shorter than 6 px moves with the surface the rest
+       of its line is on.
+146. **The hair behind her goes with her head** (the cinematic, creative and technical reviews).
+     - No spring and no delay: they moved under a screen pixel and opened a seam.
+     - Her edges' motion is carried smoothly out into the hair (a masked blur over 6 px; the
+       technical artist), so no strand is cut.
+     - "Loose strands answer" is not delivered, and the artist is told so plainly. The creative
+       director's challenge is recorded: a strand made to answer visibly is the kind of technique
+       the brief says a viewer shouldn't notice. It is offered as a variant only if the artist wants
+       it.
+147. **The performance fits inside 17.5–19.0** (`TURN`, `turnDrawings` in `src/memory/defs.ts`).
+     - Her eyes go to him in two drawings (17.5, 17.58).
+     - A moment of 0.42 s.
+     - Her head turns in twelve drawings, 18.0–19.0. Its velocity is t² e^(−t/0.13), renormalised so
+       the last drawing is all the way with no jump. It is 90% of the way at 0.66 s, and fastest
+       about a quarter of a second in.
+     - Fourteen drawings: the 4×4 atlas phones already carry (the technical artist).
+     - **Why that window:** the score leaves her look clear from 17.0 to 19.5, and its notes either
+       side are composed to the picture. A longer look would have re-composed music the artist has
+       not yet heard.
+     - The cinematic director's A/B of a beta-shaped curve was not built. The creative director's
+       "stop iterating on the curve": the artist judges the timing from the film.
+     - Checked:
+       - her turn still crosses the top of her breath (18.42 against its peak at 18.40) and lands
+         as she breathes out (decision 60's test);
+       - her look is still clear of every note.
+148. **The test's films played at double speed** (the cinematic director, the creative director
+     and the technical artist, all verified): one frame per drawing at 24 fps. Every film since
+     holds each drawing for two frames (`films.py`, and the memory's own recorder).
+149. **Known and left:**
+     - a 2×3 px stub of her ear's outline, drawn just outside the traced edge of her head, stays
+       behind as her ear moves (about 2 screen px);
+     - the wide's drawings are turned from the sheet's own painting, which lifts about a third fewer
+       lines (the technical artist: probably invisible at the wide's 0.8);
+     - the painted light on her far cheek turns with her skin, as all of her painted light does.
+150. **What the artist is shown, and in what order** (the creative director):
+     - the memory itself, recorded at true speed in the browser, on a desktop and an upright phone;
+     - the turn before and now, side by side, in the two-shot's frame;
+     - enlargements last, labelled with their size.

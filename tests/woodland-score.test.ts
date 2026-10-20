@@ -10,7 +10,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
-import { CUT, MEMORIES, SCORE_FROM, SHOTS, TURN_STEPS, TWO_SHOT, WOODLAND as DEF } from '../src/memory/defs';
+import { CUT, MEMORIES, SCORE_FROM, SHOTS, TWO_SHOT, WOODLAND as DEF, turnDrawings } from '../src/memory/defs';
 import { WOODLAND } from '../src/memory/living/woodland';
 import { TIMES } from '../src/memory/synthWoods';
 
@@ -37,7 +37,7 @@ const score = JSON.parse(readFileSync('scripts/woodland-score/notes.json', 'utf8
 const melody = score.notes.filter((n) => n.hand === 'r');
 const HOME = 73; // D♭5
 const [S1, S2] = score.statements;
-const settled = TWO_SHOT.herTurn + TURN_STEPS.length / 12;
+const settled = turnDrawings()[turnDrawings().length - 1].at;
 /** The picture's moments, as the film's drawings show them. */
 const moments: [number, number, string][] = [
   // (The painting comes to rest at 9.75–9.83; the gust is seen from 11.75 and heard from 11.9: the
@@ -154,7 +154,7 @@ describe("the woodland's score", () => {
   it('comes home once, between her look and his; the second time the cut takes the note before home', () => {
     const homes = melody.filter((n) => n.midi === HOME);
     expect(homes.length).toBe(1);
-    expect(homes[0].t).toBeGreaterThan(TWO_SHOT.herTurn + TURN_STEPS.length / 12 + 2);
+    expect(homes[0].t).toBeGreaterThan(settled + 2);
     expect(homes[0].t).toBeLessThan(TWO_SHOT.hisEyes - 2);
     // The second time: its last note struck about half a second before the cut, home due just after.
     const last = melody[melody.length - 1];

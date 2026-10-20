@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import * as THREE from 'three';
+import { readFileSync } from 'node:fs';
 import { CANOPY, breath, blinkDrawing, gust, hash01, windForce, windResponse, windDrift } from '../src/memory/living/performance';
 import { WASH, washInputs, washOf } from '../src/world/living/wash';
 import { MemoryWindow } from '../src/world/MemoryWindow';
@@ -8,7 +9,7 @@ import { compose, FULL, weightsFor } from '../src/memory/compose';
 import { coverQuad, squareToQuad, visiblePart } from '../src/world/living/Immersion';
 import { useInitialState, sheetSource } from '../src/memory/theatre';
 import { memorySchema } from '../src/memory/sheets';
-import { CUT as CUT_AT, MEMORIES, SHOTS, TURN_EYES, TURN_STEPS, TWO_SHOT, WOODLAND as WOODLAND_DEF, sheetId } from '../src/memory/defs';
+import { CUT as CUT_AT, MEMORIES, SHOTS, TURN, TWO_SHOT, WOODLAND as WOODLAND_DEF, sheetId, turnDrawings, turnHead } from '../src/memory/defs';
 import { SCENE_MEMORIES } from '../src/content/memories';
 import { MemoryPlaybackController } from '../src/memory/MemoryPlaybackController';
 import { renderCicadas, renderWoods, cicada, heard, leavesPan, midPhrases, RATE, TIMES } from '../src/memory/synthWoods';
@@ -56,8 +57,10 @@ describe('their involuntary life, from time alone', () => {
     const b = SPEC.breath.b;
     let peak = 0, at = 0;
     for (let t = TWO_SHOT.herEyes; t <= TWO_SHOT.herTurn + 1.5; t += 0.01) if (breath(t, b) > peak) (peak = breath(t, b)), (at = t);
-    expect(Math.abs(at - (TWO_SHOT.herTurn + TURN_STEPS.length / 24))).toBeLessThanOrEqual(0.25);
-    const settled = TWO_SHOT.herTurn + TURN_STEPS.length / 12;
+    const drawings = turnDrawings();
+    const half = drawings.find((d) => d.head >= 0.5)!.at;
+    expect(Math.abs(at - half)).toBeLessThanOrEqual(0.25);
+    const settled = drawings[drawings.length - 1].at;
     expect(breath(settled, b)).toBeLessThan(breath(settled - 0.1, b));
     expect(breath(settled, b)).toBeGreaterThan(0.05);
   });
@@ -473,7 +476,7 @@ describe('the two of them close: one shot, three beats, held drawings', () => {
     expect(SHOTS.wideAgain).toBe(27.0);
   });
 
-  it('her look: her eyes lead her head to him by half a second, her turn on twos, a head\'s own easing in and out; she stays there to the cut; every head a held drawing', () => {
+  it('her look: her eyes go to him first, a moment, then her head, on twos, a head\'s own easing (a gentle start, a long settle); she stays there to the cut; every head a held drawing', () => {
     let prev = 0;
     const changes: [number, number][] = [];
     for (let t = SHOTS.two; t < SHOTS.wideAgain; t += 1 / 120) {
@@ -487,47 +490,76 @@ describe('the two of them close: one shot, three beats, held drawings', () => {
       }
       prev = v['figure:b.turn'];
     }
-    // First her eyes on him (a drawing: her head turned nowhere you could see), then toward him a
-    // drawing every twelfth of a second from `herTurn`, arriving turned; never back (the artist:
-    // "glance toward him, settle into that gaze, and simply remain there").
-    const n = TURN_STEPS.length;
-    expect(changes.map(([, f]) => f)).toEqual([TURN_EYES, ...TURN_STEPS, 1]);
-    expect(Math.abs(changes[0][0] - T.herEyes)).toBeLessThanOrEqual(1 / 120 + 1e-9);
-    changes.slice(1).forEach(([t], i) => expect(Math.abs(t - (T.herTurn + i / 12))).toBeLessThanOrEqual(1 / 120 + 1e-9));
-    expect(TURN_EYES * 14).toBeLessThan(0.02);
-    // A head's own movement (minimum jerk over fifteen drawings, the first and last left out):
-    // slow out, fastest in the middle, slow in, the same at both ends; no step a jump.
-    const mj = (x: number) => x ** 3 * (10 - 15 * x + 6 * x * x);
-    TURN_STEPS.forEach((f, i) => expect(Math.abs(f - mj((i + 2) / 15))).toBeLessThanOrEqual(0.0006));
-    const steps = [...TURN_STEPS, 1].map((f, i, a) => f - (i ? a[i - 1] : 0));
-    steps.forEach((d, i) => expect(d).toBeCloseTo(steps[steps.length - 1 - i], 2));
-    const mid = Math.floor(steps.length / 2);
-    for (let i = 1; i < mid; i++) expect(steps[i]).toBeGreaterThan(steps[i - 1]);
-    expect(Math.max(...steps)).toBeLessThan(0.13);
+    // Every drawing in turn, each at its time, each further on; never back (the artist: "glance
+    // toward him, settle into that gaze, and simply remain there").
+    const d = turnDrawings();
+    expect(changes.map(([, f]) => f)).toEqual(d.map((x) => x.turn));
+    changes.forEach(([t], i) => expect(Math.abs(t - d[i].at)).toBeLessThanOrEqual(1 / 120 + 1e-9));
+    // Her eyes first: drawings of her eyes going to him (a soft dart), her head not yet turned.
+    const eyes = d.filter((x) => x.head === 0);
+    expect(eyes.map((x) => x.eyes)).toEqual(TURN.eyes);
+    eyes.forEach((x, i) => expect(x.at).toBeCloseTo(T.herEyes + i / 12, 4));
+    for (let i = 1; i < eyes.length; i++) expect(eyes[i].eyes).toBeGreaterThan(eyes[i - 1].eyes);
+    // A moment between her eyes arriving and her head starting (the brief: "a believable hesitation").
+    const moment = T.herTurn - eyes[eyes.length - 1].at;
+    expect(moment).toBeGreaterThanOrEqual(0.4);
+    expect(moment).toBeLessThanOrEqual(0.75);
+    // Her head: a drawing every twelfth of a second, each further on; 90% of the way in 0.6–0.9 s
+    // (the brief), settled within a second and a half, all the way at its last drawing.
+    const head = d.filter((x) => x.head > 0);
+    head.forEach((x, i) => expect(x.at).toBeCloseTo(T.herTurn + (i + 1) / 12, 4));
+    for (let i = 1; i < head.length; i++) expect(head[i].head).toBeGreaterThan(head[i - 1].head);
+    const t90 = head.find((x) => x.head >= 0.9)!.at - T.herTurn;
+    expect(t90).toBeGreaterThanOrEqual(0.6);
+    expect(t90).toBeLessThanOrEqual(0.9);
+    expect(head[head.length - 1].head).toBe(1);
+    expect(head[head.length - 1].at - T.herTurn).toBeLessThanOrEqual(1.5);
+    // A head's own movement: its speed rises gently to its fastest early (within the first third of
+    // a second), then dies away as she settles; no step a jump.
+    const steps = head.map((x, i) => x.head - (i ? head[i - 1].head : 0));
+    const peak = steps.indexOf(Math.max(...steps));
+    expect((peak + 1) / 12).toBeLessThanOrEqual(1 / 3);
+    for (let i = 1; i <= peak; i++) expect(steps[i]).toBeGreaterThan(steps[i - 1]);
+    for (let i = peak + 1; i < steps.length; i++) expect(steps[i]).toBeLessThan(steps[i - 1]);
+    expect(Math.max(...steps)).toBeLessThan(0.18);
     expect(steps[0]).toBeLessThan(0.03);
-    expect(n / 12).toBeCloseTo(1, 6);
+    expect(turnHead(0)).toBe(0);
     const at = (t: number) => src.at(t);
     expect(at(T.herEyes - 0.01)['figure:b.eyes']).toBe(0);
     expect(at(T.herEyes + 0.01)['figure:b.eyes']).toBe(1);
     expect(at(T.herEyes - 0.01)['figure:b.turn']).toBe(0);
-    expect(at(T.herTurn - 0.01)['figure:b.turn']).toBe(TURN_EYES);
-    expect(at(T.herTurn + 0.01)['figure:b.turn']).toBeGreaterThan(TURN_EYES);
-    expect(T.herTurn - T.herEyes).toBeCloseTo(0.5, 6);
+    expect(at(T.herTurn - 0.01)['figure:b.turn']).toBe(eyes[eyes.length - 1].turn);
     // And she stays: her head turned to him and her eyes on him, through the wide, to the cut.
-    for (const t of [T.herTurn + n / 12 + 0.01, SHOTS.wideAgain, CUT_AT - 0.01]) {
+    for (const t of [head[head.length - 1].at + 0.01, SHOTS.wideAgain, CUT_AT - 0.01]) {
       expect(at(t)['figure:b.turn']).toBe(1);
       expect(at(t)['figure:b.eyes']).toBe(1);
     }
   });
 
-  it('her head: the drawing nearest to how far she has turned, a tie going to the one further on', () => {
-    const at = [TURN_EYES, ...TURN_STEPS, 1];
-    // Her eyes on him, each of the turn's steps, its own drawing; all the way, the last.
+  it('her turn\'s drawings are the ones her-turn.py drew, at these times', () => {
+    // (scripts/her-turn.py mirrors turnDrawings; its turn.json says what each drawing is.)
+    const spec = JSON.parse(readFileSync('references/woodland/drawings/turn/turn.json', 'utf8')) as {
+      drawings: Record<string, number>;
+      schedule: Record<string, { at: number; eyes: number; head: number }>;
+    };
+    const d = turnDrawings();
+    const names = Object.keys(spec.drawings).sort((a, b) => spec.drawings[a] - spec.drawings[b]);
+    expect(names.length).toBe(d.length);
+    names.forEach((n, i) => {
+      expect(spec.drawings[n]).toBeCloseTo(d[i].turn, 4);
+      expect(spec.schedule[n].at).toBeCloseTo(d[i].at, 3);
+      expect(spec.schedule[n].eyes).toBeCloseTo(d[i].eyes, 4);
+      expect(spec.schedule[n].head).toBeCloseTo(d[i].head, 4);
+    });
+  });
+
+  it('her head: the drawing nearest to how far through her turn she is, a tie going to the one further on', () => {
+    const at = turnDrawings().map((d) => d.turn);
+    // Each of her turn's drawings at its own value; all the way, the last.
     expect(at.map((f) => headFor(f, at))).toEqual(at.map((_, i) => i + 1));
     // Not turned at all: the panel's own head (her eyes moved, without the drawings, by the shader).
     expect(headFor(0, at)).toBe(0);
-    expect(headFor(TURN_EYES / 3, at)).toBe(0);
-    expect(headFor(0.005, at)).toBe(1);
+    expect(headFor(at[0] / 3, at)).toBe(0);
     // A tie goes to the one further on.
     expect(headFor(0.5, [0.25, 0.75])).toBe(2);
     expect(headFor(0.125, [0.25, 0.75])).toBe(1);
@@ -537,7 +569,7 @@ describe('the two of them close: one shot, three beats, held drawings', () => {
     const at = (t: number) => src.at(t);
     expect(at(T.hisEyes - 0.01)['figure:a.eyes']).toBe(0);
     expect(at(T.hisEyes + 0.01)['figure:a.eyes']).toBe(1);
-    expect(T.hisEyes - (T.herTurn + TURN_STEPS.length / 12)).toBeGreaterThanOrEqual(3);
+    expect(T.hisEyes - turnDrawings()[turnDrawings().length - 1].at).toBeGreaterThanOrEqual(3);
     expect(SHOTS.wideAgain - T.hisEyes).toBeLessThanOrEqual(3);
     for (const t of [SHOTS.wideAgain - 0.01, CUT_AT - 0.01]) {
       expect(at(t)['figure:a.eyes']).toBe(1);
@@ -559,8 +591,8 @@ describe('the two of them close: one shot, three beats, held drawings', () => {
     expect(SPEC.near!.span).toEqual([T.from, T.to]);
     for (const b of [T.herEyes, T.herTurn, T.hisEyes, T.hisRoll]) expect(SPEC.near!.beats).toContain(b);
     // Her turn whole: no return of the two-shot from half a second before her eyes move until
-    // half a second after her head has arrived.
-    const settled = T.herTurn + TURN_STEPS.length / 12;
+    // half a second after her head has settled.
+    const settled = turnDrawings()[turnDrawings().length - 1].at;
     expect(SPEC.near!.beats).toContain(settled);
     for (let t = T.herEyes - 0.49; t < settled + 0.49; t += 0.01) expect(SPEC.near!.beats.some((b) => Math.abs(t - b) < 0.5), `${t.toFixed(2)} s`).toBe(true);
     // (Time inside moves on twos: not at any of its twelfths either, half a second from two beats.)
@@ -733,10 +765,10 @@ describe('the scene, as built (no GL: what it would draw and let go)', () => {
     expect(n.eyes.a.length).toBe(2);
     expect(n.eyes.b.length).toBe(2);
     for (const e of [...n.eyes.a, ...n.eyes.b]) expect(e.length).toBe(11);
-    // Her turn: its drawings, each with how far it is (the timeline's steps, then all the way), and
-    // the region they are laid in by, in a grid no longer than it is wide; the same at the wide's size.
+    // Her turn: its drawings, each with how far through the turn it is (the timeline's), and the
+    // region they are laid in by, in a grid no longer than it is wide; the same at the wide's size.
     const heads = n.heads as { cells: number; takes: string[]; at: number[]; grid: number[]; standIns?: unknown };
-    expect(heads.at).toEqual([TURN_EYES, ...TURN_STEPS, 1]);
+    expect(heads.at).toEqual(turnDrawings().map((d) => d.turn));
     expect(heads.takes).toEqual(heads.at.map((_, i) => `b-turn-${String(i + 1).padStart(2, '0')}`));
     expect(heads.cells).toBe(heads.takes.length + 1);
     expect(heads.standIns).toBeUndefined();
@@ -898,9 +930,10 @@ describe('the scene, as built (no GL: what it would draw and let go)', () => {
     expect((u.uGaze.value as THREE.Vector2).length()).toBe(0);
     expect(u.uFigU.value).toBe(1);
     expect(u.uMaps.value).not.toBe(n.maps);
-    // Her eyes on him, then on the way there: each its own drawing, in the order they lie in the atlas.
+    // Her eyes going to him, then her head on the way there: each its own drawing, in the order they
+    // lie in the atlas.
     s.choose(v, { inside: true, turn: 0, t: 18.1 });
-    [TURN_EYES, ...TURN_STEPS].forEach((f, i) => {
+    turnDrawings().slice(0, -1).map((d) => d.turn).forEach((f, i) => {
       s.update(gl, 17.6 + i / 12, { 'scene.shot': 1, 'figure:b.turn': f, 'figure:b.eyes': 1 }, view);
       expect(headFor(f, n.heads.at)).toBe(i + 1);
       expect((u.uHeadCel.value as THREE.Vector2).toArray()).toEqual([i, n.heads.cells]);
