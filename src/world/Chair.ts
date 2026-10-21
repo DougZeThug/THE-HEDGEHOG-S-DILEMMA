@@ -15,7 +15,7 @@ import { woodMaps, SEAT_V0 } from './wood';
  * A square bar from a to b (its length along the grain), eased at the arrises, tapering to
  * `taper` of its width at a (the foot).
  */
-function squareBar(a: THREE.Vector3, b: THREE.Vector3, w: number, taper: number): THREE.BufferGeometry {
+export function squareBar(a: THREE.Vector3, b: THREE.Vector3, w: number, taper: number): THREE.BufferGeometry {
   const len = a.distanceTo(b);
   const g = new RoundedBoxGeometry(w, len, w, 2, 0.0035);
   const pos = g.attributes.position, uv = g.attributes.uv;
@@ -24,9 +24,14 @@ function squareBar(a: THREE.Vector3, b: THREE.Vector3, w: number, taper: number)
     const t = y / len + 0.5;
     const k = taper + (1 - taper) * t;
     pos.setXYZ(i, x * k, y, z * k);
-    // Around the bar, v runs at half the texels per metre u does along it (it used to squeeze the
-    // whole perimeter into a sliver, smearing the grain across the bar); inside the legs' half.
-    uv.setXY(i, t * len * 2.2, (Math.atan2(z, x) / (2 * Math.PI) + 0.5) * 4 * w * 2.2);
+    // Around the bar, v runs at the same texels per metre u does along it. Each 90° face sector
+    // is mapped by its dominant axis (not atan2, whose ±π cut landed mid-face on -x with no
+    // vertex to carry the wrap); so each flat face gets its own w*2.2 in the true wrap
+    // direction and the one wrap closure falls on an eased arris. Inside the legs' half.
+    const onX = Math.abs(x) >= Math.abs(z);
+    const s = onX ? (x > 0 ? 0 : 2) : (z > 0 ? 1 : 3);   // +x, +z, -x, -z going round the bar
+    const f = onX ? (x > 0 ? z : -z) : (z > 0 ? -x : x); // cross coordinate, oriented with the wrap
+    uv.setXY(i, t * len * 2.2, (s + 0.5 + f / w) * w * 2.2);
   }
   edgeWear(g);
   const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize());
