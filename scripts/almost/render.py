@@ -8,20 +8,30 @@ so each photograph only needs the part of the picture that changed since the las
     --samples N     (default 80)
     --draft         blocking: no fibres, 16 samples, half size, denoised regions as PNG
     --only A-B      photographs A..B only (in order of first use)
+    --plan          render nothing: print each photograph's region and what the whole would cost
+    --regrow        render again, wider, the region sides `develop.py` found seamed (DIR/seams.json)
 
 **Photograph 0** is rendered whole.
 
 **Each later photograph** renders only the region where anything changed since the one before:
 - the vertices that moved, where they were and where they are;
 - where their shadows fall: a ray from each light that casts one (the bulb, the night window, the
-  bounce off the wall, the card under her hat) through each, to the first thing it meets;
-- padded (more where her long hair moved: its fibres are 7 mm);
-- then grown until its border is still: a side whose outer ring differs from the photograph beneath
-  (luminance, blurred 9 px: RING_FRAC of it by more than RING_REL, or its 99th percentile by
-  RING_P99) is moved out GROW px and the region rendered again, up to GROW_TRIES times. (Shadows
-  were found only on the table top and the back wall: his raised hand's shadow on her face was left
-  frozen behind a straight edge through the reach, and her head's on her chest through the last
-  hold: the technical artist's review of the final render, 2026-10-21.)
+  bounce off the wall, the card under her hat) through each, to the first thing it meets, kept if
+  the lens sees that place, it is in the picture, and the shadow there is still sharp enough to see
+  (its blur, the light's size times how far it falls beyond the point over how far the light is
+  before it, under PENUMBRA). (Shadows were found only on the table top and the back wall: his
+  raised hand's shadow on her face was left frozen behind a straight edge through the reach, and
+  her head's on her chest through the last hold: the technical artist's review of the final
+  render, 2026-10-21. Every ray to whatever it met grew each region to the whole frame: the window's
+  and the bounce's shadows of his head on the floor under the table and beyond the picture.)
+- padded (more where her long hair moved: its fibres are 7 mm).
+
+**Seams.** `develop.py` checks every pasted region against the photograph before it, denoised, and
+lists the sides where they disagree in DIR/seams.json; `--regrow` renders those photographs again
+with those sides GROW px further out (kept in regions.json), and `develop.py --from N` develops
+them. (A test of the noisy region's own border against the photograph beneath, at render time,
+caught 17 of the 32 seamed sides of the last render and flagged 9 of its 444 clean ones: the noise
+is as large as a faint seam, so it was taken out.)
 
 **What a photograph is made of.** It is rendered with the same fixed seed and no dither, and
 written noisy: DIR/regions/NNNN.exr (the image and the denoiser's albedo and normal), with its place
@@ -34,11 +44,12 @@ round it every photograph, so the room shimmered in rectangles: the technical ar
 **The fibres.** They are grown once, at the rest pose, before the first photograph (a tiny warm-up
 render), so every run grows the same fibres.
 
-Re-running resumes: regions already on disk are kept. A region depends on the photograph before
-it, so change a pose and render again from that photograph on, into a fresh directory: a region
-file left on disk is used as it is, whatever the sheet now says it shows. (Renumbered, the sheet
-would have pasted old drawings into the new film: the technical artist's review, 2026-10-21.)
+Re-running resumes: regions already on disk are kept, each with a hash of the two poses it shows.
+One that no longer shows what the sheet gives its photograph stops the run: change a pose and
+render into a fresh directory. (Renumbered, the sheet would have pasted old drawings into the new
+film: the technical artist's review, 2026-10-21.)
 """
+import hashlib
 import json
 import os
 import sys
@@ -58,14 +69,13 @@ import xsheet  # noqa: E402
 
 PAD = 30          # pixels round a change (fibres, soft shadows, the lens's blur)
 PAD_HAIR = 50     # round a change of her long hair (its fibres are 7 mm, about 40 px)
-# The region's border must be still (see the docstring); measured on this film: these flag every
-# seamed side and no clean one (the technical artist's review, 2026-10-21)
-RING = 12
-RING_REL, RING_FRAC, RING_P99 = 0.05, 0.08, 0.25
-GROW, GROW_TRIES = 96, 4
+GROW = 96         # pixels a seamed side moves out (--regrow)
 # The lights whose shadows can be seen move (build.lights; the ceiling's falls with the bulb's)
 CASTERS = ('bulb light', 'window light', 'bounce light', 'face card')
 SHADOW_SAMPLES = 4000
+PENUMBRA = 0.03   # m: a shadow blurred wider than this (twice a hand) is lost in the light round it
+# Seconds a region takes: a fixed cost (the scene, the fibres) and the frame's area (the last render)
+COST_FIXED, COST_FRAME = 30.0, 400.0
 
 
 def movers(figs):
@@ -103,16 +113,27 @@ def project(pts):
     V = np.array(cam.matrix_world.inverted())
     hom = np.c_[pts, np.ones(len(pts))]
     c = (P @ V @ hom.T).T
-    ok = c[:, 3] > 1e-6
-    ndc = c[ok, :3] / c[ok, 3:4]
+    w = np.where(c[:, 3] > 1e-6, c[:, 3], np.nan)    # (behind the lens: nowhere in the picture)
+    ndc = c[:, :3] / w[:, None]
     return (ndc[:, 0] + 1) / 2 * W, (1 - (ndc[:, 1] + 1) / 2) * H
 
 
+def light_size(li):
+    """A light's breadth (m): what blurs its shadows."""
+    if li.type == 'AREA':
+        return max(li.size, li.size_y) if li.shape in ('RECTANGLE', 'ELLIPSE') else li.size
+    return 2 * li.shadow_soft_size
+
+
 def shadows(pts):
-    """Where the lights throw the shadows of `pts`: from each light that casts one, a ray through
-    each point to the first thing it meets beyond it (a sample of the points: a shadow is soft)."""
+    """Where the lights throw the shadows of `pts` that the lens can see: from each light that casts
+    one, a ray through each point (a sample of them) to the first thing it meets beyond it, no
+    further than its shadow stays sharp (PENUMBRA), kept if nothing stands between that place and
+    the lens and it is in the picture."""
     sc = bpy.context.scene
     dg = bpy.context.evaluated_depsgraph_get()
+    eye = Vector(sc.camera.matrix_world.translation)
+    W, H = sc.render.resolution_x, sc.render.resolution_y
     if len(pts) > SHADOW_SAMPLES:
         pts = pts[:: len(pts) // SHADOW_SAMPLES + 1]
     out = []
@@ -121,16 +142,27 @@ def shadows(pts):
         if ob is None:
             continue
         L = Vector(ob.matrix_world.translation)
+        size = light_size(ob.data)
         for p in pts:
-            d = Vector(p) - L
+            p = Vector(p)
+            d = p - L
             n = d.length
             if n < 1e-6:
                 continue
             d /= n
-            hit, loc, _, _, _, _ = sc.ray_cast(dg, Vector(p) + d * 1e-4, d, distance=2.0)
-            if hit:
+            hit, loc, _, _, _, _ = sc.ray_cast(dg, p + d * 1e-4, d, distance=PENUMBRA * n / max(size, 1e-4))
+            if not hit:
+                continue
+            v = loc - eye
+            m = v.length
+            hidden = sc.ray_cast(dg, eye, v / m, distance=m - 5e-4)[0]
+            if not hidden:
                 out.append(loc[:])
-    return np.array(out) if out else np.zeros((0, 3))
+    if not out:
+        return np.zeros((0, 3))
+    P = np.array(out)
+    x, y = project(P)
+    return P[(x >= 0) & (x < W) & (y >= 0) & (y < H)]
 
 
 def changed_region(s0, s1):
@@ -154,6 +186,7 @@ def changed_region(s0, s1):
         P = P[:: len(P) // 60000 + 1]
     P = np.concatenate([P, shadows(P)])
     x, y = project(P)
+    x, y = x[np.isfinite(x)], y[np.isfinite(y)]
     sc = bpy.context.scene
     W, H = sc.render.resolution_x, sc.render.resolution_y
     pad = PAD_HAIR if hair else PAD
@@ -166,66 +199,11 @@ def changed_region(s0, s1):
     return x0, y0, x1, y1
 
 
-def combined(path):
-    """The noisy image (RGB, float) of a region on disk, rows from the top."""
-    import OpenImageIO as oiio
-    inp = oiio.ImageInput.open(path)
-    sub, idx = 0, 0
-    while inp.seek_subimage(sub, 0):
-        if (inp.spec().getattribute('name') or '').endswith('.Combined'):
-            idx = sub
-        sub += 1
-    inp.close()
-    return np.asarray(oiio.ImageBuf(path, idx, 0).get_pixels(oiio.FLOAT))[..., :3]
-
-
-def fit(reg, w, h):
-    """A region as its box (Blender's border may be a pixel off: develop.py's)."""
-    rh, rw = reg.shape[:2]
-    if rh == h - 1:
-        reg = np.concatenate([reg[:1], reg], 0)
-    elif rh == h + 1:
-        reg = reg[:-1]
-    if rw == w - 1:
-        reg = np.concatenate([reg, reg[:, -1:]], 1)
-    elif rw == w + 1:
-        reg = reg[:, 1:]
-    return reg
-
-
-def _blur(a, k=9):
-    c = np.cumsum(np.cumsum(np.pad(a, ((k // 2 + 1, k // 2), (k // 2 + 1, k // 2)), mode='edge'), 0), 1)
-    return (c[k:, k:] - c[:-k, k:] - c[k:, :-k] + c[:-k, :-k]) / (k * k)
-
-
-def moving_sides(reg, under, box, W, H):
-    """The sides of a region whose outer ring differs from the photograph beneath it: the change
-    runs on across them."""
-    lum = np.array([0.2126, 0.7152, 0.0722])
-    a, b = _blur(reg @ lum), _blur(under @ lum)
-    rel = np.abs(a - b) / np.maximum(b, 1e-3)
+def grown(box, grow, W, H):
+    """A box moved out on its sides by `grow` ({side: pixels})."""
     x0, y0, x1, y1 = box
-    out = []
-    for side, sl, live in (('top', (slice(0, RING), slice(None)), y0 > 0), ('bottom', (slice(-RING, None), slice(None)), y1 < H),
-                           ('left', (slice(None), slice(0, RING)), x0 > 0), ('right', (slice(None), slice(-RING, None)), x1 < W)):
-        if live:
-            r = rel[sl]
-            if np.mean(r > RING_REL) >= RING_FRAC or np.percentile(r, 99) >= RING_P99:
-                out.append(side)
-    return out
-
-
-def grown(box, sides, W, H):
-    x0, y0, x1, y1 = box
-    if 'left' in sides:
-        x0 = max(0, x0 - GROW)
-    if 'right' in sides:
-        x1 = min(W, x1 + GROW)
-    if 'top' in sides:
-        y0 = max(0, y0 - GROW)
-    if 'bottom' in sides:
-        y1 = min(H, y1 + GROW)
-    return x0, y0, x1, y1
+    return (max(0, x0 - grow.get('left', 0)), max(0, y0 - grow.get('top', 0)),
+            min(W, x1 + grow.get('right', 0)), min(H, y1 + grow.get('bottom', 0)))
 
 
 def render_region(path, box):
@@ -259,15 +237,20 @@ def noisy_exr():
     im.exr_codec = 'ZIP'
 
 
+def pose_key(pa, pb):
+    """What a photograph shows, as a short hash of its two poses."""
+    return hashlib.sha1(json.dumps([pa, pb], sort_keys=True, default=repr).encode()).hexdigest()[:12]
+
+
 def main():
     opts = build.args()
     out = opts['out']
     draft = opts.get('draft')
+    plan = opts.get('plan')
     if '--res' not in sys.argv:
         opts['res'] = (640, 720) if draft else (1280, 1440)
     if '--samples' not in sys.argv:
         opts['samples'] = 16 if draft else 80
-    os.makedirs(os.path.join(out, 'regions'), exist_ok=True)
     figs = build.setup(opts)
     sc = bpy.context.scene
     if draft:
@@ -281,7 +264,7 @@ def main():
     ext = 'png' if draft else 'exr'
     performance.calibrate(figs)
     performance.resolve(figs)
-    if not draft:
+    if not draft and not plan:
         build.warm_fibres(figs)
     a, b, frames, unique = xsheet.frames()
     order = sorted(unique.items(), key=lambda kv: kv[1])
@@ -295,13 +278,33 @@ def main():
                  'view': {'transform': vs.view_transform, 'look': vs.look, 'exposure': vs.exposure, 'gamma': vs.gamma,
                           'display': sc.display_settings.display_device}})
     meta.setdefault('photos', {})
+    if not plan:
+        os.makedirs(os.path.join(out, 'regions'), exist_ok=True)
+    if opts.get('regrow'):
+        # the sides develop.py found seamed, each GROW px further out than before (kept with the
+        # photograph, so a later run renders it as wide)
+        seams_path = os.path.join(out, 'seams.json')
+        if not os.path.exists(seams_path):
+            raise SystemExit('no seams.json: develop.py lists the seamed sides')
+        regrow = {}
+        for row in json.load(open(seams_path)):
+            regrow.setdefault(int(row['photo']), set()).add(row['side'])
+        for u, sides in regrow.items():
+            g = meta['photos'][str(u)].setdefault('grow', {})
+            for side in sides:
+                g[side] = g.get(side, 0) + GROW
+            path = os.path.join(out, 'regions', f'{u:04d}.{ext}')
+            if os.path.exists(path):
+                os.remove(path)
+        os.replace(seams_path, os.path.join(out, 'seams.regrown.json'))
+        with open(meta_path, 'w') as fh:
+            json.dump(meta, fh)
+        lo, hi = min(regrow), max(regrow)
+        print(f'REGROW {", ".join(f"{u:04d} {"/".join(sorted(regrow[u]))}" for u in sorted(regrow))}', flush=True)
     objs = movers(figs)
     prev = None
     W, H = opts['res']
-    # the photograph as it stands, noisy (the regions pasted in order): what a new region's border
-    # is held to
-    noisy = None
-    t_all = time.time()
+    t_all, cost = time.time(), 0.0
     for (ia, ib), u in order:
         if u > hi:
             break
@@ -311,42 +314,39 @@ def main():
         performance.apply(figs, {'a': pa, 'b': pb})
         snap = snapshot(objs)
         path = os.path.join(out, 'regions', f'{u:04d}.{ext}')
-        if u >= lo and not os.path.exists(path):
+        key = pose_key(pa, pb)
+        info = meta['photos'].get(str(u), {})
+        if not plan and os.path.exists(path) and info.get('pose', key) != key:
+            # (a region is pasted over the photograph before it: one of another pose, kept, would
+            # put an old drawing into the film)
+            raise SystemExit(f'photograph {u} on disk shows another pose than the sheet now gives it: render into a fresh directory')
+        if u >= lo and (plan or not os.path.exists(path)):
             box = None if prev is None else changed_region(prev, snap)
             if prev is not None and box is None:
-                meta['photos'][str(u)] = {'box': None, 'a': list(da[:3]), 'b': list(db[:3])}
+                info = {'box': None, 'a': list(da[:3]), 'b': list(db[:3]), 'pose': key}
+                if plan:
+                    print(f'PLAN {u:04d}   held', flush=True)
             else:
-                t0 = time.time()
-                box = box or (0, 0, W, H)
-                render_region(path, box)
-                tries = 0
-                if not draft and noisy is not None:
-                    while True:
-                        x0, y0, x1, y1 = box
-                        reg = fit(combined(path), x1 - x0, y1 - y0)
-                        sides = moving_sides(reg, noisy[y0:y1, x0:x1], box, W, H)
-                        if not sides or tries >= GROW_TRIES:
-                            break
-                        print(f'  photo {u:04d}: the change runs on across its {", ".join(sides)}: grown {GROW} px', flush=True)
-                        box = grown(box, sides, W, H)
-                        render_region(path, box)
-                        tries += 1
-                meta['photos'][str(u)] = {'box': list(box), 'a': list(da[:3]), 'b': list(db[:3])}
+                box = grown(box or (0, 0, W, H), info.get('grow', {}), W, H)
                 area = (box[2] - box[0]) * (box[3] - box[1]) / (W * H)
-                print(f'PHOTO {u:04d} {area * 100:5.1f}% of the frame  {time.time() - t0:6.1f}s  ({da[1]} {da[2]:.2f} | {db[1]} {db[2]:.2f})'
-                      + (f'  grown {tries}x' if tries else ''), flush=True)
-            with open(meta_path, 'w') as fh:
-                json.dump(meta, fh)
-        # paste what this photograph is into the noisy photograph
-        if not draft:
-            info = meta['photos'].get(str(u))
-            if info and info['box'] and os.path.exists(path):
-                x0, y0, x1, y1 = info['box']
-                reg = fit(combined(path), x1 - x0, y1 - y0)
-                if noisy is None:
-                    noisy = np.zeros((H, W, 3), np.float32)
-                noisy[y0:y1, x0:x1] = reg
+                t0 = time.time()
+                if plan:
+                    cost += COST_FIXED + COST_FRAME * area
+                    print(f'PLAN {u:04d} {area * 100:5.1f}% of the frame  {list(box)}  ({da[1]} {da[2]:.2f} | {db[1]} {db[2]:.2f})', flush=True)
+                else:
+                    render_region(path, box)
+                info = {'box': list(box), 'a': list(da[:3]), 'b': list(db[:3]), 'pose': key,
+                        **({'grow': info['grow']} if info.get('grow') else {})}
+                if not plan:
+                    print(f'PHOTO {u:04d} {area * 100:5.1f}% of the frame  {time.time() - t0:6.1f}s  ({da[1]} {da[2]:.2f} | {db[1]} {db[2]:.2f})'
+                          + (f'  wider: {info["grow"]}' if info.get('grow') else ''), flush=True)
+            if not plan:
+                meta['photos'][str(u)] = info
+                with open(meta_path, 'w') as fh:
+                    json.dump(meta, fh)
         prev = snap
+    if plan:
+        print(f'PLAN about {cost / 3600:.1f} h to render photographs {lo}-{hi}', flush=True)
     print(f'DONE {time.time() - t_all:.0f}s', flush=True)
 
 

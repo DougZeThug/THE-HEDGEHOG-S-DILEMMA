@@ -89,11 +89,12 @@ def sheet():
     b.to_frame(158).move('touched half', 1, 2, 'linear', 'contact').move('touched', 1, 4, 'linear')
     b.move('startle1', 1, 1, 'linear', 'startle').move('startle2', 1, 1, 'linear').move('startle3', 1, 2, 'linear')
     b.move('settle', 2, 2, 'out').move('withdrawn', 2, 3, 'inout')
-    # 5. realisation: on her second frame his fingertips come off the cloth, on ones (contact breaks
-    # from both sides), and his hand stays there in the air; then back across the table a little
-    # quicker than it came (reluctant to start), turned along the edge and slipped down past it
-    # into his lap
-    a.to_frame(165).move('reflex', 2, 1, note='his hand off the cloth', spacing=[0.85, 1.0])
+    # 5. realisation: she flinches, then he lets go: his fingertips come off the cloth on her first
+    # still frames, 125 ms after her first (on her own startle frames both of them jumped: the
+    # skeptic's review, 2026-10-21), and his hand stays there in the air; then back across the
+    # table a little quicker than it came (reluctant to start), turned along the edge and slipped
+    # down past it into his lap
+    a.to_frame(167).move('reflex', 2, 2, note='his hand off the cloth', spacing=[0.6, 1.0])
     a.to_frame(212, 'suspended').move('back1', 4, 2, 'in', 'withdraws').move('back2', 3, 3, 'linear')
     a.move('back3', 3, 2, 'linear').move('turn', 2, 2, 'linear').move('edge', 2, 2, 'linear').move('slip', 2, 2, 'linear')
     a.move('lap left', 4, 2, 'out', 'into his lap')

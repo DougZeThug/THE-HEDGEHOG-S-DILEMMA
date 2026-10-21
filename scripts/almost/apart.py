@@ -1,5 +1,6 @@
-"""After her startle, his hand is off her arm in the picture too: every photograph from her first
-startled drawing to his retreat, the gap the camera sees between his left hand and her right arm.
+"""After her startle, his hand is off her arm in the picture too: every photograph from his hand's
+first drawing off the cloth (on her first still frames, after her startle's frames on ones) to his
+retreat, the gap the camera sees between his left hand and her right arm.
 
     blender -b --factory-startup --python scripts/almost/apart.py -- [--out DIR] [--only A-B]
 
@@ -100,10 +101,10 @@ def main():
     os.makedirs(out, exist_ok=True)
     a, b, frames, unique = xsheet.frames()
     order = sorted(unique.items(), key=lambda kv: kv[1])
-    # from the frame after her first startled one (his hand comes off the cloth on the next) to
-    # his first drawing of the retreat
-    f0 = next(f for f, (ia, ib), u in frames if b.drawings[ib][1].startswith('startle'))
-    lo = frames[f0 + 1][2]
+    # from his hand's first drawing off the cloth (after her startle's frames on ones) to his first
+    # drawing of the retreat
+    f0 = next(f for f, (ia, ib), u in frames if a.drawings[ia][1] == 'reflex')
+    lo = frames[f0][2]
     hi = next(u for f, (ia, ib), u in frames if a.drawings[ia][1].startswith('back'))
     if opts.get('only'):
         lo, hi = (int(x) for x in str(opts['only']).split('-'))

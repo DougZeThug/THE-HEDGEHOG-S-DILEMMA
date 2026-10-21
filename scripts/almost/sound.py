@@ -365,9 +365,9 @@ def main():
     lay(near, pan(brush, -0.12), t0, 0.0)
     near_scale = {'reach': level(brush, -37)}
     lay_at = [('reach', brush, t0, -0.12)]
-    # his fingertip on the fold, as it arrives, until it comes off the cloth as she starts (run on for
-    # half a second, into her flinch, it held the contact on in the ear: the creative director's
-    # review of the final render, 2026-10-21)
+    # his fingertip on the fold, as it arrives, until it comes off the cloth, three frames into her
+    # flinch (run on for half a second after his hand had left, it held the contact on in the ear: the
+    # creative director's review of the final render, 2026-10-21)
     t0, _ = when(A, 'touch')
     off, _ = when(A, 'reflex')
     r = T('touch-1')

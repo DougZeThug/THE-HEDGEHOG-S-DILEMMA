@@ -57,7 +57,7 @@ def args():
     i = 0
     while i < len(a):
         k = a[i]
-        if k in ('--proxy', '--draft'):
+        if k in ('--proxy', '--draft', '--plan', '--regrow'):
             out[k[2:]] = True
             i += 1
             continue

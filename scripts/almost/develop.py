@@ -14,7 +14,9 @@ regions.json. For each photograph, in order:
   more from anything that moved, where the two developments agree (it prints how closely).
 
 Writes DIR/photos/NNNN.png, 16-bit, one for each photograph that has a region (assemble.py holds the
-one before for the others, and makes the 8-bit frames). Re-running resumes after the last photograph
+one before for the others, and makes the 8-bit frames). A region side that disagrees with the
+photograph before it (EDGE_P99, EDGE_MAX) is listed in DIR/seams.json for `render.py --regrow`, and
+the run fails. Re-running resumes after the last photograph
 on disk; after re-rendering regions from N on, develop from N on (`--from N`).
 """
 import json
@@ -230,8 +232,14 @@ def main():
     for u, side, p99, mx in seams:
         print(f'SEAM photograph {u:04d}, {side}: {p99} levels at the 99th percentile, {mx} at most', flush=True)
     print(f'DONE {time.time() - t_all:.0f}s', flush=True)
+    listed = os.path.join(d, 'seams.json')
     if seams:
-        raise SystemExit(f'{len(seams)} region sides disagree with the photograph before them (render.py: render those again, wider)')
+        with open(listed, 'w') as fh:
+            json.dump([{'photo': u, 'side': side, 'p99': p99, 'max': mx} for u, side, p99, mx in seams], fh, indent=1)
+        raise SystemExit(f'{len(seams)} region sides disagree with the photograph before them: render.py --regrow renders them'
+                         f' again, wider; then develop --from {min(u for u, *_ in seams)}')
+    if os.path.exists(listed):
+        os.remove(listed)
 
 
 if __name__ == '__main__':
