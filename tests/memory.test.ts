@@ -113,4 +113,32 @@ describe('a memory intruding as light', () => {
     expect(d.visible.has(Director.MEMORY.phraseId)).toBe(false);
     expect(run(d, 60, () => still).some((c) => c.rule === 'memory-offer')).toBe(true);
   });
+
+  it('keeps the next memory-offer 120 s from the kitchen-light offer (12 seeds, never gazing)', () => {
+    // A visitor who never gazes at the kitchen line never brings the light, so the offer is the
+    // only thing that records its time. Before the fix, the bedroom's line was written alone
+    // 8–70 s after the kitchen line. Now the pointing guard sees the kitchen offer's time.
+    const neverGaze: VisitorInput = { x: 0.1, z: 2.2, yaw: 0, pitch: 0, gazePhraseId: null, gazeChair: false, nearSurface: null, kneeling: false };
+    const tooClose: string[] = [];
+    for (let seed = 1; seed <= 12; seed++) {
+      const d = new Director({ seed });
+      d.release({});
+      const writes: { t: number; source: string }[] = [];
+      for (let t = 0; t < 600; t += 0.1) {
+        for (const c of d.tick(0.1, neverGaze, 'north')) {
+          if (c.rule === 'memory-offer' && c.cue.type === 'write') {
+            const source = c.cue.source;
+            if (source) writes.push({ t: c.t, source });
+          }
+        }
+      }
+      const kitchen = writes.find((w) => w.source === Director.MEMORY.phraseId);
+      if (!kitchen) continue; // cereal opened, or the kitchen-light never came: nothing to space from
+      const next = writes.find((w) => w.source !== Director.MEMORY.phraseId);
+      if (next && next.t - kitchen.t < 120 - 1e-9) {
+        tooClose.push(`seed ${seed}: kitchen ${kitchen.t.toFixed(1)} s, next ${next.source} at ${next.t.toFixed(1)} s (${(next.t - kitchen.t).toFixed(1)} s)`);
+      }
+    }
+    expect(tooClose).toEqual([]);
+  });
 });

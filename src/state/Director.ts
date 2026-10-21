@@ -161,6 +161,8 @@ export class Director {
   private heldSilenceDone = false;
   /** The memory has been offered (its line written where the visitor looks) / has played. */
   private memoryOffered = false;
+  /** When the kitchen-light memory's line was offered this visit (the pointing guard counts it). */
+  private memoryOfferedAt = -Infinity;
   memoryPlayed = false;
   /** No voices of the room's own until then: the memory's line has just been offered. */
   private memoryQuietUntil = -Infinity;
@@ -1334,6 +1336,7 @@ export class Director {
       if (this.memoryOffered || !free || this.now < this.memoryQuietUntil || this.pacing.repeats('text', this.now, 8) || this.withheld().includes(m.phraseId)) return;
       const p = PHRASE_BY_ID.get(m.phraseId)!;
       this.memoryOffered = true;
+      this.memoryOfferedAt = this.now;
       this.memoryQuietUntil = this.now + 15;
       // The line arrives alone: nothing else is revealed, written or begun with it, so a visitor
       // who stays with it gets the light, not whatever else happened at the same moment.
@@ -1417,6 +1420,7 @@ export class Director {
       darkEnded: Number.isFinite(this.heldSilenceUntil) ? this.heldSilenceUntil : null,
       kitchenPlayed: this.memoryPlayed,
       kitchenOffered: this.memoryOffered,
+      kitchenOfferedAt: this.memoryOfferedAt,
     });
     if (offer?.reink) {
       // Already on the wall they face: written again there, in front of them (no new line).
@@ -2005,6 +2009,7 @@ export class Director {
       this.visible.delete(id);
       this.memory.surfaced.delete(id);
       this.memoryOffered = false;
+      this.memoryOfferedAt = -Infinity;
       this.memoryQuietUntil = -Infinity;
     }
     if (key.startsWith('stray:')) {

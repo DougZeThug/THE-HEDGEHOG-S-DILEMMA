@@ -152,6 +152,22 @@ describe('later memories are offered, not hidden', () => {
     expect(m.offer(offerState({ now: 230, darkEnded: 130, otherMemory: true }))).toBeNull();
     expect(m.offer(offerState({ now: 230, darkEnded: 130 }))?.id).toBe('bedroom');
   });
+  it('the kitchen-light offer times the 120 s pointing guard: no other line alone for two minutes after it', () => {
+    // The offer is a pointing in count already (kitchenOffered); its time must space the next one.
+    const after = (now: number, kitchenOfferedAt: number | undefined) => {
+      const m = new MemoryDirector();
+      m.setAvailable(new Set()); // only painted memories: the bedroom answers the long dark.
+      return m.offer(offerState({ now, darkEnded: 130, kitchenOffered: true, ...(kitchenOfferedAt === undefined ? {} : { kitchenOfferedAt }) }));
+    };
+    // The kitchen-light memory's line was written alone at 150 s; a later memory's line is not
+    // written alone inside the 120 s pointing window it shares with that offer.
+    expect(after(200, 150)).toBeNull();          // 50 s on: too close
+    expect(after(269, 150)).toBeNull();          // 119 s on: still too close
+    expect(after(270, 150)?.id).toBe('bedroom'); // 120 s on: the line may arrive
+    // The count alone (no time passed) does not space a later offer: the kitchen offer's time
+    // is what the 120 s guard sees, and the Director must pass it for the guard to hold.
+    expect(after(200, undefined)?.id).toBe('bedroom');
+  });
   it('an offered line begins its memory on a read (no look back needed later in the visit)', () => {
     const m = new MemoryDirector();
     let start = null;
