@@ -3,7 +3,7 @@ import { MemoryDirector, type PendingEcho } from './MemoryDirector';
 import { VIGNETTE_BY_ID, lineKey } from '../content/vignettes';
 import { SCENE_MEMORIES } from '../content/memories';
 import { Rng } from '../core/rng';
-import { EventScheduler } from '../core/scheduler';
+import { EventScheduler, type ScheduledEvent } from '../core/scheduler';
 import { clamp, smoothstep } from '../core/math';
 import { PHRASES, PHRASE_BY_ID } from '../content/phrases';
 import { DEPARTURE_LINES, RECONTEXTS, VOICE_FRAGMENTS, type VoiceFragment } from '../content/relations';
@@ -542,11 +542,12 @@ export class Director {
     this.env = this.computeEnv();
 
     const out: TimedCue[] = [];
-    const due = this.scheduler.tick(this.now);
+    const due = this.scheduler.tickEvents(this.now);
     // A meeting's voice that never found room is owed to the next meeting, not lost.
     for (const { cue, rule } of this.scheduler.expired) this.lost(cue, rule);
-    for (const { cue, rule } of due) {
-      if (!this.accept(cue, rule)) {
+    for (const ev of due) {
+      const { cue, rule } = ev.payload;
+      if (!this.accept(cue, rule, ev)) {
         this.lost(cue, rule);
         continue;
       }
@@ -594,7 +595,7 @@ export class Director {
   }
 
   /** Keep the Director's model of what is visible in sync with the cues it lets through. */
-  private accept(cue: Cue, rule: string): boolean {
+  private accept(cue: Cue, rule: string, ev?: ScheduledEvent<{ cue: Cue; rule: string }>): boolean {
     // After the room's last music, none of its own again, nor anyone humming.
     if (this._musicWithdrawn && (cue.type === 'music' || (cue.type === 'voice' && cue.kind === 'hum'))) return false;
     // A situation that took the chair's voice or the space beyond the walls after this was
@@ -612,7 +613,8 @@ export class Director {
     if (cue.type === 'redraw' && this.keptBack.has(cue.phraseId)) return false;
     // A situation's own sounds wait out a memory's aftermath (those answering the visitor don't).
     if (this.aftermath() && rule.startsWith('sit:') && !/^sit:(residue|listening)/.test(rule) && (cue.type === 'voice' || cue.type === 'sound' || cue.type === 'music')) {
-      this.queue(this.aftermathUntil - this.now + 1, cue, rule);
+      const delay = this.aftermathUntil - this.now + 1;
+      this.queue(delay, cue, rule, this.keepOpts(ev, delay));
       return false;
     }
     // Nothing of the room's own comes in a memory's aftermath, or while the room is holding (a
@@ -621,12 +623,14 @@ export class Director {
     if (ROOM_OWN.test(rule) && !rule.startsWith('sit:') && (this.aftermath() || this.pacing.holding(this.now))) {
       // (After an aftermath, the first a few seconds after it.)
       const after = this.aftermath() ? this.aftermathUntil + this.gapRng.range(3, 6) : this.pacing.heldUntil + 1;
-      this.queue(Math.max(after, this.now + 1) - this.now, cue, rule);
+      const delay = Math.max(after, this.now + 1) - this.now;
+      this.queue(delay, cue, rule, this.keepOpts(ev, delay));
       return false;
     }
     // Nor do they break into a held silence (a laugh on a timer, landing in the middle of it): after it, and its exhale.
     if (this.pacing.holding(this.now) && rule.startsWith('sit:') && !/^sit:(residue|listening)/.test(rule) && (cue.type === 'voice' || cue.type === 'sound' || cue.type === 'music')) {
-      this.queue(this.pacing.heldUntil - this.now + 6, cue, rule);
+      const delay = this.pacing.heldUntil - this.now + 6;
+      this.queue(delay, cue, rule, this.keepOpts(ev, delay));
       return false;
     }
     // The visit's turn, due while a vignette plays or just after one: it waits until it is clear.
@@ -666,6 +670,16 @@ export class Director {
       this.visible.delete(cue.phraseId);
     }
     return true;
+  }
+
+  private keepOpts(ev: ScheduledEvent<{ cue: Cue; rule: string }> | undefined, delay: number): { major?: boolean; key?: string; ttl?: number; priority?: number } {
+    if (!ev) return {};
+    return {
+      major: ev.major,
+      key: ev.key,
+      priority: ev.priority,
+      ...(ev.expires !== undefined ? { ttl: Math.max(1, Math.ceil(Math.max(ev.expires - (this.now + delay), ev.expires - ev.at))) } : {}),
+    };
   }
 
   private budget(): number {

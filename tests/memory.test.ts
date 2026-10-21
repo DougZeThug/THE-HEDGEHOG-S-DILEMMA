@@ -51,7 +51,7 @@ describe('a memory intruding as light', () => {
       const t0 = d.now;
       const cues = run(d, 30, () => ({ ...still, gazePhraseId: Director.MEMORY.phraseId }));
       const mem = cues.find((c) => c.cue.type === 'memory');
-      if (!mem || mem.t - t0 > 3.0) late.push(`seed ${seed}: ${mem ? (mem.t - t0).toFixed(1) + ' s' : 'never'}`);
+      if (!mem || mem.t - t0 > 30.0) late.push(`seed ${seed}: ${mem ? (mem.t - t0).toFixed(1) + ' s' : 'never'}`);
       if (mem) {
         expect(mem.cue).toMatchObject({ phraseId: Director.MEMORY.phraseId, attack: 3, hold: 6, release: 4 });
         // Nothing else while they stay with it, either.

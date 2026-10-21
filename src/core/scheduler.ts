@@ -108,9 +108,10 @@ export class EventScheduler<T> {
     return now - this.lastMajorAt >= this.majorGap;
   }
 
-  /** Pop every event due at `now`, respecting major spacing. */
-  tick(now: number): T[] {
-    const out: T[] = [];
+  /** Pop every event due at `now`, respecting major spacing. Returns the full scheduled events,
+   *  so a caller that requeues one (Director.accept) can preserve its major/ttl/key/priority. */
+  tickEvents(now: number): ScheduledEvent<T>[] {
+    const out: ScheduledEvent<T>[] = [];
     const keep: ScheduledEvent<T>[] = [];
     this.expired = [];
     // Highest priority majors first among the due ones.
@@ -138,10 +139,15 @@ export class EventScheduler<T> {
         this.lastRoomGroup = ev.group;
         this.nextRoomGap = typeof this.roomGap === 'number' ? this.roomGap : this.roomGap();
       }
-      out.push(ev.payload);
+      out.push(ev);
     }
     this.queue = [...keep, ...later].sort((a, b) => a.at - b.at || b.priority - a.priority || a.id - b.id);
     return out;
+  }
+
+  /** Pop the payloads due at `now`, respecting major spacing. */
+  tick(now: number): T[] {
+    return this.tickEvents(now).map((e) => e.payload);
   }
 
   /** Serializable snapshot (for the debug inspector). */
