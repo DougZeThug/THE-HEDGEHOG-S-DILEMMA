@@ -30,10 +30,15 @@ import OpenImageIO as oiio
 
 FEATHER = 10    # pixels: the region's edge fades into the photograph before
 # A pasted region must agree with the photograph before it along every side (levels of 255, over
-# its feather): more, and the change ran on across the region's border and was cut there. (Edges
-# of 28-73 levels at the 99th percentile were printed through the reach and left: a frozen shadow
-# on her face: the technical artist's review, 2026-10-21.)
-EDGE_P99, EDGE_MAX = 3.0, 20.0
+# its feather, the difference averaged EDGE_BLUR px across): more, and the change ran on across the
+# region's border and was cut there. (Edges of 28-73 levels at the 99th percentile were printed
+# through the reach and left: a frozen shadow on her face: the technical artist's review,
+# 2026-10-21.) A seam runs along the edge; the denoiser's speckle in fibres and knit does not, and
+# unaveraged it flagged edges whose step changed by under a level. Measured on the last render
+# against the technical artist's seams: 31 of 32 seamed sides and 6 of 444 clean ones (unaveraged,
+# with a 20-level maximum: 23 and 9).
+EDGE_BLUR = 5
+EDGE_P99, EDGE_MAX = 3.0, 6.0
 PASSES = {'image': 'Combined', 'albedo': 'Denoising Albedo', 'normal': 'Denoising Normal'}
 # The one burn, as a printer holds back light under the enlarger: the window sill's lit edge, through
 # a fixed soft mask (it never moves, and nothing passes in front of it), only its light above
@@ -167,6 +172,13 @@ def burned(img, mask):
     return img * ((L - over) / np.maximum(L, 1e-4))[..., None]
 
 
+def box_blur(a, k):
+    """`a` averaged over a k x k square round each pixel (its edges repeated)."""
+    p = k // 2
+    c = np.cumsum(np.cumsum(np.pad(a, ((p + 1, p), (p + 1, p)), mode='edge'), 0), 1)
+    return (c[k:, k:] - c[:-k, k:] - c[k:, :-k] + c[:-k, :-k]) / (k * k)
+
+
 def write16(path, img):
     H, W = img.shape[:2]
     buf = oiio.ImageBuf(oiio.ImageSpec(W, H, 3, oiio.UINT16))
@@ -239,7 +251,7 @@ def main():
             before = shown[y0:y1, x0:x1]
             after = dev[y0:y1, x0:x1]
             edge = (m[..., 0] > 0) & (m[..., 0] < 1)
-            diff = np.abs(after - before).max(axis=2) * 255
+            diff = box_blur(np.abs(after - before).max(axis=2) * 255, EDGE_BLUR)
             band = FEATHER
             for side, sl, live in (('top', (slice(0, band), slice(None)), y0 > 0), ('bottom', (slice(-band, None), slice(None)), y1 < H),
                                    ('left', (slice(None), slice(0, band)), x0 > 0), ('right', (slice(None), slice(-band, None)), x1 < W)):
