@@ -426,7 +426,7 @@ A['hesitate'] = _with(A['carry'], arm__L=dict(wrist=(-0.0075, -0.0248, T + 0.009
 A['hesitate curl'] = _with(A['hesitate'], curl__L={'all': (21, 25), 'index': (13, 15)})
 A['approach'] = _with(A['hesitate'], spine=(3, 3.5, 4), chest=(5, 2.5, 6), shoulder__L=(2, 10), head=(17, -2.5, 26),
                       arm__L=dict(wrist=(0.0000, -0.0258, T + 0.0085), fingers=(0.88, -0.40, -0.22), back=(0.10, -0.18, 1.0), on='air'),
-                      curl__L={'all': (12, 16), 'index': (5, 7), 'middle': (7, 10), 'thumb': (30, 24)})
+                      curl__L={'all': (12, 16), 'index': (5, 7), 'middle': (7, 10), 'thumb': (100, 85)})
 # the touch: low and level, from his side, the index and middle fingers leading (a hand putting a
 # fold right, not pointing at it); his elbow down at his side, a little out and back, so the
 # forearm crosses the table instead of pointing into the lens. (Aimed in toward his middle, the
@@ -434,9 +434,10 @@ A['approach'] = _with(A['hesitate'], spine=(3, 3.5, 4), chest=(5, 2.5, 6), shoul
 TOUCH_ELBOW = (-0.008, 0.012, T + 0.003)
 A['near'] = _with(A['approach'], arm__L=dict(touch=(-0.0022, -0.0002, 0.0007), fingers=(0.94, -0.30, -0.14), back=(0.10, -0.15, 1.0), on=TOUCH_ELBOW))
 A['touch'] = _with(A['near'], arm__L=dict(touch=(-0.0006, 0.0, 0.0004), fingers=(0.95, -0.28, -0.14), back=(0.10, -0.15, 1.0), on=TOUCH_ELBOW),
-                   curl__L={'all': (10, 14), 'index': (4, 6), 'middle': (6, 9), 'thumb': (34, 28)})
-# (the thumb tucked under: hanging, it lay down the side of her forearm, and the hand read as laid
-# on her arm rather than at the cuff: the cinematic note in the creative director's gate review)
+                   curl__L={'all': (10, 14), 'index': (4, 6), 'middle': (6, 9), 'thumb': (100, 85)})
+# (the thumb folded under: hanging, it lay down the side of her forearm, and the hand read as laid
+# on her arm rather than at the cuff: the cinematic note in the creative director's gate review;
+# half-tucked, it still hung below the wrist as a stub: the cinematic director's review, 2026-10-21)
 # the fold's corner rises under his fingertip, one drawing after the other (see resolve)
 A['lift1'] = dict(A['touch'])
 A['lift2'] = dict(A['touch'])
@@ -542,7 +543,7 @@ def resolve(figs):
     t = A['lift2']['arm.L']
     drop = dict(t, wrist=(t['wrist'][0] - 0.0004, t['wrist'][1] + 0.0006, t['wrist'][2] - 0.0016))
     A['after touch'] = _with(A['lift2'])
-    A['after drop'] = _with(A['lift2'], arm__L=drop, curl__L={'all': (17, 21), 'index': (9, 11), 'middle': (11, 14), 'thumb': (30, 24)})
+    A['after drop'] = _with(A['lift2'], arm__L=drop, curl__L={'all': (17, 21), 'index': (9, 11), 'middle': (11, 14), 'thumb': (100, 85)})
     A['blink'] = _with(A['after drop'], lids=(1.0, 1.0))
     A['half blink'] = _with(A['after drop'], lids=(0.5, 0.5))
     bake(figs)

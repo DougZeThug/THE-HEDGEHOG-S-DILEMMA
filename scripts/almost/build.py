@@ -137,7 +137,7 @@ def lights():
     win.energy = 0.55
     win.color = (0.55, 0.68, 1.0)
     wo = lib.link(bpy.data.objects.new('window light', win))
-    wo.location = (-0.14, kitchen.WALL_Y + 0.03, 0.205)
+    wo.location = ((kitchen.WINDOW[0] + kitchen.WINDOW[1]) / 2 + 0.02, kitchen.WALL_Y + 0.03, 0.205)   # (moves with the window)
     wo.rotation_euler = (math.radians(-90), 0, 0)
     wo.visible_camera = False
     wo.visible_glossy = False

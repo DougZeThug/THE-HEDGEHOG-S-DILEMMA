@@ -126,10 +126,13 @@ npm run memories:seed -- --force=almost-film
   - The film's material sounds from 10.3 s.
   - Both are laid by `sound.py` at the same levels as the film's own mix, and the clock's ticks
     fall on the same seconds in both.
-- **Crops.** The film is one open-matte frame (1280×1440). Covering a wide screen shows the
-  16:9 band across its middle, which is the hero frame. Covering an upright phone shows the 9:16
-  crop between their faces, with the lamp above them. On screens wider than 2:1 it is anchored
-  low, so it loses the lamp's shade rather than their fingers (`src/memory/living/almost.ts`).
+- **Crops.** The film is one open-matte frame (1280×1440). Covering a wide screen shows a band
+  across its middle; at 16:9 it is the hero frame, a little lower. Covering an upright phone shows
+  the 9:16 crop between their faces, with the lamp above them. On any screen that is not upright,
+  one rule (`almostCover` in `src/memory/living/almost.ts`) holds the frame's bottom just below
+  the cup's shadow, so a wider screen loses the top first (the shade's light, then her hat), never
+  their hands or the cup, and her eyes stay at least 12% below the frame's top. Beyond about
+  2.45:1 nothing holds both.
 - **The way through the wall** is `MemoryWindow`'s ordered reveal with new art.
   - **The wool.** The sketch layer is the first photograph in loose wool: fine strands felted over
     the whole of it, each in the colour under it made paler, lying every way with a little curl,

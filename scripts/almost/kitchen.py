@@ -414,7 +414,10 @@ def lamp(shade_mat, inside_mat, dark):
     return [ob, cord, cap, bulb]
 
 
-WINDOW = (-0.225, -0.095, 0.142, 0.268)   # x0, x1, z0, z1 of the opening in the back wall (its sill clear of his head)
+# x0, x1, z0, z1 of the opening in the back wall: its sill clear of his head (8 mm further left once
+# the camera was aimed lower: the sill's end met his skull in the held first and last frames, the
+# cinematic director's review, 2026-10-21)
+WINDOW = (-0.233, -0.103, 0.142, 0.268)
 
 
 def wall(paper):

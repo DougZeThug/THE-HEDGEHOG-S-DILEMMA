@@ -113,7 +113,7 @@ export interface RuntimeHost {
 export interface PreparedLiving {
   scene: LivingScene | FilmScene;
   /** Where its picture sits when it covers the screen. */
-  spec: Pick<LivingSpec, 'cover'>;
+  spec: Pick<LivingSpec, 'cover' | 'coverAt'>;
   /** It may be entered (or only seen on the wall). */
   immerse: boolean;
   /** What the wall shows first (painting uv: x0, y0, w, h). */
