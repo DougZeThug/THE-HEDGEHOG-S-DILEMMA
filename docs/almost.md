@@ -150,14 +150,16 @@ npm run memories:seed -- --force=almost-film
   their hands or the cup, and her eyes stay at least 12% below the frame's top. Beyond about
   2.45:1 nothing holds both.
 - **The way through the wall** is `MemoryWindow`'s ordered reveal with new art.
-  - **The wool.** The sketch layer is the first photograph in loose wool: fine strands felted over
-    the whole of it, each in the colour under it made paler, lying every way with a little curl,
-    thickest where the picture has mass, each with a faint shadow on the plaster. It is not a
+  - **The wool.** The sketch layer is the first photograph in loose wool: fine pale strands, each in
+    the colour under it lifted most of the way to white, lying every way with a little curl,
+    thickest where the picture has mass and thinning unevenly toward its edges, so it is a cloud on
+    the wall rather than a grey mat; each with a faint shadow on the plaster. It is not a
     drawing of the picture's edges: that read as a filter (the skeptic's review).
   - **The order map** says when each strand grows, root to tip: the lamp first by the words, then
     the room, the two of them a little later, their hands last.
-  - **The colour** comes through the wool where it has grown, a soft wash a moment behind it, and
-    then the wool sinks into the picture.
+  - **The colour** comes up through the wool over the whole picture together, a little unevenly, as
+    a print in the developer (5.0-8.0 s on the timeline, most of it 5.7-7.0), and then the wool
+    sinks into the picture. (Out from the lamp by the words, it read as a brown stain.)
   - **On the way out** nothing runs in order. The colour sinks back into the wool all at once, then
     the wool into the plaster, on the layers' opacities. (Run backwards, the two of them went first
     and left the lamp over an empty table: the woodland's ending again.)

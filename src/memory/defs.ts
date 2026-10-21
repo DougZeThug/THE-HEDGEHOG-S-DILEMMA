@@ -727,10 +727,12 @@ export const WOODLAND: MemoryDef = {
  * She lays her arm nearer him. His hands stay in his lap. Nothing is said. Photographed offline
  * from the puppets (scripts/almost/), played as a film (src/memory/living/FilmScene.ts).
  *
- *   0–5.5     the kitchen is heard first through the wall, the fridge and the clock (0.6). Wool
- *             fibres come through the plaster from the words outward: the lamp first, the room,
- *             the two of them late, their hands last (scripts/almost/emergence.py)
- *   5.0–7.2   the colour follows as one wash out from under the lamp; the fibres sink into it
+ *   0–5.5     the kitchen is heard first through the wall, the fridge and the clock (0.6). Pale wool
+ *             fibres come through the plaster from the words outward, a cloud thinning unevenly
+ *             toward its edges: the lamp first, the room, the two of them late, their hands last
+ *             (scripts/almost/emergence.py)
+ *   5.0–8.0   the colour comes up through the wool over the whole picture together, a little
+ *             unevenly, as a print in the developer (mostly 5.7–7.0); the fibres sink into it
  *   6.2–9.8   they are carried in, square to it; it opens out until it is all there is. The film
  *             holds its first frame through all of this: the opening is seen, not passed through
  *   10.3–38.6 the film, 28.3 s, once the visitor is inside (`scene.film`, its seconds; FILM_BEATS):
@@ -790,7 +792,7 @@ export const ALMOST: MemoryDef = {
         // opacities, below). Run backwards, the two of them went first and left the lamp over an
         // empty table: the woodland's ending again (the skeptic's review, 2026-10-20).
         'window.sketch': [[1.5, 0], [5.5, 1]],
-        'window.reveal': [[5.0, 0, 'linear'], [7.2, 1]],
+        'window.reveal': [[5.0, 0, 'linear'], [8.0, 1]],
         'window.presence': [[0, 1]],
         'window.parallax': [[0, 0]],
         // The room's writing under the picture goes to a trace as the colour reaches it, and comes

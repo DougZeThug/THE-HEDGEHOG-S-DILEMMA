@@ -11,13 +11,15 @@ MASK is masks.py's render of the same pose: R the two figures, G their hands and
 Writes, in public/memories/almost/:
 - `<variant>/scene(.webp, @low)`: the first photograph, the wall's poster (and the film's fallback).
 - `<variant>/fibres(.webp, @low)`: the picture in loose wool, as if pushed through the plaster from
-  behind: fine strands felted over the whole of it, each in the colour under it made paler, lying
-  every way with a little curl, thickest where the picture has mass. Each casts a faint shadow.
+  behind: fine pale strands felted over it, each in the colour under it lifted most of the way to
+  white, lying every way with a little curl, thickest where the picture has mass and thinning
+  unevenly toward its edges, so it is a cloud on the wall and not a mat. Each casts a faint shadow.
 - `<variant>/order.webp` (lossless):
   - R: when each fibre grows (0..1 of `window.sketch`), root to tip. The lamp comes first, near
     the words; the room follows; the two of them come late, and their hands last.
-  - G: when the colour reaches each point (0..1 of `window.reveal`): through the wool, where it has
-    grown, a soft wash never sooner than LAG seconds after its own fibres (the timeline's clocks).
+  - G: when the colour reaches each point (0..1 of `window.reveal`): the whole picture together, as
+    a print comes up in the developer, a little unevenly, never sooner than LAG seconds after its own
+    fibres (the timeline's clocks).
 - `manifest.json`: the variant's layers and its film entry.
 
 The wall's window (src/world/MemoryWindow.ts) draws a fibre where R ≤ the sketch's progress and
@@ -51,7 +53,7 @@ WORDS = (0.47, 0.76)
 # and window.reveal: tests/memory-defs.test.ts holds them to these), and how long after its own
 # fibres the colour may come at the soonest (s).
 DRAWN = (1.5, 5.5, 'soft')
-COLOURED = (5.0, 7.2, 'linear')
+COLOURED = (5.0, 8.0, 'linear')
 LAG = 0.4
 FPS = 24
 
@@ -73,9 +75,11 @@ def clock(kind):
 
 def tone(bgr, lift):
     """A fibre's colour from the picture's: paler, as wool catching the light is (`lift` of the way
-    to white), but never so pale it is lost on white plaster, nor darker than wool is."""
+    to white), never white, so it still shows on the plaster. (Kept as dark as L 70-196, the wool
+    lay on the wall as a grey bath mat: the cinematic director's review of the final film and the
+    skeptic's, 2026-10-21.)"""
     lab = cv2.cvtColor(np.uint8([[bgr]]), cv2.COLOR_BGR2LAB).astype(np.float32)[0, 0]
-    L = np.clip(lab[0] + (255 - lab[0]) * lift, 70, 196)
+    L = np.clip(lab[0] + (255 - lab[0]) * lift, 165, 242)
     a = 128 + (lab[1] - 128) * 1.1
     b = 128 + (lab[2] - 128) * 1.1
     out = cv2.cvtColor(np.uint8([[[L, np.clip(a, 0, 255), np.clip(b, 0, 255)]]]), cv2.COLOR_LAB2BGR)[0, 0]
@@ -86,8 +90,10 @@ def fibres(img, mask, rng):
     """The picture as loose wool: fine strands felted over the whole of it, each in the colour of the
     felt or the wood or the night under it, paler, lying every way with a little curl, as roving
     does; thicker where the picture has mass (its darks and its colours), thinnest on the lamp's
-    glow. (Strands laid along its edges read as a drawing filter, worms drawn round its shapes: the
-    skeptic's review, 2026-10-20.) Returns [{pts, width, col, alpha, at, figure, hand}]."""
+    glow, and thinning out toward the picture's edges, unevenly. (Strands laid along its edges read
+    as a drawing filter, worms drawn round its shapes: the skeptic's review, 2026-10-20. Kept at a
+    fifth of their density everywhere, out to a hard edge, they made a rectangle: the reviews of
+    2026-10-21.) Returns [{pts, width, col, alpha, at, figure, hand}]."""
     H, W = img.shape[:2]
     smooth = cv2.GaussianBlur(img, (0, 0), 3.0)
     lab = cv2.cvtColor(smooth, cv2.COLOR_BGR2LAB).astype(np.float32)
@@ -101,7 +107,10 @@ def fibres(img, mask, rng):
     gx = np.clip(gx.ravel() + rng.uniform(0, step, gx.size), 0, W - 1)
     gy = np.clip(gy.ravel() + rng.uniform(0, step, gy.size), 0, H - 1)
     ix, iy = gx.astype(int), gy.astype(int)
-    keep = rng.random(gx.size) < 0.18 + 0.82 * mass[iy, ix]
+    edge = np.minimum(np.minimum(gx / W, 1 - gx / W), np.minimum(gy / H, 1 - gy / H))
+    wobble = cv2.resize(soft_noise(rng, (H // 32, W // 32), 2.0), (W, H), interpolation=cv2.INTER_LINEAR)[iy, ix] - 0.5
+    fall = np.clip((edge - 0.01 + 0.12 * wobble) / 0.30, 0, 1)
+    keep = rng.random(gx.size) < (0.04 + 0.82 * mass[iy, ix]) * fall * fall * (3 - 2 * fall)
     out = []
     for x, y in zip(gx[keep], gy[keep]):
         out.append(fibre(smooth, mask, x, y, flow[int(y), int(x)] + rng.normal(0, 0.55), rng.uniform(7, 19), rng))
@@ -117,7 +126,7 @@ def fibre(smooth, mask, cx, cy, th, length, rng):
     wav = rng.uniform(0.2, 0.7) * np.sin(s * rng.uniform(5, 11) + rng.uniform(0, 6.3))
     pts = np.array([cx, cy]) + np.outer(s * length, d) + np.outer(bend * (s * s - 0.25) + wav, nrm)
     ix, iy = int(np.clip(cx, 0, W - 1)), int(np.clip(cy, 0, H - 1))
-    col = tone(smooth[iy, ix].tolist(), rng.uniform(0.18, 0.42))
+    col = tone(smooth[iy, ix].tolist(), rng.uniform(0.55, 0.8))
     # (Which end is its root: random. It grows from there to its tip.)
     if rng.random() < 0.5:
         pts = pts[::-1]
@@ -204,15 +213,12 @@ def main():
         f['grow'] = 0.05
     rgba, R = draw(fs, T, rng)
     R = np.clip(R, 0, 1)
-    # The colour comes through the fuzz: where the wool has grown, a moment later, softly (the order
-    # of the fibres, blurred wide, with nothing ragged in it: a wash out from the lamp with a broken
-    # edge read as a hole burning through the wall: the skeptic's review). As much of the picture
-    # takes it in each moment as in any other (stroke-order.py).
-    G = cv2.GaussianBlur(R, (0, 0), 48) + 0.04 * (cv2.resize(soft_noise(rng, (H // 16, W // 16), 2), (W, H)) - 0.5)
-    flat = G.ravel()
-    rank = np.empty(flat.size, np.float32)
-    rank[np.argsort(flat, kind='stable')] = np.arange(flat.size, dtype=np.float32) / (flat.size - 1)
-    G = 0.12 + 0.82 * rank.reshape(G.shape)
+    # The colour comes through the wool everywhere together, as a print comes up in the developer,
+    # a little unevenly (broad, slow differences, nothing ragged). (Out from the lamp, by the words,
+    # it came up as a brown stain on the dark wall; ordered by the picture's own light, its two lit
+    # heads came first as a pair of ears and his silhouette was left a hole: the reviews of the
+    # final film, 2026-10-21.)
+    G = 0.30 + 0.30 * cv2.resize(soft_noise(rng, (H // 64, W // 64), 1.2), (W, H), interpolation=cv2.INTER_CUBIC)
     # never sooner than LAG s after its fibres (on the two clocks)
     _, drawn_at = clock(DRAWN[2])
     coloured_by, _ = clock(COLOURED[2])
