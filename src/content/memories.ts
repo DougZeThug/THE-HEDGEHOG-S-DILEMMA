@@ -93,7 +93,7 @@ export const SCENE_MEMORIES: SceneMemory[] = [
   // memory has been, as the room begins to contradict itself; seen once it has been entered and
   // played to his almost (defs.ts THINGS_AT + THINGS_BEATS.back, 26.3 s).
   {
-    id: 'things', phraseId: 'didnt-know-say', earliest: 210, arc: 'afterAnother', arm: 2.5, commit: 1.0, minHold: 12, seenAt: 27, maxHold: 56, span: 66,
+    id: 'things', phraseId: 'didnt-know-say', earliest: 210, arc: 'afterAnother', arm: 2.5, commit: 1.0, minHold: 12, seenAt: 27, maxHold: 56.25, span: 66.25,
     variants: { first: 'film', revisit: [] }, lookBack: false, offer: { phases: ['contradiction', 'transform'], apart: 120 }, reserved: true,
   },
   // Peace with a cost: the longest, once the room has begun to contradict itself.

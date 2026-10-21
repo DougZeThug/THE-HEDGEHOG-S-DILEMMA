@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import * as THREE from 'three';
 import { FilmScene, filmType, loadFilm } from '../src/memory/living/FilmScene';
-import { ALMOST, ALMOST_SECTIONS, FILM_AT, FILM_BEATS, FILM_SECONDS } from '../src/memory/defs';
+import { ALMOST, ALMOST_SECTIONS, FILM_AT, FILM_BEATS, FILM_SECONDS, THINGS, THINGS_AT, THINGS_BEATS, THINGS_SECONDS, THINGS_SECTIONS } from '../src/memory/defs';
 import { SCENE_MEMORIES } from '../src/content/memories';
 
 // "Almost" (docs/almost.md): a film played as a living memory. The memory's one clock decides the
@@ -411,6 +411,63 @@ describe('Almost on its timeline', () => {
       const lines = [{ at: ALMOST_SECTIONS.active, text: ALMOST.describe('film') }, ...ALMOST.announce!('film').filter((l) => !(from === 'inside' ? l.wall : l.inside))];
       for (let i = 0; i + 1 < lines.length; i++) {
         expect(words(lines[i].text), `${from}: "${lines[i].text}"`).toBeLessThanOrEqual(Math.floor(2.5 * (lines[i + 1].at - lines[i].at)));
+      }
+    }
+  });
+});
+
+describe('Things I Should Have Said on its timeline', () => {
+  const seed = THINGS.seed('film');
+  const manifest = JSON.parse(readFileSync(join(__dirname, '../public/memories/things/manifest.json'), 'utf8'));
+  it('the wall draws the goodbye before the visitor is carried in; the film holds it until they are inside', () => {
+    const keys = seed.tracks['scene.film'] as [number, number, string?][];
+    expect(keys.find(([t]) => t === THINGS_AT)?.[1]).toBe(0);
+    expect(keys.find(([t]) => t === THINGS_AT + THINGS_SECONDS)?.[1]).toBe(THINGS_SECONDS);
+    expect(THINGS_SECONDS * manifest.living.film.fps).toBe(manifest.living.film.frames);
+    // (the pencil and the tone are all there before the way in begins)
+    const sketch = seed.tracks['window.sketch'] as [number, number][];
+    const reveal = seed.tracks['window.reveal'] as [number, number][];
+    const imm = seed.tracks['scene.immerse'] as [number, number][];
+    const begins = imm.find(([, v], i) => v === 0 && imm[i + 1] && imm[i + 1][1] > 0)![0];
+    expect(sketch[sketch.length - 1][0]).toBeLessThanOrEqual(begins);
+    expect(reveal[reveal.length - 1][0]).toBeLessThanOrEqual(begins);
+    expect(imm.find(([, v]) => v === 1)![0]).toBeLessThan(THINGS_AT);
+    // out once the film is all but over, on its held empty doorway
+    expect(THINGS_SECTIONS.exit).toBeGreaterThan(THINGS_AT + THINGS_SECONDS - 1.5);
+    expect(THINGS_SECTIONS.exit).toBeLessThanOrEqual(THINGS_AT + THINGS_SECONDS);
+    expect(THINGS_AT + THINGS_BEATS.empty).toBeLessThan(THINGS_SECTIONS.exit);
+    // its edge is a sheet rubbed, not felt torn
+    expect(manifest.living.film.edge).toBe('soft');
+  });
+
+  it('counts as seen once his almost has begun inside, and plays to its exit', () => {
+    const m = SCENE_MEMORIES.find((x) => x.id === 'things')!;
+    expect(m.phraseId).toBe('didnt-know-say');
+    expect(m.seenAt!).toBeGreaterThanOrEqual(THINGS_AT + THINGS_BEATS.back);
+    expect(m.seenAt!).toBeLessThan(THINGS_SECTIONS.exit);
+    expect(m.maxHold).toBe(THINGS_SECTIONS.exit);
+    expect(m.span).toBe(THINGS_SECTIONS.end);
+    expect(THINGS.markers.find((k) => k.label === 'music:film')!.position).toBe(THINGS_AT);
+  });
+
+  it('its sound was made from the exposure sheet and the Foley as they are now', () => {
+    // (emergence.py records what it made it from; change either and it is made again, or the
+    // eraser is heard where nothing is erased)
+    const made = JSON.parse(readFileSync(join(__dirname, '../public/music/things-sound.json'), 'utf8'));
+    const sha = (f: string) => createHash('sha256').update(readFileSync(join(__dirname, '..', f))).digest('hex').slice(0, 16);
+    expect(made.story).toBe(sha('scripts/things/story.py'));
+    expect(made.foley).toBe(sha('scripts/things/foley.py'));
+  });
+
+  it("its screen-reader lines are in order, at least 3.5 s apart, and each said before the next", () => {
+    const lines = THINGS.announce!('film');
+    const ats = [...new Set(lines.map((l) => l.at))];
+    for (let i = 1; i < ats.length; i++) expect(ats[i] - ats[i - 1], `${ats[i - 1]} → ${ats[i]}`).toBeGreaterThanOrEqual(3.5);
+    const words = (s: string) => s.split(/\s+/).filter(Boolean).length;
+    for (const from of ['inside', 'wall'] as const) {
+      const said = [{ at: THINGS_SECTIONS.active, text: THINGS.describe('film') }, ...lines.filter((l) => !(from === 'inside' ? l.wall : l.inside))];
+      for (let i = 0; i + 1 < said.length; i++) {
+        expect(words(said[i].text), `${from}: "${said[i].text}"`).toBeLessThanOrEqual(Math.floor(2.5 * (said[i + 1].at - said[i].at)));
       }
     }
   });

@@ -17,7 +17,8 @@ public/memories/things/:
 - `film/film(.webm, .mp4, @low)`: the film from FROM s, silent.
 - `manifest.json`: the variant's layers and its film entry.
 And public/music/things-film.mp3: the film's sound from FROM s (foley.py, the eraser-only mix,
-without the film's own small room: the white room is the room).
+without the film's own small room: the white room is the room), and things-sound.json: what it
+was made from.
 
 The wall's window (src/world/MemoryWindow.ts) draws a line where R <= the sketch's progress and
 the tone where G <= the reveal's. So on the wall the drawing goes on as it did on the sheet: the
@@ -92,6 +93,12 @@ def times(sheet, items, keep, t0, t1):
     return np.clip((out - t0) / (t1 - t0), 0, 1), np.isfinite(out)
 
 
+def sha256(path):
+    import hashlib
+    with open(path, 'rb') as fh:
+        return hashlib.sha256(fh.read()).hexdigest()[:16]
+
+
 def save_webp(path, img, lossless=False, quality=90):
     im = Image.fromarray(img)
     im.save(path + '.webp', lossless=lossless, quality=quality, method=6)
@@ -147,6 +154,10 @@ def main():
     pcm = (np.clip(snd, -1, 1) * 32767).astype('<i2').tobytes()
     subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-f', 's16le', '-ar', str(foley.SR), '-ac', '2', '-i', '-', '-c:a', 'libmp3lame', '-b:a', '160k',
                     os.path.join(MUSIC, 'things-film.mp3')], input=pcm, check=True)
+    # what the sound was made from (tests/film-scene.test.ts: change them and make it again)
+    with open(os.path.join(MUSIC, 'things-sound.json'), 'w') as fh:
+        json.dump({'story': sha256(os.path.join(HERE, 'story.py')), 'foley': sha256(os.path.join(HERE, 'foley.py'))}, fh, indent=1)
+        fh.write('\n')
     manifest = {
         'size': list(SIZE), 'band': 0, 'pane': None, 'register': None, 'crop': list(CROP), 'plate': [W, H],
         'variants': {'film': [

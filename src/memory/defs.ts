@@ -879,13 +879,13 @@ export const ALMOST: MemoryDef = {
  *             his almost in graphite, held, taken back from the hand; hers, taken back before it
  *             is done; everyone erased, the heads entirely; the doorway's casing drawn again, his
  *             side and hers; the empty doorway
- *   56-61     out (the film's last second and a half under it), its edge soft (a sheet rubbed, not
+ *   56.25-61  out (the film's last second and a half under it), its edge soft (a sheet rubbed, not
  *             torn); on the wall the drawing goes to a trace of itself, then into the plaster
  *
  * The film has no sound of its own: its sound is one cue (scripts/things/foley.py, the eraser-only
  * mix: drawing silent, taking back heard, the latch), made from the same list of marks.
  */
-export const THINGS_SECTIONS: Sections = { active: 7.5, exit: 56, residue: 63, end: 66 };
+export const THINGS_SECTIONS: Sections = { active: 7.5, exit: 56.25, residue: 63.25, end: 66.25 };
 /** The film: where it begins on the timeline (half a second after the visitor is inside), and its length (s). */
 export const THINGS_AT = 11.5;
 export const THINGS_SECONDS = 1104 / 24;
@@ -954,11 +954,11 @@ export const THINGS: MemoryDef = {
   hush: 0.7,
   drone: false,
   living: true,
-  describe: () => 'Pencil lines draw themselves on the wall: a doorway, two people.',
+  describe: () => 'A charcoal drawing comes onto the wall: a doorway.',
   // (Only what is seen, in order, at least 3.5 s apart, never what it means.)
   announce: () => [
-    { at: 6.0, text: 'On the wall, a charcoal drawing of a doorway.', wall: true },
     { at: THINGS_AT + 0.3, text: 'A woman waves. A young man leaves.', inside: true },
+    { at: THINGS_AT + 0.3, text: 'On the wall, a woman waves; a young man leaves.', wall: true },
     { at: THINGS_AT + THINGS_BEATS.gone + 0.4, text: 'He is gone. The door swings shut.' },
     { at: THINGS_AT + THINGS_BEATS.lift, text: 'An eraser lifts the door.' },
     { at: THINGS_AT + THINGS_BEATS.back + 1.2, text: 'In pencil, he comes back to the door frame.' },
