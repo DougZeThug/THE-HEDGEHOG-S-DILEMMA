@@ -3,7 +3,7 @@ import type { Phrase, Surface, Hand, Size } from '../content/types';
 import { PHRASES, PHRASE_BY_ID } from '../content/phrases';
 import type { Room } from './Room';
 import { layoutPhrases, layoutOf, surfaceSize, drawingSpots, drawingBeside, type Placement, type SurfaceLayout } from './layout';
-import { HANDS, measureText, textTexture, pencilLineTexture, inkTexture } from './textures';
+import { HANDS, measureText, textTexture, pencilLineTexture, inkTexture, wrapWordStart, WRAP, PX_PER_M, LINE, SIZE_EM } from './textures';
 import { DRAWINGS, DRAWING_BY_ID, type DrawingDef } from '../content/drawings';
 import { bakeDrawing, bakedSize } from './sketch';
 import { wordRanges } from './handwriting';
@@ -919,10 +919,29 @@ export class WallText {
     const word = idx >= 0 ? text.slice(idx, idx + keep.length) : keep;
     const m = measureText(word, it.hand, it.size);
     const pl = it.placement;
-    const single = pl.h < measureText('Ag', it.hand, it.size).h * 1.5;
-    const frac = idx >= 0 && text.length ? idx / text.length : 0;
-    const left = pl.u - pl.w / 2 + (single ? frac * pl.w : 0);
-    const kept = this.layout.add({ surface: pl.surface, u: Math.min(left + m.w / 2, pl.u + pl.w / 2 - m.w / 2), v: single ? pl.v : pl.v + pl.h / 2 - m.h / 2, w: m.w, h: m.h, rot: pl.rot });
+    // The kept word stays where it was written: in the same wrapped line, at the same
+    // horizontal offset, as its first occurrence in the original text. Lines and
+    // offsets are recomputed with the same hand/size/wrap width the bake used, so the
+    // kept item lines up with the real occurrence of the word (single-line included:
+    // the old `idx / text.length` fraction drifted tens of centimetres for
+    // proportional handwriting, and the multi-line fallback dropped it entirely and
+    // pinned the word to the block's top-left corner).
+    const st = HANDS[it.hand];
+    const px = SIZE_EM[it.size] * st.scale * PX_PER_M;
+    const lineHeight = (px * LINE) / PX_PER_M;
+    const wp = idx >= 0 ? wrapWordStart(text, it.hand, it.size, WRAP[it.size], idx) : null;
+    const line = wp?.line ?? 0;
+    const xOffsetPx = wp?.xOffsetPx ?? 0;
+    // The original word sits `xOffsetPx` canvas pixels in from its line's first word,
+    // which itself has the usual left margin (`px * 0.15`); the kept item's own texture
+    // has the same left margin, so the two margins cancel and the kept item's centre
+    // is `(block left) + xOffset + m.w / 2`. Vertically the kept item's baseline is
+    // `line` line-heights down from the block's top, so its centre is `(block top) −
+    // m.h / 2 − line * lineHeight`, which reduces to `pl.v` for the single-line case
+    // (m.h == pl.h when there is one wrapped line).
+    const u = Math.min(pl.u - pl.w / 2 + xOffsetPx / PX_PER_M + m.w / 2, pl.u + pl.w / 2 - m.w / 2);
+    const v = pl.v + pl.h / 2 - m.h / 2 - line * lineHeight;
+    const kept = this.layout.add({ surface: pl.surface, u, v, w: m.w, h: m.h, rot: pl.rot });
     const k = this.create(`${key}:kept`, word, it.hand, it.size, kept, it.purpose);
     k.vis = 0.5;
     k.target = 1;

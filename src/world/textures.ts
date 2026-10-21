@@ -102,7 +102,7 @@ export const HANDS: Record<Hand, HandStyle> = {
 export const SIZE_EM: Record<Size, number> = { xs: 0.06, s: 0.095, m: 0.14, l: 0.21, xl: 0.3 };
 
 /** Maximum line width before wrapping (metres). */
-const WRAP: Record<Size, number> = { xs: 1.1, s: 1.6, m: 2.1, l: 2.6, xl: 3.0 };
+export const WRAP: Record<Size, number> = { xs: 1.1, s: 1.6, m: 2.1, l: 2.6, xl: 3.0 };
 
 export const FONTS_TO_LOAD = [
   '400 32px "Reenie Beanie"',
@@ -124,7 +124,7 @@ function fontString(st: HandStyle, px: number) {
   return `${st.italic ? 'italic ' : ''}${st.weight} ${px}px "${st.font}", "Segoe Print", "Bradley Hand", cursive`;
 }
 
-function wrap(text: string, st: HandStyle, px: number, maxPx: number): string[] {
+export function wrap(text: string, st: HandStyle, px: number, maxPx: number): string[] {
   const g = mctx();
   g.font = fontString(st, px);
   const words = text.split(/\s+/);
@@ -142,8 +142,56 @@ function wrap(text: string, st: HandStyle, px: number, maxPx: number): string[] 
 }
 
 /** Metres-per-pixel of the text canvases. */
-const PX_PER_M = 700;
-const LINE = 1.18;
+export const PX_PER_M = 700;
+export const LINE = 1.18;
+
+/** Width a word takes in baked pixels (with the same tracking `textTexture` lays down). */
+function wordWidth(g: CanvasRenderingContext2D, w: string, st: HandStyle, px: number): number {
+  if (!st.tracking) return g.measureText(w).width;
+  let sum = 0;
+  for (const ch of w) sum += g.measureText(ch).width + st.tracking * px;
+  return sum;
+}
+
+/**
+ * Where the word that begins at character index `idx` of `text` is laid out when the
+ * text is wrapped to `wrapM` metres: the zero-based wrapped line (0 at the top of the
+ * block) and the canvas-pixel x-offset of that word's left edge from its line's first
+ * word (0 for the first word of its line). Uses the same canvas metrics `textTexture`
+ * and `measureText` use. Returns null when `idx` is past the end of the text (no such
+ * word in any wrapped line), so the caller can fall back to a rough estimate.
+ */
+export function wrapWordStart(text: string, hand: Hand, size: Size, wrapM: number, idx: number): { line: number; xOffsetPx: number } | null {
+  const st = HANDS[hand];
+  const px = SIZE_EM[size] * st.scale * PX_PER_M;
+  const g = mctx();
+  g.font = fontString(st, px);
+  const space = g.measureText(' ').width;
+  const ranges = wordRanges(text);
+  if (ranges.length === 0) return null;
+  // k: the word (in `wordRanges` order, which matches wrap's word order) whose character
+  // range contains `idx` — or, if `idx` lands in whitespace, the next word; or none if
+  // it is past the end of the text.
+  let k = -1;
+  for (let i = 0; i < ranges.length; i++) {
+    if (ranges[i][0] <= idx && ranges[i][1] > idx) { k = i; break; }
+  }
+  if (k < 0) for (let i = 0; i < ranges.length; i++) if (ranges[i][0] >= idx) { k = i; break; }
+  if (k < 0) return null;
+  const lines = wrap(text, st, px, wrapM * PX_PER_M);
+  let globalW = 0;
+  for (let li = 0; li < lines.length; li++) {
+    const lineWords = lines[li].split(' ');
+    if (globalW + lineWords.length <= k) {
+      globalW += lineWords.length;
+      continue;
+    }
+    let x = 0;
+    for (let i = 0; i < k - globalW; i++) x += wordWidth(g, lineWords[i], st, px) + space;
+    return { line: li, xOffsetPx: x };
+  }
+  return null;
+}
 
 /** `wrapM` overrides the size's usual line length (metres). */
 export function measureText(text: string, hand: Hand, size: Size, wrapM = WRAP[size]): { w: number; h: number } {
