@@ -130,6 +130,72 @@ describe('memory audio: scheduled on the audio clock, never twice, nothing left 
     expect(ctx.sources.length).toBe(0);
   });
 
+  it('back from a suspended tab, a voice the pause cut is killed before it is said again (its frozen fade does not sound over its own restart)', async () => {
+    // (A voice paused mid-sentence is handed back and said again from its start; its 0.25 s pause
+    //  fade, frozen at full level by a context suspended in the same tick as the pause — a hidden
+    //  tab, as App.ts's visibilitychange does it — would otherwise sound on over the re-said
+    //  sentence: the defect the `fading` cleanup was introduced to fix for beds and music, here
+    //  verified for a voice. Pause and the suspend run in the same tick, so the fade has run no
+    //  context time when it freezes; the resume cleanup kills it as the restart begins.)
+    const ctx = new FakeCtx();
+    const sheet: CueSheet = {
+      room: [0.5, 2, 0.2],
+      cues: { 'voice:line': { asset: 'line', gainDb: -12, place: { u: 0, v: 0, d: 1 }, text: 'A line, said once.' } },
+    };
+    const markers: Marker[] = [{ label: 'voice:line', position: 1 }];
+    const gains = new Map<FakeSource, FakeParam>();
+    let last: FakeSource | null = null;
+    const mk = ctx.createBufferSource.bind(ctx), mg = ctx.createGain.bind(ctx);
+    ctx.createBufferSource = () => (last = mk());
+    ctx.createGain = () => {
+      const g = mg();
+      if (last && !gains.has(last)) gains.set(last, g.gain);
+      return g;
+    };
+    const host: MemoryAudioHost = {
+      ctx: ctx as unknown as BaseAudioContext,
+      out: new FakeNode(ctx) as unknown as AudioNode,
+      load: async () => ({ duration: 5 } as AudioBuffer),
+      impulse: () => ({}) as AudioBuffer,
+      intensity: 1,
+      where: () => [0, 0, -1],
+      caption: () => {},
+    };
+    const audio = new MemoryAudio(host, sheet, markers);
+    await audio.prepare();
+
+    // The voice is sounding — begun a frame ago, on the context's clock.
+    ctx.currentTime = 1;
+    audio.play([{ marker: markers[0], delay: 0 }], 1);
+    ctx.advance(1 / 60);
+    const first = ctx.sources[0];
+    expect(first.stopAt).toBeNull();
+    const firstGain = gains.get(first)!;
+    const level = firstGain.value; // the voice's full level (no fade-in)
+
+    // The tab is hidden: the pause fades the sentence out over 0.25 s, and the context is
+    // suspended in the same tick (as App.ts's visibilitychange does), so the fade is frozen before
+    // the clock has moved.
+    const back = audio.pause(ctx.currentTime);
+    expect(back.map((m) => m.label)).toEqual(['voice:line']);
+    ctx.state = 'suspended';
+    // (The clock stands still while suspended — no advance — so the fade runs no context time.)
+
+    // The tab returns (a frame of wall-clock later): the context resumes with the clock unmoved,
+    // and the sentence, handed back by the pause, is said again from its start.
+    ctx.state = 'running';
+    audio.resume(ctx.currentTime);
+    audio.play([{ marker: markers[0], delay: 0 }], ctx.currentTime);
+    const again = ctx.sources[1];
+
+    // The frozen fade is killed before its restart sounds: the old voice stops no later than the
+    // new one begins (the unfixed fade would run on to its own 0.27 s end, well past the restart),
+    // and at a small fraction of its level there (unfixed it would be at ~94 % of full).
+    expect(first.stopAt!, 'old voice stopAt').toBeLessThanOrEqual(again.startAt![0] + 0.05);
+    const atRestart = firstGain.valueAt(again.startAt![0], level);
+    expect(atRestart / level, 'old voice level at the restart').toBeLessThan(0.3);
+  });
+
   it('leaving: beds and music fade on their own time, a clink rings on, footsteps are cut on an interrupt', async () => {
     const { ctx, audio } = setup();
     await audio.prepare();
