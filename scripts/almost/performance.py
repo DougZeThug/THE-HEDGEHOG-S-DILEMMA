@@ -475,16 +475,27 @@ A['rise'] = _with(A['carry'], arm__L=dict(wrist=(-0.0078, -0.0156, T + 0.0090), 
 A['hesitate'] = _with(A['carry'], arm__L=dict(wrist=(-0.0032, -0.0112, T + 0.0178), fingers=(0.74, -0.67, 0.05), back=(0.12, -0.25, 0.95), on='air'),
                       curl__L={'all': (18, 22), 'index': (10, 12), 'thumb': THUMB_TUCK})
 A['hesitate curl'] = _with(A['hesitate'], curl__L={'all': (21, 25), 'index': (13, 15), 'thumb': THUMB_TUCK})
-A['approach'] = _with(A['hesitate'], spine=(3, 3.5, 4), chest=(5, 2.5, 6), shoulder__L=(2, 10), head=(12, -2.5, 26),
-                      arm__L=dict(wrist=(0.0040, -0.0073, T + 0.0198), fingers=(0.91, -0.41, -0.05), back=(0.10, -0.18, 1.0), on='air'),
+# He leans in to her as the hand goes on (spine and chest bent toward her, a little forward), so his
+# shoulder comes over toward the fold, the forearm climbs to it at 29 degrees and the hand goes on
+# in its line, 10 degrees down at the wrist. (Sat upright, the wrist was 34 mm from his shoulder: the elbow had to fold at 75
+# degrees down by the table, the forearm climbed 38 degrees to her sleeve and the hand bent 52 degrees
+# back down at the wrist, so the elbow read as bending inward and the hand as floppy and not his: the
+# artist, 2026-10-21.) On its way the hand comes in at the height it will touch at, its fingers in
+# the forearm's line as on the fold (held 8 mm higher, pointing level, the elbow folded to 64 degrees
+# and the hand hung 55 degrees off the wrist just before it landed).
+A['approach'] = _with(A['hesitate'], spine=(6, 5, 6), chest=(9, 4, 8), shoulder__L=(2, 10), head=(12, -2.5, 26),
+                      arm__L=dict(wrist=(0.0070, -0.0040, T + 0.0120), fingers=(0.635, -0.699, 0.328), back=(0.10, -0.18, 1.0), on='air'),
                       curl__L={'all': (12, 16), 'index': (5, 7), 'middle': (7, 10), 'thumb': THUMB_TUCK})
 # the touch: low and level, from his side, the index and middle fingers leading (a hand putting a
 # fold right, not pointing at it); his elbow down at his side, a little out and back, so the
 # forearm crosses the table instead of pointing into the lens. (Aimed in toward his middle, the
 # upper arm came forward at the lens and read as bent inwards: the artist, 2026-10-21.)
 TOUCH_ELBOW = (-0.008, 0.012, T + 0.003)
-A['near'] = _with(A['approach'], arm__L=dict(touch=(-0.0022, -0.0002, 0.0007), fingers=(0.94, -0.30, -0.14), back=(0.10, -0.15, 1.0), on=TOUCH_ELBOW))
-A['touch'] = _with(A['near'], arm__L=dict(touch=(-0.0006, 0.0, 0.0004), fingers=(0.95, -0.28, -0.14), back=(0.10, -0.15, 1.0), on=TOUCH_ELBOW),
+# The fingers point where the forearm does, tipped 10 degrees down to the fold (the direction the
+# forearm takes once the hand is on: found by solving the touch with these fingers until they agree).
+TOUCH_FINGERS = (0.772, -0.544, 0.33)
+A['near'] = _with(A['approach'], arm__L=dict(touch=(-0.0022, -0.0002, 0.0007), fingers=TOUCH_FINGERS, back=(0.10, -0.15, 1.0), on=TOUCH_ELBOW))
+A['touch'] = _with(A['near'], arm__L=dict(touch=(-0.0006, 0.0, 0.0004), fingers=TOUCH_FINGERS, back=(0.10, -0.15, 1.0), on=TOUCH_ELBOW),
                    curl__L={'all': (10, 14), 'index': (4, 6), 'middle': (6, 9), 'thumb': THUMB_TUCK})
 # (the thumb tucked, from the carry on: hanging, it lay down the side of her forearm, and the hand read as laid
 # on her arm rather than at the cuff: the cinematic note in the creative director's gate review;
@@ -611,8 +622,11 @@ def resolve(figs):
     # 0.9 s while she pulled away, and the touch never visibly ended: the creative director's review
     # of the final render, 2026-10-21. It replaces a slower sink and ease, a beat later, and a blink
     # no one could see.)
-    off = dict(t, wrist=(t['wrist'][0] - 0.0115, t['wrist'][1] - 0.0010, t['wrist'][2] + 0.0015), fingers=(0.95, -0.30, 0.10))
-    A['reflex'] = _with(A['lift2'], arm__L=off, curl__L={'all': (19, 23), 'index': (13, 15), 'middle': (15, 18), 'thumb': THUMB_TUCK})
+    # He sits back out of the lean as he lets go, and the fingers stay near the forearm's line (with
+    # the lean kept, the wrist drawn back folded his elbow to 55 degrees and the hand bent 38 off it).
+    off = dict(t, wrist=(t['wrist'][0] - 0.0115, t['wrist'][1] - 0.0010, t['wrist'][2] + 0.0015), fingers=(0.72, -0.62, 0.22))
+    A['reflex'] = _with(A['lift2'], spine=A['hesitate']['spine'], chest=A['hesitate']['chest'], arm__L=off,
+                        curl__L={'all': (19, 23), 'index': (13, 15), 'middle': (15, 18), 'thumb': THUMB_TUCK})
     bake(figs)
     vl.update()
 
