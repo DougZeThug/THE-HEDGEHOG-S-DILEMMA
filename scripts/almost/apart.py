@@ -1,6 +1,6 @@
 """After her startle, his hand is off her arm in the picture too: every photograph from his hand's
-first drawing off the cloth (on her first still frames, after her startle's frames on ones) to his
-retreat, the gap the camera sees between his left hand and her right arm.
+first held drawing in the air (it slips off her sleeve over the four drawings before, as she lays
+her arm down) to his retreat, the gap the camera sees between his left hand and her right arm.
 
     blender -b --factory-startup --python scripts/almost/apart.py -- [--out DIR] [--only A-B]
 
@@ -101,9 +101,9 @@ def main():
     os.makedirs(out, exist_ok=True)
     a, b, frames, unique = xsheet.frames()
     order = sorted(unique.items(), key=lambda kv: kv[1])
-    # from his hand's first drawing off the cloth (after her startle's frames on ones) to his first
-    # drawing of the retreat
-    f0 = next(f for f, (ia, ib), u in frames if a.drawings[ia][1] == 'reflex')
+    # from his hand's first held drawing in the air (its fingertips slip off her sleeve over the
+    # drawings before, while she is still moving) to his first drawing of the retreat
+    f0 = next(f for f, (ia, ib), u in frames if a.drawings[ia][1] == 'reflex' and a.drawings[ia][2] >= 1 - 1e-9)
     lo = frames[f0][2]
     hi = next(u for f, (ia, ib), u in frames if a.drawings[ia][1].startswith('back'))
     if opts.get('only'):

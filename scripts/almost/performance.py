@@ -461,12 +461,17 @@ THUMB_TUCK = (10, 5, 60)
 A['lift'] = _with(A['notice'], spine=(3, 1.5, 2), shoulder__L=(1, 6),
                   arm__L=dict(wrist=(-0.0110, -0.0170), fingers=(0.60, -0.80), tuck=0.028),
                   curl__L={'all': (8, 10), 'index': (5, 6), 'thumb': THUMB_REST})
+# It goes up and across together, so the forearm swings toward her as it rises and the hand stays
+# pointing across the table. (Lifted 10-15 mm while it moved 2 mm toward her, the forearm pointed
+# at the lens and the hand hung below its cuff, back to the lens, for a third of a second: a paw
+# at 102-109, the creative director's review of the draft, 2026-10-21.)
 A['carry'] = _with(A['lift'], spine=(3, 2.5, 3), chest=(5, 1.5, 5), shoulder__L=(2, 8),
-                   arm__L=dict(wrist=(-0.0090, -0.0143, T + 0.0150), fingers=(0.55, -0.82, -0.15), back=(0.1, -0.35, 0.9), on='air', tuck=0.026),
+                   arm__L=dict(wrist=(-0.0056, -0.0138, T + 0.0150), fingers=(0.66, -0.75, -0.05), back=(0.1, -0.35, 0.9), on='air', tuck=0.026),
                    curl__L={'all': (14, 18), 'index': (8, 10), 'thumb': THUMB_TUCK})
-# (halfway up, the fingers rise with the forearm, which still points at the lens: hanging level from
-# a forearm tipping up, the hand bent 25-33 degrees at the wrist and read as a paw again)
-A['rise'] = _with(A['carry'], arm__L=dict(wrist=(-0.0100, -0.0158, T + 0.0105), fingers=(0.40, -0.88, 0.12), back=(0.10, -0.35, 0.93), on='air', tuck=0.026))
+# (Its elbow turns evenly round the line from shoulder to wrist, 32 to -3 degrees over six drawings:
+# aimed 1 mm higher and 1 mm further across, the risen pose's elbow sat 18 degrees round from the
+# drawings either side of it, and it jumped 4-5 mm in one drawing.)
+A['rise'] = _with(A['carry'], arm__L=dict(wrist=(-0.0078, -0.0156, T + 0.0090), fingers=(0.62, -0.78, 0.05), back=(0.10, -0.35, 0.93), on='air', tuck=0.026))
 A['hesitate'] = _with(A['carry'], arm__L=dict(wrist=(-0.0032, -0.0112, T + 0.0178), fingers=(0.74, -0.67, 0.05), back=(0.12, -0.25, 0.95), on='air'),
                       curl__L={'all': (18, 22), 'index': (10, 12), 'thumb': THUMB_TUCK})
 A['hesitate curl'] = _with(A['hesitate'], curl__L={'all': (21, 25), 'index': (13, 15), 'thumb': THUMB_TUCK})
