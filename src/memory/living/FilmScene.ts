@@ -58,6 +58,15 @@ export function drawable(v: HTMLVideoElement): boolean {
   }
 }
 
+/** A film's video let go: stopped, emptied, its blob URL released. */
+export function releaseFilm(v: HTMLVideoElement): void {
+  v.pause();
+  const src = v.src;
+  v.removeAttribute('src');
+  v.load();
+  if (src.startsWith('blob:')) URL.revokeObjectURL(src);
+}
+
 /**
  * A video element for a film's blob URL, muted and inline, with its first frame decoded and
  * drawable. (Safari on an iPhone may decode nothing of a video that has not played: it is played
@@ -105,10 +114,7 @@ export async function loadFilm(
     });
   } catch (e) {
     // (Kept, a failed film held its blob, the whole film, for every attempt: QA, 2026-10-21.)
-    v.pause();
-    v.removeAttribute('src');
-    v.load();
-    if (url.startsWith('blob:')) URL.revokeObjectURL(url);
+    releaseFilm(v);
     throw e;
   }
   return v;
@@ -273,11 +279,7 @@ export class FilmScene {
     this.disposed = true;
     const video = this.art.video;
     video.removeEventListener('seeked', this.onSeeked);
-    video.pause();
-    const src = video.src;
-    video.removeAttribute('src');
-    video.load();
-    if (src.startsWith('blob:')) URL.revokeObjectURL(src);
+    releaseFilm(video);
     this.texture.dispose();
     this.material.dispose();
     this.quad.dispose();

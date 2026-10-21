@@ -262,11 +262,12 @@ def main():
                         seams.append((u, side, round(p99, 1), round(mx, 1)))
             outside = np.ones((H, W), bool)
             outside[max(0, y0 - 40):y1 + 40, max(0, x0 - 40):x1 + 40] = False
-            breathe = (np.abs(dev - shown).max(axis=2)[outside] * 255 > 0.5).mean() * 100
+            breathe = (np.abs(dev - shown).max(axis=2)[outside] * 255 > 0.5).mean() * 100 if outside.any() else 0.0
             shown = shown.copy()
             shown[y0:y1, x0:x1] = before * (1 - m) + after * m
-            note = (f'edge {np.percentile(diff[edge], 99):.2f} p99 / {diff[edge].max():.2f} max levels;'
-                    f' whole-frame denoise would have moved {breathe:.1f}% of the still room')
+            # (A region grown to the whole frame has no feathered edge: nothing to measure there.)
+            note = (f'edge {np.percentile(diff[edge], 99):.2f} p99 / {diff[edge].max():.2f} max levels;' if edge.any() else 'the whole frame;') + \
+                f' whole-frame denoise would have moved {breathe:.1f}% of the still room'
         write16(photo(u), shown)
         print(f'DEVELOPED {u:04d} {time.time() - t0:5.1f}s  {note}', flush=True)
     if os.path.exists(tmp):

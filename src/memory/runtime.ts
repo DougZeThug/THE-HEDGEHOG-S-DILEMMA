@@ -10,7 +10,7 @@ import type { WindowLayer, LayerKind } from '../world/MemoryWindow';
 import { LivingScene, type FigureArt, type HeadCels, type LivingArt, type NearArt, type Eye } from './living/LivingScene';
 import { WOODLAND as WOODLAND_SPEC, type LivingSpec } from './living/woodland';
 import { ALMOST } from './living/almost';
-import { FilmScene, filmType, loadFilm } from './living/FilmScene';
+import { FilmScene, filmType, loadFilm, releaseFilm } from './living/FilmScene';
 import { fetchBlob } from './fetched';
 
 /**
@@ -315,6 +315,7 @@ export async function prepare(id: string, variant: string, host: RuntimeHost): P
   }
   let living: PreparedLiving | null = null;
   if (isFilm(lm)) {
+    let video: HTMLVideoElement | null = null;
     try {
       // The film: the browser's best type, decoded from its blob (fetched ahead), its first frame
       // ready before the memory is; its wall's order map as the woodland's.
@@ -326,7 +327,7 @@ export async function prepare(id: string, variant: string, host: RuntimeHost): P
         fetchBlob(`${base}${def.art}/${lm.film}${suffix}.${type}`),
         new Promise<never>((_, no) => setTimeout(() => no(new Error('film not fetched in time')), FILM_FETCH_MS)),
       ]);
-      const video = await loadFilm(URL.createObjectURL(blob));
+      video = await loadFilm(URL.createObjectURL(blob));
       const orderR = lm.order ? await loadLayer(url(lm.order, ''), { data: true }) : null;
       if (orderR) extra.push(orderR);
       const size = targetSize(host);
@@ -341,7 +342,10 @@ export async function prepare(id: string, variant: string, host: RuntimeHost): P
         l.bitmap.close();
       }
       extra.length = 0;
-      scene?.dispose();
+      // (A film loaded before its order map failed is no scene's yet: let go here, or its blob and
+      // decoder stayed for every attempt: review of PR 14.)
+      if (scene) scene.dispose();
+      else if (video) releaseFilm(video);
       scene = null;
       const poster = manifest.variants[v].find((l) => l.name === 'scene');
       if (poster) {
