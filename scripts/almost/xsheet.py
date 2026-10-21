@@ -89,12 +89,12 @@ def sheet():
     b.to_frame(158).move('touched half', 1, 2, 'linear', 'contact').move('touched', 1, 4, 'linear')
     b.move('startle1', 1, 1, 'linear', 'startle').move('startle2', 1, 1, 'linear').move('startle3', 1, 2, 'linear')
     b.move('settle', 2, 2, 'out').move('withdrawn', 2, 3, 'inout')
-    # 5. realisation: his hand stays in the air where her sleeve was; drops a little; a blink; back
-    # across the table a little quicker than it came (reluctant to start), turned along the edge
-    # and slipped down past it into his lap
-    a.to_frame(186, 'suspended').move('after drop', 2, 2, 'out').hold(6)
-    a.move('blink', 1, 2, 'linear', 'blink').move('half blink', 1, 2, 'linear').move('after drop', 1, 2, 'linear')
-    a.to_frame(212).move('back1', 4, 2, 'in', 'withdraws').move('back2', 3, 3, 'linear')
+    # 5. realisation: on her second frame his fingertips come off the cloth, on ones (contact breaks
+    # from both sides), and his hand stays there in the air; then back across the table a little
+    # quicker than it came (reluctant to start), turned along the edge and slipped down past it
+    # into his lap
+    a.to_frame(165).move('reflex', 2, 1, 'out', 'his hand off the cloth')
+    a.to_frame(212, 'suspended').move('back1', 4, 2, 'in', 'withdraws').move('back2', 3, 3, 'linear')
     a.move('back3', 3, 2, 'linear').move('turn', 2, 2, 'linear').move('edge', 2, 2, 'linear').move('slip', 2, 2, 'linear')
     a.move('lap left', 4, 2, 'out', 'into his lap')
     # (silence: nothing moves, 255-295; the fridge goes on)
@@ -104,7 +104,7 @@ def sheet():
     b.hold(16, 'hesitation').move('offer2', 8, 2, 'inout')
     # 7. too late: his hand stays in his lap; one slow breath, and at its top his head turns a few
     # degrees toward her (the almost), held; then back, and nothing follows
-    a.to_frame(415).move('lap breathe', 4, 4, 'inout', 'too late').hold(8).move('lap left', 5, 4, 'inout')
+    a.to_frame(415).move('lap breathe', 4, 4, 'inout', 'too late').hold(12).move('lap left', 5, 4, 'inout')
     # 8. almost: four seconds after her offer her eyes go down to the table between them; they sit
     b.to_frame(487).move('lower', 12, 2, 'inout', 'almost')
     end = 679

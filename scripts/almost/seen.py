@@ -29,7 +29,7 @@ import performance  # noqa: E402
 KEYS = [
     ('together', 'together', 'together'),
     ('touched', 'lift2', 'touched'),
-    ('withdrawn', 'after drop', 'withdrawn'),
+    ('withdrawn', 'reflex', 'withdrawn'),
     ('look', 'lap left', 'look'),
     ('offer2', 'lap left', 'offer2'),
     ('lower', 'lap left', 'lower'),

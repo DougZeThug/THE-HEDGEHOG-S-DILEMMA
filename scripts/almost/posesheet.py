@@ -22,7 +22,7 @@ KEYS = [
     ('3  he reaches (a hesitation)', 'hesitate curl', 'together'),
     ('3  the corner rises under his fingertip', 'lift2', 'touched'),
     ('4  she starts', 'lift2', 'startle1'),
-    ('5  his hand left in the air', 'after drop', 'withdrawn'),
+    ('5  his hand left in the air', 'reflex', 'withdrawn'),
     ('5  into his lap', 'lap left', 'withdrawn'),
     ('6  she looks at him', 'lap left', 'look'),
     ('6  she lays her arm nearer him', 'lap left', 'offer2'),

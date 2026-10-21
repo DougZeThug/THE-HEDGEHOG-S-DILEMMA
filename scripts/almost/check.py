@@ -16,6 +16,11 @@ they are rendered, not the cage posing works on):
   Measured from the forearm's axis toward each point of the hand behind the wrist: the wall met
   first. (A wrist that bent as one piece with the hand swung its hidden end out through the top of
   his cuff whenever the hand drooped from it, through most of the reach: final QA, 2026-10-21.)
+- **paw:** a hand in the air (its lowest felt 3 mm or more above the wood) that hangs from its wrist
+  further down the picture than PAW_DEG: wrist to middle fingertip, as the lens sees it. Lifted with
+  the fingers toward the lens and drooping, his hand stood under a short foreshortened cuff, back
+  to the lens, as a begging paw (the creative director's review of the final render, 2026-10-21).
+  The wrist's own measures cannot see it: it is a bend seen in projection.
 
 Depths are to the nearest surface, so one deeper than half the top's thickness (3.25 mm) reads as
 its distance to the underside: still a fault.
@@ -23,11 +28,13 @@ its distance to the underside: still a fault.
 Prints one line per photograph that fails, and a summary.
 """
 import json
+import math
 import os
 import sys
 
 import bpy
 import numpy as np
+from bpy_extras.object_utils import world_to_camera_view
 from mathutils import Vector
 from mathutils.bvhtree import BVHTree
 
@@ -44,6 +51,9 @@ INTO_OK = 0.0004
 GAP_OK = 0.0006
 THROUGH_OK = 0.0003
 WALL = 0.003        # nearer a sleeve's axis than this is inside the wrist (its inner wall: 4.4 mm and more)
+PAW_DEG = 55.0
+IN_AIR = 0.003
+W_PX, H = 1280, 1440    # the film's frame (the angle in its pixels)
 
 
 def verts(ob):
@@ -114,6 +124,7 @@ def main():
     opts = build.args()
     opts['res'] = (64, 72)
     figs = build.setup(opts)
+    sc = bpy.context.scene
     for ob in bpy.data.objects:
         for m in ob.modifiers:
             if m.type == 'PARTICLE_SYSTEM':
@@ -163,7 +174,7 @@ def main():
                     g = co[f'{k} hand.{side}'][:, 2].min() - kitchen.TABLE_TOP
                     if g > GAP_OK:
                         row.setdefault('gap', {})[f'{k} hand.{side}'] = round(g * 1000, 2)
-        # each wrist inside its own sleeve
+        # each wrist inside its own sleeve; a hand in the air not hanging down the picture
         for k, fig in figs.items():
             for side in 'LR':
                 E = performance.posed_head(fig, f'forearm.{side}')
@@ -171,13 +182,19 @@ def main():
                 d = through(co[f'{k} hand.{side}'], tree(obj[f'{k} sleeve.{side}'])[0], E, W)
                 if d > THROUGH_OK:
                     row.setdefault('through', {})[f'{k} hand.{side}'] = round(d * 1000, 2)
-        failed = any(x in row for x in ('dip', 'into', 'gap', 'through'))
+                if co[f'{k} hand.{side}'][:, 2].min() - kitchen.TABLE_TOP >= IN_AIR:
+                    w2 = world_to_camera_view(sc, sc.camera, W)
+                    t2 = world_to_camera_view(sc, sc.camera, performance.fingertip(fig, side, 'middle'))
+                    down = math.degrees(math.atan2((w2.y - t2.y) * H, abs(t2.x - w2.x) * W_PX))
+                    if down > PAW_DEG:
+                        row.setdefault('paw', {})[f'{k} hand.{side}'] = round(down, 1)
+        failed = any(x in row for x in ('dip', 'into', 'gap', 'through', 'paw'))
         bad += failed
         if failed:
             print('FAIL', json.dumps(row), flush=True)
         report.append(row)
     print(f'CHECKED {len(report)} photographs, {bad} with a fault (dip > {DIP_OK * 1000:.1f} mm, into > {INTO_OK * 1000:.1f} mm, gap > {GAP_OK * 1000:.1f} mm,'
-          f' through > {THROUGH_OK * 1000:.1f} mm)', flush=True)
+          f' through > {THROUGH_OK * 1000:.1f} mm, paw > {PAW_DEG:.0f} deg)', flush=True)
     if opts.get('out'):
         with open(opts['out'], 'w') as fh:
             json.dump(report, fh, indent=1)

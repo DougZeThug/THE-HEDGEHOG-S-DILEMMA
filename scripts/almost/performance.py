@@ -438,27 +438,38 @@ A['together'] = {
 }
 # (one breath, deep enough to be seen: a breath of a degree read as nothing at the film's size)
 A['breathe'] = _with(A['together'], chest=(3, 0, 3), head=(10, -1.5, -8), shoulder__L=(2, 4), shoulder__R=(1, 3))
-# 2. noticing: his eyes, then his head, go to the fold on her sleeve
-A['notice'] = _with(A['together'], head=(15, -2, 22), neck=(4, 0, 5), chest=(5, 0.5, 4), spine=(3, 1.0, 2), lids=(-0.25, -0.25))
+# 2. noticing: his eyes, then his head, go to the fold on her sleeve. (His head turns more than it
+# bows: bowed as far as he looks, the lens above his eyes saw his lit crown and a strip of face under
+# it, from here to the retreat: the creative director's review of the final render, 2026-10-21.)
+A['notice'] = _with(A['together'], head=(10, -2, 22), neck=(4, 0, 5), chest=(5, 0.5, 4), spine=(3, 1.0, 2), lids=(-0.25, -0.25))
 # 3. reaching: the wrist lifts first, the fingers trailing; across in three goes, a hesitation (the
 # fingers drawing in a little further while it lasts), on. The wrist goes up one rising arc from where
 # it lay to her cuff, which rides up her sloping forearm a couple of centimetres above the wood: low
 # along the front and then up and back to it, the hand scooped and the elbow went forward and back
 # (the artist asked for natural human motion, 2026-10-21). In the air the hand is carried near
 # level with the forearm; it bends down only to set its fingertips on the fold (hanging 55 degrees
-# from the wrist across the table, it read as a doll's limp paw)
+# from the wrist across the table, it read as a doll's limp paw). It turns toward her while its
+# fingertips are still near the wood, the wrist leading only a little, and then rises: lifted
+# first with the fingers toward the lens and drooping, it hung under its cuff, back to the lens, as
+# a begging paw (the creative director's review of the final render; check.py's `paw`).
+# His thumb in the air: swung in toward his index finger and laid along the underside of the hand,
+# as a relaxed hand carries it, eased in over the carry and kept to his lap. (Left out it hung below
+# his palm as a stub: decision 25. Folded right under, curled alone, it went back under his wrist
+# and into his cuff, and it snapped folded and open in a drawing each: final QA, 2026-10-21.)
+THUMB_REST = (10, 8, 0)      # (curl's own, written out so a pose can ease to and from the tuck)
+THUMB_TUCK = (10, 5, 60)
 A['lift'] = _with(A['notice'], spine=(3, 1.5, 2), shoulder__L=(1, 6),
-                  arm__L=dict(wrist=(-0.0200, -0.0205, T + 0.0100), fingers=(0.25, -0.88, -0.45), back=(0.1, -0.35, 0.9), on='air', tuck=0.026),
-                  curl__L={'all': (14, 18), 'index': (8, 10)})
+                  arm__L=dict(wrist=(-0.0195, -0.0200, T + 0.0065), fingers=(0.35, -0.92, -0.18), back=(0.10, -0.25, 0.96), on='air', tuck=0.026),
+                  curl__L={'all': (8, 10), 'index': (5, 6), 'thumb': THUMB_REST})
 A['carry'] = _with(A['lift'], spine=(3, 2.5, 3), chest=(5, 1.5, 5), shoulder__L=(2, 8),
                    arm__L=dict(wrist=(-0.0090, -0.0143, T + 0.0150), fingers=(0.55, -0.82, -0.15), back=(0.1, -0.35, 0.9), on='air', tuck=0.026),
-                   curl__L={'all': (14, 18), 'index': (8, 10), 'thumb': (100, 85)})
+                   curl__L={'all': (14, 18), 'index': (8, 10), 'thumb': THUMB_TUCK})
 A['hesitate'] = _with(A['carry'], arm__L=dict(wrist=(-0.0032, -0.0112, T + 0.0178), fingers=(0.74, -0.67, 0.05), back=(0.12, -0.25, 0.95), on='air'),
-                      curl__L={'all': (18, 22), 'index': (10, 12), 'thumb': (100, 85)})
-A['hesitate curl'] = _with(A['hesitate'], curl__L={'all': (21, 25), 'index': (13, 15), 'thumb': (100, 85)})
-A['approach'] = _with(A['hesitate'], spine=(3, 3.5, 4), chest=(5, 2.5, 6), shoulder__L=(2, 10), head=(17, -2.5, 26),
+                      curl__L={'all': (18, 22), 'index': (10, 12), 'thumb': THUMB_TUCK})
+A['hesitate curl'] = _with(A['hesitate'], curl__L={'all': (21, 25), 'index': (13, 15), 'thumb': THUMB_TUCK})
+A['approach'] = _with(A['hesitate'], spine=(3, 3.5, 4), chest=(5, 2.5, 6), shoulder__L=(2, 10), head=(12, -2.5, 26),
                       arm__L=dict(wrist=(0.0040, -0.0073, T + 0.0198), fingers=(0.91, -0.41, -0.05), back=(0.10, -0.18, 1.0), on='air'),
-                      curl__L={'all': (12, 16), 'index': (5, 7), 'middle': (7, 10), 'thumb': (100, 85)})
+                      curl__L={'all': (12, 16), 'index': (5, 7), 'middle': (7, 10), 'thumb': THUMB_TUCK})
 # the touch: low and level, from his side, the index and middle fingers leading (a hand putting a
 # fold right, not pointing at it); his elbow down at his side, a little out and back, so the
 # forearm crosses the table instead of pointing into the lens. (Aimed in toward his middle, the
@@ -466,52 +477,56 @@ A['approach'] = _with(A['hesitate'], spine=(3, 3.5, 4), chest=(5, 2.5, 6), shoul
 TOUCH_ELBOW = (-0.008, 0.012, T + 0.003)
 A['near'] = _with(A['approach'], arm__L=dict(touch=(-0.0022, -0.0002, 0.0007), fingers=(0.94, -0.30, -0.14), back=(0.10, -0.15, 1.0), on=TOUCH_ELBOW))
 A['touch'] = _with(A['near'], arm__L=dict(touch=(-0.0006, 0.0, 0.0004), fingers=(0.95, -0.28, -0.14), back=(0.10, -0.15, 1.0), on=TOUCH_ELBOW),
-                   curl__L={'all': (10, 14), 'index': (4, 6), 'middle': (6, 9), 'thumb': (100, 85)})
-# (the thumb folded under, from the carry on: hanging, it lay down the side of her forearm, and the hand read as laid
+                   curl__L={'all': (10, 14), 'index': (4, 6), 'middle': (6, 9), 'thumb': THUMB_TUCK})
+# (the thumb tucked, from the carry on: hanging, it lay down the side of her forearm, and the hand read as laid
 # on her arm rather than at the cuff: the cinematic note in the creative director's gate review;
-# half-tucked, it still hung below the wrist as a stub: the cinematic director's review, 2026-10-21)
+# see THUMB_TUCK)
 # the fold's corner rises under his fingertip, one drawing after the other (see resolve)
 A['lift1'] = dict(A['touch'])
 A['lift2'] = dict(A['touch'])
-# 5. realisation: the hand left in the air where the cuff was, a little drop, the fingers drawing in
-A['after touch'] = dict(A['touch'])
-A['blink'] = _with(A['touch'], lids=(1.0, 1.0))
-A['half blink'] = _with(A['touch'], lids=(0.5, 0.5))
+# 5. realisation: his hand comes off the cloth as she starts, and stays in the air (`reflex`, made
+# in resolve from where the touch put it)
+A['reflex'] = dict(A['touch'])
 # then back across the table, a little quicker than he came, and down off its edge into his lap;
 # his look goes from her sleeve, down and to his own side (embarrassed: never at her). The hand
 # draws straight back toward his own side of the table's edge (out toward the lens first, it made
-# a detour). (The wrist a centimetre up: lower, the curled fingers of the in-betweens went 2 mm
-# into the wood.)
-A['back1'] = _with(A['notice'], spine=(3, 2.0, 3), chest=(6, 1.5, 4), shoulder__L=(0, 7), head=(16, -2, 16),
-                   arm__L=dict(wrist=(-0.0030, -0.0080, T + 0.0150), fingers=(0.10, -0.97, -0.15), back=(0.0, -0.3, 0.95), on='air'),
-                   curl__L={'all': (20, 24), 'index': (16, 18)}, lids=(0.15, 0.15))
-A['back2'] = _with(A['back1'], spine=(3, 1.0, 2), chest=(7, 0.5, 3), shoulder__L=(-1, 5), head=(15, -1.5, 8),
-                   arm__L=dict(wrist=(-0.0150, -0.0060, T + 0.0115), fingers=(-0.20, -0.95, -0.20), back=(0.0, -0.3, 0.95), on='air'))
+# a detour), low and level over the wood, its fingers nearly straight, turning toward his middle as
+# far as the wrist allows. (A centimetre and more up, the fingers curled and pointing at the lens,
+# it hung as a paw again: the creative director's review of the final render, 2026-10-21. With the
+# fingers curled, lower, the in-betweens' fingertips went 2 mm into the wood: check.py's `dip`.)
+A['back1'] = _with(A['notice'], spine=(3, 2.0, 3), chest=(6, 1.5, 4), shoulder__L=(0, 7), head=(11, -2, 16),
+                   arm__L=dict(wrist=(-0.0045, -0.0090, T + 0.0100), fingers=(0.70, -0.70, -0.12), back=(0.08, -0.20, 0.97), on='air'),
+                   curl__L={'all': (12, 14), 'index': (8, 10), 'thumb': THUMB_TUCK}, lids=(0.15, 0.15))
+A['back2'] = _with(A['back1'], spine=(3, 1.0, 2), chest=(7, 0.5, 3), shoulder__L=(-1, 5), head=(11, -1.5, 8),
+                   arm__L=dict(wrist=(-0.0150, -0.0070, T + 0.0075), fingers=(0.30, -0.94, -0.12), back=(0.05, -0.20, 0.98), on='air'))
 # (level over the wood until the wrist is at its edge)
-A['back3'] = _with(A['back2'], shoulder__L=(-2, 3), head=(14, -1, 3), neck=(3, 0, 1),
-                   arm__L=dict(wrist=(-0.0260, -0.0010, T + 0.0088), fingers=(-0.30, -0.90, -0.30), back=(0.0, -0.3, 0.95), on='air'))
+A['back3'] = _with(A['back2'], shoulder__L=(-2, 3), head=(11, -1, 3), neck=(3, 0, 1),
+                   arm__L=dict(wrist=(-0.0250, -0.0020, T + 0.0065), fingers=(-0.30, -0.94, -0.15), back=(0.0, -0.25, 0.97), on='air'))
 # then turned to lie along the edge (level, over the wood), rolled onto its little finger's side
 # as a hand drawn back to the body turns, and slipped edge-first down the 9 mm between the table
 # and his jumper: no rise (lifted and turned down in the air, it read as a raised paw: the
 # skeptic's review; turned and rolled at once, its fingers swept through the wood). The roll
 # begins as it turns, a third of the way: rolled all at once on the next drawing, the hand
 # flicked over (a wrist turned 58 degrees in a twelfth of a second).
-A['turn'] = _with(A['back3'], head=(13, -1, 1),
+A['turn'] = _with(A['back3'], head=(11, -1, 1),
                   arm__L=dict(wrist=(-0.0258, 0.0012, T + 0.0090), fingers=(-0.95, -0.22, -0.20), back=(-0.08, -0.60, 0.80), on='air'),
-                  curl__L={'all': (16, 20), 'index': (12, 14)})
-A['edge'] = _with(A['turn'], head=(13, -1, 0),
+                  curl__L={'all': (16, 20), 'index': (12, 14), 'thumb': THUMB_TUCK})
+A['edge'] = _with(A['turn'], head=(11, -1, 0),
                   arm__L=dict(wrist=(-0.0262, 0.0042, T + 0.0070), fingers=(-0.88, -0.05, -0.45), back=(-0.10, -0.99, 0.05), on='air'),
-                  curl__L={'all': (18, 22), 'index': (14, 16)})
-A['slip'] = _with(A['edge'], head=(13, -1, -4),
+                  curl__L={'all': (18, 22), 'index': (14, 16), 'thumb': THUMB_TUCK})
+A['slip'] = _with(A['edge'], head=(11, -1.5, -4),
                   arm__L=dict(wrist=(-0.0272, 0.0040, T - 0.0060), fingers=(-0.55, -0.05, -0.83), back=(-0.05, -1.0, 0.05), on='air'))
-# 7. too late: looking at his cup and his other hand by it again, as at first, a few degrees lower;
-# nothing hangs
-A['lap left'] = _with(A['back3'], spine=(3, 0.0, 1), chest=(7, 0.0, 0), neck=(3, 0, 0), head=(13, -1, -8), shoulder__L=(-3, 3),
+# 7. too late: looking at his cup and his other hand by it again, as at first, his eyes open on it;
+# the weight of it is in his chest, not his head. (Bowed further, his eyes read shut from the
+# silence to the end: hurt announced, the ending the first review cut. The creative director's
+# review of the final render, 2026-10-21.) Nothing hangs
+A['lap left'] = _with(A['back3'], spine=(3, 0.0, 1), chest=(9, 0.0, 0), neck=(3, 0, 0), head=(11, -1.5, -8), shoulder__L=(-3, 3),
                       arm__L=dict(wrist=(-0.0315, 0.0080, 0.0930), fingers=(-0.20, -0.75, -0.62), back=(0.0, -0.5, 0.85), on='down'),
-                      curl__L={'all': (22, 26), 'index': (18, 20)}, lids=(0.1, 0.1))
-# his one slow breath after her offer, and at its top his head turns a few degrees toward her: the
-# almost. Then back, and nothing follows.
-A['lap breathe'] = _with(A['lap left'], chest=(5, 0, 0), shoulder__L=(-2, 4), shoulder__R=(-2, 3), neck=(3, 0, 1), head=(12, -1, -2))
+                      curl__L={'all': (22, 26), 'index': (18, 20), 'thumb': THUMB_TUCK}, lids=(-0.15, -0.15))
+# his one slow breath after her offer, and at its top his head turns toward her, eleven degrees, his
+# eyes still down, held half a second: the almost. Then back, and nothing follows. (Six degrees moved
+# his nose 4 px at 1280: it read as a breath, not a turn: the creative director's review.)
+A['lap breathe'] = _with(A['lap left'], chest=(7, 0, 0), shoulder__L=(-2, 4), shoulder__R=(-2, 3), neck=(3, 0, 1), head=(11, -1.5, 3))
 
 B = {}
 # 1. together: inward and a little tired, looking at the table in front of her, not at the lens.
@@ -581,13 +596,14 @@ def resolve(figs):
         arm.update(wrist=w)
         A[name] = _with(A[name], arm__L=arm)
     t = A['lift2']['arm.L']
-    # (it sinks 5 mm and eases 7 mm back toward him, still in the air: held where her sleeve was, his
-    # fingertips sat on her settled arm in the picture; about 26 px of table between them at 1280 wide)
-    drop = dict(t, wrist=(t['wrist'][0] - 0.0070, t['wrist'][1] - 0.0015, t['wrist'][2] - 0.0050))
-    A['after touch'] = _with(A['lift2'])
-    A['after drop'] = _with(A['lift2'], arm__L=drop, curl__L={'all': (17, 21), 'index': (9, 11), 'middle': (11, 14), 'thumb': (100, 85)})
-    A['blink'] = _with(A['after drop'], lids=(1.0, 1.0))
-    A['half blink'] = _with(A['after drop'], lids=(0.5, 0.5))
+    # his reflex: as she starts, his fingertips come off the cloth, the wrist 6.5 mm back toward him
+    # and a little up, the fingers drawing in, and there it stays in the air. Contact breaks from both
+    # sides, as it does when someone flinches under your fingers. (Held where her sleeve was, his
+    # fingertips lay on her cuff and then her forearm in the picture for 0.9 s while she pulled away,
+    # and the touch never visibly ended: the creative director's review of the final render,
+    # 2026-10-21. It replaces a slower sink and ease, a beat later, and a blink no one could see.)
+    off = dict(t, wrist=(t['wrist'][0] - 0.0065, t['wrist'][1] - 0.0010, t['wrist'][2] + 0.0015))
+    A['reflex'] = _with(A['lift2'], arm__L=off, curl__L={'all': (19, 23), 'index': (13, 15), 'middle': (15, 18), 'thumb': THUMB_TUCK})
     bake(figs)
     vl.update()
 
