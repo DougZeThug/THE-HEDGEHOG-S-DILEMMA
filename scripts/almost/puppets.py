@@ -1,8 +1,8 @@
 """The two felt figures of "Almost", made as a puppet maker would make them, in code.
 
 Each figure is a stuffed felt body on a wire armature, dressed. A, the one who reaches, wears a
-hand-knitted rust jumper. B, the one who startles, wears a felted blue-grey cardigan over a cream
-shirt, its right cuff turned back on itself so a wedge of ivory lining shows. Both have:
+hand-knitted rust jumper. B, the one who startles, wears a felted blue-grey cardigan over an olive
+rib-knit roll-neck, the cardigan's right cuff turned back on itself so a wedge of ivory lining shows. Both have:
 - felt hands with short wire-stiffened fingers;
 - a needle-felted head with knotted eyes, a felt nose and a stitched mouth;
 - wool hair.
@@ -76,8 +76,8 @@ SPECS = {
         hand=1.14,
     ),
     # B: the one who startles. Slimmer, upright; a longer face, eyes closer, a small straight nose;
-    # long blonde hair from under a knitted hat; a felted blue-grey cardigan over an oatmeal
-    # roll-neck.
+    # long blonde hair from under a knitted hat; a felted blue-grey cardigan over a dark olive
+    # rib-knit roll-neck.
     'b': dict(
         seed=11,
         origin=(kitchen.CHAIR_X['b'] + 0.0005, kitchen.CHAIR_Y - 0.003, kitchen.SEAT_Z),
@@ -96,9 +96,10 @@ SPECS = {
         ear=dict(size=(0.0022, 0.0045, 0.0066), z=0.0005, y=0.0012),
         skin=srgb('#dcc4ae'), hand_col=srgb('#c19a80'), blush=srgb('#dba697'), nose_col=srgb('#dfbfae'), eye_col=srgb('#1d1816'), mouth_col=srgb('#86594d'),
         hair=dict(style='hat', color=srgb('#d2b27c'), hat=srgb('#57524c'), front=0.64, back=-0.10, thick=0.0026, crown=(0.0, 0.006, 0.020), part=0.0),
-        jumper=('felt', P['bluegrey']), shirt=srgb('#b0a48a'), trousers=srgb('#4a4e50'), shoes=srgb('#2b2725'),
-        # (a chin, the hat higher on her brow and the roll-neck lower on her throat: a round face
-        # under a hat pulled to the brows read as a child's: the creative director's review)
+        jumper=('felt', P['bluegrey']), shirt=srgb('#5a5848'), trousers=srgb('#4a4e50'), shoes=srgb('#2b2725'),
+        # (a chin and the hat higher on her brow: a round face under a hat pulled to the brows read
+        # as a child's. The roll-neck is dark, under her face and her hair, and up to her jaw: an
+        # oatmeal one read as a bare chest and a choker. The creative director's reviews)
         head_scale=0.90,
         hand=1.09,
     ),
@@ -179,10 +180,10 @@ def strand_felt(name, color):
     n = Nodes(mat)
     p = n.coords('uv')
     sep = n.add('ShaderNodeSeparateXYZ', Vector=p)
-    uv = n.add('ShaderNodeCombineXYZ', X=n.math('MULTIPLY', sep.outputs['Y'], 60.0), Y=n.math('MULTIPLY', sep.outputs['X'], 1100.0))
+    uv = n.add('ShaderNodeCombineXYZ', X=n.math('MULTIPLY', sep.outputs['Y'], 60.0), Y=n.math('MULTIPLY', sep.outputs['X'], 500.0))
     streak = n.add('ShaderNodeTexNoise', _noise_dimensions='2D', Vector=uv.outputs['Vector'], Scale=1.0, Detail=5.0, Roughness=0.6, Distortion=0.6)
     fine = n.add('ShaderNodeTexNoise', _noise_dimensions='2D', Vector=uv.outputs['Vector'], Scale=6.0, Detail=3.0)
-    col = n.mix(n.math('MULTIPLY', n.math('SUBTRACT', streak.outputs['Fac'], 0.3), 1.1, clamp=True), rgba(scaled(color, 0.68)), rgba(color))
+    col = n.mix(n.math('MULTIPLY', n.math('SUBTRACT', streak.outputs['Fac'], 0.3), 1.1, clamp=True), rgba(scaled(color, 0.5)), rgba(color))
     col = n.mix(n.math('MULTIPLY', fine.outputs['Fac'], 0.3), col, rgba(scaled(color, 1.15)))
     # each lock a little lighter or darker than the next (±12%), as hand-dyed wool is
     shade = n.math('ADD', n.math('MULTIPLY', n.add('ShaderNodeObjectInfo').outputs['Random'], 0.24), 0.88)
@@ -191,8 +192,10 @@ def strand_felt(name, color):
     n.link(n.add('ShaderNodeCombineXYZ', X=shade, Y=shade, Z=shade).outputs['Vector'], vm.inputs[1])
     col = vm.outputs['Vector']
     bmp = n.add('ShaderNodeBump', Strength=0.8, Distance=0.0004, Height=n.math('ADD', streak.outputs['Fac'], n.math('MULTIPLY', fine.outputs['Fac'], 0.4)))
-    bsdf = n.add('ShaderNodeBsdfPrincipled', **{'Base Color': col, 'Roughness': 0.95, 'Sheen Weight': 0.4, 'Sheen Roughness': 0.6,
-                                               'Sheen Tint': rgba(scaled(color, 1.3)), 'Specular IOR Level': 0.2,
+    # (no tinted sheen and little gloss: with them each lock shaded as one smooth tube with a bright
+    # band down it, a moulded ribbon: the creative director's gate review)
+    bsdf = n.add('ShaderNodeBsdfPrincipled', **{'Base Color': col, 'Roughness': 0.95, 'Sheen Weight': 0.1, 'Sheen Roughness': 0.6,
+                                               'Sheen Tint': (1.0, 1.0, 1.0, 1.0), 'Specular IOR Level': 0.05,
                                                'Normal': bmp.outputs['Normal']})
     n.out(bsdf.outputs['BSDF'])
     return mat
@@ -231,8 +234,10 @@ def materials(key, spec):
                                flecks=(scaled(colour, 1.45), srgb('#4b5560')), bump=0.55)
         m['lining'] = lining_felt(f'{key} lining', P['ivory'])
         m['lining fibre'] = lib.fiber(f'{key} lining fibre', P['ivory'], lift=1.0)
-        m['shirt'] = lib.felt(f'{key} shirt', spec['shirt'], coords='rest', sheen=0.5, mottle=0.06, speck=0.08, bump=0.3, dimples=False)
+        # (one rib-knit roll-neck, in the cardigan's V and round her throat: a smooth felt the colour
+        # of her skin read as a bare chest, the brief's doll: the creative director's gate review)
         m['roll'] = lib.knit(f'{key} roll neck', spec['shirt'], coords='uv', rib=True, stitch=(0.0011, 0.0013), depth=0.4)
+        m['shirt'] = m['roll']
         m['button'] = lib.glazed(f'{key} button', srgb('#6b5038'), rough=0.35, dirt=0.3)
         m['hem thread'] = lib.thread(f'{key} hem thread', srgb('#a89874'), coords='rest', sheen=0.4)
     m['seam'] = lib.thread(f'{key} seam', scaled(colour, 0.8), coords='rest', sheen=0.4)
@@ -681,9 +686,10 @@ class Figure:
         top = s['sections'][-2]
         z, yo = top[0] + 0.0004, top[3]
         if 'shirt' in M:
-            # B: a cream roll-neck under the cardigan, not quite to the jaw
+            # B: an olive-grey roll-neck under the cardigan, up to the jaw (lowered, its rolled lip
+            # read as a choker on a bare throat)
             rn = Part('roll neck')
-            z0, z1 = z - 0.003, Vector(b).z - 0.0055
+            z0, z1 = z - 0.003, Vector(b).z - 0.0032
             path_tube(rn, [Vector((0, yo, z0)), Vector((0, yo, (z0 + z1) / 2)), Vector((0, yo - 0.0002, z1))], [r + 0.0024, r + 0.0018, r + 0.0016],
                       lambda p, t: {'chest': 1 - sstep(0.002, 0.008, t), 'neck': sstep(0.002, 0.008, t)}, segs=28, cap_end=False)
             loop = [Vector((math.cos(2 * math.pi * k / 48) * (r + 0.0021), yo - 0.0002 + math.sin(2 * math.pi * k / 48) * (r + 0.0021), z1)) for k in range(48)]

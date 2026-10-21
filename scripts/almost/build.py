@@ -44,7 +44,10 @@ VIEWS = {
     'a-hand': ((-0.030, -0.085, 0.150), (-0.022, -0.026, 0.115), 100.0, 0.0),
 }
 
-CAMERA = {'lens': 42.0, 'fstop': 11.0, 'at': (0.0, -0.285, 0.236), 'aim': (0.0, 0.012, 0.159), 'focus': (0.0, -0.0002, 0.1387)}
+# (aimed 19 mm lower when the table came down 14 mm: the hands, the fold and the cup stay in the 16:9
+# band, the hat keeps its headroom and the shade's rim stays above the frame)
+CAMERA = {'lens': 42.0, 'fstop': 11.0, 'at': (0.0, -0.285, 0.236), 'aim': (0.0, 0.012, 0.140), 'focus': (0.0, -0.0002, 0.1317)}
+FACE_CARD = 0.022      # watts: the reflector's light under her hat (lights())
 
 
 def args():
@@ -164,6 +167,17 @@ def lights():
     co = lib.link(bpy.data.objects.new('ceiling light', ceil))
     co.location = (kitchen.LAMP.x, kitchen.LAMP.y + 0.01, kitchen.LAMP.z + 0.075)
     co.visible_camera = False
+    # a card out of frame below the lamp's pool, throwing the table's warm light back up under the
+    # brim of her hat, as a miniature is lit with a reflector: her eyes carry her look and her
+    # ending, and under the brim her face had about half the light his had (the creative director's
+    # gate review, 2026-10-20)
+    card = bpy.data.lights.new('face card', 'AREA')
+    card.shape, card.size, card.size_y = 'RECTANGLE', 0.05, 0.03
+    card.energy, card.color = FACE_CARD, (1.0, 0.74, 0.50)
+    cd = lib.link(bpy.data.objects.new('face card', card))
+    cd.location = (0.045, -0.075, 0.128)
+    cd.rotation_euler = (Vector((0.041, 0.020, 0.172)) - cd.location).to_track_quat('-Z', 'Y').to_euler()
+    cd.visible_camera = cd.visible_glossy = cd.visible_transmission = False
     return ob
 
 

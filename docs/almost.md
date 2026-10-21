@@ -89,13 +89,19 @@ npm run memories:seed -- --force=almost-film
 - **Her cuff** is shaped pose by pose with shape keys, as a puppet maker pins cloth between
   exposures. Its corner rises under his fingertip over two drawings (`lift`). After the startle it
   settles a little differently (`after`), and the fold is still there at the end.
+- **The table is an adult's table to these figures:** its top is 27 mm above the seat, against
+  shoulders 59 mm above it and 29 mm upper arms. At 41 mm, a child's at a grown-up table, a forearm
+  laid on the wood could only put its elbow out to the side or up over the shoulder (the artist,
+  2026-10-21). No elbow is drawn in toward the body's middle: his left elbow rests a little outside
+  his shoulder, as his right does.
 - **His touch comes from his side,** low and level, with the index and middle fingers leading. His
-  elbow is out to his side and back, so his forearm crosses the table. Aimed straight at her
-  wrist, the forearm pointed into the lens and read as a post.
+  elbow hangs at his side, a little out and back, so his forearm crosses the table. Aimed straight
+  at her wrist, the forearm pointed into the lens and read as a post. Aimed in toward his middle,
+  the upper arm came forward at the lens and read as bent inwards.
 - **The fold is in the picture whenever it is held.** Her near forearm lies angled in toward her
   own middle, so the side of the cuff with the fold faces him and the lens; in her offer her elbow
   slides out toward him on the wood. `seen.py` counts the lining the camera sees in each held pose
-  (748-848 pixels at 1280 wide; at least 120).
+  (1032-1128 pixels at 1280 wide; at least 120).
 - **Her startle** sends her elbow back and down along her side: nothing of hers moves toward him.
   **His hand goes to his lap** by turning along the table's edge, rolling onto its little finger's
   side and slipping down past it: no lift, which read as a raised paw.

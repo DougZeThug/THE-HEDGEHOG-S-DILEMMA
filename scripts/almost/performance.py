@@ -208,7 +208,7 @@ def curl(fig, side, fingers=None, thumb=(10, 8)):
     """Curl each finger's two joints toward the palm (degrees beyond the rest curl)."""
     fingers = fingers or {}
     for f in puppets.FINGERS:
-        a, b = thumb if f == 'thumb' else fingers.get(f, fingers.get('all', (8, 10)))
+        a, b = fingers.get('thumb', thumb) if f == 'thumb' else fingers.get(f, fingers.get('all', (8, 10)))
         for j, ang in ((1, a), (2, b)):
             pb = fig.arm.pose.bones[f'{f}{j}.{side}']
             pb.rotation_quaternion = Euler((math.radians(-ang), 0, 0), 'XYZ').to_quaternion()
@@ -394,13 +394,17 @@ def _with(base, **changes):
 
 A = {}
 # (Wrists are where the chairs now stand, 3 mm further apart than in the prototype: a strip of
-# chair back between their near elbows, which are tucked in toward their own bodies.)
+# chair back between their near elbows.)
 # He looks at his own cup and his hand by it, so his noticing the fold is a turn of attention you
 # can see; he ends looking there again (the skeptic's review, 2026-10-20).
 A['together'] = {
     'spine': (3, 0.5, 2), 'chest': (5, 0, 3), 'neck': (2, 0, -2), 'head': (11, -1.5, -8),
     'shoulder.L': (0, 4), 'shoulder.R': (-1, 3),
-    'arm.L': dict(wrist=(-0.0245, -0.0205), fingers=(-0.30, -0.95), tuck=0.013),
+    # (the elbow a little outside his shoulder, the hand in front of it, as his other arm is: drawn in
+    # toward his middle, or left to fall there, the elbow went in front of his belly and the arm read
+    # as bent inwards: the artist, 2026-10-21. A strip of chair back still shows between their near
+    # elbows)
+    'arm.L': dict(wrist=(-0.0205, -0.0205), fingers=(-0.22, -0.97), tuck=0.028),
     # his other hand rests by his cup (the two arms are not a mirror)
     'arm.R': dict(wrist=(-0.0600, -0.0215), fingers=(-0.22, -0.97)),
     'curl.L': {'all': (8, 10), 'index': (4, 6)}, 'curl.R': {'all': (14, 16)},
@@ -413,23 +417,26 @@ A['notice'] = _with(A['together'], head=(15, -2, 22), neck=(4, 0, 5), chest=(5, 
 # 3. reaching: the wrist lifts first, the fingers trailing; across in three goes, a hesitation (the
 # fingers drawing in a little further while it lasts), on
 A['lift'] = _with(A['notice'], spine=(3, 1.5, 2), shoulder__L=(1, 6),
-                  arm__L=dict(wrist=(-0.0222, -0.0228, T + 0.0108), fingers=(0.25, -0.88, -0.45), back=(0.1, -0.35, 0.9), on='air'),
+                  arm__L=dict(wrist=(-0.0222, -0.0228, T + 0.0108), fingers=(0.25, -0.88, -0.45), back=(0.1, -0.35, 0.9), on='air', tuck=0.026),
                   curl__L={'all': (14, 18), 'index': (8, 10)})
 A['carry'] = _with(A['lift'], spine=(3, 2.5, 3), chest=(5, 1.5, 5), shoulder__L=(2, 8),
-                   arm__L=dict(wrist=(-0.0135, -0.0242, T + 0.0116), fingers=(0.55, -0.75, -0.40), back=(0.1, -0.35, 0.9), on='air'))
+                   arm__L=dict(wrist=(-0.0135, -0.0242, T + 0.0116), fingers=(0.55, -0.75, -0.40), back=(0.1, -0.35, 0.9), on='air', tuck=0.026))
 A['hesitate'] = _with(A['carry'], arm__L=dict(wrist=(-0.0075, -0.0248, T + 0.0094), fingers=(0.74, -0.58, -0.34), back=(0.12, -0.25, 0.95), on='air'),
                       curl__L={'all': (18, 22), 'index': (10, 12)})
 A['hesitate curl'] = _with(A['hesitate'], curl__L={'all': (21, 25), 'index': (13, 15)})
 A['approach'] = _with(A['hesitate'], spine=(3, 3.5, 4), chest=(5, 2.5, 6), shoulder__L=(2, 10), head=(17, -2.5, 26),
                       arm__L=dict(wrist=(0.0000, -0.0258, T + 0.0085), fingers=(0.88, -0.40, -0.22), back=(0.10, -0.18, 1.0), on='air'),
-                      curl__L={'all': (12, 16), 'index': (5, 7), 'middle': (7, 10)})
+                      curl__L={'all': (12, 16), 'index': (5, 7), 'middle': (7, 10), 'thumb': (30, 24)})
 # the touch: low and level, from his side, the index and middle fingers leading (a hand putting a
-# fold right, not pointing at it); his elbow out to his side and back, so the forearm crosses the
-# table instead of pointing into the lens
-TOUCH_ELBOW = (-0.047, 0.010, T + 0.004)
+# fold right, not pointing at it); his elbow down at his side, a little out and back, so the
+# forearm crosses the table instead of pointing into the lens. (Aimed in toward his middle, the
+# upper arm came forward at the lens and read as bent inwards: the artist, 2026-10-21.)
+TOUCH_ELBOW = (-0.008, 0.012, T + 0.003)
 A['near'] = _with(A['approach'], arm__L=dict(touch=(-0.0022, -0.0002, 0.0007), fingers=(0.94, -0.30, -0.14), back=(0.10, -0.15, 1.0), on=TOUCH_ELBOW))
 A['touch'] = _with(A['near'], arm__L=dict(touch=(-0.0006, 0.0, 0.0004), fingers=(0.95, -0.28, -0.14), back=(0.10, -0.15, 1.0), on=TOUCH_ELBOW),
-                   curl__L={'all': (10, 14), 'index': (4, 6), 'middle': (6, 9)})
+                   curl__L={'all': (10, 14), 'index': (4, 6), 'middle': (6, 9), 'thumb': (34, 28)})
+# (the thumb tucked under: hanging, it lay down the side of her forearm, and the hand read as laid
+# on her arm rather than at the cuff: the cinematic note in the creative director's gate review)
 # the fold's corner rises under his fingertip, one drawing after the other (see resolve)
 A['lift1'] = dict(A['touch'])
 A['lift2'] = dict(A['touch'])
@@ -473,11 +480,12 @@ B = {}
 # 1. together: inward and a little tired, looking at the table in front of her, not at the lens.
 # Her near forearm lies angled in toward her own middle, its elbow out a little, so the side of
 # the cuff with the fold faces him and the lens. (Tucked in, the forearm pointed at the lens and
-# her hand hid the fold in every held pose: the skeptic's review; scripts/almost/seen.py.)
+# her hand hid the fold in every held pose: the skeptic's review; scripts/almost/seen.py. Her wrist
+# is a little nearer her than his: she sits upright, and further out her arm locked straight.)
 B['together'] = {
     'spine': (0, -0.5, -1), 'chest': (-1, 0, -2), 'neck': (2, 0, 2), 'head': (10, 0, 5),
     'shoulder.L': (0, 1), 'shoulder.R': (1, 3),
-    'arm.R': dict(wrist=(0.0265, -0.0205), fingers=(0.42, -0.91), tuck=0.026),
+    'arm.R': dict(wrist=(0.0265, -0.0180), fingers=(0.42, -0.91), tuck=0.026),
     'arm.L': dict(wrist=(0.0575, 0.0050, 0.0915), fingers=(-0.55, -0.7, -0.2), back=(0.0, 0.3, 1.0), on='down'),
     'curl.L': {'all': (20, 25)}, 'curl.R': {'all': (10, 12), 'index': (6, 8)},
     'cuff': {'lift': 0.0, 'after': 0.0}, 'lids': (0.0, 0.0), 'chair': (0.0, 0.0), 'root': (0.0, 0.0, 0.0),
@@ -534,7 +542,7 @@ def resolve(figs):
     t = A['lift2']['arm.L']
     drop = dict(t, wrist=(t['wrist'][0] - 0.0004, t['wrist'][1] + 0.0006, t['wrist'][2] - 0.0016))
     A['after touch'] = _with(A['lift2'])
-    A['after drop'] = _with(A['lift2'], arm__L=drop, curl__L={'all': (17, 21), 'index': (9, 11), 'middle': (11, 14)})
+    A['after drop'] = _with(A['lift2'], arm__L=drop, curl__L={'all': (17, 21), 'index': (9, 11), 'middle': (11, 14), 'thumb': (30, 24)})
     A['blink'] = _with(A['after drop'], lids=(1.0, 1.0))
     A['half blink'] = _with(A['after drop'], lids=(0.5, 0.5))
     bake(figs)

@@ -50,7 +50,7 @@ import xsheet  # noqa: E402
 
 PAD = 30          # pixels round a change (fibres, soft shadows, the lens's blur)
 PAD_HAIR = 50     # round a change of her long hair (its fibres are 7 mm, about 40 px)
-SEEN_WALL_Z = 0.047   # the back wall is seen above the table's far edge down to about here
+SEEN_WALL_Z = 0.020   # the back wall is seen above the table's far edge down to about here (0.025)
 
 
 def movers(figs):

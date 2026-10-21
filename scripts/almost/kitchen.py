@@ -16,9 +16,13 @@ from mathutils import Matrix, Vector
 import lib
 from lib import Nodes, rgba, scaled, srgb
 
-TABLE_TOP = 0.112          # top surface height (75 cm real)
+# the top's height: 27 mm above the seat, an adult's table to these figures (their shoulders 59 mm
+# above the seat, upper arms 29 mm). At 41 mm, a child's at a grown-up table, a forearm laid on the
+# wood had nowhere to put its elbow but out to the side or up over the shoulder (the artist: "his
+# left arm bends at a completely unnatural angle", 2026-10-21)
+TABLE_TOP = 0.098
 TABLE_X = (-0.112, 0.112)
-TABLE_Y = (-0.128, 0.0)    # the far edge, nearest the figures, at y = 0
+TABLE_Y = (-0.160, 0.0)    # the far edge, nearest the figures, at y = 0 (the near edge out of frame)
 TOP_T = 0.0065             # thickness of the top
 WARP = 0.0004              # the top rises this much toward its middle (old wood is never flat)
 WALL_Y = 0.150             # the back wall's face
@@ -298,7 +302,7 @@ def table(mat):
     top = plank_top('table top', x0, x1, y0, y1, TABLE_TOP, TOP_T, mat)
     zap = TABLE_TOP - TOP_T
     parts = [top]
-    ap_h, ap_t = 0.013, 0.004
+    ap_h, ap_t = 0.006, 0.004      # (shallow: the knees go under it)
     parts.append(lib.rounded_box('apron front', (x1 - x0 - 0.03, ap_t, ap_h), center=(0, y0 + 0.012, zap - ap_h / 2), bevel=0.0005, material=mat))
     parts.append(lib.rounded_box('apron back', (x1 - x0 - 0.03, ap_t, ap_h), center=(0, y1 - 0.012, zap - ap_h / 2), bevel=0.0005, material=mat))
     for sx in (x0 + 0.013, x1 - 0.013):
@@ -465,36 +469,35 @@ def fridge(mat, handle_mat):
     return [body, handle]
 
 
-def cup(glaze_mat, clay_mat):
-    """A chipped cup by A's right hand: ivory glaze, a notch out of the rim showing the clay."""
+def cup(glaze_mat):
+    """A chipped cup by A's right hand: ivory glaze, a notch knocked out of the rim."""
     c = Vector((-0.082, -0.040, TABLE_TOP))
     bm = bmesh.new()
     seg = 48
     prof = [(0.0, 0.0), (0.0068, 0.0), (0.0074, 0.0012), (0.0078, 0.006), (0.0083, 0.0128), (0.0085, 0.0138),
             (0.0078, 0.0138), (0.0076, 0.0125), (0.0071, 0.006), (0.0064, 0.0016), (0.0, 0.0016)]
-    # the chip: 3 mm of the rim's top, toward the lens, knocked 0.6 mm down (most at its middle)
+    # the chip: 3 mm of the rim, toward the lens, knocked a millimetre down, unevenly (a notch in
+    # the rim's line; a clay patch on it read as a strip of tape: the creative director's gate review)
     notch = -math.pi / 4
+    jag = [0.75, 1.0, 0.55, 0.95, 0.7, 1.0, 0.6]
 
     def chipped(k):
         d = math.remainder(2 * math.pi * k / seg - notch, 2 * math.pi) * 0.0085
-        return max(0.0, 1.0 - (d / 0.0016) ** 2)
+        return max(0.0, 1.0 - (d / 0.0016) ** 2) * jag[k % len(jag)]
     rings = []
     for i, (r, h) in enumerate(prof):
         ring = []
         for k in range(seg):
-            dz = -0.0006 * chipped(k) * {4: 0.4, 5: 1.0, 6: 1.0, 7: 0.5}.get(i, 0.0)
+            dz = -0.0011 * chipped(k) * {4: 0.35, 5: 1.0, 6: 1.0, 7: 0.45}.get(i, 0.0)
             th = 2 * math.pi * k / seg
             ring.append(bm.verts.new(c + Vector((r * math.cos(th), r * math.sin(th), h + dz))))
         rings.append(ring)
-    for i, (a, b) in enumerate(zip(rings, rings[1:])):
+    for a, b in zip(rings, rings[1:]):
         for k in range(seg):
-            f = bm.faces.new((a[k], a[(k + 1) % seg], b[(k + 1) % seg], b[k]))
-            if 4 <= i <= 6 and max(chipped(k), chipped(k + 1)) > 0.3:
-                f.material_index = 1
+            bm.faces.new((a[k], a[(k + 1) % seg], b[(k + 1) % seg], b[k]))
     bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-6)
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     ob = lib.mesh_object('cup', bm, glaze_mat, subdiv=1)
-    ob.data.materials.append(clay_mat)
     handle = lib.tube('cup handle', [c + Vector((-0.0078, 0.0, 0.0115)), c + Vector((-0.0118, 0.0, 0.0105)), c + Vector((-0.0128, 0.0, 0.0068)),
                                      c + Vector((-0.0112, 0.0, 0.0035)), c + Vector((-0.0076, 0.0, 0.003))],
                       [0.0011] * 5, segments=12, material=glaze_mat, subdiv=1, flatten=0.7, up=(0, 1, 0))
@@ -582,7 +585,6 @@ def build(collection):
     dark = lib.painted('dark cloth', srgb('#2a2622'), rough=0.8)
     chrome = metal('chrome', srgb('#c8c8c4'), rough=0.25)
     glaze = lib.glazed('cup glaze', srgb('#ece3cd'), rough=0.12, dirt=0.1)
-    clay = lib.painted('clay', srgb('#b4835f'), rough=0.9, texture=0.2)
     cloth = lib.checked_cloth('dishcloth', srgb('#ddd5bf'), srgb('#b98e78'), squares=120.0)
     clock_rim = lib.painted('clock rim', srgb('#3a2e24'), rough=0.45)
 
@@ -599,7 +601,7 @@ def build(collection):
     # symbol the brief warns against. The dishcloth was in neither crop, and a second fold.)
     parts['fridge'] = fridge(fridge_enamel, chrome)
     parts['lamp'] = lamp(shade, shade_inside, dark)
-    parts['cup'] = cup(glaze, clay)
+    parts['cup'] = cup(glaze)
     parts['floor'] = floor(floorboards(), cream_paint)
     # each chair on its own pivot (on the floor under the seat), so it can scrape back a little
     for key in ('a', 'b'):
