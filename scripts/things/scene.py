@@ -29,7 +29,7 @@ W, H = 1280, 1440                   # the open matte, as "Almost"'s (the room's 
 # The camera stands far back with a long lens, level, so the whole doorway (its lintel and its
 # threshold) is inside the band a wide screen shows (rows 360-1080): the last image is a doorway
 # on every screen. (The creative director, Proof A.)
-CAM = dict(loc=(0.18, -6.0, 1.10), look=(0.18, 0.0, 1.10), lens=28.0)
+CAM = dict(loc=(0.18, -6.5, 1.0), look=(0.18, 0.0, 1.0), lens=28.0)     # (6 m left her toes on the band's edge: the cinematic director)
 DOOR = dict(x0=0.30, x1=1.20, h=2.06, t=0.16)     # the opening; the wall's thickness
 EXPOSURE = -1.3                     # the tonal render's: the lit walls just under white, the corridor at it
 
@@ -53,7 +53,7 @@ YOUNG = dict(
 OLDER = dict(
     macro=dict(gender=0.0, age=0.84, muscle=0.3, weight=0.66, proportions=0.4, height=0.36, cupsize=0.4, firmness=0.25, race=CAUCASIAN),
     clothes=['female_casualsuit01'], hair='short04', hair_lines=False,
-    value={'body': 0.5, 'female_casualsuit01': 0.26, 'short04': 0.45, 'low-poly': 0.3},
+    value={'body': 0.5, 'female_casualsuit01': 0.26, 'short04': 0.3, 'low-poly': 0.3},
 )
 
 # Landmarks for the drawing (draw.py): a few long bones, named as a draughtsman thinks of them,
@@ -193,18 +193,8 @@ def place():
     # outside: the corridor's far wall, its floor, a light on the wall
     box('corridor wall', -3.0, 4.0, 1.55, 1.65, 0, 5.0, material('corridor', (0.75, 0.75, 0.74)), arch, 4)
     box('corridor rail', 0.9, 2.6, 1.48, 1.55, 0.92, 0.96, dark, arch, 4)
-    # inside: a narrow table with a bowl (where keys are left)
+    # nothing else inside: the white wall (a table drawn in line read as a sawhorse)
     things = coll('things')
-    box('table top', -1.9, -1.25, -0.32, 0, 0.78, 0.81, wood, things, 6)
-    box('table leg a', -1.88, -1.85, -0.3, -0.27, 0, 0.78, wood, things, 6)
-    box('table leg b', -1.3, -1.27, -0.3, -0.27, 0, 0.78, wood, things, 6)
-    bpy.ops.mesh.primitive_uv_sphere_add(radius=0.09, location=(-1.58, -0.15, 0.83))
-    bowl = bpy.context.active_object
-    bowl.name = 'bowl'
-    bowl.scale = (1, 1, 0.4)
-    bowl.data.materials.append(dark)
-    bowl.pass_index = 6
-    link(bowl, things)
     # the door, hinged at the opening's right jamb, opening inward
     door = coll('door')
     leaf = box('door', d['x0'] + 0.01, d['x1'] - 0.01, 0.0, 0.045, 0.0, d['h'] - 0.01, wood, door, 7)

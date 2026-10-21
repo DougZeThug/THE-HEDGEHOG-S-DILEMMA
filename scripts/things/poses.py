@@ -107,11 +107,11 @@ POSES = {
                                   'upperleg01.L': (-10, 0, 0), 'lowerleg01.L': (6, 0, 0), 'upperleg01.R': (6, 0, 0), 'foot.L': (8, 0, 0)},
                            reach={'R': {'hand': ('world', (1.17, -0.03, 1.2)), 'elbow': (-0.5, 0.0, 0.6)}})},
     # the second thing imagined: half a step, her hand rising toward his collar; he has not turned
+    # (only her arm rises, from where she stands: her fingers pinched at his collar's height stop at
+    # the left casing, so the doorway is between her hand and him: the creative director)
     'collar': {'door': -82,
-               'older': dict(at=(0.2, -0.2), face=80, local=PINCH,
-                             bones=_plus(STOOP, spine05=(-4, 0, 0), spine02=(-2, 0, 0), neck01=(-14, 0, 0), head=(-12, 0, 0),
-                                         upperleg01__R=(-12, 0, 0), lowerleg01__R=(10, 0, 0), upperleg01__L=(10, 0, 0), foot__L=(-18, 0, 0)),
-                             reach={'R': {'hand': ('near', 'young', 'neck02', 0.07, -0.02), 'elbow': (-0.4, 0.1, 0.4)}}),
+               'older': dict(OLDER_WAVE, local=PINCH, bones=_plus(STOOP, head=(-8, -5, 0), neck01=(-4, 0, 0)),
+                             reach={'R': {'hand': ('world', (0.2, -0.08, 1.4)), 'elbow': (-0.3, 0.1, 0.3)}}),
                'young': YOUNG_GOING},
 }
 
@@ -130,7 +130,8 @@ WALK = [
     {'upperleg01.R': (2, 0, 0), 'lowerleg01.R': (6, 0, 0), 'upperleg01.L': (-14, 0, 0), 'lowerleg01.L': (40, 0, 0), 'foot.L': (-6, 0, 0),
      'upperarm01.L': (0, 0, 0)},
 ]
-PATH = [((0.76, 0.08), 100), ((0.92, 0.26), 88), ((1.08, 0.42), 84), ((1.26, 0.5), 82), ((1.44, 0.52), 82)]
+# (the last two: half behind the casing, then only his shoulder and the bag at its edge)
+PATH = [((0.76, 0.08), 100), ((0.92, 0.26), 88), ((1.06, 0.4), 84), ((1.18, 0.46), 82), ((1.34, 0.5), 82)]
 
 
 def going(k):
@@ -148,7 +149,7 @@ GONE = dict(at=(2.4, 0.6), face=90, shown=False)
 def waving(k):
     """Her small wave: the hand rocks at the wrist, a little to and fro, then comes down."""
     w = dict(OLDER_WAVE)
-    w['bones'] = _plus(OLDER_WAVE['bones'], wrist__R=((0, 0, 14), (0, 0, -10), (0, 0, 12), (0, 0, -6))[k % 4])
+    w['bones'] = _plus(OLDER_WAVE['bones'], wrist__R=((0, 0, 30), (0, 0, -24), (0, 0, 28), (0, 0, -10))[k % 4])
     return w
 
 
@@ -156,8 +157,11 @@ LOWERED = dict(OLDER_WAVE, reach={'R': {'hand': (-0.18, -0.12, 0.86), 'elbow': (
 
 for _k in range(1, 5):
     POSES[f'going{_k}'] = {'door': -82, 'older': waving(_k), 'young': going(_k)}
-for _k, _a in enumerate((-82, -60, -34, -12, 0)):
+for _k, _a in enumerate((-82, -55, -30, -12, -4)):     # the closer slows it at the end
     POSES[f'door{_k}'] = {'door': _a, 'older': waving(_k) if _k < 2 else LOWERED, 'young': GONE}
 POSES['shut'] = {'door': 0, 'older': LOWERED, 'young': GONE}
 # the empty doorway, at the end: the door open as the revisions left it, nobody
 POSES['empty'] = {'door': -82, 'older': dict(LOWERED, shown=False), 'young': GONE}
+# her wave, seen before his walk takes the eye: two rocks of the wrist
+for _k in (1, 2):
+    POSES[f'wave{_k}'] = {'door': -82, 'older': waving(_k), 'young': YOUNG_GOING}

@@ -143,8 +143,11 @@ class Drawing:
         self.marks.append(dict(kind=kind, name=name, part=part, layer=layer, pts=np.asarray(pts, np.float32).round(2).tolist(), **k))
 
     # contours
-    def contours(self, group, part, tool, base, gain, lost=0.0, wobble=1.0, over=(2, 7), most=150.0, double=0.0, fine=(), carry=0.0, lines=None, layer='contour'):
-        """`fine`: circles (x, y, r, tool, size) where the line is lighter (a head, a hand)."""
+    def contours(self, group, part, tool, base, gain, lost=0.0, wobble=1.0, over=(2, 7), most=150.0, double=0.0, fine=(), carry=0.0, lines=None, layer='contour',
+                 outline=None):
+        """`fine`: circles (x, y, r, tool, size, gain) where the line is drawn otherwise (a head
+        lighter, a hand). `outline`: ids whose inside lines are left out (only the edge of the
+        silhouette drawn: an imagined figure's lapel drew as a black tie, the creative director)."""
         rng = np.random.default_rng(seed_of(self.prefix + part + group))
         for li, line in enumerate(self.ref['strokes'].get(group, []) if lines is None else lines):
             pts = np.array([[p[0], p[1]] for p in line], np.float32)
@@ -165,35 +168,43 @@ class Drawing:
                         # where the tone cannot show the edge (a lit figure on a lit wall), the
                         # line carries the form, at a weight that holds it
                         p = np.where(step < 0.25, np.maximum(p, carry), p)
-                    runs = [(0, len(q))]
+                    keep = np.ones(len(q), bool)
+                    if outline is not None:
+                        d = np.gradient(q, axis=0)
+                        nrm = np.stack([-d[:, 1], d[:, 0]], 1)
+                        nrm /= np.linalg.norm(nrm, axis=1, keepdims=True) + 1e-6
+                        def side(o):
+                            r = q + nrm * o
+                            return np.isin(self.ids[np.clip(r[:, 1].astype(int), 0, H - 1), np.clip(r[:, 0].astype(int), 0, W - 1)], outline)
+                        keep &= ~(side(5.0) & side(-5.0))
                     if lost > 0:
                         # lost and found: where the tone already shows the edge (dark against
                         # light), the line comes and goes with a slow seeded rhythm, as a hand
                         # lifts; where it does not (a lit figure on a lit wall), the line holds it
                         drift = np.interp(np.linspace(0, 1, len(q)), np.linspace(0, 1, 6), rng.uniform(-1, 1, 6))
-                        keep = (step < 0.25) | ((w + 0.12 * drift) > lost * 0.55 + 0.25)
-                        runs = []
-                        i = 0
-                        while i < len(q):
-                            if keep[i]:
-                                j = i
-                                while j < len(q) and keep[j]:
-                                    j += 1
-                                if j - i >= 4:
-                                    runs.append((i, j))
-                                i = j
-                            else:
-                                i += 1
+                        keep &= (step < 0.25) | ((w + 0.12 * drift) > lost * 0.55 + 0.25)
+                    runs = []
+                    i = 0
+                    while i < len(q):
+                        if keep[i]:
+                            j = i
+                            while j < len(q) and keep[j]:
+                                j += 1
+                            if j - i >= 4:
+                                runs.append((i, j))
+                            i = j
+                        else:
+                            i += 1
                     for r0, r1 in runs:
                         qq, pp = q[r0:r1], p[r0:r1].copy()
                         # the hand eases in and out of a stroke
                         pp *= np.clip(np.sin(np.linspace(0.12, 0.88, len(qq)) * math.pi) * 1.25, 0.35, 1)
                         t_, sz = tool, 1.0
                         c = qq.mean(0)
-                        for fx, fy, fr, ft, fs in fine:
+                        for fx, fy, fr, ft, fs, fg in fine:
                             if (c[0] - fx) ** 2 + (c[1] - fy) ** 2 < fr * fr:
                                 t_, sz = ft, fs
-                                pp *= 0.8
+                                pp = np.clip(pp * fg, 0.05, 1.0)
                                 break
                         self.add('stroke', part, layer, qq, tool=t_, pressure=pp.round(3).tolist(), size=sz)
                     if double and runs and rng.random() < double:
@@ -506,18 +517,24 @@ def scene_marks(ref, prefix, sheet=None, parts=('place', 'young', 'older'), line
         dr.contours('arch', 'arch', 'charcoal', 0.1, 0.55, lost=0.6, wobble=0.8, over=(3, 9), most=170)
     for who in people:
         lm = dr.ref['landmarks'][who]
+        imagined = who in line_only
+        # what is imagined is drawn in graphite, lighter than any charcoal of what happened and
+        # cleaner to erase; its outline only; its hands first and heaviest (the creative director)
+        line, hand_tool, hand_gain = ('pencil', 'pencil', 1.35) if imagined else ('charcoal', 'pencil', 0.8)
         fine = []
         hx0, hy0, _, hx1, hy1, _ = lm['head']
-        fine.append(((hx0 + hx1) / 2, (hy0 + hy1) / 2, 0.75 * math.hypot(hx1 - hx0, hy1 - hy0) + 6, 'charcoal', 0.6))
+        fine.append(((hx0 + hx1) / 2, (hy0 + hy1) / 2, 0.75 * math.hypot(hx1 - hx0, hy1 - hy0) + 6, line, 0.6 if not imagined else 1.0, 0.8))
         for sd in ('L', 'R'):
             a0, b0, _, a1, b1, _ = lm[f'hand.{sd}']
-            fine.append((a1, b1, 1.1 * math.hypot(a1 - a0, b1 - b0) + 5, 'pencil', 1.0))
-        dr.contours(who, who, 'charcoal', 0.14, 0.75, lost=0.45, wobble=0.9, over=(1, 4), most=90, double=0.2, fine=fine, carry=0.5)
+            fine.append((a1, b1, 1.1 * math.hypot(a1 - a0, b1 - b0) + 5, hand_tool, 1.0, hand_gain))
+        outline = FIGURE_IDS[who] if imagined else None
+        dr.contours(who, who, line, 0.14, 0.75, lost=0.45, wobble=0.9, over=(1, 4), most=90, double=0.0 if imagined else 0.2, fine=fine, carry=0.5,
+                    outline=outline)
         # the head's outline from the silhouette (the hair's strands drew as stripes and its
         # hairline as a scar: the reviewers), lighter, lost and found as the rest
-        dr.contours(who, who, 'charcoal', 0.14, 0.75, lost=0.45, wobble=0.6, over=(1, 3), most=60, fine=fine, carry=0.45,
+        dr.contours(who, who, line, 0.14, 0.75, lost=0.45, wobble=0.6, over=(1, 3), most=60, fine=fine, carry=0.45,
                     lines=head_outline(ids, FIGURE_IDS[who], fine[0]))
-        if who != 'young':
+        if who != 'young' and not imagined:
             face_marks(dr, who)          # (in his memory he does not see his own face)
     apply(sheet, dr.marks[n0:])
     return dr.marks, sheet
@@ -530,7 +547,7 @@ def casing_marks(ref, prefix, near, r=110.0):
     cx, cy = near
     pieces = []
     for line in ref['strokes'].get('arch', []):
-        p = np.array([[a, b] for a, b, _ in line], np.float32)
+        p = resample(np.array([[a, b] for a, b, _ in line], np.float32), 2.0)    # (sparse vertices fell outside the circle)
         keep = (p[:, 0] - cx) ** 2 + (p[:, 1] - cy) ** 2 < r * r
         run = []
         for q, k in zip(p, keep):
@@ -542,7 +559,7 @@ def casing_marks(ref, prefix, near, r=110.0):
         if run:
             pieces.append(np.array(run))
     off = rng.uniform(-2.5, 2.5, 2)
-    pieces = [pc + off for pc in pieces if len(pc) > 3]
+    pieces = [pc + off for pc in pieces if len(pc) > 1 and np.linalg.norm(np.diff(pc, axis=0), axis=1).sum() > 8]
     dr = Drawing(ref, prefix)
     dr.contours('arch', 'arch', 'charcoal', 0.35, 0.3, wobble=1.3, over=(2, 8), most=90, lines=pieces)
     return dr.marks

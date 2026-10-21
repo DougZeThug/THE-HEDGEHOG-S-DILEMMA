@@ -38,7 +38,7 @@ def delta_mask(a, b, who, grow=15):
     return cv2.dilate(d, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * grow + 1, 2 * grow + 1))) > 0
 
 
-def arm_mask(ref, who, side, r=16):
+def arm_mask(ref, who, side, r=26):
     """A reaching arm: its silhouette near the line from shoulder to hand."""
     lm = ref['landmarks'][who]
     pts = [lm[f'upper_arm.{side}'][0:2], lm[f'forearm.{side}'][0:2], lm[f'hand.{side}'][0:2], lm[f'hand.{side}'][3:5]]
@@ -96,11 +96,11 @@ def redraw(tl, ref, who, prefix, t, lines=2.0, tone=1.6, finish=0.6, region=None
     return tl.add(rest, t, finish, overlap=0.6)
 
 
-def take_back(tl, ref, who, side, prefix, t, dur=2.4, strength=0.9, region=None):
+def take_back(tl, ref, who, side, prefix, t, dur=2.4, strength=1.0, region=None):
     """The reaching arm (or `region`) erased from its hand back toward the shoulder."""
     hand = ref['landmarks'][who][f'hand.{side}'][3:5]
     region = arm_mask(ref, who, side) if region is None else region
-    return erase_figure(tl, ref, who, prefix, t, dur, order=tuple(hand), region=region, strength=strength)
+    return erase_figure(tl, ref, who, prefix, t, dur, order=tuple(hand), region=region, strength=strength, skip=0.05)
 
 
 def restate(tl, ref, prefix, t, near, dur=1.2, r=110.0):
@@ -118,11 +118,12 @@ def hand_of(ref, who, side):
     return ref['landmarks'][who][f'hand.{side}'][3:5]
 
 
-def step(tl, a, b, t, people=('young', 'older'), door=False, prefix='step', dur=0.25):
+def step(tl, a, b, t, people=('young', 'older'), door=False, prefix='step', dur=0.3, whole=('young',)):
     """What happened, moving: from drawing `a` to drawing `b` at `t`, each part that changed
     scrubbed out where it was and drawn, in tone, where it is (a Kentridge step: the residue of the
-    last position stays under the next)."""
-    sheet = tl.state_at(t)
+    last position stays under the next). A person in `whole` (one walking) is taken out and drawn
+    again entire, at full weight (redrawn only where he changed, he lost his tone a step at a
+    time: the cinematic director); the others only where they changed."""
     end = t
     for who in people:
         if not figure_mask(a, who).any() and not figure_mask(b, who).any():
@@ -130,11 +131,13 @@ def step(tl, a, b, t, people=('young', 'older'), door=False, prefix='step', dur=
         region = delta_mask(a, b, who, grow=10)
         if not region.any():
             continue
-        er = draw.erase_marks(f'{prefix}/{who}/out', who, region & figure_mask(a, who, grow=6), width=24, strength=0.9, order='top', skip=0.08, rag=False)
+        out = figure_mask(a, who, grow=6) if who in whole else region & figure_mask(a, who, grow=6)
+        er = draw.erase_marks(f'{prefix}/{who}/out', who, out, width=24, strength=0.9, order='top', skip=0.08, rag=False)
         end = max(end, tl.add(er, t, dur * 0.6, overlap=0.7))
         if figure_mask(b, who).any():
-            marks, _ = draw.scene_marks(b, f'{prefix}/{who}', sheet, parts=(who,))
-            marks = [m for m in marks if _in(m, region)]
+            marks, _ = draw.scene_marks(b, f'{prefix}/{who}', None, parts=(who,))
+            if who not in whole:
+                marks = [m for m in marks if _in(m, region)]
             end = max(end, tl.add(marks, t + dur * 0.4, dur * 0.6, overlap=0.95))
     if door:
         da, db = a['ids'] == 7, b['ids'] == 7
@@ -142,21 +145,33 @@ def step(tl, a, b, t, people=('young', 'older'), door=False, prefix='step', dur=
         er = draw.erase_marks(f'{prefix}/door/out', 'door', region & cv2.dilate(da.astype(np.uint8), np.ones((9, 9), np.uint8)).astype(bool),
                               width=26, strength=0.9, order='x-', skip=0.05, rag=False)
         end = max(end, tl.add(er, t, dur * 0.6, overlap=0.7))
-        marks, _ = draw.scene_marks(b, f'{prefix}/door', sheet, parts=('door',))
+        marks, _ = draw.scene_marks(b, f'{prefix}/door', None, parts=('door',))
         end = max(end, tl.add(marks, t + dur * 0.4, dur * 0.6, overlap=0.95))
     return end
 
 
 def draw_on(tl, ref, prefix, t, dur):
-    """A whole drawing made in front of us: the doorway's construction in hard pencil, the lines,
-    the masses, then the rubbing and lifts."""
+    """A whole drawing made in front of us: the doorway's construction in hard pencil, the masses,
+    the rubbing and lifts, then the lines."""
     marks, _ = draw.scene_marks(ref, prefix)
     construct = [m for m in marks if m['layer'] == 'construct']
     masses = [m for m in marks if m['layer'].startswith('mass')]
     rest = [m for m in marks if m['layer'] in ('smudge', 'lift')]
     lines = [m for m in marks if m['layer'] in ('contour', 'face')]
-    # (masses before lines read as an apparition fading in: the creative director, Proof A2)
+    # (a real person is never line alone on the sheet: line is what is imagined. The masses go
+    # on in passes a hand can be seen making, the lines are found last: the creative director)
     t1 = tl.add(construct, t, dur * 0.2, overlap=0.5)
-    t2 = tl.add(lines, t1, dur * 0.3, overlap=0.7)
-    t3 = tl.add(masses, t2 - dur * 0.05, dur * 0.4, overlap=0.9)
-    return tl.add(rest, t3, dur * 0.1, overlap=0.6)
+    t2 = tl.add(masses, t1, dur * 0.5, overlap=0.85)
+    t3 = tl.add(rest, t2, dur * 0.1, overlap=0.6)
+    return tl.add(lines, t3, dur * 0.2, overlap=0.7)
+
+
+def heads(refs, grow=1.3):
+    """The heads of everyone drawn in `refs` [(ref, who)]: circles round each (a ghost stops being
+    a person when its head is gone: the creative director)."""
+    m = np.zeros((H, W), np.uint8)
+    for ref, who in refs:
+        x0, y0, _, x1, y1, _ = ref['landmarks'][who]['head']
+        r = int(grow * 0.75 * math.hypot(x1 - x0, y1 - y0) + 8)
+        cv2.circle(m, (int((x0 + x1) / 2), int((y0 + y1) / 2)), r, 1, -1)
+    return m > 0
