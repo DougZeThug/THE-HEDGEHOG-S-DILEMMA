@@ -39,9 +39,10 @@ VIEWS = {
     'b-back': ((0.105, 0.128, 0.205), (0.039, 0.03, 0.15), 45.0, 0.0),
     'b-face': ((0.039, -0.10, 0.168), (0.039, 0.02, 0.166), 100.0, 0.016),
     'b-side': ((-0.06, -0.035, 0.168), (0.039, 0.0, 0.165), 70.0, 0.0),
-    'hands': ((0.0, -0.17, 0.20), (0.0, -0.018, 0.118), 60.0, 0.0),
-    'cuff': ((0.035, -0.09, 0.165), (0.015, -0.025, 0.12), 90.0, 0.0),
-    'a-hand': ((-0.030, -0.085, 0.150), (-0.022, -0.026, 0.115), 100.0, 0.0),
+    # (on the table: at its height, wherever it is)
+    'hands': ((0.0, -0.17, kitchen.TABLE_TOP + 0.088), (0.0, -0.018, kitchen.TABLE_TOP + 0.006), 60.0, 0.0),
+    'cuff': ((0.035, -0.09, kitchen.TABLE_TOP + 0.053), (0.015, -0.023, kitchen.TABLE_TOP + 0.008), 90.0, 0.0),
+    'a-hand': ((-0.026, -0.085, kitchen.TABLE_TOP + 0.038), (-0.018, -0.026, kitchen.TABLE_TOP + 0.003), 100.0, 0.0),
 }
 
 # (aimed 19 mm lower when the table came down 14 mm: the hands, the fold and the cup stay in the 16:9
