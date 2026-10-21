@@ -378,7 +378,12 @@ export async function prepare(id: string, variant: string, host: RuntimeHost): P
         lm.clouds ? one(lm.clouds.after, { sfx: '' }) : Promise.resolve(null),
       ]);
       // (The pencil's order is mipmapped, unlike the scene's layers: seen from across the room.)
-      const orderP = lm.order ? loadLayer(url(lm.order, ''), { data: true }).then((r) => (extra.push(r), r)) : Promise.resolve(null);
+      // The order map is optional (the light finds it): a failed fetch degrades to `order: null`,
+      // like `heads`/`near` do, so the living scene still plays (the writing under it stays).
+      // Warn, as `colourTimes` does on its read of the same map, so a real 404 is visible to QA.
+      const orderP = lm.order
+        ? loadLayer(url(lm.order, ''), { data: true }).then((r) => (extra.push(r), r)).catch((e) => { console.warn('living memory: its order map could not be fetched; the light finds it', e); return null; })
+        : Promise.resolve(null);
       // Her turn in the wide (at its size), if it can be had (else her head stays as the panel has
       // it; the memory still plays).
       const headsP = (async (): Promise<HeadCels | null> => {
