@@ -225,6 +225,18 @@ describe('cue dispatch: every event once, never on a seek', () => {
     expect(f.advance(5.4)).toEqual([]);
   });
 
+  it('a stall landing inside the lookahead already handed to the audio does not hand a cue twice', () => {
+    // The controller's 0.75 s lookahead exceeds the 0.5 s stall threshold (the QA raise of
+    // 2026-10-20): a slow frame landing inside the window already handed to the audio must not
+    // un-fire what was handed out and scheduled there, or the next frame would double-schedule the
+    // cue on the audio clock (the woodland's evening, audibly doubled, ~23 ms apart).
+    const d = new CueDispatch([{ label: 'music:evening', position: 2 }], 0.75);
+    const first = d.advance(1.4); // handed into the lookahead, delay 0.6
+    expect(first.map((x) => `${x.marker.label}:${x.delay.toFixed(2)}`)).toEqual(['music:evening:0.60']);
+    expect(d.advance(1.95)).toEqual([]); // a 0.55 s slow frame lands before the cue
+    expect(d.advance(2.0)).toEqual([]); // a normal frame reaching it must not re-hand it
+  });
+
   it('a slowish frame (0.42–0.5 s) skips nothing', () => {
     for (let phase = 0; phase < 0.5; phase += 0.01) {
       const d = new CueDispatch([{ label: 'sfx:x', position: 3 }], 0.3);

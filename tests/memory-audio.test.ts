@@ -447,6 +447,7 @@ describe("the woodland's cut, driven as the App drives it (one reading of the au
     ['begun with its sound not yet running (2 s)', { startSuspended: 2 }],
     ['a 0.6 s frame at 34.1 s', { stall: [34.1, 0.6] }],
     ['a 0.35 s frame at 34.12 s', { stall: [34.12, 0.35] }],
+    ['a 0.55 s stall landing inside the handed lookahead, before the cut (33.9 s)', { stall: [33.9, 0.55] }],
   ];
   for (const latency of [0, 0.12, 0.32]) {
     for (const [what, o] of cases) {
