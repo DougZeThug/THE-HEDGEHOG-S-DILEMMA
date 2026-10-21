@@ -912,8 +912,9 @@ export const THINGS: MemoryDef = {
         'window.presence': [[0, 1]],
         'window.parallax': [[0, 0]],
         // Earlier marks remain beneath: the room's writing stays under the pencil, and goes only
-        // to a trace as the tone comes (the artist's brief, the emergence).
-        'window.wash': [[0, 0, 'hold'], [7.5, 0.7]],
+        // a little way as the tone comes (the artist's brief, the emergence; held to a trace, it
+        // was lost for the film's whole length: the creative director).
+        'window.wash': [[0, 0, 'hold'], [7.5, 0.35]],
         'light.x': [[0, 0]],
         'light.y': [[0, 0]],
         'light.radius': [[0, 0.6]],
@@ -957,14 +958,14 @@ export const THINGS: MemoryDef = {
   describe: () => 'A charcoal drawing comes onto the wall: a doorway.',
   // (Only what is seen, in order, at least 3.5 s apart, never what it means.)
   announce: () => [
-    { at: THINGS_AT + 0.3, text: 'A woman waves. A young man leaves.', inside: true },
-    { at: THINGS_AT + 0.3, text: 'On the wall, a woman waves; a young man leaves.', wall: true },
+    { at: THINGS_AT + 0.3, text: 'An older woman waves, small. A young man leaves with a bag.', inside: true },
+    { at: THINGS_AT + 0.3, text: 'On the wall, an older woman waves; a young man leaves.', wall: true },
     { at: THINGS_AT + THINGS_BEATS.gone + 0.4, text: 'He is gone. The door swings shut.' },
     { at: THINGS_AT + THINGS_BEATS.lift, text: 'An eraser lifts the door.' },
     { at: THINGS_AT + THINGS_BEATS.back + 1.2, text: 'In pencil, he comes back to the door frame.' },
     { at: THINGS_AT + THINGS_BEATS.takenBack + 0.4, text: 'The eraser takes him away.' },
     { at: THINGS_AT + THINGS_BEATS.hers + 0.8, text: 'In pencil, her hand reaches toward the doorway.' },
-    { at: THINGS_AT + THINGS_BEATS.erased + 0.6, text: 'Everything is erased but the doorway.' },
+    { at: THINGS_AT + THINGS_BEATS.erased + 0.6, text: 'The eraser takes him away. She is left, faint. Marks stay on the door frame.' },
     { at: THINGS_SECTIONS.exit, text: 'The drawing goes back into the wall.' },
   ],
 };

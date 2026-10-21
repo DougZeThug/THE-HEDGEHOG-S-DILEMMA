@@ -110,8 +110,8 @@ POSES = {
     # (only her arm rises, from where she stands: her fingers pinched at his collar's height stop at
     # the left casing, so the doorway is between her hand and him: the creative director)
     'collar': {'door': -82,
-               'older': dict(OLDER_WAVE, local=PINCH, bones=_plus(STOOP, head=(-8, -5, 0), neck01=(-4, 0, 0)),
-                             reach={'R': {'hand': ('world', (0.21, -0.1, 1.36)), 'elbow': (-0.25, 0.05, 0.4)}}),
+               'older': dict(OLDER_WAVE, local=LOOSE, bones=_plus(STOOP, head=(-8, -5, 0), neck01=(-4, 0, 0)),
+                             reach={'R': {'hand': ('world', (0.21, -0.12, 1.24)), 'elbow': (-0.25, 0.05, 0.3)}}),
                'young': YOUNG_GOING},
 }
 

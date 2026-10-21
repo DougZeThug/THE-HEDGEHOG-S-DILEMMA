@@ -1,12 +1,13 @@
 """The film of "Things I Should Have Said" (docs/things.md): its exposure sheet, as moves on one
 sheet (film.py), and the sound made from the same marks (foley.py).
 
-    python3 scripts/things/story.py REF_DIR OUT_DIR [--scale 0.5] [--mix eraser-only|eraser|weight] [--keep-her 1]
+    python3 scripts/things/story.py REF_DIR OUT_DIR [--scale 0.5] [--mix eraser-only|eraser|weight] [--erase-her 1]
 
 REF_DIR holds scene.py's references for every pose named below. Writes OUT_DIR/things.mp4 (with
 its sound), OUT_DIR/foley-*.wav, and OUT_DIR/sheet.json (every mark's time: the order map and the
-sound are made from it). `--keep-her`: the ending with her real figure rubbed back by half and
-left (the creative director's alternative, for the artist).
+sound are made from it). The ending keeps her real figure, rubbed back by half (the creative
+director's ruling: the doorway is empty, the flat is not); `--erase-her`: her taken entirely too
+(the brief's empty doorway, for the artist).
 
     0-6        the goodbye drawn on the bare sheet: the doorway's construction, the people in tone,
                their lines found last (a real person is never line alone)
@@ -19,7 +20,8 @@ left (the creative director's alternative, for the artist).
                the hand, then the rest of him
     31.8-37.4  her almost: only her arm rises, its fingers stopping at the left casing; taken back
                before her lines are done (the hand changes its mind)
-    38.5-43.5  everyone erased, the heads entirely; what touched the doorway left
+    38.5-44    every almost erased, the heads entirely, the door and its knob lifted; what touched
+               the doorway left; she is rubbed back by half
     44-46.2    the casings drawn again, his side, then hers: the doorway is the last thing touched
     46.2-52    the empty doorway
 """
@@ -27,6 +29,9 @@ import json
 import os
 import sys
 import time
+
+import cv2
+import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -41,7 +46,7 @@ POSES = ['goodbye', 'wave1', 'wave2', 'going1', 'going2', 'going3', 'going4', 'd
 LENGTH = 52.0
 
 
-def build(ref_dir, keep_her=False):
+def build(ref_dir, keep_her=True):
     R = {p: draw.load(ref_dir, p) for p in POSES}
     tl = Timeline(draw.W, draw.H, 'things')
     film.draw_on(tl, R['goodbye'], 'goodbye', 0.0, 6.0)
@@ -65,24 +70,35 @@ def build(ref_dir, keep_her=False):
     t = film.restate(tl, R['jamb'], 'c1/casing', t, his_hand) + 3.0
     t = film.take_back(tl, R['jamb'], 'young', 'R', 'c1/back', t, 1.6)
     t = film.erase_figure(tl, R['jamb'], 'young', 'c1/out', t, 1.4, strength=0.95, skip=0.15, order=tuple(his_hand)) + 0.8
-    # her almost: only her arm; taken back before its lines are done
+    # her almost: only her arm (never her real body: its take-back erased her too, and "she
+    # stays" could not be judged: the creative director); taken back before its lines are done
     her_hand = film.hand_of(R['collar'], 'older', 'R')
-    arm = film.delta_mask(R['shut'], R['collar'], 'older')
+    real_her = film.figure_mask(R['shut'], 'older', 2)
+    arm = film.arm_mask(R['collar'], 'older', 'R') & ~real_her
     t0 = t
     t = film.redraw(tl, R['collar'], 'older', 'c2/collar', t0, lines=2.6, hand=her_hand, line_only=True, region=arm)
     film.restate(tl, R['collar'], 'c2/casing', t - 0.4, her_hand, r=80, dur=0.8)
-    t = film.take_back(tl, R['collar'], 'older', 'R', 'c2/back', t - 0.5, 1.8, region=arm & film.figure_mask(R['collar'], 'older', 8)) + 1.0
-    # everyone erased, the heads entirely; what touched the doorway left
+    t = film.take_back(tl, R['collar'], 'older', 'R', 'c2/back', t - 0.5, 1.8, region=arm) + 1.0
+    # everyone imagined erased, the heads entirely; the door lifted, its knob too (a knob in an
+    # empty doorway read as a locked door); what touched the doorway left
     touched = film.casing_near(R['jamb'], his_hand, 50) | film.casing_near(R['collar'], her_hand, 50)
-    people = film.figure_mask(R['jamb'], 'young', 6) | film.figure_mask(R['collar'], 'older', 6)
-    if not keep_her:
-        people |= film.figure_mask(R['shut'], 'older', 6)
-    people |= R['shut']['ids'] == 7            # (and what is left of the door: the doorway empty)
+    people = film.figure_mask(R['jamb'], 'young', 6) | arm | (R['shut']['ids'] == 7)
     t = film.erase_figure(tl, R['shut'], 'older', 'end/all', max(t, 38.5), 3.6, order='x+', region=people, strength=0.92, skip=0.08, spare=touched)
-    hd = film.heads([(R['jamb'], 'young'), (R['collar'], 'older')] + ([] if keep_her else [(R['shut'], 'older')]))
-    t = film.erase_figure(tl, R['shut'], 'older', 'end/heads', t - 0.4, 1.4, order='top', region=hd, strength=1.0, skip=0.0)
+    knob = np.zeros(arm.shape, np.uint8)
+    kx, ky = R['shut']['knob'][:2]
+    cv2.circle(knob, (int(kx), int(ky)), 22, 1, -1)
+    t = film.erase_figure(tl, R['shut'], 'older', 'end/knob', t - 0.3, 0.6, order='top', region=knob > 0, strength=1.0, skip=0.0)
+    hd = film.heads([(R['jamb'], 'young')] + ([] if keep_her else [(R['shut'], 'older')]))
+    t = film.erase_figure(tl, R['shut'], 'older', 'end/heads', t - 0.2, 1.2, order='top', region=hd, strength=1.0, skip=0.0)
     if keep_her:
-        t = film.erase_figure(tl, R['shut'], 'older', 'end/her', t, 1.2, order='top', region=film.figure_mask(R['shut'], 'older', 4), strength=0.5, skip=0.3)
+        # she stayed: rubbed back evenly by half, her head kept (a headless outline was the one
+        # image left of the doorway: the creative director's ruling)
+        t = film.erase_figure(tl, R['shut'], 'older', 'end/her', t, 1.4, order='top', region=film.figure_mask(R['shut'], 'older', 4), strength=0.5, skip=0.0)
+    else:
+        # the doorway and the flat empty: her outline taken entirely, her fingers' mark at the casing left
+        her = film.figure_mask(R['shut'], 'older', 6)
+        for k in range(2):
+            t = film.erase_figure(tl, R['shut'], 'older', f'end/her{k}', t, 1.2, order='top', region=her, strength=1.0, skip=0.0, spare=touched)
     # the casings drawn again: his side, then hers: the doorway is the last thing a hand touched
     t = film.restate(tl, R['jamb'], 'end/casing-his', max(t, 44.0), his_hand, r=160, dur=1.0) + 0.2
     film.restate(tl, R['collar'], 'end/casing-hers', t, her_hand, r=160, dur=1.0)
@@ -95,7 +111,7 @@ def main():
     scale = float(opts.get('--scale', 0.5))
     os.makedirs(out, exist_ok=True)
     t0 = time.time()
-    tl, length = build(ref_dir, keep_her=bool(int(opts.get('--keep-her', 0))))
+    tl, length = build(ref_dir, keep_her=not bool(int(opts.get('--erase-her', 0))))
     print(f'planned {len(tl.items)} marks, {length:.1f} s, in {time.time() - t0:.0f} s', flush=True)
     with open(os.path.join(out, 'sheet.json'), 'w') as fh:
         json.dump({'length': length, 'events': [['latch', tl.latch]],

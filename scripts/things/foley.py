@@ -52,7 +52,7 @@ VOICES = {
 TOOL_VOICE = {'charcoal': 'charcoal', 'compressed': 'charcoal', 'side': 'side', 'side_firm': 'side', 'pencil': 'pencil', 'hardpencil': 'pencil'}
 
 # what each mark means, by the name film.py gave its move
-TAKE = ('c1/door', 'c1/back', 'c1/out', 'c2/back', 'c2/out', 'end/all', 'end/heads', 'end/her')
+TAKE = ('c1/door', 'c1/back', 'c1/out', 'c2/back', 'c2/out', 'end/all', 'end/knob', 'end/heads', 'end/her')
 IMAGINED = ('c1/jamb', 'c2/collar')
 # each meaning's level against the eraser (LU), per mix; None is silent
 MIXES = {

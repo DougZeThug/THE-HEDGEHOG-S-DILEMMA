@@ -561,7 +561,8 @@ def main():
         for g, ob in las.items():
             ob.hide_viewport = False
         bpy.context.view_layer.update()
-        data = {'pose': n, 'size': [W, H], 'strokes': {g: strokes_of(ob, cam) for g, ob in las.items()}, 'landmarks': landmarks(figs, cam), 'face': face_points(figs, cam)}
+        data = {'pose': n, 'size': [W, H], 'strokes': {g: strokes_of(ob, cam) for g, ob in las.items()}, 'landmarks': landmarks(figs, cam), 'face': face_points(figs, cam),
+                'knob': project(cam, bpy.data.objects['knob'].matrix_world.translation)}
         for f in ('young', 'older'):
             if not p[f].get('shown', True):
                 data['strokes'][f] = []

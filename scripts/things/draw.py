@@ -201,11 +201,15 @@ class Drawing:
                         pp *= np.clip(np.sin(np.linspace(0.12, 0.88, len(qq)) * math.pi) * 1.25, 0.35, 1)
                         t_, sz = tool, 1.0
                         c = qq.mean(0)
+                        skip = False
                         for fx, fy, fr, ft, fs, fg in fine:
                             if (c[0] - fx) ** 2 + (c[1] - fy) ** 2 < fr * fr:
                                 t_, sz = ft, fs
+                                skip = fg <= 0
                                 pp = np.clip(pp * fg, 0.05, 1.0)
                                 break
+                        if skip:
+                            continue
                         self.add('stroke', part, layer, qq, tool=t_, pressure=pp.round(3).tolist(), size=sz)
                     if double and runs and rng.random() < double:
                         q2 = hand(sub + rng.uniform(-2.2, 2.2, 2), name + 'b', wobble * 1.4, over)
@@ -529,6 +533,12 @@ def scene_marks(ref, prefix, sheet=None, parts=('place', 'young', 'older'), line
         for sd in ('L', 'R'):
             a0, b0, _, a1, b1, _ = lm[f'hand.{sd}']
             fine.append((a1, b1, 1.1 * math.hypot(a1 - a0, b1 - b0) + 5, hand_tool, 1.0, hand_gain))
+        if who == 'older':
+            # her stockinged feet: tone only, no found line (with his shoes' line they read as
+            # shoes, and the one cue that she is at home and staying was lost: the creative director)
+            for sd in ('L', 'R'):
+                a0, b0, _, a1, b1, _ = lm[f'foot.{sd}']
+                fine.append(((a0 + a1) / 2, (b0 + b1) / 2 + 4, 16.0, line, 1.0, 0.0))
         outline = FIGURE_IDS[who] if imagined else None
         dr.contours(who, who, line, 0.14, 0.75, lost=0.45, wobble=0.9, over=(1, 4), most=90, double=0.0 if imagined else 0.2, fine=fine, carry=0.5,
                     outline=outline)
@@ -547,10 +557,14 @@ def casing_marks(ref, prefix, near, r=110.0):
     little off where they were: each almost works the doorway."""
     rng = np.random.default_rng(seed_of(prefix))
     cx, cy = near
+    # (the casing's own lines only: the corridor's rail, seen through the opening, drew as a black
+    # hook across the door: the creative director)
+    casing = cv2.dilate((ref['ids'] == 2).astype(np.uint8), np.ones((9, 9), np.uint8)) > 0
     pieces = []
     for line in ref['strokes'].get('arch', []):
         p = resample(np.array([[a, b] for a, b, _ in line], np.float32), 2.0)    # (sparse vertices fell outside the circle)
-        keep = (p[:, 0] - cx) ** 2 + (p[:, 1] - cy) ** 2 < r * r
+        on = casing[np.clip(p[:, 1].astype(int), 0, H - 1), np.clip(p[:, 0].astype(int), 0, W - 1)]
+        keep = ((p[:, 0] - cx) ** 2 + (p[:, 1] - cy) ** 2 < r * r) & on
         run = []
         for q, k in zip(p, keep):
             if k:
