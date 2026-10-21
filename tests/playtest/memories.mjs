@@ -46,7 +46,7 @@ const STAGES = {
   // THINGS_BEATS), the way back out (a trace, then the plaster).
   things: [['00-untouched', null], ['01-construction', 2.2], ['02-her', 4.0], ['03-him', 6.0], ['04-tone', 7.5], ['05-carried', 9.5], ['06-inside', 11.2],
     ['07-wave', 12.3], ['08-walk', 14.6], ['09-door', 17.5], ['10-silence', 21.5], ['11-lift', 25.0], ['12-his-almost', 31.0], ['13-taken-back', 35.0],
-    ['14-hers', 40.0], ['15-erased', 46.0], ['16-casing', 51.0], ['17-empty', 54.5], ['18-returning', 58.5], ['19-trace', 63.5], ['20-white-room', 66.5]],
+    ['14-hers', 39.4], ['15-erased', 46.0], ['16-casing', 52.0], ['17-empty', 57.0], ['18-returning', 62.5], ['19-trace', 66.5], ['20-white-room', 70.5]],
 }[MEMORY];
 mkdirSync(OUT, { recursive: true });
 

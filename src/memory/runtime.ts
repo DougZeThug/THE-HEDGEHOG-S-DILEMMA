@@ -343,6 +343,8 @@ export async function prepare(id: string, variant: string, host: RuntimeHost): P
     } catch (e) {
       // The film couldn't be had: the wall's poster instead, still (as any memory).
       console.warn('film unavailable; the memory stays a still', e);
+      // (and without the film's sound: its eraser over a still read as broken: QA, 2026-10-21)
+      audio?.without('music:film');
       for (const l of extra) {
         l.texture.dispose();
         l.bitmap.close();

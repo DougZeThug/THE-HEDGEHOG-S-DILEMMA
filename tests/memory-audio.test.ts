@@ -568,7 +568,7 @@ describe('captions: each shown as its sound is heard, with the picture', () => {
   const sheet: CueSheet = {
     room: [0.4, 3, 0.06],
     cues: {
-      'music:woods': { asset: 'woods', gainDb: -14, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, until: 34.5, fadeOut: 3, caption: '[cicadas in the trees; a piano]', captionAt: 9.85 },
+      'music:woods': { asset: 'woods', gainDb: -14, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, until: 34.5, fadeOut: 3, caption: '[cicadas in the trees; a piano]', captionAt: 9.85, captions: [{ at: 14.0, text: '[a latch]' }] },
       'sfx:mid': { asset: 'mid', gainDb: -20, place: { u: 0, v: 0, d: 1 }, caption: '[a floorboard, just outside]' },
       'sfx:cicada-last': { asset: 'last', gainDb: -41, place: { u: 0.2, v: 0.3, d: 6 }, lowpass: 5000, caption: '[an evening cicada, far off]' },
       'voice:line': { asset: 'line', gainDb: -12, place: { u: 0, v: 0, d: 1 }, text: 'Five more minutes.' },
@@ -584,7 +584,7 @@ describe('captions: each shown as its sound is heard, with the picture', () => {
 
   /** Played as the App plays it (a frame at a time, one reading of the audio clock a frame), paused
    *  for `pause[1]` s once it reaches `pause[0]`: where the picture was as each caption was shown. */
-  async function play(latency: number, pause?: [number, number]) {
+  async function play(latency: number, pause?: [number, number], before?: (a: MemoryAudio) => void) {
     vi.useFakeTimers();
     const ctx = new FakeCtx();
     Object.assign(ctx, { baseLatency: latency ? 0.02 : 0, outputLatency: latency ? latency - 0.02 : 0 });
@@ -598,6 +598,7 @@ describe('captions: each shown as its sound is heard, with the picture', () => {
     const audio = new MemoryAudio(host, sheet, markers);
     const timeline: TimelineSource = { sections: { active: 6, exit: 42.5, residue: 49.5, end: 53 }, markers, at: () => ({}), dispose() {} };
     c = new MemoryPlaybackController({ timeline, audio, weights: FULL, reduced: false, entrance: 2, sways: [], exit: 3, maxHold: 60, tail: 2, living: true });
+    before?.(audio);
     await audio.prepare();
     const clock = new MemoryClock();
     ctx.currentTime = 100;
@@ -627,10 +628,17 @@ describe('captions: each shown as its sound is heard, with the picture', () => {
   for (const latency of [0, 0.12, 0.33]) {
     it(`with its own moment or without, within a frame of the picture reaching it (output latency ${latency} s)`, async () => {
       const { shown } = await play(latency);
-      for (const [text, at] of [['[cicadas in the trees; a piano]', 9.9], ['[a floorboard, just outside]', 20.0], ['Five more minutes.', 30.0], ['[an evening cicada, far off]', 48.5]] as const)
+      for (const [text, at] of [['[cicadas in the trees; a piano]', 9.9], ['[a latch]', 14.05], ['[a floorboard, just outside]', 20.0], ['Five more minutes.', 30.0], ['[an evening cicada, far off]', 48.5]] as const)
         expect(Math.abs(shown.get(text)! - at), text).toBeLessThanOrEqual(0.02);
     });
   }
+
+  it('a cue taken out (a film that could not be had) is neither heard nor captioned', async () => {
+    const { shown, ctx } = await play(0, undefined, (a) => a.without('sfx:mid'));
+    expect(shown.has('[a floorboard, just outside]')).toBe(false);
+    expect(ctx.sources.some((x) => x.buffer?.duration === 2)).toBe(false);
+    expect(shown.has('Five more minutes.')).toBe(true);
+  });
 
   it('paused in the instant after a one-shot has begun, before it is heard, it rings on and is captioned', async () => {
     // (QA, 2026-10-20: at an output latency of 0.12 s, a pause there lost the caption of a sound

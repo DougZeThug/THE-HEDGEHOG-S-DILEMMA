@@ -874,23 +874,25 @@ export const ALMOST: MemoryDef = {
  *             scripts/things/emergence.py); the room's writing stays under the pencil until the
  *             tone reaches it
  *   7.8-11    carried in, square to it; the film holds the goodbye finished
- *   11.5-57.5 the film, 46 s (`scene.film`, its seconds; THINGS_BEATS): her small wave; his walk out,
+ *   11.5-61.5 the film, 50 s (`scene.film`, its seconds; THINGS_BEATS): her small wave; his walk out,
  *             four steps leaving their residue; the door on its closer and the latch; a silence;
  *             his almost in graphite, held, taken back from the hand; hers, taken back before it
  *             is done; everyone erased, the heads entirely; the doorway's casing drawn again, his
  *             side and hers; the empty doorway
- *   56.25-61  out (the film's last second and a half under it), its edge soft (a sheet rubbed, not
- *             torn); on the wall the drawing goes to a trace of itself, then into the plaster
+ *   60.25-65  out (the film's last second and a half under it), its edge soft (a sheet rubbed, not
+ *             torn); on the wall the drawing goes to a trace of itself, its casings readable under
+ *             the returning words, then into the plaster
  *
  * The film has no sound of its own: its sound is one cue (scripts/things/foley.py, the eraser-only
  * mix: drawing silent, taking back heard, the latch), made from the same list of marks.
  */
-export const THINGS_SECTIONS: Sections = { active: 7.5, exit: 56.25, residue: 63.25, end: 66.25 };
+export const THINGS_SECTIONS: Sections = { active: 7.5, exit: 60.25, residue: 67.25, end: 70.25 };
 /** The film: where it begins on the timeline (half a second after the visitor is inside), and its length (s). */
 export const THINGS_AT = 11.5;
-export const THINGS_SECONDS = 1104 / 24;
-/** Its story's moments (seconds into the film: scripts/things/story.py, less the 6 s the wall draws). */
-export const THINGS_BEATS = { going: 2.0, gone: 4.9, latch: 8.55, lift: 12.5, back: 14.8, takenBack: 22.4, hers: 27.0, erased: 32.5, casing: 38.0, empty: 40.2 };
+export const THINGS_SECONDS = 1200 / 24;
+/** Its story's moments (seconds into the film: scripts/things/story.py, less the 6 s the wall draws;
+ * tests/film-scene.test.ts holds them to what emergence.py read off the sheet). */
+export const THINGS_BEATS = { going: 2.0, gone: 4.9, latch: 8.55, lift: 12.5, back: 14.8, takenBack: 22.4, hers: 27.0, erased: 32.0, casing: 39.9, empty: 42.1 };
 /** Its sound's level (foley.py sets the eraser at Memory II's figures' loudness: the same gain). */
 const THINGS_DB = -9;
 
@@ -923,7 +925,8 @@ export const THINGS: MemoryDef = {
         'light.intensity': [[0, 0]],
         'light.roomSpill': [[0, 0]],
         // Back on the wall, the drawing goes to a trace of itself, then into the plaster.
-        'layer:scene.opacity': [[0, 1], [S.exit + 4, 1], [S.exit + 7, 0.14], [S.end - 0.8, 0.1], [S.end, 0]],
+        // (At 0.14 it was gone to the eye a second after the words came back: the cinematic director.)
+        'layer:scene.opacity': [[0, 1], [S.exit + 4, 1], [S.exit + 6, 0.4], [S.end - 1, 0.28], [S.end, 0]],
         // The wall's own pencil sinks into the film's (the same lines) once it is all there.
         'layer:lines.opacity': [[0, 1], [8.0, 1], [9.0, 0]],
         'scene.approach': [[1.0, 0, 'linear'], [10.5, 1], [S.exit + 1, 1, 'linear'], [S.exit + 5, 0]],
@@ -945,7 +948,7 @@ export const THINGS: MemoryDef = {
     // (Its room is the white room: the file has none of its own.)
     room: [0.3, 2, 0.04],
     cues: {
-      'music:film': { asset: 'music/things-film.mp3', gainDb: THINGS_DB, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, fadeOut: 2, caption: '[an eraser on paper]', captionAt: THINGS_BEATS.lift + 0.3 },
+      'music:film': { asset: 'music/things-film.mp3', gainDb: THINGS_DB, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, fadeOut: 2, caption: '[an eraser on paper]', captionAt: THINGS_BEATS.lift + 0.3, captions: [{ at: THINGS_BEATS.latch, text: '[a door latch clicks]' }] },
     },
   }),
   sways: [],

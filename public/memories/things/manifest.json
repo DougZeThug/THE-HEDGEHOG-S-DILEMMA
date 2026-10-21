@@ -37,7 +37,7 @@
       "kind": "film",
       "film": "film/film",
       "fps": 24,
-      "frames": 1104,
+      "frames": 1200,
       "order": "film/order",
       "immerse": true,
       "edge": "soft",

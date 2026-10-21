@@ -41,6 +41,8 @@ from sound import SR, convolve, fft_filter, momentary, slow_noise, small_room  #
 
 CR = 1000                     # the control rate of the voices' activity (Hz)
 W = 1280                      # the sheet's width (for where a mark is, left to right)
+PAN = 0.6                     # the hand's place across the frame, about ±6 dB at its edges (at 0.3 a take-back on the jamb
+                              # was heard 1 dB right: the cinematic director)
 HAND_SPEED = 1500.0           # px/s: the fastest a hand moves (the timeline compresses marks faster)
 
 # the drawing voices: band (Hz), level (dB, at full pressure)
@@ -187,7 +189,7 @@ def drawing_voice(name, act, n, rng):
     if amp.max() <= 0:
         return np.zeros((n, 2))
     sp = _up(_smooth(s, 40), n)
-    pl = _up(_smooth(x, 300), n) * 0.3
+    pl = _up(_smooth(x, 300), n) * PAN
     lo, hi = spec['band']
     fast = np.clip(sp / HAND_SPEED, 0, 1)
     if name == 'charcoal':
@@ -241,7 +243,7 @@ def eraser_voice(act, n, rng):
         j = min(n, i + k)
         y[i:j] += knock[:j - i] * 1.1
     y *= amp
-    pl = _up(_smooth(x, 300), n) * 0.3
+    pl = _up(_smooth(x, 300), n) * PAN
     return _pan(y, pl)
 
 

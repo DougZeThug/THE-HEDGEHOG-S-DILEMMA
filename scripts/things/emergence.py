@@ -88,9 +88,26 @@ def times(sheet, items, keep, t0, t1):
             continue
         mk, along, (x0, y0, x1, y1) = f
         t = a + np.clip(along, 0, 1) * (b - a)
-        t = np.where(mk > 0.08, t, np.inf)
+        t = np.where(mk > 0.01, t, np.inf)        # (at 0.08, faint line pixels had no time and popped in at the end: QA)
         out[y0:y1, x0:x1] = np.minimum(out[y0:y1, x0:x1], t)
     return np.clip((out - t0) / (t1 - t0), 0, 1), np.isfinite(out)
+
+
+# The story's moments (src/memory/defs.ts THINGS_BEATS, held to these by tests/film-scene.test.ts):
+# where each move begins on the sheet (its marks' names), or ends.
+BEATS = {'going': ('real/going1/', 'start'), 'gone': ('real/door0/', 'start'), 'lift': ('c1/door', 'start'), 'back': ('c1/jamb', 'start'),
+         'takenBack': ('c1/back', 'start'), 'hers': ('c2/collar', 'start'), 'erased': ('end/all', 'start'), 'casing': ('end/casing-his', 'start'),
+         'empty': ('end/casing-hers', 'end')}
+
+
+def beats(data):
+    """Seconds into the room's film (less FROM) of each of the story's moments."""
+    out = {}
+    for k, (prefix, which) in BEATS.items():
+        mine = [it for it in data['items'] if it['mark']['name'].startswith(prefix)]
+        out[k] = round((min(it['t0'] for it in mine) if which == 'start' else max(it['t1'] for it in mine)) - FROM, 3)
+    out['latch'] = round(dict(data['events'])['latch'] - FROM, 3)
+    return dict(sorted(out.items(), key=lambda kv: kv[1]))
 
 
 def sha256(path):
@@ -125,7 +142,14 @@ def main():
     # the order: R when each line is drawn, G when each place is first worked
     r, rhas = times(sheet, drawn, lambda m: m['layer'] in LINES, 0.0, FROM)
     g, ghas = times(sheet, drawn, lambda m: True, 0.0, FROM)
+    # (a line pixel no mark's footprint reached takes its neighbours' time, never the clock's end)
+    seen = alpha > 0.1                     # (below it the paper's own tooth)
+    for _ in range(4):
+        near = cv2.erode(np.where(rhas, r, 1.0).astype(np.float32), np.ones((5, 5), np.uint8))
+        fill = seen & ~rhas & (near < 1.0)
+        r, rhas = np.where(fill, near, r), rhas | fill
     r = np.where(rhas, r, 1.0)
+    late_lines = int((seen & ~rhas).sum())
     rng = np.random.default_rng(3)
     late = 0.85 + 0.15 * cv2.GaussianBlur(rng.random((H, W)).astype(np.float32), (0, 0), 30) * 4
     g = np.where(ghas, g, np.clip(late, 0, 1))
@@ -145,6 +169,7 @@ def main():
         subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-ss', f'{FROM:.4f}', '-i', mp4, '-an', *vf, '-c:v', 'libvpx-vp9', '-b:v', '0', '-crf', '36',
                         '-row-mt', '1', '-g', '48', '-pix_fmt', 'yuv420p', base + sfx + '.webm'], check=True)
         subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-ss', f'{FROM:.4f}', '-i', mp4, '-an', *vf, '-c:v', 'libx264', '-crf', '26', '-preset', 'slow', '-profile:v', 'high',
+                        '-level', '4.0', '-x264-params', 'ref=4',                # (what filmType probes for: QA)
                         '-g', '48', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', base + sfx + '.mp4'], check=True)
     frames = int(subprocess.run(['ffprobe', '-v', 'error', '-count_frames', '-select_streams', 'v:0', '-show_entries', 'stream=nb_read_frames', '-of', 'csv=p=0',
                                  base + '.mp4'], capture_output=True, text=True, check=True).stdout.strip())
@@ -156,7 +181,7 @@ def main():
                     os.path.join(MUSIC, 'things-film.mp3')], input=pcm, check=True)
     # what the sound was made from (tests/film-scene.test.ts: change them and make it again)
     with open(os.path.join(MUSIC, 'things-sound.json'), 'w') as fh:
-        json.dump({'story': sha256(os.path.join(HERE, 'story.py')), 'foley': sha256(os.path.join(HERE, 'foley.py'))}, fh, indent=1)
+        json.dump({'story': sha256(os.path.join(HERE, 'story.py')), 'foley': sha256(os.path.join(HERE, 'foley.py')), 'beats': beats(data)}, fh, indent=1)
         fh.write('\n')
     manifest = {
         'size': list(SIZE), 'band': 0, 'pane': None, 'register': None, 'crop': list(CROP), 'plate': [W, H],
@@ -170,7 +195,7 @@ def main():
     with open(os.path.join(OUT, 'manifest.json'), 'w') as fh:
         json.dump(manifest, fh, indent=2)
         fh.write('\n')
-    print(f'frames {frames} ({frames / 24:.2f} s); lines {alpha.mean():.3f} mean alpha; order R lines {rhas.mean():.3f}, G worked {ghas.mean():.3f}')
+    print(f'frames {frames} ({frames / 24:.2f} s); lines {alpha.mean():.3f} mean alpha; order R lines {rhas.mean():.3f} ({late_lines} line pixels late), G worked {ghas.mean():.3f}')
 
 
 if __name__ == '__main__':

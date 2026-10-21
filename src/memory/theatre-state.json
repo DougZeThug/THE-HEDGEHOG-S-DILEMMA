@@ -5231,7 +5231,7 @@
       },
       "sequence": {
         "subUnitsPerUnit": 60,
-        "length": 66.25,
+        "length": 70.25,
         "type": "PositionalSequence",
         "markers": [
           {
@@ -5242,17 +5242,17 @@
           {
             "id": "m11",
             "label": "exit",
-            "position": 56.25
+            "position": 60.25
           },
           {
             "id": "m12",
             "label": "residue",
-            "position": 63.25
+            "position": 67.25
           },
           {
             "id": "m13",
             "label": "end",
-            "position": 66.25
+            "position": 70.25
           },
           {
             "id": "m14",
@@ -5387,7 +5387,7 @@
                   },
                   {
                     "id": "kb",
-                    "position": 60.25,
+                    "position": 64.25,
                     "connectedRight": true,
                     "handles": [
                       0.5,
@@ -5400,7 +5400,7 @@
                   },
                   {
                     "id": "kc",
-                    "position": 63.25,
+                    "position": 66.25,
                     "connectedRight": true,
                     "handles": [
                       0.5,
@@ -5409,11 +5409,11 @@
                       0
                     ],
                     "type": "bezier",
-                    "value": 0.14
+                    "value": 0.4
                   },
                   {
                     "id": "kd",
-                    "position": 65.45,
+                    "position": 69.25,
                     "connectedRight": true,
                     "handles": [
                       0.5,
@@ -5422,11 +5422,11 @@
                       0
                     ],
                     "type": "bezier",
-                    "value": 0.1
+                    "value": 0.28
                   },
                   {
                     "id": "ke",
-                    "position": 66.25,
+                    "position": 70.25,
                     "connectedRight": true,
                     "handles": [
                       0.5,
@@ -5530,7 +5530,7 @@
                   },
                   {
                     "id": "km",
-                    "position": 57.25,
+                    "position": 61.25,
                     "connectedRight": true,
                     "handles": [
                       0.5,
@@ -5543,7 +5543,7 @@
                   },
                   {
                     "id": "kn",
-                    "position": 61.25,
+                    "position": 65.25,
                     "connectedRight": true,
                     "handles": [
                       0.6666666666666666,
@@ -5614,7 +5614,7 @@
                   },
                   {
                     "id": "kt",
-                    "position": 56.25,
+                    "position": 60.25,
                     "connectedRight": true,
                     "handles": [
                       0.5,
@@ -5627,7 +5627,7 @@
                   },
                   {
                     "id": "ku",
-                    "position": 58.25,
+                    "position": 62.25,
                     "connectedRight": true,
                     "handles": [
                       0.6666666666666666,
@@ -5640,7 +5640,7 @@
                   },
                   {
                     "id": "kv",
-                    "position": 61.25,
+                    "position": 65.25,
                     "connectedRight": true,
                     "handles": [
                       0.6666666666666666,
@@ -5685,7 +5685,7 @@
                   },
                   {
                     "id": "kz",
-                    "position": 57.5,
+                    "position": 61.5,
                     "connectedRight": false,
                     "handles": [
                       0.6666666666666666,
@@ -5694,7 +5694,7 @@
                       0
                     ],
                     "type": "bezier",
-                    "value": 46
+                    "value": 50
                   }
                 ]
               }

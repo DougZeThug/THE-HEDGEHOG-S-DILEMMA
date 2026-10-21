@@ -15,15 +15,15 @@ director's ruling: the doorway is empty, the flat is not); `--erase-her`: her ta
     8-10.4     he goes, the bag lifted, without looking back: four steps at full weight, each
                leaving its residue; the last behind the casing
     10.9-14.5  the door swings to on its closer, slowing; the latch, then silence
-    18.5-31.8  his almost, in graphite: the eraser lifts the shut door; he comes back to the jamb,
+    18.5-33    his almost, in graphite: the eraser lifts the shut door; he comes back to the jamb,
                his hand on it first, the casing drawn again there; held longest; taken back from
                the hand, then the rest of him
-    31.8-37.4  her almost: only her arm rises, its fingers stopping at the left casing; taken back
-               before her lines are done (the hand changes its mind)
-    38.5-44    every almost erased, the heads entirely, the door and its knob lifted; what touched
+    33-37      her almost: only her arm rises, hand first, its fingers stopping at the left casing;
+               taken back while it is still being drawn (the hand changes its mind)
+    38-46      every almost erased, the heads entirely, the door and its knob lifted; what touched
                the doorway left; she is rubbed back by half
-    44-46.2    the casings drawn again, his side, then hers: the doorway is the last thing touched
-    46.2-52    the empty doorway
+    46-48.1    the casings drawn again, his side, then hers: the doorway is the last thing touched
+    48.1-56    the empty doorway (held longer than the latch's silence: the cinematic director)
 """
 import json
 import os
@@ -43,7 +43,7 @@ from timeline import Timeline  # noqa: E402
 
 POSES = ['goodbye', 'wave1', 'wave2', 'going1', 'going2', 'going3', 'going4', 'door0', 'door1', 'door2', 'door3', 'door4', 'shut',
          'jamb', 'collar']
-LENGTH = 52.0
+LENGTH = 56.0
 
 
 def build(ref_dir, keep_her=True):
@@ -75,15 +75,17 @@ def build(ref_dir, keep_her=True):
     her_hand = film.hand_of(R['collar'], 'older', 'R')
     real_her = film.figure_mask(R['shut'], 'older', 2)
     arm = film.arm_mask(R['collar'], 'older', 'R') & ~real_her
+    # (Drawn whole and held, it played as his almost again, shorter: the hand only, then the
+    # forearm, and the eraser catches it before the upper arm is ever drawn: the cinematic director.)
     t0 = t
-    t = film.redraw(tl, R['collar'], 'older', 'c2/collar', t0, lines=2.6, hand=her_hand, line_only=True, region=arm)
-    film.restate(tl, R['collar'], 'c2/casing', t - 0.4, her_hand, r=80, dur=0.8)
-    t = film.take_back(tl, R['collar'], 'older', 'R', 'c2/back', t - 0.5, 1.8, region=arm) + 1.0
+    film.redraw(tl, R['collar'], 'older', 'c2/collar', t0, lines=2.0, hand=her_hand, line_only=True, region=arm, nearest=0.7)
+    film.restate(tl, R['collar'], 'c2/casing', t0 + 0.6, her_hand, r=80, dur=0.8)
+    t = film.take_back(tl, R['collar'], 'older', 'R', 'c2/back', t0 + 1.4, 1.6, region=arm) + 1.0
     # everyone imagined erased, the heads entirely; the door lifted, its knob too (a knob in an
     # empty doorway read as a locked door); what touched the doorway left
     touched = film.casing_near(R['jamb'], his_hand, 50) | film.casing_near(R['collar'], her_hand, 50)
     people = film.figure_mask(R['jamb'], 'young', 6) | arm | (R['shut']['ids'] == 7)
-    t = film.erase_figure(tl, R['shut'], 'older', 'end/all', max(t, 38.5), 3.6, order='x+', region=people, strength=0.92, skip=0.08, spare=touched)
+    t = film.erase_figure(tl, R['shut'], 'older', 'end/all', max(t, 38.0), 3.6, order='x+', region=people, strength=0.92, skip=0.08, spare=touched)
     knob = np.zeros(arm.shape, np.uint8)
     kx, ky = R['shut']['knob'][:2]
     cv2.circle(knob, (int(kx), int(ky)), 22, 1, -1)

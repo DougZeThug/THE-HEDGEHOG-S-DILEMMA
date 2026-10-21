@@ -77,10 +77,11 @@ def erase_figure(tl, ref, who, prefix, t, dur, order='top', region=None, strengt
     return tl.add(rag, t - 0.1, 0.5, overlap=0.3)
 
 
-def redraw(tl, ref, who, prefix, t, lines=2.0, tone=1.6, finish=0.6, region=None, hand=None, line_only=False):
+def redraw(tl, ref, who, prefix, t, lines=2.0, tone=1.6, finish=0.6, region=None, hand=None, line_only=False, nearest=1.0):
     """`who` drawn in `ref`'s pose, planned on the film's sheet at `t`: the lines (nearest the
     moving `hand` first, if given), then the masses, the rubbing, the lifts. `region`: only marks
-    touching it (a partial redraw). `line_only`: the lines alone (what is imagined)."""
+    touching it (a partial redraw). `line_only`: the lines alone (what is imagined). `nearest`: only
+    that share of the lines nearest the hand ever made (a drawing stopped before it is done)."""
     sheet = tl.state_at(t) if not line_only else None
     marks, _ = draw.scene_marks(ref, prefix, sheet, parts=(who,), line_only=(who,) if line_only else ())
     if region is not None:
@@ -89,6 +90,7 @@ def redraw(tl, ref, who, prefix, t, lines=2.0, tone=1.6, finish=0.6, region=None
     if hand is not None:
         h = np.asarray(hand, np.float32)
         first.sort(key=lambda m: float(np.linalg.norm(_mid(m) - h)))
+        first = first[:max(1, int(round(len(first) * nearest)))]
     masses = [m for m in marks if m['layer'].startswith('mass')]
     rest = [m for m in marks if m['layer'] in ('smudge', 'lift')]
     t = tl.add(first, t, lines, overlap=0.6)

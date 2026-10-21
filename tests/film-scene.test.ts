@@ -459,6 +459,13 @@ describe('Things I Should Have Said on its timeline', () => {
     expect(made.foley).toBe(sha('scripts/things/foley.py'));
   });
 
+  it("its story's moments are where the exposure sheet put them (to a frame)", () => {
+    // (Hand-copied, they drifted: the casings were 2.4 s later than the announcements said: QA.)
+    const made = JSON.parse(readFileSync(join(__dirname, '../public/music/things-sound.json'), 'utf8'));
+    expect(Object.keys(made.beats).sort()).toEqual(Object.keys(THINGS_BEATS).sort());
+    for (const [k, at] of Object.entries(THINGS_BEATS)) expect(Math.abs(at - made.beats[k]), k).toBeLessThanOrEqual(1 / 24);
+  });
+
   it("its screen-reader lines are in order, at least 3.5 s apart, and each said before the next", () => {
     const lines = THINGS.announce!('film');
     const ats = [...new Set(lines.map((l) => l.at))];

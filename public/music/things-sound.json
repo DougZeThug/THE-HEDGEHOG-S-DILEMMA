@@ -1,4 +1,16 @@
 {
- "story": "0dd283ea0e04f1c3",
- "foley": "f6f92300f24231ab"
+ "story": "b4c9ccd652c2116c",
+ "foley": "163b1d1e1465dd92",
+ "beats": {
+  "going": 2.0,
+  "gone": 4.9,
+  "latch": 8.55,
+  "lift": 12.5,
+  "back": 14.8,
+  "takenBack": 22.4,
+  "hers": 27.0,
+  "erased": 32.0,
+  "casing": 39.9,
+  "empty": 42.1
+ }
 }

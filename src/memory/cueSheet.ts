@@ -69,6 +69,8 @@ export interface Cue {
    * part of the place rather than as it begins, or a moment after a cut rather than on it.
    */
   captionAt?: number;
+  /** More moments in it named for those who can't hear them (seconds into it): a film's latch. */
+  captions?: { at: number; text: string }[];
   /**
    * Voices: the words spoken, captioned as speech (not as a sound) for as long as they sound,
    * and which side the speaker is on, so two people can be told apart in the captions.
