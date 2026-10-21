@@ -29,7 +29,12 @@ export const nextRoom: SituationDef = {
   ready: (h, claimed) => h.phase !== 'arrival' && h.now > 25 && !claimed('beyond') && h.visitor.speed < 0.6,
   begin(c) {
     if (!c.claim('beyond')) return c.end('abort');
-    const wall = c.h.rng.pick(otherWalls([c.h.facing, 'south']).length ? otherWalls([c.h.facing, 'south']) : otherWalls([c.h.facing]));
+    // Laughter must lead somewhere that can hold it: pick a wall with a warm memory on it,
+    // preferring the south-excluded pool (south is "behind you, almost empty"), and only
+    // widening to non-faced walls if nothing qualifies. North never has a qualifying phrase,
+    // so it is never picked — without this filter, the lure could draw the visitor to a wall
+    // where nothing appears and the owed chair epilogue would be silently lost for the visit.
+    const wall = pickMemoryWall(c.h, [otherWalls([c.h.facing, 'south']), otherWalls([c.h.facing])]);
     c.st.data.wall = wall;
     c.st.data.laughs = 1;
     laugh(c, wall, 0.5);
@@ -48,6 +53,12 @@ export const nextRoom: SituationDef = {
         // Once more, softer, as if just the other side of the wall.
         laugh(c, d.wall, 0.32, 3);
         c.release('beyond');
+        // `begin` and the relocation above only ever choose a wall `memoryOn` has a phrase on, so
+        // reaching that wall always finds a memory and the chair epilogue is owed. `end('done')`
+        // here is the rare no-memory fallback: a wall cannot lose a qualifying phrase mid-visit
+        // (dims/tier/geometry are static; phase only admits more), so this branch is unreachable
+        // in the room itself — it only shows in geometry-less test harnesses, where there is no
+        // memory to reveal and the episode quietly lets go, as it always has.
         return d.memory ? c.go('found') : c.end();
       }
       if (c.since > 75) {
@@ -56,9 +67,12 @@ export const nextRoom: SituationDef = {
           return c.end();
         }
         d.laughs = 2;
-        // From somewhere else — never the wall the visitor is already standing at.
-        const away = otherWalls([d.wall, h.facing]).filter((w) => h.distToSurface(w) > 1.6);
-        d.wall = h.rng.pick(away.length ? away : otherWalls([d.wall, h.facing]));
+        // From somewhere else — never the wall the visitor is already standing at — and somewhere
+        // that can still pay off if followed: prefer far walls with a memory, then any different
+        // wall with a memory, so the second laugh never lures onto a dead-end wall (e.g. north).
+        const base = otherWalls([d.wall, h.facing]);
+        const away = base.filter((w) => h.distToSurface(w) > 1.6);
+        d.wall = pickMemoryWall(h, [away, base]);
         laugh(c, d.wall, 0.3);
         c.go('listening');
       }
@@ -115,6 +129,20 @@ function memoryOn(h: SituationHost, wall: Surface): Phrase | undefined {
   const score = (x: (typeof cands)[number]) => Math.hypot(x.g!.x - v.x, x.g!.z - v.z) + (h.visible.has(x.p.id) ? 1.5 : 0);
   cands.sort((a, b) => score(a) - score(b) || (a.p.id < b.p.id ? -1 : 1));
   return cands[0]?.p;
+}
+
+/**
+ * Choose a wall to lure from, preferring ones that can pay off the episode — a wall with a warm
+ * memory on it. Walks the given pools in priority order; the first pool that holds any wall a
+ * `memoryOn` candidate lives on decides, picked at random from those memory-bearing walls. If no
+ * pool has one, falls back to the first non-empty pool, so a laugh still comes from somewhere.
+ */
+function pickMemoryWall(h: SituationHost, pools: Surface[][]): Surface {
+  for (const pool of pools) {
+    const withMemory = pool.filter((w) => memoryOn(h, w));
+    if (withMemory.length) return h.rng.pick(withMemory);
+  }
+  return h.rng.pick(pools.find((p) => p.length) ?? pools[0]);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

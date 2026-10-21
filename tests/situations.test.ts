@@ -9,6 +9,7 @@ import { PHRASES, PHRASE_BY_ID } from '../src/content/phrases';
 import { layoutPhrases, layoutToWorld, ROOM } from '../src/world/layout';
 import { interpretLocally } from '../src/interpret/LocalInterpreter';
 import { keptWord, HUM_NOTE } from '../src/state/situations/library';
+import { warmthOf } from '../src/state/Memory';
 
 // Geometry without a browser: the same layout, approximate font metrics.
 const SZ: Record<string, number> = { xs: 0.13, s: 0.17, m: 0.22, l: 0.31, xl: 0.53 };
@@ -101,6 +102,68 @@ describe('situation: the next room', () => {
     expect(walls[0]).not.toBe(walls[1]);
     expect(v.of('sit:next-room').some((c) => c.cue.type === 'write')).toBe(false);
     expect(v.d.situations.finished.map((f) => f.id)).toContain('next-room');
+  });
+
+  // Regression for the "north wall has no warm memory" bug: facing east/south/west put north in
+  // the candidate pool, so the laugh could lure the visitor to a wall where nothing appears and
+  // the owed chair epilogue was silently lost for the visit. Seed 1 reproduced the dead-end pick
+  // for all three facings; the fix is to only ever lure from a wall that can hold a warm memory.
+  it('from any facing, following the laughter always reveals a memory and pays off at the chair', () => {
+    for (const facing of ['east', 'south', 'west'] as Surface[]) {
+      const v = new Visit(['next-room'], 1);
+      v.d.scenes.setAvailable(new Set());
+      const first = v.run(240, { x: 0, z: 2.4, facing }, (c) => isVoice(c.cue) && c.cue.tag === 'next-room');
+      expect(first).toBeTruthy();
+      const wall = (first!.cue as Extract<Cue, { type: 'voice' }>).position as { kind: 'beyond'; surface: Surface };
+      expect(wall.kind).toBe('beyond');
+      // Never the dead-end wall: north has no phrase warm enough for the situation's payoff.
+      expect(wall.surface).not.toBe('north');
+      v.run(12, before(wall.surface));
+      const found = v.of('sit:next-room').find((c) => c.cue.type === 'reveal');
+      expect(found).toBeTruthy();
+      const memoryId = found && found.cue.type === 'reveal' ? found.cue.phraseId : undefined;
+      expect(memoryId).toBeTruthy();
+      expect(geometry(memoryId!)!.surface).toBe(wall.surface);
+      const md = PHRASE_BY_ID.get(memoryId!)!.dims;
+      expect(warmthOf(md)).toBeGreaterThanOrEqual(0.9);
+      expect((md.nostalgia ?? 0) >= 0.4 || (md.happiness ?? 0) >= 0.7).toBe(true);
+      v.run(120, { x: 0, z: 2.6, facing });
+      const write = v.run(60, { x: 0.1, z: 0.8, facing }, (c) => c.rule === 'sit:next-room' && c.cue.type === 'write');
+      expect(write).toBeTruthy();
+      expect(write!.cue.type === 'write' && write!.cue.text).toBe(PHRASE_BY_ID.get(memoryId!)!.text);
+      expect(write!.cue.type === 'write' && write!.cue.surface).toBe('floor');
+    }
+  });
+
+  // The second laugh ("call once more, from somewhere else") could also be relocated onto a
+  // dead-end wall, so following it led to nothing. Seed 1 hit that for all three bug-exposing
+  // facings; the relocation now also prefers a wall with a memory.
+  it('ignoring the first laugh, the second call from elsewhere still pays off when followed', () => {
+    for (const facing of ['east', 'south', 'west'] as Surface[]) {
+      const v = new Visit(['next-room'], 1);
+      v.d.scenes.setAvailable(new Set());
+      const first = v.run(240, { x: 0, z: 2.4, facing }, (c) => isVoice(c.cue) && c.cue.tag === 'next-room');
+      expect(first).toBeTruthy();
+      // Ignore the first laugh: stay at the start spot, never approach. After ~75s the situation
+      // calls once more, from somewhere else.
+      const second = v.run(120, { x: 0, z: 2.4, facing }, (c) => isVoice(c.cue) && c.cue.tag === 'next-room' && c.t > first!.t + 30);
+      expect(second).toBeTruthy();
+      const w1 = (first!.cue as Extract<Cue, { type: 'voice' }>).position as { kind: 'beyond'; surface: Surface };
+      const w2 = (second!.cue as Extract<Cue, { type: 'voice' }>).position as { kind: 'beyond'; surface: Surface };
+      expect(w2.surface).not.toBe(w1.surface); // the "somewhere else" guarantee
+      expect(w2.surface).not.toBe('north');     // the relocated-to dead-end is gone too
+      // Follow the second laugh.
+      v.run(12, before(w2.surface));
+      const found = v.of('sit:next-room').find((c) => c.cue.type === 'reveal');
+      expect(found).toBeTruthy();
+      const memoryId = found && found.cue.type === 'reveal' ? found.cue.phraseId : undefined;
+      expect(memoryId).toBeTruthy();
+      expect(geometry(memoryId!)!.surface).toBe(w2.surface);
+      v.run(120, { x: 0, z: 2.6, facing });
+      const write = v.run(60, { x: 0.1, z: 0.8, facing }, (c) => c.rule === 'sit:next-room' && c.cue.type === 'write');
+      expect(write).toBeTruthy();
+      expect(write!.cue.type === 'write' && write!.cue.surface).toBe('floor');
+    }
   });
 });
 
