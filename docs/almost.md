@@ -23,10 +23,10 @@ is "THE HEDGEHOG'S DILEMMA, MEMORY II — ALMOST" (2026-10-20).
 | The scene | `scripts/almost/build.py` | the camera (42 mm at 28.5 cm, f/11, focus between the hands and the faces), the lights, render settings; `--pose`, `--still` and `--save` for single frames |
 | The performance | `scripts/almost/performance.py` | the key poses and how a pose is put on the puppets: wrists placed and the elbow solved clear of the table, a hand laid on the wood until its felt just meets it, his fingertip brought to the fold's corner; every pose's arms then baked in full, so in-betweens are continuous |
 | The exposure sheet | `scripts/almost/xsheet.py` | which drawing each of the 679 frames photographs (134 photographs): mostly twos, the startle on ones, breaths on fours, long holds. `python3 scripts/almost/xsheet.py` prints it |
-| Photographing | `scripts/almost/render.py` | one render per unique pair of drawings (158); after the first, only the region that changed (the felt that moved, where it was and where it is, and its shadows on the table and the wall), written noisy, with the denoiser's albedo and normal |
-| Developing | `scripts/almost/develop.py` | each region pasted into the noisy photograph before it, the whole photograph denoised once and seen through the film's view (AgX); outside the region nothing differs by a bit |
+| Photographing | `scripts/almost/render.py` | one render per unique pair of drawings; after the first, only the region that changed (the felt that moved, where it was and where it is, and its shadows wherever the lens sees them sharp), written noisy, with the denoiser's albedo and normal and a hash of the poses it shows; `--plan` estimates the whole, `--regrow` renders seamed sides again, wider |
+| Developing | `scripts/almost/develop.py` | each region pasted into the noisy photograph before it, the whole photograph denoised once and seen through the film's view (AgX); outside the region nothing differs by a bit; a region whose border disagrees with the photograph before it fails the run and is listed in `seams.json` |
 | Assembly | `scripts/almost/assemble.py` | the developed photographs in exposure-sheet order, made 8-bit with one fixed dither; then the review crops (16:9, 9:16) and the room's copies (VP9 and H.264, full and half size) |
-| Checks | `scripts/almost/check.py`, `scripts/almost/seen.py` | every photograph posed and measured on its rendered surfaces: nothing into the table (its own mesh, warp and worn edges) or into the other figure, no resting hand above the wood, no hand out through its own sleeve; and in every held pose the fold's lining as the camera sees it, in both crops |
+| Checks | `scripts/almost/check.py`, `scripts/almost/apart.py`, `scripts/almost/seen.py` | every photograph posed and measured on its rendered surfaces: nothing into the table (its own mesh, warp and worn edges) or into the other figure, no resting hand above the wood, no hand out through its own sleeve, no limp paw in the air; his hand clear of her arm in the picture from the moment he lets go; and in every held pose the fold's lining as the camera sees it, in both crops. Two known exceptions: a paw at photograph 27, and the wrist's tube 0.7-1.6 mm through his cuff at 71-74, hidden from the lens at every point (docs/reviews/2026-10-almost.md, decision 28) |
 | QA sheets | `scripts/almost/posesheet.py`, `strips.py`, `tile.py` | the pose sheet (the story's ten key poses, captioned); motion strips (chosen frames of a film side by side) |
 | Sound | `scripts/generate-almost.mjs`, `scripts/almost/sound.py` | ElevenLabs takes of the small material sounds; the fridge and the room made in code; all laid on the exposure sheet's frames, measured (A-weighted, loudness, the clock against the beats) |
 | The way through the wall | `scripts/almost/masks.py`, `scripts/almost/emergence.py` | the first photograph in wool fibres, when each fibre grows and when the colour comes; the wall's poster; the art manifest |
@@ -44,13 +44,19 @@ $B -b --factory-startup --python scripts/almost/build.py -- --pose lift2+touched
 # 2. the pose sheet, the contact check and the fold's gate
 $B -b --factory-startup --python scripts/almost/posesheet.py -- --out posesheet.jpg
 $B -b --factory-startup --python scripts/almost/check.py -- --out check.json
+$B -b --factory-startup --python scripts/almost/apart.py -- --out checks/
 $B -b --factory-startup --python scripts/almost/seen.py -- --out seen/
-# 3. the photographs: open matte 1280×1440, 80 samples, noisy; then developed (about 10 s each).
-#    --draft: 640×720 at 16 samples, without fibres, denoised as rendered (about 30 minutes; no
-#    developing). Both resume where they stopped; after re-rendering from photograph N on,
-#    develop with --from N.
+# 3. the photographs: open matte 1280×1440, 80 samples, noisy (about 3.5 h: --plan says); then
+#    developed (about 10 s each). --draft: 640×720 at 16 samples, without fibres, denoised as
+#    rendered (about 25 minutes; no developing). Both resume where they stopped, as long as each
+#    region on disk still shows the pose the sheet gives it; change a pose and render into a fresh
+#    directory. If developing finds a seam, render those sides again, wider, and develop from there.
+$B -b --factory-startup --python scripts/almost/render.py -- --out film/ --plan
 $B -b --factory-startup --python scripts/almost/render.py -- --out film/
 $B -b --factory-startup --python scripts/almost/develop.py -- film/
+#    (on a seam:)
+$B -b --factory-startup --python scripts/almost/render.py -- --out film/ --regrow
+$B -b --factory-startup --python scripts/almost/develop.py -- film/ --from N
 # 4. the soundtrack, and the room's two sounds published with what they were made from
 python3 scripts/almost/sound.py film/almost.wav --publish public/music
 # 5. the films: review crops with sound, the room's silent copies, and the first photograph
@@ -147,10 +153,14 @@ npm run memories:seed -- --force=almost-film
   - **On the way out** nothing runs in order. The colour sinks back into the wool all at once, then
     the wool into the plaster, on the layers' opacities. (Run backwards, the two of them went first
     and left the lamp over an empty table: the woodland's ending again.)
-- **Files.** VP9 WebM is played where it can be (Chromium, Firefox), and H.264 MP4 elsewhere
-  (Safari). The phone set (`@low`) is half size. Both are fetched as blobs when the line is armed
-  or offered, and decoded when it begins. If neither plays, the memory stays a still on the wall:
-  the first photograph.
+- **Files.** VP9 WebM is played where it can be (Chromium, Firefox), and H.264 MP4 elsewhere;
+  WebKit (Safari, and every browser on an iPhone) gets H.264 first. The phone set (`@low`) is half
+  size. Both are fetched as blobs when the line is armed or offered, and decoded when it begins:
+  played and paused once its metadata is in (Safari may decode nothing of a video that has not
+  played). If neither plays, or nothing is decoded in 5 s, the memory stays a still on the wall:
+  the first photograph. A keyframe only where a photograph begins, at least 3 s apart, so the
+  still room never pulses; a playing film keeps time by its rate and seldom seeks. (Not yet tried
+  on a real iPhone.)
 - **Compiled at boot.** The film's program is compiled at boot with the living memory's
   (`warmLiving`), and one film material is kept for good, so the program outlives each film's own
   material. Nothing compiles later. (Warmed with a material that was then disposed, the program
