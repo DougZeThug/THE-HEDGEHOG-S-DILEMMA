@@ -208,6 +208,7 @@ export class CameraRig {
     const slow = k.has('ShiftLeft') || k.has('ShiftRight') ? 0.45 : 1;
     const speed = (this.kneeling ? 0 : 1.05) * slow;
     if ((fwd || strafe || turn) && this.goal) this.cancelAttend();
+    if (turn) this.lookGoal = null;
     if (this.kneeling && (fwd || strafe)) this.kneeling = false;
 
     // Keyboard turning is eased.

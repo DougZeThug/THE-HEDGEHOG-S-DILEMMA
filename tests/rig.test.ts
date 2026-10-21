@@ -86,3 +86,88 @@ describe('where the visitor is put decides nothing by a few centimetres', () => 
     });
   }
 });
+
+// Post-attend gaze: a deliberate turn (keyboard arrows or the touch walk-thumb)
+// takes the gaze back, like a mouse/touch drag-look already does. Before the
+// fix, the lookGoal spring kept easing the view toward the attended target every
+// frame after a short attend arrived, fought and capped a held turn at ~yawVel × τ
+// (≈1.0 rad off the target) and erased it on release — see the bug report.
+describe('a turn after an attend walk arrives overrides the lingering gaze spring', () => {
+  const room = { halfW: 3.2, halfD: 3.2 } as unknown as Room;
+  const chair = new THREE.Vector3();
+  const freshRig = () => {
+    const r = new CameraRig(16 / 10);
+    r.walk = true;
+    // Standing, centred, facing -z (yaw 0): a known, simple starting state.
+    r.pos.set(0, 0, 0);
+    r.yaw = 0;
+    r.pitch = 0;
+    return r;
+  };
+  // A short attend: ≈0.5 m walk toward a target 1 m ahead, gaze aimed ~π rad away
+  // (the body must turn 180° on arrival). The 0.9 s gaze spring does not converge
+  // inside that short walk, so lookGoal is still set when the walk completes —
+  // the precondition the bug strikes in.
+  const shortAttend = (r: CameraRig) => r.attend(new THREE.Vector3(0, 0.35, 1.0), 0.5);
+  const lookGoal = (r: CameraRig) =>
+    (r as unknown as { lookGoal: { yaw: number; pitch: number } | null }).lookGoal;
+  const step = (r: CameraRig, seconds: number) => {
+    for (let t = 0; t < seconds; t += 1 / 60) r.update(1 / 60, room, chair);
+  };
+
+  it('a held turn after arrival clears lookGoal at once, like a drag-look does', () => {
+    const r = freshRig();
+    shortAttend(r);
+    step(r, 3);
+    expect(lookGoal(r)).not.toBeNull();
+    r.keys.add('ArrowLeft');
+    r.update(1 / 60, room, chair);
+    expect(lookGoal(r)).toBeNull();
+  });
+
+  it('a held turn advances freely and is not undone on release (no spring-back)', () => {
+    const r = freshRig();
+    shortAttend(r);
+    step(r, 3);
+    const yawAtArrival = r.yaw;
+    r.keys.add('ArrowLeft');
+    step(r, 2);
+    const yawAfterTurn = r.yaw;
+    // Pre-fix the spring capped the yaw near yawVel × τ (~1.0 rad off the
+    // attended target) and froze it there; post-fix the turn advances at the
+    // full eased rate (~2 rad in 2 s).
+    expect(yawAfterTurn - yawAtArrival).toBeGreaterThan(1.5);
+    r.keys.delete('ArrowLeft');
+    step(r, 1);
+    // Pre-fix the spring snapped the view all the way back to the attended
+    // target, erasing the turn; post-fix the visitor's turn stays put — still
+    // turned well past the attended direction, never falling back toward it.
+    expect(r.yaw - yawAtArrival).toBeGreaterThan(1.5);
+    expect(r.yaw).toBeGreaterThanOrEqual(yawAfterTurn);
+  });
+
+  it('the touch walk-thumb turn after arrival also overrides the spring', () => {
+    const r = freshRig();
+    shortAttend(r);
+    step(r, 3);
+    expect(lookGoal(r)).not.toBeNull();
+    r.touchMove.x = 0.5;
+    r.update(1 / 60, room, chair);
+    expect(lookGoal(r)).toBeNull();
+    r.touchMove.x = 0;
+  });
+
+  it('walking input (fwd/strafe) alone after arrival does not clear lookGoal', () => {
+    // The fix is scoped to `turn`: walking away after arrival keeps the view
+    // pinned facing the attended target for a few seconds — the case the bug
+    // report flags as self-resolving and far less disorienting than the turn
+    // fight (and so deliberately left untouched).
+    const r = freshRig();
+    shortAttend(r);
+    step(r, 3);
+    expect(lookGoal(r)).not.toBeNull();
+    r.keys.add('KeyW');
+    r.update(1 / 60, room, chair);
+    expect(lookGoal(r)).not.toBeNull();
+  });
+});
