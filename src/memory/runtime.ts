@@ -118,6 +118,8 @@ export interface PreparedLiving {
   spec: Pick<LivingSpec, 'cover' | 'coverAt'>;
   /** It may be entered (or only seen on the wall). */
   immerse: boolean;
+  /** Carried out of the wall, its edge is torn (hard and ragged) rather than a soft brush. */
+  torn?: boolean;
   /** What the wall shows first (painting uv: x0, y0, w, h). */
   crop: [number, number, number, number];
   /** The painting's aspect (w / h). */
@@ -329,7 +331,7 @@ export async function prepare(id: string, variant: string, host: RuntimeHost): P
       if (orderR) extra.push(orderR);
       const size = targetSize(host);
       scene = new FilmScene({ video, fps: lm.fps, frames: lm.frames }, { ...size, reduced: !!host.reduced });
-      living = { scene, spec: ALMOST, immerse: lm.immerse, crop: manifest.crop ?? [0, 0, 1, 1], aspect: manifest.size[0] / manifest.size[1], order: orderR?.texture ?? null, colourAt: orderR ? colourTimes(orderR.bitmap) : null };
+      living = { scene, spec: ALMOST, immerse: lm.immerse, torn: true, crop: manifest.crop ?? [0, 0, 1, 1], aspect: manifest.size[0] / manifest.size[1], order: orderR?.texture ?? null, colourAt: orderR ? colourTimes(orderR.bitmap) : null };
       loaded.unshift({ texture: scene.target.texture, bitmap: null as unknown as ImageBitmap, name: 'scene', kind: 'pigment' });
     } catch (e) {
       // The film couldn't be had: the wall's poster instead, still (as any memory).

@@ -437,6 +437,18 @@ describe("which memories lie under the room's writing (the App's wiring, through
     expect(played).toBeGreaterThanOrEqual(6);
   });
 
+  it("Almost's writing comes back as its wool sinks into the plaster, not in one frame at its end", () => {
+    // (It held a trace until the memory completed, then came back to full in one frame, the wool
+    // gone 2 s before: the cinematic director's review, 2026-10-21.)
+    for (const v of MEMORIES.almost.variants) {
+      const frames = play('almost', v);
+      expect(frames.complete).toBe(true);
+      expect(Math.max(...frames.map((x) => x.w)), v).toBeGreaterThan(0.8);
+      expect(frames[frames.length - 1].w, v).toBeLessThan(0.02);
+      for (let i = 1; i < frames.length; i++) expect(Math.abs(frames[i].w - frames[i - 1].w), `${v} at ${frames[i].t.toFixed(2)}`).toBeLessThan(0.1);
+    }
+  });
+
   it("the woodland's revisit, on the wall with no scene of its own, washes them as its colour comes, and gives them back by its end", () => {
     expect(scenes.empty).toBeNull();
     const frames = play('woodland', 'empty');
