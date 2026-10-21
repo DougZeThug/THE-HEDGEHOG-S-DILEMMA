@@ -226,13 +226,18 @@ _REST_CACHE = {}
 
 
 def curl(fig, side, fingers=None, thumb=(10, 8)):
-    """Curl each finger's two joints toward the palm (degrees beyond the rest curl)."""
+    """Curl each finger's two joints toward the palm (degrees beyond the rest curl). A thumb may
+    take a third number: how far it swings in toward the index finger, across the palm, at its root.
+    (Curled alone it can only fold down and back: folded under, its tip went back under the wrist
+    and into the cuff: final QA, 2026-10-21.)"""
     fingers = fingers or {}
+    m = 1 if side == 'L' else -1
     for f in puppets.FINGERS:
-        a, b = fingers.get('thumb', thumb) if f == 'thumb' else fingers.get(f, fingers.get('all', (8, 10)))
-        for j, ang in ((1, a), (2, b)):
+        c = fingers.get('thumb', thumb) if f == 'thumb' else fingers.get(f, fingers.get('all', (8, 10)))
+        swing = c[2] * m if len(c) > 2 else 0.0
+        for j, ang in ((1, c[0]), (2, c[1])):
             pb = fig.arm.pose.bones[f'{f}{j}.{side}']
-            pb.rotation_quaternion = Euler((math.radians(-ang), 0, 0), 'XYZ').to_quaternion()
+            pb.rotation_quaternion = Euler((math.radians(-ang), 0, math.radians(swing) if j == 1 else 0.0), 'XYZ').to_quaternion()
 
 
 def calibrate(figs):

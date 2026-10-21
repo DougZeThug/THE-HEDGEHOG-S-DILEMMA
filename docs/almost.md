@@ -26,7 +26,7 @@ is "THE HEDGEHOG'S DILEMMA, MEMORY II — ALMOST" (2026-10-20).
 | Photographing | `scripts/almost/render.py` | one render per unique pair of drawings (158); after the first, only the region that changed (the felt that moved, where it was and where it is, and its shadows on the table and the wall), written noisy, with the denoiser's albedo and normal |
 | Developing | `scripts/almost/develop.py` | each region pasted into the noisy photograph before it, the whole photograph denoised once and seen through the film's view (AgX); outside the region nothing differs by a bit |
 | Assembly | `scripts/almost/assemble.py` | the developed photographs in exposure-sheet order, made 8-bit with one fixed dither; then the review crops (16:9, 9:16) and the room's copies (VP9 and H.264, full and half size) |
-| Checks | `scripts/almost/check.py`, `scripts/almost/seen.py` | every photograph posed and measured on its rendered surfaces: nothing into the table (its own mesh, warp and worn edges) or into the other figure, no resting hand above the wood; and in every held pose the fold's lining as the camera sees it, in both crops |
+| Checks | `scripts/almost/check.py`, `scripts/almost/seen.py` | every photograph posed and measured on its rendered surfaces: nothing into the table (its own mesh, warp and worn edges) or into the other figure, no resting hand above the wood, no hand out through its own sleeve; and in every held pose the fold's lining as the camera sees it, in both crops |
 | QA sheets | `scripts/almost/posesheet.py`, `strips.py`, `tile.py` | the pose sheet (the story's ten key poses, captioned); motion strips (chosen frames of a film side by side) |
 | Sound | `scripts/generate-almost.mjs`, `scripts/almost/sound.py` | ElevenLabs takes of the small material sounds; the fridge and the room made in code; all laid on the exposure sheet's frames, measured (A-weighted, loudness, the clock against the beats) |
 | The way through the wall | `scripts/almost/masks.py`, `scripts/almost/emergence.py` | the first photograph in wool fibres, when each fibre grows and when the colour comes; the wall's poster; the art manifest |
@@ -86,6 +86,8 @@ npm run memories:seed -- --force=almost-film
   - The elbow is chosen on the circle the two bones allow, and it never goes into the table.
     `check.py` measures every photograph: felt may press into the wood by 0.7 mm, a tenth of a
     sleeve's radius, as stuffed felt does.
+  - No hand goes out through its own sleeve (`check.py`'s `through`). A wrist bends at its joint
+    inside the cuff, its hidden end going with the forearm.
 - **Her cuff** is shaped pose by pose with shape keys, as a puppet maker pins cloth between
   exposures. Its corner rises under his fingertip over two drawings (`lift`). After the startle it
   settles a little differently (`after`), and the fold is still there at the end.
@@ -150,7 +152,9 @@ npm run memories:seed -- --force=almost-film
   or offered, and decoded when it begins. If neither plays, the memory stays a still on the wall:
   the first photograph.
 - **Compiled at boot.** The film's program is compiled at boot with the living memory's
-  (`warmLiving`). Nothing compiles later.
+  (`warmLiving`), and one film material is kept for good, so the program outlives each film's own
+  material. Nothing compiles later. (Warmed with a material that was then disposed, the program
+  went with it and compiled again on the way in: the memory playtest, 2026-10-21.)
 
 ## Provenance
 

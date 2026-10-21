@@ -582,6 +582,12 @@ const FILM_FRAG = /* glsl */ `
   void main() { gl_FragColor = vec4(texture2D(uFilm, vUv).rgb, 1.0); }
 `;
 let blankFilm: THREE.DataTexture | null = null;
+/**
+ * A film material kept for good: while one lives, every film's material is the same program. (A
+ * program goes with the last material using it: warmed and disposed, the film's was compiled again
+ * on the way in: the memory playtest, 2026-10-21.)
+ */
+let keptFilm: THREE.ShaderMaterial | null = null;
 
 /** The film's material, showing `texture` (a video's), or black until it has one. */
 export function filmMaterial(texture: THREE.Texture | null): THREE.ShaderMaterial {
@@ -601,7 +607,7 @@ export function filmMaterial(texture: THREE.Texture | null): THREE.ShaderMateria
 /**
  * Compile the living memories' programs now (at boot), for the target they are really drawn into,
  * so nothing compiles when someone goes in: the painting that lives and the film. The materials
- * are kept for good (the film's is the same program as every film's).
+ * are kept for good (the film's is the same program as every film's, kept by `keptFilm`).
  */
 export function warmLiving(renderer: THREE.WebGLRenderer, noise: THREE.Texture): void {
   const m = livingMaterials(noise);
@@ -610,8 +616,8 @@ export function warmLiving(renderer: THREE.WebGLRenderer, noise: THREE.Texture):
   quad.translate(0.5, 0.5, 0);
   const grid = new THREE.PlaneGeometry(1, 1, 2, 2);
   grid.translate(0.5, 0.5, 0);
-  const film = filmMaterial(null);
-  scene.add(new THREE.Mesh(quad, m.plate), new THREE.Mesh(grid, m.people), new THREE.Mesh(quad, film));
+  keptFilm ??= filmMaterial(null);
+  scene.add(new THREE.Mesh(quad, m.plate), new THREE.Mesh(grid, m.people), new THREE.Mesh(quad, keptFilm));
   const target = livingTarget(16, 16);
   const cam = livingCamera();
   const prev = renderer.getRenderTarget();
@@ -622,5 +628,4 @@ export function warmLiving(renderer: THREE.WebGLRenderer, noise: THREE.Texture):
   target.dispose();
   quad.dispose();
   grid.dispose();
-  film.dispose();
 }

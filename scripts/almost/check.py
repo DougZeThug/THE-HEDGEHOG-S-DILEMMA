@@ -11,6 +11,11 @@ they are rendered, not the cage posing works on):
   edge), and 0.3 mm more for the knit's own relief.
 - **into:** the deepest his hand goes inside her sleeve or its fold (along her surface's normal).
 - **gap:** for a hand meant to be resting, how far its lowest felt is above the wood.
+- **through:** how far a hand's wrist, where it runs up inside its own sleeve, goes out into the
+  sleeve's cloth (the knit is 0.6 mm thick: deeper shows through it as a pale patch on the cuff).
+  Measured from the forearm's axis toward each point of the hand behind the wrist: the wall met
+  first. (A wrist that bent as one piece with the hand swung its hidden end out through the top of
+  his cuff whenever the hand drooped from it, through most of the reach: final QA, 2026-10-21.)
 
 Depths are to the nearest surface, so one deeper than half the top's thickness (3.25 mm) reads as
 its distance to the underside: still a fault.
@@ -37,6 +42,8 @@ import xsheet  # noqa: E402
 DIP_OK = performance.SQUASH + 0.0003
 INTO_OK = 0.0004
 GAP_OK = 0.0006
+THROUGH_OK = 0.0003
+WALL = 0.003        # nearer a sleeve's axis than this is inside the wrist (its inner wall: 4.4 mm and more)
 
 
 def verts(ob):
@@ -69,6 +76,31 @@ def inside(points, bvh, reach=0.005):
             continue
         depth = -(Vector(p) - loc).dot(nrm)
         worst = max(worst, depth)
+    return worst
+
+
+def through(points, bvh, E, W):
+    """The furthest any of `points` between the elbow E and the wrist W is beyond the sleeve's
+    inner wall: from the forearm's axis toward the point, the wall met before the point is. Only
+    behind the wrist: the sleeve runs on 1.6 mm, and a bent hand's heel or thumb may lie beside its
+    rounded rim without going through it. (Cloth met nearer the axis than the wall is cloth inside
+    the wrist, hidden by it: the folded cuff's cut end.)"""
+    df = (W - E).normalized()
+    end = (W - E).length
+    worst = 0.0
+    for p in points:
+        p = Vector(p)
+        s = (p - E).dot(df)
+        if s < 0 or s > end:
+            continue
+        c = E + df * s
+        r = p - c
+        dist = r.length
+        if dist < WALL:
+            continue
+        hit, _, _, d = bvh.ray_cast(c + r / dist * WALL, r / dist, dist - WALL)
+        if hit is not None:
+            worst = max(worst, dist - WALL - d)
     return worst
 
 
@@ -131,12 +163,21 @@ def main():
                     g = co[f'{k} hand.{side}'][:, 2].min() - kitchen.TABLE_TOP
                     if g > GAP_OK:
                         row.setdefault('gap', {})[f'{k} hand.{side}'] = round(g * 1000, 2)
-        failed = any(x in row for x in ('dip', 'into', 'gap'))
+        # each wrist inside its own sleeve
+        for k, fig in figs.items():
+            for side in 'LR':
+                E = performance.posed_head(fig, f'forearm.{side}')
+                W = performance.posed_tail(fig, f'forearm.{side}')
+                d = through(co[f'{k} hand.{side}'], tree(obj[f'{k} sleeve.{side}'])[0], E, W)
+                if d > THROUGH_OK:
+                    row.setdefault('through', {})[f'{k} hand.{side}'] = round(d * 1000, 2)
+        failed = any(x in row for x in ('dip', 'into', 'gap', 'through'))
         bad += failed
         if failed:
             print('FAIL', json.dumps(row), flush=True)
         report.append(row)
-    print(f'CHECKED {len(report)} photographs, {bad} with a fault (dip > {DIP_OK * 1000:.1f} mm, into > {INTO_OK * 1000:.1f} mm, gap > {GAP_OK * 1000:.1f} mm)', flush=True)
+    print(f'CHECKED {len(report)} photographs, {bad} with a fault (dip > {DIP_OK * 1000:.1f} mm, into > {INTO_OK * 1000:.1f} mm, gap > {GAP_OK * 1000:.1f} mm,'
+          f' through > {THROUGH_OK * 1000:.1f} mm)', flush=True)
     if opts.get('out'):
         with open(opts['out'], 'w') as fh:
             json.dump(report, fh, indent=1)

@@ -780,8 +780,14 @@ class Figure:
         for tf in tmp.faces:
             part.bm.faces.new([lut[tv] for tv in tf.verts])
         tmp.free()
-        # the wrist, running up into the cuff
-        path_tube(part, [wr - Y * 0.0045, wr + Y * 0.0012], [0.0030 * k, 0.0030 * k], lambda p, t: hw, segs=14, cap_end=True, cap_start=True)
+        # the wrist, running up into the cuff. It bends at the joint, its hidden end going with the
+        # forearm: in one piece with the hand, a hand drooping from the wrist swung that end out
+        # through the top of the cuff, a pale patch on the knit through most of his reach (final QA,
+        # 2026-10-21; check.py's `through`)
+        def ww(p, t):
+            a = sstep(0.0030, 0.0048, t)     # (the joint is 4.5 mm along)
+            return {f'forearm.{side}': 1 - a, f'hand.{side}': a}
+        path_tube(part, [wr - Y * 0.0045, wr + Y * 0.0012], [0.0030 * k, 0.0030 * k], ww, segs=14, cap_end=True, cap_start=True)
         # fingers: skinned to their two bones, bending smoothly at the knuckles
         radius = {'index': 0.00094, 'middle': 0.00098, 'ring': 0.00093, 'little': 0.00084, 'thumb': 0.00110}
         for f in FINGERS:
