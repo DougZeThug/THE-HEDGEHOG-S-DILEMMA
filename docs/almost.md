@@ -26,7 +26,7 @@ is "THE HEDGEHOG'S DILEMMA, MEMORY II — ALMOST" (2026-10-20).
 | Photographing | `scripts/almost/render.py` | one render per unique pair of drawings; after the first, only the region that changed (the felt that moved, where it was and where it is, and its shadows wherever the lens sees them sharp), written noisy, with the denoiser's albedo and normal and a hash of its drawings and the scripts that made them; `--plan` estimates the whole, `--regrow` renders seamed sides again, wider |
 | Developing | `scripts/almost/develop.py` | each region pasted into the noisy photograph before it, the whole photograph denoised once and seen through the film's view (AgX), the window sill's lit edge printed down through a fixed soft mask (darkroom practice; his crown is left for the artist's A/B); outside the region nothing differs by a bit; a region whose border disagrees with the photograph before it fails the run and is listed in `seams.json` |
 | Assembly | `scripts/almost/assemble.py` | the developed photographs in exposure-sheet order, made 8-bit with one fixed dither; then the review crops (16:9, 9:16) and the room's copies (VP9 and H.264, full and half size) |
-| Checks | `scripts/almost/check.py`, `scripts/almost/apart.py`, `scripts/almost/seen.py` | every photograph posed and measured on its rendered surfaces: nothing into the table (its own mesh, warp and worn edges) or into the other figure, no resting hand above the wood, no hand out through its own sleeve, no limp paw in the air; his hand clear of her arm in the picture from the moment he lets go; and in every held pose the fold's lining as the camera sees it, in both crops. Two known exceptions: a paw at photograph 27, and the wrist's tube 0.7-1.6 mm through his cuff at 71-74, hidden from the lens at every point (docs/reviews/2026-10-almost.md, decision 28) |
+| Checks | `scripts/almost/check.py`, `scripts/almost/apart.py`, `scripts/almost/seen.py` | every photograph posed and measured on its rendered surfaces: nothing into the table (its own mesh, warp and worn edges) or into the other figure, no resting hand above the wood, no hand out through its own sleeve, no limp paw in the air; his hand clear of her arm in the picture from the moment he lets go; and in every held pose the fold's lining as the camera sees it, in both crops. One known exception: the wrist's tube 0.7-1.6 mm through his cuff at 72-75, hidden from the lens at every point (docs/reviews/2026-10-almost.md, decision 28) |
 | QA sheets | `scripts/almost/posesheet.py`, `strips.py`, `tile.py` | the pose sheet (the story's ten key poses, captioned); motion strips (chosen frames of a film side by side) |
 | Sound | `scripts/generate-almost.mjs`, `scripts/almost/sound.py` | ElevenLabs takes of the small material sounds; the fridge and the room made in code; all laid on the exposure sheet's frames, measured (A-weighted, loudness, the clock against the beats) |
 | The way through the wall | `scripts/almost/masks.py`, `scripts/almost/emergence.py` | the first photograph in wool fibres, when each fibre grows and when the colour comes; the wall's poster; the art manifest |
@@ -109,8 +109,16 @@ npm run memories:seed -- --force=almost-film
 - **The fold is in the picture whenever it is held.** Her near forearm lies angled in toward her
   own middle, so the side of the cuff with the fold faces him and the lens; in her offer her elbow
   slides out toward him on the wood. `seen.py` counts the lining the camera sees in each held pose
-  (1032-1128 pixels at 1280 wide; at least 120).
+  (972-1116 pixels at 1280 wide; at least 120).
+- **His reach rises toward her.** The hand goes up and across together, so the forearm swings
+  toward her and the hand points across the table; its elbow turns evenly round the line from
+  shoulder to wrist. Lifted straight up first, the forearm pointed at the lens and the hand hung
+  below its cuff, a paw, for a third of a second.
 - **Her startle** sends her elbow back and down along her side: nothing of hers moves toward him.
+  **He lets go after her,** from her first still frame, 125 ms after her first startled one: his
+  fingertips slip off her sleeve over four drawings on twos as she lays her arm down, and his
+  hand stays in the air. On her own startle frames, or most of the way in one drawing, it read as
+  a second flinch.
   **His hand goes to his lap** by turning along the table's edge, rolling onto its little finger's
   side and slipping down past it: no lift, which read as a raised paw.
 - **The ending answers the opening.** He begins and ends looking at his cup and his hand by it; only
