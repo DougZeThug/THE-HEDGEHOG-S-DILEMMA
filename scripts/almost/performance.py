@@ -483,7 +483,10 @@ A['hesitate curl'] = _with(A['hesitate'], curl__L={'all': (21, 25), 'index': (13
 # artist, 2026-10-21.) On its way the hand comes in at the height it will touch at, its fingers in
 # the forearm's line as on the fold (held 8 mm higher, pointing level, the elbow folded to 64 degrees
 # and the hand hung 55 degrees off the wrist just before it landed).
-A['approach'] = _with(A['hesitate'], spine=(6, 5, 6), chest=(9, 4, 8), shoulder__L=(2, 10), head=(12, -2.5, 26),
+# The head takes the lean back out (nodded, leaned and turned as much less as the body bends
+# more), so his face is where it was, on her sleeve: with it kept, the draft showed the top of his
+# head and no eyes from the approach to the let-go.
+A['approach'] = _with(A['hesitate'], spine=(6, 5, 6), chest=(9, 4, 8), shoulder__L=(2, 10), head=(5, -5.5, 22),
                       arm__L=dict(wrist=(0.0070, -0.0040, T + 0.0120), fingers=(0.635, -0.699, 0.328), back=(0.10, -0.18, 1.0), on='air'),
                       curl__L={'all': (12, 16), 'index': (5, 7), 'middle': (7, 10), 'thumb': THUMB_TUCK})
 # the touch: low and level, from his side, the index and middle fingers leading (a hand putting a
@@ -625,7 +628,7 @@ def resolve(figs):
     # He sits back out of the lean as he lets go, and the fingers stay near the forearm's line (with
     # the lean kept, the wrist drawn back folded his elbow to 55 degrees and the hand bent 38 off it).
     off = dict(t, wrist=(t['wrist'][0] - 0.0115, t['wrist'][1] - 0.0010, t['wrist'][2] + 0.0015), fingers=(0.72, -0.62, 0.22))
-    A['reflex'] = _with(A['lift2'], spine=A['hesitate']['spine'], chest=A['hesitate']['chest'], arm__L=off,
+    A['reflex'] = _with(A['lift2'], spine=A['hesitate']['spine'], chest=A['hesitate']['chest'], head=(12, -0.5, 28), arm__L=off,
                         curl__L={'all': (19, 23), 'index': (13, 15), 'middle': (15, 18), 'thumb': THUMB_TUCK})
     bake(figs)
     vl.update()
