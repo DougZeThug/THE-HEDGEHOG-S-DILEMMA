@@ -39,13 +39,38 @@ export function filmType(probe: HTMLVideoElement = document.createElement('video
 }
 
 /**
- * A video element for a film's blob URL, muted and inline, with its first frame decoded. (Safari on
- * an iPhone may decode nothing of a video that has not played: it is played and paused once its
- * metadata is in, a refusal costing nothing, as it is then stepped. Nothing in 5 s, and the memory
- * is the wall's still instead.)
+ * Whether a video's current frame can be drawn: drawn into a 2x2 canvas and read back. (Cut short,
+ * a film loaded and then would not upload, a "cross-origin data" error on every frame, and the
+ * visitor was carried into black: QA, 2026-10-21.)
  */
-export async function loadFilm(url: string, timeout = 5000): Promise<HTMLVideoElement> {
-  const v = document.createElement('video');
+export function drawable(v: HTMLVideoElement): boolean {
+  if (!(v.videoWidth > 0) || v.readyState < 2) return false;
+  try {
+    const c = document.createElement('canvas');
+    c.width = c.height = 2;
+    const g = c.getContext('2d', { willReadFrequently: true });
+    if (!g) return true;
+    g.drawImage(v, 0, 0, 2, 2);
+    g.getImageData(0, 0, 1, 1);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * A video element for a film's blob URL, muted and inline, with its first frame decoded and
+ * drawable. (Safari on an iPhone may decode nothing of a video that has not played: it is played
+ * and paused once its metadata is in, a refusal costing nothing, as it is then stepped. Nothing in
+ * 5 s, and the memory is the wall's still instead: the video emptied and its URL released.)
+ */
+export async function loadFilm(
+  url: string,
+  timeout = 5000,
+  o: { make?: () => HTMLVideoElement; check?: (v: HTMLVideoElement) => boolean } = {},
+): Promise<HTMLVideoElement> {
+  const v = (o.make ?? (() => document.createElement('video')))();
+  const check = o.check ?? drawable;
   v.muted = true;
   v.defaultMuted = true;
   v.playsInline = true;
@@ -54,27 +79,38 @@ export async function loadFilm(url: string, timeout = 5000): Promise<HTMLVideoEl
   v.preload = 'auto';
   v.crossOrigin = 'anonymous';
   v.src = url;
-  await new Promise<void>((resolve, reject) => {
-    const done = () => (cleanup(), resolve());
-    const fail = () => (cleanup(), reject(new Error(`film could not be decoded: ${v.error?.message ?? 'no frame'}`)));
-    const nudge = () => {
-      const p = v.play();
-      if (p) p.then(() => v.pause(), () => {});
-    };
-    const timer = setTimeout(fail, timeout);
-    const cleanup = () => {
-      clearTimeout(timer);
-      v.removeEventListener('loadedmetadata', nudge);
-      v.removeEventListener('loadeddata', done);
-      v.removeEventListener('canplay', done);
-      v.removeEventListener('error', fail);
-    };
-    v.addEventListener('loadedmetadata', nudge);
-    v.addEventListener('loadeddata', done);
-    v.addEventListener('canplay', done);
-    v.addEventListener('error', fail);
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const done = () => {
+        if (check(v)) (cleanup(), resolve());
+      };
+      const fail = () => (cleanup(), reject(new Error(`film could not be decoded: ${v.error?.message ?? 'no frame'}`)));
+      const nudge = () => {
+        const p = v.play();
+        if (p) p.then(() => v.pause(), () => {});
+      };
+      const timer = setTimeout(fail, timeout);
+      const cleanup = () => {
+        clearTimeout(timer);
+        v.removeEventListener('loadedmetadata', nudge);
+        v.removeEventListener('loadeddata', done);
+        v.removeEventListener('canplay', done);
+        v.removeEventListener('error', fail);
+      };
+      v.addEventListener('loadedmetadata', nudge);
+      v.addEventListener('loadeddata', done);
+      v.addEventListener('canplay', done);
+      v.addEventListener('error', fail);
+      v.load();
+    });
+  } catch (e) {
+    // (Kept, a failed film held its blob, the whole film, for every attempt: QA, 2026-10-21.)
+    v.pause();
+    v.removeAttribute('src');
     v.load();
-  });
+    if (url.startsWith('blob:')) URL.revokeObjectURL(url);
+    throw e;
+  }
   return v;
 }
 
@@ -189,7 +225,19 @@ export class FilmScene {
       }
     } else {
       if (!video.paused) video.pause();
-      if (Math.abs(video.currentTime - want) > 0.25 / fps) video.currentTime = want;
+      // Stepped (held, scrubbed, or refused play): to the frame, never while a seek is still landing;
+      // advancing, aimed ahead by what the last seek took, so the picture lands where the clock will
+      // be. (Sought every frame, each seek replaced the one in flight: 72 of 679 landed and the
+      // picture fell 9 s behind, her eyes going down never seen moving: QA, 2026-10-21.)
+      if (!video.seeking) {
+        if (!advancing) {
+          if (Math.abs(video.currentTime - want) > 0.25 / fps) video.currentTime = want;
+        } else if (Math.floor(video.currentTime * fps + 1e-6) < frame) {
+          const aim = Math.min(this.art.frames - 1, Math.floor((film + this.seekCost) * fps + 1e-6));
+          video.currentTime = (aim + 0.5) / fps;
+          this.seekAsked = performance.now();
+        }
+      }
     }
     // A new picture: the frame shown changed, or a seek landed. (Three's own frame callback may
     // never come for a video that isn't in the page.)

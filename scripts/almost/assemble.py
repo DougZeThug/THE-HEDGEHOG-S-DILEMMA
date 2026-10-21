@@ -33,6 +33,7 @@ import numpy as np
 
 FEATHER = 10
 KEY_GAP = 3.0           # s: the least time between two of the web files' keyframes
+KEY_NEAR = 1.0          # s: ... unless the later one begins a hold of KEY_GAP or more
 FIGURES_X = 0.5         # between their faces, under the lamp (for the upright crop: her beanie and his elbow both in)
 
 
@@ -132,11 +133,16 @@ def encoder(path, w, h, fps, audio=None, scale=None):
 
 def keyframes(frames, fps):
     """The frames where the web files start a keyframe: only where a new photograph begins, at least
-    KEY_GAP seconds apart. (A keyframe inside a hold encodes the still room afresh, and it pulsed
-    once a second through a film that is half holds: the skeptic's reviews, 2026-10-20 and -21.)"""
+    KEY_GAP seconds apart; and where a hold of KEY_GAP or more begins, if KEY_NEAR after the last.
+    (A keyframe inside a hold encodes the still room afresh, and it pulsed once a second through a
+    film that is half holds: the skeptic's reviews, 2026-10-20 and -21. Without one where the last
+    hold begins, a browser stepping the film decoded 231 frames for a seek into it: QA, 2026-10-21.)"""
     out, last = [0], 0
     for f in range(1, len(frames)):
-        if frames[f] != frames[f - 1] and f - last >= KEY_GAP * fps:
+        if frames[f] == frames[f - 1]:
+            continue
+        held = next((n for n in range(1, len(frames) - f) if frames[f + n] != frames[f]), len(frames) - f)
+        if f - last >= KEY_GAP * fps or (held >= KEY_GAP * fps and f - last >= KEY_NEAR * fps):
             out.append(f)
             last = f
     return out

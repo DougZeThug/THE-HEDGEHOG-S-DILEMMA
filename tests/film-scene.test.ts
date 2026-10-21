@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import * as THREE from 'three';
-import { FilmScene, filmType } from '../src/memory/living/FilmScene';
+import { FilmScene, filmType, loadFilm } from '../src/memory/living/FilmScene';
 import { ALMOST, ALMOST_SECTIONS, FILM_AT, FILM_BEATS, FILM_SECONDS } from '../src/memory/defs';
 import { SCENE_MEMORIES } from '../src/content/memories';
 
@@ -107,11 +107,14 @@ describe('a film as a living memory', () => {
     expect(video.currentTime).toBeCloseTo((6 * 24 + 0.5) / 24, 9);
   });
 
-  it('on a slow decoder: no seek while one is landing, and the picture within two frames of the clock', () => {
-    // A decoder whose seeks take a fixed time plus a decode from the keyframe before the target
-    // (one a second), queued as Chromium queues them, and whose play() takes a moment to start.
-    // (Corrected by a seek to the present frame, the film sought under each seek in flight and
-    // trailed its sounds: QA, 2026-10-21.)
+  /**
+   * The whole film on a decoder whose seeks take a fixed time plus a decode from the keyframe before
+   * the target (one a second), queued as Chromium queues them, and whose play() takes a moment to
+   * start, or is refused (no autoplay: the film is stepped). Returns the seeks asked while one was
+   * landing, the share of the film with the picture two frames or more off the clock, and the most
+   * it fell behind (frames).
+   */
+  const slowFilm = async (refuse: boolean) => {
     const fps = 24;
     let now = 0;
     const realNow = performance.now;
@@ -128,7 +131,12 @@ describe('a film as a living memory', () => {
           this.seeking = true;
           this.left = 60 + Math.round((x - Math.floor(x)) * fps) * 8;
         },
-        play() { this.plays++; if (this.paused) { this.paused = false; this.start = 60; } return Promise.resolve(); },
+        play() {
+          this.plays++;
+          if (refuse) return Promise.reject(Object.assign(new Error('no'), { name: 'NotAllowedError' }));
+          if (this.paused) { this.paused = false; this.start = 60; }
+          return Promise.resolve();
+        },
         pause() { this.paused = true; },
         addEventListener(k: string, f: () => void) { this.on.set(k, f); },
         removeEventListener(k: string) { this.on.delete(k); },
@@ -146,7 +154,7 @@ describe('a film as a living memory', () => {
         },
       };
       const scene = new FilmScene({ video: v as unknown as HTMLVideoElement, fps, frames: Math.round(FILM_SECONDS * fps) }, { width: 16, height: 16, reduced: false });
-      let off = 0, n = 0;
+      let off = 0, n = 0, behind = 0;
       let film = 0;
       scene.update(gl, FILM_AT, { 'scene.film': 0 }, { view });
       for (let ms = 0; ms < (FILM_SECONDS - 0.5) * 1000; ms += 1000 / 60) {
@@ -156,14 +164,33 @@ describe('a film as a living memory', () => {
         v.tick(step);
         film += step / 1000;
         scene.update(gl, FILM_AT + film, { 'scene.film': film }, { view });
+        await Promise.resolve();
+        await Promise.resolve();
         n++;
-        if (Math.abs(Math.floor(film * fps) - Math.floor(v.shown * fps + 1e-6)) >= 2) off++;
+        const lag = Math.floor(film * fps) - Math.floor(v.shown * fps + 1e-6);
+        if (Math.abs(lag) >= 2) off++;
+        behind = Math.max(behind, lag);
       }
-      expect(v.under, 'seeks asked while one was landing').toBe(0);
-      expect(off / n, 'the share of the film the picture is two frames or more off the clock').toBeLessThan(0.05);
+      return { under: v.under, off: off / n, behind };
     } finally {
       performance.now = realNow;
     }
+  };
+
+  it('on a slow decoder: no seek while one is landing, and the picture within two frames of the clock', async () => {
+    // (Corrected by a seek to the present frame, the film sought under each seek in flight and
+    // trailed its sounds: QA, 2026-10-21.)
+    const r = await slowFilm(false);
+    expect(r.under, 'seeks asked while one was landing').toBe(0);
+    expect(r.off, 'the share of the film the picture is two frames or more off the clock').toBeLessThan(0.05);
+  });
+
+  it('stepped on a slow decoder (play refused): no seek while one is landing, never half a second behind', async () => {
+    // (Sought every frame, each seek replaced the one in flight and the picture fell up to 9 s
+    // behind: QA, 2026-10-21. Stepped, each picture lands about a seek's time after the last.)
+    const r = await slowFilm(true);
+    expect(r.under, 'seeks asked while one was landing').toBe(0);
+    expect(r.behind, 'the most frames the picture fell behind the clock').toBeLessThan(12);
   });
 
   it('a seek that lands later is drawn when it lands', () => {
@@ -234,7 +261,10 @@ describe('a film as a living memory', () => {
     await settle();
     expect(b.video.plays).toBe(1);
     expect(b.video.paused).toBe(true);
-    expect(b.video.currentTime).toBeCloseTo((Math.floor((5 + 9 / 60) * 24) + 0.5) / 24, 9);
+    // (stepped: the frame the clock is on, or one a seek's time ahead of it)
+    const at = Math.floor(b.video.currentTime * 24 + 1e-6);
+    expect(at).toBeGreaterThanOrEqual(Math.floor((5 + 9 / 60) * 24));
+    expect(at).toBeLessThanOrEqual(Math.floor((5 + 9 / 60 + 0.1) * 24));
   });
 
   it('its last frame is held, not played past', () => {
@@ -243,6 +273,64 @@ describe('a film as a living memory', () => {
     scene.update(gl, 50 + 1 / 60, { 'scene.film': FILM_SECONDS }, { view });
     expect(video.paused).toBe(true);
     expect(video.currentTime).toBeCloseTo((FILM_SECONDS * 24 - 0.5) / 24, 9);
+  });
+
+  describe('loading a film', () => {
+    /** A video element as loadFilm uses it: its events fired by hand. */
+    const element = (refuse = false) => {
+      const on = new Map<string, () => void>();
+      const v = {
+        muted: false, defaultMuted: false, playsInline: false, preload: '', crossOrigin: '', src: '', error: null, attrs: new Map<string, string>(),
+        paused: true, plays: 0, loads: 0,
+        setAttribute(k: string, x: string) { this.attrs.set(k, x); },
+        removeAttribute(k: string) { if (k === 'src') this.src = ''; },
+        addEventListener(k: string, f: () => void) { on.set(k, f); },
+        removeEventListener(k: string) { on.delete(k); },
+        play() { this.plays++; return refuse ? Promise.reject(Object.assign(new Error('no'), { name: 'NotAllowedError' })) : Promise.resolve(); },
+        pause() { this.paused = true; },
+        load() { this.loads++; },
+        fire(k: string) { on.get(k)?.(); },
+      };
+      return v;
+    };
+    const opts = (v: ReturnType<typeof element>, ok: () => boolean) => ({ make: () => v as unknown as HTMLVideoElement, check: ok });
+
+    it('resolves once its first frame can be drawn, not before', async () => {
+      const v = element();
+      let ready = false;
+      let done = false;
+      const p = loadFilm('blob:x', 5000, opts(v, () => ready)).then(() => (done = true));
+      v.fire('loadedmetadata');
+      v.fire('loadeddata');
+      await settle();
+      expect(done).toBe(false);
+      ready = true;
+      v.fire('canplay');
+      await p;
+      expect(done).toBe(true);
+      expect(v.plays).toBe(1);
+      expect(v.src).toBe('blob:x');
+    });
+
+    it('a refused nudge costs nothing', async () => {
+      const v = element(true);
+      const p = loadFilm('blob:x', 5000, opts(v, () => true));
+      v.fire('loadedmetadata');
+      await settle();
+      v.fire('loadeddata');
+      await expect(p).resolves.toBe(v);
+    });
+
+    it('nothing drawable in time, or an error: rejects, the video emptied', async () => {
+      const a = element();
+      await expect(loadFilm('blob:a', 10, opts(a, () => false))).rejects.toThrow(/could not be decoded/);
+      expect(a.src).toBe('');
+      const b = element();
+      const p = loadFilm('blob:b', 5000, opts(b, () => true));
+      b.fire('error');
+      await expect(p).rejects.toThrow(/could not be decoded/);
+      expect(b.src).toBe('');
+    });
   });
 
   it('let go: the video stops and its blob URL is released', () => {

@@ -360,10 +360,10 @@ describe("the room's writing under a living memory's painting", () => {
     expect(washOf({ x: 0, y: 0, w: 1, h: 0.1 }, painting, coloured, 1, 0.6)).toBeCloseTo(WASH * 0.6, 6);
     expect(washOf({ x: 0, y: 0, w: 1, h: 0.1 }, painting, coloured, 1, 0)).toBe(0);
   });
-  it('a line half over the painting goes half way; one off it, or above or below it, not at all', () => {
+  it('a line partly over the painting goes all the way; one off it, or above or below it, not at all', () => {
     // Its middle just past the painting's right edge (1.6 m from the centre): two of its five
-    // points on it.
-    expect(washOf({ x: 1.65, y: 0, w: 1, h: 0.1 }, painting, coloured, 1, 1)).toBeCloseTo(WASH * 0.4, 6);
+    // points on it. (Washed by that share, the part over the picture still read: QA, 2026-10-21.)
+    expect(washOf({ x: 1.65, y: 0, w: 1, h: 0.1 }, painting, coloured, 1, 1)).toBeCloseTo(WASH, 6);
     expect(washOf({ x: 3, y: 0, w: 1, h: 0.1 }, painting, coloured, 1, 1)).toBe(0);
     expect(washOf({ x: 0, y: 1.2, w: 1, h: 0.1 }, painting, coloured, 1, 1)).toBe(0);
   });

@@ -56,6 +56,8 @@ interface FilmManifest {
 }
 
 const isFilm = (m: LivingManifest | FilmManifest | null | undefined): m is FilmManifest => !!m && (m as FilmManifest).kind === 'film';
+/** How long the film's bytes may take to come (ms; most are fetched ahead, when its line is armed). */
+const FILM_FETCH_MS = 8000;
 
 interface LivingManifest {
   plate: string;
@@ -316,7 +318,12 @@ export async function prepare(id: string, variant: string, host: RuntimeHost): P
       // ready before the memory is; its wall's order map as the woodland's.
       const type = filmType();
       if (!type) throw new Error('no film type this browser plays');
-      const blob = await fetchBlob(`${base}${def.art}/${lm.film}${suffix}.${type}`);
+      // (under a deadline too: a request never answered left the memory never beginning, no still,
+      // no sound: QA, 2026-10-21)
+      const blob = await Promise.race([
+        fetchBlob(`${base}${def.art}/${lm.film}${suffix}.${type}`),
+        new Promise<never>((_, no) => setTimeout(() => no(new Error('film not fetched in time')), FILM_FETCH_MS)),
+      ]);
       const video = await loadFilm(URL.createObjectURL(blob));
       const orderR = lm.order ? await loadLayer(url(lm.order, ''), { data: true }) : null;
       if (orderR) extra.push(orderR);
