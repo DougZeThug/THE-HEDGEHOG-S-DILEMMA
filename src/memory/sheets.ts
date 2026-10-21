@@ -59,6 +59,8 @@ export const LAYER: Schema[string] = {
  *            in between: below one half it is the afternoon)
  *   shot     0 the wide painting, 1 the two of them close (scripts/two-shot.py): held keys, so
  *            every change is a cut
+ *   film     a film's own time (s): the frame it shows (src/memory/living/FilmScene.ts; keyed
+ *            straight at one second a second while it plays)
  */
 export const SCENE: Schema[string] = {
   life: [1, 0, 1],
@@ -70,6 +72,7 @@ export const SCENE: Schema[string] = {
   after: [0, 0, 1],
   shot: [0, 0, 1],
   approach: [0, 0, 1],
+  film: [0, 0, 60],
 };
 
 /**

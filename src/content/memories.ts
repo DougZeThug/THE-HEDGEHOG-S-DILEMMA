@@ -79,6 +79,15 @@ export const SCENE_MEMORIES: SceneMemory[] = [
     id: 'woodland', phraseId: 'more-minutes', earliest: 200, arc: 'afterAnother', arm: 2.5, commit: 1.0, minHold: 12, seenAt: 18, maxHold: 42.5, span: 53,
     variants: { first: 'afternoon', revisit: ['empty'] }, lookBack: false, offer: { phases: ['contradiction', 'transform'], apart: 120 }, reserved: true, last: true,
   },
+  // Almost (docs/almost.md): a felt film, two people side by side at a kitchen table at night; a
+  // hand that reaches, a start, a hand taken back, an arm laid nearer too late. Offered once
+  // another memory has been, as the room begins to contradict itself. It counts as seen once it
+  // has been entered and played to the startle (defs.ts FILM_AT + FILM_BEATS.startle, 17.1 s). A
+  // return visit plays it again.
+  {
+    id: 'almost', phraseId: 'your-hand', earliest: 170, arc: 'afterAnother', arm: 2.5, commit: 1.0, minHold: 12, seenAt: 18, maxHold: 37.5, span: 47.5,
+    variants: { first: 'film', revisit: [] }, lookBack: false, offer: { phases: ['contradiction', 'transform'], apart: 120 }, reserved: true,
+  },
   // Peace with a cost: the longest, once the room has begun to contradict itself.
   {
     id: 'bedroom', phraseId: 'happiest-unneeded', earliest: 150, arm: 2.5, commit: 1.0, minHold: 12, maxHold: 26,

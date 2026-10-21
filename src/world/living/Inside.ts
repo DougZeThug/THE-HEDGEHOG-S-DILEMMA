@@ -45,6 +45,8 @@ export interface InsideFrame {
    * still becomes the painting's).
    */
   approach?: number;
+  /** Its edge torn (hard and ragged), not a soft brush (`PreparedLiving.torn`). */
+  torn?: boolean;
 }
 
 /** How far along the way in (0..1) for `scene.approach` (0..1): slow to start, slow to arrive. */
@@ -301,6 +303,7 @@ export class Inside {
       zoom: this.zoom,
       view: this.view,
       seed: this.seed,
+      torn: !!f.torn,
     });
     // What the scene must draw: the painting's part on the screen (all of it on the wall).
     if (this.immersion.pass.enabled && show > 0.5) visiblePart(this.immersion.screenToPainting, this.zoom, this.view);

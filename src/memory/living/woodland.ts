@@ -45,6 +45,8 @@ export interface LivingSpec {
   air: { motes: number };
   /** The painting u (and v) kept at the screen's centre when it covers the view. */
   cover: { wide: [number, number]; upright: [number, number]; ultra: [number, number] };
+  /** In place of `wide` and `ultra`: the focus for any screen this wide (width over height, not upright). */
+  coverAt?: (aspect: number) => [number, number];
   /**
    * The two-shot (scripts/two-shot.py): its frame (stage px: x0, y0 and width; the height is the
    * painting's proportion), locked, by the screen's aspect (width over height: each frame for

@@ -569,8 +569,45 @@ export function livingCamera(): THREE.OrthographicCamera {
 }
 
 /**
- * Compile the living memory's program now (at boot), for the target it is really drawn into, so
- * nothing compiles when someone goes in. The materials are kept for good.
+ * A film's frame as it is (src/memory/living/FilmScene.ts): its pixels in sRGB, like the
+ * paintings' (the window composites in sRGB).
+ */
+const FILM_VERT = /* glsl */ `
+  varying vec2 vUv;
+  void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }
+`;
+const FILM_FRAG = /* glsl */ `
+  uniform sampler2D uFilm;
+  varying vec2 vUv;
+  void main() { gl_FragColor = vec4(texture2D(uFilm, vUv).rgb, 1.0); }
+`;
+let blankFilm: THREE.DataTexture | null = null;
+/**
+ * A film material kept for good: while one lives, every film's material is the same program. (A
+ * program goes with the last material using it: warmed and disposed, the film's was compiled again
+ * on the way in: the memory playtest, 2026-10-21.)
+ */
+let keptFilm: THREE.ShaderMaterial | null = null;
+
+/** The film's material, showing `texture` (a video's), or black until it has one. */
+export function filmMaterial(texture: THREE.Texture | null): THREE.ShaderMaterial {
+  if (!blankFilm) {
+    blankFilm = new THREE.DataTexture(new Uint8Array([0, 0, 0, 255]), 1, 1);
+    blankFilm.needsUpdate = true;
+  }
+  return new THREE.ShaderMaterial({
+    vertexShader: FILM_VERT,
+    fragmentShader: FILM_FRAG,
+    uniforms: { uFilm: { value: texture ?? blankFilm } },
+    depthTest: false,
+    depthWrite: false,
+  });
+}
+
+/**
+ * Compile the living memories' programs now (at boot), for the target they are really drawn into,
+ * so nothing compiles when someone goes in: the painting that lives and the film. The materials
+ * are kept for good (the film's is the same program as every film's, kept by `keptFilm`).
  */
 export function warmLiving(renderer: THREE.WebGLRenderer, noise: THREE.Texture): void {
   const m = livingMaterials(noise);
@@ -579,7 +616,8 @@ export function warmLiving(renderer: THREE.WebGLRenderer, noise: THREE.Texture):
   quad.translate(0.5, 0.5, 0);
   const grid = new THREE.PlaneGeometry(1, 1, 2, 2);
   grid.translate(0.5, 0.5, 0);
-  scene.add(new THREE.Mesh(quad, m.plate), new THREE.Mesh(grid, m.people));
+  keptFilm ??= filmMaterial(null);
+  scene.add(new THREE.Mesh(quad, m.plate), new THREE.Mesh(grid, m.people), new THREE.Mesh(quad, keptFilm));
   const target = livingTarget(16, 16);
   const cam = livingCamera();
   const prev = renderer.getRenderTarget();

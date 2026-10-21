@@ -9,12 +9,12 @@ import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
  * projected), then, as `immerse` rises, spreading out from there until it covers the view, and
  * back again. One continuous homography: the wall's painting becomes the world without a cut.
  *
- * Its edge is ragged and soft (the noise the wall's mask uses), its corners rounded (no corner is
- * ever seen: image 3 has none), wide while it grows, the wall's own painting and pencil showing
- * through it (the creative director's and the skeptic's reviews, 2026-10-18). As it shows, the
- * wall's painting (pigment in the plaster) becomes the painting's own light, at its place, over a
- * second and more; only then does it open out (cinematic and creative reviews, 2026-10-17: the
- * painting's light grows, then its frame; never a pop).
+ * Its edge is ragged and soft (the noise the wall's mask uses), or torn (hard: the film), its
+ * corners rounded (no corner is ever seen: image 3 has none), wide while it grows, the wall's own
+ * painting and pencil showing through it (the creative director's and the skeptic's reviews,
+ * 2026-10-18). As it shows, the wall's painting (pigment in the plaster) becomes the painting's own
+ * light, at its place, over a second and more; only then does it open out (cinematic and creative
+ * reviews, 2026-10-17: the painting's light grows, then its frame; never a pop).
  */
 const ImmersionShader = {
   uniforms: {
@@ -30,6 +30,8 @@ const ImmersionShader = {
     /** How wide the ragged edge is, in painting heights. */
     uEdge: { value: 0.05 },
     uSeed: { value: 0 },
+    /** 1: the edge torn, its ragged line hard (a film carried out of the wall); 0: a soft brush. */
+    uTorn: { value: 0 },
     /** The push in: centre (painting uv) and how far (1 = none). */
     uZoom: { value: new THREE.Vector3(0.5, 0.5, 1) },
     /** The part of the painting the render target holds (x0, y0, w, h). */
@@ -42,7 +44,7 @@ const ImmersionShader = {
   fragmentShader: /* glsl */ `
     uniform sampler2D tDiffuse, uScene, uNoise;
     uniform mat3 uH;
-    uniform float uShow, uAspect, uEdge, uSeed;
+    uniform float uShow, uAspect, uEdge, uSeed, uTorn;
     uniform vec3 uZoom;
     uniform vec4 uView;
     varying vec2 vUv;
@@ -60,7 +62,10 @@ const ImmersionShader = {
       float n = texture2D(uNoise, q * vec2(uAspect, 1.0) * 1.7 + uSeed).r;
       float n2 = texture2D(uNoise, q * vec2(uAspect, 1.0) * 6.3 - uSeed).r;
       e += (n - 0.5) * uEdge * 1.1 + (n2 - 0.5) * uEdge * 0.35;
-      float colour = smoothstep(uEdge * 0.35, uEdge * 1.2, e);
+      // (Torn: the same ragged line, its fall a fifth as wide. The film's plate is dark at its
+      // edges; mixed into white plaster over the soft brush, its grey billows read as smoke, and
+      // going back as burnt paper: the cinematic director's review of "Almost", 2026-10-21.)
+      float colour = mix(smoothstep(uEdge * 0.35, uEdge * 1.2, e), smoothstep(uEdge * 0.62, uEdge * 0.78, e), uTorn);
       vec2 qc = clamp(uZoom.xy + (q - uZoom.xy) / uZoom.z, 0.0, 1.0);
       vec3 p = texture2D(uScene, (qc - uView.xy) / uView.zw).rgb;
       // The painting's own light over the room (the wall's painting under it, at its place, until
@@ -97,7 +102,7 @@ export class Immersion {
    * One frame. `wall`: the painting's corners on the screen (screen uv; 00, 10, 11, 01), or null
    * if the wall's quad is behind the eye. `immerse` 0..1. `aspect`: the screen's (w / h).
    */
-  set(o: { scene: THREE.Texture; wall: THREE.Vector2[] | null; immerse: number; show: number; aspect: number; paint: number; focus: [number, number]; zoom: THREE.Vector3; view: THREE.Vector4; seed: number }): void {
+  set(o: { scene: THREE.Texture; wall: THREE.Vector2[] | null; immerse: number; show: number; aspect: number; paint: number; focus: [number, number]; zoom: THREE.Vector3; view: THREE.Vector4; seed: number; torn?: boolean }): void {
     const u = this.u;
     if (o.show <= 0 || (!o.wall && o.immerse <= 0)) {
       this.off();
@@ -107,6 +112,7 @@ export class Immersion {
     u.uScene.value = o.scene;
     u.uShow.value = o.show;
     u.uSeed.value = o.seed;
+    u.uTorn.value = o.torn ? 1 : 0;
     u.uAspect.value = o.paint;
     (u.uZoom.value as THREE.Vector3).copy(o.zoom);
     (u.uView.value as THREE.Vector4).copy(o.view);

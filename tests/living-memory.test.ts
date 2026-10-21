@@ -360,12 +360,19 @@ describe("the room's writing under a living memory's painting", () => {
     expect(washOf({ x: 0, y: 0, w: 1, h: 0.1 }, painting, coloured, 1, 0.6)).toBeCloseTo(WASH * 0.6, 6);
     expect(washOf({ x: 0, y: 0, w: 1, h: 0.1 }, painting, coloured, 1, 0)).toBe(0);
   });
-  it('a line half over the painting goes half way; one off it, or above or below it, not at all', () => {
+  it('a line partly over the painting goes all the way; one off it, or above or below it, not at all', () => {
     // Its middle just past the painting's right edge (1.6 m from the centre): two of its five
-    // points on it.
-    expect(washOf({ x: 1.65, y: 0, w: 1, h: 0.1 }, painting, coloured, 1, 1)).toBeCloseTo(WASH * 0.4, 6);
+    // points on it. (Washed by that share, the part over the picture still read: QA, 2026-10-21.)
+    expect(washOf({ x: 1.65, y: 0, w: 1, h: 0.1 }, painting, coloured, 1, 1)).toBeCloseTo(WASH, 6);
     expect(washOf({ x: 3, y: 0, w: 1, h: 0.1 }, painting, coloured, 1, 1)).toBe(0);
     expect(washOf({ x: 0, y: 1.2, w: 1, h: 0.1 }, painting, coloured, 1, 1)).toBe(0);
+  });
+  it('a block of lines whose middle is off the painting, with a line across it, goes all the way', () => {
+    // Its middle 5 cm below the painting's bottom edge (0.9 m below its centre), its top line on it
+    // ("I wanted you to" across the kitchen table: the cinematic director's review, 2026-10-21).
+    expect(washOf({ x: 0, y: -0.95, w: 1, h: 0.3 }, painting, coloured, 1, 1)).toBeCloseTo(WASH, 6);
+    // Its letters all below the edge: kept.
+    expect(washOf({ x: 0, y: -1.1, w: 1, h: 0.3 }, painting, coloured, 1, 1)).toBe(0);
   });
   it('a line goes as soon as the colour comes to any of it, a little ahead of it, not once it has crossed it', () => {
     // The colour comes from the left: the line's left end (u 0.2) at 0.28, its right (u 0.8) at 0.76.
@@ -428,6 +435,18 @@ describe("which memories lie under the room's writing (the App's wiring, through
       }
     }
     expect(played).toBeGreaterThanOrEqual(6);
+  });
+
+  it("Almost's writing comes back as its wool sinks into the plaster, not in one frame at its end", () => {
+    // (It held a trace until the memory completed, then came back to full in one frame, the wool
+    // gone 2 s before: the cinematic director's review, 2026-10-21.)
+    for (const v of MEMORIES.almost.variants) {
+      const frames = play('almost', v);
+      expect(frames.complete).toBe(true);
+      expect(Math.max(...frames.map((x) => x.w)), v).toBeGreaterThan(0.8);
+      expect(frames[frames.length - 1].w, v).toBeLessThan(0.02);
+      for (let i = 1; i < frames.length; i++) expect(Math.abs(frames[i].w - frames[i - 1].w), `${v} at ${frames[i].t.toFixed(2)}`).toBeLessThan(0.1);
+    }
   });
 
   it("the woodland's revisit, on the wall with no scene of its own, washes them as its colour comes, and gives them back by its end", () => {

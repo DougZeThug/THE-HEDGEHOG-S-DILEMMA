@@ -9,6 +9,8 @@ import type { Lifecycle, MemoryFrame, ReleaseReason } from './types';
 import type { WindowLayer, LayerKind } from '../world/MemoryWindow';
 import { LivingScene, type FigureArt, type HeadCels, type LivingArt, type NearArt, type Eye } from './living/LivingScene';
 import { WOODLAND as WOODLAND_SPEC, type LivingSpec } from './living/woodland';
+import { ALMOST } from './living/almost';
+import { FilmScene, filmType, loadFilm, releaseFilm } from './living/FilmScene';
 import { fetchBlob } from './fetched';
 
 /**
@@ -37,8 +39,25 @@ interface ArtManifest {
   /** A living memory: the part of the painting the wall shows first (painting uv), and its plate's pixels. */
   crop?: [number, number, number, number];
   plate?: [number, number];
-  living?: Record<string, LivingManifest | null>;
+  living?: Record<string, LivingManifest | FilmManifest | null>;
 }
+
+/**
+ * A film as a living memory (FilmScene): `<film><@low>.webm` (VP9) and `.mp4` (H.264), silent (its
+ * sound is a cue), the frames it holds, and the order its wall's fibres and colour come in.
+ */
+interface FilmManifest {
+  kind: 'film';
+  film: string;
+  fps: number;
+  frames: number;
+  order?: string | null;
+  immerse: boolean;
+}
+
+const isFilm = (m: LivingManifest | FilmManifest | null | undefined): m is FilmManifest => !!m && (m as FilmManifest).kind === 'film';
+/** How long the film's bytes may take to come (ms; most are fetched ahead, when its line is armed). */
+const FILM_FETCH_MS = 8000;
 
 interface LivingManifest {
   plate: string;
@@ -92,12 +111,15 @@ export interface RuntimeHost {
   reduced?: boolean;
 }
 
-/** A living memory's scene, prepared (src/memory/living/). */
+/** A living memory's scene, prepared (src/memory/living/): a painting that lives, or a film. */
 export interface PreparedLiving {
-  scene: LivingScene;
-  spec: LivingSpec;
+  scene: LivingScene | FilmScene;
+  /** Where its picture sits when it covers the screen. */
+  spec: Pick<LivingSpec, 'cover' | 'coverAt'>;
   /** It may be entered (or only seen on the wall). */
   immerse: boolean;
+  /** Carried out of the wall, its edge is torn (hard and ragged) rather than a soft brush. */
+  torn?: boolean;
   /** What the wall shows first (painting uv: x0, y0, w, h). */
   crop: [number, number, number, number];
   /** The painting's aspect (w / h). */
@@ -207,8 +229,18 @@ export async function prefetch(id: string, variant: string, host: Pick<RuntimeHo
     const manifest = await manifestOf(base, def.art);
     const lm = manifest.living?.[v];
     const wall = manifest.variants[v].filter((l) => !(lm && l.name === 'scene')).map((l) => ({ file: l.file, suffix }));
-    const files = lm ? [...wall, ...livingFiles(lm, suffix, !framesNear(host, SPECS[def.id] ?? WOODLAND_SPEC))] : wall;
     const sounds = Object.values(def.cues(v).cues).map((c) => c.asset).filter((a) => a.startsWith('music/'));
+    if (isFilm(lm)) {
+      const type = filmType();
+      const files = [...wall, ...(lm.order ? [{ file: lm.order, suffix: '' }] : [])];
+      await Promise.all([
+        ...files.map((f) => fetchBlob(`${base}${def.art}/${f.file}${f.suffix}.webp`)),
+        ...(type ? [fetchBlob(`${base}${def.art}/${lm.film}${suffix}.${type}`)] : []),
+        ...sounds.map((a) => fetchBlob(`./${a}`)),
+      ]);
+      return;
+    }
+    const files = lm ? [...wall, ...livingFiles(lm, suffix, !framesNear(host, SPECS[def.id] ?? WOODLAND_SPEC))] : wall;
     await Promise.all([...files.map((f) => fetchBlob(`${base}${def.art}/${f.file}${f.suffix}.webp`)), ...sounds.map((a) => fetchBlob(`./${a}`))]);
   } catch {
     /* it will be fetched again when it is needed */
@@ -266,7 +298,7 @@ export async function prepare(id: string, variant: string, host: RuntimeHost): P
     if (r.status === 'fulfilled') loaded.push({ ...r.value, name: wallLayers[i].name, kind: wallLayers[i].kind });
   });
   const extra: { texture: THREE.Texture; bitmap: ImageBitmap }[] = [];
-  let scene: LivingScene | null = null;
+  let scene: LivingScene | FilmScene | null = null;
   const letGo = () => {
     for (const l of [...loaded, ...extra]) {
       l.texture.dispose();
@@ -282,7 +314,50 @@ export async function prepare(id: string, variant: string, host: RuntimeHost): P
     throw failed.reason;
   }
   let living: PreparedLiving | null = null;
-  if (lm) {
+  if (isFilm(lm)) {
+    let video: HTMLVideoElement | null = null;
+    try {
+      // The film: the browser's best type, decoded from its blob (fetched ahead), its first frame
+      // ready before the memory is; its wall's order map as the woodland's.
+      const type = filmType();
+      if (!type) throw new Error('no film type this browser plays');
+      // (under a deadline too: a request never answered left the memory never beginning, no still,
+      // no sound: QA, 2026-10-21)
+      const blob = await Promise.race([
+        fetchBlob(`${base}${def.art}/${lm.film}${suffix}.${type}`),
+        new Promise<never>((_, no) => setTimeout(() => no(new Error('film not fetched in time')), FILM_FETCH_MS)),
+      ]);
+      video = await loadFilm(URL.createObjectURL(blob));
+      const orderR = lm.order ? await loadLayer(url(lm.order, ''), { data: true }) : null;
+      if (orderR) extra.push(orderR);
+      const size = targetSize(host);
+      scene = new FilmScene({ video, fps: lm.fps, frames: lm.frames }, { ...size, reduced: !!host.reduced });
+      living = { scene, spec: ALMOST, immerse: lm.immerse, torn: true, crop: manifest.crop ?? [0, 0, 1, 1], aspect: manifest.size[0] / manifest.size[1], order: orderR?.texture ?? null, colourAt: orderR ? colourTimes(orderR.bitmap) : null };
+      loaded.unshift({ texture: scene.target.texture, bitmap: null as unknown as ImageBitmap, name: 'scene', kind: 'pigment' });
+    } catch (e) {
+      // The film couldn't be had: the wall's poster instead, still (as any memory).
+      console.warn('film unavailable; the memory stays a still', e);
+      for (const l of extra) {
+        l.texture.dispose();
+        l.bitmap.close();
+      }
+      extra.length = 0;
+      // (A film loaded before its order map failed is no scene's yet: let go here, or its blob and
+      // decoder stayed for every attempt: review of PR 14.)
+      if (scene) scene.dispose();
+      else if (video) releaseFilm(video);
+      scene = null;
+      const poster = manifest.variants[v].find((l) => l.name === 'scene');
+      if (poster) {
+        try {
+          loaded.unshift({ ...(await loadLayer(url(poster.file))), name: poster.name, kind: poster.kind });
+        } catch (err) {
+          letGo();
+          throw err;
+        }
+      }
+    }
+  } else if (lm) {
     try {
       const one = async (file: string, o: { data?: boolean; sfx?: string } = {}) => {
         const r = await loadLayer(url(file, o.sfx ?? suffix), { living: true, data: o.data });

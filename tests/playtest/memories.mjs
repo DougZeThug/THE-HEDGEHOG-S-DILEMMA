@@ -21,8 +21,8 @@ const BASE = process.env.BASE ?? 'http://localhost:4173/';
 const OUT = process.env.OUT ?? `test-output/review/memories/${process.env.MEMORY ?? 'cereal'}`;
 const PROFILES = (process.env.PROFILES ?? 'desktop,phone').split(',');
 const MEMORY = process.env.MEMORY ?? 'cereal';
-const VARIANT = process.env.VARIANT ?? { cereal: 'first', bedroom: 'morning', door: 'approach', woodland: 'afternoon' }[MEMORY];
-const PHRASE = { cereal: 'cereal', bedroom: 'happiest-unneeded', door: 'door-open', woodland: 'more-minutes' }[MEMORY];
+const VARIANT = process.env.VARIANT ?? { cereal: 'first', bedroom: 'morning', door: 'approach', woodland: 'afternoon', almost: 'film' }[MEMORY];
+const PHRASE = { cereal: 'cereal', bedroom: 'happiest-unneeded', door: 'door-open', woodland: 'more-minutes', almost: 'your-hand' }[MEMORY];
 // Stages: [name, sequence position or null for the untouched wall], per memory.
 const STAGES = {
   cereal: [['0-untouched', null], ['1-first-drawing', 1.8], ['2-developing', 3.8], ['3-active', 9], ['4-active-late', 20], ['5-dissolving', 24.5], ['6-drawing-alone', 26.2], ['7-residue', 29]],
@@ -34,6 +34,13 @@ const STAGES = {
     : [['00-untouched', null], ['01-pencil', 2.5], ['02-pencil-more', 4.5], ['03-colour', 6.5], ['04-carried', 8.5], ['05-crossing', 9.6], ['06-wide', 12.3], ['07-two', 16.5], ['08-her-look', 19.5], ['09-his-look', 25.5], ['10-wide-again', 31.0],
        // The cut (34.5 s): the last frame before it and the first after it, then the empty clearing.
        ['11-last-frame-before-cut', 34.5 - 1 / 60], ['12-first-frame-after-cut', 34.5], ['13-empty-dusk', 39.5], ['14-returning', 44.5], ['15-wall', 47.5], ['16-white-room', 51.0]],
+  // Almost (docs/almost.md): the wool through the plaster, the colour, the way in, the film's
+  // beats (its first frame held until 10.3 s: src/memory/defs.ts FILM_BEATS), and the way back out
+  // (the colour into the wool at once, then the wool into the plaster).
+  almost: [['00-untouched', null], ['01-fibres', 2.5], ['02-fibres-more', 4.5], ['03-colour', 6.3], ['04-carried', 8.5], ['05-inside', 10.0],
+    ['06-notice', 13.2], ['07-reach', 15.3], ['08-touch', 16.85], ['09-startle', 17.2], ['10-hand-in-air', 18.0], ['11-silence', 22.0],
+    ['12-her-look', 23.2], ['13-offer', 26.7], ['14-almost', 32.5], ['15-returning', 40.0], ['16-colour-going', 42.5], ['17-fibres-going', 44.8],
+    ['18-white-room', 48.5]],
 }[MEMORY];
 mkdirSync(OUT, { recursive: true });
 

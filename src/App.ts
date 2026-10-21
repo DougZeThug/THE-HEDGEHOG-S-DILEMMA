@@ -570,7 +570,7 @@ export class App {
     this.ambience?.hold(this.time + prepared.def.sections.end);
     // A memory whose music is the room's last: no chord of the room's under it (its reverb isn't
     // hushed, and four of its five chords are a semitone from the woodland's key).
-    if (this.ambience && prepared.def.lastMusic === prepared.variant) this.ambience.score.drone = 0;
+    if (this.ambience && (prepared.def.lastMusic === prepared.variant || prepared.def.drone === false)) this.ambience.score.drone = 0;
     if (prepared.def.roomDim) this.lighting.dimToChair(prepared.def.roomDim, prepared.def.maxHold + 4, this.time);
     if (this.director.scenes.active?.id !== id) this.director.memoryExternal(id);
     // Its position 0 is this instant on the audio clock, for its first sounds and its first frame
@@ -623,6 +623,8 @@ export class App {
       if (p.def.lastMusic === p.variant) {
         if (seen) this.director.withdrawMusic();
         if (this.ambience && !this.director.musicWithdrawn) this.ambience.score.drone = 1;
+      } else if (p.def.drone === false && this.ambience && !this.director.musicWithdrawn) {
+        this.ambience.score.drone = 1;
       }
       this.ambience?.hold(this.time + Math.max(12, this.director.aftermathLeft()));
     }
@@ -1089,7 +1091,7 @@ export class App {
     // is its only cut.
     const shot = pl.scene.choose(f.final, { inside: this.inside.taken, turn: this.inside.turned, t: f.t, now: this.time, aspect });
     this.post.close = shot > 0 ? 1 : 0;
-    const focus = upright ? pl.spec.cover.upright : aspect > 2.0 ? pl.spec.cover.ultra : pl.spec.cover.wide;
+    const focus = upright ? pl.spec.cover.upright : pl.spec.coverAt?.(aspect) ?? (aspect > 2.0 ? pl.spec.cover.ultra : pl.spec.cover.wide);
     const go = this.inside.step(dt, {
       immerse: f.final['scene.immerse'] ?? 0,
       focus,
@@ -1098,6 +1100,7 @@ export class App {
       away: l.away,
       leavingNaturally: f.state === 'withdrawing' || f.state === 'residue',
       approach: 'scene.approach' in f.final ? f.final['scene.approach'] : undefined,
+      torn: pl.torn,
     }, { reduced: this.prefs.reducedMotion, aspect, scene: pl.scene.target.texture, group: l.anchor.group });
     // The window was placed before the spread changed: place it again for this frame.
     this.memoryWindow.update(f.final, this.rig.restingEye, 0);
