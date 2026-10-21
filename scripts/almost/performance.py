@@ -176,13 +176,14 @@ def lowest(ob):
     return z
 
 
-def rest_hand(fig, side, wrist_xy, heading, table_z=None, roll=0.0, squash=0.0002, tuck=None, rise=0.0):
+def rest_hand(fig, side, wrist_xy, heading, table_z=None, roll=0.0, squash=0.0002, tuck=None, rise=0.0, on='table'):
     """Lay a forearm on the table and let its hand drape from the wrist onto the wood: the wrist at
     the sleeve's height, the hand tipped down until its lowest felt just meets the table (pressed
     in by `squash`). `heading` is the way the fingers point across the table; `roll` turns the hand
     on its side (degrees, + toward the little finger). The table's height is the top's own, where
     the wrist lies (it is warped by up to 0.4 mm); `rise` holds the wrist up off it (something
-    under it: her folded cuff)."""
+    under it: her folded cuff). `on` aims the elbow, as for a lifted arm (by default it rests as a
+    forearm on the wood does)."""
     if table_z is None:
         table_z = kitchen.top_at(wrist_xy[0], wrist_xy[1])
     vl = bpy.context.view_layer
@@ -191,7 +192,7 @@ def rest_hand(fig, side, wrist_xy, heading, table_z=None, roll=0.0, squash=0.000
     wz = table_z + fig.spec['sleeve'][4] + 0.0001 + rise
     # the same arm lying the same way has the same answer (the body above it may differ only a
     # little: the tilt is re-checked once and searched again only if it no longer touches)
-    key = (fig.key, side, round(wrist_xy[0], 6), round(wrist_xy[1], 6), round(heading[0], 4), round(heading[1], 4), round(roll, 3), tuck, rise,
+    key = (fig.key, side, round(wrist_xy[0], 6), round(wrist_xy[1], 6), round(heading[0], 4), round(heading[1], 4), round(roll, 3), tuck, rise, str(on),
            tuple(round(fig.arm.pose.bones[f'{f}{j}.{side}'].rotation_quaternion.x, 4) for f in puppets.FINGERS for j in (1, 2)))
     cache = _REST_CACHE
     h = Vector((heading[0], heading[1], 0.0)).normalized()
@@ -202,7 +203,7 @@ def rest_hand(fig, side, wrist_xy, heading, table_z=None, roll=0.0, squash=0.000
         R = Matrix.Rotation(math.radians(tilt), 3, side_ax)
         fingers = R @ h
         back = Matrix.Rotation(math.radians(roll * m), 3, fingers) @ (R @ Vector((0, 0, 1)))
-        place_arm(fig, side, (wrist_xy[0], wrist_xy[1], wz), fingers, back, 'table', tuck=tuck)
+        place_arm(fig, side, (wrist_xy[0], wrist_xy[1], wz), fingers, back, on, tuck=tuck)
         vl.update()
         return lowest(hand)
     if key in cache:
@@ -363,7 +364,7 @@ def apply(figs, p):
             w = a['wrist']
             if len(w) == 2:
                 # resting on the table: the hand drapes onto the wood
-                rest_hand(fig, side, w, a['fingers'], roll=a.get('roll', 0.0), tuck=a.get('tuck'), rise=a.get('rise', 0.0))
+                rest_hand(fig, side, w, a['fingers'], roll=a.get('roll', 0.0), tuck=a.get('tuck'), rise=a.get('rise', 0.0), on=a.get('on', 'table'))
             else:
                 place_arm(fig, side, w, a['fingers'], a['back'], a.get('on', 'table'), tuck=a.get('tuck'))
         vl.update()
@@ -445,10 +446,11 @@ A['lift'] = _with(A['notice'], spine=(3, 1.5, 2), shoulder__L=(1, 6),
                   arm__L=dict(wrist=(-0.0200, -0.0205, T + 0.0100), fingers=(0.25, -0.88, -0.45), back=(0.1, -0.35, 0.9), on='air', tuck=0.026),
                   curl__L={'all': (14, 18), 'index': (8, 10)})
 A['carry'] = _with(A['lift'], spine=(3, 2.5, 3), chest=(5, 1.5, 5), shoulder__L=(2, 8),
-                   arm__L=dict(wrist=(-0.0090, -0.0143, T + 0.0150), fingers=(0.55, -0.82, -0.15), back=(0.1, -0.35, 0.9), on='air', tuck=0.026))
+                   arm__L=dict(wrist=(-0.0090, -0.0143, T + 0.0150), fingers=(0.55, -0.82, -0.15), back=(0.1, -0.35, 0.9), on='air', tuck=0.026),
+                   curl__L={'all': (14, 18), 'index': (8, 10), 'thumb': (100, 85)})
 A['hesitate'] = _with(A['carry'], arm__L=dict(wrist=(-0.0032, -0.0112, T + 0.0178), fingers=(0.74, -0.67, 0.05), back=(0.12, -0.25, 0.95), on='air'),
-                      curl__L={'all': (18, 22), 'index': (10, 12)})
-A['hesitate curl'] = _with(A['hesitate'], curl__L={'all': (21, 25), 'index': (13, 15)})
+                      curl__L={'all': (18, 22), 'index': (10, 12), 'thumb': (100, 85)})
+A['hesitate curl'] = _with(A['hesitate'], curl__L={'all': (21, 25), 'index': (13, 15), 'thumb': (100, 85)})
 A['approach'] = _with(A['hesitate'], spine=(3, 3.5, 4), chest=(5, 2.5, 6), shoulder__L=(2, 10), head=(17, -2.5, 26),
                       arm__L=dict(wrist=(0.0040, -0.0073, T + 0.0198), fingers=(0.91, -0.41, -0.05), back=(0.10, -0.18, 1.0), on='air'),
                       curl__L={'all': (12, 16), 'index': (5, 7), 'middle': (7, 10), 'thumb': (100, 85)})
@@ -460,7 +462,7 @@ TOUCH_ELBOW = (-0.008, 0.012, T + 0.003)
 A['near'] = _with(A['approach'], arm__L=dict(touch=(-0.0022, -0.0002, 0.0007), fingers=(0.94, -0.30, -0.14), back=(0.10, -0.15, 1.0), on=TOUCH_ELBOW))
 A['touch'] = _with(A['near'], arm__L=dict(touch=(-0.0006, 0.0, 0.0004), fingers=(0.95, -0.28, -0.14), back=(0.10, -0.15, 1.0), on=TOUCH_ELBOW),
                    curl__L={'all': (10, 14), 'index': (4, 6), 'middle': (6, 9), 'thumb': (100, 85)})
-# (the thumb folded under: hanging, it lay down the side of her forearm, and the hand read as laid
+# (the thumb folded under, from the carry on: hanging, it lay down the side of her forearm, and the hand read as laid
 # on her arm rather than at the cuff: the cinematic note in the creative director's gate review;
 # half-tucked, it still hung below the wrist as a stub: the cinematic director's review, 2026-10-21)
 # the fold's corner rises under his fingertip, one drawing after the other (see resolve)
@@ -538,9 +540,13 @@ B['startle3'] = _with(B['startle2'], spine=(-0.5, 2.6, 2.5), chest=(-0.5, 1.8, 3
                       arm__R=dict(wrist=(0.0310, -0.0050, T + 0.0105), fingers=(0.28, -0.88, -0.30), back=(0.05, 0.2, 1.0), on=STARTLE_ELBOW),
                       cuff={'lift': 0.0, 'after': 1.0}, chair=(0.0010, 1.2), root=(0.0, 0.0010, 0.0))
 # the release: shoulders down, the forearm laid back on the wood a centimetre nearer her, angled in
-# as before, the fold still there and toward him; she looks at her own wrist, where she was touched
+# as before, the fold still there and toward him; she looks at her own wrist, where she was touched.
+# (At the lower table the fold rides mid-forearm, in front of her upper arm as the lens sees it, so
+# wherever her arm settles naturally it comes back behind his stranded hand. His hand holds through
+# the startle and her settle, then sinks and eases back toward him: the creative director's review,
+# 2026-10-21. Drawn in far enough to clear it, her arm locked straight.)
 B['settle'] = _with(B['startle3'], spine=(-0.5, 2.0, 2), chest=(0, 1.2, 2), neck=(3, 0, 0), head=(16, 0.5, -6), shoulder__R=(2, -3), shoulder__L=(1, 0),
-                    arm__R=dict(wrist=(0.0320, -0.0105), fingers=(0.48, -0.88), tuck=0.029))
+                    arm__R=dict(wrist=(0.0345, -0.0145), fingers=(0.48, -0.88), tuck=0.029))
 B['withdrawn'] = _with(B['settle'], head=(17, 0.5, -8), shoulder__R=(1, -2))
 # 6. repair: she looks from her wrist to him (the first time she looks at him), then lifts her arm,
 # a hesitation in the air, and lays it back on the table nearer him than before, the fold toward
@@ -570,7 +576,9 @@ def resolve(figs):
         arm.update(wrist=w)
         A[name] = _with(A[name], arm__L=arm)
     t = A['lift2']['arm.L']
-    drop = dict(t, wrist=(t['wrist'][0] - 0.0004, t['wrist'][1] + 0.0006, t['wrist'][2] - 0.0016))
+    # (it sinks 5 mm and eases 7 mm back toward him, still in the air: held where her sleeve was, his
+    # fingertips sat on her settled arm in the picture; about 26 px of table between them at 1280 wide)
+    drop = dict(t, wrist=(t['wrist'][0] - 0.0070, t['wrist'][1] - 0.0015, t['wrist'][2] - 0.0050))
     A['after touch'] = _with(A['lift2'])
     A['after drop'] = _with(A['lift2'], arm__L=drop, curl__L={'all': (17, 21), 'index': (9, 11), 'middle': (11, 14), 'thumb': (100, 85)})
     A['blink'] = _with(A['after drop'], lids=(1.0, 1.0))
