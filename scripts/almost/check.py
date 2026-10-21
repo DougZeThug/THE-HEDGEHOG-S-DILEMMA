@@ -16,7 +16,7 @@ they are rendered, not the cage posing works on):
   Measured from the forearm's axis toward each point of the hand behind the wrist: the wall met
   first. (A wrist that bent as one piece with the hand swung its hidden end out through the top of
   his cuff whenever the hand drooped from it, through most of the reach: final QA, 2026-10-21.)
-- **paw:** a hand in the air (its lowest felt 3 mm or more above the wood) that hangs from its wrist
+- **paw:** a hand in the air (its lowest felt 5 mm or more above the wood) that hangs from its wrist
   further down the picture than PAW_DEG: wrist to middle fingertip, as the lens sees it. Lifted with
   the fingers toward the lens and drooping, his hand stood under a short foreshortened cuff, back
   to the lens, as a begging paw (the creative director's review of the final render, 2026-10-21).
@@ -52,7 +52,7 @@ GAP_OK = 0.0006
 THROUGH_OK = 0.0003
 WALL = 0.003        # nearer a sleeve's axis than this is inside the wrist (its inner wall: 4.4 mm and more)
 PAW_DEG = 55.0
-IN_AIR = 0.003
+IN_AIR = 0.005     # (lower, in line with its forearm, a hand reads as his resting hands do)
 W_PX, H = 1280, 1440    # the film's frame (the angle in its pixels)
 
 

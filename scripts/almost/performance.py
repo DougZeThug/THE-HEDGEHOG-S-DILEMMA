@@ -597,12 +597,13 @@ def resolve(figs):
         A[name] = _with(A[name], arm__L=arm)
     t = A['lift2']['arm.L']
     # his reflex: as she starts, his fingertips come off the cloth, the wrist 6.5 mm back toward him
-    # and a little up, the fingers drawing in, and there it stays in the air. Contact breaks from both
-    # sides, as it does when someone flinches under your fingers. (Held where her sleeve was, his
-    # fingertips lay on her cuff and then her forearm in the picture for 0.9 s while she pulled away,
-    # and the touch never visibly ended: the creative director's review of the final render,
-    # 2026-10-21. It replaces a slower sink and ease, a beat later, and a blink no one could see.)
-    off = dict(t, wrist=(t['wrist'][0] - 0.0065, t['wrist'][1] - 0.0010, t['wrist'][2] + 0.0015))
+    # and a little up, the fingers drawing in and lifting (not drooping), and there it stays in the
+    # air. Contact breaks from both sides, as it does when someone flinches under your fingers. (Held
+    # where her sleeve was, his fingertips lay on her cuff and then her forearm in the picture for
+    # 0.9 s while she pulled away, and the touch never visibly ended: the creative director's review
+    # of the final render, 2026-10-21. It replaces a slower sink and ease, a beat later, and a blink
+    # no one could see.)
+    off = dict(t, wrist=(t['wrist'][0] - 0.0065, t['wrist'][1] - 0.0010, t['wrist'][2] + 0.0020), fingers=(0.95, -0.30, 0.04))
     A['reflex'] = _with(A['lift2'], arm__L=off, curl__L={'all': (19, 23), 'index': (13, 15), 'middle': (15, 18), 'thumb': THUMB_TUCK})
     bake(figs)
     vl.update()
