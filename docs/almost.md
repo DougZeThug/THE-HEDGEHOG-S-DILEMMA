@@ -106,6 +106,11 @@ npm run memories:seed -- --force=almost-film
   elbow hangs at his side, a little out and back, so his forearm crosses the table. Aimed straight
   at her wrist, the forearm pointed into the lens and read as a post. Aimed in toward his middle,
   the upper arm came forward at the lens and read as bent inwards.
+- **He leans in to touch.** From the approach to the lifts his spine and chest bend toward her.
+  His shoulder comes over the fold, so the elbow isn't folded tight by the table, and the hand goes
+  on in the forearm's line, 10° down. His head gives the bend back, so his face stays on her
+  sleeve. Sat upright, the wrist was too near the shoulder: the elbow folded inward and the hand
+  hung 52° off the wrist (the artist, 2026-10-21). He sits back out of it as he lets go.
 - **The fold is in the picture whenever it is held.** Her near forearm lies angled in toward her
   own middle, so the side of the cuff with the fold faces him and the lens; in her offer her elbow
   slides out toward him on the wood. `seen.py` counts the lining the camera sees in each held pose
@@ -168,9 +173,11 @@ npm run memories:seed -- --force=almost-film
   size. Both are fetched as blobs when the line is armed or offered, and decoded when it begins:
   played and paused once its metadata is in (Safari may decode nothing of a video that has not
   played). If neither plays, or nothing is decoded in 5 s, the memory stays a still on the wall:
-  the first photograph. A keyframe only where a photograph begins, at least 3 s apart, so the
-  still room never pulses; a playing film keeps time by its rate and seldom seeks. (Not yet tried
-  on a real iPhone.)
+  the first photograph, and also if no frame can be drawn or the bytes don't come in 8 s. A keyframe
+  only where a photograph begins, at least 3 s apart (or 1 s, where a hold of 3 s begins), so the
+  still room never pulses; a playing film keeps time by its rate and seldom seeks. A film that
+  may not play is stepped: no seek while one is landing, aimed ahead by what the last one took.
+  (Not yet tried on a real iPhone.)
 - **Compiled at boot.** The film's program is compiled at boot with the living memory's
   (`warmLiving`), and one film material is kept for good, so the program outlives each film's own
   material. Nothing compiles later. (Warmed with a material that was then disposed, the program
