@@ -4,7 +4,8 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import * as THREE from 'three';
 import { FilmScene, filmType } from '../src/memory/living/FilmScene';
-import { ALMOST, ALMOST_SECTIONS, FILM_AT, FILM_SECONDS } from '../src/memory/defs';
+import { ALMOST, ALMOST_SECTIONS, FILM_AT, FILM_BEATS, FILM_SECONDS } from '../src/memory/defs';
+import { SCENE_MEMORIES } from '../src/content/memories';
 
 // "Almost" (docs/almost.md): a film played as a living memory. The memory's one clock decides the
 // frame; the video is only its decoder, kept on that frame whether the memory plays, is held or is
@@ -197,6 +198,15 @@ describe('Almost on its timeline', () => {
     // Out once the film is all but over, on its held last moments.
     expect(ALMOST_SECTIONS.exit).toBeGreaterThan(FILM_AT + FILM_SECONDS - 1.5);
     expect(ALMOST_SECTIONS.exit).toBeLessThanOrEqual(FILM_AT + FILM_SECONDS);
+  });
+
+  it('counts as seen once the startle has been seen inside, and plays to its exit', () => {
+    const m = SCENE_MEMORIES.find((x) => x.id === 'almost')!;
+    expect(m.phraseId).toBe('your-hand');
+    expect(m.seenAt!).toBeGreaterThanOrEqual(FILM_AT + FILM_BEATS.startle);
+    expect(m.seenAt!).toBeLessThan(ALMOST_SECTIONS.exit);
+    expect(m.maxHold).toBe(ALMOST_SECTIONS.exit);
+    expect(m.span).toBe(ALMOST_SECTIONS.end);
   });
 
   it('its sounds were laid offline on the timeline that plays', () => {

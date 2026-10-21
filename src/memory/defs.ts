@@ -857,4 +857,4 @@ export const ALMOST: MemoryDef = {
     { at: ALMOST_SECTIONS.exit, text: 'The picture goes back into the wall.' },
   ],
 };
-export const MEMORIES: Record<string, MemoryDef> = { cereal: CEREAL, bedroom: BEDROOM, door: DOOR, woodland: WOODLAND };
+export const MEMORIES: Record<string, MemoryDef> = { cereal: CEREAL, bedroom: BEDROOM, door: DOOR, woodland: WOODLAND, almost: ALMOST };
