@@ -27,6 +27,11 @@ import numpy as np
 import OpenImageIO as oiio
 
 FEATHER = 10    # pixels: the region's edge fades into the photograph before
+# A pasted region must agree with the photograph before it along every side (levels of 255, over
+# its feather): more, and the change ran on across the region's border and was cut there. (Edges
+# of 28-73 levels at the 99th percentile were printed through the reach and left: a frozen shadow
+# on her face: the technical artist's review, 2026-10-21.)
+EDGE_P99, EDGE_MAX = 3.0, 20.0
 PASSES = {'image': 'Combined', 'albedo': 'Denoising Albedo', 'normal': 'Denoising Normal'}
 
 
@@ -172,6 +177,7 @@ def main():
     noisy, shown = None, None
     tmp = os.path.join(d, 'photos', 'developing.png')
     t_all = time.time()
+    seams = []
     for u in range(n):
         box = boxes[u]
         if box is None:
@@ -202,6 +208,14 @@ def main():
             after = dev[y0:y1, x0:x1]
             edge = (m[..., 0] > 0) & (m[..., 0] < 1)
             diff = np.abs(after - before).max(axis=2) * 255
+            band = FEATHER
+            for side, sl, live in (('top', (slice(0, band), slice(None)), y0 > 0), ('bottom', (slice(-band, None), slice(None)), y1 < H),
+                                   ('left', (slice(None), slice(0, band)), x0 > 0), ('right', (slice(None), slice(-band, None)), x1 < W)):
+                if live:
+                    dd = diff[sl]
+                    p99, mx = float(np.percentile(dd, 99)), float(dd.max())
+                    if p99 > EDGE_P99 or mx > EDGE_MAX:
+                        seams.append((u, side, round(p99, 1), round(mx, 1)))
             outside = np.ones((H, W), bool)
             outside[max(0, y0 - 40):y1 + 40, max(0, x0 - 40):x1 + 40] = False
             breathe = (np.abs(dev - shown).max(axis=2)[outside] * 255 > 0.5).mean() * 100
@@ -213,7 +227,11 @@ def main():
         print(f'DEVELOPED {u:04d} {time.time() - t0:5.1f}s  {note}', flush=True)
     if os.path.exists(tmp):
         os.remove(tmp)
+    for u, side, p99, mx in seams:
+        print(f'SEAM photograph {u:04d}, {side}: {p99} levels at the 99th percentile, {mx} at most', flush=True)
     print(f'DONE {time.time() - t_all:.0f}s', flush=True)
+    if seams:
+        raise SystemExit(f'{len(seams)} region sides disagree with the photograph before them (render.py: render those again, wider)')
 
 
 if __name__ == '__main__':
