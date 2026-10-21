@@ -410,16 +410,20 @@ describe("which memories lie under the room's writing (the App's wiring, through
     const c = new MemoryPlaybackController({ timeline: src, weights: weightsFor(false, gentle), reduced: false, entrance: Math.min(2, src.sections.active * 0.4), sways: def.sways, exit: def.exit, maxHold: Math.max(def.maxHold, src.sections.exit), tail: def.tail, living: !!scene });
     c.start();
     const frames: { t: number; w: number; state: string }[] = [];
+    // How far the sheet was watched: mirrors `l.reached` in App.drawLiving (`f.position`), which
+    // App.memoryState's seen predicate compares to the def-level `seenAt`.
+    let maxPos = 0;
     for (let k = 0; k < 60 * 120; k++) {
       // (Its last frame is the residue's; then it completes, and gives no frame.)
       const f = c.step(1 / 60);
       if (!f) break;
+      maxPos = Math.max(maxPos, f.position);
       const m = washInputs(def, scene, f.final, c.weights.presence);
       frames.push({ t: f.t, w: m ? washOf(box, painting, m.colourAt, m.reveal, m.presence, m.hold) : 0, state: f.state });
     }
     const complete = c.state === 'complete';
     c.dispose(0);
-    return Object.assign(frames, { complete });
+    return Object.assign(frames, { complete, maxPos });
   };
 
   it('every other memory keeps its words, on every frame of every variant', () => {
@@ -455,6 +459,26 @@ describe("which memories lie under the room's writing (the App's wiring, through
     expect(frames.find((x) => x.w >= WASH * 0.99)?.t ?? Infinity).toBeLessThanOrEqual(6);
     expect(frames.complete).toBe(true);
     expect(frames[frames.length - 1].w).toBeLessThanOrEqual(0.01);
+  });
+
+  it("the woodland's revisit, watched to its end, reaches the seenAt a full watch should count at (docs/memories.md: it plays on the wall like any memory)", () => {
+    // The wall-only `empty` revisit takes the `if (!pl) return` path in App.drawLiving every frame;
+    // the sheet's own `exit`/`end` (defs.ts EMPTY_SECTIONS) are 16/24, with `seenAt` 18 def-level
+    // (content/memories.ts). A full watch reaches 24, so `l.reached >= seenAt` (App.memoryState),
+    // once `l.reached` is updated before the wall-only exit (the fix for the revisits-never-count
+    // bug). This replays the real committed `woodland-empty` sheet through the controller the App
+    // uses and asserts the precondition for `seen`, without needing the App itself (DOM-bound).
+    const woodland = SCENE_MEMORIES.find((m) => m.id === 'woodland')!;
+    expect(woodland.seenAt).toBe(18);
+    expect(woodland.variants.revisit).toEqual(['empty']);
+    const empty = play('woodland', 'empty');
+    expect(empty.complete).toBe(true);
+    expect(empty.maxPos).toBeGreaterThanOrEqual(woodland.seenAt!);
+    // (And its peak is the sheet's own end, not an early stop at the variant's `exit` 16.)
+    expect(empty.maxPos).toBeGreaterThanOrEqual(24);
+    // The afternoon (with a living scene) reaches it too: regression guard for the immersive path.
+    const afternoon = play('woodland', 'afternoon');
+    expect(afternoon.maxPos).toBeGreaterThanOrEqual(woodland.seenAt!);
   });
 
   it('gentle intensity paints it fainter, but the words still go to their trace', () => {

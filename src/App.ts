@@ -1075,6 +1075,10 @@ export class App {
    */
   private drawLiving(l: NonNullable<App['living']>, f: { t: number; state: Lifecycle; position: number; final: Record<string, number> }, dt: number) {
     const pl = l.memory.prepared.living;
+    // Track how far the sheet was watched before the wall-only exit below: a revisit with no living
+    // scene (the woodland's `empty`) takes that path every frame, so without this a `seenAt` rule
+    // authored at the def level could never be satisfied even by a full watch (docs/memories.md).
+    l.reached = Math.max(l.reached, f.position);
     if (!pl) {
       // (A living memory's revisit stays on the wall, as any memory, but lies under its writing as
       // the scene did. Every other memory keeps its words on bare plaster, legible: washInputs.)
@@ -1104,7 +1108,6 @@ export class App {
     }, { reduced: this.prefs.reducedMotion, aspect, scene: pl.scene.target.texture, group: l.anchor.group });
     // The window was placed before the spread changed: place it again for this frame.
     this.memoryWindow.update(f.final, this.rig.restingEye, 0);
-    l.reached = Math.max(l.reached, f.position);
     // Inside the painting the white room's hum goes further down (it is not in the clearing), and
     // comes back as the painting goes back to the wall (the sound designer's review, 2026-10-18).
     const deep = this.inside.entered && (f.final['scene.immerse'] ?? 0) >= 0.9;
