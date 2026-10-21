@@ -47,9 +47,11 @@ export function washInputs(
  * `presence`: how far the painting is there (let go early, the writing comes back as the painting
  * goes, never after it); `hold`: how far it is held washed once the colour has come (the
  * timeline's `window.wash`, no further than the pencil is there). Judged at five points across
- * the writing: it goes as soon as the colour (a little ahead of it) reaches any of those on the
- * painting, and only as far as its share of them on it (a line half over the painting's edge
- * goes half way).
+ * the writing, along its top, its middle and its bottom: it goes as soon as the colour (a little
+ * ahead of it) reaches any of those on the painting, and as far as the share of a row on it (a line
+ * half over the painting's edge goes half way; a block of lines with one across the painting goes
+ * all the way. Judged by its middle row, "I wanted you to" stayed written across the kitchen table:
+ * the cinematic director's review of "Almost", 2026-10-21).
  */
 export function washOf(
   box: { x: number; y: number; w: number; h: number },
@@ -60,17 +62,22 @@ export function washOf(
   hold = 0,
 ): number {
   if (painting.w <= 0 || painting.h <= 0 || presence <= 0) return 0;
-  const v = (box.y - painting.cy) / painting.h + 0.5;
-  if (v < 0 || v > 1) return 0;
-  let on = 0, most = 0;
-  for (let i = 0; i < 5; i++) {
-    const u = (box.x + box.w * ((i + 0.5) / 5 - 0.5) - painting.cx) / painting.w + 0.5;
-    if (u < 0 || u > 1) continue;
-    on++;
-    // (The wall's own soft edge for the colour: src/world/MemoryWindow.ts; 0.05 ahead of it.)
-    const g = colourAt(u, v);
-    const k = Math.min(1, Math.max(0, (reveal + 0.05 - (g - 0.08)) / 0.16));
-    most = Math.max(most, k * k * (3 - 2 * k));
+  let share = 0, most = 0;
+  for (let j = -1; j <= 1; j++) {
+    // (its top and bottom rows a little inside its box, where the letters are)
+    const v = (box.y + box.h * 0.4 * j - painting.cy) / painting.h + 0.5;
+    if (v < 0 || v > 1) continue;
+    let on = 0;
+    for (let i = 0; i < 5; i++) {
+      const u = (box.x + box.w * ((i + 0.5) / 5 - 0.5) - painting.cx) / painting.w + 0.5;
+      if (u < 0 || u > 1) continue;
+      on++;
+      // (The wall's own soft edge for the colour: src/world/MemoryWindow.ts; 0.05 ahead of it.)
+      const g = colourAt(u, v);
+      const k = Math.min(1, Math.max(0, (reveal + 0.05 - (g - 0.08)) / 0.16));
+      most = Math.max(most, k * k * (3 - 2 * k));
+    }
+    share = Math.max(share, on / 5);
   }
-  return WASH * Math.max(most, Math.min(1, Math.max(0, hold))) * (on / 5) * Math.min(1, presence);
+  return WASH * Math.max(most, Math.min(1, Math.max(0, hold))) * share * Math.min(1, presence);
 }

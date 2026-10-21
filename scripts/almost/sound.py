@@ -41,6 +41,7 @@ import xsheet  # noqa: E402
 
 SR = 48000
 ROOT = os.path.abspath(os.path.join(HERE, '..', '..'))
+KITCHEN_FADE = 2.5   # s: the kitchen's own fade at its end
 # Where the kitchen and the film begin on the memory's timeline (src/memory/defs.ts, ALMOST's
 # markers `music:kitchen` and `music:film`: tests/memory-defs.test.ts holds them equal). The film's
 # own mix is the white room's two sounds as they fall under it, the clock's ticks on the same
@@ -459,6 +460,11 @@ def main():
         for x in (kitchen, film):
             x[:e] *= np.linspace(0, 1, e)[:, None]
             x[-e:] *= np.linspace(1, 0, e)[:, None]
+        # The kitchen dies away over its last KITCHEN_FADE seconds. Let go naturally, the memory
+        # lets a file that ends soon after it play out, and the kitchen stopped dead on its last
+        # sample (the cinematic director's review of the final film, 2026-10-21).
+        f = int(KITCHEN_FADE * SR)
+        kitchen[-f:] *= (0.5 + 0.5 * np.cos(np.linspace(0, np.pi, f)))[:, None]
         report.update({'kitchen_seconds': round(len(kitchen) / SR, 2), 'kitchen_a_dbfs': round(a_weighted_db(kitchen), 1),
                        'film_peak_dbfs': round(20 * np.log10(np.abs(film).max() + 1e-12), 1), 'lead': lead, 'tail': tail})
         if 'stems' in opt:

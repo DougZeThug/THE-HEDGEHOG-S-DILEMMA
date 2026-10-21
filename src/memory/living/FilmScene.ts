@@ -26,15 +26,25 @@ export interface FilmArt {
   frames: number;
 }
 
-/** Whether this browser plays a film type ('webm' VP9 or 'mp4' H.264), best first. */
+/**
+ * Whether this browser plays a film type ('webm' VP9 or 'mp4' H.264), best first. WebKit (Safari,
+ * and every browser on an iPhone) gets H.264 first: what it decodes in hardware on every device.
+ */
 export function filmType(probe: HTMLVideoElement = document.createElement('video')): 'webm' | 'mp4' | null {
-  if (probe.canPlayType('video/webm; codecs="vp9"')) return 'webm';
-  if (probe.canPlayType('video/mp4; codecs="avc1.640028"') || probe.canPlayType('video/mp4; codecs="avc1.42E01E"')) return 'mp4';
-  return null;
+  const vp9 = !!probe.canPlayType('video/webm; codecs="vp9"');
+  const h264 = !!(probe.canPlayType('video/mp4; codecs="avc1.640028"') || probe.canPlayType('video/mp4; codecs="avc1.42E01E"'));
+  if (h264 && 'webkitSetPresentationMode' in probe) return 'mp4';
+  if (vp9) return 'webm';
+  return h264 ? 'mp4' : null;
 }
 
-/** A video element for a film's blob URL, muted and inline, with its first frame decoded. */
-export async function loadFilm(url: string, timeout = 20000): Promise<HTMLVideoElement> {
+/**
+ * A video element for a film's blob URL, muted and inline, with its first frame decoded. (Safari on
+ * an iPhone may decode nothing of a video that has not played: it is played and paused once its
+ * metadata is in, a refusal costing nothing, as it is then stepped. Nothing in 5 s, and the memory
+ * is the wall's still instead.)
+ */
+export async function loadFilm(url: string, timeout = 5000): Promise<HTMLVideoElement> {
   const v = document.createElement('video');
   v.muted = true;
   v.defaultMuted = true;
@@ -47,13 +57,21 @@ export async function loadFilm(url: string, timeout = 20000): Promise<HTMLVideoE
   await new Promise<void>((resolve, reject) => {
     const done = () => (cleanup(), resolve());
     const fail = () => (cleanup(), reject(new Error(`film could not be decoded: ${v.error?.message ?? 'no frame'}`)));
+    const nudge = () => {
+      const p = v.play();
+      if (p) p.then(() => v.pause(), () => {});
+    };
     const timer = setTimeout(fail, timeout);
     const cleanup = () => {
       clearTimeout(timer);
+      v.removeEventListener('loadedmetadata', nudge);
       v.removeEventListener('loadeddata', done);
+      v.removeEventListener('canplay', done);
       v.removeEventListener('error', fail);
     };
+    v.addEventListener('loadedmetadata', nudge);
     v.addEventListener('loadeddata', done);
+    v.addEventListener('canplay', done);
     v.addEventListener('error', fail);
     v.load();
   });
@@ -155,7 +173,7 @@ export class FilmScene {
           );
         }
       } else if (!video.seeking) {
-        // Kept with the clock: a little drift taken up by the rate, a few percent either way; a
+        // Kept with the clock: a drift over half a frame taken up by the rate, a few percent either way; a
         // large one by a seek aimed ahead by what the last one took, so it lands where the clock
         // will be. Never while a seek is still landing. (Corrected by a seek to the present frame
         // whenever it drifted a frame and a half, it sought again under each seek in flight, each
@@ -166,7 +184,7 @@ export class FilmScene {
           video.currentTime = Math.min(this.duration - 0.5 / fps, film + this.seekCost + 0.5 / fps);
           this.seekAsked = performance.now();
         } else {
-          video.playbackRate = Math.abs(d) > 1 / fps ? 1 - Math.max(-0.1, Math.min(0.1, d * 2)) : 1;
+          video.playbackRate = Math.abs(d) > 0.5 / fps ? 1 - Math.max(-0.1, Math.min(0.1, d * 2)) : 1;
         }
       }
     } else {

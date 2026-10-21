@@ -367,6 +367,13 @@ describe("the room's writing under a living memory's painting", () => {
     expect(washOf({ x: 3, y: 0, w: 1, h: 0.1 }, painting, coloured, 1, 1)).toBe(0);
     expect(washOf({ x: 0, y: 1.2, w: 1, h: 0.1 }, painting, coloured, 1, 1)).toBe(0);
   });
+  it('a block of lines whose middle is off the painting, with a line across it, goes all the way', () => {
+    // Its middle 5 cm below the painting's bottom edge (0.9 m below its centre), its top line on it
+    // ("I wanted you to" across the kitchen table: the cinematic director's review, 2026-10-21).
+    expect(washOf({ x: 0, y: -0.95, w: 1, h: 0.3 }, painting, coloured, 1, 1)).toBeCloseTo(WASH, 6);
+    // Its letters all below the edge: kept.
+    expect(washOf({ x: 0, y: -1.1, w: 1, h: 0.3 }, painting, coloured, 1, 1)).toBe(0);
+  });
   it('a line goes as soon as the colour comes to any of it, a little ahead of it, not once it has crossed it', () => {
     // The colour comes from the left: the line's left end (u 0.2) at 0.28, its right (u 0.8) at 0.76.
     const fromLeft = (u: number) => 0.12 + 0.8 * u;

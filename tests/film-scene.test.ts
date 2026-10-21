@@ -253,11 +253,14 @@ describe('a film as a living memory', () => {
     expect(scene.update(gl, 1, { 'scene.film': 1 }, { view })).toBe(false);
   });
 
-  it('chooses VP9 where it plays, else H.264, else nothing', () => {
-    const probe = (ok: string[]) => ({ canPlayType: (t: string) => (ok.some((o) => t.includes(o)) ? 'probably' : '') }) as unknown as HTMLVideoElement;
+  it('chooses VP9 where it plays, else H.264, else nothing; on WebKit, H.264 first', () => {
+    const probe = (ok: string[], webkit = false) =>
+      ({ canPlayType: (t: string) => (ok.some((o) => t.includes(o)) ? 'probably' : ''), ...(webkit ? { webkitSetPresentationMode: () => {} } : {}) }) as unknown as HTMLVideoElement;
     expect(filmType(probe(['vp9', 'avc1']))).toBe('webm');
     expect(filmType(probe(['avc1']))).toBe('mp4');
     expect(filmType(probe([]))).toBe(null);
+    expect(filmType(probe(['vp9', 'avc1'], true))).toBe('mp4');
+    expect(filmType(probe(['vp9'], true))).toBe('webm');
   });
 });
 
@@ -309,5 +312,18 @@ describe('Almost on its timeline', () => {
     const lines = ALMOST.announce!('film');
     const ats = [...new Set(lines.map((l) => l.at))];
     for (let i = 1; i < ats.length; i++) expect(ats[i] - ats[i - 1], `${ats[i - 1]} → ${ats[i]}`).toBeGreaterThanOrEqual(3.5);
+  });
+
+  it("each of its screen-reader lines is said before the next begins", () => {
+    // (Read at 180 words a minute, each queued behind the last, the eighth began 19 s late, after
+    // the film had ended: QA, 2026-10-21. 2.5 words for each second until the next line, from the
+    // description read as the memory begins; seen from inside or from the wall.)
+    const words = (s: string) => s.split(/\s+/).filter(Boolean).length;
+    for (const from of ['inside', 'wall'] as const) {
+      const lines = [{ at: ALMOST_SECTIONS.active, text: ALMOST.describe('film') }, ...ALMOST.announce!('film').filter((l) => !(from === 'inside' ? l.wall : l.inside))];
+      for (let i = 0; i + 1 < lines.length; i++) {
+        expect(words(lines[i].text), `${from}: "${lines[i].text}"`).toBeLessThanOrEqual(Math.floor(2.5 * (lines[i + 1].at - lines[i].at)));
+      }
+    }
   });
 });

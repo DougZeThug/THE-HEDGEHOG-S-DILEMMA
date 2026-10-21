@@ -19,8 +19,9 @@ The crops:
 
 `--web DIR` writes the white room's copies of the whole open matte, silent (its sound is two cues):
 DIR/film.webm (VP9) and DIR/film.mp4 (H.264), and the phone set at half size (film@low.*). A
-keyframe where a new photograph begins, about a second apart, keeps seeking cheap (the room pauses
-and seeks the film when it is held); none inside a hold, where it would make the still room pulse.
+keyframe only where a new photograph begins, at least KEY_GAP seconds apart: none inside a hold,
+where it would make the still room pulse. (The room seeks the film when it is held; a playing film
+is kept on time by its rate and seldom seeks.)
 """
 import json
 import os
@@ -31,6 +32,7 @@ import cv2
 import numpy as np
 
 FEATHER = 10
+KEY_GAP = 3.0           # s: the least time between two of the web files' keyframes
 FIGURES_X = 0.5         # between their faces, under the lamp (for the upright crop: her beanie and his elbow both in)
 
 
@@ -129,23 +131,25 @@ def encoder(path, w, h, fps, audio=None, scale=None):
 
 
 def keyframes(frames, fps):
-    """Where the web files start a keyframe (s): only where a new photograph begins, at least a
-    second apart. (A keyframe inside a hold encodes the still room afresh, and it pulsed once a
-    second through a film that is half holds: the skeptic's review, 2026-10-20.)"""
+    """The frames where the web files start a keyframe: only where a new photograph begins, at least
+    KEY_GAP seconds apart. (A keyframe inside a hold encodes the still room afresh, and it pulsed
+    once a second through a film that is half holds: the skeptic's reviews, 2026-10-20 and -21.)"""
     out, last = [0], 0
     for f in range(1, len(frames)):
-        if frames[f] != frames[f - 1] and f - last >= fps:
+        if frames[f] != frames[f - 1] and f - last >= KEY_GAP * fps:
             out.append(f)
             last = f
-    return [f / fps for f in out]
+    return out
 
 
 def web_encoders(d, w, h, fps, keys):
     """The white room's four copies (src/memory/living/FilmScene.ts plays whichever the browser can),
-    keyframes at `keys` (s) and nowhere else."""
+    keyframes on the frames `keys` and nowhere else. (Each is asked for half a frame early, so it
+    lands on its own frame: given as its time to four places, frame 511's came out on 512, a frame
+    after its photograph began: the cinematic director's review, 2026-10-21.)"""
     os.makedirs(d, exist_ok=True)
     out = []
-    kf = ['-g', '100000', '-force_key_frames', ','.join(f'{t:.4f}' for t in keys)]
+    kf = ['-g', '100000', '-force_key_frames', ','.join(f'{max(0.0, (f - 0.5) / fps):.4f}' for f in keys)]
     for suffix, (ww, hh) in (('', (w, h)), ('@low', (w // 2, h // 2))):
         base = ['ffmpeg', '-y', '-loglevel', 'error', '-f', 'rawvideo', '-pix_fmt', 'bgr24', '-s', f'{w}x{h}', '-r', str(fps), '-i', '-',
                 '-vf', f'scale={ww}:{hh}:flags=lanczos:out_color_matrix=bt709:out_range=tv,format=yuv420p', '-an', '-r', str(fps), *kf, *TAGS]

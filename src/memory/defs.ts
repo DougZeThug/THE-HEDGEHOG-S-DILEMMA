@@ -843,16 +843,17 @@ export const ALMOST: MemoryDef = {
   hush: 0.7,
   drone: false,
   living: true,
-  describe: () => 'Wool fibres come through the wall by the words, then colour: a small kitchen at night, two figures made of felt sitting side by side at a wooden table under a hanging lamp.',
-  // (Only what is seen, in order, at least 3.5 s apart, never what it means.)
+  describe: () => 'Wool, then colour, comes through the wall: a kitchen at night.',
+  // (Only what is seen, in order, at least 3.5 s apart, never what it means; each short enough to
+  // be read before the next: tests/film-scene.test.ts.)
   announce: () => [
-    { at: FILM_AT + 0.5, text: 'It opens until it is all there is: a kitchen at night. Two figures made of felt sit side by side at the table, under the lamp.', inside: true },
-    { at: FILM_AT + 0.5, text: 'The picture comes alive on the wall: two figures made of felt sit side by side at a kitchen table, under the lamp.', wall: true },
-    { at: FILM_AT + FILM_BEATS.reach + 0.3, text: 'Her sleeve is folded back at the cuff. His hand moves toward it across the table, a little at a time.' },
-    { at: FILM_AT + FILM_BEATS.startle + 0.75, text: 'His fingertip touches the fold. She starts and draws her arm back.' },
-    { at: FILM_AT + FILM_BEATS.lap + 0.5, text: 'His hand stays in the air, then goes back to his lap.' },
-    { at: FILM_AT + FILM_BEATS.offer + 0.4, text: 'She looks at him. She lifts her arm and lays it down a little nearer him.' },
-    { at: FILM_AT + FILM_BEATS.tooLate + 0.95, text: 'His hand stays in his lap. His head turns a little toward her, and back.' },
+    { at: FILM_AT + 0.5, text: 'Two felt figures sit side by side.', inside: true },
+    { at: FILM_AT + 0.5, text: 'On the wall, two felt figures sit together.', wall: true },
+    { at: FILM_AT + FILM_BEATS.reach + 0.3, text: 'His hand reaches toward her folded cuff.' },
+    { at: FILM_AT + FILM_BEATS.startle + 0.75, text: 'He touches it; she draws her arm back.' },
+    { at: FILM_AT + FILM_BEATS.lap + 0.5, text: 'His hand hangs, then returns to his lap.' },
+    { at: FILM_AT + FILM_BEATS.offer + 0.4, text: 'She looks at him, lays her arm nearer.' },
+    { at: FILM_AT + FILM_BEATS.tooLate + 0.95, text: 'His hand stays in his lap.' },
     { at: FILM_AT + FILM_BEATS.almost + 1.5, text: 'Her eyes go down to the table between them. They sit.' },
     { at: ALMOST_SECTIONS.exit, text: 'The picture goes back into the wall.' },
   ],

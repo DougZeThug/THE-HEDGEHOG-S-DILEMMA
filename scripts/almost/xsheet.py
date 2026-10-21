@@ -91,10 +91,11 @@ def sheet():
     b.move('settle', 2, 2, 'out').move('withdrawn', 2, 3, 'inout')
     # 5. realisation: she flinches, then he lets go: his fingertips come off the cloth on her first
     # still frames, 125 ms after her first (on her own startle frames both of them jumped: the
-    # skeptic's review, 2026-10-21), and his hand stays there in the air; then back across the
-    # table a little quicker than it came (reluctant to start), turned along the edge and slipped
-    # down past it into his lap
-    a.to_frame(167).move('reflex', 2, 2, note='his hand off the cloth', spacing=[0.6, 1.0])
+    # skeptic's review, 2026-10-21), most of the way on the first (at 0.6 his hand was still 1-2 px
+    # from her sleeve: apart.py), and his hand stays there in the air; then back across the table a
+    # little quicker than it came (reluctant to start), turned along the edge and slipped down past
+    # it into his lap
+    a.to_frame(167).move('reflex', 2, 2, note='his hand off the cloth', spacing=[0.8, 1.0])
     a.to_frame(212, 'suspended').move('back1', 4, 2, 'in', 'withdraws').move('back2', 3, 3, 'linear')
     a.move('back3', 3, 2, 'linear').move('turn', 2, 2, 'linear').move('edge', 2, 2, 'linear').move('slip', 2, 2, 'linear')
     a.move('lap left', 4, 2, 'out', 'into his lap')
