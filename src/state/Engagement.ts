@@ -49,6 +49,7 @@ export class Engagement {
   private seenApproaches = 0;
   private seenReturns = new Map<string, number>();
   private kneelNoted = false;
+  private kneelEpisode = 0;
   private yawWindow: { t: number; d: number }[] = [];
   private lastYaw: number | null = null;
   private lastSweep = -Infinity;
@@ -96,11 +97,14 @@ export class Engagement {
       this.seenApproaches = v.approaches.length;
       this.raise('approach', t);
     }
-    if (v.kneeling && !this.kneelNoted && v.kneelTime > 1) {
-      this.kneelNoted = true;
-      this.raise('kneel', t);
+    if (!v.kneeling) { this.kneelNoted = false; this.kneelEpisode = 0; }
+    else {
+      this.kneelEpisode += dt;
+      if (!this.kneelNoted && this.kneelEpisode > 1) {
+        this.kneelNoted = true;
+        this.raise('kneel', t);
+      }
     }
-    if (!v.kneeling) this.kneelNoted = false;
     if (!v.near) this.lingered = 0;
     else if (v.nearFor >= 15 * (this.lingered + 1)) {
       this.lingered++;
