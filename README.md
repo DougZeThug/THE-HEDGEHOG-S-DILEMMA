@@ -338,7 +338,6 @@ node scripts/generate-dialogue.mjs --approve=… --reject=…           # after 
 - **Visual verification** was done in headless Chromium with software rendering (about 10 fps, so behaviour over time was checked with the engine's fast-forward and the opening on its own wall clock). Real-GPU performance, how the light-up looks on an OLED phone, and whether the handwriting *reads as a hand* at full frame rate still need a human eye.
 - **Not yet heard by the artist:** the new switch and graphite sounds (in the opening now), and two music pilots (on the audition sheet only, not in the room). Music is never in the opening or under a voice.
 - **Deferred, on purpose:** writing in the air (at most once a visit, after review), the light as a motif later in the visit, and a contact-shadow decal for the chair (see the review).
-- **Vignettes** are written, scored and playable as captioned previews, but none is recorded yet: visitors don't meet them until their takes are generated (dry run only, about 1,931 credits estimated) and kept by the artist. Two designed voices (the child, the shop assistant) still need saving to the account. Their reach was measured in simulation, not with people.
 - **Speech/microphone input** is intentionally not implemented.
 - **Remote AI interpretation** exists only as a typed interface plus a strict validator.
 
