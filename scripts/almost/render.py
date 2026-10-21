@@ -72,7 +72,9 @@ PAD_HAIR = 50     # round a change of her long hair (its fibres are 7 mm, about 
 GROW = 96         # pixels a seamed side moves out (--regrow)
 # The lights whose shadows can be seen move (build.lights; the ceiling's falls with the bulb's)
 CASTERS = ('bulb light', 'window light', 'bounce light', 'face card')
-SHADOW_SAMPLES = 4000
+# Every moved point casts its ray (up to 60000). At 4000, a region's far side depended on which
+# points the stride took: growing the fibres first moved photograph 1's left edge from 98 to 214.
+SHADOW_SAMPLES = 60000
 PENUMBRA = 0.03   # m: a shadow blurred wider than this (twice a hand) is lost in the light round it
 # Seconds a region takes: a fixed cost (the scene, the fibres) and the frame's area (the last render)
 COST_FIXED, COST_FRAME = 30.0, 400.0
