@@ -50,7 +50,10 @@ export function bakeStrokes(alpha: Uint8ClampedArray | Uint8Array, W: number, H:
   const owner = new Int32Array(N).fill(-1);
   const ink = (p: number) => alpha[p] > 24;
 
-  // Which character each inked pixel belongs to: the box containing it (nearest box in the line band otherwise).
+  // Which character each inked pixel belongs to: the box containing it. Adjacent glyphs'
+  // boxes meet at the advance boundary (no overlap — see `charBox` in textures.ts), so a
+  // pixel lies in at most one box and the first containing box is the only one; claimed ink
+  // outside every box is given the time of the nearest ink by the fill below.
   for (let b = 0; b < boxes.length; b++) {
     const bx = boxes[b];
     const x0 = Math.max(0, Math.floor(bx.x0)), x1 = Math.min(W, Math.ceil(bx.x1));

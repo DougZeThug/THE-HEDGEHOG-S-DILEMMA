@@ -160,6 +160,35 @@ export function measureText(text: string, hand: Hand, size: Size, wrapM = WRAP[s
 }
 
 /**
+ * One character's box for stroke order: its horizontal extent and the band of its line.
+ * Pure so the layout (and the fix on it) can be tested without a canvas.
+ *
+ * Adjacent glyphs' boxes meet at the advance boundary — the pad (`0.04 em`) is kept only at
+ * the word's own left and right edges, never between glyphs — so a pixel lies in at most one
+ * box and `bakeStrokes` never has to break a tie. Before, each box was padded on both sides,
+ * the boxes overlapped around the advance boundary, and the then first-box-wins ownership
+ * claimed the left strip of glyph k+1 as part of glyph k: the strip was written a whole
+ * character early, the previous glyph got a spurious pen lift, and a small high strip was
+ * deferred after the word like an i-dot (QA 2026-10-21).
+ */
+export function charBox(
+  i: number, x: number, cx: number, cw: number, px: number, y: number, dy: number,
+  first: boolean, last: boolean, hand: Hand,
+): CharBox {
+  const pad = px * 0.04;
+  return {
+    i,
+    x0: x + cx - (first ? pad : 0),
+    x1: x + cx + cw + (last ? pad : 0),
+    yTop: y + dy - px * 1.05,
+    yBottom: y + dy + px * 0.55,
+    base: y + dy,
+    xHeight: px * 0.45,
+    stamp: hand === 'typed',
+  };
+}
+
+/**
  * Draw a phrase as it might have been written on a wall: words sit on a slightly
  * wandering baseline; pencil has tooth; pressure varies a little along the line.
  *
@@ -222,7 +251,7 @@ export function textTexture(text: string, hand: Hand, size: Size, key: string, m
       let cx = 0;
       for (let k = 0; k < w.length; k++) {
         const cw = st.tracking ? g.measureText(w[k]).width + st.tracking * px : g.measureText(w.slice(0, k + 1)).width - cx;
-        boxes.push({ i: i0 + k, x0: x + cx - px * 0.04, x1: x + cx + cw + px * 0.04, yTop: y + dy - px * 1.05, yBottom: y + dy + px * 0.55, base: y + dy, xHeight: px * 0.45, stamp: hand === 'typed' });
+        boxes.push(charBox(i0 + k, x, cx, cw, px, y, dy, k === 0, k === w.length - 1, hand));
         cx += cw;
       }
       if (st.tracking) {
