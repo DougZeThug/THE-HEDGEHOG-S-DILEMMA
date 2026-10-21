@@ -261,7 +261,7 @@ export class Inside {
       // stops here too (held over the lock, it swung the view back toward the old tap once control
       // was handed back, turned the way they turned).
       this.from = { x: this.rig.pos.x, z: this.rig.pos.z, yaw: this.rig.yaw, pitch: this.rig.pitch };
-      this.rig.cancelAttend();
+      this.rig.cancelAttend(); // same invariant as the carried branch: nothing left steering
     }
     if (this.from && !this.handedBack) {
       if (this.leaving && e <= 0.5) {

@@ -37,7 +37,7 @@ function setup() {
     for (let k = 0; k <= 60; k++) step(Math.max(0, 1 - k / 40), { approach: Math.max(0, 1 - k / 60), leaving: true, dt: 0.1 });
     step(0, { approach: 0, leaving: true });
   };
-  return { rig, inside, post, step, goIn, goOut, imm };
+  return { rig, inside, post, step, goIn, goOut, imm, scene, wall };
 }
 
 describe('inside a living memory', () => {
@@ -86,6 +86,63 @@ describe('inside a living memory', () => {
     goIn();
     for (let i = 0; i < 9; i++) inside.look(30, 0);
     expect(step(1, { dt: 1, approach: 1 })).toBe('leave');
+  });
+
+  it('reduced motion: the take-in clears an in-flight auto-aim from a pre-memory tap (no stale lookGoal survives the lock)', () => {
+    const { rig, inside, step } = setup();
+    // Square to the wall, the visitor taps a line straight ahead; rig.attend puts an auto-aim in
+    // flight (a `lookGoal`, aimed at the tap from where the walk ends: src/world/CameraRig.ts).
+    rig.place(0.4, 0, 0, 0);
+    rig.attend(new THREE.Vector3(0, 1.58, -3.2), 1);
+    const lookGoal = (rig as unknown as { lookGoal: { yaw: number; pitch: number } | null }).lookGoal;
+    expect(lookGoal, 'the pre-memory tap put an auto-aim in flight').not.toBeNull();
+    inside.begin(13, true);
+    // The first immerse frame fires the reduced take-in branch (no carry, the view held still).
+    step(0.5, { reduced: true });
+    expect(inside.locked).toBe(true);
+    // Mirrors the carried branch's `rig.cancelAttend()` (docs/reviews/2026-10-woodland.md):
+    // nothing the visitor was being aimed at before the memory survives the lock.
+    expect((rig as unknown as { lookGoal: { yaw: number; pitch: number } | null }).lookGoal).toBeNull();
+  });
+
+  it('reduced motion: after hand-back the view does not swing back toward a stale pre-memory tap target', () => {
+    const { rig, inside, scene, wall } = setup();
+    const room = { halfW: 6, halfD: 6 } as unknown as Room;
+    const chair = new THREE.Vector3(5, 0, 5);
+    rig.place(0.4, 0, 0, 0); // square to the wall at −z, looking at it
+    // A pre-memory tap put an auto-aim in flight when the Director starts the memory.
+    rig.attend(new THREE.Vector3(0, 1.58, -3.2), 1);
+    const lg = (rig as unknown as { lookGoal: { yaw: number; pitch: number } | null }).lookGoal;
+    expect(lg, 'the pre-memory tap put an auto-aim in flight').not.toBeNull();
+    const tapYaw = lg!.yaw;
+    // The App's order (src/App.ts): the rig first — enabled while the room has the view — then the
+    // memory's frame. The lock disables the rig (so `lookGoal` neither applies nor self-clears).
+    const frame = (immerse: number, dx = 0, dy = 0) => {
+      rig.enabled = !inside.locked;
+      rig.update(1 / 60, room, chair);
+      inside.look(dx, dy);
+      return inside.step(1 / 60, { immerse, focus: [0.5, 0.5], enter: true, away: false, leavingNaturally: false }, { reduced: true, aspect: 16 / 9, scene, group: wall });
+    };
+    inside.begin(14, true);
+    // First immerse frame: the reduced take-in fires, and (with the fix) clears the auto-aim.
+    frame(0.5);
+    expect(inside.locked).toBe(true);
+    expect((rig as unknown as { lookGoal: { yaw: number; pitch: number } | null }).lookGoal).toBeNull();
+    // Turn 30° (the LEAVE threshold) to let it go. With immerse held at 0.5, eff drops ≤0.5 once
+    // turned, so leave and hand-back fire together: control comes back "turned the way they turned"
+    // (rig.yaw −= the accumulated turn; Inside.ts).
+    let out: 'leave' | null = null;
+    for (let i = 0; i < 60 && !out; i++) out = frame(0.5, 34, 0);
+    expect(out).toBe('leave');
+    expect(inside.locked).toBe(false);
+    const handedYaw = rig.yaw;
+    expect(handedYaw, 'turned the way they turned').toBeLessThan(-0.4);
+    // Re-enabled (the App's order: rig.enabled = !inside.locked) and stepped for two seconds. With
+    // the fix nothing is left steering, so the view stays where control came back. Without it the
+    // frozen `lookGoal` would resume easing the view (τ ≈ 0.9 s) back toward the stale tap yaw.
+    for (let t = 0; t < 2; t += 1 / 60) frame(0);
+    expect(rig.yaw, 'no swing back toward the stale tap target').toBeCloseTo(handedYaw, 2);
+    expect(Math.abs(rig.yaw - tapYaw), 'and clearly not eased back to the stale tap yaw').toBeGreaterThan(0.05);
   });
 
   it('reduced motion is as it was when the memory began (nobody carried, put back where they were)', () => {
