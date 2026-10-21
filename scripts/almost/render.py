@@ -324,6 +324,9 @@ def main():
         snap = snapshot(objs)
         path = os.path.join(out, 'regions', f'{u:04d}.{ext}')
         key = made_key(da, db, makers)
+        if not plan and os.path.exists(path) and str(u) not in meta['photos']:
+            # (a region the index never recorded: its run was stopped while it was being written)
+            os.remove(path)
         info = meta['photos'].get(str(u), {})
         if not plan and os.path.exists(path) and info.get('made', key) != key:
             # (a region is pasted over the photograph before it: one of another pose, kept, would
