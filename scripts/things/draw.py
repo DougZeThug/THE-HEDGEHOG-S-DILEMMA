@@ -473,7 +473,9 @@ def scene_marks(ref, prefix, sheet=None, parts=('place', 'young', 'older'), line
     # masses on the walls read as light through blinds: the skeptic, Proof A3)
     figmask = np.isin(ids, PEOPLE).astype(np.uint8)
     near = np.exp(-cv2.distanceTransform(1 - figmask, cv2.DIST_L2, 5) / 40.0) if figmask.any() else np.zeros_like(want)
-    want = np.where(np.isin(ids, PEOPLE + [7]), want, np.where(np.isin(ids, FLOOR), want * 0.6 * near, 0.0))
+    want = np.where(np.isin(ids, PEOPLE), want, np.where(np.isin(ids, FLOOR), want * 0.6 * near, 0.0))
+    # the door at under half its weight: drawn whole, shut, it was a slab that outweighed them
+    want = np.where(ids == 7, target_density(tone) * 0.42, want)
     # and a light falloff on the wall round the doorway, so the opening is the brightest place on
     # the sheet from the first frame (its emptiness, at the end, is lit) (the creative director)
     opening = (ids == 4).astype(np.uint8)

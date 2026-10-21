@@ -10,6 +10,7 @@ import type { WindowLayer, LayerKind } from '../world/MemoryWindow';
 import { LivingScene, type FigureArt, type HeadCels, type LivingArt, type NearArt, type Eye } from './living/LivingScene';
 import { WOODLAND as WOODLAND_SPEC, type LivingSpec } from './living/woodland';
 import { ALMOST } from './living/almost';
+import { THINGS } from './living/things';
 import { FilmScene, filmType, loadFilm, releaseFilm } from './living/FilmScene';
 import { fetchBlob } from './fetched';
 
@@ -53,7 +54,12 @@ interface FilmManifest {
   frames: number;
   order?: string | null;
   immerse: boolean;
+  /** Its edge when carried out of the wall: torn (felt, "Almost": the default) or soft (a sheet rubbed). */
+  edge?: 'torn' | 'soft';
 }
+
+/** Where each film sits when it covers the screen (src/memory/living/), by memory. */
+const FILM_SPECS: Record<string, Pick<LivingSpec, 'cover' | 'coverAt'>> = { almost: ALMOST, things: THINGS };
 
 const isFilm = (m: LivingManifest | FilmManifest | null | undefined): m is FilmManifest => !!m && (m as FilmManifest).kind === 'film';
 /** How long the film's bytes may take to come (ms; most are fetched ahead, when its line is armed). */
@@ -332,7 +338,7 @@ export async function prepare(id: string, variant: string, host: RuntimeHost): P
       if (orderR) extra.push(orderR);
       const size = targetSize(host);
       scene = new FilmScene({ video, fps: lm.fps, frames: lm.frames }, { ...size, reduced: !!host.reduced });
-      living = { scene, spec: ALMOST, immerse: lm.immerse, torn: true, crop: manifest.crop ?? [0, 0, 1, 1], aspect: manifest.size[0] / manifest.size[1], order: orderR?.texture ?? null, colourAt: orderR ? colourTimes(orderR.bitmap) : null };
+      living = { scene, spec: FILM_SPECS[def.id] ?? ALMOST, immerse: lm.immerse, torn: (lm.edge ?? 'torn') === 'torn', crop: manifest.crop ?? [0, 0, 1, 1], aspect: manifest.size[0] / manifest.size[1], order: orderR?.texture ?? null, colourAt: orderR ? colourTimes(orderR.bitmap) : null };
       loaded.unshift({ texture: scene.target.texture, bitmap: null as unknown as ImageBitmap, name: 'scene', kind: 'pigment' });
     } catch (e) {
       // The film couldn't be had: the wall's poster instead, still (as any memory).

@@ -151,19 +151,25 @@ def step(tl, a, b, t, people=('young', 'older'), door=False, prefix='step', dur=
 
 
 def draw_on(tl, ref, prefix, t, dur):
-    """A whole drawing made in front of us: the doorway's construction in hard pencil, the masses,
-    the rubbing and lifts, then the lines."""
+    """A whole drawing made in front of us: the doorway's construction in hard pencil, then each
+    thing in turn (the door, her, him), its tone laid by a hand working down it, rubbed, its lines
+    found last. (A real person is never line alone; and tone everywhere at once read as an
+    apparition fading in: the creative director.)"""
     marks, _ = draw.scene_marks(ref, prefix)
     construct = [m for m in marks if m['layer'] == 'construct']
-    masses = [m for m in marks if m['layer'].startswith('mass')]
-    rest = [m for m in marks if m['layer'] in ('smudge', 'lift')]
-    lines = [m for m in marks if m['layer'] in ('contour', 'face')]
-    # (a real person is never line alone on the sheet: line is what is imagined. The masses go
-    # on in passes a hand can be seen making, the lines are found last: the creative director)
-    t1 = tl.add(construct, t, dur * 0.2, overlap=0.5)
-    t2 = tl.add(masses, t1, dur * 0.5, overlap=0.85)
-    t3 = tl.add(rest, t2, dur * 0.1, overlap=0.6)
-    return tl.add(lines, t3, dur * 0.2, overlap=0.7)
+    t = tl.add(construct, t, dur * 0.18, overlap=0.5)
+    parts = [p for p in ('arch', 'floor', 'door', 'older', 'young') if any(m['part'] == p and m['layer'] != 'construct' for m in marks)]
+    share = (dur * 0.82) / max(1, len(parts))
+    for p in parts:
+        mine = [m for m in marks if m['part'] == p and m['layer'] != 'construct']
+        tone = sorted([m for m in mine if m['layer'].startswith('mass')], key=lambda m: _mid(m)[1])
+        rest = [m for m in mine if m['layer'] in ('smudge', 'lift')]
+        lines = [m for m in mine if m['layer'] in ('contour', 'face')]
+        w = share if p in ('older', 'young') else share * 0.5
+        t1 = tl.add(tone, t, w * 0.55, overlap=0.8)
+        t1 = tl.add(rest, t1, w * 0.1, overlap=0.6)
+        t = tl.add(lines, t1, w * 0.35, overlap=0.7) - w * 0.1
+    return t
 
 
 def heads(refs, grow=1.3):

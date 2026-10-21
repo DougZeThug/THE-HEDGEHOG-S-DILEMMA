@@ -26,7 +26,9 @@ from collections import OrderedDict
 import cv2
 import numpy as np
 
-PAPER_RGB = np.array([236, 231, 220], np.float32) / 255     # warm off-white, a little aged
+# the west wall's plaster (src/world/surfaces.ts): the sheet is that wall, so the film taking over
+# from the wall's own pencil does not change its colour (the technical artist, Proof A2)
+PAPER_RGB = np.array([234, 232, 228], np.float32) / 255
 # optical density per unit of pigment, per channel (charcoal a warm black; graphite a cool grey)
 CHARCOAL_K = np.array([2.30, 2.36, 2.48], np.float32)
 GRAPHITE_K = np.array([1.05, 1.02, 0.96], np.float32)

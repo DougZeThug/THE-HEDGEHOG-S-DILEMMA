@@ -62,7 +62,7 @@ def blend(a, b, t):
     return out
 
 
-OLDER_AT = (-0.06, -0.36)
+OLDER_AT = (-0.3, -0.4)
 YOUNG_AT = (0.76, 0.08)
 
 LOOSE = {f'finger{f}-{j}.R': (6 + 2 * f, 0, 0) for f in range(2, 6) for j in range(1, 4)}
@@ -111,7 +111,7 @@ POSES = {
     # the left casing, so the doorway is between her hand and him: the creative director)
     'collar': {'door': -82,
                'older': dict(OLDER_WAVE, local=PINCH, bones=_plus(STOOP, head=(-8, -5, 0), neck01=(-4, 0, 0)),
-                             reach={'R': {'hand': ('world', (0.2, -0.08, 1.4)), 'elbow': (-0.3, 0.1, 0.3)}}),
+                             reach={'R': {'hand': ('world', (0.21, -0.1, 1.36)), 'elbow': (-0.25, 0.05, 0.4)}}),
                'young': YOUNG_GOING},
 }
 

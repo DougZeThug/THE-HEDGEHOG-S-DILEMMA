@@ -21,7 +21,8 @@ const EVERYWHERE = () => 0.5;
  * variant, if it has one (its order map's colour times; none for a revisit: the colour everywhere
  * at once, at the reveal's half way). `presenceWeight`: the intensity's (gentle paints it fainter,
  * but it is no less there: the words still go to their trace). The hold is `window.wash`, never
- * past the pencil. The words come back as its layers go (`layer:scene`, and the wool, `layer:fibres`).
+ * past the pencil. The words come back as its layers go (`layer:scene`, and its sketch: the wool,
+ * `layer:fibres`, or a drawing's pencil, `layer:lines`).
  */
 export function washInputs(
   def: { living?: boolean },
@@ -36,7 +37,9 @@ export function washInputs(
   // back from a trace to full in one frame as it completed, the wool gone 2 s before: the
   // cinematic director's review, 2026-10-21.)
   const weight = Math.max(presenceWeight, 1e-3);
-  const shown = Math.max(final['layer:scene.opacity'] ?? 1, 'layer:fibres.opacity' in final ? final['layer:fibres.opacity'] : 0) / weight;
+  // (its sketch layer: the wool, `fibres`, or a drawing's pencil, `lines`)
+  const sketch = Math.max('layer:fibres.opacity' in final ? final['layer:fibres.opacity'] : 0, 'layer:lines.opacity' in final ? final['layer:lines.opacity'] : 0);
+  const shown = Math.max(final['layer:scene.opacity'] ?? 1, sketch) / weight;
   return {
     colourAt,
     reveal: final['window.reveal'] ?? 0,

@@ -59,7 +59,7 @@ def build(ref_dir, keep_her=False):
     # his almost: the shut door lifted, not drawn open; him in graphite at the jamb, the hand first
     t = 18.5
     door = R['shut']['ids'] == 7
-    t = film.erase_figure(tl, R['shut'], 'door', 'c1/door', t, 1.4, order='x+', region=door, strength=0.7, skip=0.25)
+    t = film.erase_figure(tl, R['shut'], 'door', 'c1/door', t, 1.6, order='x+', region=door, strength=0.95, skip=0.08)
     his_hand = film.hand_of(R['jamb'], 'young', 'R')
     t = film.redraw(tl, R['jamb'], 'young', 'c1/jamb', t + 0.3, lines=3.6, hand=his_hand, line_only=True)
     t = film.restate(tl, R['jamb'], 'c1/casing', t, his_hand) + 3.0
@@ -77,6 +77,7 @@ def build(ref_dir, keep_her=False):
     people = film.figure_mask(R['jamb'], 'young', 6) | film.figure_mask(R['collar'], 'older', 6)
     if not keep_her:
         people |= film.figure_mask(R['shut'], 'older', 6)
+    people |= R['shut']['ids'] == 7            # (and what is left of the door: the doorway empty)
     t = film.erase_figure(tl, R['shut'], 'older', 'end/all', max(t, 38.5), 3.6, order='x+', region=people, strength=0.92, skip=0.08, spare=touched)
     hd = film.heads([(R['jamb'], 'young'), (R['collar'], 'older')] + ([] if keep_her else [(R['shut'], 'older')]))
     t = film.erase_figure(tl, R['shut'], 'older', 'end/heads', t - 0.4, 1.4, order='top', region=hd, strength=1.0, skip=0.0)
