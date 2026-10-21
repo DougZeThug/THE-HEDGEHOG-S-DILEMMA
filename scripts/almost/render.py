@@ -44,9 +44,9 @@ round it every photograph, so the room shimmered in rectangles: the technical ar
 **The fibres.** They are grown once, at the rest pose, before the first photograph (a tiny warm-up
 render), so every run grows the same fibres.
 
-Re-running resumes: regions already on disk are kept, each with a hash of the two poses it shows.
-One that no longer shows what the sheet gives its photograph stops the run: change a pose and
-render into a fresh directory. (Renumbered, the sheet would have pasted old drawings into the new
+Re-running resumes: regions already on disk are kept, each with a hash of its two drawings and of
+the scripts that make the set, the puppets and the poses (MAKERS). One made from anything else
+stops the run: change a pose and render into a fresh directory. (Renumbered, the sheet would have pasted old drawings into the new
 film: the technical artist's review, 2026-10-21.)
 """
 import hashlib
@@ -237,9 +237,15 @@ def noisy_exr():
     im.exr_codec = 'ZIP'
 
 
-def pose_key(pa, pb):
-    """What a photograph shows, as a short hash of its two poses."""
-    return hashlib.sha1(json.dumps([pa, pb], sort_keys=True, default=repr).encode()).hexdigest()[:12]
+# The scripts that make the set, the puppets and their poses: a region is kept on a later run only
+# if they and its two drawings are what they were. (A hash of the posed numbers was too exact: the
+# touch's solve differs by up to 0.1 mm, half a pixel, from one run to the next.)
+MAKERS = ('build.py', 'kitchen.py', 'lib.py', 'performance.py', 'puppets.py')
+
+
+def made_key(da, db, makers):
+    """What a photograph was made from, as a short hash: its two drawings, and the scripts'."""
+    return hashlib.sha1((json.dumps([list(da[:3]), list(db[:3])]) + makers).encode()).hexdigest()[:12]
 
 
 def main():
@@ -301,6 +307,7 @@ def main():
             json.dump(meta, fh)
         lo, hi = min(regrow), max(regrow)
         print(f'REGROW {", ".join(f"{u:04d} {"/".join(sorted(regrow[u]))}" for u in sorted(regrow))}', flush=True)
+    makers = hashlib.sha1(b''.join(open(os.path.join(HERE, f), 'rb').read() for f in MAKERS)).hexdigest()
     objs = movers(figs)
     prev = None
     W, H = opts['res']
@@ -314,16 +321,16 @@ def main():
         performance.apply(figs, {'a': pa, 'b': pb})
         snap = snapshot(objs)
         path = os.path.join(out, 'regions', f'{u:04d}.{ext}')
-        key = pose_key(pa, pb)
+        key = made_key(da, db, makers)
         info = meta['photos'].get(str(u), {})
-        if not plan and os.path.exists(path) and info.get('pose', key) != key:
+        if not plan and os.path.exists(path) and info.get('made', key) != key:
             # (a region is pasted over the photograph before it: one of another pose, kept, would
             # put an old drawing into the film)
-            raise SystemExit(f'photograph {u} on disk shows another pose than the sheet now gives it: render into a fresh directory')
+            raise SystemExit(f'photograph {u} on disk was made from other drawings or scripts than now: render into a fresh directory')
         if u >= lo and (plan or not os.path.exists(path)):
             box = None if prev is None else changed_region(prev, snap)
             if prev is not None and box is None:
-                info = {'box': None, 'a': list(da[:3]), 'b': list(db[:3]), 'pose': key}
+                info = {'box': None, 'a': list(da[:3]), 'b': list(db[:3]), 'made': key}
                 if plan:
                     print(f'PLAN {u:04d}   held', flush=True)
             else:
@@ -335,7 +342,7 @@ def main():
                     print(f'PLAN {u:04d} {area * 100:5.1f}% of the frame  {list(box)}  ({da[1]} {da[2]:.2f} | {db[1]} {db[2]:.2f})', flush=True)
                 else:
                     render_region(path, box)
-                info = {'box': list(box), 'a': list(da[:3]), 'b': list(db[:3]), 'pose': key,
+                info = {'box': list(box), 'a': list(da[:3]), 'b': list(db[:3]), 'made': key,
                         **({'grow': info['grow']} if info.get('grow') else {})}
                 if not plan:
                     print(f'PHOTO {u:04d} {area * 100:5.1f}% of the frame  {time.time() - t0:6.1f}s  ({da[1]} {da[2]:.2f} | {db[1]} {db[2]:.2f})'
