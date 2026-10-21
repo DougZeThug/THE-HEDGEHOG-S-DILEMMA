@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { simulate, scripts, rules } from './sim';
 import { Director } from '../src/state/Director';
 import { interpretLocally } from '../src/interpret/LocalInterpreter';
+import type { VisitorInput } from '../src/state/VisitorModel';
 
 describe('Director', () => {
   it('is deterministic for a given seed and behaviour', () => {
@@ -147,5 +148,152 @@ describe('a voice that was to write its line, and was never heard', () => {
       return;
     }
     throw new Error('no seed took the write-as-heard path');
+  });
+});
+
+describe('a beat whose gesture never found room is owed to its next meeting, not lost', () => {
+  // The encounter beat's `played` count is incremented before its gestures are queued, so a
+  // gesture cue being dropped (by a living memory's bare refusal, or by TTL) must roll it back.
+  // The rollback used to sit after a voice-only early return; only a voice gesture could reach it.
+  type Played = Map<string, number>;
+
+  const withPlayed = (d: Director) => d as unknown as { played: Played; lost: (cue: unknown, rule: string) => void };
+
+  it('rolls back the played count for a reveal, a write, a sound, a silence or a link gesture, not only a voice', () => {
+    const gestures = [
+      { type: 'reveal', phraseId: 'closer', mode: 'emerge' as const, seconds: 8 },
+      { type: 'write', key: 'enc:stay:1', text: 'x', hand: 'pencil' as const, size: 's' as const, beside: 'stay', purpose: 'annotation' as const, ttl: 300, source: 'r' },
+      { type: 'sound', kind: 'door' as const, position: { kind: 'beyond' as const, surface: 'north' as const }, gain: 0.4 },
+      { type: 'silence', depth: 0.6, seconds: 6 },
+      { type: 'link', a: 'stay', b: 'closer', ttl: 60 },
+    ];
+    // Each beat plays at count N (so its cue is queued as `encounter:stay:N`); losing it must
+    // set played back to N-1, so the next meeting replays the same beat. The rollback uses the
+    // rule's N, not the live count — verify each beat independently.
+    gestures.forEach((cue, i) => {
+      const d = new Director({ seed: 3 + i });
+      d.release({ written: ['stay'] });
+      const dd = withPlayed(d);
+      const n = i + 1;
+      dd.played.set('stay', n);
+      dd.lost(cue, `encounter:stay:${n}`);
+      expect(dd.played.get('stay'), `gesture ${cue.type}`).toBe(n - 1);
+    });
+  });
+
+  it('clamps to zero rather than underflowing, when a beat at the very start of an arc is lost', () => {
+    const d = new Director({ seed: 3 });
+    d.release({ written: ['stay'] });
+    const dd = withPlayed(d);
+    dd.played.set('stay', 1);
+    dd.lost({ type: 'silence', depth: 0.6, seconds: 6 }, 'encounter:stay:1');
+    expect(dd.played.get('stay')).toBe(0);
+  });
+
+  it('does not roll back for a rule that is not an encounter rule', () => {
+    const d = new Director({ seed: 3 });
+    d.release({ written: ['stay'] });
+    const dd = withPlayed(d);
+    dd.played.set('stay', 3);
+    dd.lost({ type: 'reveal', phraseId: 'closer', mode: 'emerge', seconds: 8 }, 'contribution-related');
+    dd.lost({ type: 'silence', depth: 0.6, seconds: 6 }, 'still-silence');
+    dd.lost({ type: 'write', key: 'k', text: 'x', hand: 'pencil', size: 's', purpose: 'contribution', ttl: 0 }, 'contribution');
+    expect(dd.played.get('stay')).toBe(3);
+  });
+
+  it('a non-voice gesture cue does not reach the voice-only cleanups (unfinished, memory.spoken, heard)', () => {
+    const d = new Director({ seed: 3 });
+    d.release({ written: ['stay'], spoken: [], unfinished: [] });
+    const dd = d as unknown as {
+      played: Map<string, number>;
+      lost: (cue: unknown, rule: string) => void;
+      unfinished: Set<string>;
+      heard: Map<string, string>;
+      memory: { spoken: Map<string, number> };
+    };
+    dd.unfinished.add('stay');
+    dd.heard.set('stay', 'perf-1');
+    dd.memory.spoken.set('stay', 10);
+    dd.played.set('stay', 3);
+
+    dd.lost({ type: 'reveal', phraseId: 'closer', mode: 'emerge', seconds: 8 }, 'encounter:stay:3');
+
+    expect(dd.played.get('stay')).toBe(2);
+    // The reveal cue has no phraseId that could carry voice-specific bookkeeping; the
+    // voice-only `unfinished`, `heard` and `memory.spoken` entries are unchanged.
+    expect([...dd.unfinished]).toContain('stay');
+    expect(dd.heard.has('stay')).toBe(true);
+    expect(dd.memory.spoken.has('stay')).toBe(true);
+  });
+
+  it('a voice gesture cue still rolls back played and reaches the voice-only cleanups (no regression)', () => {
+    const d = new Director({ seed: 3 });
+    d.release({ written: ['stay'], spoken: [], unfinished: [] });
+    const dd = d as unknown as {
+      played: Map<string, number>;
+      lost: (cue: unknown, rule: string) => void;
+      unfinished: Set<string>;
+      heard: Map<string, string>;
+      memory: { spoken: Map<string, number> };
+    };
+    dd.heard.set('stay', 'perf-1');
+    dd.memory.spoken.set('stay', 10);
+    dd.played.set('stay', 3);
+
+    dd.lost({ type: 'voice', kind: 'whisper', text: 'I wanted you to stay.', caption: '', position: { kind: 'surface', phraseId: 'stay' }, gain: 0.5, phraseId: 'stay', finish: true }, 'encounter:stay:3');
+
+    expect(dd.played.get('stay')).toBe(2);
+    // The voice's `finish` and `phraseId` reach the voice-only cleanups: the room was finishing
+    // this line, unheard, so the line stays unfinished; and the room's accounting of having
+    // spoken it and having heard the chosen reading is undone.
+    expect([...dd.unfinished]).toContain('stay');
+    expect(dd.memory.spoken.has('stay')).toBe(false);
+    expect(dd.heard.has('stay')).toBe(false);
+  });
+
+  it('end-to-end: an encounter sound beat dropped during a living memory rolls back played through the tick flow', () => {
+    // Beat 3 of `stay` is a door sound. Its `played` count is incremented before its cue is
+    // queued, and the cue carries rule `encounter:stay:3`. The bug: when the cue comes due
+    // during a living memory, accept() drops it (non-`sit:` sound) and `lost()` does not reach
+    // the encounter rollback — so the beat is skipped forever (the next meeting plays beat 4).
+    // After the fix, `lost()` decrements `played` back to 2, so the next meeting replays beat 3.
+    const base: VisitorInput = { x: 0, z: 2.4, yaw: 0, pitch: 0, gazePhraseId: null, gazeChair: false, nearSurface: null, kneeling: false };
+    const d = new Director({ seed: 3, situations: ['residue'] });
+    d.release({ written: ['stay'] });
+    // Beat 3 of `stay` was queued, with its cue due now.
+    const dd = d as unknown as { played: Map<string, number>; queue: (delay: number, cue: unknown, rule: string, opts?: unknown) => void };
+    dd.played.set('stay', 3);
+    dd.queue(0.05, { type: 'sound', kind: 'door', position: { kind: 'beyond', surface: 'north' }, gain: 0.5 }, 'encounter:stay:3', { major: true, ttl: 8 });
+    // A living memory is playing (the App reports it).
+    d.memoryExternal('a-bag');
+    // Drive a few short ticks so the scheduler pops the due cue and the Director's tick()
+    // routes it: accept() refuses it (non-`sit:` sound over a memory), then lost() rolls it back.
+    for (let t = 0; t < 1; t += 0.1) d.tick(0.1, base, 'north');
+    // The beat is not skipped: `played` is back to 2, so the next meeting replays beat 3.
+    expect(dd.played.get('stay')).toBe(2);
+  });
+
+  it('end-to-end: a `contribution` write deferred past a memory fires once the memory has gone', () => {
+    const base: VisitorInput = { x: 0, z: 2.4, yaw: 0, pitch: 0, gazePhraseId: null, gazeChair: false, nearSurface: null, kneeling: false };
+    const d = new Director({ seed: 3, situations: ['residue'] });
+    d.release({ written: ['stay'] });
+    // The visitor's own contribution's write is queued 0.5 s out; if a memory is active then,
+    // the bug dropped it (a `write` under rule `contribution`, which ROOM_OWN does not rescue).
+    const dd = d as unknown as { queue: (delay: number, cue: unknown, rule: string, opts?: unknown) => void };
+    d.memoryExternal('a-bag');
+    dd.queue(0.05, { type: 'write', key: 'contrib:1', text: 'something said', hand: 'visitor', size: 's', surface: 'north', purpose: 'contribution', ttl: 0, source: 'contrib' }, 'contribution');
+    // Confirm the cue was re-queued (deferred) during the memory: it is still pending.
+    const pending = () =>
+      (d as unknown as { scheduler: { pending(): { payload: { cue: { type: string; key?: string }; rule: string } }[] } }).scheduler.pending().filter((e) => e.payload.cue.type === 'write' && e.payload.rule === 'contribution').length;
+    expect(pending()).toBeGreaterThan(0);
+    // The memory ends: the next ticks should let the deferred write through.
+    d.memoryEnded('a-bag', true, true);
+    let delivered: { rule: string; cue: { type: string; text: string } } | null = null;
+    for (let t = 0; t < 12; t += 0.1) {
+      for (const c of d.tick(0.1, base, 'north')) if (c.rule === 'contribution' && c.cue.type === 'write') delivered = { rule: c.rule, cue: c.cue };
+    }
+    // The write reaches the wall despite the memory having been playing when it came due.
+    expect(delivered).not.toBeNull();
+    expect((delivered!.cue as { text: string }).text).toBe('something said');
   });
 });

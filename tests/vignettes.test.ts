@@ -246,6 +246,115 @@ describe('the Director and its vignettes', () => {
     expect(pending()).not.toContain('flash');
   });
 
+  it('what was decided on waits, not lost: a silence, a reveal or a write waits, for rules ROOM_OWN does not rescue', () => {
+    // Cues that come due while a memory plays were booked before it began (an encounter's beat,
+    // a contribution's one related surfacing, a meeting's silence). The encounter beat's `played`
+    // count or the contribution's spent gesture is gone unless the cue is re-queued — and for
+    // rules outside ROOM_OWN (encounter:…, contribution-…, still-…) no earlier branch rescues them.
+    const d = new Director({ seed: 5 });
+    d.memoryExternal('a-bag');
+    const accept = (d as unknown as { accept(c: unknown, r: string): boolean }).accept.bind(d);
+    const pending = () =>
+      (d as unknown as { scheduler: { pending(): { payload: { cue: { type: string; phraseId?: string; key?: string }; rule: string } }[] } }).scheduler.pending();
+    const requeued = (type: string, match?: (c: { type: string; phraseId?: string; key?: string }, r: string) => boolean) =>
+      pending().some((e) => e.payload.cue.type === type && (!match || match(e.payload.cue, e.payload.rule)));
+
+    expect(accept({ type: 'silence', depth: 0.6, seconds: 6 }, 'encounter:stay:2')).toBe(false);
+    expect(requeued('silence', (c, r) => c.type === 'silence' && r === 'encounter:stay:2')).toBe(true);
+
+    expect(accept({ type: 'reveal', phraseId: 'closer', mode: 'emerge', seconds: 8 }, 'contribution-related')).toBe(false);
+    expect(requeued('reveal', (c, r) => c.phraseId === 'closer' && r === 'contribution-related')).toBe(true);
+
+    expect(accept({ type: 'reveal', phraseId: 'w-stay', mode: 'still', seconds: 7 }, 'still-1')).toBe(false);
+    expect(requeued('reveal', (c, r) => c.phraseId === 'w-stay' && r === 'still-1')).toBe(true);
+
+    expect(
+      accept(
+        { type: 'write', key: 'enc:stay:2', text: "I didn't know how.", hand: 'pencil', size: 's', beside: 'stay', purpose: 'annotation', ttl: 300, source: 'w-didnt-know' },
+        'encounter:stay:2',
+      ),
+    ).toBe(false);
+    expect(requeued('write', (c, r) => c.key === 'enc:stay:2' && r === 'encounter:stay:2')).toBe(true);
+
+    expect(
+      accept(
+        { type: 'write', key: 'contrib:1', text: 'something said', hand: 'visitor', size: 's', surface: 'north', purpose: 'contribution', ttl: 0, source: 'contrib' },
+        'contribution',
+      ),
+    ).toBe(false);
+    expect(requeued('write', (c, r) => c.key === 'contrib:1' && r === 'contribution')).toBe(true);
+  });
+
+  it("the memory's own offer is still written while the memory plays (its line is the memory's)", () => {
+    const d = new Director({ seed: 5 });
+    d.memoryExternal('a-bag');
+    const accept = (d as unknown as { accept(c: unknown, r: string): boolean }).accept.bind(d);
+    expect(
+      accept(
+        { type: 'write', key: 'memory:closer', text: 'Come closer.', hand: 'pencil', size: 's', surface: 'north', purpose: 'recall', ttl: 0, source: 'closer' },
+        'memory-offer',
+      ),
+    ).toBe(true);
+  });
+
+  it("a situation's laugh, murmur, hum and music wait too (it is not lost) while a memory plays", () => {
+    // The comment on the drop promises this; the defer makes it true. Without it, the next-room
+    // situation's laughter, the listening situation's murmurs and the humming situation's music
+    // lose a middle beat in their own staged sequence, with no notification to the situation.
+    for (const seed of [1, 5, 7]) {
+      const d = new Director({ seed });
+      d.memoryExternal('a-bag');
+      const accept = (d as unknown as { accept(c: unknown, r: string): boolean }).accept.bind(d);
+      const pending = () =>
+        (d as unknown as { scheduler: { pending(): { payload: { cue: { type: string }; rule: string } }[] } }).scheduler.pending();
+      const requeued = (type: string, rule: string) => pending().some((e) => e.payload.cue.type === type && e.payload.rule === rule);
+
+      expect(accept({ type: 'voice', kind: 'laugh', text: null, caption: '', position: { kind: 'beyond', surface: 'north' }, gain: 0.5, assetId: 'vf-laugh-next-room' }, 'sit:next-room')).toBe(false);
+      expect(requeued('voice', 'sit:next-room')).toBe(true);
+
+      expect(accept({ type: 'voice', kind: 'murmur', text: null, caption: '', position: { kind: 'beyond', surface: 'west' }, gain: 0.42 }, 'sit:listening')).toBe(false);
+      expect(requeued('voice', 'sit:listening')).toBe(true);
+
+      expect(accept({ type: 'voice', kind: 'hum', text: null, caption: '', position: { kind: 'beyond', surface: 'east' }, gain: 0.42, melody: [0, 2, 4], synth: true }, 'sit:humming')).toBe(false);
+      expect(requeued('voice', 'sit:humming')).toBe(true);
+
+      expect(accept({ type: 'music', mood: 'tender', notes: 4, melody: [60], truncate: false }, 'sit:humming')).toBe(false);
+      expect(requeued('music', 'sit:humming')).toBe(true);
+
+      expect(accept({ type: 'sound', kind: 'cup', position: { kind: 'chair' }, gain: 0.5 }, 'sit:next-room')).toBe(false);
+      expect(requeued('sound', 'sit:next-room')).toBe(true);
+    }
+  });
+
+  it('a non-situation sound, music or voice still drops (nothing, in itself, sounds over a memory)', () => {
+    const d = new Director({ seed: 5 });
+    d.memoryExternal('a-bag');
+    const accept = (d as unknown as { accept(c: unknown, r: string): boolean }).accept.bind(d);
+    const pendingTypes = () => (d as unknown as { scheduler: { pending(): { payload: { cue: { type: string } } }[] } }).scheduler.pending().map((e) => e.payload.cue.type);
+    expect(accept({ type: 'sound', kind: 'cup', position: { kind: 'chair' }, gain: 0.5 }, 'respond-sound')).toBe(false);
+    expect(pendingTypes()).not.toContain('sound');
+    expect(accept({ type: 'music', mood: 'warm', notes: 4, truncate: false }, 'music')).toBe(false);
+    expect(pendingTypes()).not.toContain('music');
+    const fin = { type: 'voice', kind: 'tender', text: 'I wanted you to stay.', caption: '', position: { kind: 'surface', phraseId: 'stay' }, gain: 0.5, phraseId: 'stay', finish: true };
+    expect(accept(fin, 'finish-look')).toBe(false);
+    expect(pendingTypes()).not.toContain('voice');
+  });
+
+  it('a flash, a glow, a chair-nudge or a link still simply does not happen, while a memory plays', () => {
+    const d = new Director({ seed: 5 });
+    d.memoryExternal('a-bag');
+    const accept = (d as unknown as { accept(c: unknown, r: string): boolean }).accept.bind(d);
+    const pendingTypes = () => (d as unknown as { scheduler: { pending(): { payload: { cue: { type: string } } }[] } }).scheduler.pending().map((e) => e.payload.cue.type);
+    expect(accept({ type: 'flash', kind: 'warm', amount: 0.3, seconds: 2 }, 'flash')).toBe(false);
+    expect(pendingTypes()).not.toContain('flash');
+    expect(accept({ type: 'glow', x: 0.5, z: 0.5, amount: 0.4, seconds: 40 }, 'sit:residue')).toBe(false);
+    expect(pendingTypes()).not.toContain('glow');
+    expect(accept({ type: 'chairNudge', dx: 0, dz: 0, dyaw: 0.02 }, 'chair-nudge')).toBe(false);
+    expect(pendingTypes()).not.toContain('chairNudge');
+    expect(accept({ type: 'link', a: 'stay', b: 'w-stay', ttl: 60 }, 'encounter:stay:2')).toBe(false);
+    expect(pendingTypes()).not.toContain('link');
+  });
+
   it('a line the vignette speaks itself is not said by the room first; lines that only open one are', () => {
     const m = new MemoryDirector();
     for (const v of VIGNETTES) if (v.anchor.phrase) expect(m.claimsVoice(v.anchor.phrase), v.id).toBe(VIGNETTES.some((w) => w.lines.some((l) => l.phraseId === v.anchor.phrase)));

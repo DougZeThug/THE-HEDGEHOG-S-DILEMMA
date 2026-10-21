@@ -574,6 +574,11 @@ export class Director {
       this.heldSilenceDone = false;
       this.heldSilenceUntil = -Infinity;
     }
+    // A beat whose gesture never found room is owed to its next meeting, not lost. It was counted
+    // as done when its meeting began, before any of its cues were queued — a reveal, an
+    // annotation, a sound or a silence as much as a voice — so undo that count for any of them.
+    const m = /^encounter:([^:]+):(\d+)$/.exec(rule);
+    if (m) this.played.set(m[1], Math.max(0, Number(m[2]) - 1));
     if (cue.type !== 'voice' || !cue.phraseId) return;
     // A line the room was finishing, unheard: it is still unfinished.
     if (cue.finish) this.unfinished.add(cue.phraseId);
@@ -589,8 +594,6 @@ export class Director {
     }
     if (this.memory.spoken.get(cue.phraseId) !== undefined) this.memory.spoken.delete(cue.phraseId);
     this.heard.delete(cue.phraseId);
-    const m = /^encounter:([^:]+):(\d+)$/.exec(rule);
-    if (m) this.played.set(m[1], Math.max(0, Number(m[2]) - 1));
   }
 
   /** Keep the Director's model of what is visible in sync with the cues it lets through. */
@@ -605,7 +608,12 @@ export class Director {
     }
     if (cue.type === 'music' && !rule.startsWith('sit:') && this.situations.claimed('music')) return false;
     // Nothing sounds over a memory: a situation's laugh or murmur waits too (it is emitted
-    // directly, not through the voice rules that already wait).
+    // directly, not through the voice rules that already wait). It waits, like the room's other
+    // decided-on things, until the memory has gone — so it is re-queued, not lost.
+    if (this.scenes.active && rule.startsWith('sit:') && (cue.type === 'voice' || cue.type === 'sound' || cue.type === 'music')) {
+      this.queue(4, cue, rule);
+      return false;
+    }
     if (this.scenes.active && ((cue.type === 'voice' && (!cue.finish || this.vignettePlaying)) || cue.type === 'sound' || cue.type === 'music')) return false;
     if (cue.type === 'reveal' && this.withheld().includes(cue.phraseId)) return false;
     // (Nor is a line kept back written again in its own place: decision 137, QA 2026-10-20.)
@@ -639,9 +647,12 @@ export class Director {
         return false;
       }
     }
-    // While a living memory plays, the room waits with it: no silence (a dim would darken the
-    // painting), no new line revealed or written.
-    if (this.scenes.active && (cue.type === 'silence' || cue.type === 'reveal' || (cue.type === 'write' && rule !== 'memory-offer'))) return false;
+    // While a living memory plays, the room waits with it: a dim would darken the painting, and
+    // no new line is revealed or written — but what was decided on waits, it is not lost.
+    if (this.scenes.active && (cue.type === 'silence' || cue.type === 'reveal' || (cue.type === 'write' && rule !== 'memory-offer'))) {
+      this.queue(4, cue, rule, { major: cue.type === 'silence' });
+      return false;
+    }
     if (this.scenes.active) {
       // Nor anything else that would move or appear. What the room had decided on (a drawing, words
       // in the air, the kitchen's light, a line rubbed out or let go) waits until the memory has
