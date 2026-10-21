@@ -7,7 +7,7 @@ regions.json. For each photograph, in order:
 - its region is pasted into the noisy photograph before it. Nothing that stood still differs by a
   bit (same seed, no dither), so the paste is exact;
 - the whole noisy photograph is denoised (OIDN with albedo and normal, prefiltered) and seen through
-  the film's view (AgX), in Blender's compositor;
+  the film's view (AgX), in Blender's compositor; the window sill's lit edge is printed down (SILL);
 - the developed region is laid over the developed photograph before, feathered at its edge. Outside
   the region nothing differs at all: the denoiser saw the whole room, but it sets its exposure from
   each picture's brightness, and the room must not breathe with the figures. The edge is 30 px or
@@ -35,6 +35,14 @@ FEATHER = 10    # pixels: the region's edge fades into the photograph before
 # on her face: the technical artist's review, 2026-10-21.)
 EDGE_P99, EDGE_MAX = 3.0, 20.0
 PASSES = {'image': 'Combined', 'albedo': 'Denoising Albedo', 'normal': 'Denoising Normal'}
+# The one burn, as a printer holds back light under the enlarger: the window sill's lit edge, through
+# a fixed soft mask (it never moves, and nothing passes in front of it), only its light above
+# BURN_KNEE, compressed to BURN_RATIO. After his crown it was the brightest thing in every frame, a
+# hard bar at the frame's edge (the cinematic director's review of the final film, 2026-10-21). His
+# crown is the artist's A/B, not burned: burned, it became a flat grey cap.
+SILL = (0, 548, 340, 608)       # its box at 1280x1440: x0, y0, x1, y1
+BURN_KNEE, BURN_RATIO = 0.62, 0.5
+LUMA = np.array([0.2126, 0.7152, 0.0722], np.float32)
 
 
 def read_region(path):
@@ -138,6 +146,27 @@ def develop(imgs, noisy, path):
     return np.asarray(oiio.ImageBuf(path).get_pixels(oiio.FLOAT), np.float32)[..., :3]
 
 
+def burn_mask(W, H):
+    """The sill's mask: its box, softened 6 px (at 1280 wide), as far off the frame's edge as on."""
+    sx, sy = W / 1280, H / 1440
+    r = 6 * sx
+    pad = int(3 * r) + 1
+    m = np.zeros((H + 2 * pad, W + 2 * pad), np.float32)
+    m[pad + int(SILL[1] * sy):pad + int(SILL[3] * sy), pad + int(SILL[0] * sx) - (pad if SILL[0] == 0 else 0):pad + int(SILL[2] * sx)] = 1
+    k = np.exp(-0.5 * (np.arange(-pad, pad + 1) / r) ** 2)
+    k = (k / k.sum()).astype(np.float32)
+    m = np.apply_along_axis(lambda v: np.convolve(v, k, 'same'), 0, m)
+    m = np.apply_along_axis(lambda v: np.convolve(v, k, 'same'), 1, m)
+    return m[pad:pad + H, pad:pad + W]
+
+
+def burned(img, mask):
+    """A developed photograph with the sill printed down."""
+    L = img @ LUMA
+    over = np.maximum(L - BURN_KNEE, 0) * (1 - BURN_RATIO) * mask
+    return img * ((L - over) / np.maximum(L, 1e-4))[..., None]
+
+
 def write16(path, img):
     H, W = img.shape[:2]
     buf = oiio.ImageBuf(oiio.ImageSpec(W, H, 3, oiio.UINT16))
@@ -176,6 +205,7 @@ def main():
     if start > 0 and not any(boxes[u] and os.path.exists(photo(u)) for u in range(start)):
         raise SystemExit(f'nothing developed before photograph {start}: develop from 0')
     imgs = darkroom(W, H, meta.get('view', {}))
+    sill = burn_mask(W, H)
     noisy, shown = None, None
     tmp = os.path.join(d, 'photos', 'developing.png')
     t_all = time.time()
@@ -200,7 +230,7 @@ def main():
         if isinstance(shown, tuple):
             shown = read16(shown[1])
         t0 = time.time()
-        dev = develop(imgs, noisy, tmp)
+        dev = burned(develop(imgs, noisy, tmp), sill)
         if shown is None:
             shown = dev
             note = 'whole'
