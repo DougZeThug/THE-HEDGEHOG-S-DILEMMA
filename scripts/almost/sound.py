@@ -364,7 +364,7 @@ def main():
     r = T('reach-1')
     brush = ending(r, onset(r), t1 - t0)
     lay(near, pan(brush, -0.12), t0, 0.0)
-    near_scale = {'reach': level(brush, -37)}
+    near_scale = {'reach': level(brush, -39)}
     lay_at = [('reach', brush, t0, -0.12)]
     # his fingertip on the fold, as it arrives, until it comes off the cloth, three frames into her
     # flinch (run on for half a second after his hand had left, it held the contact on in the ear: the
@@ -374,7 +374,7 @@ def main():
     r = T('touch-1')
     tip = ending(r, onset(r), min(0.5, off + F - (t0 + 2 * F)))
     lay_at.append(('touch', tip, t0 + 2 * F, 0.10))
-    near_scale['touch'] = level(tip, -27)
+    near_scale['touch'] = level(tip, -30)
     # the startle: her sleeve snatched back over the wood, loudest on its first two frames, half
     # gone by the fourth, gone by the fourteenth (a reflex is loudest first: a swell after her flinch
     # read as a crescendo, then a gate)
@@ -396,25 +396,27 @@ def main():
     down = ending(r, onset(r), 0.35)
     peak = int(np.argmax(envelope(down, 0.005))) / SR
     lay_at.append(('down', down, (s0 + s1) / 2 - peak, 0.2))
-    near_scale['down'] = level(down, -31)
-    # his arm back across the table, turned along its edge and down into his lap
+    near_scale['down'] = level(down, -34)
+    # his arm back across the table, turned along its edge and down into his lap (7 dB under the
+    # other sounds of hands on wood, which are 2-3 dB down too: the artist, 2026-10-21, "his
+    # retreat noise of hand across the wood is too loud, and hands on the wood is a little too loud")
     t0, _ = when(A, 'back1')
     _, t1 = when(A, 'lap left', 'slip')
     r = T('settle-1')
     back = ending(r, onset(r), t1 - t0 + 0.1)
     lay_at.append(('back', back, t0, -0.2))
-    near_scale['back'] = level(back, -27)
+    near_scale['back'] = level(back, -34)
     # her offer: the sleeve lifting off the wood, the hesitation in the air (nothing), laid down
     t0, t1 = when(B, 'offer1')
     r = T('offer-1')
     up = ending(r, onset(r), t1 - t0)
     lay_at.append(('up', up, t0, 0.18))
-    near_scale['up'] = level(up, -30)
+    near_scale['up'] = level(up, -33)
     t0, t1 = when(B, 'offer2')
     r = T('offer-2')
     laid = ending(r, onset(r), t1 - t0 + 0.05)
     lay_at.append(('laid', laid, t0, 0.12))
-    near_scale['laid'] = level(laid, -29)
+    near_scale['laid'] = level(laid, -32)
     near = np.zeros((n, 2))
     for name, x, t, p in lay_at:
         if name != 'startle':
