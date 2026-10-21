@@ -160,10 +160,16 @@ export class VisitorModel {
     this.kneeling = inp.kneeling;
     if (inp.kneeling) this.kneelTime += dt;
 
-    // Distance to chair and approach/withdraw cycles (hysteresis).
+    // Distance to chair and approach/withdraw cycles (hysteresis). The body's position is
+    // honestly observed (distance and its smoothing always update), but a memory that carries the
+    // body across the bands is not the visitor's own move (the `carried` contract: the room must
+    // not take the memory's own move for the visitor's restlessness), so the approach/withdraw
+    // transitions, the hesitation count and the totalNear/totalFar tallies wait while they are
+    // carried — as `step` and `look` already do. The carry can neither open nor close an approach
+    // nor arm a withdrawal (decision 117: stillness and closeness imposed by a memory are not
+    // counted; both count again from when the carry ends).
     this.distance = Math.hypot(inp.x, inp.z);
     this.distanceSlow = approach(this.distanceSlow, this.distance, dt, 4);
-    // Carried: the memory's own move is not the visitor's approach or retreat, so the bands hold.
     if (!inp.carried) {
       if (!this.near && this.distance < BANDS.near) {
         this.near = true;
