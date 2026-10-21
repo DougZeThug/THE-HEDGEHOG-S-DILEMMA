@@ -16,8 +16,9 @@ they are rendered, not the cage posing works on):
   Measured from the forearm's axis toward each point of the hand behind the wrist: the wall met
   first. (A wrist that bent as one piece with the hand swung its hidden end out through the top of
   his cuff whenever the hand drooped from it, through most of the reach: final QA, 2026-10-21.)
-- **paw:** a hand in the air (its lowest felt 5 mm or more above the wood) that hangs from its wrist
-  further down the picture than PAW_DEG: wrist to middle fingertip, as the lens sees it. Lifted with
+- **paw:** a hand in the air (its lowest felt 5 mm or more above the wood) that hangs from its wrist,
+  bent toward its palm more than PAW_FLEX, and so points further down the picture than PAW_DEG:
+  wrist to middle fingertip, as the lens sees it. Lifted with
   the fingers toward the lens and drooping, his hand stood under a short foreshortened cuff, back
   to the lens, as a begging paw (the creative director's review of the final render, 2026-10-21).
   The wrist's own measures cannot see it: it is a bend seen in projection.
@@ -49,9 +50,10 @@ import xsheet  # noqa: E402
 DIP_OK = performance.SQUASH + 0.0003
 INTO_OK = 0.0004
 GAP_OK = 0.0006
-THROUGH_OK = 0.0003
+THROUGH_OK = 0.0005  # (the knit is 0.6 mm thick: up to half a millimetre into it is still inside it)
 WALL = 0.003        # nearer a sleeve's axis than this is inside the wrist (its inner wall: 4.4 mm and more)
 PAW_DEG = 55.0
+PAW_FLEX = 20.0     # (hand and forearm in line, pointing at the lens, read as his resting hands do)
 IN_AIR = 0.005     # (lower, in line with its forearm, a hand reads as his resting hands do)
 W_PX, H = 1280, 1440    # the film's frame (the angle in its pixels)
 
@@ -112,6 +114,14 @@ def through(points, bvh, E, W):
         if hit is not None:
             worst = max(worst, dist - WALL - d)
     return worst
+
+
+def wrist_flex(fig, side):
+    """How far the hand bends toward its palm from the forearm's line (degrees; motion.py's)."""
+    fy = (fig.arm.matrix_world @ fig.arm.pose.bones[f'forearm.{side}'].matrix).to_3x3().col[1].normalized()
+    H3 = (fig.arm.matrix_world @ fig.arm.pose.bones[f'hand.{side}'].matrix).to_3x3()
+    hy, hz = H3.col[1].normalized(), H3.col[2].normalized()
+    return math.degrees(math.atan2(fy.dot(hz), fy.dot(hy)))
 
 
 def near(points, lo, hi, pad):
@@ -186,8 +196,9 @@ def main():
                     w2 = world_to_camera_view(sc, sc.camera, W)
                     t2 = world_to_camera_view(sc, sc.camera, performance.fingertip(fig, side, 'middle'))
                     down = math.degrees(math.atan2((w2.y - t2.y) * H, abs(t2.x - w2.x) * W_PX))
-                    if down > PAW_DEG:
-                        row.setdefault('paw', {})[f'{k} hand.{side}'] = round(down, 1)
+                    flex = wrist_flex(fig, side)
+                    if down > PAW_DEG and flex > PAW_FLEX:
+                        row.setdefault('paw', {})[f'{k} hand.{side}'] = [round(down, 1), round(flex, 1)]
         failed = any(x in row for x in ('dip', 'into', 'gap', 'through', 'paw'))
         bad += failed
         if failed:

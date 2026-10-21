@@ -358,7 +358,7 @@ def main():
     level = lambda x, rms: db(rms + FIGURES_DB - rms_db(x))  # noqa: E731
     # his sleeve, once, as the wrist carries across (his forearm is in the air: only the sleeve
     # near his elbow brushes the wood); nothing in the hesitation
-    t0, _ = when(A, 'carry')
+    t0, _ = when(A, 'rise')
     _, t1 = when(A, 'hesitate')
     r = T('reach-1')
     brush = ending(r, onset(r), t1 - t0)

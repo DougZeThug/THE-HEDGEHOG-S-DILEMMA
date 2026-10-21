@@ -9,8 +9,8 @@ import type { Values } from '../types';
  *
  * One clock. The film shows the frame for `scene.film`, a timeline key in seconds into the film. A
  * muted inline <video> is only its decoder:
- * - While the memory plays, the video plays too, and is pulled back to the timeline whenever the two
- *   drift more than a frame and a half apart.
+ * - While the memory plays, the video plays too, kept with the timeline by its rate (a little drift)
+ *   or a seek aimed ahead (a large one), never while a seek is still landing.
  * - Held, seeked or recorded, the video is paused on the exact frame.
  *
  * Its sound is not the video's: the soundtrack is the memory's own cue, on the memory's audio.
@@ -78,8 +78,15 @@ export class FilmScene {
   /** The frame last sent to the texture, and whether a seek has landed since. */
   private uploaded = -1;
   private landed = false;
+  /** What the last correcting seek took to land (s), and when it was asked for (performance.now()). */
+  private seekCost = 0.1;
+  private seekAsked = -1;
   private readonly onSeeked = () => {
     this.landed = true;
+    if (this.seekAsked >= 0) {
+      this.seekCost = Math.min(0.6, (performance.now() - this.seekAsked) / 1000);
+      this.seekAsked = -1;
+    }
   };
   readonly view = new THREE.Vector4(0, 0, 1, 1);
 
@@ -134,6 +141,7 @@ export class FilmScene {
       if (video.paused) {
         if (!this.starting) {
           if (Math.abs(video.currentTime - want) > 0.5 / fps) video.currentTime = want;
+          video.playbackRate = 1;
           this.starting = true;
           video.play().then(
             () => {
@@ -146,8 +154,20 @@ export class FilmScene {
             },
           );
         }
-      } else if (Math.abs(video.currentTime - film) > 1.5 / fps) {
-        video.currentTime = want;
+      } else if (!video.seeking) {
+        // Kept with the clock: a little drift taken up by the rate, a few percent either way; a
+        // large one by a seek aimed ahead by what the last one took, so it lands where the clock
+        // will be. Never while a seek is still landing. (Corrected by a seek to the present frame
+        // whenever it drifted a frame and a half, it sought again under each seek in flight, each
+        // from the last one's target, and the picture trailed its sounds by 34-85 ms: QA, 2026-10-21.)
+        const d = video.currentTime - film;
+        if (Math.abs(d) > 0.25) {
+          video.playbackRate = 1;
+          video.currentTime = Math.min(this.duration - 0.5 / fps, film + this.seekCost + 0.5 / fps);
+          this.seekAsked = performance.now();
+        } else {
+          video.playbackRate = Math.abs(d) > 1 / fps ? 1 - Math.max(-0.1, Math.min(0.1, d * 2)) : 1;
+        }
       }
     } else {
       if (!video.paused) video.pause();

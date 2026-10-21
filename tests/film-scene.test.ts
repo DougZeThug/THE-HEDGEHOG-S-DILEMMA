@@ -19,6 +19,7 @@ class FakeVideo {
   src = 'blob:film';
   seeks: number[] = [];
   plays = 0;
+  playbackRate = 1;
   refuse: string | null = null;
   private t = 0;
   private listeners = new Map<string, () => void>();
@@ -29,9 +30,13 @@ class FakeVideo {
     this.t = x;
     this.seeks.push(x);
   }
-  /** Time passing while it plays. */
+  /** Time passing while it plays (at its rate). */
   advance(dt: number): void {
-    if (!this.paused) this.t += dt;
+    if (!this.paused) this.t += dt * this.playbackRate;
+  }
+  /** The decoder falling behind. */
+  stall(s: number): void {
+    this.t -= s;
   }
   play(): Promise<void> {
     this.plays++;
@@ -102,6 +107,65 @@ describe('a film as a living memory', () => {
     expect(video.currentTime).toBeCloseTo((6 * 24 + 0.5) / 24, 9);
   });
 
+  it('on a slow decoder: no seek while one is landing, and the picture within two frames of the clock', () => {
+    // A decoder whose seeks take a fixed time plus a decode from the keyframe before the target
+    // (one a second), queued as Chromium queues them, and whose play() takes a moment to start.
+    // (Corrected by a seek to the present frame, the film sought under each seek in flight and
+    // trailed its sounds: QA, 2026-10-21.)
+    const fps = 24;
+    let now = 0;
+    const realNow = performance.now;
+    performance.now = () => now;
+    try {
+      const v = {
+        paused: true, seeking: false, readyState: 4, src: 'blob:film', playbackRate: 1, plays: 0, seeks: 0, under: 0,
+        t: 0, target: 0, left: 0, start: 0, shown: 0, on: new Map<string, () => void>(),
+        get currentTime() { return this.seeking ? this.target : this.t; },
+        set currentTime(x: number) {
+          this.seeks++;
+          if (this.seeking) this.under++;
+          this.target = x;
+          this.seeking = true;
+          this.left = 60 + Math.round((x - Math.floor(x)) * fps) * 8;
+        },
+        play() { this.plays++; if (this.paused) { this.paused = false; this.start = 60; } return Promise.resolve(); },
+        pause() { this.paused = true; },
+        addEventListener(k: string, f: () => void) { this.on.set(k, f); },
+        removeEventListener(k: string) { this.on.delete(k); },
+        removeAttribute() {}, load() {},
+        tick(ms: number) {
+          if (this.seeking) {
+            this.left -= ms;
+            if (this.left <= 0) { this.seeking = false; this.t = this.target; this.shown = this.t; this.on.get('seeked')?.(); }
+            return;
+          }
+          if (this.paused) return;
+          if (this.start > 0) { this.start -= ms; return; }
+          this.t += (ms / 1000) * this.playbackRate;
+          this.shown = this.t;
+        },
+      };
+      const scene = new FilmScene({ video: v as unknown as HTMLVideoElement, fps, frames: Math.round(FILM_SECONDS * fps) }, { width: 16, height: 16, reduced: false });
+      let off = 0, n = 0;
+      let film = 0;
+      scene.update(gl, FILM_AT, { 'scene.film': 0 }, { view });
+      for (let ms = 0; ms < (FILM_SECONDS - 0.5) * 1000; ms += 1000 / 60) {
+        now = ms;
+        // (one long frame of 150 ms, as a busy page has)
+        const step = Math.abs(ms - 15000) < 8 ? 1000 / 60 + 150 : 1000 / 60;
+        v.tick(step);
+        film += step / 1000;
+        scene.update(gl, FILM_AT + film, { 'scene.film': film }, { view });
+        n++;
+        if (Math.abs(Math.floor(film * fps) - Math.floor(v.shown * fps + 1e-6)) >= 2) off++;
+      }
+      expect(v.under, 'seeks asked while one was landing').toBe(0);
+      expect(off / n, 'the share of the film the picture is two frames or more off the clock').toBeLessThan(0.05);
+    } finally {
+      performance.now = realNow;
+    }
+  });
+
   it('a seek that lands later is drawn when it lands', () => {
     const { video, scene } = make();
     scene.update(gl, 5, { 'scene.film': 3 }, { view });
@@ -128,11 +192,23 @@ describe('a film as a living memory', () => {
       scene.update(gl, t, film(t), { view });
     }
     expect(video.seeks.length).toBe(seeks);
-    // A stall in the decoder (a fifth of a second behind): put back on the timeline's frame.
-    video.advance(-0.2);
+    // A stall in the decoder (a fifth of a second behind): taken up by the rate, without a seek.
+    video.stall(0.2);
+    const quiet = video.seeks.length;
+    for (let i = 0; i < 240; i++) {
+      t += 1 / 60;
+      video.advance(1 / 60);
+      scene.update(gl, t, film(t), { view });
+    }
+    expect(video.seeks.length).toBe(quiet);
+    expect(Math.abs(video.currentTime - (t - FILM_AT))).toBeLessThan(1 / 24);
+    expect(video.playbackRate).toBe(1);
+    // Most of a second behind: one seek, aimed ahead of the clock (it takes time to land).
+    video.stall(0.8);
     t += 1 / 60;
     scene.update(gl, t, film(t), { view });
-    expect(Math.abs(video.currentTime - (t - FILM_AT))).toBeLessThan(1 / 24);
+    expect(video.seeks.length).toBe(quiet + 1);
+    expect(video.currentTime).toBeGreaterThan(t - FILM_AT);
     // Paused (a held memory): the video pauses too.
     scene.update(gl, t, film(t), { view });
     expect(video.paused).toBe(true);

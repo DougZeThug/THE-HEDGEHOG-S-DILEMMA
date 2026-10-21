@@ -459,11 +459,14 @@ A['notice'] = _with(A['together'], head=(10, -2, 22), neck=(4, 0, 5), chest=(5, 
 THUMB_REST = (10, 8, 0)      # (curl's own, written out so a pose can ease to and from the tuck)
 THUMB_TUCK = (10, 5, 60)
 A['lift'] = _with(A['notice'], spine=(3, 1.5, 2), shoulder__L=(1, 6),
-                  arm__L=dict(wrist=(-0.0195, -0.0200, T + 0.0065), fingers=(0.35, -0.92, -0.18), back=(0.10, -0.25, 0.96), on='air', tuck=0.026),
+                  arm__L=dict(wrist=(-0.0110, -0.0170), fingers=(0.60, -0.80), tuck=0.028),
                   curl__L={'all': (8, 10), 'index': (5, 6), 'thumb': THUMB_REST})
 A['carry'] = _with(A['lift'], spine=(3, 2.5, 3), chest=(5, 1.5, 5), shoulder__L=(2, 8),
                    arm__L=dict(wrist=(-0.0090, -0.0143, T + 0.0150), fingers=(0.55, -0.82, -0.15), back=(0.1, -0.35, 0.9), on='air', tuck=0.026),
                    curl__L={'all': (14, 18), 'index': (8, 10), 'thumb': THUMB_TUCK})
+# (halfway up, the fingers rise with the forearm, which still points at the lens: hanging level from
+# a forearm tipping up, the hand bent 25-33 degrees at the wrist and read as a paw again)
+A['rise'] = _with(A['carry'], arm__L=dict(wrist=(-0.0100, -0.0158, T + 0.0105), fingers=(0.40, -0.88, 0.12), back=(0.10, -0.35, 0.93), on='air', tuck=0.026))
 A['hesitate'] = _with(A['carry'], arm__L=dict(wrist=(-0.0032, -0.0112, T + 0.0178), fingers=(0.74, -0.67, 0.05), back=(0.12, -0.25, 0.95), on='air'),
                       curl__L={'all': (18, 22), 'index': (10, 12), 'thumb': THUMB_TUCK})
 A['hesitate curl'] = _with(A['hesitate'], curl__L={'all': (21, 25), 'index': (13, 15), 'thumb': THUMB_TUCK})
@@ -596,14 +599,14 @@ def resolve(figs):
         arm.update(wrist=w)
         A[name] = _with(A[name], arm__L=arm)
     t = A['lift2']['arm.L']
-    # his reflex: as she starts, his fingertips come off the cloth, the wrist 6.5 mm back toward him
+    # his reflex: as she starts, his fingertips come off the cloth, the wrist 11.5 mm back toward him
     # and a little up, the fingers drawing in and lifting (not drooping), and there it stays in the
     # air. Contact breaks from both sides, as it does when someone flinches under your fingers. (Held
     # where her sleeve was, his fingertips lay on her cuff and then her forearm in the picture for
     # 0.9 s while she pulled away, and the touch never visibly ended: the creative director's review
     # of the final render, 2026-10-21. It replaces a slower sink and ease, a beat later, and a blink
     # no one could see.)
-    off = dict(t, wrist=(t['wrist'][0] - 0.0065, t['wrist'][1] - 0.0010, t['wrist'][2] + 0.0020), fingers=(0.95, -0.30, 0.04))
+    off = dict(t, wrist=(t['wrist'][0] - 0.0115, t['wrist'][1] - 0.0010, t['wrist'][2] + 0.0015), fingers=(0.95, -0.30, 0.10))
     A['reflex'] = _with(A['lift2'], arm__L=off, curl__L={'all': (19, 23), 'index': (13, 15), 'middle': (15, 18), 'thumb': THUMB_TUCK})
     bake(figs)
     vl.update()
