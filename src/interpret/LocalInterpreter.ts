@@ -9,7 +9,7 @@ export function tokenize(text: string): string[] {
   return text
     .toLowerCase()
     .replace(/[’']/g, "'")
-    .replace(/[^a-z' ?]/g, ' ')
+    .replace(/[^a-z' ]/g, ' ')
     .split(/\s+/)
     .map((w) => w.replace(/^'+|'+$/g, ''))
     .filter(Boolean);
