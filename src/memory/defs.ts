@@ -733,24 +733,23 @@ export const WOODLAND: MemoryDef = {
  *   5.0–7.2   the colour follows as one wash out from under the lamp; the fibres sink into it
  *   6.2–9.8   they are carried in, square to it; it opens out until it is all there is. The film
  *             holds its first frame through all of this: the opening is seen, not passed through
- *   10.3–41.3 the film, 31 s, once the visitor is inside (`scene.film`, its seconds):
+ *   10.3–38.6 the film, 28.3 s, once the visitor is inside (`scene.film`, its seconds; FILM_BEATS):
  *               0     together; one slow breath each
- *               4.0   he notices the fold at her cuff
- *               5.25  he reaches, a little at a time; a hesitation
- *               8.0   his fingertip on the fold; its corner rises under it
- *               8.33  she starts: a blink, a flinch, her arm snatched back, a faint scrape of her chair;
- *                     she lays it down again nearer her and looks at her own wrist
- *               8.33  his hand left in the air where her sleeve was; a blink; back across the table
- *                     into his lap; his other hand follows, after a moment
- *               13.25 a small silence: nothing moves
- *               14.75 she looks at him, the first time
- *               16.75 she lifts her arm, a hesitation in the air, and lays it down nearer him
- *               19.75 his hands stay in his lap: one slow breath, and nothing follows
- *               22.75 her eyes go down to the table between them; they sit, the fridge and the clock
- *   40–45     out (the film's last second under it): carried back, the picture gathers itself to
+ *               2.5   he notices the fold at her cuff
+ *               3.75  he reaches, a little at a time; a hesitation
+ *               6.5   his fingertip on the fold; its corner rises under it
+ *               6.83  she starts: a flinch on ones, her arm snatched back, a faint creak of her chair;
+ *                     she lays it down again nearer her
+ *               6.96  then his hand comes off the cloth, and stays in the air where her sleeve was;
+ *                     back across the table into his lap
+ *               12.3  she looks at him, the first time
+ *               14.3  she lifts her arm, a hesitation in the air, and lays it down nearer him
+ *               17.3  his hand stays in his lap: one slow breath, his head turns a little toward her
+ *                     and back, and nothing follows
+ *               20.3  her eyes go down to the table between them; they sit, the fridge and the clock
+ *   37.5–42.5 out (the film's last second under it): carried back, the picture gathers itself to
  *             the wall
- *   44–48     the colour goes back toward the lamp; the fibres go back into the plaster in the
- *             reverse order: the two of them first, the lamp last, over the empty table
+ *   41.5–45.5 the colour sinks back into the wool all at once, then the wool into the plaster
  *
  * The film has no sound of its own: its soundtrack is two cues on the memory's audio, the
  * kitchen's (the fridge, the clock: the room's two indifferent clocks) and the film's (the wool, the
