@@ -62,6 +62,9 @@ export class Captions {
     if (!this.enabled || !w || !w.el.isConnected || !w.el.classList.contains('on')) return;
     clearTimeout(w.timer);
     w.el.classList.add('waiting');
+    // The lingered words are still on screen: a sound's caption must still go beneath them,
+    // not replace them, so the speaking window stays open for the wait's whole length.
+    this.wordsUntil = performance.now() + seconds * 1000;
     w.timer = setTimeout(() => {
       w.el.classList.remove('on');
       setTimeout(() => w.el.remove(), 1600);
