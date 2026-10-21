@@ -4,7 +4,7 @@ import { Room } from './world/Room';
 import { loadScans, releaseScans } from './world/scans';
 import { Chair } from './world/Chair';
 import { Lighting, shadowMapSize } from './world/Lighting';
-import { lookFor, parseLook, LOOK_NAMES, LOOKS, type Look, type LookName } from './world/Style';
+import { lookFor, parseLook, LOOK_NAMES, LOOKS, LOOK_SLIDER_RANGES, type Look, type LookName } from './world/Style';
 import { MemoryLight } from './world/MemoryLight';
 import { MemoryWindow } from './world/MemoryWindow';
 import { Immersion, UPRIGHT } from './world/living/Immersion';
@@ -392,13 +392,7 @@ export class App {
         n('light', 'glow', 0, 2, () => sc.glow, (v) => (sc.glow = v)),
         n('light', 'cone', 0.5, 1.2, () => sc.cone, (v) => (sc.cone = v)),
         // The look (Style.ts): the presets below set all of these; a slider then changes one.
-        ...(
-          [
-            ['fill', 0, 1.5], ['area', 0, 4], ['key', 0, 2], ['cone', 0.7, 1.3], ['glow', 0, 1.5], ['warmth', 0, 1.5], ['ceiling', 0, 12],
-            ['exposure', 0.8, 1.4], ['vignette', 0, 0.6], ['grain', 0, 0.06], ['texture', 0, 2], ['contact', 0, 1.5], ['shadowSoft', 0.3, 3],
-            ['faint', 0.8, 1.6], ['skyGlow', 0, 20], ['contrast', 0, 0.8], ['stains', 0, 1], ['aim', 0, 1], ['panel', 0.5, 3], ['vigLow', 0, 1],
-          ] as [keyof Look, number, number][]
-        ).map(([k, lo, hi]) =>
+        ...LOOK_SLIDER_RANGES.map(([k, lo, hi]) =>
           n('look', k, lo, hi, () => this.look[k], (v) => {
             this.look = { ...this.look, [k]: v };
             this.lookName = 'custom' as LookName;

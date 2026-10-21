@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import * as THREE from 'three';
 import { Lighting } from '../src/world/Lighting';
 import { ROOM } from '../src/world/layout';
-import { LOOKS, lookFor, parseLook, neutralFor } from '../src/world/Style';
+import { LOOKS, LOOK_NAMES, LOOK_SLIDER_RANGES, lookFor, parseLook, neutralFor } from '../src/world/Style';
 import type { Environment } from '../src/state/Director';
 
 const env = { lightIntensity: 1, lightWarmth: 0, shadowDrift: 0, chairGlow: 0.2 } as unknown as Environment;
@@ -21,6 +21,20 @@ describe('the room’s look', () => {
     for (const k of Object.keys(LOOKS.original) as (keyof typeof LOOKS.original)[]) {
       expect(s[k]).toBeCloseTo((LOOKS.original[k] + LOOKS.reference[k]) / 2, 6);
     }
+  });
+
+  it('the look sliders reach every preset value (the cone slider covers reference 0.6)', () => {
+    for (const name of LOOK_NAMES) {
+      const look = lookFor(name);
+      for (const [k, lo, hi] of LOOK_SLIDER_RANGES) {
+        expect(look[k]).toBeGreaterThanOrEqual(lo);
+        expect(look[k]).toBeLessThanOrEqual(hi);
+      }
+    }
+    const cone = LOOK_SLIDER_RANGES.find(([k]) => k === 'cone');
+    expect(cone).toBeDefined();
+    expect(cone![1]).toBeLessThanOrEqual(LOOKS.reference.cone);
+    expect(cone![2]).toBeGreaterThanOrEqual(LOOKS.reference.cone);
   });
 
   it('original is the room’s light as it was', () => {
