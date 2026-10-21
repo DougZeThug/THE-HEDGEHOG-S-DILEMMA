@@ -19,7 +19,7 @@ import sys
 import time
 
 import bpy
-from mathutils import Vector
+from mathutils import Vector, noise
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -253,9 +253,18 @@ def proxies(col):
     return out
 
 
+# The seed of Blender's vector noise, which shapes every hand-stuffed surface (lib.wobble). Unset,
+# Blender seeds it from the clock: each run made the heads 1 mm different, her locks up to 5 mm, and
+# her hat with another number of vertices, so a region rendered in one run met the photograph
+# beneath it from another with a seam wherever its border crossed a head or her hair (and the
+# touch's solve moved 0.1 mm from run to run). Every run now builds the same figures.
+NOISE_SEED = 7
+
+
 def setup(opts):
     """Build the set, the figures, the camera and the lights; returns the figures."""
     clear()
+    noise.seed_set(NOISE_SEED)
     sc = bpy.context.scene
     sc.unit_settings.system, sc.unit_settings.scale_length = 'METRIC', 1.0
     sc.render.fps = 24
