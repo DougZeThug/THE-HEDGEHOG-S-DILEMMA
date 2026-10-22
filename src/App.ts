@@ -1079,6 +1079,14 @@ export class App {
       // (A living memory's revisit stays on the wall, as any memory, but lies under its writing as
       // the scene did. Every other memory keeps its words on bare plaster, legible: washInputs.)
       this.washUnderPainting(l, f.final);
+      // Of what it would have told, a still tells only its going back into the wall (a film that
+      // could not be had left a screen reader with its opening line alone: QA, 2026-10-22).
+      const later = l.memory.prepared.def.announce?.(l.memory.prepared.variant) ?? [];
+      const exit = l.memory.prepared.def.sections.exit;
+      while (l.told < later.length && f.position >= later[l.told].at && f.state !== 'emerging') {
+        const line = later[l.told++];
+        if (line.at >= exit && !line.inside && line.shot === undefined) this.srRegion().textContent = line.text;
+      }
       return;
     }
     const aspect = innerWidth / innerHeight;

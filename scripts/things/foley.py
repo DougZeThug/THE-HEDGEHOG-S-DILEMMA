@@ -67,7 +67,7 @@ END = ('end/',)                      # the people taken at the end: under a taki
 IMAGINED = ('c1/', 'c2/')            # (after TAKE and a revision's rubs: what is left of c1/ and c2/ is drawn)
 # each meaning's level against the eraser (LU), per mix; None is silent
 MIXES = {
-    'revisit': {'take': 0.0, 'rub': -7.0, 'end': -11.0, 'happened': None, 'imagined': -13.0},   # (at -20 the pencil was 1-3 dB over the floor: the cinematic director)
+    'revisit': {'take': 0.0, 'rub': -7.0, 'end': -11.0, 'happened': None, 'imagined': -14.0},
     'eraser': {'take': 0.0, 'rub': -7.0, 'end': -11.0, 'happened': -14.0, 'imagined': -24.0},
     'eraser-only': {'take': 0.0, 'rub': -7.0, 'end': -11.0, 'happened': None, 'imagined': None},
     'weight': {'take': 0.0, 'rub': -7.0, 'end': -11.0, 'happened': -14.0, 'imagined': None},
@@ -312,7 +312,10 @@ def foley(items, length, events=(), seed=7, mix_name='eraser', with_room=True):
     rng = np.random.default_rng(seed)
     n = int(length * SR)
     gains = MIXES[mix_name]
-    acts = one_hand(activity(items, length, gains))
+    # (what is imagined is set by its own measured loudness, IMAGINED_UNDER under the eraser's: as a
+    # gain on a voice already far under it, the revising pencil was 32 LU under, inaudible: the
+    # cinematic director)
+    acts = one_hand(activity(items, length, {**gains, 'imagined': None}))
     era = body(eraser_voice(acts['erase'], n, rng))
     draw_ = np.zeros((n, 2))
     for v in VOICES:
@@ -321,6 +324,17 @@ def foley(items, length, events=(), seed=7, mix_name='eraser', with_room=True):
     ref = _active_median(era)
     g = 10 ** ((ERASER_LUFS - ref) / 20) if ref is not None else 1.0
     era, draw_ = era * g, draw_ * g
+    if gains.get('imagined') is not None:
+        only = {k: None for k in gains}
+        only['imagined'] = 0.0
+        ia = one_hand(activity(items, length, only))
+        im = np.zeros((n, 2))
+        for v in VOICES:
+            im = im + drawing_voice(v, ia[v], n, rng)
+        im = body(im)
+        iref = _active_median(im)
+        if iref is not None:
+            draw_ = draw_ + im * 10 ** ((ERASER_LUFS + gains['imagined'] - iref) / 20)
     # the drawing's peaks never above the eraser's
     ep, dp = np.abs(era).max(), np.abs(draw_).max()
     if ep > 0 and dp > ep:

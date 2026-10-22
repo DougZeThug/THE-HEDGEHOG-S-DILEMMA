@@ -895,7 +895,7 @@ export const THINGS_SECONDS = 1026 / 24;
  * tests/film-scene.test.ts holds them to what emergence.py read off the sheet). */
 export const THINGS_BEATS = {
   going: 2.0, gone: 5.1, latch: 7.6, lift: 11.2, found: 12.3, turnsBack: 14.5, hand: 16.383, takenBack: 20.395,
-  hers: 25.135, reach: 26.435, hersTaken: 28.847, erased: 32.807, him: 34.407, empty: 35.508,
+  hers: 24.895, reach: 26.195, hersTaken: 28.907, erased: 32.657, him: 34.258, empty: 35.758,
 };
 /** Its sound's level (foley.py sets the eraser at Memory II's figures' loudness: the same gain). */
 const THINGS_DB = -9;
@@ -953,7 +953,17 @@ export const THINGS: MemoryDef = {
     room: [0.3, 2, 0.04],
     cues: {
       'music:film': { asset: 'music/things-film.mp3', gainDb: THINGS_DB, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, fadeOut: 2, caption: '[an eraser on paper]', captionAt: THINGS_BEATS.lift + 0.3,
-        captions: [{ at: THINGS_BEATS.latch, text: '[a door latch clicks]' }, { at: THINGS_BEATS.found + 0.6, text: '[a pencil on paper]' }] },
+        // (one caption at a time: each held until the next, the next at least 2.5 s on; the pencil
+        // when it is first heard, not when its faint construction begins; every taking back named:
+        // QA, 2026-10-22)
+        captions: [
+          { at: THINGS_BEATS.latch, text: '[a door latch clicks]' },
+          { at: THINGS_BEATS.turnsBack + 0.05, text: '[a pencil on paper]' },
+          { at: THINGS_BEATS.takenBack, text: '[an eraser, rubbing it out]' },
+          { at: THINGS_BEATS.hers, text: '[a pencil on paper]' },
+          { at: THINGS_BEATS.hersTaken, text: '[an eraser, rubbing it out]' },
+          { at: THINGS_BEATS.erased, text: '[an eraser, softer]' },
+        ] },
     },
   }),
   sways: [],
@@ -974,7 +984,7 @@ export const THINGS: MemoryDef = {
     { at: THINGS_AT + THINGS_BEATS.takenBack + 0.3, text: 'The eraser takes it back.' },
     { at: THINGS_AT + THINGS_BEATS.hers + 0.5, text: 'In pencil, she leans after him, her hand reaching toward the doorway.' },
     { at: THINGS_AT + THINGS_BEATS.erased, text: 'Her reach is taken back. Then she is erased.' },
-    { at: THINGS_AT + THINGS_BEATS.empty + 1.0, text: 'The doorway is empty; faint marks stay where their hands nearly met.' },
+    { at: THINGS_AT + THINGS_BEATS.empty + 1.0, text: 'The doorway is empty; faint marks where their hands nearly met.' },
     { at: THINGS_SECTIONS.exit, text: 'The drawing goes back into the wall.' },
   ],
 };

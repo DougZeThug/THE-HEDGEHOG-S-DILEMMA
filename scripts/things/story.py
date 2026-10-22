@@ -62,6 +62,10 @@ def build(ref_dir):
     keys = ['wave2', 'turn', 'going0', 'going2', 'going4', 'door0']
     for t, (a, b) in zip((8.0, 8.6, 9.4, 10.3, 11.1), zip(keys, keys[1:])):
         film.step(tl, R[a], R[b], t, prefix=f'real/{b}', dur=0.4)
+    # where he walked, cleared before the door closes on it (behind the light leaf his walk stayed a
+    # cloud under the silence: the cinematic director)
+    gone_from = film.figure_mask(R['going0'], 'young', 8) | film.figure_mask(R['going2'], 'young', 8) | film.figure_mask(R['going4'], 'young', 8)
+    film.erase_figure(tl, R['going2'], 'young', 'real/clear', 11.2, 0.5, order='x+', region=gone_from, strength=1.0, skip=0.0, rag=False)
     # the door on its closer, slowing, home at the latch
     doors = ['door0', 'door1', 'door3', 'shut']
     for t, (a, b) in zip((11.6, 12.4, 13.3), zip(doors, doors[1:])):
@@ -87,7 +91,7 @@ def build(ref_dir):
     t, her = film.imagine(tl, R['her-lean'], 'older', 'c2/lean', t + 2.0, build=0.45, lines=0.8, region=lean, limbs=('arm.R', 'leg.R'))
     t = film.revise(tl, her, R['her-reach'], 'c2/reach', t + 0.15, rub=0.25, lines=1.1, start=lm(R['her-reach'], 'older', 'upper_arm.R'))
     her_hand = film.hand_of(R['her-reach'], 'older', 'R')
-    t = film.withdraw(tl, her, 'c2/out', t + 1.1, 1.4, her_hand)
+    t = film.withdraw(tl, her, 'c2/out', t + 1.4, 1.4, her_hand)
     # a breath; then she is taken, her head first, the rest of her, her outline along itself; then
     # where he stood. The two hands' impressions are spared: they are what is left. (No casing
     # restated: the darkest mark of the last image, meaning nothing seen: the creative director.)
@@ -106,8 +110,20 @@ def build(ref_dir):
         where_he_was |= film.figure_mask(R[p], 'young', 6)
     t = film.erase_figure(tl, R['goodbye'], 'young', 'end/him', t - 0.1, 0.8, order='x+', region=where_he_was, strength=0.9, skip=0.1, rag=False, spare=hands)
     his_lines = [m for _, _, m in tl.items if m['part'] == 'young' and m['kind'] == 'stroke' and m['layer'] in ('contour', 'face') and not m['name'].startswith(('c1/', 'c2/'))]
-    tl.add(draw.trace_erase('end/him-lines', 'young', his_lines, tuple(his_hand), strength=0.85, width=14.0, skip=0.1, passes=2,
-                            spare=(his_hand[0], his_hand[1], 30.0, 0.8)), t - 0.2, 0.6, overlap=0.5)
+    t = tl.add(draw.trace_erase('end/him-lines', 'young', his_lines, tuple(his_hand), strength=0.85, width=14.0, skip=0.1, passes=2,
+                                spare=(his_hand[0], his_hand[1], 30.0, 0.8)), t - 0.2, 0.6, overlap=0.5)
+    # the door's knobs, where it was shut and where it swung (the darkest marks in the last image,
+    # a pair of eyes on a phone: the directors), and what was left of the almosts but the hands: the
+    # hands are the last image's darkest marks
+    knobs = np.zeros_like(hands, dtype=np.uint8)
+    for p in ('door1', 'door3', 'shut'):
+        cv2.circle(knobs, tuple(int(v) for v in R[p]['knob'][:2]), 20, 1, -1)
+    t = film.erase_figure(tl, R['shut'], 'door', 'end/knobs', t - 0.2, 0.4, order='top', region=(knobs > 0) & ~hands, strength=1.0, skip=0.0, rag=False)
+    near_her = lambda m: np.hypot(*(np.asarray(m['pts'], np.float32).mean(0) - her_hand)) < 40
+    imagined = [m for _, _, m in tl.items if m['kind'] == 'stroke' and m['name'].startswith(('c1/', 'c2/')) and m['layer'] in ('contour', 'face', 'construct')
+                and not near_her(m)]
+    tl.add(draw.trace_erase('end/almosts', 'young', imagined, tuple(his_hand), strength=0.7, width=14.0, skip=0.05, passes=2,
+                            spare=(his_hand[0], his_hand[1], 40.0, 1.0)), t - 0.2, 0.5, overlap=0.5)
     return tl, LENGTH
 
 

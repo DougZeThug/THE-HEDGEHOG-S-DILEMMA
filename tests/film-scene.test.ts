@@ -459,6 +459,14 @@ describe('Things I Should Have Said on its timeline', () => {
     expect(made.foley).toBe(sha('scripts/things/foley.py'));
   });
 
+  it('names every sound a deaf visitor would miss, each caption on long enough to read before the next (QA, 2026-10-22)', () => {
+    const cue = THINGS.cues('film').cues['music:film'];
+    const all = [{ at: cue.captionAt ?? 0, text: cue.caption! }, ...(cue.captions ?? [])].sort((a, b) => a.at - b.at);
+    for (let i = 1; i < all.length; i++) expect(all[i].at - all[i - 1].at, `${all[i - 1].text} → ${all[i].text}`).toBeGreaterThanOrEqual(2.5);
+    for (const beat of [THINGS_BEATS.latch, THINGS_BEATS.lift, THINGS_BEATS.takenBack, THINGS_BEATS.hersTaken, THINGS_BEATS.erased])
+      expect(Math.min(...all.map((c) => Math.abs(c.at - beat))), `a caption at ${beat}`).toBeLessThanOrEqual(0.5);
+  });
+
   it("its story's moments are where the exposure sheet put them (to a frame)", () => {
     // (Hand-copied, they drifted: the casings were 2.4 s later than the announcements said: QA.)
     const made = JSON.parse(readFileSync(join(__dirname, '../public/music/things-sound.json'), 'utf8'));

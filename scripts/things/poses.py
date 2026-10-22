@@ -193,9 +193,10 @@ _LEAN = {'spine05': (-3, 0, 0), 'spine03': (7, 0, -4), 'spine02': (7, 0, -5), 'n
 WRIST = 50.0              # (turned in: at -50 the palm faced him, "stop")
 HER_LEAN = dict(WATCH, at=(OLDER_AT[0] + 0.1, OLDER_AT[1] + 0.05), bones=_plus(WATCH['bones'], **{k.replace('.', '__'): v for k, v in _LEAN.items()}))
 # (palm out at head height, it read as "stop": the hand at his chest's height, palm turned in, the
-# fingers loose)
+# fingers loose; stopping a finger's width short of where his hand was drawn: touching it resolved
+# what the piece keeps open: the creative director)
 HER_REACH = dict(HER_LEAN, local=OPEN, bones=_plus(HER_LEAN['bones'], wrist__R=(0, WRIST, 0)),
-                 reach={'R': {'hand': ('world', (0.14, -0.68, 1.04)), 'elbow': (-0.35, 0.05, -0.15)}})
+                 reach={'R': {'hand': ('world', (0.03, -0.68, 1.06)), 'elbow': (-0.35, 0.05, -0.15)}})
 
 POSES.update({
     'his-back': {'door': -82, 'older': WATCH, 'young': HIS_BACK},

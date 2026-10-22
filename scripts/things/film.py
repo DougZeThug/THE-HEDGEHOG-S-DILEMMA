@@ -160,8 +160,13 @@ def step(tl, a, b, t, people=('young', 'older'), door=False, prefix='step', dur=
     if door:
         da, db = a['ids'] == 7, b['ids'] == 7
         region = cv2.dilate((da ^ db).astype(np.uint8), np.ones((15, 15), np.uint8)) > 0
-        er = draw.erase_marks(f'{prefix}/door/out', 'door', region & cv2.dilate(da.astype(np.uint8), np.ones((9, 9), np.uint8)).astype(bool),
-                              width=26, strength=0.9, order='x-', skip=0.05, rag=False)
+        out = region & cv2.dilate(da.astype(np.uint8), np.ones((9, 9), np.uint8)).astype(bool)
+        if 'knob' in a and 'knob' in b and np.hypot(a['knob'][0] - b['knob'][0], a['knob'][1] - b['knob'][1]) > 6:
+            # the knob where it was, entirely (its ghost made a shut door with two knobs: the directors)
+            k = np.zeros(out.shape, np.uint8)
+            cv2.circle(k, (int(a['knob'][0]), int(a['knob'][1])), 16, 1, -1)
+            out |= k > 0
+        er = draw.erase_marks(f'{prefix}/door/out', 'door', out, width=26, strength=0.95, order='x-', skip=0.02, rag=False)
         end = max(end, tl.add(er, t, dur * 0.6, overlap=0.7))
         marks, _ = draw.scene_marks(b, f'{prefix}/door', None, parts=('door',))
         # (only where the leaf moved to: redrawn whole at every step, the closing door piled five
@@ -290,12 +295,27 @@ def withdraw(tl, im, prefix, t, dur, hand, kept=0.92, hand_r=40.0):
         band.append(dict(kind='erase', name=f'{prefix}/band/{k}', part=who, layer='erase', width=24.0, strength=0.95, drag=0.4 if k == 3 else 0.05,
                          pts=np.array(ends[::(1 if k % 2 == 0 else -1)]).round(2).tolist()))
     t = tl.add(band, t - 0.1, 0.4, overlap=0.4)
+    # and a few strokes across the body itself, at an angle to its back, stopping short, so the
+    # taking back has a direction and gaps (along the lines alone it read as a lightening: the
+    # creative director)
+    cross = []
+    for k, (a_, b_) in enumerate((('neck', 'chest'), ('chest', 'spine'), ('spine', 'pelvis'))):
+        p0, p1 = np.array(lm[a_][0:2], np.float32), np.array(lm[b_][0:2], np.float32)
+        c2 = (p0 + p1) / 2
+        dd = (p1 - p0) / (np.linalg.norm(p1 - p0) + 1e-6)
+        ac = np.array([-dd[1], dd[0]], np.float32) * 0.8 + dd * 0.6
+        ac /= np.linalg.norm(ac)
+        for j in range(2):
+            ends = [c2 - ac * 46 + dd * (j * 6), c2 + ac * 38 + dd * (j * 6)]
+            cross.append(dict(kind='erase', name=f'{prefix}/cross/{k}/{j}', part=who, layer='erase', width=20.0, strength=0.85, drag=0.5 if j else 0.1,
+                              pts=np.array(ends[::(1 if j == 0 else -1)]).round(2).tolist()))
     traces = draw.trace_erase(prefix, who, im.lines, (hx, hy), strength=0.95, width=13.0, spare=(hx, hy, hand_r, kept), skip=0.03)
     build = draw.trace_erase(f'{prefix}/build', who, im.build, (hx, hy), strength=0.45, width=10.0, skip=0.35)
     # the stages rubbed on the way (their ghosts, left standing, made a pale man in the doorway at
     # the end: the creative director)
     build += draw.trace_erase(f'{prefix}/ghosts', who, im.ghosts, (hx, hy), strength=0.85, width=13.0, spare=(hx, hy, hand_r, kept), skip=0.1, passes=2)
     t = tl.add(traces + build, t - 0.05, dur, overlap=0.55)
+    t = tl.add(cross, t - dur * 0.5, dur * 0.35, overlap=0.4)
     # (once was not enough: the whole outline stayed a figure; the second pass misses more, and
     # spares the hand more)
     twice = draw.trace_erase(f'{prefix}/again', who, im.lines, (hx, hy), strength=0.8, width=15.0, spare=(hx, hy, hand_r * 1.3, min(1.0, kept * 1.4)), skip=0.25)
