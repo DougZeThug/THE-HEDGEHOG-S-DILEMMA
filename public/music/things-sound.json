@@ -2,7 +2,7 @@
  "story": "1a910569d911e928",
  "foley": "1d36326bed54a162",
  "soundscape": "13ef14a36e281457",
- "mix": "a",
+ "mix": "b",
  "seconds": {
   "film": 42.75,
   "wall": 6.0
@@ -15,9 +15,11 @@
   "found": 12.3,
   "turnsBack": 14.5,
   "hand": 16.383,
+  "held": 18.495,
   "takenBack": 20.395,
   "hers": 24.895,
   "reach": 26.195,
+  "hersHeld": 27.508,
   "hersTaken": 28.907,
   "erased": 32.657,
   "him": 34.258,

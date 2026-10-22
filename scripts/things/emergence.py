@@ -95,8 +95,8 @@ def times(sheet, items, keep, t0, t1):
 # The story's moments (src/memory/defs.ts THINGS_BEATS, held to these by tests/film-scene.test.ts):
 # where each move begins on the sheet (its marks' names), or ends.
 BEATS = {'going': ('real/turn/', 'start'), 'gone': ('real/door0/', 'start'), 'lift': ('c1/door', 'start'), 'found': ('c1/back', 'start'),
-         'turnsBack': ('c1/turn', 'start'), 'hand': ('c1/hand', 'start'), 'takenBack': ('c1/out', 'start'), 'hers': ('c2/lean', 'start'),
-         'reach': ('c2/reach', 'start'), 'hersTaken': ('c2/out', 'start'), 'erased': ('end/heads', 'start'), 'him': ('end/him', 'start'),
+         'turnsBack': ('c1/turn', 'start'), 'hand': ('c1/hand', 'start'), 'held': ('c1/hand', 'end'), 'takenBack': ('c1/out', 'start'),
+         'hers': ('c2/lean', 'start'), 'reach': ('c2/reach', 'start'), 'hersHeld': ('c2/reach', 'end'), 'hersTaken': ('c2/out', 'start'), 'erased': ('end/heads', 'start'), 'him': ('end/him', 'start'),
          'empty': ('end/', 'end')}
 
 

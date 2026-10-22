@@ -29,7 +29,7 @@ brief is "THE HEDGEHOG'S DILEMMA / MEMORY III — THINGS I SHOULD HAVE SAID" (20
 | The clock | `scripts/things/timeline.py` | marks with a start and a length; drawings on twos streamed to the encoder; `state_at` for planning on the film's own sheet; float32 checkpoints |
 | The film | `scripts/things/story.py` | the exposure sheet: every move's time; writes the film, its sound and `sheet.json` (every mark's time) |
 | The Foley | `scripts/things/foley.py` | the voices the sound is made of, from the same marks: one hand, the drawing tools, the eraser scrubbing, the latch, the room (and the film's own first mixes, for comparison) |
-| The sound | `scripts/things/soundscape.py` | the room's sound, procedural but for a CC0 piano: the wall's goodbye drawing itself (its own cue); carried in, the flat (its air, traffic far off, the stairwell's hum, her sleeve, his coat and bag, his steps, the door on its closer, the latch), withdrawing, darkened, as the eraser lifts the door; the pencil, once a touch per gesture; the redraw's rubs; each taking back levelled on its own, hers heavier; the people taken, each erasure quieter; then nothing but the room's hushed air. Mix A (the room's) has no music; Mix B adds two piano notes in his hold and one in hers, for the artist |
+| The sound | `scripts/things/soundscape.py` | the room's sound, procedural but for a CC0 piano: the wall's goodbye drawing itself (its own cue); carried in, the flat (its air, traffic far off, the stairwell's hum, her sleeve, his coat and bag, his steps, the door on its closer, the latch), withdrawing, darkened, as the eraser lifts the door; the pencil, once a touch per gesture; the redraw's rubs; each taking back levelled on its own, hers heavier; the people taken, each erasure quieter; then nothing but the room's hushed air. Mix B (the room's, the artist's choice) adds two piano notes in his hold and one in hers, and the last silence is the second not played again; Mix A, without them, is kept for comparison |
 | The room | `scripts/things/emergence.py` | how it comes onto the wall: the goodbye's lines alone and an order map (when each line is drawn, when each place is first worked), so the wall draws it as the film did, earlier marks beneath; the poster; the film from 6 s at two sizes; the beats read off the sheet |
 | On a screen | `src/memory/living/things.ts` | where the film sits when it covers the view, by the screen's aspect |
 
@@ -46,10 +46,10 @@ $B -b --factory-startup --python scripts/things/scene.py -- \
 python3 scripts/things/story.py ref/ out/ --scale 1.0
 # the room's files (public/memories/things/, the beats in public/music/things-sound.json)
 python3 scripts/things/emergence.py out/
-# its sound (public/music/things-film.mp3, things-wall.mp3, their provenance), Mix A, in a venv
-# with numpy, scipy and soundfile; with --piano (the Upright Piano KW folder) Mix B is made too,
-# for review, in out/sound/
-.venv-audio/bin/python scripts/things/soundscape.py out/sheet.json out/sound/ --room a [--piano DIR]
+# its sound (public/music/things-film.mp3, things-wall.mp3, their provenance), Mix B, in a venv
+# with numpy, scipy and soundfile; DIR is the Upright Piano KW folder (FreePats, CC0); Mix A is
+# written beside it, for comparison, in out/sound/
+.venv-audio/bin/python scripts/things/soundscape.py out/sheet.json out/sound/ --room b --piano DIR
 npm run memories:seed -- --force=things-film
 ```
 

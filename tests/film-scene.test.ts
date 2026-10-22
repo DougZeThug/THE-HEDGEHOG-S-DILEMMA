@@ -458,8 +458,8 @@ describe('Things I Should Have Said on its timeline', () => {
     expect(made.story).toBe(sha('scripts/things/story.py'));
     expect(made.foley).toBe(sha('scripts/things/foley.py'));
     expect(made.soundscape).toBe(sha('scripts/things/soundscape.py'));
-    // (Mix A, the room's: the film is stronger without the piano: the reviews, 2026-10-22)
-    expect(made.mix).toBe('a');
+    // (Mix B, the room's: the artist's choice, having heard both, 2026-10-22)
+    expect(made.mix).toBe('b');
   });
 
   it("the wall's sound is the wall's drawing: its start, its length, its level, its caption before the film's (QA)", () => {
@@ -481,8 +481,13 @@ describe('Things I Should Have Said on its timeline', () => {
   it('names every sound a deaf visitor would miss, each caption on long enough to read before the next (QA, 2026-10-22)', () => {
     const cue = THINGS.cues('film').cues['music:film'];
     const all = [{ at: cue.captionAt ?? 0, text: cue.caption! }, ...(cue.captions ?? [])].sort((a, b) => a.at - b.at);
-    for (let i = 1; i < all.length; i++) expect(all[i].at - all[i - 1].at, `${all[i - 1].text} → ${all[i].text}`).toBeGreaterThanOrEqual(2.5);
-    for (const beat of [THINGS_BEATS.latch, THINGS_BEATS.lift, THINGS_BEATS.takenBack, THINGS_BEATS.hersTaken, THINGS_BEATS.erased])
+    // (0.4 s a word, at least 1.2 s: a few words in a hold need less than the 2.5 s the longer ones keep)
+    const words = (s: string) => s.split(/\s+/).filter(Boolean).length;
+    for (let i = 1; i < all.length; i++) {
+      const p = all[i - 1];
+      expect(all[i].at - p.at, `${p.text} → ${all[i].text}`).toBeGreaterThanOrEqual(Math.max(1.2, 0.4 * words(p.text)) - 1e-6);
+    }
+    for (const beat of [THINGS_BEATS.latch, THINGS_BEATS.lift, THINGS_BEATS.held, THINGS_BEATS.takenBack, THINGS_BEATS.hersHeld, THINGS_BEATS.hersTaken, THINGS_BEATS.erased])
       expect(Math.min(...all.map((c) => Math.abs(c.at - beat))), `a caption at ${beat}`).toBeLessThanOrEqual(0.5);
   });
 
