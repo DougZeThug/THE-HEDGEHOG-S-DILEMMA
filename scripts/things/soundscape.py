@@ -339,7 +339,9 @@ def piano_figure(n, his_hold, her_hold):
     import piano as P
     pf = P.Piano(PIANO_SFZ, seed=5)
     (h0, h1), (s0, s1) = his_hold, her_hold
-    notes = [P.Note(h0 + 0.12, 59, 22, 1.2), P.Note(h0 + 1.32, 61, 18, h1 - h0 - 1.3), P.Note(s0 + 0.12, 59, 19, s1 - s0)]
+    # (the second note 0.8 s into his hold, so it rings a second before the eraser: 0.67 s before
+    # it, it was a pickup into the rubber: the cinematic director)
+    notes = [P.Note(h0 + 0.12, 59, 22, 0.75), P.Note(h0 + 0.8, 61, 18, h1 - h0 - 0.8), P.Note(s0 + 0.12, 59, 19, s1 - s0)]
     y = P.render(pf, notes, [(h0, h1 + 0.6), (s0, s1 + 0.6)], 0.0, n / SR, wet=0.55, mech=0.25, halo_db=-34.0)
     y = y[:n]
     # felt: the hammer's brightness taken off, as an upright with its practice felt down
