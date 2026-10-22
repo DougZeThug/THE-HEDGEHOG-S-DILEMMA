@@ -57,8 +57,10 @@ export class CueDispatch {
         if (LASTING.test(m.label)) owed.push({ marker: m, delay: 0, late: pos - m.position });
         else if (pos - m.position <= LATE_ONE_SHOT) owed.push({ marker: m, delay: 0 });
       }
-      this.seek(pos);
-      for (const d of owed) this.fired.add(this.id(d.marker));
+      // What it passed is heard; what lies ahead stays as it was: one already handed out ahead of
+      // the picture is not armed again (as a seek would), or a second stall plays it twice (the
+      // wall's goodbye, twice over, 0.73 s apart: QA, 2026-10-22).
+      for (const m of this.markers) if (m.position < pos) this.fired.add(this.id(m));
       return owed;
     }
     const to = Math.min(pos + this.lookahead, limit);

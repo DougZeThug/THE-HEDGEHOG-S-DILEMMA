@@ -477,13 +477,19 @@ def main():
         print(f'  {k:8s} {median_lufs(x) or float("nan"):6.1f} {peak_lufs(x):6.1f}')
     print(json.dumps({k: round(v, 3) for k, v in info.items() if k != 'n'}))
     if room:
-        mp3(mixes[room][int(FROM * SR):], os.path.join(MUSIC, 'things-film.mp3'))
-        mp3(w[:int(FROM * SR)], os.path.join(MUSIC, 'things-wall.mp3'))
+        # (each file in over 5 ms: the wall's first sample was a tick's worth: QA)
+        k = int(0.005 * SR)
+        film, wall_ = mixes[room][int(FROM * SR):].copy(), w[:int(FROM * SR)].copy()
+        for x in (film, wall_):
+            x[:k] *= np.linspace(0, 1, k)[:, None]
+        mp3(film, os.path.join(MUSIC, 'things-film.mp3'))
+        mp3(wall_, os.path.join(MUSIC, 'things-wall.mp3'))
         # what they were made from (tests/film-scene.test.ts: change any and make them again)
         path = os.path.join(MUSIC, 'things-sound.json')
         beats = json.load(open(path)).get('beats', {}) if os.path.exists(path) else {}
         made = {'story': sha256(os.path.join(HERE, 'story.py')), 'foley': sha256(os.path.join(HERE, 'foley.py')),
-                'soundscape': sha256(os.path.abspath(__file__)), 'mix': room, 'beats': beats}
+                'soundscape': sha256(os.path.abspath(__file__)), 'mix': room,
+                'seconds': {'film': round(len(film) / SR, 3), 'wall': round(len(wall_) / SR, 3)}, 'beats': beats}
         with open(path, 'w') as fh:
             json.dump(made, fh, indent=1)
             fh.write('\n')

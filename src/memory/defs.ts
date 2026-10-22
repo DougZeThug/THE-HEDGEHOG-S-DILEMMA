@@ -955,14 +955,15 @@ export const THINGS: MemoryDef = {
     // (Its room is the white room: the file has none of its own.)
     room: [0.3, 2, 0.04],
     cues: {
-      // The wall drawing the goodbye: a point on the wall, not the room's air.
-      'music:wall': { asset: 'music/things-wall.mp3', gainDb: THINGS_DB, place: { u: 0, v: 0, d: 2 }, dry: true, caption: '[charcoal on the wall]', captionAt: 0.3 },
+      // The wall drawing the goodbye, at the film's own gain: as a point 2 m in the wall it came out
+      // 10 dB under it, barely over the room's hush (QA); stopped with the picture if the visitor goes.
+      'music:wall': { asset: 'music/things-wall.mp3', gainDb: THINGS_DB, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, fadeOut: 0.8, caption: '[pencil, then charcoal, on the wall]', captionAt: 0.3 },
       'music:film': { asset: 'music/things-film.mp3', gainDb: THINGS_DB, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, fadeOut: 2, caption: '[an eraser on paper]', captionAt: THINGS_BEATS.lift + 0.3,
         // (one caption at a time: each held until the next, the next at least 2.5 s on; the pencil
         // when it is first heard, not when its faint construction begins; every taking back named:
         // QA, 2026-10-22)
         captions: [
-          { at: 1.2, text: '[a coat rustles; a bag is lifted]' },
+          { at: 1.2, text: '[a quiet flat; a coat rustles, a bag is lifted]' },
           { at: THINGS_BEATS.gone, text: '[footsteps going; a door swings shut]' },
           { at: THINGS_BEATS.latch, text: '[a door latch clicks]' },
           { at: THINGS_BEATS.turnsBack + 0.05, text: '[a pencil on paper]' },

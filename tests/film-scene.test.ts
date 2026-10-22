@@ -462,11 +462,20 @@ describe('Things I Should Have Said on its timeline', () => {
     expect(made.mix).toBe('a');
   });
 
-  it("the wall's sound begins with the wall's drawing", () => {
+  it("the wall's sound is the wall's drawing: its start, its length, its level, its caption before the film's (QA)", () => {
     const seed = THINGS.seed('film');
     const sketch = seed.tracks['window.sketch'] as [number, number][];
-    expect(THINGS.markers.find((k) => k.label === 'music:wall')!.position).toBe(sketch[0][0]);
-    expect(THINGS.cues('film').cues['music:wall'].asset).toBe('music/things-wall.mp3');
+    const made = JSON.parse(readFileSync(join(__dirname, '../public/music/things-sound.json'), 'utf8'));
+    const cues = THINGS.cues('film').cues;
+    const at = (label: string) => THINGS.markers.find((k) => k.label === label)!.position;
+    expect(at('music:wall')).toBe(sketch[0][0]);
+    expect(made.seconds.wall).toBeCloseTo(sketch[sketch.length - 1][0] - sketch[0][0], 3);
+    expect(made.seconds.film).toBeCloseTo(THINGS_SECONDS, 3);
+    // (the same gain as the film's, through the same path: as a point in the wall it was 10 dB under)
+    for (const k of ['gainDb', 'wide', 'dry'] as const) expect(cues['music:wall'][k], k).toEqual(cues['music:film'][k]);
+    const film = cues['music:film'];
+    const first = Math.min(film.captionAt ?? Infinity, ...(film.captions ?? []).map((c) => c.at));
+    expect(at('music:film') + first - (at('music:wall') + cues['music:wall'].captionAt!)).toBeGreaterThanOrEqual(2.5);
   });
 
   it('names every sound a deaf visitor would miss, each caption on long enough to read before the next (QA, 2026-10-22)', () => {
