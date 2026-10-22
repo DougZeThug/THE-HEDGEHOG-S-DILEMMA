@@ -989,6 +989,17 @@ describe('the scene, as built (no GL: what it would draw and let go)', () => {
     expect(m.frame.uniforms.uFrame.value).toBe(m.empty);
   });
 
+  it('everything the wind moves goes with it: a texture moved by the wind is fetched from behind the bend', () => {
+    // (A fetch at uv + d shows the picture moved by -d: the plate's grass and leaves, the two-shot's
+    // ground and the bed grass leaned into the gust and lifted their tips, against the flowers, the
+    // hair and the motes, which move by +d: performance.ts, "positive bends things to the right".)
+    const src = livingMaterials(tex()).people.fragmentShader;
+    expect(src).toContain('vec2 at = uv - d * uPx;');
+    expect(src).toContain('uv -= vec2(dx, -0.25 * abs(dx)) * uPx;');
+    expect(src).toContain('uvF -= vec2(dx, -0.25 * abs(dx)) / uSheet;');
+    expect(src).not.toMatch(/uv\s*\+\s*d\s*\*\s*uPx|uvF?\s*\+=\s*vec2\(dx/);
+  });
+
   it("the shared program stays inside the 16 texture units every phone has (there is no 17th: add data to an existing one)", () => {
     const m = livingMaterials(tex());
     const names = new Set<string>();
