@@ -50,8 +50,8 @@ offline in Blender (`scripts/almost/`). It is played in the woodland's place:
   doesn't play) is drawn into the same render target, so the wall's window, the way in and the way
   out are the woodland's.
 - **One clock.** The timeline key `scene.film` (its seconds) decides the frame. Playing, the video
-  plays and is pulled back when it drifts more than a frame and a half. Held, seeked or recorded, it
-  is paused on the exact frame.
+  plays, kept with the timeline by its rate (a little drift) or a seek aimed ahead (a large one).
+  Held, seeked or recorded, it is paused on the exact frame.
 - **The way in.** The film's first frame is held while it comes through the plaster as wool fibres,
   then colour (`window.sketch` and `window.reveal` over its order map,
   `scripts/almost/emergence.py`). It starts half a second after the visitor is inside.

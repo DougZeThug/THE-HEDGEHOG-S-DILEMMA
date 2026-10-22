@@ -135,8 +135,8 @@ npm run memories:seed -- --force=almost-film
   that `MemoryWindow` shows as its first layer and the immersion shows on the screen.
 - **Its frame comes from the timeline key `scene.film`,** in seconds into the film. The memory's
   one clock decides it:
-  - **Playing:** the video plays, and is pulled back whenever it drifts more than a frame and a
-    half from the timeline.
+  - **Playing:** the video plays, kept with the timeline by its rate (a little drift) or a seek
+    aimed ahead (a large one).
   - **Held, seeked or recorded:** the video is paused on the middle of the exact frame.
   - **Autoplay refused:** the video is stepped frame by frame, paused.
 - **Its texture is updated** when the frame shown changes or a seek lands, never on a timer.
