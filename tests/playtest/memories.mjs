@@ -45,8 +45,8 @@ const STAGES = {
   // tone), the way in, the film's beats (its first frame held until 11.5 s: src/memory/defs.ts
   // THINGS_BEATS), the way back out (a trace, then the plaster).
   things: [['00-untouched', null], ['01-construction', 2.2], ['02-her', 4.0], ['03-him', 6.0], ['04-tone', 7.5], ['05-carried', 9.5], ['06-inside', 11.2],
-    ['07-wave', 12.3], ['08-walk', 14.6], ['09-door', 17.5], ['10-silence', 21.5], ['11-lift', 25.0], ['12-his-almost', 31.0], ['13-taken-back', 35.0],
-    ['14-hers', 39.4], ['15-erased', 46.0], ['16-casing', 52.0], ['17-empty', 57.0], ['18-returning', 62.5], ['19-trace', 66.5], ['20-white-room', 70.5]],
+    ['07-wave', 12.4], ['08-walk', 15.0], ['09-door', 18.3], ['10-silence', 21.0], ['11-found', 25.0], ['12-turning', 27.0], ['13-his-hand', 30.0],
+    ['14-taken-back', 33.0], ['15-hers', 39.0], ['16-erased', 46.0], ['17-empty', 50.0], ['18-returning', 55.5], ['19-trace', 59.5], ['20-white-room', 63.0]],
 }[MEMORY];
 mkdirSync(OUT, { recursive: true });
 

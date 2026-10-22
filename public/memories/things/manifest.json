@@ -7,10 +7,10 @@
   "pane": null,
   "register": null,
   "crop": [
-    0.16,
-    0.26,
-    0.66,
-    0.46
+    0.27,
+    0.25,
+    0.44,
+    0.49
   ],
   "plate": [
     1280,
@@ -37,7 +37,7 @@
       "kind": "film",
       "film": "film/film",
       "fps": 24,
-      "frames": 1200,
+      "frames": 1026,
       "order": "film/order",
       "immerse": true,
       "edge": "soft",

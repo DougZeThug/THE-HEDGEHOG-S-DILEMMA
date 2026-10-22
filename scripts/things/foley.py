@@ -8,6 +8,14 @@ Each mark is heard by what it means, not by what tool made it (docs/reviews/2026
     happened      what happened being drawn (the goodbye, his walk, the door, the casing
                   worked): a hand on paper, well under the eraser
     imagined      what is only imagined: quieter still, or silent (the `weight` mix)
+    rub           a revision's own rubbing out of a line it is about to draw again: the eraser,
+                  a few strokes, under a taking back
+    end           the people taken at the end: the eraser, well under a taking back (as loud,
+                  erasing them sounded the same as taking back an almost: the skeptic)
+
+The default mix (`revisit`, v2: the artist's review, 2026-10-22) leaves what happened silent but
+for the latch, and lets the hand that revises be heard: its pencil faint as it finds what is only
+imagined, its rubbing under the eraser that takes it back.
 
 One hand draws, so one tool sounds at a time (the loudest, crossfaded), as loud as the strongest
 mark it is making (a pass of a hundred overlapping strokes is one hand moving fast, not a hundred
@@ -54,14 +62,17 @@ VOICES = {
 TOOL_VOICE = {'charcoal': 'charcoal', 'compressed': 'charcoal', 'side': 'side', 'side_firm': 'side', 'pencil': 'pencil', 'hardpencil': 'pencil'}
 
 # what each mark means, by the name film.py gave its move
-TAKE = ('c1/door', 'c1/back', 'c1/out', 'c2/back', 'c2/out', 'end/all', 'end/knob', 'end/heads', 'end/her')
-IMAGINED = ('c1/jamb', 'c2/collar')
+TAKE = ('c1/door', 'c1/out', 'c2/out')
+END = ('end/',)                      # the people taken at the end: under a taking back
+IMAGINED = ('c1/', 'c2/')            # (after TAKE and a revision's rubs: what is left of c1/ and c2/ is drawn)
 # each meaning's level against the eraser (LU), per mix; None is silent
 MIXES = {
-    'eraser': {'take': 0.0, 'happened': -14.0, 'imagined': -24.0},
-    'eraser-only': {'take': 0.0, 'happened': None, 'imagined': None},
-    'weight': {'take': 0.0, 'happened': -14.0, 'imagined': None},
+    'revisit': {'take': 0.0, 'rub': -7.0, 'end': -11.0, 'happened': None, 'imagined': -13.0},   # (at -20 the pencil was 1-3 dB over the floor: the cinematic director)
+    'eraser': {'take': 0.0, 'rub': -7.0, 'end': -11.0, 'happened': -14.0, 'imagined': -24.0},
+    'eraser-only': {'take': 0.0, 'rub': -7.0, 'end': -11.0, 'happened': None, 'imagined': None},
+    'weight': {'take': 0.0, 'rub': -7.0, 'end': -11.0, 'happened': -14.0, 'imagined': None},
 }
+DEFAULT_MIX = 'revisit'
 ERASER_LUFS = -33.5           # the eraser's median momentary loudness while it sounds (Memory II's figures sit about here)
 LATCH_UNDER = 5.0             # the latch's loudest moment, this far under the eraser's (LU)
 ROOM_DB = -64.0
@@ -73,6 +84,10 @@ def meaning_of(mark):
     n = mark['name']
     if n.startswith(TAKE):
         return 'take'
+    if n.startswith(END):
+        return 'end'
+    if '/rub/' in n:
+        return 'rub'
     if n.startswith(IMAGINED):
         return 'imagined'
     return 'happened'
@@ -81,7 +96,7 @@ def meaning_of(mark):
 def voice_of(mark):
     if mark['kind'] == 'erase':
         # a scrub of what happened (a step of his walk) is a hand's swish, not a taking back
-        return 'erase' if meaning_of(mark) == 'take' else 'side'
+        return 'erase' if meaning_of(mark) in ('take', 'rub', 'end') else 'side'
     if mark['kind'] == 'smudge':
         return None                       # (a finger on the dust: masked, one more sound at once)
     return TOOL_VOICE.get(mark.get('tool'), 'charcoal')

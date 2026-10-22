@@ -443,7 +443,7 @@ describe('Things I Should Have Said on its timeline', () => {
   it('counts as seen once his almost has begun inside, and plays to its exit', () => {
     const m = SCENE_MEMORIES.find((x) => x.id === 'things')!;
     expect(m.phraseId).toBe('didnt-know-say');
-    expect(m.seenAt!).toBeGreaterThanOrEqual(THINGS_AT + THINGS_BEATS.back);
+    expect(m.seenAt!).toBeGreaterThanOrEqual(THINGS_AT + THINGS_BEATS.found);
     expect(m.seenAt!).toBeLessThan(THINGS_SECTIONS.exit);
     expect(m.maxHold).toBe(THINGS_SECTIONS.exit);
     expect(m.span).toBe(THINGS_SECTIONS.end);

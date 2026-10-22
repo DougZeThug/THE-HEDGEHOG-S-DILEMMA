@@ -102,7 +102,7 @@ export class Immersion {
    * One frame. `wall`: the painting's corners on the screen (screen uv; 00, 10, 11, 01), or null
    * if the wall's quad is behind the eye. `immerse` 0..1. `aspect`: the screen's (w / h).
    */
-  set(o: { scene: THREE.Texture; wall: THREE.Vector2[] | null; immerse: number; show: number; aspect: number; paint: number; focus: [number, number]; zoom: THREE.Vector3; view: THREE.Vector4; seed: number; torn?: boolean }): void {
+  set(o: { scene: THREE.Texture; wall: THREE.Vector2[] | null; immerse: number; show: number; aspect: number; paint: number; focus: [number, number]; scale?: number; zoom: THREE.Vector3; view: THREE.Vector4; seed: number; torn?: boolean }): void {
     const u = this.u;
     if (o.show <= 0 || (!o.wall && o.immerse <= 0)) {
       this.off();
@@ -119,7 +119,8 @@ export class Immersion {
     // (`immerse` arrives eased already: eased again, nine tenths of the opening out fell in two
     // thirds of a second, the threshold's briefest phase: cinematic review, 2026-10-18.)
     const k = clamp01(o.immerse);
-    const full = coverQuad(o.aspect, o.paint, o.focus);
+    // (`scale`: closer than just covering, e.g. a portrait phone's view of a drawing that is wider than tall)
+    const full = coverQuad(o.aspect, o.paint, o.focus, 1.06 * (o.scale ?? 1));
     const from = o.wall ?? full.map((p) => p.clone().sub(new THREE.Vector2(0.5, 0.5)).multiplyScalar(0.3).add(new THREE.Vector2(0.5, 0.5)));
     for (let i = 0; i < 4; i++) this.quad[i].copy(from[i]).lerp(full[i], k);
     // The ragged edge is a wide brush while it grows (its corners never seen), and narrows into

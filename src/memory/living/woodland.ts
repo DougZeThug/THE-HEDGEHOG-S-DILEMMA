@@ -44,7 +44,8 @@ export interface LivingSpec {
   /** What is in the air: how many motes (seen only in the sun). */
   air: { motes: number };
   /** The painting u (and v) kept at the screen's centre when it covers the view. */
-  cover: { wide: [number, number]; upright: [number, number]; ultra: [number, number] };
+  /** `uprightScale`: how much closer than just covering an upright screen (1, or unset: just covering it). */
+  cover: { wide: [number, number]; upright: [number, number]; ultra: [number, number]; uprightScale?: number };
   /** In place of `wide` and `ultra`: the focus for any screen this wide (width over height, not upright). */
   coverAt?: (aspect: number) => [number, number];
   /**

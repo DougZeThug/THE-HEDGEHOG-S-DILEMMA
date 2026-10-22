@@ -1101,6 +1101,7 @@ export class App {
       leavingNaturally: f.state === 'withdrawing' || f.state === 'residue',
       approach: 'scene.approach' in f.final ? f.final['scene.approach'] : undefined,
       torn: pl.torn,
+      scale: upright ? pl.spec.cover.uprightScale ?? 1 : 1,
     }, { reduced: this.prefs.reducedMotion, aspect, scene: pl.scene.target.texture, group: l.anchor.group });
     // The window was placed before the spread changed: place it again for this frame.
     this.memoryWindow.update(f.final, this.rig.restingEye, 0);

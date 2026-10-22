@@ -861,12 +861,14 @@ export const ALMOST: MemoryDef = {
 };
 
 /**
- * Things I Should Have Said (docs/things.md): a charcoal and pencil film on one sheet. A young man
- * leaves his mother's flat; she waves, small; he lifts the bag she packed and goes without looking
- * back; the door swings shut on its closer. Then the drawing tries the moment again, as he
- * remembers it, in graphite where what happened is charcoal: he comes back to the jamb; her hand
- * rises toward the doorway; each is erased. What is left is an empty doorway, worked over. Drawn
- * offline on a simulated sheet (scripts/things/), played as a film (src/memory/living/FilmScene.ts).
+ * Things I Should Have Said (docs/things.md): a charcoal and pencil film on one sheet (v2, the
+ * artist's review of 2026-10-22). A young man says goodbye to his mother at the door of her flat:
+ * she waves, small; he lifts the bag she packed, turns his back and goes; the door swings shut on its
+ * closer. Then the drawing tries the moment again, in graphite where what happened is charcoal: he
+ * is drawn in the doorway as he left, turns back toward her, his hand begins to rise; it is taken
+ * back. Then her: a lean after him, her hand rising toward the doorway; taken back. Then they are
+ * both taken, and what is left is the doorway with their two hands' impressions. Drawn offline on a
+ * simulated sheet (scripts/things/), played as a film (src/memory/living/FilmScene.ts).
  *
  *   0-7.5     the wall draws the goodbye itself, as the film did: the doorway's construction in hard
  *             pencil, then each of them, tone and then lines, in the film's own order (the pencil
@@ -874,25 +876,27 @@ export const ALMOST: MemoryDef = {
  *             scripts/things/emergence.py); the room's writing stays under the pencil until the
  *             tone reaches it
  *   7.8-11    carried in, square to it; the film holds the goodbye finished
- *   11.5-61.5 the film, 50 s (`scene.film`, its seconds; THINGS_BEATS): her small wave; his walk out,
- *             four steps leaving their residue; the door on its closer and the latch; a silence;
- *             his almost in graphite, held, taken back from the hand; hers, taken back before it
- *             is done; everyone erased, the heads entirely; the doorway's casing drawn again, his
- *             side and hers; the empty doorway
- *   60.25-65  out (the film's last second and a half under it), its edge soft (a sheet rubbed, not
- *             torn); on the wall the drawing goes to a trace of itself, its casings readable under
- *             the returning words, then into the plaster
+ *   11.5-54.25 the film, 42.75 s (`scene.film`, its seconds; THINGS_BEATS): the goodbye; his walk
+ *             out; the door and the latch; a silence; his almost, found, turning back, his hand
+ *             rising, held, taken back; a breath; hers; both of them taken; the empty doorway, six
+ *             seconds still
+ *   53-58     out (the film's last second and a quarter under it), its edge soft (a sheet rubbed,
+ *             not torn); on the wall the drawing goes to a trace of itself, then into the plaster
  *
- * The film has no sound of its own: its sound is one cue (scripts/things/foley.py, the eraser-only
- * mix: drawing silent, taking back heard, the latch), made from the same list of marks.
+ * The film has no sound of its own: its sound is one cue (scripts/things/foley.py, the `revisit`
+ * mix: what happened silent but the latch, the revising pencil faint, the rubber that takes it back
+ * heard), made from the same list of marks.
  */
-export const THINGS_SECTIONS: Sections = { active: 7.5, exit: 60.25, residue: 67.25, end: 70.25 };
+export const THINGS_SECTIONS: Sections = { active: 7.5, exit: 53.0, residue: 60.0, end: 63.0 };
 /** The film: where it begins on the timeline (half a second after the visitor is inside), and its length (s). */
 export const THINGS_AT = 11.5;
-export const THINGS_SECONDS = 1200 / 24;
+export const THINGS_SECONDS = 1026 / 24;
 /** Its story's moments (seconds into the film: scripts/things/story.py, less the 6 s the wall draws;
  * tests/film-scene.test.ts holds them to what emergence.py read off the sheet). */
-export const THINGS_BEATS = { going: 2.0, gone: 4.9, latch: 8.55, lift: 12.5, back: 14.8, takenBack: 22.4, hers: 27.0, erased: 32.0, casing: 39.9, empty: 42.1 };
+export const THINGS_BEATS = {
+  going: 2.0, gone: 5.1, latch: 7.6, lift: 11.2, found: 12.3, turnsBack: 14.5, hand: 16.383, takenBack: 20.395,
+  hers: 25.135, reach: 26.435, hersTaken: 28.847, erased: 32.807, him: 34.407, empty: 35.508,
+};
 /** Its sound's level (foley.py sets the eraser at Memory II's figures' loudness: the same gain). */
 const THINGS_DB = -9;
 
@@ -948,7 +952,8 @@ export const THINGS: MemoryDef = {
     // (Its room is the white room: the file has none of its own.)
     room: [0.3, 2, 0.04],
     cues: {
-      'music:film': { asset: 'music/things-film.mp3', gainDb: THINGS_DB, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, fadeOut: 2, caption: '[an eraser on paper]', captionAt: THINGS_BEATS.lift + 0.3, captions: [{ at: THINGS_BEATS.latch, text: '[a door latch clicks]' }] },
+      'music:film': { asset: 'music/things-film.mp3', gainDb: THINGS_DB, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, fadeOut: 2, caption: '[an eraser on paper]', captionAt: THINGS_BEATS.lift + 0.3,
+        captions: [{ at: THINGS_BEATS.latch, text: '[a door latch clicks]' }, { at: THINGS_BEATS.found + 0.6, text: '[a pencil on paper]' }] },
     },
   }),
   sways: [],
@@ -958,17 +963,18 @@ export const THINGS: MemoryDef = {
   hush: 0.7,
   drone: false,
   living: true,
-  describe: () => 'A charcoal drawing comes onto the wall: a doorway.',
+  describe: () => 'A charcoal drawing comes onto the wall: a goodbye.',
   // (Only what is seen, in order, at least 3.5 s apart, never what it means.)
   announce: () => [
-    { at: THINGS_AT + 0.3, text: 'An older woman waves, small. A young man leaves with a bag.', inside: true },
-    { at: THINGS_AT + 0.3, text: 'On the wall, an older woman waves; a young man leaves.', wall: true },
-    { at: THINGS_AT + THINGS_BEATS.gone + 0.4, text: 'He is gone. The door swings shut.' },
-    { at: THINGS_AT + THINGS_BEATS.lift, text: 'An eraser lifts the door.' },
-    { at: THINGS_AT + THINGS_BEATS.back + 1.2, text: 'In pencil, he comes back to the door frame.' },
-    { at: THINGS_AT + THINGS_BEATS.takenBack + 0.4, text: 'The eraser takes him away.' },
-    { at: THINGS_AT + THINGS_BEATS.hers + 0.8, text: 'In pencil, her hand reaches toward the doorway.' },
-    { at: THINGS_AT + THINGS_BEATS.erased + 0.6, text: 'The eraser takes him away. She is left, faint. Marks stay on the door frame.' },
+    { at: THINGS_AT + 0.3, text: 'A young man with a bag says goodbye to an older woman.', inside: true },
+    { at: THINGS_AT + 0.3, text: 'On the wall, a young man says goodbye to an older woman.', wall: true },
+    { at: THINGS_AT + THINGS_BEATS.gone, text: 'He turns his back and goes. The door swings shut.' },
+    { at: THINGS_AT + THINGS_BEATS.lift, text: 'An eraser lifts the door. In pencil, he is in the doorway.' },
+    { at: THINGS_AT + THINGS_BEATS.hand, text: 'He turns back toward her. His hand begins to rise.' },
+    { at: THINGS_AT + THINGS_BEATS.takenBack + 0.3, text: 'The eraser takes it back.' },
+    { at: THINGS_AT + THINGS_BEATS.hers + 0.5, text: 'In pencil, she leans after him, her hand reaching toward the doorway.' },
+    { at: THINGS_AT + THINGS_BEATS.erased, text: 'Her reach is taken back. Then she is erased.' },
+    { at: THINGS_AT + THINGS_BEATS.empty + 1.0, text: 'The doorway is empty; faint marks stay where their hands nearly met.' },
     { at: THINGS_SECTIONS.exit, text: 'The drawing goes back into the wall.' },
   ],
 };

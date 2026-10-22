@@ -48,7 +48,7 @@ W, H = 1280, 1440
 # The painting on the wall, in metres, and the part the wall shows first round its line (painting
 # uv, y up: x0, y0, w, h): the doorway and her.
 SIZE = (1.6, 1.8)
-CROP = (0.16, 0.26, 0.66, 0.46)
+CROP = (0.27, 0.25, 0.44, 0.49)          # (v2: the drawing's columns 392-869, rows 412-1047)
 # How far into the drawing the film takes over: the goodbye finished (story.py's draw-on is 0-6 s).
 FROM = 6.0
 # The timeline's clocks for the lines and the tone (src/memory/defs.ts, THINGS's window.sketch and
@@ -95,9 +95,10 @@ def times(sheet, items, keep, t0, t1):
 
 # The story's moments (src/memory/defs.ts THINGS_BEATS, held to these by tests/film-scene.test.ts):
 # where each move begins on the sheet (its marks' names), or ends.
-BEATS = {'going': ('real/going1/', 'start'), 'gone': ('real/door0/', 'start'), 'lift': ('c1/door', 'start'), 'back': ('c1/jamb', 'start'),
-         'takenBack': ('c1/back', 'start'), 'hers': ('c2/collar', 'start'), 'erased': ('end/all', 'start'), 'casing': ('end/casing-his', 'start'),
-         'empty': ('end/casing-hers', 'end')}
+BEATS = {'going': ('real/turn/', 'start'), 'gone': ('real/door0/', 'start'), 'lift': ('c1/door', 'start'), 'found': ('c1/back', 'start'),
+         'turnsBack': ('c1/turn', 'start'), 'hand': ('c1/hand', 'start'), 'takenBack': ('c1/out', 'start'), 'hers': ('c2/lean', 'start'),
+         'reach': ('c2/reach', 'start'), 'hersTaken': ('c2/out', 'start'), 'erased': ('end/heads', 'start'), 'him': ('end/him', 'start'),
+         'empty': ('end/', 'end')}
 
 
 def beats(data):
@@ -174,7 +175,7 @@ def main():
     frames = int(subprocess.run(['ffprobe', '-v', 'error', '-count_frames', '-select_streams', 'v:0', '-show_entries', 'stream=nb_read_frames', '-of', 'csv=p=0',
                                  base + '.mp4'], capture_output=True, text=True, check=True).stdout.strip())
     # the sound from FROM: the eraser and the latch, no room of its own
-    snd = foley.foley(items, data['length'], [tuple(e) for e in data.get('events', [])], mix_name='eraser-only', with_room=False)
+    snd = foley.foley(items, data['length'], [tuple(e) for e in data.get('events', [])], mix_name=foley.DEFAULT_MIX, with_room=False)
     snd = snd[int(FROM * foley.SR):]
     pcm = (np.clip(snd, -1, 1) * 32767).astype('<i2').tobytes()
     subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-f', 's16le', '-ar', str(foley.SR), '-ac', '2', '-i', '-', '-c:a', 'libmp3lame', '-b:a', '160k',

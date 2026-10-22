@@ -8,19 +8,20 @@
 // Rows and columns of the sheet the drawing lives in (the reference camera, scripts/things/scene.py)
 const W = 1280;
 const H = 1440;
-/** The middle of what is drawn (the lintel to her feet), from the sheet's top. */
-const MIDDLE = 745;
-/** The doorway's lintel and her shoe, the drawing's top and bottom rows (every beat: QA, 2026-10-21). */
-const LINTEL = 426;
-const FEET = 1007;
-/** Rows kept clear above the lintel and below her feet while the screen has them; her feet's least. */
-const ABOVE = 24;
-const BELOW = 28;
-const BELOW_LEAST = 12;
+/** The middle of what is drawn (the lintel to their feet), from the sheet's top. */
+const MIDDLE = 730;
+/** The casing over the doorway and the lowest foot, the drawing's top and bottom rows (every pose
+ *  of v2, scripts/things/: she stands nearer us, so her feet are lower than they were). */
+const LINTEL = 412;
+const FEET = 1047;
+/** Rows kept clear above the lintel and below their feet while the screen has them; the feet's least. */
+const ABOVE = 16;
+const BELOW = 20;
+const BELOW_LEAST = 10;
 /** coverQuad's overscan (src/world/living/Immersion.ts). */
 const OVER = 1.06;
-/** The doorway and her, across (columns): their middle. */
-const ACROSS = 700;
+/** The doorway and the two of them, across (columns 392-869): their middle. */
+const ACROSS = 630;
 
 /**
  * The film v kept at the screen's centre on a screen this wide (width over height, not upright).
@@ -41,6 +42,9 @@ export function thingsCover(aspect: number): [number, number] {
 
 export const THINGS = {
   /** The film uv kept at the screen's centre when it covers the view. */
-  cover: { wide: thingsCover(16 / 9), upright: [ACROSS / W, 1 - MIDDLE / H] as [number, number], ultra: thingsCover(2.39) },
+  // (Upright: 1.22 times closer than just covering it. The drawing, columns 392-869, is narrower than
+  // a phone's column of the sheet: covered, the people were under half its height; at 1.3 the
+  // casing touched its edge, and on a 360-wide phone 1.25 left 6 px: the cinematic director, 2026-10-22.)
+  cover: { wide: thingsCover(16 / 9), upright: [ACROSS / W, 1 - MIDDLE / H] as [number, number], ultra: thingsCover(2.39), uprightScale: 1.22 },
   coverAt: thingsCover,
 };

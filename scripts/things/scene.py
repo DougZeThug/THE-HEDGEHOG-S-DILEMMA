@@ -29,7 +29,9 @@ W, H = 1280, 1440                   # the open matte, as "Almost"'s (the room's 
 # The camera stands far back with a long lens, level, so the whole doorway (its lintel and its
 # threshold) is inside the band a wide screen shows (rows 360-1080): the last image is a doorway
 # on every screen. (The creative director, Proof A.)
-CAM = dict(loc=(0.18, -6.5, 1.0), look=(0.18, 0.0, 1.0), lens=28.0)     # (6 m left her toes on the band's edge: the cinematic director)
+# (v2: she stands in the room, nearer us, so the camera comes in a little and centres on the two of
+# them and the door; the doorway is still whole inside a 16:9 band.)
+CAM = dict(loc=(0.42, -6.2, 1.0), look=(0.42, 0.0, 1.0), lens=28.0)     # (6 m left her toes on the band's edge: the cinematic director)
 DOOR = dict(x0=0.30, x1=1.20, h=2.06, t=0.16)     # the opening; the wall's thickness
 EXPOSURE = -1.3                     # the tonal render's: the lit walls just under white, the corridor at it
 

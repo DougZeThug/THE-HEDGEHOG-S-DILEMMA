@@ -1,16 +1,20 @@
 {
- "story": "b4c9ccd652c2116c",
- "foley": "163b1d1e1465dd92",
+ "story": "9d76901fc5632c21",
+ "foley": "fbf2d42fdd15d6d5",
  "beats": {
   "going": 2.0,
-  "gone": 4.9,
-  "latch": 8.55,
-  "lift": 12.5,
-  "back": 14.8,
-  "takenBack": 22.4,
-  "hers": 27.0,
-  "erased": 32.0,
-  "casing": 39.9,
-  "empty": 42.1
+  "gone": 5.1,
+  "latch": 7.6,
+  "lift": 11.2,
+  "found": 12.3,
+  "turnsBack": 14.5,
+  "hand": 16.383,
+  "takenBack": 20.395,
+  "hers": 25.135,
+  "reach": 26.435,
+  "hersTaken": 28.847,
+  "erased": 32.807,
+  "him": 34.407,
+  "empty": 35.508
  }
 }

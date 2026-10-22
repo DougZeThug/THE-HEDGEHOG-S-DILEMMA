@@ -47,6 +47,8 @@ export interface InsideFrame {
   approach?: number;
   /** Its edge torn (hard and ragged), not a soft brush (`PreparedLiving.torn`). */
   torn?: boolean;
+  /** How much closer than just filling the screen the painting covers it (1: just filling it). */
+  scale?: number;
 }
 
 /** How far along the way in (0..1) for `scene.approach` (0..1): slow to start, slow to arrive. */
@@ -104,6 +106,7 @@ export class Inside {
   private readonly corners = [new THREE.Vector2(), new THREE.Vector2(), new THREE.Vector2(), new THREE.Vector2()];
   private readonly zoom = new THREE.Vector3(0.5, 0.5, 1);
   private seed = 0;
+  private scale = 1;
 
   constructor(
     private readonly rig: CameraRig,
@@ -163,6 +166,7 @@ export class Inside {
    * an interruption).
    */
   step(dt: number, f: InsideFrame, o: { reduced: boolean; aspect: number; scene: THREE.Texture; group: THREE.Object3D }): 'leave' | null {
+    this.scale = f.scale ?? 1;
     let out: 'leave' | null = null;
     if (!this.decided && f.immerse > 0) {
       this.decided = true;
@@ -303,6 +307,7 @@ export class Inside {
       aspect: o.aspect,
       paint: p.w / Math.max(1e-3, p.h),
       focus: f.focus,
+      scale: this.scale,
       zoom: this.zoom,
       view: this.view,
       seed: this.seed,
@@ -352,7 +357,7 @@ export class Inside {
     n.normalize();
     const v = THREE.MathUtils.degToRad(this.rig.baseFov);
     const h = 2 * Math.atan(Math.tan(v / 2) * aspect);
-    const d = Math.max(0.45, Math.min(p.h / (2 * Math.tan(v / 2)), p.w / (2 * Math.tan(h / 2))) * 1.04);
+    const d = Math.max(0.45, (Math.min(p.h / (2 * Math.tan(v / 2)), p.w / (2 * Math.tan(h / 2))) * 1.04) / this.scale);
     const eye = this.rig.eyeHeight;
     return { x: pt.x + n.x * d, z: pt.z + n.z * d, yaw: Math.atan2(n.x, n.z), pitch: Math.atan2(pt.y - eye, d), wall: pt, normal: n, d };
   }

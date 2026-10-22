@@ -144,7 +144,7 @@ class Drawing:
 
     # contours
     def contours(self, group, part, tool, base, gain, lost=0.0, wobble=1.0, over=(2, 7), most=150.0, double=0.0, fine=(), carry=0.0, lines=None, layer='contour',
-                 outline=None):
+                 outline=None, size=1.0):
         """`fine`: circles (x, y, r, tool, size, gain) where the line is drawn otherwise (a head
         lighter, a hand). `outline`: ids whose inside lines are left out (only the edge of the
         silhouette drawn: an imagined figure's lapel drew as a black tie, the creative director)."""
@@ -199,7 +199,7 @@ class Drawing:
                         qq, pp = q[r0:r1], p[r0:r1].copy()
                         # the hand eases in and out of a stroke
                         pp *= np.clip(np.sin(np.linspace(0.12, 0.88, len(qq)) * math.pi) * 1.25, 0.35, 1)
-                        t_, sz = tool, 1.0
+                        t_, sz = tool, size
                         c = qq.mean(0)
                         skip = False
                         for fx, fy, fr, ft, fs, fg in fine:
@@ -479,7 +479,9 @@ def scene_marks(ref, prefix, sheet=None, parts=('place', 'young', 'older'), line
     near = np.exp(-cv2.distanceTransform(1 - figmask, cv2.DIST_L2, 5) / 40.0) if figmask.any() else np.zeros_like(want)
     want = np.where(np.isin(ids, PEOPLE), want, np.where(np.isin(ids, FLOOR), want * 0.6 * near, 0.0))
     # the door at under half its weight: drawn whole, shut, it was a slab that outweighed them
-    want = np.where(ids == 7, target_density(tone) * 0.42, want)
+    # (v2: at 0.42, five steps of it closing ground a slab into the paper that the eraser could only
+    # turn into blotches across the doorway: a lighter leaf, its edges and its knob carry it)
+    want = np.where(ids == 7, target_density(tone) * 0.24, want)
     # and a light falloff on the wall round the doorway, so the opening is the brightest place on
     # the sheet from the first frame (its emptiness, at the end, is lit) (the creative director)
     opening = (ids == 4).astype(np.uint8)
@@ -540,14 +542,20 @@ def scene_marks(ref, prefix, sheet=None, parts=('place', 'young', 'older'), line
                 a0, b0, _, a1, b1, _ = lm[f'foot.{sd}']
                 fine.append(((a0 + a1) / 2, (b0 + b1) / 2 + 4, 16.0, line, 1.0, 0.0))
         outline = FIGURE_IDS[who] if imagined else None
-        dr.contours(who, who, line, 0.14, 0.75, lost=0.45, wobble=0.9, over=(1, 4), most=90, double=0.0 if imagined else 0.2, fine=fine, carry=0.5,
-                    outline=outline)
+        # (v2: what is imagined at a pencil's own weight was too thin to read at a phone's size: a
+        # softer, broader graphite, pressed more, still under any charcoal)
+        base, size = (0.4, 1.7) if imagined else (0.14, 1.0)
+        dr.contours(who, who, line, base, 0.75, lost=0.0 if imagined else 0.45, wobble=0.9, over=(1, 4), most=90, double=0.0 if imagined else 0.2, fine=fine,
+                    carry=0.5, outline=outline, size=size)
         # the head's outline from the silhouette (the hair's strands drew as stripes and its
         # hairline as a scar: the reviewers), lighter, lost and found as the rest
-        dr.contours(who, who, line, 0.14, 0.75, lost=0.45, wobble=0.6, over=(1, 3), most=60, fine=fine, carry=0.45,
-                    lines=head_outline(ids, FIGURE_IDS[who], fine[0]))
-        if who != 'young' and not imagined:
-            face_marks(dr, who)          # (in his memory he does not see his own face)
+        dr.contours(who, who, line, base, 0.75, lost=0.0 if imagined else 0.45, wobble=0.6, over=(1, 3), most=60, fine=fine, carry=0.45,
+                    lines=head_outline(ids, FIGURE_IDS[who], fine[0]), size=size)
+        if who != 'young' or imagined:
+            # (in his memory he does not see his own face, but for the face he turns back to her
+            # when he imagines turning: without it his head turn was one oval moved 5 px: the
+            # cinematic director)
+            face_marks(dr, who)
     apply(sheet, dr.marks[n0:])
     return dr.marks, sheet
 
@@ -577,8 +585,70 @@ def casing_marks(ref, prefix, near, r=110.0):
     off = rng.uniform(-2.5, 2.5, 2)
     pieces = [pc + off for pc in pieces if len(pc) > 1 and np.linalg.norm(np.diff(pc, axis=0), axis=1).sum() > 8]
     dr = Drawing(ref, prefix)
-    dr.contours('arch', 'arch', 'charcoal', 0.35, 0.3, wobble=1.3, over=(2, 8), most=90, lines=pieces)
+    dr.contours('arch', 'arch', 'charcoal', 0.26, 0.26, wobble=1.3, over=(2, 8), most=90, lines=pieces)
     return dr.marks
+
+
+def gesture_marks(ref, who, prefix, limbs=('arm.L', 'arm.R'), pressure=0.42):
+    """A body's construction before its contours (v2: a revised gesture is found before it is
+    drawn): faint hard-pencil lines through its long bones, as a draughtsman finds a pose: the
+    line of the back, the shoulders, an oval for the head, the limbs that matter to the gesture."""
+    lm = ref['landmarks'][who]
+    P = lambda k, end=0: np.array(lm[k][0:2] if end == 0 else lm[k][3:5], np.float32)
+    lines = {'spine': [P('pelvis'), P('spine'), P('chest'), P('neck'), P('neck', 1)],
+             'shoulders': [P('clavicle.L', 1), P('clavicle.R', 1)]}
+    for limb in limbs:
+        kind, sd = limb.split('.')
+        if kind == 'arm':
+            lines[limb] = [P(f'upper_arm.{sd}'), P(f'forearm.{sd}'), P(f'hand.{sd}', 1)]
+        else:
+            lines[limb] = [P(f'thigh.{sd}'), P(f'shin.{sd}'), P(f'foot.{sd}', 1)]
+    hx0, hy0, _, hx1, hy1, _ = lm['head']
+    c, r = np.array([(hx0 + hx1) / 2, (hy0 + hy1) / 2], np.float32), 0.62 * math.hypot(hx1 - hx0, hy1 - hy0) + 4
+    a0 = seed_of(prefix + who) % 628 / 100.0
+    lines['head'] = [c + r * np.array([math.cos(a0 + k * 0.45) * 0.85, math.sin(a0 + k * 0.45)], np.float32) for k in range(16)]
+    marks = []
+    for k, pts in lines.items():
+        q = hand(resample(np.array(pts, np.float32), 3.0), f'{prefix}/{who}/build/{k}', 1.4, (6, 16))
+        n = len(q)
+        pr = np.clip(np.sin(np.linspace(0.1, 0.9, n) * math.pi) * 1.3, 0.35, 1) * pressure
+        marks.append(dict(kind='stroke', name=f'{prefix}/{who}/build/{k}', part=who, layer='construct', pts=q.round(2).tolist(), tool='hardpencil',
+                          pressure=pr.round(3).tolist(), size=1.0))
+    return marks
+
+
+def trace_erase(prefix, part, marks, order, strength=0.8, width=12.0, spare=None, skip=0.0, drag=0.35, passes=3, piece=55.0):
+    """An eraser along lines that were drawn (v2: a contour selectively rubbed away, not a region
+    dissolved): each line rubbed in short strokes along itself (`piece` px), back and forth
+    `passes` times, a little off it and wider than it, in the order the hand takes them (nearest
+    `order`, a point, first). (One long stroke along a line lifted a fifth of it.) `spare` (x, y,
+    r, kept): near it the rubber presses less (a hand's impression stays); `skip` of them never
+    made."""
+    rng = np.random.default_rng(seed_of(f'{prefix}/{part}/trace'))
+    out = []
+    ox, oy = order
+    for m in sorted(marks, key=lambda m: float(np.hypot(*(np.asarray(m['pts'], np.float32).mean(0) - (ox, oy))))):
+        if m['kind'] != 'stroke' or rng.random() < skip:
+            continue
+        q = np.asarray(m['pts'], np.float32)
+        if len(q) < 2:
+            continue
+        # the rubber goes the way the hand pulls it: from the end nearer `order` outward
+        if np.hypot(*(q[-1] - (ox, oy))) < np.hypot(*(q[0] - (ox, oy))):
+            q = q[::-1]
+        q = hand(q + rng.uniform(-1.5, 1.5, 2), f'{m["name"]}/rub', 1.6, (3, 9))
+        for sub in split_long(resample(q, 2.0), piece):
+            st = strength * rng.uniform(0.85, 1.05)
+            if spare is not None:
+                sx, sy, sr, kept = spare
+                d = float(np.hypot(*(sub.mean(0) - (sx, sy))))
+                st *= 1 - kept * math.exp(-(d / sr) ** 2)
+            w_ = float(width * rng.uniform(0.85, 1.25))
+            for k in range(passes):
+                p_ = (sub if k % 2 == 0 else sub[::-1]) + rng.uniform(-1.2, 1.2, 2)
+                out.append(dict(kind='erase', name=f'{prefix}/{part}/trace/{len(out)}', part=part, layer='erase', pts=p_.round(2).tolist(),
+                                width=w_, strength=float(np.clip(st, 0.05, 1.0)), drag=drag if k == passes - 1 else 0.05))
+    return out
 
 
 def erase_marks(prefix, part, mask, width=26, strength=0.85, angle=-60.0, spacing=None, order='top', drag=0.3, weight=None, rag=True, skip=0.0):

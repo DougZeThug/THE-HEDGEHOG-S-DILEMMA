@@ -13,10 +13,13 @@ standing rest (REST), each carried by the bones above it:
 `bag`: which hand holds the bag ('L', 'R' or None). `shown`: False when someone is gone.
 `door`: its angle in degrees (0 shut; negative opens it inward, toward the camera).
 
-The gestures are the creative director's (Proof A): small, specific, physical. The goodbye does not
-match: she waves, he lifts the bag she packed instead of a hand, and does not see her wave. The
-almosts: he comes back to rest a hand on the jamb, his weight on his back heel, a shoulder dropping
-toward her; she takes half a step and her hand rises toward his collar, to straighten it.
+The staging (v2, the artist's review of the first film, 2026-10-22): she stands in the room, near
+us and to the left, at home; he stands between her and the door, facing her, the bag she packed in
+his hand. The goodbye is ordinary: she waves, small; he lifts the bag and nods. He turns his back on
+her and walks away from her, out of the doorway and to the right; she watches him go. The almosts
+are revisions of that moment, in stages, each stopping before it is done: his, at the threshold,
+his shoulder turning back toward her, then his head, then his free hand beginning to rise; hers,
+from where she stands, a lean and her hand rising toward the doorway he left by.
 """
 
 # MakeHuman's skeleton stands in an A pose; this brings the arms down to the sides, a little bent,
@@ -62,13 +65,16 @@ def blend(a, b, t):
     return out
 
 
-OLDER_AT = (-0.3, -0.4)
-YOUNG_AT = (0.76, 0.08)
+# Where they stand: she in the room near us, left; he between her and the door, facing her (the
+# door wall is y = 0, its opening x 0.30-1.20; the camera stands at y = -6.2, scene.py).
+OLDER_AT = (-0.25, -0.95)
+YOUNG_AT = (0.42, -0.6)
+THRESHOLD = (0.72, 0.02)
 
 LOOSE = {f'finger{f}-{j}.R': (6 + 2 * f, 0, 0) for f in range(2, 6) for j in range(1, 4)}
+OPEN = {f'finger{f}-{j}.R': (2 + f, 0, 0) for f in range(2, 6) for j in range(1, 4)}
+OPEN_L = {f'finger{f}-{j}.L': (4 + 2 * f, 0, 0) for f in range(2, 6) for j in range(1, 4)}
 FIST = {**{f'finger{f}-{j}.R': (62 + 6 * j, 0, 0) for f in range(2, 6) for j in range(1, 4)}, 'finger1-2.R': (25, 0, 0), 'finger1-3.R': (30, 0, 0)}
-PINCH = {**{f'finger{f}-{j}.R': (30 + 10 * f, 0, 0) for f in range(4, 6) for j in range(1, 4)},
-         'finger2-1.R': (14, 0, 0), 'finger2-2.R': (22, 0, 0), 'finger3-1.R': (20, 0, 0), 'finger3-2.R': (30, 0, 0), 'finger1-2.R': (18, 0, 0)}
 
 # Her body at sixty: a little forward at the hips and the neck, the shoulders rounded, the knees
 # not quite straight. (The creative director, Proof A2.)
@@ -84,42 +90,36 @@ def _plus(base, **k):
     return d
 
 
-# the goodbye: she waves, small, a lift of the fingers at her ribs, clear of her face (raised, it
-# read as a hand to her mouth: the skeptic); he is going, the bag lifted to his waist instead of a
-# hand, his eyes on the corridor
-OLDER_WAVE = dict(at=OLDER_AT, face=80, bones=_plus(STOOP, head=(-6, -5, 0)),
-                  local=LOOSE, reach={'R': {'hand': (-0.22, -0.24, 0.98), 'elbow': (-0.3, 0.05, 0.5)}})
-YOUNG_GOING = dict(at=YOUNG_AT, face=100, bag='R', local=FIST,
-                   bones={'neck01': (8, 0, 0), 'head': (6, 0, -10), 'spine03': (0, 0, 6),
-                          'upperleg01.L': (-14, 0, 0), 'lowerleg01.L': (8, 0, 0),
-                          'upperleg01.R': (10, 0, 0), 'lowerleg01.R': (16, 0, 0), 'foot.R': (-12, 0, 0)},
-                   reach={'R': {'hand': (-0.24, -0.16, 1.02), 'elbow': (-0.4, 0.4, 0.6)}})
-
-POSES = {
-    'goodbye': {'door': -82, 'older': OLDER_WAVE, 'young': YOUNG_GOING},
-    # the first thing imagined: past the threshold he stops, his hand comes back to the jamb (the
-    # bag's handles slid to his wrist), his weight rocks onto his back heel, his shoulder and his
-    # head drop back toward her; she is as she was, her hand coming down
-    'jamb': {'door': -82,
-             'older': dict(OLDER_WAVE, reach={'R': {'hand': (-0.2, -0.24, 0.98), 'elbow': (-0.3, -0.1, 0.5)}}),
-             'young': dict(at=(0.94, 0.28), face=104, bag='R', local=FIST,
-                           bones={'spine05': (-3, 0, 0), 'spine04': (-3, -4, -14), 'spine02': (0, -5, -14), 'neck01': (6, 0, -22), 'head': (8, -4, -30),
-                                  'upperleg01.L': (-10, 0, 0), 'lowerleg01.L': (6, 0, 0), 'upperleg01.R': (6, 0, 0), 'foot.L': (8, 0, 0)},
-                           reach={'R': {'hand': ('world', (1.17, -0.03, 1.2)), 'elbow': (-0.5, 0.0, 0.6)}})},
-    # the second thing imagined: half a step, her hand rising toward his collar; he has not turned
-    # (only her arm rises, from where she stands: her fingers pinched at his collar's height stop at
-    # the left casing, so the doorway is between her hand and him: the creative director)
-    'collar': {'door': -82,
-               'older': dict(OLDER_WAVE, local=LOOSE, bones=_plus(STOOP, head=(-8, -5, 0), neck01=(-4, 0, 0)),
-                             reach={'R': {'hand': ('world', (0.21, -0.12, 1.24)), 'elbow': (-0.25, 0.05, 0.3)}}),
-               'young': YOUNG_GOING},
-}
-
-
 # ---------------------------------------------------------------- the goodbye as it happened
-# He walks out of the doorway and along the corridor to the right, behind the wall; the door, on
-# its closer, swings shut after him; she waves, small, and her hand comes down. A walk's four
-# drawings (contact, passing, contact, passing), legs and his free arm swinging.
+# She faces him (and, once he turns, the door); her small wave is a lift of the fingers at her ribs
+# (raised, it read as a hand to her mouth: the skeptic). He faces her, the bag hanging from his right
+# hand; then he lifts it a little, a nod, and turns away.
+# (v2: her hands low in front of her, one over the other's wrist: with her hand held out to him at
+# the goodbye, her imagined reach revised nothing, she had already reached: the creative director)
+_HANDS = {'R': {'hand': (0.0, -0.2, 0.84), 'elbow': (-0.3, 0.1, 0.5)}, 'L': {'hand': (0.07, -0.2, 0.82), 'elbow': (0.3, 0.1, 0.5)}}
+SHE = dict(at=OLDER_AT, face=112, bones=_plus(STOOP, head=(-6, 0, 4)), local=LOOSE, reach=_HANDS)
+SHE_DOWN = dict(SHE, local={})
+HE = dict(at=YOUNG_AT, face=-62, bag='R', local=FIST, bones={'neck01': (6, 0, 0), 'head': (4, 0, -6)},
+          reach={'R': {'hand': (-0.2, 0.02, 0.8), 'elbow': (-0.3, 0.3, 0.6)}})
+
+
+def waving(k, base=SHE):
+    """Her small wave: the right hand lifted from the other a little, at her waist, the fingers
+    rocking at the wrist (an ordinary goodbye: nothing held out to him)."""
+    w = dict(base)
+    w['bones'] = _plus(base['bones'], wrist__R=((0, 0, 40), (0, 0, -34), (0, 0, 38), (0, 0, -14))[k % 4])
+    w['reach'] = {**base['reach'], 'R': {'hand': ((-0.1, -0.13, -0.1, -0.05)[k % 4], -0.24, 0.96), 'elbow': (-0.3, 0.05, 0.5)}}
+    return w
+
+
+def watching(head_z, base=SHE):
+    """Her, her head following him as he goes (toward the door: her right)."""
+    w = dict(base)
+    w['bones'] = _plus(base['bones'], head=(0, 0, head_z), neck01=(0, 0, head_z * 0.5))
+    return w
+
+
+# A walk's four drawings (contact, passing, contact, passing), legs and his free arm swinging.
 WALK = [
     {'upperleg01.L': (-16, 0, 0), 'lowerleg01.L': (4, 0, 0), 'upperleg01.R': (12, 0, 0), 'lowerleg01.R': (18, 0, 0), 'foot.R': (-14, 0, 0),
      'upperarm01.L': (14, 0, 0), 'spine03': (0, 0, 5)},
@@ -130,38 +130,80 @@ WALK = [
     {'upperleg01.R': (2, 0, 0), 'lowerleg01.R': (6, 0, 0), 'upperleg01.L': (-14, 0, 0), 'lowerleg01.L': (40, 0, 0), 'foot.L': (-6, 0, 0),
      'upperarm01.L': (0, 0, 0)},
 ]
-# (the last two: half behind the casing, then only his shoulder and the bag at its edge)
-PATH = [((0.76, 0.08), 100), ((0.92, 0.26), 88), ((1.06, 0.4), 84), ((1.18, 0.46), 82), ((1.34, 0.5), 82)]
+# Away from her: turned (his back to her), to the threshold, through it, and right along the
+# corridor behind the wall (the last: only his shoulder and the bag at the casing's edge).
+PATH = [((0.5, -0.48), 160), ((0.6, -0.24), 168), ((0.72, 0.02), 172), ((0.94, 0.32), 120), ((1.2, 0.46), 96), ((1.38, 0.5), 90)]
 
 
 def going(k):
-    """Him, the k-th drawing of his walk out (0 is the goodbye's own)."""
+    """Him, the k-th drawing of his walk away (0: turned from her, his first step)."""
     at, face = PATH[k]
-    bones = {'neck01': (8, 0, 0), 'head': (6, 0, -6 + 2 * k)}
+    bones = {'neck01': (8, 0, 0), 'head': (6, 0, 0)}
     bones.update(WALK[k % 4])
     return dict(at=at, face=face, bag='R', local=FIST, bones=bones,
-                reach={'R': {'hand': (-0.24, -0.16, 1.02 - 0.04 * min(k, 2)), 'elbow': (-0.4, 0.4, 0.6)}})
+                reach={'R': {'hand': (-0.24, -0.1, 0.9), 'elbow': (-0.4, 0.4, 0.6)}})
 
 
 GONE = dict(at=(2.4, 0.6), face=90, shown=False)
 
+POSES = {
+    # they face each other; she has begun her small wave
+    'goodbye': {'door': -82, 'older': SHE, 'young': HE},
+    'wave1': {'door': -82, 'older': waving(1), 'young': HE},
+    # he lifts the bag a little, and nods (his "right, then")
+    'wave2': {'door': -82, 'older': waving(2),
+              'young': dict(HE, bones={'neck01': (18, 0, 0), 'head': (16, 0, -6), 'spine02': (4, 0, 0)}, reach={'R': {'hand': (-0.22, -0.16, 0.98), 'elbow': (-0.3, 0.3, 0.6)}})},
+}
+# (v2: the turn away is seen: three quarters round, his back coming to her, before the first step;
+# a cut from facing her to his back left his turning back later nothing to answer: the cinematic
+# director)
+POSES['turn'] = {'door': -82, 'older': waving(3), 'young': dict(HE, at=(0.45, -0.56), face=-128, bones={'neck01': (8, 0, 0), 'head': (6, 0, 8), 'spine03': (0, 0, -6)})}
+# he goes; her head follows him to the door
+for _k in range(6):
+    POSES[f'going{_k}'] = {'door': -82, 'older': watching((0, 4, 8, 14, 18, 20)[_k]), 'young': going(_k)}
+# the door on its closer, slowing; her hand comes down
+WATCH = watching(20, SHE_DOWN)
+for _k, _a in enumerate((-82, -55, -30, -12, -4)):
+    POSES[f'door{_k}'] = {'door': _a, 'older': watching(20) if _k < 2 else WATCH, 'young': GONE}
+POSES['shut'] = {'door': 0, 'older': WATCH, 'young': GONE}
+# after the latch: her head drops a little (she has stopped watching the door)
+POSES['after'] = {'door': 0, 'older': dict(WATCH, bones=_plus(WATCH['bones'], head=(10, 0, -6), neck01=(4, 0, 0))), 'young': GONE}
 
-def waving(k):
-    """Her small wave: the hand rocks at the wrist, a little to and fro, then comes down."""
-    w = dict(OLDER_WAVE)
-    w['bones'] = _plus(OLDER_WAVE['bones'], wrist__R=((0, 0, 30), (0, 0, -24), (0, 0, 28), (0, 0, -10))[k % 4])
-    return w
+# ---------------------------------------------------------------- what is imagined
+# His: at the threshold, as he was when he passed it (his back to her), then each stage of turning
+# back toward her (z positive turns a body toward its own left: toward her, behind him), the bag
+# still in his right hand; his free left hand beginning to rise toward her, never arriving (at his
+# chest's height, clear of the doorknob, where its impression read as the knob: the skeptic).
+HIS_BACK = dict(at=THRESHOLD, face=176, bag='R', local=FIST, bones={'neck01': (8, 0, 0), 'head': (6, 0, 0)},
+                reach={'R': {'hand': (-0.24, -0.1, 0.9), 'elbow': (-0.4, 0.4, 0.6)}})
+_SHOULDER = {'spine04': (0, 0, 18), 'spine03': (0, 0, 16), 'spine02': (0, -3, 20), 'clavicle.L': (0, 0, 8)}
+_HEAD = {'neck01': (2, 0, 25), 'head': (-2, -4, 30)}
+HIS_SHOULDER = dict(HIS_BACK, bones={**HIS_BACK['bones'], **_SHOULDER, 'neck01': (8, 0, 6), 'head': (6, 0, 4)})
+HIS_HEAD = dict(HIS_BACK, bones={**HIS_BACK['bones'], **_SHOULDER, **_HEAD})
+HIS_HAND = dict(HIS_HEAD, local={**FIST, **OPEN_L},
+                reach={**HIS_BACK['reach'], 'L': {'hand': ('world', (0.3, -0.38, 1.2)), 'elbow': (0.45, 0.3, 0.15)}})
+# Hers: from where she stands, toward the doorway he left by: her weight onto the front foot, her
+# back and her head leaning after him, then her right hand rising toward the doorway, opening.
+# (bent at the hips with both knees bent, she read as stooping to pick something up: the weight goes
+# onto the front foot, the back leg straight, the back and head only a little after it)
+# (v2: further, so her head moves toward the doorway and the lean reads, not a doubled contour: the
+# cinematic director)
+_LEAN = {'spine05': (-3, 0, 0), 'spine03': (7, 0, -4), 'spine02': (7, 0, -5), 'neck01': (6, 0, 0), 'head': (-2, 0, 0),
+         'upperleg01.R': (-11, 0, 0), 'lowerleg01.R': (-2, 0, 0), 'upperleg01.L': (9, 0, 0), 'lowerleg01.L': (-4, 0, 0)}
+WRIST = 50.0              # (turned in: at -50 the palm faced him, "stop")
+HER_LEAN = dict(WATCH, at=(OLDER_AT[0] + 0.1, OLDER_AT[1] + 0.05), bones=_plus(WATCH['bones'], **{k.replace('.', '__'): v for k, v in _LEAN.items()}))
+# (palm out at head height, it read as "stop": the hand at his chest's height, palm turned in, the
+# fingers loose)
+HER_REACH = dict(HER_LEAN, local=OPEN, bones=_plus(HER_LEAN['bones'], wrist__R=(0, WRIST, 0)),
+                 reach={'R': {'hand': ('world', (0.14, -0.68, 1.04)), 'elbow': (-0.35, 0.05, -0.15)}})
 
-
-LOWERED = dict(OLDER_WAVE, reach={'R': {'hand': (-0.18, -0.12, 0.86), 'elbow': (-0.3, 0.1, 0.5)}}, local={})
-
-for _k in range(1, 5):
-    POSES[f'going{_k}'] = {'door': -82, 'older': waving(_k), 'young': going(_k)}
-for _k, _a in enumerate((-82, -55, -30, -12, -4)):     # the closer slows it at the end
-    POSES[f'door{_k}'] = {'door': _a, 'older': waving(_k) if _k < 2 else LOWERED, 'young': GONE}
-POSES['shut'] = {'door': 0, 'older': LOWERED, 'young': GONE}
-# the empty doorway, at the end: the door open as the revisions left it, nobody
-POSES['empty'] = {'door': -82, 'older': dict(LOWERED, shown=False), 'young': GONE}
-# her wave, seen before his walk takes the eye: two rocks of the wrist
-for _k in (1, 2):
-    POSES[f'wave{_k}'] = {'door': -82, 'older': waving(_k), 'young': YOUNG_GOING}
+POSES.update({
+    'his-back': {'door': -82, 'older': WATCH, 'young': HIS_BACK},
+    'his-shoulder': {'door': -82, 'older': WATCH, 'young': HIS_SHOULDER},
+    'his-head': {'door': -82, 'older': WATCH, 'young': HIS_HEAD},
+    'his-hand': {'door': -82, 'older': WATCH, 'young': HIS_HAND},
+    'her-lean': {'door': -82, 'older': HER_LEAN, 'young': GONE},
+    'her-reach': {'door': -82, 'older': HER_REACH, 'young': GONE},
+    # the empty doorway, at the end: the door as the revisions left it, nobody
+    'empty': {'door': -82, 'older': dict(WATCH, shown=False), 'young': GONE},
+})
