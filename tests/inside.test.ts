@@ -101,6 +101,18 @@ describe('inside a living memory', () => {
     expect(rig.pos.z).toBeCloseTo(start.z, 6);
   });
 
+  it("a tap's turn still under way when the memory takes the view stops there, carried or not", () => {
+    // (Under reduced motion it survived the lock and, once control was handed back, eased the view
+    // toward the old tap.)
+    for (const reduced of [false, true]) {
+      const { rig, inside, step } = setup();
+      inside.begin(4, reduced);
+      rig.faceToward(new THREE.Vector3(3, 1.6, 0));
+      for (let e = 0; e <= 1; e += 0.05) step(e, { reduced, approach: reduced ? undefined : e });
+      expect((rig as unknown as { lookGoal: unknown }).lookGoal, `reduced ${reduced}`).toBeNull();
+    }
+  });
+
   it('one move in: the body first (their look their own), then taken in on the same curve without a jump; back to where they stood', () => {
     const { rig, inside, step } = setup();
     inside.begin(5);

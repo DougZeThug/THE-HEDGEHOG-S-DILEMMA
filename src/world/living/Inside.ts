@@ -253,8 +253,11 @@ export class Inside {
       this.rig.cancelAttend();
     }
     if (o.reduced && e > 0 && !this.from && !this.handedBack) {
-      // Not carried, but held still while the view is the painting's.
+      // Not carried, but held still while the view is the painting's; a tap's turn still under way
+      // stops here too (held over the lock, it swung the view back toward the old tap once control
+      // was handed back, turned the way they turned).
       this.from = { x: this.rig.pos.x, z: this.rig.pos.z, yaw: this.rig.yaw, pitch: this.rig.pitch };
+      this.rig.cancelAttend();
     }
     if (this.from && !this.handedBack) {
       if (this.leaving && e <= 0.5) {
