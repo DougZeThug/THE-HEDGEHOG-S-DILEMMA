@@ -1001,6 +1001,27 @@ describe('the scene, as built (no GL: what it would draw and let go)', () => {
     expect(names.size).toBeLessThanOrEqual(16);
   });
 
+  // The wind's fetch offsets sample at `uv - d` so the content shifts by +d: right for a positive
+  // gust, drooping down at the tips — matching the flowers' forward displacement and the signed
+  // wind contract ("positive bends things to the right", performance.ts). A fetch at `uv + d`
+  // shifts by -d (left, lifting the tips): nothing else in the toolchain checks the direction, so
+  // this guards the sign (introduced inverted in ba87f67, unseen until the fix).
+  it('the wind bends the sampled grass, ground and bed grass with the gust, not against it', () => {
+    const m = livingMaterials(tex());
+    const f = m.people.fragmentShader;
+    // Plate grass/leaves, two-shot ground, bed grass: all three fetch at `uv - d` (content +d).
+    expect(f).toContain('vec2 at = uv - d * uPx;');
+    expect(f).not.toContain('vec2 at = uv + d * uPx;');
+    expect(f).toContain('uv -= vec2(dx, -0.25 * abs(dx)) * uPx;');
+    expect(f).not.toContain('uv += vec2(dx, -0.25 * abs(dx)) * uPx;');
+    expect(f).toContain('uvF -= vec2(dx, -0.25 * abs(dx)) / uSheet;');
+    expect(f).not.toContain('uvF += vec2(dx, -0.25 * abs(dx)) / uSheet;');
+    // The fleck line already samples at `uv - fs` (content shifts +fs, with the leaves): unchanged.
+    expect(f).toContain('texture2D(uMaps, uv - fs * uPx * uMotion).a');
+    // The flowers' forward displacement (vertex) is `position.xy + d` (+d is right, drooping down).
+    expect(m.people.vertexShader).toContain('position.xy + vec2(dx, -0.3 * abs(dx) * b) * uPx');
+  });
+
   it('lets go of everything it made (twice is safe), and leaves the shared materials holding nothing', () => {
     const s = make();
     const geos = ['grid', 'strips', 'air', 'quad'].map((k) => (s as unknown as Record<string, THREE.BufferGeometry>)[k]);

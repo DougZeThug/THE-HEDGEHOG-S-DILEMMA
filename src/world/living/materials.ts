@@ -294,7 +294,7 @@ const FRAG = /* glsl */ `
         float k = exp(-dot(r, r) / 0.0012) * exp(-uTap.z / 0.6) * uTap.w;
         d += normalize(r + 1e-5) * k * 2.0 * sin(uTap.z * 9.0) * uMotion;
       }
-      vec2 at = uv + d * uPx;
+      vec2 at = uv - d * uPx;
       // The cut: the same composition, later (its own painting), on one frame.
       vec3 c = uAfter > 0.5 ? texture2D(uAfterPlate, at).rgb : texture2D(uPlate, at).rgb;
       // The sky drifting behind the leaves (the leaves and the mountain stay where they are).
@@ -335,7 +335,7 @@ const FRAG = /* glsl */ `
         float clump = sin(uTime * 3.4 + texture2D(uNoise, uv * vec2(0.7, 0.45) + 0.31).r * 6.2831);
         float dx = (w.x * 4.0 + clump * 1.2) * g * uMotion;
         dx = 6.0 * dx / sqrt(36.0 + dx * dx);
-        uv += vec2(dx, -0.25 * abs(dx)) * uPx;
+        uv -= vec2(dx, -0.25 * abs(dx)) * uPx;
       }
       gl_FragColor = vec4(texture2D(uFrame, uv).rgb, 1.0);
       return;
@@ -392,7 +392,7 @@ const FRAG = /* glsl */ `
           float clump = sin(uTime * 3.4 + 2.0 * sin(uTime * 0.34 + 9.42 * n2) + 9.42 * n1) * (0.3 + 0.7 * min(1.0, abs(w)));
           float dx = (w * 1.5 + clump * 3.2) * sw * uMotion;
           dx = 7.0 * dx / sqrt(49.0 + dx * dx);
-          uvF += vec2(dx, -0.25 * abs(dx)) / uSheet;
+          uvF -= vec2(dx, -0.25 * abs(dx)) / uSheet;
         }
       }
       f = figureAt(uvF, 0.0);
