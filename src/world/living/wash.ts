@@ -37,9 +37,15 @@ export function washInputs(
   // back from a trace to full in one frame as it completed, the wool gone 2 s before: the
   // cinematic director's review, 2026-10-21.)
   const weight = Math.max(presenceWeight, 1e-3);
-  // (its sketch layer: the wool, `fibres`, or a drawing's pencil, `lines`)
-  const sketch = Math.max('layer:fibres.opacity' in final ? final['layer:fibres.opacity'] : 0, 'layer:lines.opacity' in final ? final['layer:lines.opacity'] : 0);
-  const shown = Math.max(final['layer:scene.opacity'] ?? 1, sketch) / weight;
+  // The picture's layers are alpha-composited "over" each other in the same quad by the wall's
+  // shader (src/world/MemoryWindow.ts: cov = 1 - (1 - a)(1 - b) for each layer over the last), so
+  // the painting's presence is their combined coverage, never the maximum of two overlapping
+  // layers (a max undercounts it mid-crossfade and pulses the writing, though the picture never
+  // leaves the wall). The wool (`fibres`) and a drawing's pencil (`lines`) are its sketch layers.
+  const sceneOpacity = final['layer:scene.opacity'] ?? 1;
+  const fibresOpacity = 'layer:fibres.opacity' in final ? final['layer:fibres.opacity'] : 0;
+  const linesOpacity = 'layer:lines.opacity' in final ? final['layer:lines.opacity'] : 0;
+  const shown = (1 - (1 - sceneOpacity) * (1 - fibresOpacity) * (1 - linesOpacity)) / weight;
   return {
     colourAt,
     reveal: final['window.reveal'] ?? 0,

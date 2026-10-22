@@ -449,6 +449,70 @@ describe("which memories lie under the room's writing (the App's wiring, through
     }
   });
 
+  it("Almost's writing stays a trace through the scene→wool handoff (wired as the App wires it)", () => {
+    // The App wires Almost with `living: true` (src/memory/runtime.ts: `living: !!prepared.living`,
+    // and almost has a living film scene), and a living memory authors its own withdrawal — its sketch
+    // held through it (`compose.ts`: `dissolve = 0` when living) — so the wash tracks the picture's
+    // presence on the wall (`shown` in washInputs). Through the scene→wool crossfade the picture is
+    // still composited on the wall at ~85% coverage, so the words must stay a trace and come back
+    // once, as the wool sinks into the plaster (decision 39, docs/reviews/2026-10-almost.md). The
+    // committed `play` helper above wires `living: false` for almost (its `scene` stub comes from the
+    // woodland manifest, which has no `film` variant), so this plays it as the App does instead.
+    const box = { x: 0.2, y: 0.1, w: 1, h: 0.1 }, painting = { cx: 0, cy: 0, w: 3.2, h: 1.8 };
+    const def = MEMORIES.almost;
+    for (const v of def.variants) {
+      const src = sheetSource(sheetId('almost', v), memorySchema(def.layers, def.living), { sections: def.sections, markers: def.markers });
+      const c = new MemoryPlaybackController({ timeline: src, weights: weightsFor(false, false), reduced: false, entrance: Math.min(2, src.sections.active * 0.4), sways: def.sways, exit: def.exit, maxHold: Math.max(def.maxHold, src.sections.exit), tail: def.tail, living: true });
+      c.start();
+      const ws: number[] = [];
+      for (let k = 0; k < 60 * 120; k++) {
+        const f = c.step(1 / 60);
+        if (!f) break;
+        const m = washInputs(def, null, f.final, c.weights.presence)!;
+        ws.push(washOf(box, painting, m.colourAt, m.reveal, m.presence, m.hold));
+      }
+      const complete = c.state === 'complete';
+      c.dispose(0);
+      expect(complete, v).toBe(true);
+      expect(Math.max(...ws), v).toBeGreaterThan(0.8);
+      expect(ws[ws.length - 1], v).toBeLessThan(0.02);
+      // From the moment the writing first reaches its trace to the moment it last leaves it, it never
+      // comes back to half strength: the picture is still on the wall through the scene→wool crossfade
+      // (the layers combine as coverage), so the words come back once, as the wool sinks. (A max of the
+      // two overlapping layers dips to ~0.52 mid-crossfade though neither leaves the wall; combined
+      // coverage dips only to ~0.72.)
+      let first = -1, last = -1;
+      ws.forEach((w, i) => { if (w >= 0.8) (first < 0 && (first = i), last = i); });
+      const valley = first >= 0 && last > first ? Math.min(...ws.slice(first, last + 1)) : 1;
+      expect(valley, `${v} crossfade valley`).toBeGreaterThanOrEqual(0.62);
+      for (let i = 1; i < ws.length; i++) expect(Math.abs(ws[i] - ws[i - 1]), `${v} at ${(i / 60).toFixed(2)} s`).toBeLessThan(0.1);
+    }
+  });
+
+  it("two overlapping picture layers combine as the wall composites them (coverage), not a max", () => {
+    // The wall alpha-composites the film and the wool over each other in one quad
+    // (src/world/MemoryWindow.ts: cov = 1 − (1 − scene)(1 − fibres)), so the painting's presence — and
+    // the writing's wash with it — is the layers' combined coverage, never the maximum of two
+    // overlapping layers. A max undercounts coverage mid-crossfade and pulses the writing, though
+    // the picture never leaves the wall (decision 39, docs/reviews/2026-10-almost.md).
+    const presence = (scene: number, fibres: number) =>
+      washInputs({ living: true }, { colourAt: () => 0.5 }, { 'layer:scene.opacity': scene, 'layer:fibres.opacity': fibres, 'window.presence': 1, 'window.reveal': 1, 'window.sketch': 1, 'window.wash': 1 }, 1)!.presence;
+    // One layer fully on, the other gone (or both on, or both gone): the wall's coverage, plain.
+    expect(presence(1, 0)).toBeCloseTo(1, 6);
+    expect(presence(0, 1)).toBeCloseTo(1, 6);
+    expect(presence(1, 1)).toBeCloseTo(1, 6);
+    expect(presence(0, 0)).toBe(0);
+    // The crossfade's crossover — the bug's case: 1 − (1 − 0.6)(1 − 0.6) = 0.84, not max(0.6, 0.6) = 0.6.
+    expect(presence(0.6, 0.6)).toBeCloseTo(0.84, 6);
+    // For every pair, presence is exactly the wall's combined coverage, and so never less than the
+    // max (the bug undercounted it): two layers can only add coverage, never take it away.
+    for (let i = 0; i <= 10; i++) for (let j = 0; j <= 10; j++) {
+      const s = i / 10, f = j / 10;
+      expect(presence(s, f), `scene ${s}, fibres ${f}`).toBeCloseTo(1 - (1 - s) * (1 - f), 6);
+      expect(presence(s, f), `scene ${s}, fibres ${f}`).toBeGreaterThanOrEqual(Math.max(s, f) - 1e-9);
+    }
+  });
+
   it("the woodland's revisit, on the wall with no scene of its own, washes them as its colour comes, and gives them back by its end", () => {
     expect(scenes.empty).toBeNull();
     const frames = play('woodland', 'empty');
