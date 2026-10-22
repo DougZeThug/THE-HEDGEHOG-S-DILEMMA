@@ -273,31 +273,50 @@ def eraser(act, n, rng, rate=(3.0, 3.0), push=0.85, weight=0.0, grit=1.0, knock=
     return F._pan(y, F._up(F._smooth(x, 300), n) * F.PAN)
 
 
-def touches(items, n, rng, select, hard=False):
-    """The pencil touching down and lifting, once a gesture: strokes that follow each other within
-    150 ms are one movement of the hand, with one tick as its point meets the paper (as hard as the
-    gesture presses at its hardest) and a breath of a lift at its end. (A tick at every stroke's
-    onset, 36-80 a second, was a crackle, and the pencil one hiss: the sound designer.)"""
-    out = np.zeros((n, 2))
+def gestures(items, select):
+    """The pencil's gestures: a new one wherever a stroke begins 150 ms or more after the gesture
+    did (overlapping strokes, counted from ends, made a whole figure one gesture: the sound
+    designer), each with its hardest pressure, where that was, and its end."""
+    out = []
     sel = sorted((t0, t1, m) for t0, t1, m in items if select(m) and t1 - t0 >= 1e-3 and m['kind'] == 'stroke')
-    gestures = []
     for t0, t1, m in sel:
         p = float(np.max(m.get('pressure') or [0.6]))
         x = float(np.clip(np.mean(np.asarray(m['pts'], np.float32)[:, 0]) / F.W * 2 - 1, -1, 1)) * F.PAN
-        if gestures and t0 - gestures[-1]['t1'] < 0.15:
-            g = gestures[-1]
+        if out and t0 - out[-1]['t0'] < 0.15:
+            g = out[-1]
             g['t1'] = max(g['t1'], t1)
             if p > g['p']:
                 g['p'], g['x'] = p, x
         else:
-            gestures.append({'t0': t0, 't1': t1, 'p': p, 'x': x})
+            out.append({'t0': t0, 't1': t1, 'p': p, 'x': x})
+    return out
+
+
+def touches(items, n, rng, select, hard=False):
+    """The pencil touching down and lifting, once a gesture: a tick as its point meets the paper (as
+    hard as the gesture presses at its hardest) and a breath of a lift at its end. (A tick at every
+    stroke's onset, 36-80 a second, was a crackle, and the pencil one hiss: the sound designer.)"""
+    out = np.zeros((n, 2))
     lo, hi = (3500, 11000) if hard else (2200, 9000)
-    for g in gestures:
+    for g in gestures(items, select):
         tick = burst(rng, 0.012, lo, hi, 0.0018 if hard else 0.0028)
         lay(out, panned(tick / (np.abs(tick).max() + 1e-9) * (0.4 + 0.8 * g['p']), g['x']), g['t0'])
         lift = burst(rng, 0.03, 2500, 8000, 0.008)
         lay(out, panned(lift / (np.abs(lift).max() + 1e-9) * 0.05 * g['p'], g['x']), g['t1'])
     return out
+
+
+def lifted(items, n, select):
+    """The voice lifted off the paper for a moment (-12 dB, 40 ms) as each gesture begins: the point
+    leaves the paper between movements, and the hiss is broken into them."""
+    env = np.ones(n)
+    k = int(0.04 * SR)
+    dip = 1 - (1 - 10 ** (-12 / 20)) * np.sin(np.linspace(0, math.pi, k))
+    for g in gestures(items, select)[1:]:
+        i = int((g['t0'] - 0.02) * SR)
+        if 0 <= i and i + k <= n:
+            env[i:i + k] = np.minimum(env[i:i + k], dip)
+    return env[:, None]
 
 
 def drawing(items, n, rng, select):
@@ -349,7 +368,7 @@ def build(sheet):
     imag = lambda m: m['name'].startswith(('c1/', 'c2/')) and m['kind'] == 'stroke' and m['layer'] != 'construct'
     build_ = lambda m: m['name'].startswith(('c1/', 'c2/')) and m['kind'] == 'stroke' and m['layer'] == 'construct'
     pen, _ = drawing(items, n, rng, imag)
-    stems['pencil'] = pen + touches(items, n, rng, imag) * 0.6
+    stems['pencil'] = pen * lifted(items, n, imag) + touches(items, n, rng, imag) * 0.6
     hp, _ = drawing(items, n, rng, build_)
     stems['build'] = hp + touches(items, n, rng, build_, hard=True) * 0.7
     # the rubber, by what it does: rubbing a line to draw it again; taking his back; taking hers
@@ -365,10 +384,11 @@ def build(sheet):
     # hers heavier: slower strokes, the rubber knocking harder at each turn, the paper's give under
     # it where a phone still has it (250-700 Hz, not 60-320: the sound designer)
     stems['take2'] = eraser(acts(('c2/out',)), n, rng, rate=(2.2, 1.8), push=0.75, weight=0.35, grit=1.2, knock=1.6)
-    # the end: each erasure quieter than the one before, down 15 dB to the last (it rose to the knobs
-    # and the almosts, the thinnest act given the loudest sound of the ending: the cinematic director)
+    # the end: each erasure quieter than the one before, down 10 dB to the last (it rose to the knobs
+    # and the almosts, the thinnest act given the loudest sound of the ending: the cinematic director;
+    # at 15 dB, where he stood went under the room's hush while it was seen going: the sound designer)
     e0, e1 = span(items, 'end/')
-    stems['end'] = eraser(acts(('end/',)), n, rng, rate=(2.2, 1.6), push=0.9, grit=0.6, knock=0.7) * ramp(n, [(e0, 1.0), (e1, 10 ** (-15 / 20))])[:, None]
+    stems['end'] = eraser(acts(('end/',)), n, rng, rate=(2.2, 1.6), push=0.9, grit=0.6, knock=0.7) * ramp(n, [(e0, 1.0), (e1, 10 ** (-10 / 20))])[:, None]
     # (No pencil set down after the last mark, no paper's nearness under the empty doorway: one was
     # the film's only full stop, the other inaudible under the room's own hushed hum: the skeptic.)
     # the thought (Mix B): the two holds, from the sheet
