@@ -761,8 +761,8 @@ export class App {
       },
       gap: (kind, seconds, caption) => this.vignetteGap(kind, seconds, caption),
       letGo: (mode) => {
-        // Interrupted: the room's light comes back (over a few seconds, never a jump).
-        if (mode === 'interrupt') this.lighting.liftDim(this.time);
+        // Interrupted, or let go early (walking off, turning to write): the room's light comes back.
+        if (mode === 'interrupt' || this.vignette?.cutShort) this.lighting.liftDim(this.time);
       },
     };
   }
