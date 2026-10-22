@@ -16,9 +16,9 @@ public/memories/things/:
     worked it; the paper the drawing never touched last.
 - `film/film(.webm, .mp4, @low)`: the film from FROM s, silent.
 - `manifest.json`: the variant's layers and its film entry.
-And public/music/things-film.mp3: the film's sound from FROM s (foley.py, the eraser-only mix,
-without the film's own small room: the white room is the room), and things-sound.json: what it
-was made from.
+And in public/music/things-sound.json, the beats: each of the story's moments, seconds into the
+room's film. The sound itself (things-film.mp3, things-wall.mp3) is soundscape.py's, run after this
+with --room: it records there what it was made from.
 
 The wall's window (src/world/MemoryWindow.ts) draws a line where R <= the sketch's progress and
 the tone where G <= the reveal's. So on the wall the drawing goes on as it did on the sheet: the
@@ -37,7 +37,6 @@ from PIL import Image
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
-import foley  # noqa: E402
 from paper import PAPER_RGB, TOOLS, Sheet  # noqa: E402
 from timeline import _apply_part  # noqa: E402
 
@@ -174,15 +173,12 @@ def main():
                         '-g', '48', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', base + sfx + '.mp4'], check=True)
     frames = int(subprocess.run(['ffprobe', '-v', 'error', '-count_frames', '-select_streams', 'v:0', '-show_entries', 'stream=nb_read_frames', '-of', 'csv=p=0',
                                  base + '.mp4'], capture_output=True, text=True, check=True).stdout.strip())
-    # the sound from FROM: the eraser and the latch, no room of its own
-    snd = foley.foley(items, data['length'], [tuple(e) for e in data.get('events', [])], mix_name=foley.DEFAULT_MIX, with_room=False)
-    snd = snd[int(FROM * foley.SR):]
-    pcm = (np.clip(snd, -1, 1) * 32767).astype('<i2').tobytes()
-    subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-f', 's16le', '-ar', str(foley.SR), '-ac', '2', '-i', '-', '-c:a', 'libmp3lame', '-b:a', '160k',
-                    os.path.join(MUSIC, 'things-film.mp3')], input=pcm, check=True)
-    # what the sound was made from (tests/film-scene.test.ts: change them and make it again)
-    with open(os.path.join(MUSIC, 'things-sound.json'), 'w') as fh:
-        json.dump({'story': sha256(os.path.join(HERE, 'story.py')), 'foley': sha256(os.path.join(HERE, 'foley.py')), 'beats': beats(data)}, fh, indent=1)
+    # the story's moments (the sound's provenance is soundscape.py's to write, beside them)
+    path = os.path.join(MUSIC, 'things-sound.json')
+    made = json.load(open(path)) if os.path.exists(path) else {}
+    made['beats'] = beats(data)
+    with open(path, 'w') as fh:
+        json.dump(made, fh, indent=1)
         fh.write('\n')
     manifest = {
         'size': list(SIZE), 'band': 0, 'pane': None, 'register': None, 'crop': list(CROP), 'plate': [W, H],

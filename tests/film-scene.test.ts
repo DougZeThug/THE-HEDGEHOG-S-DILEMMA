@@ -450,13 +450,23 @@ describe('Things I Should Have Said on its timeline', () => {
     expect(THINGS.markers.find((k) => k.label === 'music:film')!.position).toBe(THINGS_AT);
   });
 
-  it('its sound was made from the exposure sheet and the Foley as they are now', () => {
-    // (emergence.py records what it made it from; change either and it is made again, or the
+  it('its sound was made from the exposure sheet, the Foley and the soundscape as they are now, without music', () => {
+    // (soundscape.py records what it made it from; change any and it is made again, or the
     // eraser is heard where nothing is erased)
     const made = JSON.parse(readFileSync(join(__dirname, '../public/music/things-sound.json'), 'utf8'));
     const sha = (f: string) => createHash('sha256').update(readFileSync(join(__dirname, '..', f))).digest('hex').slice(0, 16);
     expect(made.story).toBe(sha('scripts/things/story.py'));
     expect(made.foley).toBe(sha('scripts/things/foley.py'));
+    expect(made.soundscape).toBe(sha('scripts/things/soundscape.py'));
+    // (Mix A, the room's: the film is stronger without the piano: the reviews, 2026-10-22)
+    expect(made.mix).toBe('a');
+  });
+
+  it("the wall's sound begins with the wall's drawing", () => {
+    const seed = THINGS.seed('film');
+    const sketch = seed.tracks['window.sketch'] as [number, number][];
+    expect(THINGS.markers.find((k) => k.label === 'music:wall')!.position).toBe(sketch[0][0]);
+    expect(THINGS.cues('film').cues['music:wall'].asset).toBe('music/things-wall.mp3');
   });
 
   it('names every sound a deaf visitor would miss, each caption on long enough to read before the next (QA, 2026-10-22)', () => {

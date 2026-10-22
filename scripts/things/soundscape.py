@@ -5,18 +5,19 @@ is recorded but the piano (FreePats Upright Piano KW, CC0, through scripts/woodl
 the rest is made here, seeded, the same each time.
 
     the wall      the goodbye drawing itself on the white room's wall: charcoal, the stick's side,
-                  hard pencil, a finger rubbing, close (its own cue, `wall`)
+                  hard pencil, close (its own cue, `wall`)
     the flat      carried in, the drawing is a place: a flat's air, traffic far off, the stairwell
                   light's hum through the open door; her sleeve, his coat, the carrier bag, his
                   shoes on the boards, then in the stairwell, going; the door on its closer, the
-                  latch. The latch shuts the stairwell out; the flat recedes into silence
+                  latch. The latch shuts the stairwell out; the flat recedes, darkening, and is
+                  gone a breath after the eraser has begun
     the paper     the remembering: very close and dry, no room: the hard pencil finding a body, the
-                  pencil drawing it, each mark touched down and lifted; the rubber rubbing a line out
-                  to draw it again; the rubber taking it back, harder the second time; the people
-                  taken at the end, tired; a pencil set down
-    the thought   (Mix B only) a held tone not quite in tune with itself, and two notes on a piano
-                  played softly, when he is found; her almost has the first note only. It is there,
-                  barely, after the drawing stops
+                  pencil drawing it, touched down and lifted once a gesture; the rubber rubbing a
+                  line out to draw it again; the door lifted; his almost taken back; hers, heavier;
+                  the people taken at the end, each erasure quieter. Then nothing: the room's own
+                  hushed air is the last silence
+    the thought   (Mix B only) two notes on a piano, played softly, while his hand is held; in
+                  hers, the first note only. The second is never played again
 
     .venv-audio/bin/python scripts/things/soundscape.py SHEET.json OUT_DIR [--piano DIR] [--room a|b]
 
@@ -47,22 +48,29 @@ import foley as F  # noqa: E402
 from sound import SR, convolve, fft_filter, momentary, slow_noise, small_room  # noqa: E402
 
 FROM = 6.0                       # where the room's film begins (emergence.py)
-ERASER_LUFS = -33.5              # the taking back, while it sounds: the reference (Memory II's figures)
-# Every layer by its measured loudness under the reference (LU), so a change in one never moves the
+ERASER_LUFS = -33.5              # the reference (Memory II's figures): each layer is placed from it
+# Every layer by its measured loudness against the reference (LU), so a change in one never moves the
 # others (as gains on voices of their own levels, the pencil came out 32 LU under: the cinematic
-# director). Momentary medians while each sounds; the flat's air its whole.
+# director). Momentary medians while each sounds; the flat's air its whole. (The room plays the film
+# 9 dB down over its own hushed hum: under about -55 LUFS here, nothing reaches a visitor: the
+# skeptic. So the flat, the pencil and the steps are up, and nothing is left at the edge of hearing.)
 UNDER = {
-    'flat': -18.0,               # the air, the traffic, the stairwell's hum: inhabited, extraordinarily quiet
-    'people': -8.0,              # her sleeve, his coat, the bag, his steps (their loudest moments)
-    'latch': -5.0,               # the latch's loudest moment
-    'pencil': -13.0,             # what is imagined being drawn
+    'flat': -12.0,               # the air, the traffic, the stairwell's hum: inhabited, extraordinarily quiet
+    'people': -4.0,              # her sleeve, his coat, the bag, his steps (their loudest moments)
+    'latch': -2.0,               # the latch's loudest moment: the goodbye's loudest
+    'pencil': -9.0,              # what is imagined being drawn
     'build': -17.0,              # its construction, the hard pencil
-    'rub': -7.0,                 # a line rubbed out to be drawn again
-    'take2': 1.5,                # her almost taken back: harder, the second time
-    'end': -10.0,                # the people taken at the end: tired
-    'tone': -22.0,               # (B) the held tone
-    'piano': -9.0,               # (B) the two notes, their loudest moments
-    'wall': -4.0,                # the goodbye drawn on the wall (its own cue)
+    'rub': -14.0,                # a line rubbed out to be drawn again (at -7 it was heard as a taking back
+                                 # inside his turn, before anything was taken: the skeptic)
+    'lift': -4.0,                # the door lifted: the moment reopened
+    'take': 1.5,                 # his almost taken back
+    'take2': 5.5,                # hers: heavier, the second time (each levelled on its own: sharing a
+                                 # median with the quiet lift, his came out louder than hers: both directors)
+    'end': -3.5,                 # the people taken at the end, its loudest moment (the first): tired,
+                                 # and fading as it goes
+    'piano': -6.0,               # (B) the notes, their loudest moments (in the holds about -43: in the
+                                 # room, over its hush, just there)
+    'wall': -8.0,                # the goodbye drawn on the wall (its own cue)
 }
 PIANO_SFZ = None                 # Mix B's piano: --piano DIR (the Upright Piano KW folder)
 ROOT = os.path.normpath(os.path.join(HERE, '..', '..'))
@@ -121,11 +129,12 @@ def at_level(x, target, how='median'):
 
 
 # ---------------------------------------------------------------- the flat
-def flat(n, rng, latch_at, gone_at):
+def flat(n, rng, latch_at, lift, gone_at):
     """The flat's own sound, from the first frame the room sees (FROM): its air, traffic far off
     through a closed window, and the stairwell's light humming through the open door, on the right.
-    The latch shuts the stairwell out; a breath later the flat itself goes, its top first, as the
-    remembering takes over (gone by `gone_at`)."""
+    The latch shuts the stairwell out; a breath later the flat begins to go, its top first, and is
+    still there, darkened, under the eraser lifting the door (`lift`), gone by `gone_at`: a
+    withdrawal, not a cut (the skeptic)."""
     air = F.room(n, rng)
     # traffic: a low, slow wash, a car far off once
     brown = np.cumsum(rng.standard_normal(n)) / math.sqrt(SR)
@@ -141,10 +150,10 @@ def flat(n, rng, latch_at, gone_at):
     hum = sum(a * np.sin(2 * math.pi * f * tt + rng.uniform(0, 6.28)) for f, a in ((100, 1.0), (200, 0.5), (300, 0.22), (400, 0.12)))
     hum = hum * (1 + 0.04 * slow_noise(n, 0.3, rng)) * 0.35
     door = np.interp(tt, [0, 11.6, 13.0, latch_at, latch_at + 0.01], [1, 1, 0.45, 0.25, 0.0])
-    world = world + panned(hum * door, 0.55)
+    world = world + panned(hum * door, 0.2)
     # in over a second as the film begins; held a breath after the latch; then gone, the top first
-    g = np.interp(tt, [FROM, FROM + 1.2, latch_at + 1.0, gone_at], [0, 1, 1, 0])
-    dark = np.interp(tt, [latch_at + 1.0, gone_at], [0, 1])
+    g = np.interp(tt, [FROM, FROM + 1.2, latch_at + 1.0, lift, gone_at], [0, 1, 1, 0.6, 0])
+    dark = np.interp(tt, [latch_at + 1.0, lift], [0, 1])
     lp = np.stack([fft_filter(world[:, c], hi=300, order=2) for c in range(2)], 1)
     return (world * (1 - dark)[:, None] + lp * dark[:, None]) * g[:, None]
 
@@ -158,7 +167,9 @@ def shoe(rng, hard=1.0):
         b = burst(rng, (n - k) / SR, lo, hi, decay, 2)[:n - k]
         y[k:k + len(b)] = b
         return y / (np.abs(y).max() + 1e-9)
-    y = part(0.0, 55, 260, 0.035) + part(0.0, 1400, 5200, 0.006) * 0.6 * hard + part(0.035, 700, 3500, 0.02) * 0.3
+    # (the heel carries it: 78% of the step was under 350 Hz, which a phone's speaker drops: the
+    # sound designer)
+    y = part(0.0, 80, 300, 0.035) * 0.7 + part(0.0, 1200, 4500, 0.006) * 1.0 * hard + part(0.035, 700, 3500, 0.02) * 0.5
     return y * rng.uniform(0.85, 1.0)
 
 
@@ -189,7 +200,10 @@ def people(n, rng, items, latch_at):
     wave = span(items, 'real/wave1/')[0] or 6.6
     nod = span(items, 'real/wave2/')[0] or 7.2
     turn = span(items, 'real/turn/')[0] or 8.0
-    steps = [span(items, f'real/{k}/')[0] for k in ('going0', 'going2', 'going4')]
+    # each step as its new position is drawn (the first stroke of it, not the old one's erasing: the
+    # steps landed 0.15-0.25 s ahead of the picture: the sound designer)
+    drawn = lambda k: min((a for a, b, m in items if m['name'].startswith(f'real/{k}/') and m['kind'] == 'stroke'), default=None)
+    steps = [drawn(k) for k in ('going0', 'going2', 'going4')]
     swing = span(items, 'real/door1/')[0] or 11.6
     lay(out, panned(rustle(rng, 0.55, 600, 3800) * 0.35, -0.45), wave)
     lay(out, panned(rustle(rng, 0.6, 400, 4200, 3) * 0.6, 0.0), nod - 0.05)
@@ -197,14 +211,15 @@ def people(n, rng, items, latch_at):
     lay(out, panned(rustle(rng, 0.7, 350, 4500, 3) * 0.8, 0.05), turn - 0.05)
     lay(out, panned(crinkle(rng, 0.4) * 0.35, 0.1), turn + 0.1)
     for k, t in enumerate(s for s in steps if s is not None):
-        p = 0.05 + 0.15 * k
-        lay(out, panned(shoe(rng, 1.0 - 0.1 * k) * (1.0 - 0.12 * k), p), t + 0.05)
+        p = 0.05 + 0.05 * k
+        lay(out, panned(shoe(rng, 1.0 - 0.1 * k) * (1.0 - 0.12 * k), p), t)
         lay(out, panned(crinkle(rng, 0.25, 30) * 0.18, p), t + 0.08)
-    # in the stairwell: further, its own echo, going right
+    # in the stairwell, behind the door (not off to the right of it: the sound designer): further,
+    # its own echo
     hall = small_room(rng, rt60=0.9, predelay=0.012)
     far = np.zeros((n, 2))
     for k, t in enumerate((10.95, 11.55, 12.15, 12.75)):
-        lay(far, panned(shoe(rng, 0.7) * 0.55 * 0.72 ** k, 0.55 + 0.1 * k), t)
+        lay(far, panned(shoe(rng, 0.7) * 0.55 * 0.72 ** k, 0.2), t)
     far = np.stack([fft_filter(far[:, c], hi=2400 - 300 * 1, order=1) for c in range(2)], 1)
     out += far * 0.5 + convolve(far, hall) * 0.5
     # the door: a soft knock of the leaf as it starts, the closer's breath as it swings
@@ -215,13 +230,9 @@ def people(n, rng, items, latch_at):
     lay(out, panned(breath / (np.abs(breath).max() + 1e-9) * 0.12, 0.35), swing)
     room = small_room(rng, rt60=0.42, predelay=0.006)
     out = out + convolve(out, room) * 0.3
-    # the latch (foley.latch, two clicks and the slab's knock), the air it pushes, its decay in the room
+    # the latch (foley.latch, two clicks and the slab's knock) and its decay in the room (a 48 Hz sine
+    # for the air it pushes read as a kick drum: the sound designer)
     lt = F.latch(n, latch_at, rng)
-    air = np.zeros(n)
-    k = int(latch_at * SR)
-    m = int(0.12 * SR)
-    air[k:k + m] = np.sin(2 * math.pi * 48 * np.arange(m) / SR) * np.exp(-np.arange(m) / (0.03 * SR)) * 0.5
-    lt = lt + panned(air, 0.3)
     lt = lt + convolve(lt, small_room(rng, rt60=0.55, predelay=0.005)) * 0.35
     return out, lt
 
@@ -263,20 +274,29 @@ def eraser(act, n, rng, rate=(3.0, 3.0), push=0.85, weight=0.0, grit=1.0, knock=
 
 
 def touches(items, n, rng, select, hard=False):
-    """Each stroke's pencil touching down and lifting: a tick as its point meets the paper (as hard
-    as it presses), a breath of a lift. (Under a continuous voice alone, every mark was one long
-    scratch: the brief.)"""
+    """The pencil touching down and lifting, once a gesture: strokes that follow each other within
+    150 ms are one movement of the hand, with one tick as its point meets the paper (as hard as the
+    gesture presses at its hardest) and a breath of a lift at its end. (A tick at every stroke's
+    onset, 36-80 a second, was a crackle, and the pencil one hiss: the sound designer.)"""
     out = np.zeros((n, 2))
-    for t0, t1, m in items:
-        if not select(m) or t1 - t0 < 1e-3 or m['kind'] != 'stroke':
-            continue
-        p = float(np.mean(m.get('pressure') or [0.6]))
+    sel = sorted((t0, t1, m) for t0, t1, m in items if select(m) and t1 - t0 >= 1e-3 and m['kind'] == 'stroke')
+    gestures = []
+    for t0, t1, m in sel:
+        p = float(np.max(m.get('pressure') or [0.6]))
         x = float(np.clip(np.mean(np.asarray(m['pts'], np.float32)[:, 0]) / F.W * 2 - 1, -1, 1)) * F.PAN
-        lo, hi = (3500, 11000) if hard else (2200, 9000)
-        tick = burst(rng, 0.012, lo, hi, 0.0018 if hard else 0.0028) * (0.4 + 0.8 * p)
-        lay(out, panned(tick / (np.abs(tick).max() + 1e-9) * (0.4 + 0.8 * p), x), t0)
-        lift = burst(rng, 0.03, 2500, 8000, 0.008) * 0.25
-        lay(out, panned(lift / (np.abs(lift).max() + 1e-9) * 0.2 * p, x), t1)
+        if gestures and t0 - gestures[-1]['t1'] < 0.15:
+            g = gestures[-1]
+            g['t1'] = max(g['t1'], t1)
+            if p > g['p']:
+                g['p'], g['x'] = p, x
+        else:
+            gestures.append({'t0': t0, 't1': t1, 'p': p, 'x': x})
+    lo, hi = (3500, 11000) if hard else (2200, 9000)
+    for g in gestures:
+        tick = burst(rng, 0.012, lo, hi, 0.0018 if hard else 0.0028)
+        lay(out, panned(tick / (np.abs(tick).max() + 1e-9) * (0.4 + 0.8 * g['p']), g['x']), g['t0'])
+        lift = burst(rng, 0.03, 2500, 8000, 0.008)
+        lay(out, panned(lift / (np.abs(lift).max() + 1e-9) * 0.05 * g['p'], g['x']), g['t1'])
     return out
 
 
@@ -290,63 +310,18 @@ def drawing(items, n, rng, select):
     return F.body(y), acts
 
 
-def smudges(items, n, rng):
-    """A finger rubbing the dust (the wall's goodbye): a soft, low hush along each rub."""
-    out = np.zeros((n, 2))
-    for t0, t1, m in items:
-        if m['kind'] != 'smudge' or t1 - t0 < 1e-3:
-            continue
-        k = int((t1 - t0) * SR)
-        y = fft_filter(rng.standard_normal(k), lo=180, hi=1600, order=2) * np.sin(np.linspace(0, math.pi, k))
-        lay(out, panned(y / (np.abs(y).max() + 1e-9) * 0.5, 0.0), t0)
-    return out
-
-
-def pencil_down(rng):
-    """A pencil laid on the paper: its wood's two small knocks and a short roll."""
-    k = int(0.25 * SR)
-    tt = np.arange(k) / SR
-    y = np.zeros(k)
-    for at, g in ((0.0, 1.0), (0.016, 0.55)):
-        e = (tt >= at) * np.exp(-np.clip(tt - at, 0, None) / 0.006)
-        y += g * e * sum(math.sin(0) + np.sin(2 * math.pi * f * (tt - at)) * a for f, a in ((1250, 1.0), (2650, 0.5), (4100, 0.25)))
-    roll = fft_filter(rng.standard_normal(k), lo=1500, hi=6000, order=2) * np.exp(-np.clip(tt - 0.04, 0, None) / 0.05) * (tt > 0.04) * 0.08
-    return (y + roll) / (np.abs(y + roll).max() + 1e-9)
-
-
-def presence(n, rng, a, b):
-    """The paper very close: the faintest friction of a sheet under a hand, while it is being
-    worked (from the first revision until the drawing stops)."""
-    y = fft_filter(rng.standard_normal((n, 2)), lo=900, hi=7000, order=1)
-    y *= (1 + 0.3 * slow_noise(n, 0.4, rng))[:, None]
-    # (to the end, not to nothing: the drawing stops, the paper's nearness does not; it fell to
-    # digital silence, and the last image sounded switched off, not stilled)
-    return y * ramp(n, [(a - 1.5, 0), (a + 1.5, 1), (b, 1), (b + 3.0, 0.55)])[:, None]
-
-
 # ---------------------------------------------------------------- the thought (Mix B)
-def tone(n, rng, start, thin, end_fade):
-    """A held tone not quite in tune with itself: F#5 and a partial 1.1 Hz from it (a slow beat), a
-    breath of air round it; in over 4 s from `start`, its lower partial gone from `thin`, still there
-    under the last silence."""
-    tt = np.arange(n) / SR
-    f = 739.99 * (1 + 0.0012 * slow_noise(n, 0.08, rng))
-    ph = 2 * math.pi * np.cumsum(f) / SR
-    a = np.sin(ph) + 0.8 * np.sin(ph * (1 + 1.1 / 740)) + 0.12 * np.sin(2 * ph + 0.7)
-    low = np.sin(ph / 2 + 0.3) * 0.35 * np.interp(tt, [thin, thin + 3], [1, 0])          # F#4 under it, until hers is taken
-    air = fft_filter(rng.standard_normal(n), lo=600, hi=1300, order=2) * 0.15
-    g = np.interp(tt, [start, start + 4.0, end_fade - 7.0, end_fade], [0, 1, 1, 0.3])
-    y = (a + low + air) * g
-    return np.stack([y * 0.95, y * 1.0], 1)
-
-
-def piano_figure(items, n, his_found, hers):
-    """Two notes, softly, on the upright, when he is found (B3, then C#4: a step up, nowhere to go);
-    her almost, the first note only."""
+def piano_figure(n, his_hold, her_hold):
+    """Two notes, softly, on the upright, while his hand is held (B3, then C#4: a step up, nowhere to
+    go); in hers, while the two hands are held a finger's width apart, the first note only. Nothing
+    after: the last silence is the second note not played. (Not a held tone: it filled the film's
+    silences and pumped under the eraser; not notes on the reveals: they scored them: all three
+    reviewers.)"""
     import piano as P
     pf = P.Piano(PIANO_SFZ, seed=5)
-    notes = [P.Note(his_found + 0.6, 59, 22, 1.6), P.Note(his_found + 1.9, 61, 17, 2.4), P.Note(hers + 0.4, 59, 18, 2.2)]
-    y = P.render(pf, notes, [(his_found + 0.5, his_found + 5.0), (hers + 0.3, hers + 4.0)], 0.0, n / SR, wet=0.55, mech=0.25, halo_db=-34.0)
+    (h0, h1), (s0, s1) = his_hold, her_hold
+    notes = [P.Note(h0 + 0.12, 59, 22, 1.2), P.Note(h0 + 1.32, 61, 18, h1 - h0 - 1.3), P.Note(s0 + 0.12, 59, 19, s1 - s0)]
+    y = P.render(pf, notes, [(h0, h1 + 0.6), (s0, s1 + 0.6)], 0.0, n / SR, wet=0.55, mech=0.25, halo_db=-34.0)
     y = y[:n]
     # felt: the hammer's brightness taken off, as an upright with its practice felt down
     y = np.stack([fft_filter(y[:, c], hi=2400, order=2) for c in range(2)], 1)
@@ -367,7 +342,7 @@ def build(sheet):
     last = max(b for a, b, m in items)
     stems = {}
     # the flat and the people in it
-    stems['flat'] = flat(n, rng, latch_at, lift - 0.2)
+    stems['flat'] = flat(n, rng, latch_at, lift, lift + 2.3)
     ppl, lt = people(n, rng, items, latch_at)
     stems['people'], stems['latch'] = ppl, lt
     # the paper: what is imagined drawn, its construction, each mark's touch
@@ -385,38 +360,38 @@ def build(sheet):
     rub = [(a, b, m) for a, b, m in items if m['kind'] == 'erase' and '/rub/' in m['name']]
     stems['rub'] = eraser(F.one_hand(F.activity(rub, length, {k: 0.0 for k in ('take', 'rub', 'end', 'happened', 'imagined')}))['erase'], n, rng,
                           rate=(4.0, 2.0), push=0.9, grit=0.7, knock=0.6)
-    stems['take'] = eraser(acts(('c1/door', 'c1/out')), n, rng)
-    stems['take2'] = eraser(acts(('c2/out',)), n, rng, rate=(2.6, 2.4), push=0.75, weight=0.35, grit=1.2, knock=1.4)
-    stems['end'] = eraser(acts(('end/',)), n, rng, rate=(2.2, 1.6), push=0.9, grit=0.6, knock=0.7)
-    stems['close'] = presence(n, rng, lift - 0.6, last + 1.0)
-    down = np.zeros((n, 2))
-    lay(down, panned(pencil_down(rng) * 0.5, -0.1), last + 1.3)
-    stems['down'] = down
-    # the thought (Mix B)
-    found = span(items, 'c1/back')[0]
-    hers = span(items, 'c2/lean')[0]
-    stems['tone'] = tone(n, rng, lift + 0.4, span(items, 'c2/out')[0], length)
-    stems['piano'] = piano_figure(items, n, found, hers) if PIANO_SFZ else np.zeros((n, 2))
+    stems['lift'] = eraser(acts(('c1/door',)), n, rng)
+    stems['take'] = eraser(acts(('c1/out',)), n, rng)
+    # hers heavier: slower strokes, the rubber knocking harder at each turn, the paper's give under
+    # it where a phone still has it (250-700 Hz, not 60-320: the sound designer)
+    stems['take2'] = eraser(acts(('c2/out',)), n, rng, rate=(2.2, 1.8), push=0.75, weight=0.35, grit=1.2, knock=1.6)
+    # the end: each erasure quieter than the one before, down 15 dB to the last (it rose to the knobs
+    # and the almosts, the thinnest act given the loudest sound of the ending: the cinematic director)
+    e0, e1 = span(items, 'end/')
+    stems['end'] = eraser(acts(('end/',)), n, rng, rate=(2.2, 1.6), push=0.9, grit=0.6, knock=0.7) * ramp(n, [(e0, 1.0), (e1, 10 ** (-15 / 20))])[:, None]
+    # (No pencil set down after the last mark, no paper's nearness under the empty doorway: one was
+    # the film's only full stop, the other inaudible under the room's own hushed hum: the skeptic.)
+    # the thought (Mix B): the two holds, from the sheet
+    his_hold = (span(items, 'c1/hand')[1], span(items, 'c1/out')[0])
+    her_hold = (span(items, 'c2/reach')[1], span(items, 'c2/out')[0])
+    stems['piano'] = piano_figure(n, his_hold, her_hold) if PIANO_SFZ else np.zeros((n, 2))
     # the wall: the goodbye drawing itself (sheet 0-6)
     wall_items = [(a, b, m) for a, b, m in items if a < FROM and m['name'].startswith('goodbye/')]
     w, _ = drawing(wall_items, int(FROM * SR), rng, lambda m: True)
-    wall = w + smudges(wall_items, int(FROM * SR), rng)
+    wall = w
     hard_ = lambda m: m['kind'] == 'stroke' and m.get('tool') == 'hardpencil'
     wall += touches(wall_items, int(FROM * SR), rng, hard_, hard=True) * 0.3
     return stems, wall, dict(n=n, length=length, latch=latch_at, lift=lift, last=last)
 
 
 def leveled(stems, wall, info):
-    """Each stem at its measured level under the eraser's (UNDER), the eraser at ERASER_LUFS; the
-    tone ducked under the paper while the rubber works (the music never over the charcoal)."""
-    ref = median_lufs(stems['take'])
-    g = 10 ** ((ERASER_LUFS - ref) / 20)
-    out = {'take': stems['take'] * g}
+    """Each stem at its measured level against the reference (UNDER)."""
+    out = {}
     for k, lu in UNDER.items():
         if k in ('wall',):
             continue
         x = stems[k]
-        if k in ('people', 'latch', 'piano'):
+        if k in ('people', 'latch', 'piano', 'end'):
             out[k] = at_level(x, ERASER_LUFS + lu, 'peak')
         elif k == 'flat':
             seg = x[int(FROM * SR):int(info['latch'] * SR)]
@@ -424,18 +399,12 @@ def leveled(stems, wall, info):
             out[k] = x * 10 ** ((ERASER_LUFS + lu - ref_) / 20)
         else:
             out[k] = at_level(x, ERASER_LUFS + lu)
-    out['close'] = stems['close'] * 10 ** ((ERASER_LUFS - 30 - (median_lufs(stems['close']) or -60)) / 20)
-    out['down'] = at_level(stems['down'], ERASER_LUFS - 12, 'peak')
-    # the tone under the rubber: down 8 dB while it works, back over a second
-    work = sum(np.abs(out[k]).mean(1) for k in ('take', 'take2', 'rub', 'end'))
-    env = signal.sosfilt(signal.butter(1, 1.2, 'low', fs=SR, output='sos'), (work > 10 ** ((ERASER_LUFS - 30) / 20)).astype(float))
-    out['tone'] = out['tone'] * (1 - 0.6 * np.clip(env * 1.4, 0, 1))[:, None]
     w = at_level(wall, ERASER_LUFS + UNDER['wall'])
     return out, w
 
 
-A_STEMS = ('flat', 'people', 'latch', 'pencil', 'build', 'rub', 'take', 'take2', 'end', 'close', 'down')
-B_STEMS = A_STEMS + ('tone', 'piano')
+A_STEMS = ('flat', 'people', 'latch', 'pencil', 'build', 'rub', 'lift', 'take', 'take2', 'end')
+B_STEMS = A_STEMS + ('piano',)
 
 
 def mix(out, names):

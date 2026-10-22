@@ -76,8 +76,9 @@ DEFAULT_MIX = 'revisit'
 ERASER_LUFS = -33.5           # the eraser's median momentary loudness while it sounds (Memory II's figures sit about here)
 LATCH_UNDER = 5.0             # the latch's loudest moment, this far under the eraser's (LU)
 ROOM_DB = -64.0
-END_FADE = 0.6                # s: the last strokes of a taking back ease off ...
-END_GAP = 0.4                 # ... and the hand lifts before the silence
+END_FADE = 1.0                # s: the last strokes of a taking back ease off ...
+END_GAP = 0.1                 # ... and the hand lifts on the last of them (at 0.4 the eraser fell
+                              # silent ten frames before the paper stopped changing: the sound designer)
 
 
 def meaning_of(mark):

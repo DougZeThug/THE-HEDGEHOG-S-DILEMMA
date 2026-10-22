@@ -28,8 +28,9 @@ brief is "THE HEDGEHOG'S DILEMMA / MEMORY III — THINGS I SHOULD HAVE SAID" (20
 | The moves | `scripts/things/film.py` | a drawing made in front of us; a step of what happened (the part that moved taken out, its head and lines, and drawn again, in tone); what is imagined: found by its construction (`imagine`), revised stage by stage over the ghosts of its own lines (`revise`), taken back along those lines, the hand least (`withdraw`) |
 | The clock | `scripts/things/timeline.py` | marks with a start and a length; drawings on twos streamed to the encoder; `state_at` for planning on the film's own sheet; float32 checkpoints |
 | The film | `scripts/things/story.py` | the exposure sheet: every move's time; writes the film, its sound and `sheet.json` (every mark's time) |
-| The sound | `scripts/things/foley.py` | made from the same marks, heard by what they mean: taking back the reference; a revision's rubs and the people taken at the end under it; the revising pencil faint; what happened silent but the latch (the default, `revisit`); one hand; the eraser scrubbing, the latch, the room; the other mixes for the artist (`eraser-only`, `eraser`, `weight`) |
-| The room | `scripts/things/emergence.py` | how it comes onto the wall: the goodbye's lines alone and an order map (when each line is drawn, when each place is first worked), so the wall draws it as the film did, earlier marks beneath; the poster; the film from 6 s at two sizes; its sound without the film's room; the beats read off the sheet |
+| The Foley | `scripts/things/foley.py` | the voices the sound is made of, from the same marks: one hand, the drawing tools, the eraser scrubbing, the latch, the room (and the film's own first mixes, for comparison) |
+| The sound | `scripts/things/soundscape.py` | the room's sound, procedural but for a CC0 piano: the wall's goodbye drawing itself (its own cue); carried in, the flat (its air, traffic far off, the stairwell's hum, her sleeve, his coat and bag, his steps, the door on its closer, the latch), withdrawing, darkened, as the eraser lifts the door; the pencil, once a touch per gesture; the redraw's rubs; each taking back levelled on its own, hers heavier; the people taken, each erasure quieter; then nothing but the room's hushed air. Mix A (the room's) has no music; Mix B adds two piano notes in his hold and one in hers, for the artist |
+| The room | `scripts/things/emergence.py` | how it comes onto the wall: the goodbye's lines alone and an order map (when each line is drawn, when each place is first worked), so the wall draws it as the film did, earlier marks beneath; the poster; the film from 6 s at two sizes; the beats read off the sheet |
 | On a screen | `src/memory/living/things.ts` | where the film sits when it covers the view, by the screen's aspect |
 
 ## Rebuilding it
@@ -43,12 +44,16 @@ $B -b --factory-startup --python scripts/things/scene.py -- \
   --pose goodbye,wave1,wave2,turn,going0,going2,going4,door0,door1,door3,shut,after,his-back,his-head,his-hand,her-lean,her-reach --out ref/
 # the film: about 45 s planning, 5 minutes drawing at full size (--scale 0.5 for an animatic)
 python3 scripts/things/story.py ref/ out/ --scale 1.0
-# the room's files (public/memories/things/, public/music/things-film.mp3, things-sound.json)
+# the room's files (public/memories/things/, the beats in public/music/things-sound.json)
 python3 scripts/things/emergence.py out/
+# its sound (public/music/things-film.mp3, things-wall.mp3, their provenance), Mix A, in a venv
+# with numpy, scipy and soundfile; with --piano (the Upright Piano KW folder) Mix B is made too,
+# for review, in out/sound/
+.venv-audio/bin/python scripts/things/soundscape.py out/sheet.json out/sound/ --room a [--piano DIR]
 npm run memories:seed -- --force=things-film
 ```
 
-`tests/film-scene.test.ts` fails until the room's files are made again after `story.py` or
-`foley.py` change (their hashes, and `THINGS_BEATS` against the sheet's beats).
+`tests/film-scene.test.ts` fails until the room's files are made again after `story.py`,
+`foley.py` or `soundscape.py` change (their hashes, and `THINGS_BEATS` against the sheet's beats).
 
 One drawing (a still) of any pose: `python3 scripts/things/draw.py ref/ POSE out.png`.

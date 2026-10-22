@@ -883,9 +883,11 @@ export const ALMOST: MemoryDef = {
  *   53-58     out (the film's last second and a quarter under it), its edge soft (a sheet rubbed,
  *             not torn); on the wall the drawing goes to a trace of itself, then into the plaster
  *
- * The film has no sound of its own: its sound is one cue (scripts/things/foley.py, the `revisit`
- * mix: what happened silent but the latch, the revising pencil faint, the rubber that takes it back
- * heard), made from the same list of marks.
+ * The film has no sound of its own: its sound is two cues made from the same list of marks
+ * (scripts/things/soundscape.py, Mix A: no music): the wall's goodbye drawing itself, close; then,
+ * carried in, the flat (its air, his coat, the bag, his steps, the door on its closer, the latch),
+ * which withdraws as the eraser lifts the door; the pencil; the rubber taking each almost back, hers
+ * heavier; the people taken, each erasure quieter; then the room's own hushed air.
  */
 export const THINGS_SECTIONS: Sections = { active: 7.5, exit: 53.0, residue: 60.0, end: 63.0 };
 /** The film: where it begins on the timeline (half a second after the visitor is inside), and its length (s). */
@@ -897,7 +899,7 @@ export const THINGS_BEATS = {
   going: 2.0, gone: 5.1, latch: 7.6, lift: 11.2, found: 12.3, turnsBack: 14.5, hand: 16.383, takenBack: 20.395,
   hers: 24.895, reach: 26.195, hersTaken: 28.907, erased: 32.657, him: 34.258, empty: 35.758,
 };
-/** Its sound's level (foley.py sets the eraser at Memory II's figures' loudness: the same gain). */
+/** Its sound's level (soundscape.py places its layers from Memory II's figures' loudness: the same gain). */
 const THINGS_DB = -9;
 
 export const THINGS: MemoryDef = {
@@ -906,7 +908,8 @@ export const THINGS: MemoryDef = {
   variants: ['film'],
   layers: ['scene', 'lines'],
   sections: THINGS_SECTIONS,
-  markers: [{ label: 'music:film', position: THINGS_AT }],
+  // (The wall's sound with the wall's drawing, its `window.sketch`; the film's with the film.)
+  markers: [{ label: 'music:wall', position: 1.5 }, { label: 'music:film', position: THINGS_AT }],
   seed: (): SheetSeed => {
     const S = THINGS_SECTIONS;
     return {
@@ -952,11 +955,15 @@ export const THINGS: MemoryDef = {
     // (Its room is the white room: the file has none of its own.)
     room: [0.3, 2, 0.04],
     cues: {
+      // The wall drawing the goodbye: a point on the wall, not the room's air.
+      'music:wall': { asset: 'music/things-wall.mp3', gainDb: THINGS_DB, place: { u: 0, v: 0, d: 2 }, dry: true, caption: '[charcoal on the wall]', captionAt: 0.3 },
       'music:film': { asset: 'music/things-film.mp3', gainDb: THINGS_DB, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, fadeOut: 2, caption: '[an eraser on paper]', captionAt: THINGS_BEATS.lift + 0.3,
         // (one caption at a time: each held until the next, the next at least 2.5 s on; the pencil
         // when it is first heard, not when its faint construction begins; every taking back named:
         // QA, 2026-10-22)
         captions: [
+          { at: 1.2, text: '[a coat rustles; a bag is lifted]' },
+          { at: THINGS_BEATS.gone, text: '[footsteps going; a door swings shut]' },
           { at: THINGS_BEATS.latch, text: '[a door latch clicks]' },
           { at: THINGS_BEATS.turnsBack + 0.05, text: '[a pencil on paper]' },
           { at: THINGS_BEATS.takenBack, text: '[an eraser, rubbing it out]' },
