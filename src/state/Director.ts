@@ -624,6 +624,15 @@ export class Director {
       this.queue(Math.max(after, this.now + 1) - this.now, cue, rule);
       return false;
     }
+    // The stillness ladder's cues (a deep silence, music, still-only reveals) are the room's
+    // own: like the room's life, they wait out a hold rather than breaking into it — even one
+    // that was decided before the hold began. (The ladder is also gated at its source in
+    // ruleStillness; this catches anything already in flight.)
+    if (rule.startsWith('still-') && (this.aftermath() || this.pacing.holding(this.now) || this.now < this.heldSilenceUntil)) {
+      const after = this.aftermath() ? this.aftermathUntil + this.gapRng.range(3, 6) : Math.max(this.pacing.heldUntil, this.heldSilenceUntil) + 1;
+      this.queue(Math.max(after, this.now + 1) - this.now, cue, rule);
+      return false;
+    }
     // Nor do they break into a held silence (a laugh on a timer, landing in the middle of it): after it, and its exhale.
     if (this.pacing.holding(this.now) && rule.startsWith('sit:') && !/^sit:(residue|listening)/.test(rule) && (cue.type === 'voice' || cue.type === 'sound' || cue.type === 'music')) {
       this.queue(this.pacing.heldUntil - this.now + 6, cue, rule);
@@ -752,10 +761,15 @@ export class Director {
    */
   private ruleStillness(dt: number) {
     const v = this.visitor;
+    // A held silence (a deep one, or the table) is unbroken — "nothing new should appear or
+    // sound" (Pacing.holding). The stillness ladder does not advance during one: its clock
+    // pauses (the hold is not counted as stillness), and its stages wait, latched where they
+    // were, for the hold to lift. Deferring, not dropping, preserves the ladder's progress.
+    const holding = this.pacing.holding(this.now) || this.now < this.heldSilenceUntil;
     if (v.stillFor === 0) this.stillClock = 0;
     // Reading pauses stillness — but a look that has rested on one line for a while has
-    // become contemplation, and counts.
-    else if (v.deepStillFor > 0 && (!v.gazeId || v.gazeFor > 6)) this.stillClock += dt;
+    // become contemplation, and counts. It does not count during a hold.
+    else if (v.deepStillFor > 0 && (!v.gazeId || v.gazeFor > 6) && !holding) this.stillClock += dt;
     const s = this.stillClock;
     const k = 1 + 0.5 * Math.min(3, this.stillCycles);
     const [t1, t2, t3, t4] = this.stillAt.map((x) => x * k);
@@ -775,13 +789,13 @@ export class Director {
       this.scheduler.cancelWhere((e) => e.rule.startsWith('still'));
       return;
     }
-    if (s > t1 && this.stillStage < 1) {
+    if (s > t1 && this.stillStage < 1 && !holding) {
       this.stillStage = 1;
       const p = this.selector.select(this.ctx(), { tiers: ['still'], exclude: this.hiddenExcluding(), surfaces: [this.facing] }) ??
         this.selector.select(this.ctx(), { tiers: ['still'], exclude: this.hiddenExcluding() });
       if (p) this.reveal(p.id, 0, 'still-1', 'still', 7);
     }
-    if (s > t2 && this.stillStage < 2) {
+    if (s > t2 && this.stillStage < 2 && !holding) {
       this.stillStage = 2;
       if (this.rng.chance(0.6)) {
         const p = this.selector.select(this.ctx(), { tiers: ['still'], exclude: this.hiddenExcluding() });
@@ -802,11 +816,11 @@ export class Director {
         this.speakPhrase('still-voice', sp, { kind: 'approach' }, 1, 'whisper', 0.65);
       }
     }
-    if (s > t3 && this.stillStage < 3) {
+    if (s > t3 && this.stillStage < 3 && !holding) {
       this.stillStage = 3;
       this.queue(0, { type: 'silence', depth: 0.85, seconds: 20 }, 'still-silence', { major: true, ttl: 30 });
     }
-    if (s > t4 && this.stillStage < 4) {
+    if (s > t4 && this.stillStage < 4 && !holding) {
       this.stillStage = 4;
       if (this.stillMusic && !this.situations.claimed('music') && this.scheduler.ready('music', this.now, 40)) {
         this.scheduler.mark('music', this.now);

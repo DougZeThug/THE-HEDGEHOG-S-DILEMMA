@@ -323,6 +323,80 @@ describe('resonance: "the table"', () => {
   });
 });
 
+describe('the held silence holds: the stillness ladder does not break into it', () => {
+  /** Sit by the chair, still, from 150 s on (contradiction has begun by then). */
+  const sitter = (t: number) => (t < 150 ? { x: 2.6, z: 2.6, facing: 'east' as Surface } : { x: 0.3, z: 1.2, gazeChair: true });
+  const silenceSeconds = (c: TimedCue) => (c.cue as { seconds?: number }).seconds ?? 0;
+
+  it('no stillness-ladder cue (silence, music, still-only reveal) dispatches inside the table' + "'s window", () => {
+    const leaks: string[] = [];
+    for (const seed of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]) {
+      const d = new Director({ seed, memoryCounts: { cereal: 1 }, visits: 2 });
+      d.release();
+      const cues = drive(d, sitter, 0, 320);
+      const table = cues.find((c) => c.rule === 'resonance:table');
+      if (!table) continue;
+      const tEnd = table.t + silenceSeconds(table);
+      const inside = cues.filter((c) => c.t >= table.t && c.t < tEnd && c.rule.startsWith('still-'));
+      for (const c of inside) leaks.push(`seed ${seed} ${c.t.toFixed(1)}s ${c.rule}`);
+    }
+    expect(leaks).toEqual([]);
+  });
+
+  it('the stillness clock pauses while a hold is active and resumes after it lifts', () => {
+    const d = new Director({ seed: 1 });
+    d.release();
+    // Accrue some stillness so the clock is non-zero.
+    drive(d, () => ({ x: 0, z: 2.4 }), 0, 15);
+    const before = (d as unknown as { stillClock: number }).stillClock;
+    expect(before).toBeGreaterThan(5);
+    // Impose a 20 s hold and drive exactly through it: the clock should not advance.
+    d.pacing.holdFor(d.now, 20);
+    drive(d, () => ({ x: 0, z: 2.4 }), 0, 20);
+    const during = (d as unknown as { stillClock: number }).stillClock;
+    expect(during, 'stillClock advanced during a hold').toBeCloseTo(before, 0);
+    // After the hold lifts, the clock resumes.
+    drive(d, () => ({ x: 0, z: 2.4 }), 0, 5);
+    const after = (d as unknown as { stillClock: number }).stillClock;
+    expect(after).toBeGreaterThan(during);
+  });
+
+  it('a stillness cue already in flight when a hold begins is deferred to after it', () => {
+    const d = new Director({ seed: 2 });
+    d.release();
+    drive(d, () => ({ x: 0, z: 2.4 }), 0, 10);
+    // Impose a 20 s hold (holdUntil = ~30) and queue a still-silence while it is active.
+    d.pacing.holdFor(d.now, 20);
+    (d as unknown as { queue: (delay: number, cue: { type: 'silence'; depth: number; seconds: number }, rule: string, opts: Record<string, unknown>) => void })
+      .queue(0, { type: 'silence', depth: 0.85, seconds: 20 }, 'still-silence', { major: true, ttl: 40 });
+    const cues = drive(d, () => ({ x: 0, z: 2.4 }), 0, 40);
+    const ss = cues.filter((c) => c.rule === 'still-silence');
+    expect(ss.length, 'still-silence was dropped, not deferred').toBeGreaterThanOrEqual(1);
+    for (const c of ss) expect(c.t, 'still-silence dispatched during hold').toBeGreaterThanOrEqual(30);
+  });
+
+  it('the stillness ladder resumes after the table lifts: its stages fire once the hold ends', () => {
+    // The ladder is deferred, not dropped: after the table, a visitor who stays still at
+    // the chair sees stillness-ladder cues again (the room's answer to standing there).
+    let resumed = 0;
+    for (const seed of [1, 2, 3, 4, 5, 6]) {
+      const d = new Director({ seed, memoryCounts: { cereal: 1 }, visits: 2 });
+      d.release();
+      const cues = drive(d, sitter, 0, 500);
+      const table = cues.find((c) => c.rule === 'resonance:table');
+      if (!table) continue;
+      const tEnd = table.t + silenceSeconds(table);
+      // No stage fired during the table (the guarantee).
+      const during = cues.filter((c) => c.t >= table.t && c.t < tEnd && c.rule.startsWith('still-'));
+      expect(during.map((c) => `seed ${seed} ${c.t.toFixed(1)}s ${c.rule}`)).toEqual([]);
+      // After the table, the ladder resumes (at least one stage fires once the hold lifts).
+      const after = cues.filter((c) => c.t > tEnd + 5 && c.rule.startsWith('still-'));
+      if (after.length) resumed++;
+    }
+    expect(resumed, 'no seed resumed the stillness ladder after the table').toBeGreaterThan(0);
+  });
+});
+
 describe('resonance: "tomorrow"', () => {
   it('B’s word is found by the room’s drawn door, never written while that wall is watched', () => {
     const echo = VIGNETTE_BY_ID.get('charger')!.echoes!.find((e) => e.id === 'tomorrow')!;
