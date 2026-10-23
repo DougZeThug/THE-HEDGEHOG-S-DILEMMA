@@ -91,7 +91,10 @@ export async function loadFilm(
   try {
     await new Promise<void>((resolve, reject) => {
       const done = () => {
-        if (check(v)) (cleanup(), resolve());
+        if (check(v)) {
+          cleanup();
+          resolve();
+        }
       };
       const fail = () => (cleanup(), reject(new Error(`film could not be decoded: ${v.error?.message ?? 'no frame'}`)));
       const nudge = () => {

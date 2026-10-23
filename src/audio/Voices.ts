@@ -805,7 +805,6 @@ export class Voices {
     const out = c.createGain();
     out.gain.value = 1;
     const voices = r.chance(0.6) ? 2 : 1;
-    let dur = 0;
     for (let v = 0; v < voices; v++) {
       const f0 = v === 0 ? r.range(210, 270) : r.range(140, 180);
       let t = t0 + v * r.range(0.25, 0.7);
@@ -817,7 +816,7 @@ export class Voices {
       }
       end = Math.max(end, t);
     }
-    dur = end - t0 + 0.5;
+    const dur = end - t0 + 0.5;
     const tail = this.chain({ ...place, muffled: place.muffled ?? true }, 0.45, dur, gain * 0.6);
     out.connect(tail);
     return dur;

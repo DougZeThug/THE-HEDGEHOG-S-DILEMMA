@@ -547,7 +547,11 @@ export class WallText {
     const geo = new THREE.PlaneGeometry(1, 1, 1, 6);
     const local = Float32Array.from(geo.attributes.position.array);
     const n = geo.attributes.normal.array as Float32Array;
-    for (let i = 0; i < n.length; i += 3) (n[i] = 0), (n[i + 1] = 1), (n[i + 2] = 0);
+    for (let i = 0; i < n.length; i += 3) {
+      n[i] = 0;
+      n[i + 1] = 1;
+      n[i + 2] = 0;
+    }
     const { mat, uniforms } = makeTextMaterial(tex, hand, aspect, hashString(key), duration);
     mat.color.set(0x000000);
     // Soft enough that no letter can be read: grey under the words, not a mirror of them.

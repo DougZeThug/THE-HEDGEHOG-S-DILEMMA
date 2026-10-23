@@ -242,7 +242,7 @@ function contactTextures(): { feet: THREE.DataTexture; seat: THREE.DataTexture }
       seat[k] = seat[k + 1] = seat[k + 2] = Math.round(sh * 255);
       feet[k + 3] = seat[k + 3] = 255;
     }
-  const tex = (d: Uint8Array) => {
+  const tex = (d: Uint8Array<ArrayBuffer>) => {
     const t = new THREE.DataTexture(d, N, N);
     t.magFilter = t.minFilter = THREE.LinearFilter;
     t.needsUpdate = true;

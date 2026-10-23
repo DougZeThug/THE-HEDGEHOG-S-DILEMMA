@@ -416,7 +416,10 @@ export async function prepare(id: string, variant: string, host: RuntimeHost): P
         for (const r of got) {
           if (r.status !== 'fulfilled') continue;
           if (ok) extra.push(r.value);
-          else r.value.texture.dispose(), r.value.bitmap.close();
+          else {
+            r.value.texture.dispose();
+            r.value.bitmap.close();
+          }
         }
         if (!ok) return null;
         const [atlas, lids, heads, ground, maps] = got.map((r) => (r as PromiseFulfilledResult<{ texture: THREE.Texture }>).value.texture);

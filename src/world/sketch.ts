@@ -168,7 +168,7 @@ export function shapeStrokes(shape: Shape, w: number, h: number, r: Rng): P[][] 
 
 /** A drawing's texture data and timing: the writing's format (rows bottom-up, R time, A ink). */
 export interface DrawingBake {
-  data: Uint8Array;
+  data: Uint8Array<ArrayBuffer>;
   W: number;
   H: number;
   /** Each stroke's [start, end] in the hand's seconds (the writing's "words"). */

@@ -2,6 +2,8 @@ type Handler<T> = (payload: T) => void;
 
 /** Minimal typed event emitter. */
 export class Bus<Events extends Record<string, unknown>> {
+  // The map holds handlers for every event type, so their payload types differ.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private handlers = new Map<keyof Events, Set<Handler<any>>>();
   on<K extends keyof Events>(type: K, fn: Handler<Events[K]>): () => void {
     let set = this.handlers.get(type);
