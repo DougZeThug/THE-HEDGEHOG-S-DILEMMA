@@ -256,3 +256,16 @@ describe('situation runner', () => {
     expect(a.cues.map((c) => JSON.stringify(c))).toEqual(b.cues.map((c) => JSON.stringify(c)));
   });
 });
+
+describe('situation: the next room, its wall', () => {
+  it("is always one with something happy on it, so following the laughter finds it", () => {
+    for (let seed = 1; seed <= 12; seed++) {
+      const v = new Visit(['next-room'], seed);
+      v.d.scenes.setAvailable(new Set());
+      const first = v.run(240, { x: 0, z: 2.4, facing: 'east' }, (c) => isVoice(c.cue) && c.cue.tag === 'next-room');
+      expect(first, `seed ${seed}`).toBeTruthy();
+      const wall = (first!.cue as Extract<Cue, { type: 'voice' }>).position as { kind: 'beyond'; surface: Surface };
+      expect(wall.surface, `seed ${seed}`).not.toBe('north');
+    }
+  });
+});

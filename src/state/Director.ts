@@ -161,6 +161,7 @@ export class Director {
   private heldSilenceDone = false;
   /** The memory has been offered (its line written where the visitor looks) / has played. */
   private memoryOffered = false;
+  private memoryOfferedAt = -Infinity;
   memoryPlayed = false;
   /** No voices of the room's own until then: the memory's line has just been offered. */
   private memoryQuietUntil = -Infinity;
@@ -546,7 +547,9 @@ export class Director {
     const due = this.scheduler.tick(this.now);
     // A meeting's voice that never found room is owed to the next meeting, not lost.
     for (const { cue, rule } of this.scheduler.expired) this.lost(cue, rule);
-    for (const { cue, rule } of due) {
+    for (const item of due) {
+      const { cue, rule } = item;
+      this.dueOpts = this.scheduler.optsOf(item);
       if (!this.accept(cue, rule)) {
         this.lost(cue, rule);
         continue;
@@ -594,6 +597,9 @@ export class Director {
     if (m) this.played.set(m[1], Math.max(0, Number(m[2]) - 1));
   }
 
+  /** How the cue now being accepted was scheduled (put back the same when it must wait). */
+  private dueOpts: { major?: boolean; ttl?: number; key?: string; priority?: number } = {};
+
   /** Keep the Director's model of what is visible in sync with the cues it lets through. */
   private accept(cue: Cue, rule: string): boolean {
     // After the room's last music, none of its own again, nor anyone humming.
@@ -618,7 +624,7 @@ export class Director {
     if (cue.type === 'redraw' && this.keptBack.has(cue.phraseId)) return false;
     // A situation's own sounds wait out a memory's aftermath (those answering the visitor don't).
     if (this.aftermath() && rule.startsWith('sit:') && !/^sit:(residue|listening)/.test(rule) && (cue.type === 'voice' || cue.type === 'sound' || cue.type === 'music')) {
-      this.queue(this.aftermathUntil - this.now + 1, cue, rule);
+      this.queue(this.aftermathUntil - this.now + 1, cue, rule, this.dueOpts);
       return false;
     }
     // Nothing of the room's own comes in a memory's aftermath, or while the room is holding (a
@@ -627,12 +633,12 @@ export class Director {
     if (ROOM_OWN.test(rule) && !rule.startsWith('sit:') && (this.aftermath() || this.pacing.holding(this.now))) {
       // (After an aftermath, the first a few seconds after it.)
       const after = this.aftermath() ? this.aftermathUntil + this.gapRng.range(3, 6) : this.pacing.heldUntil + 1;
-      this.queue(Math.max(after, this.now + 1) - this.now, cue, rule);
+      this.queue(Math.max(after, this.now + 1) - this.now, cue, rule, this.dueOpts);
       return false;
     }
     // Nor do they break into a held silence (a laugh on a timer, landing in the middle of it): after it, and its exhale.
     if (this.pacing.holding(this.now) && rule.startsWith('sit:') && !/^sit:(residue|listening)/.test(rule) && (cue.type === 'voice' || cue.type === 'sound' || cue.type === 'music')) {
-      this.queue(this.pacing.heldUntil - this.now + 6, cue, rule);
+      this.queue(this.pacing.heldUntil - this.now + 6, cue, rule, this.dueOpts);
       return false;
     }
     // The visit's turn, due while a vignette plays or just after one: it waits until it is clear.
@@ -1346,6 +1352,7 @@ export class Director {
       if (this.memoryOffered || !free || this.now < this.memoryQuietUntil || this.pacing.repeats('text', this.now, 8) || this.withheld().includes(m.phraseId)) return;
       const p = PHRASE_BY_ID.get(m.phraseId)!;
       this.memoryOffered = true;
+      this.memoryOfferedAt = this.now;
       this.memoryQuietUntil = this.now + 15;
       // The line arrives alone: nothing else is revealed, written or begun with it, so a visitor
       // who stays with it gets the light, not whatever else happened at the same moment.
@@ -1429,6 +1436,7 @@ export class Director {
       darkEnded: Number.isFinite(this.heldSilenceUntil) ? this.heldSilenceUntil : null,
       kitchenPlayed: this.memoryPlayed,
       kitchenOffered: this.memoryOffered,
+      kitchenOfferedAt: this.memoryOffered ? this.memoryOfferedAt : undefined,
     });
     if (offer?.reink) {
       // Already on the wall they face: written again there, in front of them (no new line).
