@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import fc from 'fast-check';
 import { VisitorModel, type VisitorInput } from '../src/state/VisitorModel';
 
 const inp = (o: Partial<VisitorInput>): VisitorInput => ({ x: 0, z: 2.4, yaw: 0, pitch: 0, gazePhraseId: null, gazeChair: false, nearSurface: null, kneeling: false, ...o });
@@ -71,5 +72,21 @@ describe('VisitorModel', () => {
     expect(v.read.has('stay')).toBe(false);
     for (let i = 0; i < 10; i++) v.update(0.1, inp({ gazePhraseId: 'stay' }));
     expect(v.read.has('stay')).toBe(true);
+  });
+});
+
+describe('VisitorModel invariants (fast-check)', () => {
+  const step = fc.record({ z: fc.double({ min: 0.2, max: 4, noNaN: true }), x: fc.double({ min: -2, max: 2, noNaN: true }), yaw: fc.double({ min: -6, max: 6, noNaN: true }) });
+  it('a carry never changes what the room has recorded of approach, withdrawal or walking', () => {
+    fc.assert(
+      fc.property(fc.array(step, { minLength: 1, maxLength: 80 }), (path) => {
+        const v = new VisitorModel();
+        v.update(0.1, inp({}));
+        const before = JSON.stringify([v.approaches, v.hesitations, v.totalNear, v.totalFar, v.lastWithdrawAt, v.lastApproachAt, v.movedDistance, v.near]);
+        for (const s of path) v.update(0.1, inp({ ...s, carried: true }));
+        const after = JSON.stringify([v.approaches, v.hesitations, v.totalNear, v.totalFar, v.lastWithdrawAt, v.lastApproachAt, v.movedDistance, v.near]);
+        expect(after).toBe(before);
+      }),
+    );
   });
 });
