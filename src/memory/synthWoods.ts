@@ -150,7 +150,12 @@ const at64 = (env: Float32Array, i: number) => {
 
 function rms(xs: Float32Array[]): number {
   let s = 0, n = 0;
-  for (const x of xs) for (let i = 0; i < x.length; i++) (s += x[i] * x[i]), n++;
+  for (const x of xs) {
+    for (let i = 0; i < x.length; i++) {
+      s += x[i] * x[i];
+      n++;
+    }
+  }
   return Math.sqrt(s / Math.max(1, n));
 }
 function normalise(xs: Float32Array[], db: number): void {
@@ -274,7 +279,10 @@ export async function renderWoods(): Promise<Float32Array[]> {
     for (const [a, b] of lists[k]) cicada(mid, c, a, b, midLevel);
     smear(mid, 40, 5 + k);
     const [gl, gr] = k === 0 ? [0.8, 0.25] : [0.3, 0.75];
-    for (let i = 0; i < n; i++) (L[i] += mid[i] * gl), (R[i] += mid[i] * gr);
+    for (let i = 0; i < n; i++) {
+      L[i] += mid[i] * gl;
+      R[i] += mid[i] * gr;
+    }
     await yieldNow();
   }
   // The chorus in the trees: too many, too far off to be one by one: four bands of the
@@ -300,7 +308,10 @@ export async function renderWoods(): Promise<Float32Array[]> {
     biquad(one, 'bandpass', f, 1.8);
     const pan = (k / 3) * 1.4 - 0.7;
     const gl = Math.sqrt((1 - pan) / 2), gr = Math.sqrt((1 + pan) / 2);
-    for (let i = 0; i < n; i++) (chorusL[i] += one[i] * gl), (chorusR[i] += one[i] * gr);
+    for (let i = 0; i < n; i++) {
+      chorusL[i] += one[i] * gl;
+      chorusR[i] += one[i] * gr;
+    }
     await yieldNow();
   }
   for (const ch of [chorusL, chorusR]) {

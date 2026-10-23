@@ -124,6 +124,7 @@ export class SituationRunner {
 
   private ctx(h: SituationHost, a: Active): SituationContext {
     const rule = `sit:${a.def.id}`;
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this;
     return {
       h,

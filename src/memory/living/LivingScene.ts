@@ -58,7 +58,10 @@ export function headFor(turn: number, at: readonly number[]): number {
   let cel = 0, best = Math.abs(turn);
   at.forEach((a, i) => {
     const d = Math.abs(turn - a);
-    if (d < best - 1e-9 || (d <= best + 1e-9 && a > (cel ? at[cel - 1] : 0))) (cel = i + 1), (best = d);
+    if (d < best - 1e-9 || (d <= best + 1e-9 && a > (cel ? at[cel - 1] : 0))) {
+      cel = i + 1;
+      best = d;
+    }
   });
   return cel;
 }
@@ -158,7 +161,13 @@ function puppet(limb: [number, number, number, number], low: boolean): THREE.Buf
   const idx: number[] = [];
   const grid = (u: number[], v: number[], k: number) => {
     const base = pos.length / 3;
-    for (const y of v) for (const x of u) pos.push(x, y, 0), uv.push(x, y), part.push(k);
+    for (const y of v) {
+      for (const x of u) {
+        pos.push(x, y, 0);
+        uv.push(x, y);
+        part.push(k);
+      }
+    }
     const n = u.length;
     for (let j = 0; j < v.length - 1; j++)
       for (let i = 0; i < n - 1; i++) {
@@ -229,7 +238,12 @@ function airborne(items: { stem: [number, number, number, number]; home: [number
   const home: number[] = [];
   const idx: number[] = [];
   items.forEach((it, k) => {
-    for (const [x, y] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) pos.push(x, y, 0), uv.push((x + 1) / 2, (y + 1) / 2), stem.push(...it.stem), home.push(...it.home);
+    for (const [x, y] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+      pos.push(x, y, 0);
+      uv.push((x + 1) / 2, (y + 1) / 2);
+      stem.push(...it.stem);
+      home.push(...it.home);
+    }
     const a = k * 4;
     idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2);
   });
@@ -391,7 +405,11 @@ export class LivingScene {
   private setDeformers(f: FigureArt): void {
     const D = this.m.people.uniforms.uD.value as THREE.Vector4[];
     for (const v of D) v.set(-1e5, -1e5, 1, 1);
-    for (let i = 0; i < DEFORMERS; i++) D[i * 4 + 1].set(0, 0.5, 0, 0), D[i * 4 + 2].set(0, 0, 0, 0), D[i * 4 + 3].set(0, 0, 0, 0);
+    for (let i = 0; i < DEFORMERS; i++) {
+      D[i * 4 + 1].set(0, 0.5, 0, 0);
+      D[i * 4 + 2].set(0, 0, 0, 0);
+      D[i * 4 + 3].set(0, 0, 0, 0);
+    }
     f.deformers.slice(0, DEFORMERS).forEach((d, i) => {
       this.slot.set(d.name, i);
       D[i * 4].set(d.c[0] * SHEET.x, d.c[1] * SHEET.y, d.r[0] * SHEET.x, d.r[1] * SHEET.y);
@@ -599,12 +617,19 @@ export class LivingScene {
     const near = this.hasNear && !!sp && (held || (aspect >= sp.aspect[0] && aspect <= sp.aspect[1]) || (on && holds(next)));
     const now = o.now ?? o.t;
     const asked = Math.max(0, Math.min(1, Math.round(v['scene.shot'] ?? 0)));
-    if (asked !== this.asked) this.asked = asked, (this.gaveWay = false), (this.settled = -1), (this.unframed = false);
+    if (asked !== this.asked) {
+      this.asked = asked;
+      this.gaveWay = false;
+      this.settled = -1;
+      this.unframed = false;
+    }
     const drawing = Math.floor(o.t * FPS);
     const fresh = drawing !== this.lastDrawing || o.t === this.lastT;
     if (asked > 0 && o.inside) {
-      if (o.turn > GIVE_WAY) this.gaveWay = true, (this.settled = -1);
-      else if (this.gaveWay) {
+      if (o.turn > GIVE_WAY) {
+        this.gaveWay = true;
+        this.settled = -1;
+      } else if (this.gaveWay) {
         if (o.turn > SETTLE) this.settled = -1;
         else if (this.settled < 0) this.settled = now;
         if (this.settled >= 0 && now - this.settled >= RETURN && fresh && this.mayReturn(o.t)) this.gaveWay = false;

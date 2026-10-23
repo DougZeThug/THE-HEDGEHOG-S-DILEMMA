@@ -182,8 +182,14 @@ export class Inside {
       const k = this.rig.keys;
       const left = this.freshKeys.has('ArrowLeft') || this.freshKeys.has('KeyQ');
       const right = this.freshKeys.has('ArrowRight') || this.freshKeys.has('KeyE');
-      if ((left && k.has('ArrowLeft')) || (left && k.has('KeyQ'))) this.vx -= 1.15 * dt, (this.quiet = 0);
-      if ((right && k.has('ArrowRight')) || (right && k.has('KeyE'))) this.vx += 1.15 * dt, (this.quiet = 0);
+      if ((left && k.has('ArrowLeft')) || (left && k.has('KeyQ'))) {
+        this.vx -= 1.15 * dt;
+        this.quiet = 0;
+      }
+      if ((right && k.has('ArrowRight')) || (right && k.has('KeyE'))) {
+        this.vx += 1.15 * dt;
+        this.quiet = 0;
+      }
       const stepping = ['KeyW', 'KeyS', 'KeyA', 'KeyD', 'ArrowUp', 'ArrowDown'].some((c) => this.freshKeys.has(c) && k.has(c)) || (this.freshThumb && this.rig.touchMove.length() > 0.3);
       this.stepHeld = stepping ? this.stepHeld + dt : 0;
       // (Judged before the turn springs back: a long frame must not swallow a turn.)
@@ -236,7 +242,10 @@ export class Inside {
       if (this.leanStep >= HELD) this.leanStopped = true;
       else if (walking) this.anchor = null;
       else if (!f.away && want > 0) {
-        if (!this.anchor) this.anchor = { x: this.rig.pos.x, z: this.rig.pos.z }, (this.l0 = this.lean);
+        if (!this.anchor) {
+          this.anchor = { x: this.rig.pos.x, z: this.rig.pos.z };
+          this.l0 = this.lean;
+        }
         // (Held at a position, as the editor and a capture hold it, it is where the curve is; in a
         // frame in which no time passed, nothing moves.)
         this.lean = f.held ? want : Math.min(want, this.lean + CATCH_UP * dt);
@@ -251,7 +260,10 @@ export class Inside {
     if (e > 0 && !this.from && !this.handedBack && !o.reduced) {
       const here = { x: this.rig.pos.x, z: this.rig.pos.z, yaw: this.rig.yaw, pitch: this.rig.pitch };
       this.start = here;
-      if (!this.anchor) this.anchor = { x: here.x, z: here.z }, (this.l0 = this.lean);
+      if (!this.anchor) {
+        this.anchor = { x: here.x, z: here.z };
+        this.l0 = this.lean;
+      }
       this.from = { ...this.anchor, yaw: here.yaw, pitch: here.pitch };
       this.pLock = this.lean;
       this.rig.cancelAttend();

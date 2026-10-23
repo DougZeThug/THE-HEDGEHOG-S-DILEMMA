@@ -200,9 +200,21 @@ export function nearestFill(time: Float32Array, W: number, H: number, queue: Int
     const p = queue[qh++];
     const py = (p / W) | 0, px = p - py * W;
     const tv = time[p];
-    if (px > 0 && time[p - 1] === Infinity) (time[p - 1] = tv), (queue[qt++] = p - 1);
-    if (px < W - 1 && time[p + 1] === Infinity) (time[p + 1] = tv), (queue[qt++] = p + 1);
-    if (py > 0 && time[p - W] === Infinity) (time[p - W] = tv), (queue[qt++] = p - W);
-    if (py < H - 1 && time[p + W] === Infinity) (time[p + W] = tv), (queue[qt++] = p + W);
+    if (px > 0 && time[p - 1] === Infinity) {
+      time[p - 1] = tv;
+      queue[qt++] = p - 1;
+    }
+    if (px < W - 1 && time[p + 1] === Infinity) {
+      time[p + 1] = tv;
+      queue[qt++] = p + 1;
+    }
+    if (py > 0 && time[p - W] === Infinity) {
+      time[p - W] = tv;
+      queue[qt++] = p - W;
+    }
+    if (py < H - 1 && time[p + W] === Infinity) {
+      time[p + W] = tv;
+      queue[qt++] = p + W;
+    }
   }
 }
