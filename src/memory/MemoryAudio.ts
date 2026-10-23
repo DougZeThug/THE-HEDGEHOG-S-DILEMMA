@@ -93,6 +93,15 @@ export class MemoryAudio implements AudioSink {
     );
   }
 
+  /**
+   * Never play `label`: a film's sound when the film couldn't be had (its eraser and latch over a
+   * still picture read as broken: QA, 2026-10-21).
+   */
+  without(label: string): void {
+    this.markers = this.markers.filter((m) => m.label !== label);
+    this.buffers.delete(label);
+  }
+
   get ready(): boolean {
     const used = new Set(this.markers.map((m) => m.label));
     return Object.keys(this.sheet.cues).filter((k) => used.has(k)).every((k) => this.buffers.has(k));
@@ -295,9 +304,11 @@ export class MemoryAudio implements AudioSink {
     // (Also when it starts late or part-way in, after a stall: the caption is what a deaf visitor
     // has of it. Not when it comes back after a pause or a seek, unless its caption, given a
     // moment into it (`captionAt`), was still to come.)
-    const due = cue.captionAt === undefined ? 0 : cue.captionAt - into0;
-    if (cue.caption && (into0 === 0 || caption || due > 0)) {
-      const text = cue.caption, seconds = kind === 'sfx' ? Math.min(dur, 4) : 2.5;
+    const said = [...(cue.caption ? [{ at: cue.captionAt ?? 0, text: cue.caption }] : []), ...(cue.captions ?? [])];
+    for (const { at: when, text } of said) {
+      const due = when - into0;
+      if (!(into0 === 0 || caption || due > 0)) continue;
+      const seconds = kind === 'sfx' ? Math.min(dur, 4) : 2.5;
       this.later(shown + Math.max(0, due), () => this.host.caption?.(text, seconds), live);
     }
   }

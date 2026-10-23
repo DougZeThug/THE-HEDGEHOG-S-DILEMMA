@@ -21,8 +21,8 @@ const BASE = process.env.BASE ?? 'http://localhost:4173/';
 const OUT = process.env.OUT ?? `test-output/review/memories/${process.env.MEMORY ?? 'cereal'}`;
 const PROFILES = (process.env.PROFILES ?? 'desktop,phone').split(',');
 const MEMORY = process.env.MEMORY ?? 'cereal';
-const VARIANT = process.env.VARIANT ?? { cereal: 'first', bedroom: 'morning', door: 'approach', woodland: 'afternoon', almost: 'film' }[MEMORY];
-const PHRASE = { cereal: 'cereal', bedroom: 'happiest-unneeded', door: 'door-open', woodland: 'more-minutes', almost: 'your-hand' }[MEMORY];
+const VARIANT = process.env.VARIANT ?? { cereal: 'first', bedroom: 'morning', door: 'approach', woodland: 'afternoon', almost: 'film', things: 'film' }[MEMORY];
+const PHRASE = { cereal: 'cereal', bedroom: 'happiest-unneeded', door: 'door-open', woodland: 'more-minutes', almost: 'your-hand', things: 'didnt-know-say' }[MEMORY];
 // Stages: [name, sequence position or null for the untouched wall], per memory.
 const STAGES = {
   cereal: [['0-untouched', null], ['1-first-drawing', 1.8], ['2-developing', 3.8], ['3-active', 9], ['4-active-late', 20], ['5-dissolving', 24.5], ['6-drawing-alone', 26.2], ['7-residue', 29]],
@@ -41,6 +41,12 @@ const STAGES = {
     ['06-notice', 13.2], ['07-reach', 15.3], ['08-touch', 16.85], ['09-startle', 17.2], ['10-hand-in-air', 18.0], ['11-silence', 22.0],
     ['12-her-look', 23.2], ['13-offer', 26.7], ['14-almost', 32.5], ['15-returning', 40.0], ['16-colour-going', 42.5], ['17-fibres-going', 44.8],
     ['18-white-room', 48.5]],
+  // Things I Should Have Said (docs/things.md): the wall draws the goodbye (the pencil, then the
+  // tone), the way in, the film's beats (its first frame held until 11.5 s: src/memory/defs.ts
+  // THINGS_BEATS), the way back out (a trace, then the plaster).
+  things: [['00-untouched', null], ['01-construction', 2.2], ['02-her', 4.0], ['03-him', 6.0], ['04-tone', 7.5], ['05-carried', 9.5], ['06-inside', 11.2],
+    ['07-wave', 12.4], ['08-walk', 15.0], ['09-door', 18.3], ['10-silence', 21.0], ['11-found', 25.0], ['12-turning', 27.0], ['13-his-hand', 30.0],
+    ['14-taken-back', 33.0], ['15-hers', 39.0], ['16-erased', 46.0], ['17-empty', 50.0], ['18-returning', 55.5], ['19-trace', 59.5], ['20-white-room', 63.0]],
 }[MEMORY];
 mkdirSync(OUT, { recursive: true });
 

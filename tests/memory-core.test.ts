@@ -192,6 +192,19 @@ describe('cue dispatch: every event once, never on a seek', () => {
     for (let p = 0.5; p <= 6; p += 0.05) for (const x of d.advance(p)) again.push(x.marker.label);
     expect(again).toEqual(['a', 'b', 'c']);
   });
+  it('a cue handed out ahead is not handed out again by the stalls that pass it (QA, 2026-10-22)', () => {
+    const d = new CueDispatch([{ label: 'music:wall', position: 1.5 }], 0.75);
+    const got: string[] = [];
+    for (let p = 0; p <= 0.789; p += 1 / 30) for (const x of d.advance(p)) got.push(x.marker.label);
+    expect(got).toEqual(['music:wall']); // handed out 0.75 s ahead
+    expect(d.advance(1.437)).toEqual([]);
+    expect(d.advance(2.159)).toEqual([]);
+    // (a stall over one not yet handed out still owes it, part-way in)
+    const e = new CueDispatch([{ label: 'music:wall', position: 1.5 }], 0.3);
+    e.advance(0.2);
+    expect(e.advance(2.0)).toEqual([{ marker: { label: 'music:wall', position: 1.5 }, delay: 0, late: 0.5 }]);
+  });
+
   it('a stall while playing: a bed or music it passed starts part-way in, a one-shot from its start', () => {
     const d = new CueDispatch([{ label: 'bed:air', position: 1 }, { label: 'music:radio', position: 5.5 }, { label: 'sfx:spoon', position: 5.6 }], 0.3);
     const got: string[] = [];

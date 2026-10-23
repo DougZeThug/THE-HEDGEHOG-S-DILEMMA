@@ -88,6 +88,14 @@ export const SCENE_MEMORIES: SceneMemory[] = [
     id: 'almost', phraseId: 'your-hand', earliest: 170, arc: 'afterAnother', arm: 2.5, commit: 1.0, minHold: 12, seenAt: 18, maxHold: 37.5, span: 47.5,
     variants: { first: 'film', revisit: [] }, lookBack: false, offer: { phases: ['contradiction', 'transform'], apart: 120 }, reserved: true,
   },
+  // Things I Should Have Said (docs/things.md): a charcoal drawing of a goodbye at a door, tried
+  // again in pencil and erased. It opens from "I didn't know what to say." Offered once another
+  // memory has been, as the room begins to contradict itself; seen once it has been entered and
+  // played to his almost (defs.ts THINGS_AT + THINGS_BEATS.found, 23.8 s).
+  {
+    id: 'things', phraseId: 'didnt-know-say', earliest: 210, arc: 'afterAnother', arm: 2.5, commit: 1.0, minHold: 12, seenAt: 26, maxHold: 53.0, span: 63.0,
+    variants: { first: 'film', revisit: [] }, lookBack: false, offer: { phases: ['contradiction', 'transform'], apart: 120 }, reserved: true,
+  },
   // Peace with a cost: the longest, once the room has begun to contradict itself.
   {
     id: 'bedroom', phraseId: 'happiest-unneeded', earliest: 150, arm: 2.5, commit: 1.0, minHold: 12, maxHold: 26,
