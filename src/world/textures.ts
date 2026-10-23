@@ -326,7 +326,7 @@ export function textTexture(text: string, hand: Hand, size: Size, key: string, m
 }
 
 /** Writing's (and drawings') texture: raw bytes, rows bottom-up, red = when the hand gets there, alpha = ink. */
-export function inkTexture(data: Uint8Array, W: number, H: number): THREE.DataTexture {
+export function inkTexture(data: Uint8Array<ArrayBuffer>, W: number, H: number): THREE.DataTexture {
   const tex = new THREE.DataTexture(data, W, H, THREE.RGBAFormat, THREE.UnsignedByteType);
   // Raw values: red is timing, not colour.
   tex.colorSpace = THREE.NoColorSpace;

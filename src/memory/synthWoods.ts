@@ -232,7 +232,7 @@ function phrases(seed: number, from: number, to: number, sing: [number, number],
 }
 
 /** The near cicada: beyond the wall at first (quieter), full once inside, its phrases authored. */
-export function renderCicadas(): Float32Array[] {
+export function renderCicadas(): Float32Array<ArrayBuffer>[] {
   const x = new Float32Array(Math.ceil(TIMES.length * RATE));
   const T = TIMES;
   const level = (t: number) => 0.5 + 0.5 * smooth(T.inside[0], T.inside[1], t);
@@ -264,7 +264,7 @@ export function midPhrases(): [number, number][][] {
 }
 
 /** The rest of the afternoon's insects: two cicadas either side, the trees' chorus (stereo). */
-export async function renderWoods(): Promise<Float32Array[]> {
+export async function renderWoods(): Promise<Float32Array<ArrayBuffer>[]> {
   const n = Math.ceil(TIMES.length * RATE);
   const L = new Float32Array(n), R = new Float32Array(n);
   const T = TIMES;
