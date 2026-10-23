@@ -449,6 +449,16 @@ describe("which memories lie under the room's writing (the App's wiring, through
     }
   });
 
+  it("the writing stays a trace while the picture and the wool crossfade: combined coverage, not the larger of the two", () => {
+    const def = MEMORIES.almost, scene = { colourAt: () => 0.2 };
+    const at = (s: number, f: number) => washInputs(def, scene, { 'window.reveal': 1, 'window.presence': 1, 'window.sketch': 1, 'window.wash': 1, 'layer:scene.opacity': s, 'layer:fibres.opacity': f })!.presence;
+    expect(at(1, 0)).toBe(1);
+    expect(at(0, 1)).toBe(1);
+    // (Half and half: 0.75 of the wall is covered, not 0.5.)
+    expect(at(0.5, 0.5)).toBeCloseTo(0.75, 5);
+    expect(at(0.5, 0.5)).toBeGreaterThan(at(0.5, 0));
+  });
+
   it("the woodland's revisit, on the wall with no scene of its own, washes them as its colour comes, and gives them back by its end", () => {
     expect(scenes.empty).toBeNull();
     const frames = play('woodland', 'empty');

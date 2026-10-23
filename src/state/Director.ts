@@ -758,6 +758,8 @@ export class Director {
     // become contemplation, and counts.
     else if (v.deepStillFor > 0 && (!v.gazeId || v.gazeFor > 6)) this.stillClock += dt;
     const s = this.stillClock;
+    // Inside a held silence nothing new appears or sounds; the ladder waits and goes on after.
+    const held = this.pacing.holding(this.now) || this.now < this.heldSilenceUntil;
     const k = 1 + 0.5 * Math.min(3, this.stillCycles);
     const [t1, t2, t3, t4] = this.stillAt.map((x) => x * k);
     if (v.stillFor === 0 && [...this.visible.values()].some((st) => st.mode === 'still' && !st.hiding)) {
@@ -776,13 +778,13 @@ export class Director {
       this.scheduler.cancelWhere((e) => e.rule.startsWith('still'));
       return;
     }
-    if (s > t1 && this.stillStage < 1) {
+    if (s > t1 && this.stillStage < 1 && !held) {
       this.stillStage = 1;
       const p = this.selector.select(this.ctx(), { tiers: ['still'], exclude: this.hiddenExcluding(), surfaces: [this.facing] }) ??
         this.selector.select(this.ctx(), { tiers: ['still'], exclude: this.hiddenExcluding() });
       if (p) this.reveal(p.id, 0, 'still-1', 'still', 7);
     }
-    if (s > t2 && this.stillStage < 2) {
+    if (s > t2 && this.stillStage < 2 && !held) {
       this.stillStage = 2;
       if (this.rng.chance(0.6)) {
         const p = this.selector.select(this.ctx(), { tiers: ['still'], exclude: this.hiddenExcluding() });
@@ -803,11 +805,11 @@ export class Director {
         this.speakPhrase('still-voice', sp, { kind: 'approach' }, 1, 'whisper', 0.65);
       }
     }
-    if (s > t3 && this.stillStage < 3) {
+    if (s > t3 && this.stillStage < 3 && !held) {
       this.stillStage = 3;
       this.queue(0, { type: 'silence', depth: 0.85, seconds: 20 }, 'still-silence', { major: true, ttl: 30 });
     }
-    if (s > t4 && this.stillStage < 4) {
+    if (s > t4 && this.stillStage < 4 && !held) {
       this.stillStage = 4;
       if (this.stillMusic && !this.situations.claimed('music') && this.scheduler.ready('music', this.now, 40)) {
         this.scheduler.mark('music', this.now);

@@ -269,6 +269,20 @@ describe('resonance: "the table"', () => {
     expect(cues.some((c) => c.rule === 'held-silence')).toBe(false);
   });
 
+  it('nothing of the stillness ladder sounds or appears inside the table: it waits for the hold to end', () => {
+    const d = new Director({ seed: 5, memoryCounts: { biscuit: 1 }, visits: 2 });
+    d.release();
+    let at = -1;
+    let seconds = 0;
+    for (let t = 0; t < 300 && at < 0; t += 0.1) {
+      const hit = drive(d, sitter, t, 0.1).find((c) => c.rule === 'resonance:table');
+      if (hit) { at = t; seconds = (hit.cue as { seconds: number }).seconds; }
+    }
+    expect(at).toBeGreaterThan(0);
+    const inside = drive(d, sitter, at + 0.1, seconds - 1).filter((c) => /^still/.test(c.rule));
+    expect(inside.map((c) => c.rule)).toEqual([]);
+  });
+
   it('without them, the held silence comes as it always has, wherever the visitor is', () => {
     const d = new Director({ seed: 5, visits: 2 });
     d.release();
