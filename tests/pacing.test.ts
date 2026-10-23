@@ -94,6 +94,20 @@ describe('engagement: many kinds of attention are recognised', () => {
     expect(visit(stillVisitor, 120, 1).director.engagement.count('pause')).toBeGreaterThanOrEqual(1);
   });
 
+  it('each kneel is held for a second before it is noticed, not only the first of the visit', () => {
+    const d = new Director({ seed: 2, situations: ['residue'] });
+    const base: VisitorInput = { x: 0.3, z: 1.2, yaw: 0, pitch: 0, gazePhraseId: null, gazeChair: true, nearSurface: null, kneeling: false };
+    const go = (kneeling: boolean, seconds: number) => { for (let t = 0; t < seconds; t += 0.1) d.tick(0.1, { ...base, kneeling }, 'north'); };
+    go(true, 5);
+    expect(d.engagement.count('kneel')).toBe(1);
+    go(false, 2);
+    go(true, 0.4);
+    go(false, 2);
+    expect(d.engagement.count('kneel')).toBe(1);
+    go(true, 2);
+    expect(d.engagement.count('kneel')).toBe(2);
+  });
+
   it('touch on the chair counts, and coming close is answered at once', () => {
     const d = new Director({ seed: 2, situations: ['residue'] });
     const base: VisitorInput = { x: 0, z: 2.4, yaw: 0, pitch: 0, gazePhraseId: null, gazeChair: true, nearSurface: null, kneeling: false };

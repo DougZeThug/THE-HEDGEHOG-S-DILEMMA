@@ -386,7 +386,8 @@ export async function prepare(id: string, variant: string, host: RuntimeHost): P
         lm.clouds ? one(lm.clouds.after, { sfx: '' }) : Promise.resolve(null),
       ]);
       // (The pencil's order is mipmapped, unlike the scene's layers: seen from across the room.)
-      const orderP = lm.order ? loadLayer(url(lm.order, ''), { data: true }).then((r) => (extra.push(r), r)) : Promise.resolve(null);
+      // (If it can be had: else the light finds the painting unordered, and the memory still plays.)
+      const orderP = lm.order ? loadLayer(url(lm.order, ''), { data: true }).then((r) => (extra.push(r), r), () => null) : Promise.resolve(null);
       // Her turn in the wide (at its size), if it can be had (else her head stays as the panel has
       // it; the memory still plays).
       const headsP = (async (): Promise<HeadCels | null> => {

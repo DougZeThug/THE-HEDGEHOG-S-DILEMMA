@@ -34,6 +34,36 @@ class Visit {
 const own = (cs: TimedCue[], id: string) => cs.filter((c) => c.rule.startsWith(`encounter:${id}:`));
 const types = (cs: TimedCue[]) => cs.map((c) => c.cue.type);
 
+describe('a meeting that comes due while a memory plays', () => {
+  const base: VisitorInput = { x: 0, z: 2.4, yaw: 0, pitch: 0, gazePhraseId: null, gazeChair: false, nearSurface: null, kneeling: false };
+  const play = (cue: Cue, rule: string) => {
+    const d = new Director({ seed: 3, situations: ['residue'] });
+    d.release({ written: ['stay'] });
+    const q = d as unknown as { queue: (delay: number, cue: Cue, rule: string) => void; scenes: { active: unknown } };
+    q.scenes.active = { id: 'biscuit', since: d.now };
+    q.queue(0.5, cue, rule);
+    const during: TimedCue[] = [];
+    for (let t = 0; t < 3; t += 0.1) during.push(...d.tick(0.1, base, 'north'));
+    // (The memory has gone.)
+    q.scenes.active = null;
+    const after: TimedCue[] = [];
+    for (let t = 0; t < 15; t += 0.1) after.push(...d.tick(0.1, base, 'north'));
+    return { during: during.filter((c) => c.rule === rule), after: after.filter((c) => c.rule === rule) };
+  };
+
+  it('its door waits for the memory to go, and is not lost', () => {
+    const r = play({ type: 'sound', kind: 'door', position: { kind: 'chair' }, gain: 0.45 }, 'encounter:stay:3');
+    expect(r.during).toEqual([]);
+    expect(r.after.length).toBe(1);
+  });
+
+  it('its answering line is written after it, not lost', () => {
+    const r = play({ type: 'write', key: 'enc:stay:2', text: "I didn't know how.", hand: 'faint', size: 'xs', beside: 'stay', purpose: 'annotation', ttl: 300 } as Cue, 'encounter:stay:2');
+    expect(r.during).toEqual([]);
+    expect(r.after.length).toBe(1);
+  });
+});
+
 describe('encounters: the same words, met again', () => {
   it('"I wanted you to stay." — alone; then a voice behind and an answer; then only a door', () => {
     const v = new Visit();

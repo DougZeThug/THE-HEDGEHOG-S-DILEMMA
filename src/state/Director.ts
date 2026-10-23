@@ -607,6 +607,11 @@ export class Director {
     if (cue.type === 'music' && !rule.startsWith('sit:') && this.situations.claimed('music')) return false;
     // Nothing sounds over a memory: a situation's laugh or murmur waits too (it is emitted
     // directly, not through the voice rules that already wait).
+    // (A meeting's or a contribution's gesture was counted when it was decided: it waits, not lost.)
+    if (this.scenes.active && (cue.type === 'sound' || cue.type === 'music') && /^(encounter:|contribution)/.test(rule)) {
+      this.queue(4, cue, rule, { major: true });
+      return false;
+    }
     if (this.scenes.active && ((cue.type === 'voice' && (!cue.finish || this.vignettePlaying)) || cue.type === 'sound' || cue.type === 'music')) return false;
     if (cue.type === 'reveal' && this.withheld().includes(cue.phraseId)) return false;
     // (Nor is a line kept back written again in its own place: decision 137, QA 2026-10-20.)
@@ -642,6 +647,10 @@ export class Director {
     }
     // While a living memory plays, the room waits with it: no silence (a dim would darken the
     // painting), no new line revealed or written.
+    if (this.scenes.active && /^(encounter:|contribution)/.test(rule) && (cue.type === 'silence' || cue.type === 'reveal' || cue.type === 'write')) {
+      this.queue(4, cue, rule, { major: cue.type === 'silence' });
+      return false;
+    }
     if (this.scenes.active && (cue.type === 'silence' || cue.type === 'reveal' || (cue.type === 'write' && rule !== 'memory-offer'))) return false;
     if (this.scenes.active) {
       // Nor anything else that would move or appear. What the room had decided on (a drawing, words
