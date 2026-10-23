@@ -173,8 +173,9 @@ export function wordPosition(text: string, idx: number, len: number, hand: Hand,
   const width = (s: string) => g.measureText(s).width + s.length * st.tracking * px;
   // (The lines are the text's words rejoined by single spaces: find the word's place in them.)
   let at = 0, seen = 0;
-  const flat = text.replace(/\s+/g, ' ');
-  const flatIdx = text.slice(0, idx).replace(/\s+/g, ' ').length;
+  // (As wrap() reads it: leading whitespace is dropped.)
+  const flat = text.replace(/\s+/g, ' ').trimStart();
+  const flatIdx = text.slice(0, idx).replace(/\s+/g, ' ').trimStart().length;
   for (let i = 0; i < lines.length; i++) {
     const end = at + lines[i].length;
     if (flatIdx < end || i === lines.length - 1) {

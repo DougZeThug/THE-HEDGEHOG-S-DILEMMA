@@ -64,6 +64,21 @@ describe('a meeting that comes due while a memory plays', () => {
   });
 });
 
+describe('a meeting put off by a memory', () => {
+  it('keeps its priority and key while it waits', () => {
+    const d = new Director({ seed: 3, situations: ['residue'] });
+    d.release({ written: ['stay'] });
+    const x = d as unknown as { queue: (delay: number, cue: Cue, rule: string, o?: object) => void; scenes: { active: unknown }; scheduler: { pending(): { priority: number; key?: string; payload: { rule: string } }[] } };
+    x.scenes.active = { id: 'biscuit', since: d.now };
+    x.queue(0.5, { type: 'sound', kind: 'door', position: { kind: 'chair' }, gain: 0.45 } as Cue, 'encounter:stay:3', { priority: 5, key: 'enc-door' });
+    const base: VisitorInput = { x: 0, z: 2.4, yaw: 0, pitch: 0, gazePhraseId: null, gazeChair: false, nearSurface: null, kneeling: false };
+    for (let t = 0; t < 1; t += 0.1) d.tick(0.1, base, 'north');
+    const waiting = x.scheduler.pending().find((e) => e.payload.rule === 'encounter:stay:3');
+    expect(waiting?.priority).toBe(5);
+    expect(waiting?.key).toBe('enc-door');
+  });
+});
+
 describe('encounters: the same words, met again', () => {
   it('"I wanted you to stay." — alone; then a voice behind and an answer; then only a door', () => {
     const v = new Visit();

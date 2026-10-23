@@ -615,7 +615,7 @@ export class Director {
     // directly, not through the voice rules that already wait).
     // (A meeting's or a contribution's gesture was counted when it was decided: it waits, not lost.)
     if (this.scenes.active && (cue.type === 'sound' || cue.type === 'music') && /^(encounter:|contribution)/.test(rule)) {
-      this.queue(4, cue, rule, { major: true });
+      this.queue(4, cue, rule, { ...this.dueOpts, major: true });
       return false;
     }
     if (this.scenes.active && ((cue.type === 'voice' && (!cue.finish || this.vignettePlaying)) || cue.type === 'sound' || cue.type === 'music')) return false;
@@ -654,7 +654,7 @@ export class Director {
     // While a living memory plays, the room waits with it: no silence (a dim would darken the
     // painting), no new line revealed or written.
     if (this.scenes.active && /^(encounter:|contribution)/.test(rule) && (cue.type === 'silence' || cue.type === 'reveal' || cue.type === 'write')) {
-      this.queue(4, cue, rule, { major: cue.type === 'silence' });
+      this.queue(4, cue, rule, { ...this.dueOpts, major: cue.type === 'silence' });
       return false;
     }
     if (this.scenes.active && (cue.type === 'silence' || cue.type === 'reveal' || (cue.type === 'write' && rule !== 'memory-offer'))) return false;
@@ -768,13 +768,14 @@ export class Director {
    */
   private ruleStillness(dt: number) {
     const v = this.visitor;
+    // Inside a held silence nothing new appears or sounds; the ladder waits (its clock too, or
+    // every rung would come at once when it ends) and goes on after.
+    const held = this.pacing.holding(this.now) || this.now < this.heldSilenceUntil;
     if (v.stillFor === 0) this.stillClock = 0;
     // Reading pauses stillness — but a look that has rested on one line for a while has
     // become contemplation, and counts.
-    else if (v.deepStillFor > 0 && (!v.gazeId || v.gazeFor > 6)) this.stillClock += dt;
+    else if (!held && v.deepStillFor > 0 && (!v.gazeId || v.gazeFor > 6)) this.stillClock += dt;
     const s = this.stillClock;
-    // Inside a held silence nothing new appears or sounds; the ladder waits and goes on after.
-    const held = this.pacing.holding(this.now) || this.now < this.heldSilenceUntil;
     const k = 1 + 0.5 * Math.min(3, this.stillCycles);
     const [t1, t2, t3, t4] = this.stillAt.map((x) => x * k);
     if (v.stillFor === 0 && [...this.visible.values()].some((st) => st.mode === 'still' && !st.hiding)) {
