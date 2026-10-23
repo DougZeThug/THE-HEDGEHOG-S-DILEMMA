@@ -44,6 +44,8 @@ export class EventScheduler<T> {
   private cooldowns = new Map<string, number>();
   /** Events that expired (could not fire in time) on the last tick. */
   expired: T[] = [];
+  /** The events that came due on the last tick, by payload (to put one back as it was). */
+  private dueEvents = new Map<T, ScheduledEvent<T>>();
 
   /** The gap after one of the room's own events before the next (a number, or drawn each time). */
   private nextRoomGap: number;
@@ -103,6 +105,21 @@ export class EventScheduler<T> {
     return this.cooldowns.get(key);
   }
 
+  /**
+   * How an event that came due on the last tick was scheduled, to put it back the same: with its
+   * priority and key, and its time to live from the new time. (Its key only if no newer event has
+   * taken it since. Not its major spacing: it has waited already, and the room's gap spaces it.)
+   */
+  optsOf(payload: T): ScheduleOptions {
+    const ev = this.dueEvents.get(payload);
+    if (!ev) return {};
+    return {
+      priority: ev.priority,
+      ...(ev.key && !this.queue.some((e) => e.key === ev.key) ? { key: ev.key } : {}),
+      ...(ev.expires !== undefined ? { ttl: Math.max(1, ev.expires - ev.at) } : {}),
+    };
+  }
+
   /** Can a major event fire right now? */
   majorFree(now: number): boolean {
     return now - this.lastMajorAt >= this.majorGap;
@@ -115,6 +132,7 @@ export class EventScheduler<T> {
     this.expired = [];
     // Highest priority majors first among the due ones.
     const due = this.queue.filter((e) => e.at <= now);
+    this.dueEvents = new Map(due.map((e) => [e.payload, e]));
     const later = this.queue.filter((e) => e.at > now);
     due.sort((a, b) => b.priority - a.priority || a.at - b.at || a.id - b.id);
     for (const ev of due) {

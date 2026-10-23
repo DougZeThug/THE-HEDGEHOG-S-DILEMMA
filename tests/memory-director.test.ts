@@ -203,3 +203,17 @@ describe('living memories in a visit', () => {
     expect(d.scenes.anyPlayed).toBe(true);
   });
 });
+
+describe('never pushing: the kitchen-light memory is a pointing too', () => {
+  const offerState = (o: Partial<Parameters<MemoryDirector['offer']>[0]> = {}) => ({
+    now: 200, phase: 'contradiction', free: true, visibleFacing: () => false, departing: false, otherMemory: false, ...o,
+  });
+  it('the bedroom line is not written within two minutes of its offer', () => {
+    const early = new MemoryDirector();
+    early.setAvailable(new Set());
+    expect(early.offer(offerState({ now: 200, darkEnded: 130, kitchenOffered: true, kitchenOfferedAt: 150 }))).toBeNull();
+    const later = new MemoryDirector();
+    later.setAvailable(new Set());
+    expect(later.offer(offerState({ now: 200, darkEnded: 130, kitchenOffered: true, kitchenOfferedAt: 70 }))?.id).toBe('bedroom');
+  });
+});

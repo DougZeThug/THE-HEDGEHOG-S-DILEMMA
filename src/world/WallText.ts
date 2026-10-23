@@ -3,7 +3,7 @@ import type { Phrase, Surface, Hand, Size } from '../content/types';
 import { PHRASES, PHRASE_BY_ID } from '../content/phrases';
 import type { Room } from './Room';
 import { layoutPhrases, layoutOf, surfaceSize, drawingSpots, drawingBeside, type Placement, type SurfaceLayout } from './layout';
-import { HANDS, measureText, textTexture, pencilLineTexture, inkTexture } from './textures';
+import { HANDS, measureText, wordPosition, textTexture, pencilLineTexture, inkTexture } from './textures';
 import { DRAWINGS, DRAWING_BY_ID, type DrawingDef } from '../content/drawings';
 import { bakeDrawing, bakedSize } from './sketch';
 import { wordRanges } from './handwriting';
@@ -923,10 +923,15 @@ export class WallText {
     const word = idx >= 0 ? text.slice(idx, idx + keep.length) : keep;
     const m = measureText(word, it.hand, it.size);
     const pl = it.placement;
-    const single = pl.h < measureText('Ag', it.hand, it.size).h * 1.5;
-    const frac = idx >= 0 && text.length ? idx / text.length : 0;
-    const left = pl.u - pl.w / 2 + (single ? frac * pl.w : 0);
-    const kept = this.layout.add({ surface: pl.surface, u: Math.min(left + m.w / 2, pl.u + pl.w / 2 - m.w / 2), v: single ? pl.v : pl.v + pl.h / 2 - m.h / 2, w: m.w, h: m.h, rot: pl.rot });
+    // (Where it was written: its own line of the wrapped text, and how far along it.)
+    const at = idx >= 0 ? wordPosition(text, idx, keep.length, it.hand, it.size) : { line: 0, lines: 1, x: 0, w: 0 };
+    const left = pl.u - pl.w / 2 + at.x;
+    const kept = this.layout.add({
+      surface: pl.surface,
+      u: Math.min(left + m.w / 2, pl.u + pl.w / 2 - m.w / 2),
+      v: pl.v + pl.h / 2 - ((at.line + 0.5) * pl.h) / at.lines,
+      w: m.w, h: m.h, rot: pl.rot,
+    });
     const k = this.create(`${key}:kept`, word, it.hand, it.size, kept, it.purpose);
     k.vis = 0.5;
     k.target = 1;

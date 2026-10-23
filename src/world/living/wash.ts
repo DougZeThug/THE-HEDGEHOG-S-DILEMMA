@@ -39,7 +39,10 @@ export function washInputs(
   const weight = Math.max(presenceWeight, 1e-3);
   // (its sketch layer: the wool, `fibres`, or a drawing's pencil, `lines`)
   const sketch = Math.max('layer:fibres.opacity' in final ? final['layer:fibres.opacity'] : 0, 'layer:lines.opacity' in final ? final['layer:lines.opacity'] : 0);
-  const shown = Math.max(final['layer:scene.opacity'] ?? 1, sketch) / weight;
+  // (Combined as the wall composites them, one over the other: during a crossfade the picture
+  // is still all there, so the words must not stir.)
+  const scene_ = final['layer:scene.opacity'] ?? 1;
+  const shown = (1 - (1 - scene_) * (1 - sketch)) / weight;
   return {
     colourAt,
     reveal: final['window.reveal'] ?? 0,

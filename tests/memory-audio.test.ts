@@ -651,3 +651,11 @@ describe('captions: each shown as its sound is heard, with the picture', () => {
     }
   });
 });
+
+describe('a stall inside the hand-out window', () => {
+  it('never hands a cue out twice', () => {
+    const d = new CueDispatch([{ label: 'music:evening', position: 2 }], 0.75);
+    const handed = [...d.advance(1.4), ...d.advance(1.95), ...d.advance(2.0), ...d.advance(2.3)];
+    expect(handed.length).toBe(1);
+  });
+});

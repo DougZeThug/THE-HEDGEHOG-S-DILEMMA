@@ -394,7 +394,7 @@ export class App {
         // The look (Style.ts): the presets below set all of these; a slider then changes one.
         ...(
           [
-            ['fill', 0, 1.5], ['area', 0, 4], ['key', 0, 2], ['cone', 0.7, 1.3], ['glow', 0, 1.5], ['warmth', 0, 1.5], ['ceiling', 0, 12],
+            ['fill', 0, 1.5], ['area', 0, 4], ['key', 0, 2], ['cone', 0.5, 1.3], ['glow', 0, 1.5], ['warmth', 0, 1.5], ['ceiling', 0, 12],
             ['exposure', 0.8, 1.4], ['vignette', 0, 0.6], ['grain', 0, 0.06], ['texture', 0, 2], ['contact', 0, 1.5], ['shadowSoft', 0.3, 3],
             ['faint', 0.8, 1.6], ['skyGlow', 0, 20], ['contrast', 0, 0.8], ['stains', 0, 1], ['aim', 0, 1], ['panel', 0.5, 3], ['vigLow', 0, 1],
           ] as [keyof Look, number, number][]
@@ -761,8 +761,9 @@ export class App {
       },
       gap: (kind, seconds, caption) => this.vignetteGap(kind, seconds, caption),
       letGo: (mode) => {
-        // Interrupted: the room's light comes back (over a few seconds, never a jump).
-        if (mode === 'interrupt') this.lighting.liftDim(this.time);
+        // Interrupted, or let go early (walking off, turning to write): the room's light comes
+        // back (over a few seconds, never a jump).
+        if (mode === 'interrupt' || this.vignette?.cutShort) this.lighting.liftDim(this.time);
       },
     };
   }
@@ -1075,6 +1076,8 @@ export class App {
    */
   private drawLiving(l: NonNullable<App['living']>, f: { t: number; state: Lifecycle; position: number; final: Record<string, number> }, dt: number) {
     const pl = l.memory.prepared.living;
+    // (How far it has played, for variants with no scene too: their seenAt is judged by it.)
+    l.reached = Math.max(l.reached, f.position);
     if (!pl) {
       // (A living memory's revisit stays on the wall, as any memory, but lies under its writing as
       // the scene did. Every other memory keeps its words on bare plaster, legible: washInputs.)
@@ -1113,7 +1116,6 @@ export class App {
     }, { reduced: this.prefs.reducedMotion, aspect, scene: pl.scene.target.texture, group: l.anchor.group });
     // The window was placed before the spread changed: place it again for this frame.
     this.memoryWindow.update(f.final, this.rig.restingEye, 0);
-    l.reached = Math.max(l.reached, f.position);
     // Inside the painting the white room's hum goes further down (it is not in the clearing), and
     // comes back as the painting goes back to the wall (the sound designer's review, 2026-10-18).
     const deep = this.inside.entered && (f.final['scene.immerse'] ?? 0) >= 0.9;

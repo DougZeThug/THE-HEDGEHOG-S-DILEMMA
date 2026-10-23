@@ -236,12 +236,14 @@ export class MemoryDirector {
     kitchenPlayed?: boolean;
     /** The kitchen-light memory's line has been offered this visit. */
     kitchenOffered?: boolean;
+    /** When (a pointing, for the two minutes between them). */
+    kitchenOfferedAt?: number;
   }): OfferPick | null {
     if (s.departing || this.active || !s.free || s.otherMemory) return null;
     if (s.now < this.cooldownUntil || s.now - this.lastEnded < 0) return null;
     // Never pushing: at most one pointing every two minutes, three a visit, none just after a vignette.
     const pointed = this.points + (s.kitchenOffered ? 1 : 0);
-    if (pointed >= POINTS_PER_VISIT || s.now - this.lastPointAt < POINT_APART || s.now - this.lastVignetteEnded < POINT_AFTER_VIGNETTE) return null;
+    if (pointed >= POINTS_PER_VISIT || s.now - Math.max(this.lastPointAt, s.kitchenOfferedAt ?? -Infinity) < POINT_APART || s.now - this.lastVignetteEnded < POINT_AFTER_VIGNETTE) return null;
     const point = <T extends SceneMemory>(m: T, t: Track, reink: boolean): OfferPick => {
       this.points++;
       this.lastPointAt = s.now;

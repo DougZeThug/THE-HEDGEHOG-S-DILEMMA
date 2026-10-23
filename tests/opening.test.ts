@@ -189,6 +189,24 @@ describe('stroke order', () => {
   });
 });
 
+describe('stroke ownership at the edges of characters', () => {
+  it("the strip of a letter inside its neighbour's padded box is written with that letter", () => {
+    const W = 40, H = 30;
+    const a = new Uint8Array(W * H);
+    for (let y = 5; y < 25; y++) a[y * W + 8] = a[y * W + 9] = 255; // first bar
+    for (let y = 5; y < 25; y++) a[y * W + 19] = a[y * W + 20] = 255; // second bar: inside both boxes
+    const boxes: CharBox[] = [
+      { i: 0, x0: 4, x1: 20, yTop: 2, yBottom: 28, base: 25, xHeight: 10 },
+      { i: 1, x0: 16, x1: 32, yTop: 2, yBottom: 28, base: 25, xHeight: 10 },
+    ];
+    const timing = handTiming('ll', 'pencil', 'test');
+    const b = bakeStrokes(a, W, H, boxes, timing, () => 0);
+    // (Nearer the second box's middle: it is the second letter, written in its time, not the first's.)
+    expect(b.time[15 * W + 19]).toBeGreaterThanOrEqual(timing.chars[1][0] - 1e-6);
+    expect(b.time[15 * W + 8]).toBeLessThanOrEqual(timing.chars[0][1] + 1e-6);
+  });
+});
+
 describe('voice timings', () => {
   it('every recording in the room has character timings that match its text and fit inside it', () => {
     const manifest = Object.entries((require('../public/voices/manifest.json') as Record<string, string[]>)).filter(([k]) => k.startsWith('phrase:')).flatMap(([, v]) => v);

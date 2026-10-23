@@ -269,6 +269,36 @@ describe('resonance: "the table"', () => {
     expect(cues.some((c) => c.rule === 'held-silence')).toBe(false);
   });
 
+  it('nothing of the stillness ladder sounds or appears inside the table: it waits for the hold to end', () => {
+    const d = new Director({ seed: 5, memoryCounts: { biscuit: 1 }, visits: 2 });
+    d.release();
+    let at = -1;
+    let seconds = 0;
+    for (let t = 0; t < 300 && at < 0; t += 0.1) {
+      const hit = drive(d, sitter, t, 0.1).find((c) => c.rule === 'resonance:table');
+      if (hit) { at = t; seconds = (hit.cue as { seconds: number }).seconds; }
+    }
+    expect(at).toBeGreaterThan(0);
+    const inside = drive(d, sitter, at + 0.1, seconds - 1).filter((c) => /^still/.test(c.rule));
+    expect(inside.map((c) => c.rule)).toEqual([]);
+  });
+
+  it('the ladder waits with its clock: after the table its rungs come one by one, not all together', () => {
+    const d = new Director({ seed: 5, memoryCounts: { biscuit: 1 }, visits: 2 });
+    d.release();
+    let at = -1;
+    let seconds = 0;
+    for (let t = 0; t < 300 && at < 0; t += 0.1) {
+      const hit = drive(d, sitter, t, 0.1).find((c) => c.rule === 'resonance:table');
+      if (hit) { at = t; seconds = (hit.cue as { seconds: number }).seconds; }
+    }
+    expect(at).toBeGreaterThan(0);
+    const after = drive(d, sitter, at + 0.1, seconds + 120).filter((c) => /^still-(1|2|silence|music)$/.test(c.rule));
+    expect(after.length).toBeGreaterThan(0);
+    const first = after[0].t;
+    expect(after.filter((c) => c.t < first + 1).length).toBe(1);
+  });
+
   it('without them, the held silence comes as it always has, wherever the visitor is', () => {
     const d = new Director({ seed: 5, visits: 2 });
     d.release();

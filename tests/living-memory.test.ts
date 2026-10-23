@@ -409,13 +409,13 @@ describe("which memories lie under the room's writing (the App's wiring, through
     const scene = def.living && scenes[variant] ? { colourAt: () => 0.2 } : null;
     const c = new MemoryPlaybackController({ timeline: src, weights: weightsFor(false, gentle), reduced: false, entrance: Math.min(2, src.sections.active * 0.4), sways: def.sways, exit: def.exit, maxHold: Math.max(def.maxHold, src.sections.exit), tail: def.tail, living: !!scene });
     c.start();
-    const frames: { t: number; w: number; state: string }[] = [];
+    const frames: { t: number; w: number; state: string; pos: number }[] = [];
     for (let k = 0; k < 60 * 120; k++) {
       // (Its last frame is the residue's; then it completes, and gives no frame.)
       const f = c.step(1 / 60);
       if (!f) break;
       const m = washInputs(def, scene, f.final, c.weights.presence);
-      frames.push({ t: f.t, w: m ? washOf(box, painting, m.colourAt, m.reveal, m.presence, m.hold) : 0, state: f.state });
+      frames.push({ t: f.t, w: m ? washOf(box, painting, m.colourAt, m.reveal, m.presence, m.hold) : 0, state: f.state, pos: f.position });
     }
     const complete = c.state === 'complete';
     c.dispose(0);
@@ -447,6 +447,23 @@ describe("which memories lie under the room's writing (the App's wiring, through
       expect(frames[frames.length - 1].w, v).toBeLessThan(0.02);
       for (let i = 1; i < frames.length; i++) expect(Math.abs(frames[i].w - frames[i - 1].w), `${v} at ${frames[i].t.toFixed(2)}`).toBeLessThan(0.1);
     }
+  });
+
+  it("the writing stays a trace while the picture and the wool crossfade: combined coverage, not the larger of the two", () => {
+    const def = MEMORIES.almost, scene = { colourAt: () => 0.2 };
+    const at = (s: number, f: number) => washInputs(def, scene, { 'window.reveal': 1, 'window.presence': 1, 'window.sketch': 1, 'window.wash': 1, 'layer:scene.opacity': s, 'layer:fibres.opacity': f })!.presence;
+    expect(at(1, 0)).toBe(1);
+    expect(at(0, 1)).toBe(1);
+    // (Half and half: 0.75 of the wall is covered, not 0.5.)
+    expect(at(0.5, 0.5)).toBeCloseTo(0.75, 5);
+    expect(at(0.5, 0.5)).toBeGreaterThan(at(0.5, 0));
+  });
+
+  it("the woodland's revisit, watched to its end, plays past the position that counts it as seen", () => {
+    const frames = play('woodland', 'empty');
+    expect(frames.complete).toBe(true);
+    const seenAt = SCENE_MEMORIES.find((m) => m.id === 'woodland')!.seenAt!;
+    expect(Math.max(...frames.map((x) => x.pos))).toBeGreaterThanOrEqual(seenAt);
   });
 
   it("the woodland's revisit, on the wall with no scene of its own, washes them as its colour comes, and gives them back by its end", () => {

@@ -1,8 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { interpretLocally } from '../src/interpret/LocalInterpreter';
+import { interpretLocally, tokenize } from '../src/interpret/LocalInterpreter';
 import { validateInterpretation } from '../src/interpret/schema';
 
 describe('LocalInterpreter', () => {
+  it('a question mark is not part of the last word', () => {
+    expect(tokenize('are you lonely?')).toEqual(['are', 'you', 'lonely']);
+    const q = interpretLocally('are you lonely?');
+    expect(q.dims.isolation ?? 0).toBeCloseTo(interpretLocally('are you lonely.').dims.isolation ?? 0, 5);
+    expect(q.dims.isolation ?? 0).toBeGreaterThan(0.2);
+  });
   it('reads tense and longing, not just valence', () => {
     const it1 = interpretLocally('I miss who I used to be.');
     expect(it1.tense).toBe('past');

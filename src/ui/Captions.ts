@@ -62,6 +62,8 @@ export class Captions {
     if (!this.enabled || !w || !w.el.isConnected || !w.el.classList.contains('on')) return;
     clearTimeout(w.timer);
     w.el.classList.add('waiting');
+    // (Its words are on screen still: a sound's caption goes beneath them, not over.)
+    this.wordsUntil = performance.now() + seconds * 1000;
     w.timer = setTimeout(() => {
       w.el.classList.remove('on');
       setTimeout(() => w.el.remove(), 1600);
