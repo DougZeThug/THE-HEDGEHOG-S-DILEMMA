@@ -160,6 +160,34 @@ export function measureText(text: string, hand: Hand, size: Size, wrapM = WRAP[s
 }
 
 /**
+ * Where a word lies in a phrase as it is written: which of its wrapped lines (of how many), and
+ * how far along that line it starts and how wide it is (metres). `idx`: where the word begins in
+ * the text.
+ */
+export function wordPosition(text: string, idx: number, len: number, hand: Hand, size: Size, wrapM = WRAP[size]): { line: number; lines: number; x: number; w: number } {
+  const st = HANDS[hand];
+  const px = SIZE_EM[size] * st.scale * PX_PER_M;
+  const lines = wrap(text, st, px, wrapM * PX_PER_M);
+  const g = mctx();
+  g.font = fontString(st, px);
+  const width = (s: string) => g.measureText(s).width + s.length * st.tracking * px;
+  // (The lines are the text's words rejoined by single spaces: find the word's place in them.)
+  let at = 0, seen = 0;
+  const flat = text.replace(/\s+/g, ' ');
+  const flatIdx = text.slice(0, idx).replace(/\s+/g, ' ').length;
+  for (let i = 0; i < lines.length; i++) {
+    const end = at + lines[i].length;
+    if (flatIdx < end || i === lines.length - 1) {
+      const col = Math.max(0, Math.min(lines[i].length, flatIdx - at));
+      return { line: i, lines: lines.length, x: width(lines[i].slice(0, col)) / PX_PER_M, w: width(flat.slice(flatIdx, flatIdx + len)) / PX_PER_M };
+    }
+    at = end + 1;
+    seen = i;
+  }
+  return { line: seen, lines: Math.max(1, lines.length), x: 0, w: 0 };
+}
+
+/**
  * Draw a phrase as it might have been written on a wall: words sit on a slightly
  * wandering baseline; pencil has tooth; pressure varies a little along the line.
  *
