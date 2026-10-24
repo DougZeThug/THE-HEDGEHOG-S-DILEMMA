@@ -2975,7 +2975,10 @@ second bird gone): the piano a little more forward going into the cut. The close
      - **The film refused, a blot** (P1): the memory fell back to the wall's still, revealed by its
        light's pool, which the afternoon held at 0.55 m: a lit patch under the line for 47 s. Drawn
        in order (the film) the pool reveals nothing, so it now opens over the whole painting as the
-       colour comes (to 2.2 m by 7.6), and the still shows whole, as any memory's.
+       colour comes (to 2.2 m by 7.6), and the still shows whole, as any memory's (checked with the
+       film's route blocked), at the size the room gives a still: about as wide as its line, not
+       the film's. (The first fix was made in the seed and not seeded into the committed timeline,
+       so it did nothing: found in the browser, seeded; every committed timeline equals its seed.)
      - Before its first frame is sent, a film says it is on no close shot (its load nudges it into
        playing: the first frame read 186, a close-up's).
      - The harnesses: `memories.mjs` follows the film's timeline (it still asked for the rig's
