@@ -3,7 +3,7 @@
 // went (under its own line, inside the painting's place) and what a screen reader was told.
 // LINE='…' replaces the words in the page, for the artist to compare. STAY=1 first puts "I wanted
 // you to" on the wall under "five more minutes", as the review film had it (the hardest layout:
-// the opening's own unfinished line sits under that phrase's place). WALL=east writes the woodland's
+// the opening's own unfinished line sits under that phrase's place). WALL=east (the default) writes the woodland's
 // line on that wall instead, as the room writes it where the visitor looks: near NEAR='u,v' (metres
 // along and up the wall; 3.2,1.6 by default, its middle). AT='u,v' then moves it there exactly (a
 // place the room writes it at, found by woodland-coda-walls.ts), so two runs can be compared.
@@ -60,7 +60,7 @@ await page.evaluate(async ({ stay, wall, near, at }) => {
   a.rig.yaw = Math.atan2(n.x, n.z);
   // (Looking at it from the eye's height, a little below: where the line under it goes.)
   a.rig.pitch = Math.atan2(c.y - 0.15 - 1.58, 2.4);
-}, { stay: !!process.env.STAY, wall: process.env.WALL ?? '', near: (process.env.NEAR ?? '3.2,1.6').split(',').map(Number), at: process.env.AT ? process.env.AT.split(',').map(Number) : null });
+}, { stay: !!process.env.STAY, wall: process.env.WALL ?? 'east', near: (process.env.NEAR ?? '3.2,1.6').split(',').map(Number), at: process.env.AT ? process.env.AT.split(',').map(Number) : null });
 await page.waitForTimeout(1000);
 await page.screenshot({ path: `${OUT}/${NAME}-0-before.png` });
 await page.evaluate(() => window.__hedgehog.playMemory('woodland', 'more-minutes', 'afternoon'));
@@ -117,3 +117,8 @@ const report = await page.evaluate(() => {
 writeFileSync(`${OUT}/${NAME}.json`, JSON.stringify({ inside, ...report, errors }, null, 1));
 console.log(JSON.stringify({ inside, ...report, errors }, null, 1));
 await browser.close();
+// (Taken in and played through, the line must be written: a run that wrote nothing used to pass.)
+if (inside && !report.written) {
+  console.error('the line was not written');
+  process.exit(1);
+}

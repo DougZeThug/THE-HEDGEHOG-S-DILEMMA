@@ -190,7 +190,8 @@ export class FilmScene {
    * close shots has one shot.
    */
   choose(): number {
-    if (!this.close.length) return 0;
+    // (Before its first frame is sent the video may be anywhere: its load nudges it into playing.)
+    if (!this.close.length || this.uploaded < 0) return 0;
     // (While a seek is landing, `currentTime` is already its target: the frame on the screen is
     // still the last one sent: the skeptic, 2026-10-24.)
     const v = this.art.video;

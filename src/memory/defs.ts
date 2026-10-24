@@ -588,10 +588,14 @@ export const WOODLAND: MemoryDef = {
         // alone a while on the way back and the words come back to a white wall: the creative
         // director's and the skeptic's reviews, 2026-10-18.
         'window.wash': [[0, 0, 'hold'], [7.6, 1]],
-        // The light finds the people first (painting metres from its centre).
+        // The light finds the people first (painting metres from its centre). (Drawn in order, as the
+        // film is, the pool reveals nothing: the order map does. If the film can't be had, the
+        // memory is the wall's still, revealed by this pool: it opens over the whole painting as the
+        // colour comes; held at 0.55 m it left a lit blot under the line for the whole memory: QA,
+        // 2026-10-24.)
         'light.x': [[0, -0.05]],
         'light.y': [[0, -0.24]],
-        'light.radius': [[1, 0.15], [6, 0.55]],
+        'light.radius': [[1, 0.15], [6, 0.55], [7.6, 2.2]],
         'light.soft': [[0, 0.14]],
         // The afternoon's warmth, then (at the cut) the evening's.
         'light.warmth': [[0, 4300, 'hold'], [CUT, 2900]],

@@ -2958,3 +2958,27 @@ second bird gone): the piano a little more forward going into the cut. The close
      (5.2 kHz, narrow, pulsing 5.4 times a second) reads as a cricket now that it is exposed at
      26–30.5; the piano 3 LU more forward in its last phrase (above). And that 1.8 s of the score's
      decay (24.26–26.30) is time-stretched by 14%, across the cut back to the wide.
+
+### Challenged (the skeptic) and tested (QA), and decisions
+
+187. **The skeptic** (on both reviews and the first fixes): the leave-to-wide cut showed her turned
+     (decision 183 as it stands); framing during a seek followed the clock (183); the returning
+     cicada falling away early emptied the clearing just as the bird had (184); the brief's dusk
+     A/B was read too narrowly. So an audition pack for the artist, at one level
+     (`test-output/review/woodland/audition/`, not committed): A as shipped; B, the afternoon's
+     insects carried 1.5 s under the evening (no step at the cut, +0.3 LU, then down to the same
+     dusk); C, the score spliced as the editorial baseline spliced it (4.0 s at the picture's join:
+     home falls in her head's turn). The rig is kept, not deleted (the brief asks for a rollback
+     path; git is one, the tree another, at the cost of art not loaded).
+188. **QA** (a second natural play, pause and a hidden tab, reduced motion, what a screen reader is
+     told, the revisit, the film refused, a phone): all as they should be but one.
+     - **The film refused, a blot** (P1): the memory fell back to the wall's still, revealed by its
+       light's pool, which the afternoon held at 0.55 m: a lit patch under the line for 47 s. Drawn
+       in order (the film) the pool reveals nothing, so it now opens over the whole painting as the
+       colour comes (to 2.2 m by 7.6), and the still shows whole, as any memory's.
+     - Before its first frame is sent, a film says it is on no close shot (its load nudges it into
+       playing: the first frame read 186, a close-up's).
+     - The harnesses: `memories.mjs` follows the film's timeline (it still asked for the rig's
+       two-shot); `woodland-coda.mjs` writes on the east wall by default and fails when nothing is
+       written (on the default wall, by decision 137, nothing is: it had passed writing nothing);
+       `woodland.mjs` no longer counts `<video>` elements (the film's is never in the page).

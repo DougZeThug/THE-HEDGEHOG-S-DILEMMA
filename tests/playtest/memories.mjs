@@ -31,9 +31,10 @@ const STAGES = {
   // The woodland (docs/reviews/2026-10-woodland.md): the artist's eight shots.
   woodland: VARIANT === 'empty'
     ? [['0-untouched', null], ['1-first-drawing', 2.6], ['2-developing', 5], ['3-active', 10], ['4-dissolving', 18], ['5-drawing-alone', 20.6]]
-    : [['00-untouched', null], ['01-pencil', 2.5], ['02-pencil-more', 4.5], ['03-colour', 6.5], ['04-carried', 8.5], ['05-crossing', 9.6], ['06-wide', 12.3], ['07-two', 16.5], ['08-her-look', 19.5], ['09-his-look', 25.5], ['10-wide-again', 31.0],
-       // The cut (34.5 s): the last frame before it and the first after it, then the empty clearing.
-       ['11-last-frame-before-cut', 34.5 - 1 / 60], ['12-first-frame-after-cut', 34.5], ['13-empty-dusk', 39.5], ['14-returning', 44.5], ['15-wall', 47.5], ['16-white-room', 51.0]],
+    // (The afternoon is a film since 2026-10-24: src/memory/defs.ts WOODLAND_FILM.)
+    : [['00-untouched', null], ['01-pencil', 2.5], ['02-pencil-more', 4.5], ['03-colour', 6.5], ['04-carried', 8.5], ['05-crossing', 9.6], ['06-wide', 12.3], ['07-two', 16.5], ['08-her-look', 21.9], ['09-wide-again', 27.0],
+       // The cut (30.5 s): the last frame before it and the first after it, then the empty clearing.
+       ['10-last-frame-before-cut', 30.5 - 1 / 48], ['11-first-frame-after-cut', 30.5 + 1 / 48], ['12-empty-dusk', 35.5], ['13-returning', 40.5], ['14-wall', 43.5], ['15-white-room', 46.5]],
   // Almost (docs/almost.md): the wool through the plaster, the colour, the way in, the film's
   // beats (its first frame held until 10.3 s: src/memory/defs.ts FILM_BEATS), and the way back out
   // (the colour into the wool at once, then the wool into the plaster).
@@ -124,15 +125,11 @@ for (const profile of PROFILES) {
       return most < 8;
     });
     if (blank) errors.push(`the living scene is blank at ${name}`);
-    // The woodland's two-shot is shown (not silently the wide) on a screen that can frame it, and
-    // the wide on one that can't (an upright phone: decisions 7 and 21).
-    if (['07-two', '08-her-look', '09-his-look'].includes(name)) {
-      const { shown, framed } = await page.evaluate(() => {
-        const pl = window.__hedgehog.living?.memory.prepared.living, n = pl?.spec.near, a = innerWidth / innerHeight;
-        return { shown: pl?.scene.shot ?? -1, framed: !!n && a >= n.aspect[0] && a <= n.aspect[1] };
-      });
-      const want = framed ? 1 : 0;
-      if (shown !== want) errors.push(`${name} shows shot ${shown}, not ${want}`);
+    // The woodland's close-up is framed as close on every screen (the film's own shot), the wides not.
+    if (MEMORY === 'woodland' && VARIANT !== 'empty' && /^(06|07|08|09)-/.test(name)) {
+      const close = await page.evaluate(() => window.__hedgehog.post.close);
+      const want = ['07-two', '08-her-look'].includes(name) ? 1 : 0;
+      if (close !== want) errors.push(`${name} framed ${close ? 'close' : 'wide'}, not ${want ? 'close' : 'wide'}`);
     }
     shots.push(`${name} (${st.state} @ ${st.position})`);
   }
@@ -150,7 +147,7 @@ for (const profile of PROFILES) {
   // (The woodland's through the two-shot and her turn, so what they make is let go too: its
   // one-texel ground map leaked, a texture a play, unseen while this pass stopped at 12 s: QA,
   // 2026-10-18; it stopped before her turn's drawings until QA, 2026-10-19.)
-  for (const p of MEMORY === 'woodland' && VARIANT !== 'empty' ? [2.5, 6.5, 8.5, 9.6, 12.3, 16.5, 17.6, 18.5, 19.5] : [12]) {
+  for (const p of MEMORY === 'woodland' && VARIANT !== 'empty' ? [2.5, 6.5, 8.5, 9.6, 12.3, 16.5, 21.9, 27.0, 31.0] : [12]) {
     await page.evaluate((x) => window.__hedgehog.heldAt(x), p);
     await page.waitForTimeout(1200);
   }

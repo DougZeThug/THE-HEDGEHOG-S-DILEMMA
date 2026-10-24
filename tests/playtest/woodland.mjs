@@ -205,8 +205,6 @@ for (const [how, at] of [['turn', 13], ['step', 13], ['turn-in-close', 20]]) {
   await page.evaluate(() => window.__hedgehog.heldAt(null));
   await page.evaluate(() => window.__hedgehog.endLivingMemory?.('interrupt'));
   await page.waitForFunction(() => !window.__hedgehog.living, null, { timeout: 60000 });
-  const videos = () => page.evaluate(() => document.querySelectorAll('video').length);
-  at.videosBetween = await videos();
   const again = await page.evaluate(() => window.__hedgehog.playMemory('woodland', 'more-minutes', 'afternoon'));
   at.replay = { started: !!again, first: again ? await holdAt(3) : null, close: again ? await holdAt(16) : null };
   at.ok = at.wide.close === 0 && at.close.close === 1 && at.closeLooked.close === 1 && at.seek.every((x) => x.ms >= 0) && at.alphaAfterResize.every((x) => x === 255) && !!at.replay.first && at.replay.first.want === 0 && at.replay.first.ms >= 0 && at.replay.close.ms >= 0;
