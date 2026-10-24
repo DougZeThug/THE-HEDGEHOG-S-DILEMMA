@@ -102,16 +102,19 @@ const report = {};
 }
 
 // 2. Leaving by turning away (a mouse look of about 40°), and by a held step.
-for (const how of ['turn', 'step']) {
+// (Let go before the cut, the film goes back to its first frame, the painting's own, as its pencil
+// draws it: src/memory/living/woodlandFilm.ts `leave`. Once from the first wide, once from inside
+// the close-up.)
+for (const [how, at] of [['turn', 13], ['step', 13], ['turn-in-close', 20]]) {
   const { page, errors } = await room();
   const start = await pose(page);
   await page.evaluate(() => window.__hedgehog.playMemory('woodland', 'more-minutes', 'afternoon'));
-  await page.evaluate(() => window.__hedgehog.heldAt(13));
+  await page.evaluate((t) => window.__hedgehog.heldAt(t), at);
   await page.waitForTimeout(500);
   await page.evaluate(() => window.__hedgehog.heldAt(null));
   await page.waitForTimeout(500);
   const inside = await pose(page);
-  if (how === 'turn') {
+  if (how.startsWith('turn')) {
     for (let i = 0; i < 12; i++) {
       await page.evaluate(() => window.__hedgehog.lookBy(30, 0));
       await page.waitForTimeout(40);
@@ -132,9 +135,19 @@ for (const how of ['turn', 'step']) {
     }
     await page.waitForTimeout(100);
   }
+  // (The frame the film shows as it goes back: waited for while the memory is still there.)
+  let film = null;
+  for (let i = 0; i < 40 && film === null; i++) {
+    film = await page.evaluate(() => {
+      const sc = window.__hedgehog.living?.memory.prepared.living?.scene;
+      return sc && !sc.art.video.seeking && sc.uploaded === 0 ? 0 : null;
+    });
+    if (film === null) await page.waitForTimeout(250);
+  }
+  const shown = await page.evaluate(() => window.__hedgehog.living?.memory.prepared.living?.scene.uploaded ?? 'gone');
   await page.waitForTimeout(3000);
   await page.screenshot({ path: `${OUT}/left-by-${how}.png` });
-  report[how] = { start, inside, back, after: await pose(page), errors };
+  report[how] = { start, inside, back, after: await pose(page), wentBackToFirstFrame: film === 0, shown, errors };
   await page.close();
 }
 // 3. The close-up (the film's): framed as close while it is on (a film has no other shot to give
