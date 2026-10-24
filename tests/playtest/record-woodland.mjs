@@ -9,7 +9,7 @@
 // Slow under software GL (seconds a frame): it can be recorded in parts, START to END seconds
 // (START=0 END=27, then START=27, which joins the film when it reaches the end).
 import { createRequire } from 'node:module';
-import { mkdirSync, rmSync, existsSync, writeFileSync } from 'node:fs';
+import { mkdirSync, rmSync, existsSync, writeFileSync, copyFileSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 
 const require = createRequire(import.meta.url);
@@ -104,6 +104,8 @@ const holdExactly = (p) => page.evaluate(async (pos) => {
   if (!held || !v) return held ? { state: held.state, frame: null } : null;
   const want = sc.frameAt(held.final);
   const fps = sc.art.fps;
+  // (Already there, as through a held first or last frame: drawn by the frame the capture waits for.)
+  if (!v.seeking && v.readyState >= 2 && Math.floor(v.currentTime * fps + 1e-6) === want && sc.uploaded === want) return { state: held.state, frame: want };
   for (let i = 0; i < 400; i++) {
     await new Promise((r) => requestAnimationFrame(r));
     if (!v.seeking && v.readyState >= 2 && Math.floor(v.currentTime * fps + 1e-6) === want) {
@@ -116,8 +118,16 @@ const holdExactly = (p) => page.evaluate(async (pos) => {
   throw new Error(`the film never landed on frame ${want} at ${pos.toFixed(3)} s`);
 }, p);
 const landed = [];
+// TWOS='0:9.5,38.5:99': memory spans captured on twos (every other frame drawn, each kept for two):
+// where a film is held still (its way in and out), so software GL's slow frames go to the film.
+const twos = (process.env.TWOS ?? '').split(',').filter(Boolean).map((r) => r.split(':').map(Number));
+const onTwos = (t) => twos.some(([a, b]) => t >= a && t < b);
 for (let i = Math.round(START * FPS); i < END * FPS; i++) {
   const t = i / FPS;
+  if (onTwos(t) && i % 2 === 1 && existsSync(`${frames}/${String(k - 1).padStart(5, '0')}.jpg`)) {
+    copyFileSync(`${frames}/${String(k - 1).padStart(5, '0')}.jpg`, `${frames}/${String(k++).padStart(5, '0')}.jpg`);
+    continue;
+  }
   const held = await holdExactly(t);
   if (!held) throw new Error(`the memory is gone at ${t.toFixed(2)} s`);
   if (held.frame !== null) landed.push([+t.toFixed(4), held.frame]);
