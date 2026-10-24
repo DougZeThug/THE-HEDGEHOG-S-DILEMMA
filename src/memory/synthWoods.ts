@@ -238,15 +238,13 @@ export function midPhrases(): [number, number][][] {
     const list = phrases(c.seed, 2, TIMES.length + 3, [4, 9], [2, 6])
       .filter(([a, b]) => !(a < end && b > end))
       .map(([a, b]): [number, number] => (a < start && b > start ? [a, Math.max(a + 2, start)] : [a, b]));
-    // One of them back after the quiet, at a phrase's start, soon (a second phrase coming back
-    // too, with the cicada over them and the piano's chord, was five sounds in a second and a
-    // quarter: the sound designer, 2026-10-24), and fallen away before the cut: the cut takes the
-    // cicada over them at its height and the trees' chorus. (Singing on into the film's shorter
-    // second wide, they made the afternoon's last half second 3 dB fuller and its step down at the
-    // cut 6 LU, where it had been 2.) The other stays quiet to the cut.
+    // One of them back after the quiet, at a phrase's start, soon, singing on until the cut takes
+    // it with everything else of the afternoon; the other stays quiet to the cut. (Both coming back,
+    // with the cicada over them, a bird and the piano's chord, were five sounds in a second and a
+    // quarter: the sound designer; falling away before the cut, they emptied the clearing before
+    // the picture did: the skeptic, 2026-10-24.)
     const rest = list.filter(([a]) => a < end);
-    const fall = TIMES.cut - 0.8;
-    const capped: [number, number][] = i === BACK ? [...rest, [end + 0.6, fall]] : rest;
+    const capped: [number, number][] = i === BACK ? [...rest, [end + 0.6, TIMES.cut + 3]] : rest;
     // And nothing begins in the afternoon's last seconds: a sound coming in as the cut nears leans
     // toward it.
     return capped.filter(([a]) => !(a > TIMES.cut - 3 && a < TIMES.cut));

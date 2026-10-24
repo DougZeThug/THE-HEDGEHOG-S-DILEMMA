@@ -515,12 +515,15 @@ describe('the afternoon as a film: its shots at their own speed, the two of them
     const c = WOODLAND_FILM_SPEC.close!;
     // (The shot's frames are its seconds on the film.)
     expect(c.frames).toEqual(c.spans.map(([a, b]) => [Math.round((a - F.at) * F.fps), Math.round((b - F.at) * F.fps)]));
-    const on = (close: [number, number][], frame: number) => FilmScene.prototype.choose.call({ close, art: { video: { currentTime: (frame + 0.5) / F.fps }, fps: F.fps } } as unknown as FilmScene);
+    const on = (close: [number, number][], frame: number, seeking = false, uploaded = -1) => FilmScene.prototype.choose.call({ close, uploaded, art: { video: { currentTime: (frame + 0.5) / F.fps, seeking }, fps: F.fps } } as unknown as FilmScene);
     for (let k = 0; k < F.frames; k++) expect(on(c.frames, k), `frame ${k}`).toBe(k >= 132 && k < 378 ? 1 : 0);
     // (A film with no close shots is never close: Almost, Things.)
     expect(on([], 200)).toBe(0);
-    // Let go inside it, the film cuts to the wide that follows (its first frame).
-    expect(Math.round(c.leaveTo * F.fps)).toBe(378);
+    // While a seek is landing, by the frame still on the screen, not the seek's target.
+    expect(on(c.frames, 20, true, 200)).toBe(1);
+    expect(on(c.frames, 200, true, 20)).toBe(0);
+    // Let go before the cut, the film goes back to its first frame (the painting's, as the pencil draws it).
+    expect(WOODLAND_FILM_SPEC.leave).toEqual({ before: CUT_AT, to: 0 });
     // On a 16:9 screen the close-up is centred, as the wides are; wider, its top is kept (their
     // faces); never above the shot's own top.
     expect(closeCover(16 / 9)[1]).toBeCloseTo(0.5, 2);
@@ -759,10 +762,10 @@ describe('the woodland, heard', () => {
     const lists = midPhrases();
     for (const list of lists) {
       for (const [a, b] of list) expect((a < end && b > end) || (a < start && b > start), `${a.toFixed(2)}–${b.toFixed(2)} s`).toBe(false);
-      // Nothing begins as the cut nears; what comes back has fallen away before it.
+      // Nothing begins as the cut nears; what comes back sings on into it (the cut takes it).
       for (const [a, b] of list) {
         expect(a > CUT_AT - 3 && a < CUT_AT, `${a.toFixed(2)} s`).toBe(false);
-        if (a >= end) expect(b).toBeLessThanOrEqual(CUT_AT - 0.8);
+        if (a >= end) expect(b).toBeGreaterThan(CUT_AT);
       }
     }
     // One of them comes back within a few seconds, a phrase of at least 3 s; the other stays quiet.

@@ -2910,36 +2910,42 @@ a recording. Every woodland timeline in `theatre-state.json` equalled its seed i
 
 | | Approved | Film |
 |---|---|---|
-| Step at the cut (0.5 s either side) | −2.0 LU | −2.4 LU |
+| Step at the cut (0.5 s either side) | −2.0 LU | −2.4 LU (−3.4 after 184) |
 | Piano re place, the close shot | −1.4 | −1.2 |
 | Piano re place, the second wide | −6.9 | −6.2 |
 | Piano re place, overall | −5.0 | −5.5 |
 | Room-level peak | −33.3 dBFS | −34.0 dBFS |
 
-(After decision 184. Step at the cut over 1 s and 3 s: −2.6 and −3.0 LU (approved −2.1, −4.1); the
-last 1.5 s, in quarter seconds, within 1 dB of the approved contour. On the same notes, the
-second time's last phrase, the piano measures the same (−51.0) and the place 3.3 dB thinner than
-approved (−48.8 against −45.5): the piano about 3 LU more forward going into the cut. The close shot
-−1.5 (approved −1.4); the second wide as a whole −2.5 (approved −6.9, a window holding louder
-notes); overall −4.2 (−5.0).)
+(After decision 184, as it stands. Step at the cut over 0.5 s and 1 s: −3.4 LU (approved −2.0,
+−2.1); the last 2 s, in quarter seconds, within about 1 dB of the approved contour, a little
+fuller, nothing emptying before the cut. On the same notes, the second time's last phrase, the
+piano measures the same (−51.0) and the place 3 dB thinner than approved (−48.5 against −45.5, the
+second bird gone): the piano a little more forward going into the cut. The close shot −1.3
+(approved −1.4).)
 
 ### Reviewed (the cinematic director and the sound designer, from stills, frames, stems and data), and decisions
 
 182. **The dusk's own light after the cut** (the cinematic director's 1, P1): the afternoon's dapple
      light layer came back over the empty clearing as it went into the wall (40–44.6). At the cut
      the dusk painting's light (`empty/light`, the revisit's) takes its place (`light-after`).
-183. **Let go in the close-up, the wide** (their 2, P1): the film went on through the way out, and
-     two faces went into a pencil drawing of the wide. Let go inside a close shot, the film cuts to
-     the wide that follows (its first frame, she already looking at him) and holds it to the end.
-     The room frames a shot by the frame the video is showing, not the clock (their 3: a video a
-     frame or two behind was reframed before its cut). On a landscape screen narrower than 16:9 the
+183. **Let go early, the painting's own frame** (their 2, P1; the skeptic's 5): the film went on
+     through the way out, and two faces went into a pencil drawing of the wide. First made to cut to
+     the wide that follows; the skeptic showed that frame has her turned (the pencil draws her
+     looking up) and gave away a glance a visitor who left before it never saw. So: let go before
+     the cut, the film goes back to its first frame, the painting's own, and holds it. The room
+     frames a shot by the frame the video is showing, not the clock (their 3: a video a frame or
+     two behind was reframed before its cut), and while a seek is landing, by the frame still on
+     the screen (the skeptic's 6). On a landscape screen narrower than 16:9 the
      close-up keeps both faces while they fit, else hers (their 4: a 4:3 window put his face on its
      edge).
-184. **One bird, one cicada back** (the sound designer's 1 and 2, P1): the second bird is gone from
-     the afternoon (in the film's 5.25 s second wide it sang over the piano's last phrase and its
-     call's end emptied the clearing before the cut did). One side cicada comes back after the
-     close shot (26.65–29.7), the other stays quiet: two coming back with the cicada over them and
-     the piano's chord were five sounds in a second and a quarter, each a swell, not a phrase.
+184. **One bird, one cicada back** (the sound designer's 1 and 2, P1; the skeptic's 2): the second
+     bird is gone from the afternoon (in the film's 5.25 s second wide it sang over the piano's last
+     phrase and its call's end emptied the clearing before the cut did). One side cicada comes back
+     after the close shot (from 26.65) and sings on until the cut takes it; the other stays quiet:
+     two coming back with the cicada over them and the piano's chord were five sounds in a second
+     and a quarter. (Made first to fall away before the cut, it emptied the clearing early just as
+     the bird had: the skeptic. The step at the cut is 3.4 LU, approved 2.0; not tuned further: the
+     ear decides.)
 185. **Not done, and why.** The dusk A/B the brief asks for (the music ending at the cut against
      more continuity): its B, the piano ringing on under the evening, cannot be made here (the
      score's only render ends on the old cut; its samples are unreachable). A is the artist's

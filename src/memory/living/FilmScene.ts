@@ -191,7 +191,10 @@ export class FilmScene {
    */
   choose(): number {
     if (!this.close.length) return 0;
-    const f = Math.floor(this.art.video.currentTime * this.art.fps + 1e-6);
+    // (While a seek is landing, `currentTime` is already its target: the frame on the screen is
+    // still the last one sent: the skeptic, 2026-10-24.)
+    const v = this.art.video;
+    const f = v.seeking && this.uploaded >= 0 ? this.uploaded : Math.floor(v.currentTime * this.art.fps + 1e-6);
     return this.close.some(([a, b]) => f >= a && f < b) ? 1 : 0;
   }
 

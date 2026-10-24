@@ -105,8 +105,8 @@ export class App {
   private living: { memory: LivingMemory; id: string; key: string; anchor: NonNullable<ReturnType<WallText['anchorOf']>>; bled: boolean; hiddenSince: number | null; held: boolean;
     /** Seconds looking away from it, and watching it; why it was let go. */
     awayFor: number; watched: number; minHold: number; seenAt?: number; reached: number; deep: boolean; why: string | null;
-    /** Let go inside a film's close shot: the film held on the wide it cut to, to the end. */
-    leftClose?: boolean;
+    /** Let go early (a film's `leave`): the film held on the frame it cut to, to the end. */
+    leftEarly?: boolean;
     /** Looking away from it now (last attention check); how many of its later descriptions are told. */
     away: boolean; told: number;
     /** The room's writing its painting has washed out (given back when it goes). */
@@ -1134,11 +1134,11 @@ export class App {
     this.captions.dim = this.inside.entered && (f.final['scene.immerse'] ?? 0) >= 0.6 && (f.final['scene.after'] ?? 0) >= 0.5;
     pl.scene.reduced = this.prefs.reducedMotion;
     // (The two-shot's frame is the screen's: a narrower one sees less of its width, a wider one less of its height.)
-    // (A film let go inside one of its close shots cuts to the wide that follows, so what goes back
-    // into the wall is the wide its pencil draws: src/memory/living/woodlandFilm.ts `leaveTo`.)
-    const closeSpans = pl.spec.close?.spans ?? [];
-    if ((f.state === 'withdrawing' || f.state === 'residue') && closeSpans.some(([a, b]) => f.position >= a && f.position < b)) l.leftClose = true;
-    const values = l.leftClose ? { ...f.final, 'scene.film': pl.spec.close!.leaveTo } : f.final;
+    // (A film let go early cuts to the frame its wall's pencil draws and holds it as it goes back:
+    // src/memory/living/woodlandFilm.ts `leave`.)
+    const leave = pl.spec.leave;
+    if (leave && (f.state === 'withdrawing' || f.state === 'residue') && f.position < leave.before) l.leftEarly = true;
+    const values = l.leftEarly && leave ? { ...f.final, 'scene.film': leave.to } : f.final;
     pl.scene.update(this.renderer, f.t, values, { view: this.inside.view, parallax: new THREE.Vector2(), aspect });
     // What changes later, told to a screen reader when it happens (not before: the cut is not given away).
     const later = l.memory.prepared.def.announce?.(l.memory.prepared.variant) ?? [];
