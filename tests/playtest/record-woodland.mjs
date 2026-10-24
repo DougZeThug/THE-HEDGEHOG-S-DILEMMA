@@ -9,7 +9,7 @@
 // Slow under software GL (seconds a frame): it can be recorded in parts, START to END seconds
 // (START=0 END=27, then START=27, which joins the film when it reaches the end).
 import { createRequire } from 'node:module';
-import { mkdirSync, rmSync, existsSync } from 'node:fs';
+import { mkdirSync, rmSync, existsSync, writeFileSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 
 const require = createRequire(import.meta.url);
@@ -27,7 +27,7 @@ const W = Number(process.env.W ?? 1280), H = Number(process.env.H ?? 720);
 const VARIANT = process.env.VARIANT ?? 'afternoon';
 const OUT = process.env.OUT ?? 'test-output/review/woodland/film';
 const PRE = 2; // seconds of the room before it begins
-const LAST = VARIANT === 'empty' ? 28 : 53;
+const LAST = VARIANT === 'empty' ? 28 : 47.5;
 const START = Number(process.env.START ?? 0);
 const END = Number(process.env.END ?? LAST);
 const frames = `${OUT}/frames-${PROFILE}-${VARIANT}`;
@@ -92,15 +92,41 @@ for (let t = 0; t < START; t += 0.5) {
   await raf();
 }
 const t0 = Date.now();
+// A film (the afternoon since 2026-10-24: src/memory/living/FilmScene.ts) is held by seeking its
+// video, which lands a moment later: held again until it is on the very frame the timeline asks for,
+// then drawn once more, so every captured frame is the film's own (once, a frame behind, every other
+// frame of the film was its neighbour). A painted scene draws at once.
+const holdExactly = (p) => page.evaluate(async (pos) => {
+  const a = window.__hedgehog;
+  const held = a.heldAt(pos);
+  const sc = a.living?.memory.prepared.living?.scene;
+  const v = sc?.art?.video;
+  if (!held || !v) return held ? { state: held.state, frame: null } : null;
+  const want = sc.frameAt(held.final);
+  const fps = sc.art.fps;
+  for (let i = 0; i < 400; i++) {
+    await new Promise((r) => requestAnimationFrame(r));
+    if (!v.seeking && v.readyState >= 2 && Math.floor(v.currentTime * fps + 1e-6) === want) {
+      a.heldAt(pos);
+      await new Promise((r) => requestAnimationFrame(r));
+      return { state: held.state, frame: want };
+    }
+    a.heldAt(pos);
+  }
+  throw new Error(`the film never landed on frame ${want} at ${pos.toFixed(3)} s`);
+}, p);
+const landed = [];
 for (let i = Math.round(START * FPS); i < END * FPS; i++) {
   const t = i / FPS;
-  const held = await page.evaluate((p) => window.__hedgehog.heldAt(p), t);
+  const held = await holdExactly(t);
   if (!held) throw new Error(`the memory is gone at ${t.toFixed(2)} s`);
+  if (held.frame !== null) landed.push([+t.toFixed(4), held.frame]);
   await raf();
   await shot();
   if (i % (FPS * 2) === 0) console.log(`${t.toFixed(1)} s (${((Date.now() - t0) / 1000).toFixed(0)} s elapsed)`);
 }
 await browser.close();
+if (landed.length) writeFileSync(`${frames}/film-frames-${START}-${END}.json`, JSON.stringify(landed));
 if (END < LAST) {
   console.log(JSON.stringify({ part: [START, END], frames: k, errors }));
   process.exit(0);

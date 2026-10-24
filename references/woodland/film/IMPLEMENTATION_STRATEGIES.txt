@@ -1,0 +1,40 @@
+IMPLEMENTATION STRATEGIES AND ACCEPTANCE CHECKS
+
+A. Prefer the project's actual source over the flattened baseline
+The baseline is a useful editorial ruler, with existing audio and room transitions. It is not a recovered master. If the live project still has 55-second timing, reconcile the old EDL once, then substitute these shots. If it already has newer work, preserve that work and explain any necessary mapping. Do not ship the reference video itself as the newly integrated result.
+
+B. Integration choices, in preference order for the current architecture
+- Existing video-texture/mask scene: precompose the four shots as one 29.5-second woodland core or render them into the final scene. Reuse its reveal/return and audio controller.
+- Existing compositor/editor: replace the four timeline slots, preserve the original room sections and sound stems, and export one continuous memory.
+- Separate clip playback: only if the project benefits from it. Preload/decode ahead, use one authoritative scene clock, correct timestamp resets and dispose media correctly. Do not rely on imprecise timeout chains or autoplay starting four players independently.
+The implementation is Claude's choice; these are options, not mandatory dependencies.
+
+C. Seam-specific checks
+10.25 opening reveal: this is a practical editorial handoff point, not a verified identical-frame join. Compare final reveal image to first opening clip. Match scale/position/color; ideally reveal the new first frame through the original mask. Keep initial full-wide pose skyward. Do not run the opening clip under the reveal and then visibly restart it at 10.25.
+15.75 wide-to-close: check left/right geography, clothing and face identity. A clean shot cut is intended; a face morph/dissolve is not a repair. Minor independent pose variation exists.
+26.00 close-to-return: she has completed her glance and holds toward him; he stays up. The return take starts after its earlier turn and ends before its larger later body adjustment. Do not substitute the untrimmed 15-second wide or replay its earlier glance.
+31.25 occupied-to-empty: strongest emotional boundary. Stable landmarks should stay aligned while people vanish and daylight changes to dusk instantly. Keep the hard cut. Gentle static crop/translation/color treatment can reconcile minor framing; do not distort the forest to force a match.
+39.75 dusk-to-room: the generated final dusk frame may differ from the old transition's underlying still. Reuse the generated image in the existing retreat/mask if possible. Avoid an obvious reset in vegetation. Let the unfinished room text resolve clearly rather than linger as an accidental ghost image.
+
+D. Sound strategy
+All four clips are silent. Keep the baseline/current scene audio continuous for the first assembly, rather than concatenating silence over it. Listen in sync before changing the mix. Rebuild from source stems if available. The baseline has already been editorially retimed; do not stretch it again if adopting its exact timing. If timing changes, remap audio/cues together.
+Cicadas and quiet environmental depth support daylight. Dusk can feel emptier through reduced musical intimacy and changed ambient texture without becoming dead digital silence. Keep the hard picture cut regardless of audio choice. Do not add acting sounds to incidental mouth movement. Verify headphone/speaker balance, clicks, clipping and mobile playback; previous checks did not include subjective audio audition.
+
+E. Known asset limits
+All selections are 1280x720 H.264, 24 fps, video-only. They are useful generated takes, not production rigs or layered character assets. Small face/fabric/foliage variations remain. The close-up may show brief mouth movement; no clear repeated synchronized sigh was found in sampled frames, but that is not a guarantee from realtime playback. The dusk has visible local foreground movement and minor drawing variation, not pixel-perfect still registration. No original illustration detail can be recovered merely by upscaling.
+Earlier review used sampled/dense frames, endpoint comparison, metadata and full decode checks, not realtime audiovisual review. Claude should do that final review in the actual project.
+
+F. QA checklist
+[ ] Four clip hashes/frames agree with timeline.json.
+[ ] Continuous 48.25s target (or documented intentional reconciliation), no missing/duplicate boundary frame.
+[ ] No repeated turn in opening/return; woman's glance remains private.
+[ ] No artificial synchronized reactions or environmental oscillation added.
+[ ] Hard dusk cut at frame750, no visual fade or disappearance effect.
+[ ] Room reveal/return blend into the actual generated imagery without a reset.
+[ ] Existing text, other memories, navigation and user changes preserved.
+[ ] Sound is present where intended; no dialogue, unintended sigh, clipping, duplicated track or silence gap.
+[ ] First load, replay, pause/resume, seek and leaving/re-entering the memory work.
+[ ] Desktop and mobile aspect ratio/performance checked; no forced stretch/crop hiding key action.
+[ ] Final export decoded, viewed in motion and listened to where supported; unperformed checks disclosed.
+
+Excluded deliberately: rejected windy close-ups, synchronized-reaction tests, raw10s wide's late turns, raw15s wide's later body adjustment, stale prior integration instructions. This package supersedes earlier motion-test briefs for clip selection and timeline integration only.

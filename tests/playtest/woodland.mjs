@@ -53,40 +53,51 @@ async function room() {
 const pose = (page) => page.evaluate(() => ({ x: +window.__hedgehog.rig.pos.x.toFixed(3), z: +window.__hedgehog.rig.pos.z.toFixed(3), yaw: +window.__hedgehog.rig.yaw.toFixed(3), locked: window.__hedgehog.inside.locked, eff: +window.__hedgehog.inside.eff.toFixed(3), state: window.__hedgehog.living?.memory.state ?? null, pos: +(window.__hedgehog.living?.memory.controller.position ?? -1).toFixed(2) }));
 const report = {};
 
-// 1. The cut, played: every drawn frame either side of 34.5 s, as the renderer drew it (whether the
-// people were drawn, and which painting). Software GL is slow, so frames are seconds apart here;
-// what matters is that no drawn frame has one without the other.
+// 1. The cut, played (the afternoon is a film since 2026-10-24): every drawn frame either side of
+// the cut at 30.5 s, as the room drew it: the timeline's frame, the frame the video is on and the
+// frame last sent to the screen. Software GL is slow, so frames are far apart here; what matters is
+// that the picture is the film's own frame for the time, never the afternoon after the cut or the
+// dusk before it, and that the video keeps up with the clock (its drift, in frames).
 {
   const { page, errors } = await room();
   const start = await pose(page);
   await page.evaluate(() => window.__hedgehog.playMemory('woodland', 'more-minutes', 'afternoon'));
-  await page.evaluate(() => window.__hedgehog.heldAt(33.5));
-  await page.waitForTimeout(600);
+  await page.evaluate(() => window.__hedgehog.heldAt(28.5));
+  await page.waitForTimeout(1500);
   await page.evaluate(() => {
     const a = window.__hedgehog;
     a.__cut = [];
     const sc = a.living.memory.prepared.living.scene;
+    const v = sc.art.video;
     const probe = () => {
       if (!a.living) return;
       const pos = a.living.memory.controller.position;
-      a.__cut.push({ pos: +pos.toFixed(3), people: sc.m.people.uniforms.uPeople.value, drawn: sc.people.visible, after: sc.m.plate.uniforms.uAfter.value, immerse: +a.inside.eff.toFixed(3) });
-      if (pos < 37) requestAnimationFrame(probe);
+      const want = Math.floor(Math.max(0, Math.min(29.5 - 1e-6, pos - 9.5)) * 24 + 1e-6);
+      a.__cut.push({ pos: +pos.toFixed(3), want, video: Math.floor(v.currentTime * 24 + 1e-6), shown: sc.uploaded, playing: !v.paused, seeking: v.seeking, immerse: +a.inside.eff.toFixed(3) });
+      if (pos < 33.5) requestAnimationFrame(probe);
     };
     requestAnimationFrame(probe);
     a.heldAt(null);
   });
-  await page.waitForFunction(() => (window.__hedgehog.living?.memory.controller.position ?? 99) > 36.5, null, { timeout: 120000 });
+  await page.waitForFunction(() => (window.__hedgehog.living?.memory.controller.position ?? 99) > 33.0, null, { timeout: 180000 });
   await page.screenshot({ path: `${OUT}/played-after-cut.png` });
   const frames = await page.evaluate(() => window.__hedgehog.__cut);
-  const mixed = frames.filter((f) => (f.drawn && f.people > 0) !== (f.after < 0.5));
+  // (A frame shown is the dusk's from 504 on: never a dusk frame before the cut's time, nor an
+  // afternoon one well after it.)
+  const wrongSide = frames.filter((f) => (f.pos < 30.5 - 0.25 && f.shown >= 504) || (f.pos > 30.5 + 0.25 && f.shown < 504));
+  const drift = frames.filter((f) => f.playing && !f.seeking).map((f) => f.video - f.want);
   // Then on, through the return, to the room: back where they stood.
   await page.evaluate(() => {
-    window.__hedgehog.heldAt(41.3);
+    window.__hedgehog.heldAt(38.3);
     window.__hedgehog.heldAt(null);
   });
   await page.waitForFunction(() => !window.__hedgehog.living, null, { timeout: 180000 });
   const end = await pose(page);
-  report.cut = { frames: frames.length, mixed: mixed.length, around: frames.filter((f) => f.pos > 33.9 && f.pos < 35.2), start, end, restored: Math.abs(start.x - end.x) < 1e-3 && Math.abs(start.z - end.z) < 1e-3 && Math.abs(start.yaw - end.yaw) < 1e-3, errors };
+  report.cut = {
+    frames: frames.length, wrongSide: wrongSide.length, drift: drift.length ? { min: Math.min(...drift), max: Math.max(...drift), mean: +(drift.reduce((x, y) => x + y, 0) / drift.length).toFixed(2) } : null,
+    around: frames.filter((f) => f.pos > 30.0 && f.pos < 31.0), start, end,
+    restored: Math.abs(start.x - end.x) < 1e-3 && Math.abs(start.z - end.z) < 1e-3 && Math.abs(start.yaw - end.yaw) < 1e-3, errors,
+  };
   await page.close();
 }
 
@@ -126,57 +137,46 @@ for (const how of ['turn', 'step']) {
   report[how] = { start, inside, back, after: await pose(page), errors };
   await page.close();
 }
-// 3. The two-shot: a small look round keeps it; past 14° it is the wide (and they are still
-// inside: leaving takes 30°); settled facing it again, the two of them close again.
+// 3. The close-up (the film's): framed as close while it is on (a film has no other shot to give
+// way to: a look round changes nothing), held frames exact when sought back and forth across the
+// cut, the canvas opaque through a resize; then played a second time from the start (replay): the
+// film's first frame again, nothing left of the first play.
 {
   const { page, errors } = await room();
   await page.evaluate(() => window.__hedgehog.playMemory('woodland', 'more-minutes', 'afternoon'));
   await page.evaluate(() => window.__hedgehog.heldAt(12));
   await page.waitForTimeout(800);
-  await page.evaluate(() => window.__hedgehog.heldAt(16.5));
-  await page.waitForTimeout(800);
-  const shot = () => page.evaluate(() => window.__hedgehog.living?.memory.prepared.living?.scene.shot ?? -1);
-  const turned = () => page.evaluate(() => +((window.__hedgehog.inside.turned * 180) / Math.PI).toFixed(1));
-  // (Software GL draws a frame every second or so: wait for two to have been drawn.)
+  const shot = () => page.evaluate(() => {
+    const a = window.__hedgehog;
+    return { close: a.post.close, frame: a.living?.memory.prepared.living?.scene.uploaded ?? null };
+  });
   const drawn = () => page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
-  const look = async (px) => {
-    for (let i = 0; i < Math.abs(px) / 20; i++) {
-      await page.evaluate((d) => window.__hedgehog.lookBy(d, 0), Math.sign(px) * 20);
-      await drawn();
+  // (Held until the video has landed on the frame asked for, as the recorder holds it.)
+  const holdAt = (t) => page.evaluate(async (pos) => {
+    const a = window.__hedgehog;
+    const held = a.heldAt(pos);
+    const sc = a.living.memory.prepared.living.scene, v = sc.art.video;
+    const want = sc.frameAt(held.final);
+    for (let i = 0; i < 400; i++) {
+      await new Promise((r) => requestAnimationFrame(r));
+      a.heldAt(pos);
+      if (!v.seeking && Math.floor(v.currentTime * 24 + 1e-6) === want && sc.uploaded === want) return { want, ms: i };
     }
+    return { want, ms: -1 };
+  }, t);
+  const at = {};
+  at.wide = { ...(await holdAt(12)), ...(await shot()) };
+  at.close = { ...(await holdAt(20.0)), ...(await shot()) };
+  for (let i = 0; i < 4; i++) {
+    await page.evaluate(() => window.__hedgehog.lookBy(20, 0));
     await drawn();
-  };
-  const at = { start: await shot() };
-  await look(80);
-  at.small = { shot: await shot(), turned: await turned() };
-  await look(60);
-  at.past = { shot: await shot(), turned: await turned() };
-  // Turned back to face it (a held memory doesn't spring the turn back: its dt is 0), at a moment
-  // a return may land (never within half a second of a beat: her turn's steps are beats too, 18.0,
-  // 18.5, 19.0): after 1.2 s settled, the two of them close again (held, any frame).
-  await page.evaluate(() => window.__hedgehog.heldAt(20.0));
-  await look(-140);
-  // (Its 1.2 s is the room's own time, which software GL's slow frames advance by a tenth of a
-  // second each: waited for in that time, up to 4 s of it, not the wall's.)
-  let back = null;
-  const t0 = Date.now(), r0 = await page.evaluate(() => window.__hedgehog.time);
-  while (Date.now() - t0 < 90000) {
-    const s = await shot();
-    const since = (await page.evaluate(() => window.__hedgehog.time)) - r0;
-    if (s === 1) {
-      back = { after: +since.toFixed(2), turned: await turned() };
-      break;
-    }
-    if (since > 4) break;
-    await page.waitForTimeout(200);
   }
-  at.back = back;
-  at.locked = await page.evaluate(() => window.__hedgehog.inside.locked);
-  // The screen resized while it has the whole view: the canvas stays opaque (its alpha read back
-  // after a render; it was 0, the page's paper showing through, until the painting went back).
+  at.closeLooked = await shot();
+  at.seek = [];
+  for (const t of [30.48, 30.52, 29.0, 35.0, 30.45, 15.01, 25.24, 25.26]) at.seek.push({ t, ...(await holdAt(t)) });
   await page.setViewportSize({ width: 1100, height: 800 });
   await page.waitForTimeout(600);
-  await page.evaluate(() => window.__hedgehog.heldAt(20.1));
+  await holdAt(20.1);
   await drawn();
   at.alphaAfterResize = await page.evaluate(() => {
     const a = window.__hedgehog, gl = a.renderer.getContext();
@@ -188,7 +188,16 @@ for (const how of ['turn', 'step']) {
       return px[3];
     });
   });
-  report.twoShotTurn = { ...at, ok: at.start === 1 && at.small.shot === 1 && at.past.shot === 0 && !!at.back && at.locked && at.alphaAfterResize.every((x) => x === 255), errors };
+  // Let go, and played again from the start.
+  await page.evaluate(() => window.__hedgehog.heldAt(null));
+  await page.evaluate(() => window.__hedgehog.endLivingMemory?.('interrupt'));
+  await page.waitForFunction(() => !window.__hedgehog.living, null, { timeout: 60000 });
+  const videos = () => page.evaluate(() => document.querySelectorAll('video').length);
+  at.videosBetween = await videos();
+  const again = await page.evaluate(() => window.__hedgehog.playMemory('woodland', 'more-minutes', 'afternoon'));
+  at.replay = { started: !!again, first: again ? await holdAt(3) : null, close: again ? await holdAt(16) : null };
+  at.ok = at.wide.close === 0 && at.close.close === 1 && at.closeLooked.close === 1 && at.seek.every((x) => x.ms >= 0) && at.alphaAfterResize.every((x) => x === 255) && !!at.replay.first && at.replay.first.want === 0 && at.replay.first.ms >= 0 && at.replay.close.ms >= 0;
+  report.close = { ...at, errors };
   await page.close();
 }
 writeFileSync(`${OUT}/woodland.json`, JSON.stringify(report, null, 2));

@@ -153,9 +153,13 @@ export class FilmScene {
   };
   readonly view = new THREE.Vector4(0, 0, 1, 1);
 
-  constructor(readonly art: FilmArt, o: { width: number; height: number; reduced: boolean }) {
+  /** Its close shots (memory s, from–to): `choose` says 1 inside one (src/memory/living/woodlandFilm.ts). */
+  private readonly close: [number, number][];
+
+  constructor(readonly art: FilmArt, o: { width: number; height: number; reduced: boolean; close?: [number, number][] }) {
     this.target = livingTarget(o.width, o.height);
     this.reduced = o.reduced;
+    this.close = o.close ?? [];
     this.texture = new THREE.VideoTexture(art.video);
     this.texture.colorSpace = THREE.NoColorSpace;
     this.texture.generateMipmaps = false;
@@ -179,9 +183,14 @@ export class FilmScene {
     return Math.max(0, Math.min(this.art.frames - 1, Math.floor(s * this.art.fps + 1e-6)));
   }
 
-  /** A film has one shot. */
-  choose(): number {
-    return 0;
+  /**
+   * The shot the film is on at memory time `o.t`: 1 inside one of its close shots, else 0 (a film
+   * cuts itself: this only tells the room how to frame it). A film without them has one shot.
+   */
+  choose(_v?: Values, o?: { t: number }): number {
+    const t = o?.t;
+    if (t === undefined) return 0;
+    return this.close.some(([a, b]) => t >= a && t < b) ? 1 : 0;
   }
 
   /**

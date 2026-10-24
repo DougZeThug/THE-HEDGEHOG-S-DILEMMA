@@ -847,6 +847,7 @@ def main():
         'axis': [round((ex - hx) / ln, 5), round(-(ey - hy) / ln, 5)],
     }
     place = [FIG_X0 / W, 1 - (FIG_Y0 + ph) / H, pw / W, ph / H]
+    # The painted rig (the afternoon's living scene until 2026-10-24: kept beside its film, `rig`).
     living = {
         'afternoon': {
             # (No gradual dusk: the evening arrives with the cut, as its own painting. `grade` and
@@ -881,14 +882,18 @@ def main():
         'crop': CROP,
         'plate': [W, H],
         'variants': {v: [layer(v, 'scene', 'pigment'), layer(v, 'sketch', 'sketch'), dict(layer(v, 'sketch-after', 'sketch'), file=f'{v}/sketch-after' if v == 'afternoon' else 'empty/sketch'), layer(v, 'light', 'light')] for v in ('afternoon', 'empty')},
-        'living': living,
+        # (The afternoon plays its film, scripts/woodland-film/: its entry is kept as it was.)
+        'living': {'afternoon': None, 'empty': living['empty']},
+        'rig': {'afternoon': living['afternoon']},
     }
     # The drawing's order (scripts/stroke-order.py) and the two-shot with her head's redrawing
     # (scripts/two-shot.py: `near`, and `figures.heads` below) are made by their own scripts: kept
     # as they are.
     try:
         with open(os.path.join(OUT, 'manifest.json')) as f:
-            before = json.load(f)['living']['afternoon']
+            was = json.load(f)
+        manifest['living']['afternoon'] = was['living']['afternoon']
+        before = was['rig']['afternoon']
         for k in ('order', 'orderClocks', 'near'):
             if before.get(k):
                 living['afternoon'][k] = before[k]

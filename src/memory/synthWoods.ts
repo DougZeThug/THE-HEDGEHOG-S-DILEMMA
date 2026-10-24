@@ -1,24 +1,4 @@
 import { CUT, SHOTS } from './defs';
-import { gustSway } from './living/performance';
-import { WOODLAND } from './living/woodland';
-
-/** A gust as it is heard: the leaves over the middle of the clearing as they sway with it, a
- *  moment before they are seen to. */
-export const heard = (t: number) => gustSway(t + 0.4, 0.5, WOODLAND.gusts);
-
-/**
- * Where the leaves are heard across (−1 left .. 1 right): where they are seen to sway, the
- * canopy's left against its right, so a gust starts on the left with the near oak and travels
- * right with its front (heard on the right all along, it was ahead of what was seen: cinematic
- * review, 2026-10-18); back to the middle as it dies away (by its strength: never a jump; QA).
- */
-export function leavesPan(t: number): number {
-  const l = gustSway(t + 0.4, 0.2, WOODLAND.gusts).strength, r = gustSway(t + 0.4, 0.8, WOODLAND.gusts).strength;
-  if (l + r < 1e-6) return 0;
-  // (Across only as far as the gust is heard: not hard over while it is barely there.)
-  const k = Math.min(1, heard(t).strength / 0.35);
-  return 0.8 * ((r - l) / (l + r)) * k * k * (3 - 2 * k);
-}
 
 /**
  * The woodland memory's day insects, made in the engine (docs/reviews/2026-10-woodland.md): stand-ins
@@ -49,9 +29,11 @@ export const TIMES = {
   length: CUT,
   cut: CUT,
   /** The near cicada's phrases: first heard beyond the wall; through the first wide; a lull while
-   *  the two of them are close (her look, his); one long phrase from a second into the second
-   *  wide, cut off by the cut, at its height. (Never begun or ended within 0.7 s of a shot's cut.) */
-  near: [[1.2, 6.6], [8.2, SHOTS.two - 0.7], [SHOTS.wideAgain + 1, 37.8]] as [number, number][],
+   *  the two of them are close (her glance); one long phrase from just under a second into the
+   *  second wide, cut off by the cut, at its height. (Never begun or ended within 0.7 s of a shot's cut.) */
+  // (Back 0.8 s into the second wide: at a second, the piano's pedal lifted 0.09 s after it, the
+  // score's instrument on the cicada's return: its test, 2026-10-24.)
+  near: [[1.2, 6.6], [8.2, SHOTS.two - 0.7], [SHOTS.wideAgain + 0.8, 37.8]] as [number, number][],
   inside: [6.5, 10.5] as [number, number],
   chorusFrom: 2.5,
   /** The two either side: also quiet while the two of them are close. */
@@ -60,7 +42,7 @@ export const TIMES = {
    * The chorus shallow while the two of them are close (to `depth`): with the cicadas over and
    * beside them quiet, they were the only sound moving, and they crested under both looks (+4.8 dB
    * through hers, +7.6 through his), the woods scoring them (all three evaluations of the film,
-   * 2026-10-18). Eased in under the gust, out under the cicadas' return.
+   * 2026-10-18). Eased in during the first wide, out under the cicadas' return.
    */
   shallow: { from: [11.0, 13.5] as [number, number], to: [SHOTS.wideAgain + 0.8, SHOTS.wideAgain + 3.0] as [number, number], depth: 0.3 },
 };
@@ -250,16 +232,28 @@ export function renderCicadas(): Float32Array<ArrayBuffer>[] {
  */
 export function midPhrases(): [number, number][][] {
   const [start, end] = TIMES.midQuiet;
-  return [MID_L, MID_R].map((c) => {
+  return [MID_L, MID_R].map((c, i) => {
     const list = phrases(c.seed, 2, TIMES.length + 3, [4, 9], [2, 6])
       .filter(([a, b]) => !(a < end && b > end))
       .map(([a, b]): [number, number] => (a < start && b > start ? [a, Math.max(a + 2, start)] : [a, b]));
-    // Back a few seconds after the quiet, at a phrase's start (not left until the cut is near).
+    // Back a few seconds after the quiet, at a phrase's start (not left until the cut is near), and
+    // before the afternoon's last seconds (the film's second wide is 5.25 s: 1.5 s after the quiet
+    // was within them).
     const k = list.findIndex(([a]) => a >= end);
-    if (k >= 0 && list[k][0] > end + 3.5) list[k] = [end + 1.5, end + 1.5 + (list[k][1] - list[k][0])];
+    const back = Math.min(end + 1.5, TIMES.cut - 3.25);
+    if (k >= 0 && (list[k][0] > end + 3.5 || list[k][0] > TIMES.cut - 3)) list[k] = [back, back + (list[k][1] - list[k][0])];
+    // (With no phrase of its own after the quiet, one is begun there, a little before the other's
+    // return, never with it.)
+    else if (k < 0) list.push([Math.max(end + 0.6, back - 0.6), TIMES.cut + 3]);
+    // Their return falls away before the cut, one and then the other: the cut takes the cicada over
+    // them at its height and the trees' chorus, as it did. (Singing on into the film's shorter second
+    // wide, they made the afternoon's last half second 3 dB fuller and its step down at the cut 6 LU,
+    // where it had been 2: measured against the 53 s timeline's, 2026-10-24.)
+    const fall = TIMES.cut - 0.8 - 0.5 * (1 - i);
+    const capped = list.map(([a, b]): [number, number] => (a >= end && b > fall ? [a, fall] : [a, b])).filter(([a, b]) => b - a >= 2);
     // And nothing begins in the afternoon's last seconds: a sound coming in as the cut nears leans
     // toward it.
-    return list.filter(([a]) => !(a > TIMES.cut - 3 && a < TIMES.cut));
+    return capped.filter(([a]) => !(a > TIMES.cut - 3 && a < TIMES.cut));
   });
 }
 
@@ -318,9 +312,9 @@ export async function renderWoods(): Promise<Float32Array<ArrayBuffer>[]> {
     smear(ch, 140, ch === chorusL ? 11 : 12);
     biquad(ch, 'lowpass', 7500, 0.7);
   }
-  // The wind carries it (a little louder in the gust); a third less than it was against the two
-  // either side (demoted with them: the reviews of 2026-10-19).
-  const chorusLv = control(n, (t) => Math.pow(10, (3 * heard(t).strength) / 20) * smooth(T.chorusFrom, T.chorusFrom + 2.5, t) * (0.45 + 0.55 * opened(t)));
+  // A third less than it was against the two either side (demoted with them: the reviews of
+  // 2026-10-19). (It swelled 3 dB with the painted rig's gust; the film has no gust: 2026-10-24.)
+  const chorusLv = control(n, (t) => smooth(T.chorusFrom, T.chorusFrom + 2.5, t) * (0.45 + 0.55 * opened(t)));
   for (let i = 0; i < n; i++) {
     const lv = at64(chorusLv, i);
     L[i] += chorusL[i] * lv * 0.42;

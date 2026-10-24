@@ -1,0 +1,42 @@
+Integrate the supplied four selected animation clips into my EXISTING woodland memory in The Hedgehog's Dilemma. Work through implementation and QA, not just a plan. Inspect the current project first and preserve unrelated work.
+
+OUTCOME
+A cohesive, emotionally intimate animated-film memory: the room's painting opens into a quiet afternoon; two young adults rest together; she privately turns toward him while he remains looking up; we return to the wide composition with her already looking at him; a hard cut reveals the same clearing empty at dusk; the memory returns to the white room and its unfinished sentence. No spoken dialogue, new narrative beat, synchronized sigh, repeated head turn, or gusty environmental motion.
+
+You have full creative freedom over tools, libraries, editing, compositing and implementation techniques. Do not force this through Blender, a new engine, a particular video framework or a complete scene rebuild. Choose the simplest approach that achieves film-quality continuity and reliable playback in the current project. This is an outcome brief, not a prescribed stack.
+
+READ FIRST
+START_HERE.txt, IMPLEMENTATION_STRATEGIES.txt and timeline.json. Inspect all four clips in motion. The reference video is the older 48.25-second editorial baseline with its original animation; it does NOT contain these replacements. Its audio exists and must not be mistaken for missing sound. The nested Baseline_Edit_Decisions.json documents an earlier edit of a 55-second source; do not apply those deletions a second time.
+
+ESTABLISH THE CURRENT STATE
+Locate the woodland scene, source artwork, animation controller, wall reveal/return, text, audio stems, player and asset conventions. Determine whether the current project is still 55 seconds, already 48.25 seconds, or has newer intentional changes. Map the emotional landmarks before changing timing. Treat the supplied 48.25-second timeline as the concrete target unless newer project changes require a documented reconciliation. Do not silently destroy newer work or overwrite other memories. Preserve a rollback path.
+
+TARGET EDIT, 24 FPS, END-EXCLUSIVE
+0.00–10.25: preserve/refine existing room-to-woodland reveal, frames [0,246).
+10.25–15.75: clips/01_Opening_Wide_5p50s.mp4, 132 frames.
+15.75–26.00: clips/02_Private_Glance_10p25s.mp4, 246 frames.
+26.00–31.25: clips/03_Return_Wide_5p25s.mp4, 126 frames.
+31.25–39.75: clips/04_Empty_Dusk_8p50s.mp4, 204 frames.
+39.75–48.25: preserve/refine existing return to room and final readable text, frames [954,1158).
+Total target 1158 frames / 48.25 seconds. Run each supplied clip at its natural 24 fps and full selected duration. Never loop, reverse, ping-pong or optical-flow-stretch the performance simply to fill a slot. The actual new glance occurs later within the close-up than the old source head turn; remove obsolete animation/cue triggers rather than layering them on top.
+
+CONTINUITY IS THE MAIN WORK
+Integrate the moving footage into the existing reveal/return, not four abruptly pasted rectangles. Where possible, feed the opening clip into the scene's existing reveal mask/material so its first frame is what the reveal resolves into. Feed the final dusk frame/footage into the same return mask so the scene does not visibly snap back to older foliage or lighting at 39.75 seconds. If the source project only provides a flattened transition, choose the least invasive supported compositing solution and disclose its limits.
+
+Preserve image aspect ratio, geography, color intent, painterly detail and character appearance. At the close-up/return-wide seam, she must already be looking toward him; he must remain skyward. At 31.25 seconds make a true hard cut: no dissolve, white flash, morph, disappearance animation or new camera move. Compare the final occupied frame with the first dusk frame. Align stable background landmarks with modest static transforms if needed; never nonrigidly warp the characters or forest. Do not imply that independently generated shots are pixel-perfect matches.
+
+SOUND
+The supplied clips have no audio. Retain the current scene's sound while assembling picture, then listen to the entire result. Preserve no dialogue. Cicadas are the intended woodland sound, not crickets. Keep the mix quiet and natural. If music already exists, evaluate it; do not pile on a second score. A very restrained original musical layer is optional only if it improves the scene. At the empty-dusk cut, make a deliberate restrained change in the soundscape rather than a melodramatic sting: consider ending the intimate musical layer while leaving a thinner/different ambient bed. Audition this against keeping more continuity and choose the stronger result. Avoid an accidental full mute, loudness jump, clicks, loop seams, new sighs or mouth-synced sound. Use available licensed assets/stems; do not purchase or generate paid assets without my approval.
+
+IMPLEMENT AND VERIFY
+Use the project's existing media/asset architecture when practical. One precomposed woodland core may be more reliable than four sequential browser players; choose based on the actual architecture. Avoid black frames, blank texture uploads, double audio, drift, seek errors and replay bugs. Support mobile playback and existing gesture/autoplay constraints. Preserve room navigation, memory start/stop, replay, other memories, accessibility and performance.
+
+Do not add motion to compensate for stillness, force synchronized breathing, alter the selected acting, apply indiscriminate sharpening/upscaling or replace the scene's style. Do not claim the result is native 1080p detail: supplied motion assets are 720p. If a defect cannot be fixed cleanly by editing/compositing, report it with timestamps and a precise proposed remedy instead of hiding it with a dissolve or spending credits.
+
+DELIVERABLES
+1. Working scene integration in the existing project and a clean review export with picture and sound.
+2. A concise change summary listing assets/timing/cues changed and how to run/review/revert.
+3. Actual verification of opening reveal, all three internal shot boundaries, dusk return, audio, replay/seek, desktop and phone layout. Watch in motion and listen where tools allow; explicitly separate executed tests from checks requiring me.
+4. Any remaining issues with timestamps, severity and honest limitations.
+
+Finish authorized implementation, test and repair recoverable failures. Do not stop at a plan or successful render alone. Do not deploy publicly, purchase, start paid generations, change credentials or rebuild unrelated areas without approval. If the project is not available, identify the missing repository/files rather than inventing its architecture.

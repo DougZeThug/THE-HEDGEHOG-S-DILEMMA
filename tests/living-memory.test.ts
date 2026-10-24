@@ -9,17 +9,25 @@ import { compose, FULL, weightsFor } from '../src/memory/compose';
 import { coverQuad, squareToQuad, visiblePart } from '../src/world/living/Immersion';
 import { useInitialState, sheetSource } from '../src/memory/theatre';
 import { memorySchema } from '../src/memory/sheets';
-import { CUT as CUT_AT, MEMORIES, SHOTS, TURN, TWO_SHOT, WOODLAND as WOODLAND_DEF, sheetId, turnDrawings, turnHead } from '../src/memory/defs';
+import { CUT as CUT_AT, MEMORIES, SHOTS, TURN, TWO_SHOT, WOODLAND as WOODLAND_DEF, WOODLAND_FILM, sheetId, turnDrawings, turnHead } from '../src/memory/defs';
+import { FilmScene } from '../src/memory/living/FilmScene';
+import { WOODLAND_FILM_SPEC, closeCover } from '../src/memory/living/woodlandFilm';
 import { SCENE_MEMORIES } from '../src/content/memories';
 import { MemoryPlaybackController } from '../src/memory/MemoryPlaybackController';
-import { renderCicadas, renderWoods, cicada, heard, leavesPan, midPhrases, RATE, TIMES } from '../src/memory/synthWoods';
+import { renderCicadas, renderWoods, cicada, midPhrases, RATE, TIMES } from '../src/memory/synthWoods';
 import state from '../src/memory/theatre-state.json';
 import manifest from '../public/memories/woodland/manifest.json';
 import { LivingScene, headFor, type HeadCels, type LivingArt, type NearArt } from '../src/memory/living/LivingScene';
 import { DEFORMERS, livingMaterials } from '../src/world/living/materials';
 
 // The woodland memory (docs/reviews/2026-10-woodland.md): its people's involuntary life, the
-// rules it composes by, the way into it, and its ending: a cut, on one frame.
+// rules it composes by, the way into it, and its ending: a cut, on one frame. Since 2026-10-24 the
+// afternoon plays a film (scripts/woodland-film/); the painted rig it played before is kept
+// (dormant), and what is tested of it here is the rig itself, on its own 53 s timeline (`RIG`).
+/** The painted rig's shots and cut (its own timeline: defs.ts TWO_SHOT). */
+const RIG = { two: TWO_SHOT.from, wideAgain: TWO_SHOT.to, cut: 34.5 };
+/** The film's frame at a timeline's values (src/memory/living/FilmScene.ts `frameAt`). */
+const frameOf = (v: Record<string, number>) => Math.max(0, Math.min(WOODLAND_FILM.frames - 1, Math.floor((v['scene.film'] ?? 0) * WOODLAND_FILM.fps + 1e-6)));
 
 describe('their involuntary life, from time alone', () => {
   it('breathing is deterministic, seekable, and never a metronome', () => {
@@ -139,46 +147,18 @@ describe('the air, which moves everything (one wind, seekable)', () => {
     // (Settled for the last 0.8 s before the cut to them; under 4% of its peak by the cut itself,
     // the canopy's slow sway all that is left of it.)
     const p = peak(G[0]);
-    for (let t = SHOTS.two - 0.8; t < SHOTS.two; t += 0.05) expect(seen(t, G[0]), `${t.toFixed(2)} s`).toBeLessThan(0.08 * p);
-    expect(seen(SHOTS.two, G[0])).toBeLessThan(0.04 * p);
+    for (let t = RIG.two - 0.8; t < RIG.two; t += 0.05) expect(seen(t, G[0]), `${t.toFixed(2)} s`).toBeLessThan(0.08 * p);
+    expect(seen(RIG.two, G[0])).toBeLessThan(0.04 * p);
     // (None from a second before the second wide to the end: its stillness, and the cut's.)
-    for (let t = SHOTS.wideAgain - 1; t < 53; t += 0.05) expect(gust(t, G).strength).toBe(0);
+    for (let t = RIG.wideAgain - 1; t < 53; t += 0.05) expect(gust(t, G).strength).toBe(0);
   });
   it('nothing the air does starts in a shot\'s first second', () => {
-    const starts = [10.5, SHOTS.two, SHOTS.wideAgain, CUT_AT];
+    const starts = [10.5, RIG.two, RIG.wideAgain, RIG.cut];
     for (const at of G.map((g) => g.at))
       for (const s of starts) expect(at < s || at >= s + 1, `${at} s, after the shot at ${s} s`).toBe(true);
   });
-  it('what is heard of a gust (the sound itself) swells and settles with the canopy it moves, a moment before it is seen', () => {
-    const g = G[0];
-    const sway = (t: number) => windResponse(t, 0.5, CANOPY[0], CANOPY[1], [g], 0);
-    let seenAt = 0, heardAt = 0, top = 0, topHeard = 0;
-    for (let t = g.at; t < g.at + 6; t += 0.01) {
-      if (sway(t) > top) (top = sway(t)), (seenAt = t);
-      const h = heard(t).strength;
-      if (h > topHeard) (topHeard = h), (heardAt = t);
-    }
-    expect(seenAt - heardAt).toBeCloseTo(0.4, 1);
-    // A full gust is heard nearly full (a quick one moves the slow canopy a little less); nothing
-    // is heard of the gusts in the stillness.
-    expect(topHeard).toBeGreaterThan(0.8);
-    expect(topHeard).toBeLessThanOrEqual(1);
-    for (let t = SHOTS.wideAgain; t < CUT_AT; t += 0.1) expect(heard(t).strength).toBe(0);
-  });
-  it('the leaves are heard moving across with the gust and back to the middle as it dies, never jumping', () => {
-    const dt = 64 / RATE;
-    let prev = leavesPan(0), most = 0;
-    for (let t = dt; t < TIMES.length; t += dt) {
-      const p = leavesPan(t);
-      most = Math.max(most, Math.abs(p - prev));
-      prev = p;
-    }
-    expect(most).toBeLessThanOrEqual(0.02);
-    expect(Math.abs(leavesPan(G[0].at - 1))).toBe(0);
-    // It starts on the left with the near oak and goes right with its front.
-    expect(leavesPan(G[0].at + 0.4)).toBeLessThan(-0.3);
-    expect(leavesPan(G[0].at + 1.5)).toBeGreaterThan(0.3);
-  });
+  // (What was heard of the rig's gust, the chorus swelling 3 dB with the canopy it moved, is gone
+  // with the rig: the film has its own air, and nothing in the sound answers it: 2026-10-24.)
   it("the sound's times are the picture's", () => {
     expect(TIMES.cut).toBe(CUT_AT);
     // The afternoon's insects are the afternoon and nothing after it.
@@ -246,29 +226,30 @@ describe('the ending: a cut, on one frame', () => {
   useInitialState(state as never);
   const def = MEMORIES.woodland;
   const src = sheetSource(sheetId('woodland', 'afternoon'), memorySchema(def.layers, true), { sections: def.sections, markers: def.markers });
-  const CUT = 34.5;
+  const CUT = CUT_AT;
+  const F = WOODLAND_FILM;
+  /** The film's frame where the dusk begins (its fourth shot's first). */
+  const DUSK = Math.round((F.shots.dusk - F.at) * F.fps);
 
-  it('the afternoon and the two of them until it; the same place later, empty, from it', () => {
+  it("the afternoon and the two of them until it; the same place later, empty, from it: the film's own cut", () => {
+    expect(CUT).toBe(F.shots.dusk);
+    expect(DUSK).toBe(504);
     const before = src.at(CUT - 1 / 60);
     const after = src.at(CUT);
-    expect(before['scene.people']).toBe(1);
+    expect(frameOf(before)).toBe(DUSK - 1);
+    expect(frameOf(after)).toBe(DUSK);
+    // (What reads the cut, the captions over the dusk: held, never in between.)
     expect(before['scene.after']).toBe(0);
-    expect(after['scene.people']).toBe(0);
     expect(after['scene.after']).toBe(1);
-    // Nothing in between: no frame is half there.
-    for (let t = CUT - 2; t < CUT + 2; t += 1 / 60) {
-      const v = src.at(t);
-      expect([0, 1]).toContain(v['scene.people']);
-      expect([0, 1]).toContain(v['scene.after']);
-    }
+    for (let t = CUT - 2; t < CUT + 2; t += 1 / 60) expect([0, 1]).toContain(src.at(t)['scene.after']);
     // The view doesn't move across it: inside before and after.
     expect(before['scene.immerse']).toBe(1);
     expect(after['scene.immerse']).toBe(1);
   });
 
   it('seeking back across it brings them back; forward past it, they are gone', () => {
-    expect(src.at(CUT + 5)['scene.people']).toBe(0);
-    expect(src.at(CUT - 5)['scene.people']).toBe(1);
+    expect(frameOf(src.at(CUT + 5))).toBeGreaterThanOrEqual(DUSK);
+    expect(frameOf(src.at(CUT - 5))).toBeLessThan(DUSK);
     expect(src.at(CUT + 0.5)['scene.after']).toBe(1);
     expect(src.at(10)['scene.after']).toBe(0);
   });
@@ -281,19 +262,27 @@ describe('the ending: a cut, on one frame', () => {
     expect(src.at(exit + 2)['scene.immerse']).toBeLessThan(1);
   });
 
-  it('played through the controller, the cut lands on a single step', () => {
-    const c = new MemoryPlaybackController({ timeline: src, weights: FULL, reduced: false, entrance: 2, sways: [], exit: def.exit, maxHold: 60, tail: 0, living: true });
+  it('played through the controller, the film runs on one clock: every frame once, in order, the cut on a single step', () => {
+    // (Held as the room holds it: src/memory/runtime.ts. Held longer, it waits before its exit, the
+    // film on the frame it has reached, and plays its last half second on the way out.)
+    const c = new MemoryPlaybackController({ timeline: src, weights: FULL, reduced: false, entrance: 2, sways: [], exit: def.exit, maxHold: Math.max(def.maxHold, src.sections.exit), tail: 0, living: true });
     c.start();
-    let prev = 1, flips = 0, halfway = 0;
-    for (let t = 0; t < 40; t += 1 / 60) {
-      const f = c.step(1 / 60)!;
-      const p = f.final['scene.people'];
+    let prev = 0, flips = 0, last = -1, back = 0, skipped = 0;
+    // (At 48 steps a second, two to a frame: no frame of the film may be passed over.)
+    for (let t = 0; t < 46; t += 1 / 48) {
+      const f = c.step(1 / 48)!;
+      const p = f.final['scene.after'];
       if (p !== prev) flips++;
-      if (p > 0 && p < 1 && f.t > 20) halfway++;
       prev = p;
+      const k = frameOf(f.final);
+      if (k < last) back++;
+      if (last >= 0 && k > last + 1) skipped++;
+      last = k;
     }
     expect(flips).toBe(1);
-    expect(halfway).toBe(0);
+    expect(back).toBe(0);
+    expect(skipped).toBe(0);
+    expect(last).toBe(F.frames - 1);
     c.dispose(0);
   });
 
@@ -496,42 +485,100 @@ describe("which memories lie under the room's writing (the App's wiring, through
   });
 });
 
-describe('the two of them close: one shot, three beats, held drawings', () => {
+describe('the afternoon as a film: its shots at their own speed, the two of them close, her glance', () => {
   // (The committed timeline: the state was set for the cut's tests, above.)
   const def = MEMORIES.woodland;
   const src = sheetSource(sheetId('woodland', 'afternoon'), memorySchema(def.layers, true), { sections: def.sections, markers: def.markers });
-  const T = TWO_SHOT;
+  const F = WOODLAND_FILM;
+  const seconds = F.frames / F.fps;
 
-  it('is on from the cut in to the second wide, and only then; the memory is as long as it was', () => {
-    for (let t = 0; t < CUT_AT + 2; t += 1 / 120) {
-      const v = src.at(t);
-      expect(v['scene.shot'], `${t.toFixed(3)} s`).toBe(t >= SHOTS.two && t < SHOTS.wideAgain ? 1 : 0);
+  it("one clock: its first frame through the way in, then each shot at its own 24 fps, whole, then its last frame held; the memory 47.5 s", () => {
+    expect(seconds).toBe(29.5);
+    for (let t = 0; t < def.sections.end; t += 1 / 120) {
+      const film = src.at(t)['scene.film'];
+      const want = t < F.at ? 0 : t < F.at + seconds ? t - F.at : seconds;
+      expect(Math.abs(film - want), `${t.toFixed(3)} s`).toBeLessThan(1e-6);
     }
-    expect(def.sections.end).toBe(53);
-    expect(CUT_AT).toBe(34.5);
-    expect(SHOTS.wideAgain).toBe(27.0);
+    // Each shot begins on its own first frame, where the brief's timeline puts it (frames 132, 378, 504).
+    const frames = [F.shots.opening, F.shots.close, F.shots.wideAgain, F.shots.dusk].map((t) => frameOf(src.at(t + 1e-4)));
+    expect(frames).toEqual([0, 132, 378, 504]);
+    expect(Math.round((F.shots.end - F.shots.dusk) * F.fps)).toBe(204);
+    expect(F.shots.end).toBe(F.at + seconds);
+    expect(def.sections.end).toBe(47.5);
+    expect(CUT_AT).toBe(30.5);
+    expect(SHOTS).toEqual({ two: 15.0, wideAgain: 25.25 });
+    // (The way back begins as its last half second plays, as Almost's does: then its last frame.)
+    expect(def.sections.exit).toBe(F.shots.end - 0.5);
   });
 
-  it('her look: her eyes go to him first, a moment, then her head, on twos, a head\'s own easing (a gentle start, a long settle); she stays there to the cut; every head a held drawing', () => {
-    let prev = 0;
-    const changes: [number, number][] = [];
-    for (let t = SHOTS.two; t < SHOTS.wideAgain; t += 1 / 120) {
-      const v = src.at(t);
-      expect(v['figure:b.turn']).toBeGreaterThanOrEqual(0);
-      expect(v['figure:b.turn']).toBeLessThanOrEqual(1);
-      expect([0, 1]).toContain(v['figure:b.eyes']);
-      if (v['figure:b.turn'] !== prev) {
-        expect(t - SHOTS.two).toBeGreaterThan(1);
-        changes.push([t, v['figure:b.turn']]);
-      }
-      prev = v['figure:b.turn'];
+  it('the room frames the two of them close as close, for exactly that shot, and by its own focus', () => {
+    const choose = (t: number) => FilmScene.prototype.choose.call({ close: WOODLAND_FILM_SPEC.close!.spans } as unknown as FilmScene, {}, { t });
+    for (let t = 0; t < def.sections.end; t += 1 / 120) expect(choose(t), `${t.toFixed(3)} s`).toBe(t >= SHOTS.two && t < SHOTS.wideAgain ? 1 : 0);
+    // (A film with no close shots is never close: Almost, Things.)
+    expect(FilmScene.prototype.choose.call({ close: [] } as unknown as FilmScene, {}, { t: 20 })).toBe(0);
+    // On a 16:9 screen the close-up is centred, as the wides are; wider, its top is kept (their
+    // faces); never above the shot's own top.
+    expect(closeCover(16 / 9)[1]).toBeCloseTo(0.5, 2);
+    const top = 1 - 22 / 764;
+    for (const aspect of [2.0, 2.39, 2.6]) {
+      const [, v] = closeCover(aspect);
+      const seen = Math.min(1, (1354 / 764) / aspect) / 1.06;
+      expect(v).toBeGreaterThan(0.5);
+      expect(v + seen / 2).toBeLessThanOrEqual(top + 1e-9);
     }
-    // Every drawing in turn, each at its time, each further on; never back (the artist: "glance
-    // toward him, settle into that gaze, and simply remain there").
+    // Upright: her face (the glance is hers), not the column between them the wides use.
+    expect(WOODLAND_FILM_SPEC.close!.upright[0]).toBeGreaterThan(WOODLAND_FILM_SPEC.cover.upright[0] + 0.1);
+  });
+
+  it('her glance is the close-up\'s own, inside it, and the room counts the afternoon seen once she has turned to him', () => {
+    const g = F.glance;
+    expect(g.eyes).toBeGreaterThan(SHOTS.two + 1);
+    expect(g.eyes).toBeLessThan(g.head);
+    expect(g.head).toBeLessThan(g.turned);
+    expect(g.turned).toBeLessThanOrEqual(g.settled);
+    expect(g.settled).toBeLessThan(SHOTS.wideAgain - 3);
+    const woodland = SCENE_MEMORIES.find((m) => m.id === 'woodland')!;
+    expect(woodland.seenAt).toBe(g.head);
+    expect(woodland.span).toBe(def.sections.end);
+    expect(woodland.maxHold).toBe(def.sections.exit);
+  });
+
+  it('their hands: nothing is heard of them', () => {
+    expect(def.markers.some((m) => m.label === 'sfx:grass')).toBe(false);
+    expect(Object.keys(def.cues('afternoon').cues)).not.toContain('sfx:grass');
+  });
+
+  it('the rig is not played: nothing of it is keyed on the committed timeline', () => {
+    const tracks = def.seed('afternoon').tracks;
+    for (const k of Object.keys(tracks)) expect(/^(figure:|scene\.(shot|people|life|breeze|dusk|colour))/.test(k), k).toBe(false);
+  });
+
+  it('what a screen reader is told of it: only what is seen, in order, at least 3.5 s apart, to whoever sees it', () => {
+    const lines = def.announce!('afternoon').filter((l) => l.at >= SHOTS.two && l.at < SHOTS.wideAgain);
+    expect(lines.map((l) => l.text)).toEqual(['Closer: the two of them side by side in the grass, looking up.', 'Her eyes go to him, then her head. He keeps looking up.']);
+    const all = def.announce!('afternoon');
+    for (let i = 1; i < all.length; i++) if (!(all[i].at === all[i - 1].at && all[i].inside !== all[i - 1].inside)) expect(all[i].at - all[i - 1].at).toBeGreaterThanOrEqual(3.5);
+    // (The film shows the same shots on the wall and inside: no line waits for a shot the room frames.)
+    for (const l of all) expect(l.shot).toBeUndefined();
+    expect(lines[1].at).toBeGreaterThan(F.glance.head);
+    expect(lines[1].at).toBeLessThan(F.glance.settled);
+  });
+});
+
+describe("the painted rig's two-shot (dormant since 2026-10-24: its own drawings and spec)", () => {
+  const T = TWO_SHOT;
+  /** The rig's `figure:b.turn` at `t` as its timeline keyed it: each drawing's value, held from its time. */
+  const turnAt = (t: number) => {
+    let v = 0;
+    for (const d of turnDrawings()) if (d.at <= t + 1e-9) v = d.turn;
+    return v;
+  };
+
+  it("her look: her eyes go to him first, a moment, then her head, on twos, a head's own easing (a gentle start, a long settle)", () => {
     const d = turnDrawings();
-    expect(changes.map(([, f]) => f)).toEqual(d.map((x) => x.turn));
-    changes.forEach(([t], i) => expect(Math.abs(t - d[i].at)).toBeLessThanOrEqual(1 / 120 + 1e-9));
     d.forEach((x) => expect(x.at).toBe(Math.round(x.at * 12) / 12));
+    for (let i = 1; i < d.length; i++) expect(d[i].turn).toBeGreaterThan(d[i - 1].turn);
+    expect(d[0].at - RIG.two).toBeGreaterThan(1);
     // Her eyes first: drawings of her eyes going to him (a soft dart), her head not yet turned.
     const eyes = d.filter((x) => x.head === 0);
     expect(eyes.map((x) => x.eyes)).toEqual(TURN.eyes);
@@ -562,16 +609,6 @@ describe('the two of them close: one shot, three beats, held drawings', () => {
     expect(Math.max(...steps)).toBeLessThan(0.25);
     expect(steps[0]).toBeLessThan(0.05);
     expect(turnHead(0)).toBe(0);
-    const at = (t: number) => src.at(t);
-    expect(at(T.herEyes - 0.01)['figure:b.eyes']).toBe(0);
-    expect(at(T.herEyes + 0.01)['figure:b.eyes']).toBe(1);
-    expect(at(T.herEyes - 0.01)['figure:b.turn']).toBe(0);
-    expect(at(T.herTurn - 0.01)['figure:b.turn']).toBe(eyes[eyes.length - 1].turn);
-    // And she stays: her head turned to him and her eyes on him, through the wide, to the cut.
-    for (const t of [head[head.length - 1].at + 0.01, SHOTS.wideAgain, CUT_AT - 0.01]) {
-      expect(at(t)['figure:b.turn']).toBe(1);
-      expect(at(t)['figure:b.eyes']).toBe(1);
-    }
   });
 
   it('her turn as a film samples it: every drawing from its own twelfth, at 12, 24 and 60 frames a second', () => {
@@ -579,15 +616,14 @@ describe('the two of them close: one shot, three beats, held drawings', () => {
     // at i / 24, held her drawings 3-1-2 in the films the artist judges from: the skeptic and QA,
     // 2026-10-20.)
     const d = turnDrawings();
-    for (const x of d) expect(x.at, `${x.at}`).toBe(Math.round(x.at * 12) / 12);
-    const at = manifest.living.afternoon.near.heads.at;
+    const at = manifest.rig.afternoon.near.heads.at;
     const twelfth = d.map((x) => Math.round(x.at * 12));
     for (const fps of [12, 24, 60]) {
       const wrong: string[] = [];
       for (let i = 17 * fps; i <= 20 * fps; i++) {
         const t = i / fps;
         const want = twelfth.filter((n) => n <= Math.floor(t * 12 + 1e-9)).length;
-        const got = headFor(src.at(t)['figure:b.turn'], at);
+        const got = headFor(turnAt(t), at);
         if (got !== want) wrong.push(`${i}/${fps} s: drawing ${got}, not ${want}`);
       }
       expect(wrong).toEqual([]);
@@ -623,29 +659,7 @@ describe('the two of them close: one shot, three beats, held drawings', () => {
     expect(headFor(0.125, [0.25, 0.75])).toBe(1);
   });
 
-  it('his look comes last, once she has settled into hers, and holds: the shot ends while he is still looking, and so does the wide', () => {
-    const at = (t: number) => src.at(t);
-    expect(at(T.hisEyes - 0.01)['figure:a.eyes']).toBe(0);
-    expect(at(T.hisEyes + 0.01)['figure:a.eyes']).toBe(1);
-    expect(T.hisEyes - turnDrawings()[turnDrawings().length - 1].at).toBeGreaterThanOrEqual(3);
-    expect(SHOTS.wideAgain - T.hisEyes).toBeLessThanOrEqual(3);
-    for (const t of [SHOTS.wideAgain - 0.01, CUT_AT - 0.01]) {
-      expect(at(t)['figure:a.eyes']).toBe(1);
-      expect(at(t)['figure:a.look']).toBeGreaterThan(0);
-    }
-    // His head rolls a little (about 2°: the rig was made for the wide) after his eyes.
-    expect(at(T.hisRoll - 0.01)['figure:a.look']).toBe(0);
-    expect(Math.abs(at(T.hisRoll + 0.6)['figure:a.look']) * SPEC.roll).toBeLessThan(0.04);
-    expect(at(T.hisRoll + 0.6)['figure:a.look']).toBeGreaterThan(0);
-  });
-
-  it('their hands stay as the artist drew them, never drawn back, never moved; nothing is heard of them', () => {
-    for (let t = 0; t < def.sections.end; t += 0.25) expect(src.at(t)['figure:b.hand']).toBe(1);
-    expect(def.markers.some((m) => m.label === 'sfx:grass')).toBe(false);
-    expect(Object.keys(def.cues('afternoon').cues)).not.toContain('sfx:grass');
-  });
-
-  it('the spec, the timeline and the room agree on when it is and where its heart is', () => {
+  it('the spec and its drawings agree on when its two-shot is and where its heart is', () => {
     expect(SPEC.near!.span).toEqual([T.from, T.to]);
     for (const b of [T.herEyes, T.herTurn, T.hisEyes, T.hisRoll]) expect(SPEC.near!.beats).toContain(b);
     // Her turn whole: no return of the two-shot from half a second before her eyes move until
@@ -655,19 +669,6 @@ describe('the two of them close: one shot, three beats, held drawings', () => {
     for (let t = T.herEyes - 0.49; t < settled + 0.49; t += 0.01) expect(SPEC.near!.beats.some((b) => Math.abs(t - b) < 0.5), `${t.toFixed(2)} s`).toBe(true);
     // (Time inside moves on twos: not at any of its twelfths either, half a second from two beats.)
     for (let k = Math.ceil((T.herEyes - 0.49) * 12); k / 12 < settled + 0.49; k++) expect(SPEC.near!.beats.some((b) => Math.abs(k / 12 - b) < 0.5), `${(k / 12).toFixed(3)} s`).toBe(true);
-    const woodland = SCENE_MEMORIES.find((m) => m.id === 'woodland')!;
-    expect(woodland.seenAt).toBe(T.herTurn);
-    expect(woodland.span).toBe(def.sections.end);
-  });
-
-  it('what a screen reader is told of it: only what is seen, in order, at least 3.5 s apart', () => {
-    const lines = def.announce!('afternoon').filter((l) => l.at >= SHOTS.two && l.at < SHOTS.wideAgain);
-    expect(lines.map((l) => l.text)).toEqual(['Closer: the two of them side by side in the grass, looking up.', 'Her eyes go to him, then her head, a little.', 'He turns his eyes to her.']);
-    for (let i = 1; i < lines.length; i++) expect(lines[i].at - lines[i - 1].at).toBeGreaterThanOrEqual(3.5);
-    // What she does is told to anyone inside, in whichever shot it is seen; his look only close,
-    // the one shot it can be seen in (in the wide, and so on an upright screen, it is too small).
-    expect(lines[1].inside && lines[1].shot === undefined).toBe(true);
-    expect(lines[2].shot).toBe(1);
   });
 });
 
@@ -679,9 +680,10 @@ describe('the woodland, heard', () => {
   };
   it('the cicada over them falls quiet while the two of them are close, and is at its height when the cut takes it', () => {
     const [x] = renderCicadas();
-    expect(energy(x, 17, 28)).toBeLessThan(energy(x, 11, 14) * 0.01);
-    expect(energy(x, 33.5, 34.5)).toBeGreaterThan(energy(x, 11, 14) * 0.2);
-    expect(energy(x, 34.0, 34.5) / energy(x, 33.0, 33.5)).toBeGreaterThan(0.7);
+    // (Quiet from before the cut to the two of them until after the cut back: her glance in it.)
+    expect(energy(x, SHOTS.two - 0.3, SHOTS.wideAgain + 0.7)).toBeLessThan(energy(x, 11, 14) * 0.01);
+    expect(energy(x, CUT_AT - 1, CUT_AT)).toBeGreaterThan(energy(x, 11, 14) * 0.2);
+    expect(energy(x, CUT_AT - 0.5, CUT_AT) / energy(x, CUT_AT - 1.5, CUT_AT - 1)).toBeGreaterThan(0.7);
     expect(x.length).toBe(Math.ceil(CUT_AT * RATE));
   });
   it('the afternoon ends on the cut and the evening begins on it, already singing; nothing goes on across it', () => {
@@ -760,7 +762,7 @@ describe('the woodland, heard', () => {
 });
 
 describe('the scene, as built (no GL: what it would draw and let go)', () => {
-  const lm = manifest.living.afternoon;
+  const lm = manifest.rig.afternoon;
   const tex = () => new THREE.Texture();
   const art = (): LivingArt => ({
     plate: tex(),

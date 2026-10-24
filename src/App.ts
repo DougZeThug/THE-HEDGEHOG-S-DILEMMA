@@ -1102,7 +1102,12 @@ export class App {
     // is its only cut.
     const shot = pl.scene.choose(f.final, { inside: this.inside.taken, turn: this.inside.turned, t: f.t, now: this.time, aspect });
     this.post.close = shot > 0 ? 1 : 0;
-    const focus = upright ? pl.spec.cover.upright : pl.spec.coverAt?.(aspect) ?? (aspect > 2.0 ? pl.spec.cover.ultra : pl.spec.cover.wide);
+    // (A film's close shot is framed by its own focus, from its first frame to its last: a reframe on
+    // its cut, never a move; upright, the face whose shot it is: src/memory/living/woodlandFilm.ts.)
+    const close = shot > 0 ? pl.spec.close : undefined;
+    const focus = close
+      ? (upright ? close.upright : close.coverAt(aspect))
+      : upright ? pl.spec.cover.upright : pl.spec.coverAt?.(aspect) ?? (aspect > 2.0 ? pl.spec.cover.ultra : pl.spec.cover.wide);
     const go = this.inside.step(dt, {
       immerse: f.final['scene.immerse'] ?? 0,
       focus,

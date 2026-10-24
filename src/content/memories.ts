@@ -75,8 +75,9 @@ export const SCENE_MEMORIES: SceneMemory[] = [
   // (it takes a first visit's late place; the bedroom comes on a visit after it). Nothing painted
   // comes after it in that visit. A return visit meets the clearing again, empty, kept in the wall.
   {
-    // (seenAt: her look, defs.ts TWO_SHOT.herTurn; tested.)
-    id: 'woodland', phraseId: 'more-minutes', earliest: 200, arc: 'afterAnother', arm: 2.5, commit: 1.0, minHold: 12, seenAt: 18, maxHold: 42.5, span: 53,
+    // (seenAt: her head turning to him, defs.ts WOODLAND_FILM.glance.head; maxHold and span the
+    // afternoon's exit and end; tested.)
+    id: 'woodland', phraseId: 'more-minutes', earliest: 200, arc: 'afterAnother', arm: 2.5, commit: 1.0, minHold: 12, seenAt: 20.2, maxHold: 38.5, span: 47.5,
     variants: { first: 'afternoon', revisit: ['empty'] }, lookBack: false, offer: { phases: ['contradiction', 'transform'], apart: 120 }, reserved: true, last: true,
   },
   // Almost (docs/almost.md): a felt film, two people side by side at a kitchen table at night; a

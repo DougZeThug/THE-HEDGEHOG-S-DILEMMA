@@ -512,7 +512,8 @@ def main():
     wh = whites(straight, k)
     with open(MANIFEST) as f:
         manifest = json.load(f)
-    aft = manifest['living']['afternoon']
+    # (The painted rig's entry: the afternoon plays its film since 2026-10-24; the rig is kept.)
+    aft = manifest['rig']['afternoon']
     aft['near'] = {
         'file': 'afternoon/near', 'lids': 'afternoon/near-lids',
         # (Its rows' pixels as stored for the larger screens, and how far across the panel they

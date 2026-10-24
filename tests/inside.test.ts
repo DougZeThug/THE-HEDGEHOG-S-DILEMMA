@@ -223,7 +223,7 @@ function app(o: { reduced?: boolean } = {}) {
   const room = { halfW: 6, halfD: 6 } as unknown as Room;
   const chair = new THREE.Vector3(5, 0, 5);
   const tex = () => new THREE.Texture();
-  const lm = manifest.living.afternoon;
+  const lm = manifest.rig.afternoon;
   const n = lm.near as unknown as { pixels: [number, number]; gutter: number; reach: number; lidBox: [number, number, number, number]; heads: { box: [number, number, number, number]; at: number[]; cells: number; grid: [number, number, number, number] }; ground: { box: [number, number, number, number] }; eyes: { a: number[][]; b: number[][] } };
   const wh = (lm.figures as unknown as { heads: { box: [number, number, number, number]; at: number[]; cells: number; grid: [number, number, number, number] } }).heads;
   const near: NearArt = {

@@ -72,6 +72,31 @@
   },
   "living": {
     "afternoon": {
+      "kind": "film",
+      "film": "afternoon/film",
+      "fps": 24,
+      "frames": 708,
+      "order": "afternoon/order",
+      "immerse": true,
+      "edge": "soft",
+      "orderClocks": {
+        "drawn": [
+          2.0,
+          6.0,
+          "soft"
+        ],
+        "coloured": [
+          5.4,
+          7.6,
+          "linear"
+        ],
+        "lag": 0.4
+      }
+    },
+    "empty": null
+  },
+  "rig": {
+    "afternoon": {
       "plate": "afternoon/plate",
       "maps": "afternoon/maps",
       "grade": null,
@@ -809,7 +834,6 @@
           ]
         }
       }
-    },
-    "empty": null
+    }
   }
 }
