@@ -2887,12 +2887,11 @@ a recording. Every woodland timeline in `theatre-state.json` equalled its seed i
 179. **The sound is the scene's own, retimed.** Nothing new generated or bought. The day's insects
      follow the film's shots (`SHOTS`, `CUT`); the rig's gust swell is gone with its gust. The near
      cicada comes back 0.8 s into the second wide (at 1 s the piano's pedal lifted 0.09 s after it).
-     The second bird sings at 26.4, done 0.7 s before the cut. The two side cicadas come back a
-     little apart and fall away before the cut. (Left to sing on into the film's shorter wide, they
-     and the bird made the afternoon's last half second fuller and the step down at the cut 6.4 LU
-     where the approved one is 2.0: measured against the 53 s timeline's own mix, made with the same
-     tool.) The cut stays the restrained change it was: everything of the afternoon stops, the
-     evening's cicadas are already singing; no sting, no mute.
+     (Left to sing on into the film's shorter wide, the second bird and the side cicadas made the
+     afternoon's last half second fuller and the step down at the cut 6.4 LU where the approved one
+     is 2.0: measured against the 53 s timeline's own mix, made with the same tool; decision 184.)
+     The cut stays the restrained change it was: everything of the afternoon stops, the evening's
+     cicadas are already singing; no sting, no mute.
 180. **The score, joined** (`scripts/woodland-score/retime.py`; its samples can't be had here, so it
      is not re-rendered): one join of five whole beats in the quiet (the dampers' fall after the G♭
      into the silence before the E♭'s chord, which lands where the removed bar would have begun),
@@ -2915,4 +2914,41 @@ a recording. Every woodland timeline in `theatre-state.json` equalled its seed i
 | Piano re place, the close shot | −1.4 | −1.2 |
 | Piano re place, the second wide | −6.9 | −6.2 |
 | Piano re place, overall | −5.0 | −5.5 |
-| Room-level peak | −33.3 dBFS | −33.7 dBFS |
+| Room-level peak | −33.3 dBFS | −34.0 dBFS |
+
+(After decision 184. Step at the cut over 1 s and 3 s: −2.6 and −3.0 LU (approved −2.1, −4.1); the
+last 1.5 s, in quarter seconds, within 1 dB of the approved contour. On the same notes, the
+second time's last phrase, the piano measures the same (−51.0) and the place 3.3 dB thinner than
+approved (−48.8 against −45.5): the piano about 3 LU more forward going into the cut. The close shot
+−1.5 (approved −1.4); the second wide as a whole −2.5 (approved −6.9, a window holding louder
+notes); overall −4.2 (−5.0).)
+
+### Reviewed (the cinematic director and the sound designer, from stills, frames, stems and data), and decisions
+
+182. **The dusk's own light after the cut** (the cinematic director's 1, P1): the afternoon's dapple
+     light layer came back over the empty clearing as it went into the wall (40–44.6). At the cut
+     the dusk painting's light (`empty/light`, the revisit's) takes its place (`light-after`).
+183. **Let go in the close-up, the wide** (their 2, P1): the film went on through the way out, and
+     two faces went into a pencil drawing of the wide. Let go inside a close shot, the film cuts to
+     the wide that follows (its first frame, she already looking at him) and holds it to the end.
+     The room frames a shot by the frame the video is showing, not the clock (their 3: a video a
+     frame or two behind was reframed before its cut). On a landscape screen narrower than 16:9 the
+     close-up keeps both faces while they fit, else hers (their 4: a 4:3 window put his face on its
+     edge).
+184. **One bird, one cicada back** (the sound designer's 1 and 2, P1): the second bird is gone from
+     the afternoon (in the film's 5.25 s second wide it sang over the piano's last phrase and its
+     call's end emptied the clearing before the cut did). One side cicada comes back after the
+     close shot (26.65–29.7), the other stays quiet: two coming back with the cicada over them and
+     the piano's chord were five sounds in a second and a quarter, each a swell, not a phrase.
+185. **Not done, and why.** The dusk A/B the brief asks for (the music ending at the cut against
+     more continuity): its B, the piano ringing on under the evening, cannot be made here (the
+     score's only render ends on the old cut; its samples are unreachable). A is the artist's
+     approved design. Sound against picture at the cut under drift (the cinematic director's 5): the
+     film's sync is Almost's, measured here only under software GL at about 2 frames a second; for a
+     real device. The dusk's first half second's grass flutter (their 6) is the clip's.
+186. **For the artist's ear** (the sound designer's 4, 5, 7): the G♭ and the long F chord land as
+     she settles (21.7–22.1; the join put her glance inside the A♭, and no rigid shift avoids both);
+     the turn's first note 0.28 s after the cut to the close-up; whether the synthesised near cicada
+     (5.2 kHz, narrow, pulsing 5.4 times a second) reads as a cricket now that it is exposed at
+     26–30.5; the piano 3 LU more forward in its last phrase (above). And that 1.8 s of the score's
+     decay (24.26–26.30) is time-stretched by 14%, across the cut back to the wide.

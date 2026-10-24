@@ -153,7 +153,7 @@ export class FilmScene {
   };
   readonly view = new THREE.Vector4(0, 0, 1, 1);
 
-  /** Its close shots (memory s, from–to): `choose` says 1 inside one (src/memory/living/woodlandFilm.ts). */
+  /** Its close shots (its own frames, from–to): `choose` says 1 inside one (src/memory/living/woodlandFilm.ts). */
   private readonly close: [number, number][];
 
   constructor(readonly art: FilmArt, o: { width: number; height: number; reduced: boolean; close?: [number, number][] }) {
@@ -184,13 +184,15 @@ export class FilmScene {
   }
 
   /**
-   * The shot the film is on at memory time `o.t`: 1 inside one of its close shots, else 0 (a film
-   * cuts itself: this only tells the room how to frame it). A film without them has one shot.
+   * The shot on the screen: 1 if the video's frame is inside one of its close shots, else 0 (a film
+   * cuts itself: this only tells the room how to frame it, so it goes by the frame being shown, not
+   * the clock: a video a frame or two behind would be reframed before its cut). A film without
+   * close shots has one shot.
    */
-  choose(_v?: Values, o?: { t: number }): number {
-    const t = o?.t;
-    if (t === undefined) return 0;
-    return this.close.some(([a, b]) => t >= a && t < b) ? 1 : 0;
+  choose(): number {
+    if (!this.close.length) return 0;
+    const f = Math.floor(this.art.video.currentTime * this.art.fps + 1e-6);
+    return this.close.some(([a, b]) => f >= a && f < b) ? 1 : 0;
   }
 
   /**

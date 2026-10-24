@@ -14,14 +14,24 @@ const SHOT = { top: 1 - 22 / 764, bottom: 1 - 742 / 764 };
 const OVER = 1.06;
 const PAINT = 1354 / 764;
 
+/** The close-up's two faces across the film (u: his left edge, her right edge, measured on its frames). */
+const FACES = { from: 0.07, to: 0.68 };
+/** Her face's middle, a little toward him (room for her look to go to). */
+const HERS = 0.55;
+
 /**
- * The close-up on a screen wider than 16:9: its frame's top kept (their hair and faces are in the
- * top third of the shot; centred, a 2:1 window cut both foreheads and a 21:9 one their eyebrows),
- * so what a wide screen loses is their shoulders and hands.
+ * The close-up on a landscape screen. Wider than 16:9: its frame's top kept (their hair and faces
+ * are in the top third of the shot; centred, a 2:1 window cut both foreheads and a 21:9 one their
+ * eyebrows), so what a wide screen loses is their shoulders and hands. Narrower (a tablet, a window
+ * half a screen wide): both faces while they fit, else hers (centred, a 4:3 window put his face on
+ * its edge and a square one kept only his hair: the cinematic director, 2026-10-24).
  */
 export function closeCover(aspect: number): [number, number] {
   const seen = Math.min(1, PAINT / aspect) / OVER;
-  return [0.5, Math.max(0.5, Math.min(SHOT.top - seen / 2, 1 - seen / 2))];
+  const v = Math.max(0.5, Math.min(SHOT.top - seen / 2, 1 - seen / 2));
+  const across = Math.min(1, aspect / PAINT) / OVER;
+  if (across >= 0.999 / OVER) return [0.5, v];
+  return [across >= FACES.to - FACES.from ? (FACES.from + FACES.to) / 2 : HERS, v];
 }
 
 export interface FilmSpec extends Pick<LivingSpec, 'cover' | 'coverAt'> {
@@ -30,7 +40,15 @@ export interface FilmSpec extends Pick<LivingSpec, 'cover' | 'coverAt'> {
    * vignette centred and further out, as for the rig's two-shot), and frames them by their own
    * focus: `upright`, on a screen narrower than it is tall; `coverAt`, on any other.
    */
-  close?: { spans: [number, number][]; upright: [number, number]; coverAt: (aspect: number) => [number, number] };
+  close?: {
+    spans: [number, number][];
+    /** The same, in the film's frames: the room frames by the frame on the screen, not the clock. */
+    frames: [number, number][];
+    /** Let go during one, the film cuts to this (its own seconds), the wide that follows. */
+    leaveTo: number;
+    upright: [number, number];
+    coverAt: (aspect: number) => [number, number];
+  };
 }
 
 export const WOODLAND_FILM_SPEC: FilmSpec = {
@@ -39,10 +57,15 @@ export const WOODLAND_FILM_SPEC: FilmSpec = {
   cover: { wide: [0.5, 0.5], upright: [0.385, 0.5], ultra: [0.5, 0.5] },
   close: {
     spans: [[WOODLAND_FILM.shots.close, WOODLAND_FILM.shots.wideAgain]],
+    frames: [[Math.round((WOODLAND_FILM.shots.close - WOODLAND_FILM.at) * WOODLAND_FILM.fps), Math.round((WOODLAND_FILM.shots.wideAgain - WOODLAND_FILM.at) * WOODLAND_FILM.fps)]],
+    // (Carried out of the wall from inside the close-up, its faces went into a pencil drawing of
+    // the wide: the cinematic director, 2026-10-24. So a leaving cuts to the wide that follows, she
+    // already looking at him, its first frame: the visitor's own turn makes the cut.)
+    leaveTo: WOODLAND_FILM.shots.wideAgain - WOODLAND_FILM.at,
     // Upright, no column holds both faces (his at u 0.17, hers at 0.58: a 9:16 column is 0.31 of
     // the width): hers, the glance being hers, with room on his side for her look to go to. He is
     // seen again, still looking up, in the wide that follows.
-    upright: [0.55, 0.5],
+    upright: [HERS, 0.5],
     coverAt: closeCover,
   },
 };

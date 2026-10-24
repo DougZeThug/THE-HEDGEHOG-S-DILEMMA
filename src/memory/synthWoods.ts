@@ -197,6 +197,8 @@ export function cicada(out: Float32Array, c: Cicada, a: number, b: number, level
 const NEAR: Cicada = { f: 5200, q: 3.2, pulse: 230, beat: 2.6, seed: 101 };
 const MID_L: Cicada = { f: 4700, q: 2.8, pulse: 190, beat: 2.1, seed: 202 };
 const MID_R: Cicada = { f: 5900, q: 3.4, pulse: 260, beat: 3.1, seed: 303 };
+/** Which of the two comes back after the quiet (the right, further from the cicada over them). */
+const BACK = 1;
 
 const yieldNow = () => new Promise<void>((r) => setTimeout(r, 0));
 
@@ -236,21 +238,15 @@ export function midPhrases(): [number, number][][] {
     const list = phrases(c.seed, 2, TIMES.length + 3, [4, 9], [2, 6])
       .filter(([a, b]) => !(a < end && b > end))
       .map(([a, b]): [number, number] => (a < start && b > start ? [a, Math.max(a + 2, start)] : [a, b]));
-    // Back a few seconds after the quiet, at a phrase's start (not left until the cut is near), and
-    // before the afternoon's last seconds (the film's second wide is 5.25 s: 1.5 s after the quiet
-    // was within them).
-    const k = list.findIndex(([a]) => a >= end);
-    const back = Math.min(end + 1.5, TIMES.cut - 3.25);
-    if (k >= 0 && (list[k][0] > end + 3.5 || list[k][0] > TIMES.cut - 3)) list[k] = [back, back + (list[k][1] - list[k][0])];
-    // (With no phrase of its own after the quiet, one is begun there, a little before the other's
-    // return, never with it.)
-    else if (k < 0) list.push([Math.max(end + 0.6, back - 0.6), TIMES.cut + 3]);
-    // Their return falls away before the cut, one and then the other: the cut takes the cicada over
-    // them at its height and the trees' chorus, as it did. (Singing on into the film's shorter second
-    // wide, they made the afternoon's last half second 3 dB fuller and its step down at the cut 6 LU,
-    // where it had been 2: measured against the 53 s timeline's, 2026-10-24.)
-    const fall = TIMES.cut - 0.8 - 0.5 * (1 - i);
-    const capped = list.map(([a, b]): [number, number] => (a >= end && b > fall ? [a, fall] : [a, b])).filter(([a, b]) => b - a >= 2);
+    // One of them back after the quiet, at a phrase's start, soon (a second phrase coming back
+    // too, with the cicada over them and the piano's chord, was five sounds in a second and a
+    // quarter: the sound designer, 2026-10-24), and fallen away before the cut: the cut takes the
+    // cicada over them at its height and the trees' chorus. (Singing on into the film's shorter
+    // second wide, they made the afternoon's last half second 3 dB fuller and its step down at the
+    // cut 6 LU, where it had been 2.) The other stays quiet to the cut.
+    const rest = list.filter(([a]) => a < end);
+    const fall = TIMES.cut - 0.8;
+    const capped: [number, number][] = i === BACK ? [...rest, [end + 0.6, fall]] : rest;
     // And nothing begins in the afternoon's last seconds: a sound coming in as the cut nears leans
     // toward it.
     return capped.filter(([a]) => !(a > TIMES.cut - 3 && a < TIMES.cut));

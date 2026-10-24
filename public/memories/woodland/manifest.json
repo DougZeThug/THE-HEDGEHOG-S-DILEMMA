@@ -41,6 +41,12 @@
         "kind": "light",
         "file": "afternoon/light",
         "source": "cut from the artist's references"
+      },
+      {
+        "name": "light-after",
+        "kind": "light",
+        "file": "empty/light",
+        "source": "cut from the artist's references (the dusk painting's light: the afternoon's after its cut)"
       }
     ],
     "empty": [
@@ -67,6 +73,12 @@
         "kind": "light",
         "file": "empty/light",
         "source": "cut from the artist's references"
+      },
+      {
+        "name": "light-after",
+        "kind": "light",
+        "file": "empty/light",
+        "source": "cut from the artist's references (unused on the revisit: its own light is the dusk's)"
       }
     ]
   },

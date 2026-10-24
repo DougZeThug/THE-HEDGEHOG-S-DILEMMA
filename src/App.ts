@@ -105,6 +105,8 @@ export class App {
   private living: { memory: LivingMemory; id: string; key: string; anchor: NonNullable<ReturnType<WallText['anchorOf']>>; bled: boolean; hiddenSince: number | null; held: boolean;
     /** Seconds looking away from it, and watching it; why it was let go. */
     awayFor: number; watched: number; minHold: number; seenAt?: number; reached: number; deep: boolean; why: string | null;
+    /** Let go inside a film's close shot: the film held on the wide it cut to, to the end. */
+    leftClose?: boolean;
     /** Looking away from it now (last attention check); how many of its later descriptions are told. */
     away: boolean; told: number;
     /** The room's writing its painting has washed out (given back when it goes). */
@@ -1094,12 +1096,10 @@ export class App {
     }
     const aspect = innerWidth / innerHeight;
     const upright = aspect < UPRIGHT;
-    // The shot on now, chosen first so the view frames it from its first frame. The two-shot only
-    // for someone taken all the way in; turned 14° from it, the wide until they settle facing it
-    // again (interaction and QA reviews, 2026-10-17 and 18). Only on a screen that can frame it
-    // (the spec's aspects: never upright, where a 16:9 two-shot holds one face and the wide holds
-    // both, with her look and his drawn in it; the reviews of 2026-10-18): elsewhere the dusk cut
-    // is its only cut.
+    // The shot on now, chosen first so the view frames it from its first frame. A painted scene
+    // (the rig) chooses its two-shot: only for someone taken all the way in, the wide while they are
+    // turned from it, never upright (the reviews of 2026-10-17 and 18). A film cuts itself: it says
+    // which shot is on the screen, by the frame being shown, and is framed for it.
     const shot = pl.scene.choose(f.final, { inside: this.inside.taken, turn: this.inside.turned, t: f.t, now: this.time, aspect });
     this.post.close = shot > 0 ? 1 : 0;
     // (A film's close shot is framed by its own focus, from its first frame to its last: a reframe on
@@ -1134,7 +1134,12 @@ export class App {
     this.captions.dim = this.inside.entered && (f.final['scene.immerse'] ?? 0) >= 0.6 && (f.final['scene.after'] ?? 0) >= 0.5;
     pl.scene.reduced = this.prefs.reducedMotion;
     // (The two-shot's frame is the screen's: a narrower one sees less of its width, a wider one less of its height.)
-    pl.scene.update(this.renderer, f.t, f.final, { view: this.inside.view, parallax: new THREE.Vector2(), aspect });
+    // (A film let go inside one of its close shots cuts to the wide that follows, so what goes back
+    // into the wall is the wide its pencil draws: src/memory/living/woodlandFilm.ts `leaveTo`.)
+    const closeSpans = pl.spec.close?.spans ?? [];
+    if ((f.state === 'withdrawing' || f.state === 'residue') && closeSpans.some(([a, b]) => f.position >= a && f.position < b)) l.leftClose = true;
+    const values = l.leftClose ? { ...f.final, 'scene.film': pl.spec.close!.leaveTo } : f.final;
+    pl.scene.update(this.renderer, f.t, values, { view: this.inside.view, parallax: new THREE.Vector2(), aspect });
     // What changes later, told to a screen reader when it happens (not before: the cut is not given away).
     const later = l.memory.prepared.def.announce?.(l.memory.prepared.variant) ?? [];
     while (l.told < later.length && f.position >= later[l.told].at && f.state !== 'emerging') {

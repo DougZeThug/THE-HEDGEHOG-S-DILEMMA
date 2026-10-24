@@ -346,7 +346,7 @@ export async function prepare(id: string, variant: string, host: RuntimeHost): P
       if (orderR) extra.push(orderR);
       const size = targetSize(host);
       const spec = FILM_SPECS[def.id] ?? ALMOST;
-      scene = new FilmScene({ video, fps: lm.fps, frames: lm.frames }, { ...size, reduced: !!host.reduced, close: spec.close?.spans });
+      scene = new FilmScene({ video, fps: lm.fps, frames: lm.frames }, { ...size, reduced: !!host.reduced, close: spec.close?.frames });
       living = { scene, spec, immerse: lm.immerse, torn: (lm.edge ?? 'torn') === 'torn', crop: manifest.crop ?? [0, 0, 1, 1], aspect: manifest.size[0] / manifest.size[1], order: orderR?.texture ?? null, colourAt: orderR ? colourTimes(orderR.bitmap) : null };
       loaded.unshift({ texture: scene.target.texture, bitmap: null as unknown as ImageBitmap, name: 'scene', kind: 'pigment' });
     } catch (e) {

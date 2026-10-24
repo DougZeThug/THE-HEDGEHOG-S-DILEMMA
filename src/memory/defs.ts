@@ -514,17 +514,16 @@ export const WOODLAND: MemoryDef = {
   id: 'woodland',
   art: 'woodland',
   variants: ['afternoon', 'empty'],
-  layers: ['scene', 'sketch', 'sketch-after', 'light'],
+  layers: ['scene', 'sketch', 'sketch-after', 'light', 'light-after'],
   sections: WOODLAND_SECTIONS,
   markers: [
     { label: 'music:cicadas', position: 0.05 },
     { label: 'music:woods', position: 0.05 },
     { label: 'music:score', position: SCORE_FROM },
     { label: 'sfx:bird-1', position: 10.9 },
-    // (In the second wide, as before: a moment after the cicada over them comes back, and done 0.7 s
-    // before the cut. At 27.0 its call ran to 0.12 s before it, the loudest thing in the afternoon's
-    // last half second: the step down at the cut 6 LU where it had been 2.)
-    { label: 'sfx:bird-2', position: 26.4 },
+    // (One far bird, in the first wide. The second, in the second wide, is gone with its length: in
+    // the film's 5.25 s it sang over the piano's last phrase and its call's end emptied the clearing
+    // before the cut did: the sound designer, 2026-10-24.)
     { label: 'music:evening', position: EVENING_AT },
     { label: 'sfx:cicada-last', position: 44.2 },
   ],
@@ -552,6 +551,8 @@ export const WOODLAND: MemoryDef = {
           'layer:sketch.opacity': [[0, 0.9]],
           'layer:sketch-after.opacity': [[0, 0]],
           'layer:light.opacity': [[0, 1]],
+          // (Its own light is the dusk's already.)
+          'layer:light-after.opacity': [[0, 0]],
         },
         markers: [
           { label: 'active', position: S.active },
@@ -601,7 +602,11 @@ export const WOODLAND: MemoryDef = {
         'layer:scene.opacity': [[0, 1]],
         'layer:sketch.opacity': [[0, 0.9, 'hold'], [CUT, 0]],
         'layer:sketch-after.opacity': [[0, 0, 'hold'], [CUT, 1]],
-        'layer:light.opacity': [[0, 1]],
+        // The painting's light: the afternoon's dapple until the cut, then the dusk's own (the
+        // afternoon's sun came back over the empty clearing as it went into the wall: the cinematic
+        // director, 2026-10-24).
+        'layer:light.opacity': [[0, 1, 'hold'], [CUT, 0]],
+        'layer:light-after.opacity': [[0, 0, 'hold'], [CUT, 1]],
         // The way in, one move (shaped in Inside.ts): from the cicada, slowly; the body only until
         // they are taken in (~6.2 s); the painting's own light up over it 7.1–8.3, then opening out
         // to all there is over its own straight 1.6 s, 8.2–9.8 (cinematic review, 2026-10-18: it
@@ -653,9 +658,8 @@ export const WOODLAND: MemoryDef = {
         // the place (the piano a part of it), when the painting has come to rest and gone again
         // before the cut to the two of them; never with a note.
         'music:woods': { asset: 'synth:woods', gainDb: -14, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, until: CUT, fadeOut: 3, caption: '[cicadas in the trees; a piano]', captionAt: 9.85 },
-        // Two far birds in the trees at the clearing's edge, in the wides (none while they are close).
+        // A far bird in the trees at the clearing's edge, in the first wide (none while they are close).
         'sfx:bird-1': { asset: 'music/woodland-bird-1.mp3', gainDb: -12, place: { u: -0.4, v: 0.35, d: 14 }, lowpass: 5500, until: CUT },
-        'sfx:bird-2': { asset: 'music/woodland-bird-2.mp3', gainDb: -12, place: { u: 0.45, v: 0.3, d: 18 }, lowpass: 7500, until: CUT },
         // The piano: centred, dry, coming into hearing with the clearing as the painting opens out,
         // keeping its distance from the place to the cut (its file: scripts/woodland-score/, made
         // for the 53 s timeline and joined for this one by scripts/woodland-score/retime.py).

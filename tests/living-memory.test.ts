@@ -511,11 +511,16 @@ describe('the afternoon as a film: its shots at their own speed, the two of them
     expect(def.sections.exit).toBe(F.shots.end - 0.5);
   });
 
-  it('the room frames the two of them close as close, for exactly that shot, and by its own focus', () => {
-    const choose = (t: number) => FilmScene.prototype.choose.call({ close: WOODLAND_FILM_SPEC.close!.spans } as unknown as FilmScene, {}, { t });
-    for (let t = 0; t < def.sections.end; t += 1 / 120) expect(choose(t), `${t.toFixed(3)} s`).toBe(t >= SHOTS.two && t < SHOTS.wideAgain ? 1 : 0);
+  it('the room frames the two of them close as close, for exactly that shot (by the frame on the screen), and by its own focus', () => {
+    const c = WOODLAND_FILM_SPEC.close!;
+    // (The shot's frames are its seconds on the film.)
+    expect(c.frames).toEqual(c.spans.map(([a, b]) => [Math.round((a - F.at) * F.fps), Math.round((b - F.at) * F.fps)]));
+    const on = (close: [number, number][], frame: number) => FilmScene.prototype.choose.call({ close, art: { video: { currentTime: (frame + 0.5) / F.fps }, fps: F.fps } } as unknown as FilmScene);
+    for (let k = 0; k < F.frames; k++) expect(on(c.frames, k), `frame ${k}`).toBe(k >= 132 && k < 378 ? 1 : 0);
     // (A film with no close shots is never close: Almost, Things.)
-    expect(FilmScene.prototype.choose.call({ close: [] } as unknown as FilmScene, {}, { t: 20 })).toBe(0);
+    expect(on([], 200)).toBe(0);
+    // Let go inside it, the film cuts to the wide that follows (its first frame).
+    expect(Math.round(c.leaveTo * F.fps)).toBe(378);
     // On a 16:9 screen the close-up is centred, as the wides are; wider, its top is kept (their
     // faces); never above the shot's own top.
     expect(closeCover(16 / 9)[1]).toBeCloseTo(0.5, 2);
@@ -528,6 +533,13 @@ describe('the afternoon as a film: its shots at their own speed, the two of them
     }
     // Upright: her face (the glance is hers), not the column between them the wides use.
     expect(WOODLAND_FILM_SPEC.close!.upright[0]).toBeGreaterThan(WOODLAND_FILM_SPEC.cover.upright[0] + 0.1);
+    // Narrower than 16:9: both faces (u 0.07–0.68) while the view is wide enough, else hers.
+    for (const aspect of [1.2, 1.33, 1.5, 1.6]) {
+      const [u] = closeCover(aspect), half = Math.min(1, aspect / (1354 / 764)) / 1.06 / 2;
+      expect(u - half, `${aspect}`).toBeLessThanOrEqual(0.07);
+      expect(u + half, `${aspect}`).toBeGreaterThanOrEqual(0.68);
+    }
+    expect(closeCover(1.0)[0]).toBe(0.55);
   });
 
   it('her glance is the close-up\'s own, inside it, and the room counts the afternoon seen once she has turned to him', () => {
@@ -744,13 +756,21 @@ describe('the woodland, heard', () => {
   });
   it("the two either side go quiet at a phrase's end and come back at a phrase's start (never a fade mid-phrase)", () => {
     const [start, end] = TIMES.midQuiet;
-    for (const list of midPhrases()) {
+    const lists = midPhrases();
+    for (const list of lists) {
       for (const [a, b] of list) expect((a < end && b > end) || (a < start && b > start), `${a.toFixed(2)}–${b.toFixed(2)} s`).toBe(false);
-      // (Each still comes back, within a few seconds.)
-      expect(list.some(([a]) => a >= end && a < end + 4)).toBe(true);
-      // Nothing begins as the cut nears.
-      for (const [a] of list) expect(a > CUT_AT - 3 && a < CUT_AT, `${a.toFixed(2)} s`).toBe(false);
+      // Nothing begins as the cut nears; what comes back has fallen away before it.
+      for (const [a, b] of list) {
+        expect(a > CUT_AT - 3 && a < CUT_AT, `${a.toFixed(2)} s`).toBe(false);
+        if (a >= end) expect(b).toBeLessThanOrEqual(CUT_AT - 0.8);
+      }
     }
+    // One of them comes back within a few seconds, a phrase of at least 3 s; the other stays quiet.
+    const back = lists.map((l) => l.filter(([a]) => a >= end));
+    expect(back.filter((l) => l.length > 0).length).toBe(1);
+    const [a, b] = back.flat()[0];
+    expect(a).toBeLessThan(end + 4);
+    expect(b - a).toBeGreaterThanOrEqual(3);
   });
   it("a cicada's phrase swells in and falls away, never a gated tone", () => {
     const x = new Float32Array(8 * RATE);
