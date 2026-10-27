@@ -1,6 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { MEMORY_VOICES, chooseVoices, memoryLineKey, versionKeys, withVoices } from '../src/content/memory-voices';
+import { MEMORY_VOICES, chooseVoices, memoryLineKey, versionKeys, voicesId, withVoices } from '../src/content/memory-voices';
+import { MemoryDirector, type SceneState } from '../src/state/MemoryDirector';
+import { MemoryAudio, type MemoryAudioHost } from '../src/memory/MemoryAudio';
+import { MemoryPlaybackController } from '../src/memory/MemoryPlaybackController';
+import { FULL } from '../src/memory/compose';
+import type { CueSheet } from '../src/memory/cueSheet';
+import type { Marker, TimelineSource } from '../src/memory/types';
+import { FakeCtx, FakeNode, FakeSource } from './fakeAudio';
 import { VIGNETTES } from '../src/content/vignettes';
 import { SCENE_MEMORIES } from '../src/content/memories';
 import { MEMORIES } from '../src/memory/defs';
@@ -145,17 +152,113 @@ describe('the painted memories\' voices, played', () => {
     expect(r.markers).toBe(def.markers);
   });
 
-  it('only versions whose every line is kept reach visitors (nothing is kept yet: none do)', () => {
-    const manifest = MANIFEST;
-    for (const m of MEMORY_VOICES)
-      for (const l of m.lines) {
-        const key = memoryLineKey(m, l);
-        // A key in the manifest means the artist kept a take: never added here by hand.
-        if (manifest[key]) expect(manifest[key].length).toBeGreaterThan(0);
-      }
+  it('the Director counts a version as speaking only once the App says every line of it is kept', () => {
+    const begin = (available: Set<string> | null) => {
+      const m = new MemoryDirector();
+      m.setAvailable(available);
+      const base = (o: Partial<SceneState>): SceneState => ({ now: 30, visible: (id) => id === 'cereal', gazeId: null, gazeFor: 0, free: true, otherMemory: false, departing: false, ...o });
+      m.tapped('cereal');
+      const st = m.update(base({ now: 32.1 }));
+      return st ? { start: st, active: m.active } : null;
+    };
+    // Nothing kept (or nothing said): wordless, to the Director as to the App.
+    for (const r of [begin(new Set()), begin(null)]) {
+      expect(r?.start.id).toBe('cereal');
+      expect(r?.start.voices).toBeUndefined();
+      expect(r?.active?.voiced).toBeFalsy();
+    }
+    const kept = begin(new Set([voicesId('cereal', 'first', 'default')]));
+    expect(kept?.start.voices).toBe('default');
+    expect(kept?.active?.voiced).toBe(true);
   });
 
   it('a painted memory with voices still opens as it did (its line, its variants)', () => {
     for (const m of MEMORY_VOICES) expect(SCENE_MEMORIES.some((s) => s.id === m.id), m.id).toBe(true);
+  });
+});
+
+describe('the painted memories\' voices, interrupted', () => {
+  // Two lines and the laugh after them, as cereal's (durations tell the sources apart).
+  const sheet: CueSheet = {
+    room: [0.5, 3, 0.18],
+    cues: {
+      'music:radio': { asset: 'radio', gainDb: -18, place: { u: 0.4, v: 0, d: 0.8 }, fadeIn: 1.5, fadeOut: 4 },
+      'sfx:eating': { asset: 'eating', gainDb: 0, place: { u: 0, v: -0.25, d: 0.5 } },
+      'voice:my-bowl@0': { asset: 'a', gainDb: -3, place: { u: -0.08, v: -0.15, d: 0.8 }, text: "That's my bowl.", side: 'left', cutOnInterrupt: true },
+      'voice:clean-one@1': { asset: 'b', gainDb: -3, place: { u: 0.13, v: -0.15, d: 0.8 }, text: "It's the clean one.", side: 'right', cutOnInterrupt: true },
+      'sfx:laugh': { asset: 'laugh', gainDb: -12, place: { u: 0.02, v: -0.15, d: 0.9 } },
+    },
+  };
+  const markers: Marker[] = [
+    { label: 'music:radio', position: 5.5 },
+    { label: 'sfx:eating', position: 7.3 },
+    { label: 'voice:my-bowl@0', position: 7.4 },
+    { label: 'voice:clean-one@1', position: 8.8 },
+    { label: 'sfx:laugh', position: 10.5 },
+  ];
+  const lengths: Record<string, number> = { radio: 19, eating: 3, a: 1.05, b: 1.25, laugh: 3.05 };
+
+  /** Played a frame at a time; paused at `pause[0]` for `pause[1]` s, or let go there. */
+  async function play(o: { pause?: [number, number]; release?: [number, 'look-away' | 'switch'] }) {
+    const ctx = new FakeCtx();
+    const host: MemoryAudioHost = {
+      ctx: ctx as unknown as BaseAudioContext, out: new FakeNode(ctx) as unknown as AudioNode,
+      load: async (asset) => ({ duration: lengths[asset] }) as AudioBuffer, impulse: () => ({}) as AudioBuffer,
+      intensity: 1, where: () => [0, 0, 0],
+    };
+    const audio = new MemoryAudio(host, sheet, markers);
+    const timeline: TimelineSource = { sections: { active: 5.5, exit: 22, residue: 28, end: 32 }, markers, at: () => ({}), dispose() {} };
+    const c = new MemoryPlaybackController({ timeline, audio, weights: FULL, reduced: false, entrance: 2, sways: [], exit: 2.4, maxHold: 22, tail: 3, living: false });
+    await audio.prepare();
+    ctx.currentTime = 100;
+    c.start(ctx.currentTime);
+    let pausedFor = -1, released = false;
+    for (let i = 0; i < 2400 && c.state !== 'complete'; i++) {
+      const dt = 1 / 60;
+      ctx.advance(dt);
+      if (o.pause && pausedFor < 0 && c.position >= o.pause[0]) {
+        c.pause();
+        pausedFor = 0;
+      }
+      if (pausedFor >= 0 && pausedFor < o.pause![1]) {
+        pausedFor += dt;
+        if (pausedFor >= o.pause![1]) c.resume(ctx.currentTime);
+        continue;
+      }
+      if (o.release && !released && c.position >= o.release[0]) {
+        c.release(o.release[1]);
+        released = true;
+      }
+      c.step(dt, ctx.currentTime);
+    }
+    const of = (a: string) => ctx.sources.filter((x) => (x.buffer as { duration: number } | null)?.duration === lengths[a]) as FakeSource[];
+    return { of };
+  }
+
+  it('paused mid-sentence, the sentence is said again from its start, and nothing already heard is', async () => {
+    const { of } = await play({ pause: [7.9, 3] });
+    const a = of('a'), b = of('b');
+    expect(a.length).toBe(2);
+    expect(a[0].stopAt).not.toBeNull();
+    expect(b.length).toBe(1);
+    expect(of('eating').length).toBe(1);
+    expect(of('laugh').length).toBe(1);
+    // The answer still comes after the question, said whole.
+    expect(b[0].startAt![0]).toBeGreaterThanOrEqual(a[1].startAt![0] + lengths.a - 0.05);
+  });
+
+  it('looked away from mid-sentence, the sentence is finished and nothing more is said', async () => {
+    const { of } = await play({ release: [7.9, 'look-away'] });
+    const [a] = of('a');
+    expect(a.stopAt === null || a.stopAt >= a.startAt![0] + lengths.a - 0.01).toBe(true);
+    expect(of('b').length).toBe(0);
+  });
+
+  it('a hard release (another memory, leaving) cuts it', async () => {
+    const { of } = await play({ release: [7.9, 'switch'] });
+    const [a] = of('a');
+    expect(a.stopAt).not.toBeNull();
+    expect(a.stopAt!).toBeLessThan(a.startAt![0] + lengths.a - 0.1);
+    expect(of('b').length).toBe(0);
   });
 });

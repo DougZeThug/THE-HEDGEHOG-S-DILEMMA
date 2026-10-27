@@ -1479,8 +1479,8 @@ export class Director {
   }
 
   /** A memory the Director didn't begin is playing (the artist's panel): the room waits with it. */
-  memoryExternal(id: string): void {
-    this.scenes.external(id, this.now);
+  memoryExternal(id: string, voiced = false): void {
+    this.scenes.external(id, this.now, voiced);
   }
 
   memoryEnded(id: string, seen: boolean, ranToEnd: boolean): boolean {

@@ -167,8 +167,14 @@ export class MemoryPlaybackController {
   pause(): void {
     if (this.paused) return;
     this.paused = true;
-    for (const m of this.o.audio?.pause(this.lastNow) ?? []) this.dispatch.unfire(m);
+    const back = this.o.audio?.pause(this.lastNow) ?? [];
+    for (const m of back) this.dispatch.unfire(m);
+    // Sentences the pause cut part-way (begun before the frozen picture): said again on resume.
+    this.again = back.filter((m) => m.label.startsWith('voice:') && m.position <= this.pos + 0.005);
+    this.takenBack = back;
   }
+  private again: Marker[] = [];
+  private takenBack: Marker[] = [];
   /** `now`: the audio time of the frame it moves on from (that frame stands still). */
   resume(now?: number): void {
     if (!this.paused) return;
@@ -176,6 +182,23 @@ export class MemoryPlaybackController {
     this.still = true;
     this.lastNow = now;
     this.o.audio?.resume(now);
+    // A sentence the pause cut is said again from its start, as a vignette's is: the scene steps
+    // back to just before it (a breath of its living section, never its forming), so what follows
+    // keeps its place and nothing is said over it. What had already sounded stays heard.
+    const again = this.again;
+    this.again = [];
+    if (again.length && this._state === 'active') {
+      const from = Math.max(this.s.active, Math.min(...again.map((m) => m.position)) - 0.05);
+      const was = this.pos;
+      if (from < was) {
+        this._t -= was - from;
+        this.pos = from;
+        this.dispatch.seek(from);
+        // (By label and place: the audio's markers are its own copies of the timeline's.)
+        const back = new Set(this.takenBack.map((m) => `${m.label}@${m.position}`));
+        for (const m of this.o.timeline.markers) if (m.position >= from && m.position < was && !back.has(`${m.label}@${m.position}`)) this.dispatch.markHeard(m);
+      }
+    }
   }
 
   /**

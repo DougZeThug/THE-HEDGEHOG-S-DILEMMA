@@ -19,7 +19,7 @@ import type { MemoryAudioHost } from './memory/MemoryAudio';
 import { VignettePlayer, type VignetteHost } from './memory/VignettePlayer';
 import { isSpot, type SpotPlace } from './memory/cueSheet';
 import { VIGNETTE_BY_ID, VIGNETTES, vignetteKeys, spokenLines, lineKey, type Effect, type GapKind } from './content/vignettes';
-import { chooseVoices, versionKeys, voicesEnd } from './content/memory-voices';
+import { allVersions, chooseVoices, versionKeys, voicesEnd, voicesId, voicesStart } from './content/memory-voices';
 import { WallText, wallClock, type TextItem } from './world/WallText';
 import { CameraRig } from './world/CameraRig';
 import { Post } from './world/Post';
@@ -104,6 +104,8 @@ export class App {
   readonly memoryWindow = new MemoryWindow();
   /** The living memory playing now (at most one), and the writing it formed round. */
   private living: { memory: LivingMemory; id: string; key: string; anchor: NonNullable<ReturnType<WallText['anchorOf']>>; bled: boolean; hiddenSince: number | null; held: boolean;
+    /** A `?memory=` preview: never counted, nothing persisted. */
+    preview?: boolean;
     /** Seconds looking away from it, and watching it; why it was let go. */
     awayFor: number; watched: number; minHold: number; seenAt?: number; reached: number; deep: boolean; why: string | null;
     /** Looking away from it now (last attention check); how many of its later descriptions are told. */
@@ -504,7 +506,8 @@ export class App {
         const text = cue.text ?? '';
         const living = this.living;
         setTimeout(() => {
-          if (!living || this.living !== living) return;
+          // (Not after it has been let go: a sentence not yet begun is never begun then.)
+          if (!living || this.living !== living || (living.memory.state !== 'emerging' && living.memory.state !== 'active')) return;
           const from = isSpot(cue.place) ? this.spotWorld(cue.place) : this.memoryAudioHost()!.where(cue.place);
           void voices.playLine('whisper', text, { from }, 0.7, undefined, { synth: true, priority: true }).then((pl) => {
             if (pl.duration > 0) this.captions.show(text, pl.duration, false, cue.side);
@@ -604,7 +607,7 @@ export class App {
       },
     });
     const sm = SCENE_BY_PHRASE.get(phraseId);
-    this.living = { memory, id, key: a.key, anchor: a, bled: false, hiddenSince: null, held: false, awayFor: 0, watched: 0, minHold: Math.max(sm?.minHold ?? 8, prepared.voices ? voicesEnd(id, prepared.variant, prepared.voices.version) + 1 : 0), seenAt: sm?.seenAt, reached: 0, deep: false, why: null, away: false, told: 0, washed: new Set(), downSince: null, gaveUp: false, coda: false };
+    this.living = { memory, id, key: a.key, anchor: a, bled: false, hiddenSince: null, held: false, awayFor: 0, watched: 0, minHold: Math.max(sm?.minHold ?? 8, prepared.voices ? voicesEnd(id, prepared.variant, prepared.voices.version) + 1 : 0), seenAt: sm?.seenAt, reached: 0, deep: false, why: null, away: false, told: 0, washed: new Set(), downSince: null, gaveUp: false, coda: false, preview };
     this.memoryClock.reset();
     // The room hushes round it (and its music stops), until it lets go. For the door the white
     // room itself goes to evening, so the landing's light is the brightest thing there. Nothing
@@ -616,7 +619,7 @@ export class App {
     // hushed, and four of its five chords are a semitone from the woodland's key).
     if (this.ambience && (prepared.def.lastMusic === prepared.variant || prepared.def.drone === false)) this.ambience.score.drone = 0;
     if (prepared.def.roomDim) this.lighting.dimToChair(prepared.def.roomDim, prepared.def.maxHold + 4, this.time);
-    if (this.director.scenes.active?.id !== id) this.director.memoryExternal(id);
+    if (this.director.scenes.active?.id !== id) this.director.memoryExternal(id, !!prepared.voices);
     // Its position 0 is this instant on the audio clock, for its first sounds and its first frame
     // alike (the clock measures its first frame from here: QA, 2026-10-19).
     const ctx = this.audio?.ctx;
@@ -657,7 +660,8 @@ export class App {
       // It ran to its end if nobody let it go early. (A tab hidden for long ends it uncounted, as a
       // vignette: it comes back, the same, another time.)
       const seen = l.why !== 'hidden' && entered && (l.seenAt !== undefined ? l.reached >= l.seenAt : l.watched >= Math.min(l.minHold, 8));
-      if (this.director.memoryEnded(l.id, seen, l.why === null || l.why === 'complete') && !this.forgotten) {
+      if (l.preview) this.director.memoryPreviewEnded(l.id);
+      else if (this.director.memoryEnded(l.id, seen, l.why === null || l.why === 'complete') && !this.forgotten) {
         const counts = readMemoryCounts();
         counts[l.id] = (counts[l.id] ?? 0) + 1;
         writeMemoryCounts(counts);
@@ -998,6 +1002,8 @@ export class App {
       const lines = new Set(Object.keys(def.variants).flatMap((k) => spokenLines(def, k)));
       if ([...lines].every((l) => this.voices?.hasAsset(lineKey(def, l)))) out.add(def.id);
     }
+    // And the painted memories' voices: a version only once every line of it is kept.
+    for (const { id, variant, version } of allVersions()) if (this.memoryVoices(id, variant, version, false)) out.add(voicesId(id, variant, version));
     return out;
   }
 
@@ -2129,7 +2135,10 @@ export class App {
       const onWindow = this.raycaster.intersectObject(this.memoryWindow.mesh, false).length > 0;
       // (While someone in it is speaking, a stray touch is staying too: a phone visitor steadying
       // themselves never cuts a sentence: interaction review, 2026-10-27.)
-      const speaking = !!l.memory.prepared.voices && (l.memory.prepared.audio?.voicesUntil ?? 0) > (this.audio?.ctx.currentTime ?? Infinity);
+      // (From its first line to its last, the pause between them included: QA, 2026-10-27.)
+      const pv = l.memory.prepared.voices, pos = l.memory.controller.frame?.position ?? 0;
+      const speaking = !!pv && ((l.memory.prepared.audio?.voicesUntil ?? 0) > (this.audio?.ctx.currentTime ?? Infinity) ||
+        (pos >= voicesStart(l.id, l.memory.prepared.variant, pv.version) && pos < voicesEnd(l.id, l.memory.prepared.variant, pv.version)));
       if (onWindow || speaking) {
         l.awayFor = 0;
         return;

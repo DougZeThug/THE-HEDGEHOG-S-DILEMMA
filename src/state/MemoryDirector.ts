@@ -1,6 +1,6 @@
 import { ALL_MEMORIES, MEMORY_BY_PHRASE, type SceneMemory } from '../content/memories';
 import { VIGNETTE_BY_ID, chooseVariant, spokenLines, type Echo, type VariantContext } from '../content/vignettes';
-import { chooseVoices } from '../content/memory-voices';
+import { chooseVoices, voicesId } from '../content/memory-voices';
 
 /**
  * When a living memory may open (docs/memories.md; decisions in
@@ -154,7 +154,11 @@ export class MemoryDirector {
     return !!this.tracks.get(id)?.offered;
   }
 
-  /** Which vignettes may speak (their recordings approved); the rest wait, or play voiceless. */
+  /**
+   * Which vignettes may speak (their recordings approved); the rest wait, or play voiceless. Also
+   * which painted memories' voices may (`voicesId`): those are heard only when named here, so with
+   * nothing set a painted memory is wordless, to the Director as to the App.
+   */
   setAvailable(ids: Set<string> | null): void {
     this.available = ids;
   }
@@ -426,8 +430,8 @@ export class MemoryDirector {
    * A memory playing that the Director didn't begin (the artist's panel, captures): the room
    * still waits with it.
    */
-  external(id: string, now: number): void {
-    if (!this.active) this.active = { id, since: now };
+  external(id: string, now: number, voiced = false): void {
+    if (!this.active) this.active = { id, since: now, ...(voiced ? { voiced } : {}) };
   }
 
   private begin(m: SceneMemory, now: number, s?: SceneState): SceneStart | null {
@@ -445,7 +449,8 @@ export class MemoryDirector {
     if (m.kind === 'vignette') return { id: m.id, phraseId: m.phraseId, variant, minHold: m.minHold, maxHold: m.maxHold, kind: 'vignette' };
     // Which version of its voices is heard: from what the visitor has done, never by chance.
     const ctx = s?.variantCtx?.() ?? { visits: 1, field: {}, motifs: [], withdrew: false };
-    const voices = chooseVoices(m.id, variant, { ...ctx, seen: this.counts[m.id] ?? 0 });
+    const chosen = chooseVoices(m.id, variant, { ...ctx, seen: this.counts[m.id] ?? 0 });
+    const voices = chosen && this.available?.has(voicesId(m.id, variant, chosen)) ? chosen : null;
     if (voices) this.active.voiced = true;
     return { id: m.id, phraseId: m.phraseId, variant, minHold: m.minHold, maxHold: m.maxHold, ...(voices ? { voices } : {}) };
   }

@@ -86,12 +86,26 @@ export function saidFor(text: string): number {
   return 0.5 + 0.38 * text.split(/\s+/).length;
 }
 
+/** When a version's first line begins (sequence seconds; Infinity: it has none). */
+export function voicesStart(id: string, variant: string, version: string | null | undefined): number {
+  const v = versionOf(id, variant, version);
+  return v && v.beats.length ? Math.min(...v.beats.map((b) => b.at)) : Infinity;
+}
+
 /** When a version's last line will have been said (sequence seconds; 0: it has none). */
 export function voicesEnd(id: string, variant: string, version: string | null | undefined): number {
   const def = MEMORY_VOICES_BY_ID.get(id);
   const v = versionOf(id, variant, version);
   if (!def || !v) return 0;
   return Math.max(0, ...v.beats.map((b) => b.at + (b.stopAfter ?? saidFor(def.lines.find((l) => l.id === b.line)?.text ?? ''))));
+}
+
+/** How a version is named among what may speak (`MemoryDirector.setAvailable`). */
+export const voicesId = (id: string, variant: string, version: string) => `${id}:${variant}:${version}`;
+
+/** Every version of every painted memory's voices, named. */
+export function allVersions(): { id: string; variant: string; version: string }[] {
+  return MEMORY_VOICES.flatMap((m) => Object.entries(m.variants).flatMap(([variant, vv]) => Object.keys(vv.versions).map((version) => ({ id: m.id, variant, version }))));
 }
 
 /** The manifest keys a version speaks (all must be kept for it to be heard). */

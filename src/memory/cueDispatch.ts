@@ -90,6 +90,11 @@ export class CueDispatch {
     }
   }
 
+  /** It has sounded already: never hand it out again (after a step back that would re-arm it). */
+  markHeard(m: Marker): void {
+    this.fired.add(this.id(m));
+  }
+
   /** The audio could not keep an event it was handed (paused before it sounded): arm it again. */
   unfire(m: Marker): void {
     this.fired.delete(this.id(m));

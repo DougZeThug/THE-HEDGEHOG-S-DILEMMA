@@ -32,7 +32,21 @@ Reviewed by the creative director, cinematic director, sound designer and intera
    - **Level:** its lines are levelled as a vignette's are.
 10. **Found on the way, not fixed here.** `npx vite-node scripts/vignette-reach.ts` now gives 67 vignettes in 40 visits with **the charger and the washing up at 0/40**. `docs/vignettes.md` reports otherwise, so that should be looked into separately.
 
-## Recording (nothing generated)
+## QA (qa-accessibility, after implementing)
+
+Fixed:
+- **The Director's view of the memory.** The Director treated cereal as speaking although nothing was kept. It now counts a version as speaking only once the App names it among what may speak (`setAvailable`, `voicesId`), so a wordless cereal is wordless to both.
+- **Speaker sides in captions.** The sides never rendered: the vignettes' caption backing centred every line, a bug older than this change. Both people's lines now lean apart, on phones too (measured: left 16–109 px, right 273–374 px at 390 px), and so do the vignettes'.
+- **Pauses.** A pause mid-sentence lost the sentence. It is now said again from its start, the scene stepping back to just before it, as a vignette's does, and nothing already heard is played twice (tested).
+- **Previews.** A `?memory=` preview counted as a real viewing on that device. It is now never counted, and the Director knows a voiced preview has voices.
+- **Stray taps.** A tap in the pause between the two lines released the memory. The whole exchange is now covered.
+- **The preview's whisper.** Its stand-in voice no longer begins after the memory is let go.
+
+Left as they are:
+- **Caption density.** A screen reader may re-announce the caption region as the laugh's caption joins the words; vignettes already do this. To be checked on a real screen reader before changing `aria-atomic`.
+- **Line lengths in the tests.** The tests estimate them until measured timings exist for vignette takes (`voice-timings.json` has none). The audition sets the real gaps.
+
+## Recording
 
 - **Direction:** four takes in `src/content/vignettes.dialogue.json` (two seeds per line). Both lines are `[quietly, flat]`: dry, deadpan, unhurried, mouth half full. The scene context carries the humour; no tag asks for it. "Held back" is not "sad": read sad, "That's my bowl." sounds hurt, and the laugh then arrives as strangers.
 - **Dry run:** `node scripts/generate-dialogue.mjs --vignettes --dry-run --only=cereal--my-bowl,cereal--my-bowl-b,cereal--clean-one,cereal--clean-one-b` plans 4 takes, about 132 credits estimated (recent vignette runs have billed about 0.45 of their estimate). Without `--only`, the run would also generate five `-c` takes queued earlier for other vignettes (about 113 more).
