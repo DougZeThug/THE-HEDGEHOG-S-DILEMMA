@@ -16,6 +16,7 @@ Small remembered fragments, heard rather than seen: one or two voices, the pause
   - Rain: also "still warm".
   - Practice (D): also "Can I sit here for a while?" and "The kettle clicked off."
   - Back-seat (C): also "Look at me."
+- **The paintings first.** When the room points at a line (three times a visit), a painted memory never yet met comes before a vignette that is owed. A vignette owed through another way in is pointed at only by that line, written again where the visitor faces it, never by its own line written alone. Without these, the extra ways in took a fifth of the painted memories' offers (QA). With them, painted offers per 200 visits are 252, against 207 before this round, and painted memories are met 86 times, against 80.
 - **Never three in five minutes.** At most two vignettes begin in any 300 s (`VIGNETTE_WINDOW`), however soon one may follow the last.
 - **In practice: one to three in ten minutes.** A third comes late, never before about seven minutes, and never three within five. Measured with `npx vite-node scripts/vignette-reach.ts`:
   - 5 personas × seeds 1–40 × 600 s, each persona repeating the middle of its script once it runs out.
@@ -24,9 +25,9 @@ Small remembered fragments, heard rather than seen: one or two voices, the pause
 
     | Notice chance | All | Charger | C | D | E | G | Rain |
     |---|---|---|---|---|---|---|---|
-    | 0.3 | 321 | 24 | 13 | 17 | 1 | 7 | 8 |
-    | default (0.6 desk, 0.4 phone) | 365 | 22 | 24 | 38 | 7 | 9 | 15 |
-    | 0.9 | 387 | 26 | 31 | 61 | 4 | 20 | 25 |
+    | 0.3 | 331 | 30 | 15 | 18 | 0 | 9 | 10 |
+    | default (0.6 desk, 0.4 phone) | 352 | 25 | 16 | 29 | 7 | 14 | 12 |
+    | 0.9 | 354 | 23 | 17 | 41 | 2 | 17 | 22 |
 
   - **Before this round (default):** 344 in 200, with charger 4 (on `ordinary`), C 15, D 20, E 7, Rain 2. The 40-visit figures once given here (C 5, D 1, G 4) were too small a sample to read.
   - **E, the washing up,** stays rare. Its line waits until "stay" is finished, and only visitors who stand still meet it. Re-anchoring it was weighed and declined: the gain was within the simulation's own uncertainty, and the new line made the scene act it out.

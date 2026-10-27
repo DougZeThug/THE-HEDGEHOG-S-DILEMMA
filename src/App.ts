@@ -28,7 +28,7 @@ import { ROOM } from './world/layout';
 import { Director, returnYaw } from './state/Director';
 import type { Cue, VoicePosition } from './state/cues';
 import type { Surface } from './content/types';
-import { PHRASES, PHRASE_BY_ID } from './content/phrases';
+import { PHRASES } from './content/phrases';
 import { THRESHOLD_LINES } from './content/relations';
 import { AudioEngine } from './audio/AudioEngine';
 import { Ambience } from './audio/Ambience';
@@ -886,7 +886,8 @@ export class App {
     if (preview && opens && !this.text.anchorOf(opens)) this.text.setShown(opens);
     // Placed by the line read; if it has gone, its own line only where they face it; else round them.
     const own = def.anchor.phrase && opens !== def.anchor.phrase ? this.text.anchorOf(def.anchor.phrase) : null;
-    const a = (opens ? this.text.anchorOf(opens, this.gazeId ?? this.lastTappedKey) : null) ?? (own && PHRASE_BY_ID.get(def.anchor.phrase!)?.surface === this.director.facing ? own : null);
+    // (Where its own line is written now: an offer writes it on whichever wall they faced.)
+    const a = (opens ? this.text.anchorOf(opens, this.gazeId ?? this.lastTappedKey) : null) ?? (own && own.group === this.room.frames[this.director.facing]?.writing ? own : null);
     const frame = this.spotFrame(a?.key ?? null);
     const player = new VignettePlayer(def, variant, host, hashString(def.id + variant));
     // Its places are fixed from now (the frame is read while preparing, too).

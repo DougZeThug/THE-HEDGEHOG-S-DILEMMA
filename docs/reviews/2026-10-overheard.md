@@ -108,3 +108,13 @@ Reviewed by the creative director, sound designer and interaction designer, chal
    - The room has no window. The window is heard, never placed.
    - Its six takes wait for recording, with the artist's approval and the key in the environment.
 7. **Not done:** a vignette may still begin the moment a held silence lifts (29 visits in 200, as before this round). The room's own voices wait 6 s after a deep silence; vignettes could too. That's for a later round.
+
+8. **QA after implementing** (qa-accessibility, 2026-10-27):
+   - **The paintings' offers.** The extra ways in made more vignettes owed, and owed vignettes ranked first for the room's three pointings a visit. Painted offers fell from 207 to 167 in 200 visits (woodland 56 → 38, bedroom 16 → 9), mostly spent on a vignette's own line written alone after the visitor had read a different one.
+     - Fixed in two ways. A vignette owed through another way in is pointed at only by that line, written again. A painted memory never yet met now ranks ahead of owed vignettes.
+     - Painted offers are now 252 and painted memories met 86, against 207 and 80 before this round.
+     - Vignettes are 352 against 344: practice 20 → 29, back-seat 15 → 16, Rain 2 → 12 (10 at notice 0.3).
+   - **Unrecorded vignettes.** One that can't play no longer keeps its lines back from the room (`claims()`).
+   - **Placement.** A vignette opened from a line that has since gone is placed beside one of its lines still on the wall. The App's fallback checks the wall where its own line is actually written, not the wall it belongs to.
+   - **Tests added:** a touch on another way in, the owed re-ink, the paintings' priority, and unrecorded claims.
+   - **Not reproduced:** a room reading overlapping its vignette. Visitors' voices never sound during a scene. A slow decode on a real phone remains to check.

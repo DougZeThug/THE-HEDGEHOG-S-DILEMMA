@@ -409,7 +409,8 @@ describe('reaching the rarely met (C, D, G)', () => {
     m.offer({ now, phase: 'contradiction', free: true, visibleFacing, departing: false, otherMemory: false, facing: 'north' });
 
   it('a line read when its vignette could not play is remembered: written again once it can, and a short look begins it', () => {
-    const m = new MemoryDirector();
+    // (The painted memories met before: one never met is offered ahead of an owed vignette.)
+    const m = new MemoryDirector(Object.fromEntries(SCENE_MEMORIES.map((x) => [x.id, 1])));
     // Read too early (G's opens from 150 s): nothing begins, but it is owed.
     expect(read(m, 'jumper', 100)).toBeNull();
     // Once it may play and its line is on the wall they face, the room writes it again there.
@@ -418,6 +419,48 @@ describe('reaching the rarely met (C, D, G)', () => {
     expect(pick?.reink).toBe(true);
     // For a while, a 1.5 s look is enough.
     expect(read(m, 'jumper', 201, 1.6)?.id).toBe('a-bag');
+  });
+
+  it('owed through another way in, it is pointed at by that line, written again, never by its own line written alone', () => {
+    const seen = Object.fromEntries(SCENE_MEMORIES.map((x) => [x.id, 1]));
+    const m = new MemoryDirector(seen);
+    // "Look at me." read before back-seat may play (240 s): owed.
+    expect(read(m, 'look-at-me', 100, 3, { visible: (p) => p === 'look-at-me' })).toBeNull();
+    const pick = offerAt(m, 300, (id) => id === 'look-at-me');
+    expect(pick?.id).toBe('back-seat');
+    expect(pick?.reink).toBe(true);
+    expect(pick?.phraseId).toBe('look-at-me');
+    // That line not where they look: nothing is written for it (its own line would be a stranger).
+    const n = new MemoryDirector(seen);
+    read(n, 'look-at-me', 100, 3, { visible: (p) => p === 'look-at-me' });
+    const other = offerAt(n, 300);
+    expect(other?.id === 'back-seat').toBe(false);
+  });
+
+  it('a touch on another way in begins it beside that line', () => {
+    const m = new MemoryDirector();
+    m.tapped('look-at-me');
+    const s = m.update(state({ now: 300, visible: (p) => p === 'look-at-me' }));
+    expect(s?.id).toBe('back-seat');
+    expect(s?.phraseId).toBe('look-at-me');
+  });
+
+  it('one whose voices are not kept does not keep its lines back from the room', () => {
+    const m = new MemoryDirector();
+    m.setAvailable(new Set(VIGNETTES.map((v) => v.id).filter((id) => id !== 'rain')));
+    m.update(state({ now: 200, visible: () => false }));
+    expect(m.claims('still-warm')).toBe(false);
+    expect(m.claims('warm-night')).toBe(false);
+    m.setAvailable(new Set(VIGNETTES.map((v) => v.id)));
+    expect(m.claims('still-warm')).toBe(true);
+  });
+
+  it('a painted memory never met is offered before an owed vignette (the rare paintings keep their chances)', () => {
+    const m = new MemoryDirector();
+    expect(read(m, 'jumper', 100)).toBeNull();
+    const pick = offerAt(m, 200, (id) => id === 'jumper');
+    expect(pick).toBeTruthy();
+    expect(pick!.kind).not.toBe('vignette');
   });
 
   it('a line just offered begins its vignette after a short look; later it needs the usual read', () => {

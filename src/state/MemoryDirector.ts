@@ -197,6 +197,8 @@ export class MemoryDirector {
     // A vignette's line answers like any other until its memory could open (a line read early
     // isn't left unanswered for minutes).
     if (m.kind === 'vignette' && (this.last ?? 0) < m.earliest) return false;
+    // Nor one that can't play (its voices not kept): its lines answer as any other (QA, 2026-10-27).
+    if (!this.isAvailable(m.id)) return false;
     return !this.tracks.get(m.id)!.played;
   }
 
@@ -275,7 +277,7 @@ export class MemoryDirector {
     // Owed vignettes first (read when they couldn't play), then memories never heard on any visit.
     const owed = (m: SceneMemory) => this.tracks.get(m.id)!.owed && m.kind === 'vignette';
     // (The door, once it may come, before other offers: it has a place of its own and is otherwise never found.)
-    const rank = (m: SceneMemory) => (owed(m) ? 0 : m.offer?.wall ? 0.5 : (this.counts[m.id] ?? 0) === 0 ? 1 : 2);
+    const rank = (m: SceneMemory) => (m.offer?.wall ? 0.5 : (this.counts[m.id] ?? 0) === 0 && m.kind !== 'vignette' ? 1 : owed(m) ? 1.5 : (this.counts[m.id] ?? 0) === 0 ? 2 : 3);
     const order = [...ALL_MEMORIES].sort((a, b) => rank(a) - rank(b));
     for (const m of order) {
       const t = this.tracks.get(m.id)!;
@@ -287,6 +289,10 @@ export class MemoryDirector {
         t.reinked = true;
         return point({ ...m, phraseId: owedLine }, t, true);
       }
+      // Owed through another way in, it is pointed at only by that line, written again: never by its
+      // own line written alone, which the visitor didn't read (it spent the painted memories' points
+      // and seldom began: QA, 2026-10-27).
+      if (owed(m) && t.line && t.line !== m.phraseId) continue;
       if (!m.offer || t.offered || !m.offer.phases.includes(s.phase as never)) continue;
       if (s.now - this.lastEnded < m.offer.apart) continue;
       if (!this.arcAllows(m, s.now, !!s.kitchenPlayed)) continue;
@@ -466,7 +472,9 @@ export class MemoryDirector {
     this.active = { id: m.id, since: now };
     if (m.kind === 'vignette') this.vignetteStarts.push(now);
     // Placed beside the line that was read (its own, or another that opens it).
-    const line = t.line && linesOf(m).includes(t.line) ? t.line : m.phraseId;
+    // (If that line has gone from the wall since, beside one of its lines still there.)
+    const shown = (p: string) => s?.visible(p) ?? true;
+    const line = t.line && linesOf(m).includes(t.line) && shown(t.line) ? t.line : linesOf(m).find(shown) ?? m.phraseId;
     if (m.kind === 'vignette') return { id: m.id, phraseId: line, variant, minHold: m.minHold, maxHold: m.maxHold, kind: 'vignette' };
     // Which version of its voices is heard: from what the visitor has done, never by chance.
     const ctx = s?.variantCtx?.() ?? { visits: 1, field: {}, motifs: [], withdrew: false };
