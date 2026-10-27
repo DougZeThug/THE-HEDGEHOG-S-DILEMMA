@@ -264,10 +264,14 @@ export class FilmScene {
       }
     }
     // A new picture: the frame shown changed, or a seek landed. (Three's own frame callback may
-    // never come for a video that isn't in the page.)
+    // never come for a video that isn't in the page.) Not while a seek is landing: `currentTime` is
+    // already its target, but the decoder still holds the frame on the screen, so nothing new is
+    // sent and `uploaded` keeps naming that frame, which `choose` frames by. (Taken as the target,
+    // a seek across a close shot's edge reframed the old shot before the cut landed: review of
+    // PR 43.)
     const shown = Math.floor(video.currentTime * fps + 1e-6);
     let fresh = false;
-    if (shown !== this.uploaded || this.landed) {
+    if (!video.seeking && (shown !== this.uploaded || this.landed)) {
       this.texture.needsUpdate = true;
       this.uploaded = shown;
       this.landed = false;

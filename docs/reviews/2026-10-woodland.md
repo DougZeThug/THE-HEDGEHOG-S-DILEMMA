@@ -2985,3 +2985,9 @@ second bird gone): the piano a little more forward going into the cut. The close
        two-shot); `woodland-coda.mjs` writes on the east wall by default and fails when nothing is
        written (on the default wall, by decision 137, nothing is: it had passed writing nothing);
        `woodland.mjs` no longer counts `<video>` elements (the film's is never in the page).
+189. **Framed by the frame on the screen, while a seek lands** (review of PR 43, P2): `choose`
+     framed by `uploaded` during a seek, but `update` had already written the seek's target into
+     it (`currentTime` is the target the moment a seek is asked for, while the decoder still holds
+     the old frame), so a seek across a close shot's edge reframed the old shot before the cut
+     landed. Nothing is sent while a seek is landing; `uploaded` keeps naming the frame on the
+     screen until it lands (`tests/film-scene.test.ts`, on a decoder whose seeks take time).
