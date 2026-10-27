@@ -58,6 +58,9 @@ for (const m of src.matchAll(/p\('([^']+)',\s*("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)
 // A vignette's lines: their words are in vignettes.json and nowhere else.
 const lines = new Map();
 for (const v of JSON.parse(readFileSync(join(ROOT, 'src/content/vignettes.json'), 'utf8')).vignettes) for (const l of v.lines) lines.set(`${v.id}/${l.id}`, l.text);
+// And the painted memories' overheard voices (src/content/memory-voices.json): the same pipeline,
+// a take's `vignette` naming the memory, so its key is `vig:<memory>:<line>` too.
+for (const m of JSON.parse(readFileSync(join(ROOT, 'src/content/memory-voices.json'), 'utf8')).memories) for (const l of m.lines) lines.set(`${m.id}/${l.id}`, l.text);
 const problems = VIGNETTES
   ? validateDirection(direction, (_, p) => lines.get(`${p.vignette}/${p.line}`), { sad: true })
   : validateDirection(direction, (id) => texts.get(id));

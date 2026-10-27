@@ -19,6 +19,7 @@ import type { MemoryAudioHost } from './memory/MemoryAudio';
 import { VignettePlayer, type VignetteHost } from './memory/VignettePlayer';
 import { isSpot, type SpotPlace } from './memory/cueSheet';
 import { VIGNETTE_BY_ID, VIGNETTES, vignetteKeys, spokenLines, lineKey, type Effect, type GapKind } from './content/vignettes';
+import { chooseVoices, versionKeys, voicesEnd } from './content/memory-voices';
 import { WallText, wallClock, type TextItem } from './world/WallText';
 import { CameraRig } from './world/CameraRig';
 import { Post } from './world/Post';
@@ -37,7 +38,7 @@ import { openingScore, levelsAt, stageAt, ROOM_LEVELS, OPENING_WRITTEN, OPENING_
 import VOICE_TIMINGS from './content/voice-timings.json';
 import { Captions } from './ui/Captions';
 import { loadPrefs, savePrefs, readVisits, writeVisits, forgetVisits, readOpeningSeen, writeOpeningSeen, readMemoryCounts, writeMemoryCounts, readTrace, writeTrace, type Prefs } from './ui/prefs';
-import { SCENE_BY_PHRASE } from './content/memories';
+import { SCENE_BY_PHRASE, SCENE_MEMORIES } from './content/memories';
 import { LocalInterpreter } from './interpret/LocalInterpreter';
 import type { Interpreter } from './interpret/Interpreter';
 import { clamp } from './core/math';
@@ -139,6 +140,18 @@ export class App {
     const p = new URLSearchParams(location.search);
     const id = p.get('vignette');
     return id ? { id, variant: p.get('variant') ?? 'first', at: null } : null;
+  })();
+  /**
+   * `?memory=<id>[&variant=<v>][&voices=<version>]`: play a painted memory with its overheard
+   * voices, as a preview, a few seconds after the room is open (takes kept or not; an unrecorded
+   * line is a wordless voice with its caption).
+   */
+  private previewMemory: { id: string; variant: string; voices: string | null; at: number | null } | null = (() => {
+    const p = new URLSearchParams(location.search);
+    const id = p.get('memory');
+    if (!id || p.has('studio')) return null;
+    const variant = p.get('variant') ?? (SCENE_MEMORIES.find((m) => m.id === id)?.variants.first ?? 'first');
+    return { id, variant, voices: p.get('voices') ?? chooseVoices(id, variant, { seen: 0, visits: 1, field: {}, motifs: [], withdrew: false }), at: null };
   })();
   private prefetched = new Set<string>();
   /** Theatre Studio's ticker, while the Memory Editor is open (development only). */
@@ -477,8 +490,26 @@ export class App {
         const w = mesh.localToWorld(new THREE.Vector3(p.u, p.v, -p.d / Math.max(1e-3, mesh.scale.z)));
         return [w.x, w.y, w.z];
       },
-      caption: (text, seconds) => {
-        if (!this.captions.speaking) this.captions.show(text, Math.max(1.6, seconds), true);
+      // Spoken lines (a painted memory's overheard voices) are levelled as a vignette's are.
+      level: (asset, buf) => (asset.startsWith('vig:') ? voices.voicedLevel(buf) : 1),
+      caption: (text, seconds, speech, side) => {
+        // Words said in it are captioned as speech, by side; its sounds only while nobody speaks.
+        // (Beneath the words still on screen, as a vignette's, when it has words: never over them.)
+        if (speech) this.captions.show(text, Math.max(1.4, seconds), false, side, true);
+        else if (this.living?.memory.prepared.voices) this.captions.show(text, Math.max(1.6, seconds), true, undefined, true);
+        else if (!this.captions.speaking) this.captions.show(text, Math.max(1.6, seconds), true);
+      },
+      // Not recorded yet (`?memory=` previews only): the words in a voice without words, and the caption.
+      fallback: (cue, delay) => {
+        const text = cue.text ?? '';
+        const living = this.living;
+        setTimeout(() => {
+          if (!living || this.living !== living) return;
+          const from = isSpot(cue.place) ? this.spotWorld(cue.place) : this.memoryAudioHost()!.where(cue.place);
+          void voices.playLine('whisper', text, { from }, 0.7, undefined, { synth: true, priority: true }).then((pl) => {
+            if (pl.duration > 0) this.captions.show(text, pl.duration, false, cue.side);
+          });
+        }, delay * 1000);
       },
     };
   }
@@ -494,7 +525,19 @@ export class App {
     if (c) this.rig.attend(c, 2.4);
   }
 
-  async playMemory(id: string, phraseId: string, variant = 'first'): Promise<boolean> {
+  /**
+   * The version of a painted memory's overheard voices it may speak: every line kept by the
+   * artist, or (a preview) taken so far, kept or not. Otherwise null: wordless, as it always was.
+   */
+  private memoryVoices(id: string, variant: string, version: string | null | undefined, preview: boolean): string | null {
+    const voices = this.voices;
+    if (!version || !voices) return null;
+    const keys = versionKeys(id, variant, version);
+    if (!keys.length) return null;
+    return keys.every((k) => (preview ? voices.filesOf(k).length > 0 : voices.hasAsset(k))) || preview ? version : null;
+  }
+
+  async playMemory(id: string, phraseId: string, variant = 'first', voiced?: string | null, preview = false): Promise<boolean> {
     let a = this.text.anchorOf(phraseId, this.gazeId ?? this.lastTappedKey);
     // A memory that opens from a drawing can begin from the drawing alone.
     const opensFrom = SCENE_BY_PHRASE.get(phraseId)?.id === 'door' ? 'ghost-door' : null;
@@ -515,6 +558,7 @@ export class App {
         screen: { width: innerWidth * this.pixelRatio(), height: innerHeight * this.pixelRatio() },
         noise: this.memoryWindow.noise,
         reduced: this.prefs.reducedMotion,
+        voices: { version: this.memoryVoices(id, variant, voiced, preview), filesOf: (k) => this.voices?.filesOf(k) ?? [] },
       });
     } catch (e) {
       console.warn('memory could not be prepared', e);
@@ -560,7 +604,7 @@ export class App {
       },
     });
     const sm = SCENE_BY_PHRASE.get(phraseId);
-    this.living = { memory, id, key: a.key, anchor: a, bled: false, hiddenSince: null, held: false, awayFor: 0, watched: 0, minHold: sm?.minHold ?? 8, seenAt: sm?.seenAt, reached: 0, deep: false, why: null, away: false, told: 0, washed: new Set(), downSince: null, gaveUp: false, coda: false };
+    this.living = { memory, id, key: a.key, anchor: a, bled: false, hiddenSince: null, held: false, awayFor: 0, watched: 0, minHold: Math.max(sm?.minHold ?? 8, prepared.voices ? voicesEnd(id, prepared.variant, prepared.voices.version) + 1 : 0), seenAt: sm?.seenAt, reached: 0, deep: false, why: null, away: false, told: 0, washed: new Set(), downSince: null, gaveUp: false, coda: false };
     this.memoryClock.reset();
     // The room hushes round it (and its music stops), until it lets go. For the door the white
     // room itself goes to evening, so the landing's light is the brightest thing there. Nothing
@@ -879,6 +923,21 @@ export class App {
   }
 
   private stepVignette() {
+    const pm = this.previewMemory;
+    if (pm && this.mode === 'room' && !this.opening && !this.living) {
+      pm.at ??= wallClock() + 4;
+      if (wallClock() >= pm.at) {
+        this.previewMemory = null;
+        const phraseId = SCENE_MEMORIES.find((m) => m.id === pm.id)?.phraseId;
+        if (phraseId) {
+          if (!this.text.anchorOf(phraseId)) this.text.setShown(phraseId);
+          setTimeout(() => {
+            this.frameMemory(phraseId);
+            void (this.voices?.loadPreview() ?? Promise.resolve()).then(() => this.playMemory(pm.id, phraseId, pm.variant, pm.voices, true));
+          }, 600);
+        }
+      }
+    }
     const pv = this.previewVignette;
     if (pv && this.mode === 'room' && !this.opening && !this.living) {
       pv.at ??= wallClock() + 4;
@@ -1606,7 +1665,7 @@ export class App {
         break;
       }
       case 'memory-scene': {
-        void this.playMemory(cue.id, cue.phraseId, cue.variant).then((ok) => {
+        void this.playMemory(cue.id, cue.phraseId, cue.variant, cue.voices).then((ok) => {
           if (!ok) this.director.memoryFailed(cue.id);
         });
         break;
@@ -2068,7 +2127,10 @@ export class App {
     const l = this.living;
     if (l && !l.held && (l.memory.state === 'emerging' || l.memory.state === 'active')) {
       const onWindow = this.raycaster.intersectObject(this.memoryWindow.mesh, false).length > 0;
-      if (onWindow) {
+      // (While someone in it is speaking, a stray touch is staying too: a phone visitor steadying
+      // themselves never cuts a sentence: interaction review, 2026-10-27.)
+      const speaking = !!l.memory.prepared.voices && (l.memory.prepared.audio?.voicesUntil ?? 0) > (this.audio?.ctx.currentTime ?? Infinity);
+      if (onWindow || speaking) {
         l.awayFor = 0;
         return;
       }

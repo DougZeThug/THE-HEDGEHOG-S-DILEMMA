@@ -1,0 +1,4 @@
+{
+  "$comment": "Voices overheard inside the painted memories (src/content/memory-voices.ts, docs/memories.md). The only place their words are written. Times are the memory's sequence seconds (src/memory/defs.ts); places are inside the painting (u, v across it, d metres behind the wall). Empty until the scripts are settled by review (docs/reviews/2026-10-overheard.md).",
+  "memories": []
+}

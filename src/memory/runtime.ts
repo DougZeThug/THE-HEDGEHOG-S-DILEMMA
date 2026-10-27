@@ -5,7 +5,7 @@ import { weightsFor } from './compose';
 import { MEMORIES, sheetId, type MemoryDef } from './defs';
 import { memorySchema } from './sheets';
 import { sheetSource } from './theatre';
-import type { Lifecycle, MemoryFrame, ReleaseReason } from './types';
+import type { Lifecycle, MemoryFrame, ReleaseReason, TimelineSource } from './types';
 import type { WindowLayer, LayerKind } from '../world/MemoryWindow';
 import { LivingScene, type FigureArt, type HeadCels, type LivingArt, type NearArt, type Eye } from './living/LivingScene';
 import { WOODLAND as WOODLAND_SPEC, type LivingSpec } from './living/woodland';
@@ -13,6 +13,7 @@ import { ALMOST } from './living/almost';
 import { THINGS } from './living/things';
 import { FilmScene, filmType, loadFilm, releaseFilm } from './living/FilmScene';
 import { fetchBlob } from './fetched';
+import { withVoices } from '../content/memory-voices';
 
 /**
  * The memories' runtime: a lazy chunk (GSAP, Theatre.js, the controller and the memory's audio),
@@ -115,6 +116,12 @@ export interface RuntimeHost {
   screen?: { width: number; height: number };
   noise?: THREE.Texture;
   reduced?: boolean;
+  /**
+   * The version of its overheard voices to lay in (src/content/memory-voices.ts), already chosen by
+   * the Director and allowed by the recordings (null: wordless, as it always was), and a key's
+   * recordings (to find a line's reading by name).
+   */
+  voices?: { version: string | null; filesOf?: (key: string) => readonly string[] };
 }
 
 /** A living memory's scene, prepared (src/memory/living/): a painting that lives, or a film. */
@@ -148,6 +155,8 @@ export interface Prepared {
   register: { x: number; y: number; h: number } | null;
   layers: WindowLayer[];
   audio: MemoryAudio | null;
+  /** The voices laid in (memory-voices.ts), or null. */
+  voices: { version: string; filesOf?: (key: string) => readonly string[] } | null;
   /** Drawn by a living scene (its render target is the first layer), or null. */
   living: PreparedLiving | null;
   dispose(): void;
@@ -289,10 +298,13 @@ export async function prepare(id: string, variant: string, host: RuntimeHost): P
   const manifest = await manifestOf(base, def.art);
   const suffix = host.quality === 'low' ? '@low' : '';
   let audio: MemoryAudio | null = null;
+  const voices = host.voices?.version ? { version: host.voices.version, filesOf: host.voices.filesOf } : null;
   if (host.audio) {
     const sid = sheetId(def.id, v);
     const src = sheetSource(sid, memorySchema(def.layers, def.living), { sections: def.sections, markers: def.markers });
-    audio = new MemoryAudio(host.audio, def.cues(v), src.markers, id.length * 7 + v.length);
+    // Its voices, if any, are its own cues on its own markers: one clock, one dispatch.
+    const sound = withVoices(def.cues(v), src.markers, def.id, v, voices?.version, voices?.filesOf);
+    audio = new MemoryAudio(host.audio, sound.sheet, sound.markers, id.length * 7 + v.length);
   }
   // A living variant draws its painting itself: the wall's flattened poster is only its fallback.
   const lm = def.living && host.noise ? manifest.living?.[v] ?? null : null;
@@ -504,6 +516,7 @@ export async function prepare(id: string, variant: string, host: RuntimeHost): P
     register: manifest.register ?? null,
     layers: loaded.map((l) => ({ name: l.name, kind: l.kind, texture: l.texture })),
     audio,
+    voices,
     living,
     dispose() {
       if (gone) return;
@@ -530,7 +543,12 @@ export class LivingMemory {
 
   constructor(readonly prepared: Prepared, o: PlayOptions) {
     const { def, variant } = prepared;
-    const timeline = sheetSource(sheetId(def.id, variant), memorySchema(def.layers, def.living), { sections: def.sections, markers: def.markers });
+    const sheet = sheetSource(sheetId(def.id, variant), memorySchema(def.layers, def.living), { sections: def.sections, markers: def.markers });
+    // The voices' markers join the timeline's (the controller hands out the audio's cues from them).
+    const vo = prepared.voices;
+    const timeline: TimelineSource = vo
+      ? { sections: sheet.sections, markers: withVoices(def.cues(variant), sheet.markers, def.id, variant, vo.version, vo.filesOf).markers, at: (p) => sheet.at(p), dispose: () => sheet.dispose() }
+      : sheet;
     this.controller = new MemoryPlaybackController({
       timeline,
       audio: prepared.audio ?? undefined,

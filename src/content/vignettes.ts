@@ -195,17 +195,19 @@ function inRange(x: number, r?: [number, number]) {
   return !r || (x >= r[0] && x <= r[1]);
 }
 
+/** Whether a rule's conditions hold for this visitor (vignettes, and the painted memories' voices). */
+export function matchesRule(w: VariantRule['when'], ctx: VariantContext): boolean {
+  if (!inRange(ctx.seen, w.seen) || !inRange(ctx.visits, w.visits)) return false;
+  if (w.motif && !ctx.motifs.includes(w.motif)) return false;
+  if (w.notMotif && ctx.motifs.includes(w.notMotif)) return false;
+  if (w.withdrew !== undefined && w.withdrew !== ctx.withdrew) return false;
+  if (w.field && !Object.entries(w.field).every(([k, rg]) => inRange(ctx.field[k] ?? 0, rg))) return false;
+  return true;
+}
+
 /** Which version a visitor meets: deterministic (no chance), from what they have done. */
 export function chooseVariant(def: VignetteDef, ctx: VariantContext): string {
-  for (const r of def.rules) {
-    const w = r.when;
-    if (!inRange(ctx.seen, w.seen) || !inRange(ctx.visits, w.visits)) continue;
-    if (w.motif && !ctx.motifs.includes(w.motif)) continue;
-    if (w.notMotif && ctx.motifs.includes(w.notMotif)) continue;
-    if (w.withdrew !== undefined && w.withdrew !== ctx.withdrew) continue;
-    if (w.field && !Object.entries(w.field).every(([k, rg]) => inRange(ctx.field[k] ?? 0, rg))) continue;
-    if (def.variants[r.variant]) return r.variant;
-  }
+  for (const r of def.rules) if (matchesRule(r.when, ctx) && def.variants[r.variant]) return r.variant;
   if (ctx.seen > 0 && def.variants.again) return 'again';
   return 'first';
 }

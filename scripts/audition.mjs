@@ -227,6 +227,28 @@ const vignettes = vData.vignettes.map((v) => ({
     }),
   }])),
 }));
+// The painted memories' overheard voices (src/content/memory-voices.json), read through the same
+// way: each version's lines at their times in the memory's sequence (the picture is not shown).
+const mData = existsSync(join(ROOT, 'src/content/memory-voices.json')) ? JSON.parse(readFileSync(join(ROOT, 'src/content/memory-voices.json'), 'utf8')) : { memories: [] };
+for (const m of mData.memories) {
+  const variants = {};
+  for (const [variant, vv] of Object.entries(m.variants))
+    for (const [version, ver] of Object.entries(vv.versions))
+      variants[version === 'default' ? variant : `${variant} · ${version}`] = {
+        span: Math.max(...ver.beats.map((b) => b.at)) + 3,
+        events: ver.beats.map((b) => {
+          const l = m.lines.find((x) => x.id === b.line);
+          const got = readThroughTake(m.id, b.line, b.reading);
+          const take = got?.take;
+          return {
+            at: b.at, kind: 'line', who: m.speakers[l.speaker]?.who ?? l.speaker, side: b.place.u < -0.05 ? 'left' : b.place.u > 0.05 ? 'right' : 'self', text: l.text, end: b.end ?? null,
+            src: take ? (OUT ? `audio/${basename(take.file)}` : `../public/voices/${take.file}`) : null, pending: !!got?.pending,
+            turnedDown: !take && vDir.performances.some((p) => p.vignette === m.id && p.line === b.line && vLedger.entries[p.id]?.review === 'rejected'), take: take?.id ?? null, stopAfter: b.stopAfter ?? null,
+          };
+        }),
+      };
+  vignettes.push({ id: m.id, title: `${m.id} (painted memory, its voices; times in its sequence)`, tone: 'painted', intent: m.intent ?? '', anchor: 'the painted memory', anchorId: null, speakers: m.speakers, variants });
+}
 designTakes.push(...vTakes);
 const nDesigned = designs.designs.length, nLibrary = designTakes.filter((t) => t.id.startsWith('lib-')).length;
 for (const t of designTakes) if (t.group === 'voices') t.groupLabel = `new voices: ${nDesigned} made to order (three previews each), ${nLibrary} from the ElevenLabs library — keep only a few`;

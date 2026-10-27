@@ -28,7 +28,7 @@ export interface AudioSink {
    *  couldn't schedule (its sound not running), to be handed out again. */
   play(due: Due[], now?: number): Marker[] | void;
   /** Leaving: beds fade over `fade` seconds; tails may run on. */
-  release(mode: 'natural' | 'interrupt', fade: number): void;
+  release(mode: 'natural' | 'interrupt', fade: number, soft?: boolean): void;
   /** Returns events it was handed but hadn't sounded yet, so they are handed out again on resume.
    *  `now`: the frame the picture stopped on. */
   pause(now?: number): Marker[] | void;
@@ -160,7 +160,7 @@ export class MemoryPlaybackController {
       exit: hard ? 0.3 : this.o.exit,
       residue: this.mode === 'natural' ? this.o.residue : undefined,
     });
-    this.o.audio?.release(this.mode, hard ? 0.3 : this.mode === 'natural' ? this.s.residue - this.s.exit : this.o.exit);
+    this.o.audio?.release(this.mode, hard ? 0.3 : this.mode === 'natural' ? this.s.residue - this.s.exit : this.o.exit, !hard);
     this.set('withdrawing');
   }
 

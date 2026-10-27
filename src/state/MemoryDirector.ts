@@ -1,5 +1,6 @@
 import { ALL_MEMORIES, MEMORY_BY_PHRASE, type SceneMemory } from '../content/memories';
 import { VIGNETTE_BY_ID, chooseVariant, spokenLines, type Echo, type VariantContext } from '../content/vignettes';
+import { chooseVoices } from '../content/memory-voices';
 
 /**
  * When a living memory may open (docs/memories.md; decisions in
@@ -61,6 +62,8 @@ export interface SceneStart {
   minHold: number;
   maxHold: number;
   kind?: 'vignette';
+  /** A painted memory's overheard voices: which version (memory-voices.ts), if it has any. */
+  voices?: string;
 }
 
 /** Something a vignette left to come back later in the visit. */
@@ -109,7 +112,8 @@ export type OfferPick = SceneMemory & { reink?: boolean };
 
 export class MemoryDirector {
   private tracks = new Map<string, Track>();
-  active: { id: string; since: number } | null = null;
+  /** `voiced`: a painted memory begun with overheard voices of its own. */
+  active: { id: string; since: number; voiced?: boolean } | null = null;
   private cooldownUntil = -Infinity;
   private last: number | null = null;
   /** When the last memory (any) ended; kitchen-light's too, reported by the Director. */
@@ -438,7 +442,12 @@ export class MemoryDirector {
     t.played = true;
     t.requestedUntil = -Infinity;
     this.active = { id: m.id, since: now };
-    return { id: m.id, phraseId: m.phraseId, variant, minHold: m.minHold, maxHold: m.maxHold, ...(m.kind === 'vignette' ? { kind: 'vignette' as const } : {}) };
+    if (m.kind === 'vignette') return { id: m.id, phraseId: m.phraseId, variant, minHold: m.minHold, maxHold: m.maxHold, kind: 'vignette' };
+    // Which version of its voices is heard: from what the visitor has done, never by chance.
+    const ctx = s?.variantCtx?.() ?? { visits: 1, field: {}, motifs: [], withdrew: false };
+    const voices = chooseVoices(m.id, variant, { ...ctx, seen: this.counts[m.id] ?? 0 });
+    if (voices) this.active.voiced = true;
+    return { id: m.id, phraseId: m.phraseId, variant, minHold: m.minHold, maxHold: m.maxHold, ...(voices ? { voices } : {}) };
   }
 
   /** Its cue never found room (something else took the moment): not spent, still armed. */
