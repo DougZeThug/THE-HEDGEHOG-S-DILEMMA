@@ -62,3 +62,49 @@ Left as they are:
   - That leaves a third of a second between them and about half a second before the laugh. No beat moved.
   - The other two takes stay unkept.
 - **Live:** cereal's first sitting speaks for visitors. Checked in an ordinary visit (no preview): the Director chose the voices, and the lines were captioned left (7.5 s) and right (8.85 s) on a phone.
+
+## Reach: the rare vignettes, and Rain (2026-10-27, later)
+
+Reviewed by the creative director, sound designer and interaction designer, challenged by the skeptic; the artist decided where the skeptic disagreed with an earlier choice.
+
+1. **Measure on 200 visits, not 40.**
+   - Eight seeds were too few. The "0 of 40" that started this round was partly sample noise: at 200 visits the washing up was met 7 times.
+   - `scripts/vignette-reach.ts` now runs seeds 1–40 by default (`N=…` for another count) and counts a vignette as playable only as the App would, with its takes kept (`LIVE=…` to count one anyway).
+   - The script used to let the Director begin unrecorded vignettes, because it never told it what was available.
+2. **The charger opens beside "I think I was happy then."**
+   - The old line, "Nobody tells you how ordinary it feels.", is written only late, on the west wall, and was almost never read while the charger could play.
+   - Reach: 4 → about 25 in 200.
+   - The "ordinary" annotation on happy-then's third encounter is removed. Beside the line the charger now opens from, it glossed the scene. The two lines still meet late on the west wall (`rc-happy-ordinary`).
+   - The room may still voice happy-then before the charger plays. That happens in about 11 visits in 200, and keeping it back would have silenced a kept reading in about 70 (the skeptic).
+3. **The washing up stays on "far enough to miss you"** (the artist).
+   - "I don't need anyone." gained 0–5 in 200, depending on the simulation's assumptions.
+   - On a single hearing, the scene would only act that line out.
+4. **More than one way in** (`anchor.also`), adopted by the artist for three vignettes, with the creative director's lines:
+
+   | Vignette | Extra lines | Reach in 200, before → after |
+   |---|---|---|
+   | Rain | "still warm" | 2 → 15 |
+   | Practice (D) | "Can I sit here for a while?", "The kettle clicked off." | 20 → 38 |
+   | Back-seat (C) | "Look at me." | 15 → 24 |
+
+   - Rejected lines:
+     - "Nothing happened. That was the nice part.": it explains Rain.
+     - "Whose idea was the tent?" and "You fell asleep on my shoulder…": the room's rare light lines are kept free of scenes.
+     - "I still say 'we' by accident.": it would close the call down to a breakup.
+   - Never add a kettle sound to practice: the kettle line would then be acted out.
+5. **Never three in five minutes.**
+   - With more ways in, settled visitors met a third vignette late in a visit, never before about seven minutes.
+   - The real crowding was three within five minutes: 22 such runs in 200 visits.
+   - At most two vignettes now begin in any 300 s. That removes those runs, keeps nearly all of the new reach, and leaves the painted memories, the aftermaths and the long silences as they were (interaction designer).
+6. **Rain is built.**
+   - It opens beside `warm-night` or "still warm", and clears the reopening bar: 8 in 200 at notice 0.3, 15 at the default.
+   - Words, the creative director's: "Close that, will you?" / "It's nice." / [it starts to rain] / "…It's nice."
+   - The heard-before version has the rain from the start and the hesitant "…It's nice." second.
+   - Score and sounds, the sound designer's:
+     - the rain beyond the wall;
+     - the drops on the sill a sound of their own, not the sink's drip;
+     - no silence gaps, which would duck the rain.
+   - Casting: `warm` and `sarah`. `liam` would have made biscuit's couple recur (the skeptic).
+   - The room has no window. The window is heard, never placed.
+   - Its six takes wait for recording, with the artist's approval and the key in the environment.
+7. **Not done:** a vignette may still begin the moment a held silence lifts (29 visits in 200, as before this round). The room's own voices wait 6 s after a deep silence; vignettes could too. That's for a later round.

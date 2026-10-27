@@ -12,18 +12,24 @@ Small remembered fragments, heard rather than seen: one or two voices, the pause
   - **Order.** Offers go first to owed vignettes, then to memories never heard on any visit.
 - **Never pushing.** The room points at a line, by offering it or writing it again, at most once every 120 s, three times a visit, and never within 60 s of a vignette ending.
 - **Visitors meet a vignette only once its recordings are kept.** Its voiced lines must all have takes the artist approved on the audition sheet. Until then the room is unchanged, apart from versions that have no voices.
-- **In practice: one or two a visit.** Measured in simulated 10-minute visits (`npx vite-node scripts/vignette-reach.ts`): all nine live, 8 seeds × 5 personas, each persona repeating the middle of its script once it runs out. 70 vignettes across 40 visits:
-  - the chair visitor met F every time, and one more in most visits;
-  - the explorer met two or three, the reader and the phone persona one or two, the still visitor about one;
-  - **C in 5 visits, D in 1 and G in 4** (all 0 before these rules).
-  - The gain depends on visitors noticing a line the room writes for them. The simulation assumes a 60% chance at a desk and 40% on a phone of looking at it for 2–3 s. The sweep (`NOTICE=…`) shows how much rests on that:
+- **More than one way in.** A vignette may open beside other lines too (`anchor.also`), each one the creative director judged to sit beside its scene rather than act it out. It is placed beside the line that was read. Offers keep its own line. A line written again because the vignette is owed uses the line that was read, if it is on the wall the visitor faces. Effects and echoes that name a line keep that line. So far:
+  - Rain: also "still warm".
+  - Practice (D): also "Can I sit here for a while?" and "The kettle clicked off."
+  - Back-seat (C): also "Look at me."
+- **Never three in five minutes.** At most two vignettes begin in any 300 s (`VIGNETTE_WINDOW`), however soon one may follow the last.
+- **In practice: one to three in ten minutes.** A third comes late, never before about seven minutes, and never three within five. Measured with `npx vite-node scripts/vignette-reach.ts`:
+  - 5 personas × seeds 1–40 × 600 s, each persona repeating the middle of its script once it runs out.
+  - The seeds vary the room, not the visitor. Read anything under about 10 in 200 as "rare", not as a number to tune against.
+  - The table counts Rain as if recorded (`LIVE=rain`). The visitor's chance of noticing a line the room has just written (`NOTICE`) moves everything:
 
-    | Notice chance | All vignettes | C | D | G |
-    |---|---|---|---|---|
-    | 0 | 60 | 0 | 0 | 0 |
-    | 0.3 | 62 | 1 | 3 | 0 |
-    | 0.9 | 78 | 11 | 5 | 5 |
-  - D stays the rarest. Six of the nine are sad, and a sad one waits 150 s after another sad one, so D's chance usually comes late in a visit.
+    | Notice chance | All | Charger | C | D | E | G | Rain |
+    |---|---|---|---|---|---|---|---|
+    | 0.3 | 321 | 24 | 13 | 17 | 1 | 7 | 8 |
+    | default (0.6 desk, 0.4 phone) | 365 | 22 | 24 | 38 | 7 | 9 | 15 |
+    | 0.9 | 387 | 26 | 31 | 61 | 4 | 20 | 25 |
+
+  - **Before this round (default):** 344 in 200, with charger 4 (on `ordinary`), C 15, D 20, E 7, Rain 2. The 40-visit figures once given here (C 5, D 1, G 4) were too small a sample to read.
+  - **E, the washing up,** stays rare. Its line waits until "stay" is finished, and only visitors who stand still meet it. Re-anchoring it was weighed and declined: the gain was within the simulation's own uncertainty, and the new line made the scene act it out.
 - **Interruption.**
   - Turning away or touching the walls never ends one: turning toward a voice is attention.
   - Walking off (more than 3 m from where it began, for 1.5 s, moving or not; back within 2.5 m forgives) finishes the sentence being said, and nothing more is said. Opening the writing field does the same.
@@ -43,7 +49,7 @@ Small remembered fragments, heard rather than seen: one or two voices, the pause
   - at the door;
   - at the chair.
   Phones collapse stereo, so the captions also mark which side is speaking.
-- **Everyday sounds.** The car, the indicator, the shop's fridge, the till, the drip and the biscuit packet are made in the engine (`src/memory/synthSounds.ts`). The party is the room's own murmur and laughter, recorded earlier.
+- **Everyday sounds.** The car, the indicator, the shop's fridge, the till, the drip, the biscuit packet, the rain and the drops on the sill are made in the engine (`src/memory/synthSounds.ts`). The party is the room's own murmur and laughter, recorded earlier.
 
 ## The catalogue
 
@@ -51,7 +57,7 @@ Small remembered fragments, heard rather than seen: one or two voices, the pause
 
 *An ordinary goodbye on an ordinary morning, said without looking up.*
 
-- **Opens from:** "Nobody tells you how ordinary it feels." (`ordinary`).
+- **Opens from:** "I think I was happy then." (`happy-then`). It used to open beside "Nobody tells you how ordinary it feels.", a line written only late, on the west wall, and almost never read while it could play.
 - **Who:** someone leaving for the day (young); the one who stays (sarah).
 - **First time** (16.3 s):
   - 0.0: *the air of the place (flat)*
@@ -236,6 +242,28 @@ Small remembered fragments, heard rather than seen: one or two voices, the pause
   - 7.5: *[laughter, further off]*
   - 8.5: *the word “loneliest” fades from its line, leaving a ghost*
 
+### K. Rain · bittersweet
+
+*A window kept open against someone's asking, and then against the weather: closeness on her own terms, small and stubborn.*
+
+- **Opens from:** "I don't remember what we talked about. I remember that the window was open and it was the first warm night of the year." (`warm-night`), or "still warm" (`still-warm`).
+- **Who:** someone in the room behind her (warm); the one who opened the window (sarah).
+- **First time** (16.5 s):
+  - 0.0: *the air of the place, through the open window*
+  - 0.4: someone in the room (left): "Close that, will you?"
+  - 2.8: the one at the window (ahead): "It's nice."
+  - 4.0: *pause, 2 s*
+  - 5.0: *[drops on the sill]*
+  - 6.7: *[it starts to rain]*
+  - 10.8: the one at the window (ahead): "…It's nice."
+  - 12.2: *pause, 4 s*, the rain alone
+- **Heard before** (10.5 s):
+  - 0.0: *[rain, through an open window]*
+  - 2.6: someone in the room (left): "Close that, will you?"
+  - 5.0: the one at the window (ahead): "…It's nice."
+  - 6.2: *pause, 4 s*
+- **Not live yet:** its six takes are directed (`rain--*` in `vignettes.dialogue.json`) and wait to be recorded and kept.
+
 ## Recording
 
 - **Direction.** Sad, like the wall lines the artist kept: quiet and held back, close to tears where it fits, whispered where close. The other speakers are subdued and tired. Nothing bright, amused or laughing: the validator refuses those tags. One voice per take; the other person is unspoken scene context, opening with a sad framing.
@@ -246,7 +274,7 @@ Small remembered fragments, heard rather than seen: one or two voices, the pause
   - A first batch in the old "ordinary" direction: 36 takes, 426 credits. The artist heard it as too happy and expressive.
   - Replaced by the sad direction, two takes per line: 72 takes (the base take and its `-b` seed), 1,212 credits.
   - The two designed voices are saved to the account: `small-voice` from small-voice-1, `older-woman` from older-woman-2.
-  - **Kept (the artist's marks):** all nine vignettes have every line kept, so all nine are live for visitors.
+  - **Kept (the artist's marks):** the first nine vignettes have every line kept, so all nine are live for visitors. Rain (K) waits for its takes.
   - **D's line** is now "Hiya. …No.", re-recorded flat after the artist found "Hiya!" too happy.
   - **B's leaver** now says "Okay, I'll see you tomorrow." (the artist's note). The old line and its takes are no longer directed or played; the files stay in git history.
 - **Audition.** On the audition sheet, each version has a read-through at its own times. It plays the kept take of each line, or failing that the take generated for it, marked "not kept yet", placed roughly (left, right, through a wall). Then each take is listed to keep or not. Kept takes go in with `--vignettes --approve=…`, and only kept takes reach visitors.

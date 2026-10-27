@@ -135,7 +135,9 @@ export interface Anchor {
   /**
    * Other lines it may open beside, read as its own is: a scene with more than one way in (a
    * line written late, or on a wall some never face, is not its only door). Each sits beside
-   * the scene, never one it would only act out; the line read is where it is placed.
+   * the scene, never one it would only act out; the line read is where it is placed. Offers and
+   * lines written again for it keep its own line; effects and echoes that name a line keep theirs
+   * (a word lost from one line means nothing on another).
    */
   also?: string[];
   /** Or: a drawing on the wall that means that line (looking at it reads it). */

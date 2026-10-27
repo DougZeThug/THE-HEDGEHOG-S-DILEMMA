@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { VIGNETTES, chooseVariant, scoreMarkers, spokenLines, toCueSheet, vignetteKeys, lineKey, type VignetteDef } from '../src/content/vignettes';
 import { SCENE_MEMORIES, VIGNETTE_MEMORIES } from '../src/content/memories';
 import { PHRASE_BY_ID } from '../src/content/phrases';
-import { MemoryDirector, VIGNETTE_APART, type SceneState } from '../src/state/MemoryDirector';
+import { MemoryDirector, VIGNETTE_APART, VIGNETTE_WINDOW, type SceneState } from '../src/state/MemoryDirector';
 import { Director } from '../src/state/Director';
 import { SYNTH_KINDS, render } from '../src/memory/synthSounds';
 
@@ -187,9 +187,22 @@ describe('when a vignette opens', () => {
     expect(read(m, 'happy-then', 175 + 61)).toBeNull();
     expect(read(m, 'happy-then', 175 + VIGNETTE_APART + 1)?.id).toBe('charger');
     m.ended('charger', 290, true, true);
-    // Two sad ones in a row wait longer.
+    // Two sad ones in a row wait longer (and, a third, until five minutes after the first began).
     expect(read(m, 'lonely-birthday', 290 + VIGNETTE_APART + 1)).toBeNull();
-    expect(read(m, 'lonely-birthday', 290 + 151)?.id).toBe('gone-quiet');
+    expect(read(m, 'lonely-birthday', 160 + VIGNETTE_WINDOW + 1)?.id).toBe('gone-quiet');
+  });
+
+  it('never three in five minutes, however soon each may follow the last', () => {
+    const m = new MemoryDirector();
+    expect(read(m, 'jumper', 160)?.id).toBe('a-bag');
+    m.ended('a-bag', 175, true, true);
+    expect(read(m, 'happy-then', 175 + VIGNETTE_APART + 1)?.id).toBe('charger');
+    m.ended('charger', 280, true, true);
+    // Spaced enough from the last (90 s on, another tone), but the third inside the window waits.
+    const third = 280 + VIGNETTE_APART + 1;
+    expect(third - 160).toBeLessThan(VIGNETTE_WINDOW);
+    expect(read(m, 'laugh-breathe', third)).toBeNull();
+    expect(read(m, 'laugh-breathe', 160 + VIGNETTE_WINDOW + 1)?.id).toBe('biscuit');
   });
 
   it('the chair\'s opens from stillness by the chair, only once "stay" has been finished', () => {

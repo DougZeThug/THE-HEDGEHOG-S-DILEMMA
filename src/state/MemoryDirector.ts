@@ -77,6 +77,13 @@ export interface PendingEcho {
 /** Seconds a vignette keeps from the end of any other memory (more after one of its tone). */
 export const VIGNETTE_APART = 90;
 export const SAME_TONE_APART = 150;
+/**
+ * Never three in five minutes: at most this many vignettes begun in any `VIGNETTE_WINDOW` seconds.
+ * (With more than one way into some, a settled visitor met three late in a visit; three close
+ * together is the pushing the room never does: interaction review, 2026-10-27.)
+ */
+export const VIGNETTE_WINDOW = 300;
+export const VIGNETTES_IN_WINDOW = 2;
 
 interface Track {
   armed: boolean;
@@ -120,6 +127,8 @@ export class MemoryDirector {
   private last: number | null = null;
   /** When the last memory (any) ended; kitchen-light's too, reported by the Director. */
   lastEnded = -Infinity;
+  /** When each vignette of this visit began. */
+  private vignetteStarts: number[] = [];
   /** The tone of the last vignette heard this visit. */
   private lastTone: string | null = null;
   /** Vignettes whose voices are recorded and approved (null: all, as in tests and previews). */
@@ -271,10 +280,12 @@ export class MemoryDirector {
     for (const m of order) {
       const t = this.tracks.get(m.id)!;
       if (t.played || s.now < m.earliest || this.arcEnded(m)) continue;
-      // An owed vignette whose line is already where they look: written again there, once.
-      if (owed(m) && !t.reinked && s.visibleFacing(m.phraseId) && this.isAvailable(m.id) && this.vignetteAllows(m, s) && s.now >= t.notBefore) {
+      // An owed vignette whose line is already where they look: written again there, once. The
+      // line that was read, if it is there (most owed reads come through a second way in); else its own.
+      const owedLine = t.line && t.line !== m.phraseId && s.visibleFacing(t.line) ? t.line : m.phraseId;
+      if (owed(m) && !t.reinked && s.visibleFacing(owedLine) && this.isAvailable(m.id) && this.vignetteAllows(m, s) && s.now >= t.notBefore) {
         t.reinked = true;
-        return point(m, t, true);
+        return point({ ...m, phraseId: owedLine }, t, true);
       }
       if (!m.offer || t.offered || !m.offer.phases.includes(s.phase as never)) continue;
       if (s.now - this.lastEnded < m.offer.apart) continue;
@@ -370,6 +381,7 @@ export class MemoryDirector {
     if (m.kind !== 'vignette') return true;
     if (m.afterFinished && !(s.finished?.(m.afterFinished) ?? true)) return false;
     if (s.now - this.lastEnded < (this.lastTone === m.tone ? SAME_TONE_APART : VIGNETTE_APART)) return false;
+    if (this.vignetteStarts.filter((at) => s.now - at < VIGNETTE_WINDOW).length >= VIGNETTES_IN_WINDOW) return false;
     if (m.phases && s.phase && !m.phases.includes(s.phase as never)) return false;
     if (m.group === 'kitchen' && s.kitchenPlayed) return false;
     if (m.requires && !((this.counts[m.requires.seen] ?? 0) > 0)) return false;
@@ -452,6 +464,7 @@ export class MemoryDirector {
     t.played = true;
     t.requestedUntil = -Infinity;
     this.active = { id: m.id, since: now };
+    if (m.kind === 'vignette') this.vignetteStarts.push(now);
     // Placed beside the line that was read (its own, or another that opens it).
     const line = t.line && linesOf(m).includes(t.line) ? t.line : m.phraseId;
     if (m.kind === 'vignette') return { id: m.id, phraseId: line, variant, minHold: m.minHold, maxHold: m.maxHold, kind: 'vignette' };
