@@ -55,3 +55,10 @@ Left as they are:
   - If it plays as a hurt exchange followed by strangers laughing, keep nothing: the memory stays wordless at no cost.
   - Check the laugh's level against the lines. The version's `gains` can set it.
   - Real take lengths decide the final gaps. If two kept takes together run longer than about 2.65 s, choose a shorter take rather than moving the laugh.
+- **Recorded (2026-10-27, with the artist's approval):** the four takes, 58 credits billed (132 estimated). Each was heard back word for word by the speech-to-text check.
+- **Kept, by the artist:**
+  - `cereal--my-bowl-b`: speech from 0.15 to 1.06 s into the file, so heard at about 7.55–8.46.
+  - `cereal--clean-one`: speech to 1.29 s, heard at about 8.8–10.09.
+  - That leaves a third of a second between them and about half a second before the laugh. No beat moved.
+  - The other two takes stay unkept.
+- **Live:** cereal's first sitting speaks for visitors. Checked in an ordinary visit (no preview): the Director chose the voices, and the lines were captioned left (7.5 s) and right (8.85 s) on a phone.

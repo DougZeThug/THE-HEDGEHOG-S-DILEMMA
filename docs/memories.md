@@ -75,7 +75,7 @@ A painted memory may be overheard: a few seconds of the people in it talking to 
   - optionally, versions chosen by rules and the memory's own sounds re-levelled (`gains`) or left out (`mute`). These are unused so far: there is one version.
 - **Playback.** The beats become `voice:` cues and markers on the memory's own sheet and timeline (`withVoices`, in `runtime.ts`). Its clock, interruption, pause and hush are the memory's.
 - **Who hears them.** Heard only when every line of the version has a kept take (`vig:<memory>:<line>` in the manifest). Otherwise the memory is wordless, as before.
-- **So far:** only cereal's first sitting speaks ("That's my bowl." / "It's the clean one.", then the laugh). The rest are wordless on purpose.
+- **So far:** only cereal's first sitting speaks ("That's my bowl." / "It's the clean one.", then the laugh), with both lines kept by the artist (`cereal--my-bowl-b`, `cereal--clean-one`), so visitors hear it. The rest are wordless on purpose.
 - **Recording.** Recorded and kept like a vignette's lines: `generate-dialogue.mjs --vignettes`, where a take's `vignette` names the memory. They are read through on the audition sheet.
 - **Preview.** `?memory=<id>&variant=<v>&voices=<version>` plays it a few seconds after the room opens, with takes not kept yet.
 

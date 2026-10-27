@@ -1254,7 +1254,7 @@
       "voice": "restrained",
       "model": "eleven_v4",
       "generatedAt": "2026-10-27T18:33:04.952Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "That's my bowl",
       "wer": 0,
       "spokenTags": []
@@ -1270,7 +1270,7 @@
       "voice": "sarah",
       "model": "eleven_v4",
       "generatedAt": "2026-10-27T18:33:05.986Z",
-      "review": "pending",
+      "review": "approved",
       "transcript": "It's the clean one",
       "wer": 0,
       "spokenTags": []
