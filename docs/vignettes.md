@@ -262,7 +262,7 @@ Small remembered fragments, heard rather than seen: one or two voices, the pause
   - 2.6: someone in the room (left): "Close that, will you?"
   - 5.0: the one at the window (ahead): "…It's nice."
   - 6.2: *pause, 4 s*
-- **Not live yet:** its six takes are directed (`rain--*` in `vignettes.dialogue.json`) and wait to be recorded and kept.
+- **Recorded, not kept yet:** six takes (two per line), made through the ElevenLabs connector at the artist's request: no seed, no scene context, default stability; 166 credits. Each take's speech runs only as long as its line. The connector's transcript echoed the input, so it was no independent word check. Rain goes live once one take of each line is kept on the audition sheet.
 
 ## Recording
 

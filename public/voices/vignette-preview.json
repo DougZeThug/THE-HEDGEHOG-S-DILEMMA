@@ -132,5 +132,17 @@
   "vig:cereal:clean-one": [
     "vignettes/cereal--clean-one.mp3",
     "vignettes/cereal--clean-one-b.mp3"
+  ],
+  "vig:rain:close": [
+    "vignettes/rain--close.mp3",
+    "vignettes/rain--close-b.mp3"
+  ],
+  "vig:rain:nice": [
+    "vignettes/rain--nice.mp3",
+    "vignettes/rain--nice-b.mp3"
+  ],
+  "vig:rain:nice-again": [
+    "vignettes/rain--nice-again.mp3",
+    "vignettes/rain--nice-again-b.mp3"
   ]
 }
