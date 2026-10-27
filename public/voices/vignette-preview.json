@@ -124,5 +124,13 @@
   ],
   "vig:gone-quiet:fine": [
     "vignettes/gone-quiet--fine.mp3"
+  ],
+  "vig:cereal:my-bowl": [
+    "vignettes/cereal--my-bowl.mp3",
+    "vignettes/cereal--my-bowl-b.mp3"
+  ],
+  "vig:cereal:clean-one": [
+    "vignettes/cereal--clean-one.mp3",
+    "vignettes/cereal--clean-one-b.mp3"
   ]
 }

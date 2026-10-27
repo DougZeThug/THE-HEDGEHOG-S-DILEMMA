@@ -1,8 +1,8 @@
 {
   "version": 1,
   "spent": {
-    "credits": 1710,
-    "sttSeconds": 211.35000000000005
+    "credits": 1768,
+    "sttSeconds": 217.30000000000004
   },
   "entries": {
     "charger--charger": {
@@ -1226,6 +1226,70 @@
       "transcript": "Hiya. No",
       "wer": 0,
       "spokenTags": []
+    },
+    "cereal--my-bowl": {
+      "status": "validated",
+      "hash": "d0dfcef94f6c5e17",
+      "estimate": 31,
+      "cost": 14,
+      "requestId": "PhEq2rv7QokWdL9eGIsg",
+      "bytes": 25538,
+      "seconds": 1.59,
+      "voice": "restrained",
+      "model": "eleven_v4",
+      "generatedAt": "2026-10-27T18:33:03.831Z",
+      "review": "pending",
+      "transcript": "That's my bowl",
+      "wer": 0,
+      "spokenTags": []
+    },
+    "cereal--my-bowl-b": {
+      "status": "validated",
+      "hash": "1288c6c86863a5b1",
+      "estimate": 31,
+      "cost": 14,
+      "requestId": "UlFf2JGhvR1wlbNImKzL",
+      "bytes": 20105,
+      "seconds": 1.25,
+      "voice": "restrained",
+      "model": "eleven_v4",
+      "generatedAt": "2026-10-27T18:33:04.952Z",
+      "review": "pending",
+      "transcript": "That's my bowl",
+      "wer": 0,
+      "spokenTags": []
+    },
+    "cereal--clean-one": {
+      "status": "validated",
+      "hash": "54326429ae4a03d8",
+      "estimate": 35,
+      "cost": 15,
+      "requestId": "4ht8JE1vTHoF5JLC6OzI",
+      "bytes": 26792,
+      "seconds": 1.67,
+      "voice": "sarah",
+      "model": "eleven_v4",
+      "generatedAt": "2026-10-27T18:33:05.986Z",
+      "review": "pending",
+      "transcript": "It's the clean one",
+      "wer": 0,
+      "spokenTags": []
+    },
+    "cereal--clean-one-b": {
+      "status": "validated",
+      "hash": "a3bb32389c30588b",
+      "estimate": 35,
+      "cost": 15,
+      "requestId": "Rv6mhjbyFOYyD386RksW",
+      "bytes": 23030,
+      "seconds": 1.44,
+      "voice": "sarah",
+      "model": "eleven_v4",
+      "generatedAt": "2026-10-27T18:33:07.167Z",
+      "review": "pending",
+      "transcript": "It's the clean one",
+      "wer": 0,
+      "spokenTags": []
     }
   },
   "runs": [
@@ -1248,6 +1312,14 @@
     {
       "at": "2026-10-15T11:58:26.455Z",
       "credits": 72,
+      "generated": 4,
+      "failed": 0,
+      "queued": 0,
+      "stopped": null
+    },
+    {
+      "at": "2026-10-27T18:33:03.036Z",
+      "credits": 58,
       "generated": 4,
       "failed": 0,
       "queued": 0,
