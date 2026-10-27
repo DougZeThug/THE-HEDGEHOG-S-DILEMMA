@@ -56,3 +56,24 @@ describe('Rng', () => {
     expect(r.weighted([0, 0])).toBe(-1);
   });
 });
+
+describe('EventScheduler: putting a due event back', () => {
+  it('as it was: its priority, its time to live from the new time', () => {
+    const s = new EventScheduler<{ n: string }>(5);
+    const a = { n: 'a' };
+    s.schedule(1, a, { major: true, priority: 4, ttl: 10 });
+    const due = s.tick(1);
+    expect(due).toEqual([a]);
+    expect(s.optsOf(a)).toEqual({ priority: 4, ttl: 10 });
+    expect(s.optsOf({ n: 'never scheduled' })).toEqual({});
+  });
+  it('without its key if a newer event has taken it', () => {
+    const s = new EventScheduler<{ n: string }>(5);
+    const a = { n: 'a' };
+    s.schedule(1, a, { key: 'k' });
+    s.tick(1);
+    expect(s.optsOf(a).key).toBe('k');
+    s.schedule(5, { n: 'b' }, { key: 'k' });
+    expect(s.optsOf(a).key).toBeUndefined();
+  });
+});

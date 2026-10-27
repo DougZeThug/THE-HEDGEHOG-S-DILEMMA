@@ -23,6 +23,11 @@ export interface VisitorInput {
   /** Nearest surface if close to one (within ~1.1 m), else null. */
   nearSurface: Surface | null;
   kneeling: boolean;
+  /**
+   * Moved by a memory (its way in, its carry), not by themselves: not counted as walking or
+   * looking (the room must not take the memory's own move for the visitor's restlessness).
+   */
+  carried?: boolean;
 }
 
 /**
@@ -124,7 +129,7 @@ export class VisitorModel {
     }
     const dx = inp.x - this.x;
     const dz = inp.z - this.z;
-    const step = Math.hypot(dx, dz);
+    const step = inp.carried ? 0 : Math.hypot(dx, dz);
     this.x = inp.x;
     this.z = inp.z;
     this.movedDistance += step;
@@ -134,7 +139,7 @@ export class VisitorModel {
     let dyaw = inp.yaw - this.lastYaw;
     while (dyaw > Math.PI) dyaw -= Math.PI * 2;
     while (dyaw < -Math.PI) dyaw += Math.PI * 2;
-    const look = Math.abs(dyaw) + Math.abs(inp.pitch - this.lastPitch);
+    const look = inp.carried ? 0 : Math.abs(dyaw) + Math.abs(inp.pitch - this.lastPitch);
     this.lastYaw = inp.yaw;
     this.lastPitch = inp.pitch;
     this.lookActivity = approach(this.lookActivity, dt > 0 ? look / dt : 0, dt, 0.6);
@@ -158,34 +163,37 @@ export class VisitorModel {
     // Distance to chair and approach/withdraw cycles (hysteresis).
     this.distance = Math.hypot(inp.x, inp.z);
     this.distanceSlow = approach(this.distanceSlow, this.distance, dt, 4);
-    if (!this.near && this.distance < BANDS.near) {
-      this.near = true;
-      this.nearSince = this.t;
-      this.lastApproachAt = this.t;
-      this.approaches.push({ enteredAt: this.t, leftAt: null, dwell: 0 });
-      this.armedWithdraw = false;
-    } else if (this.near && this.distance > BANDS.near + 0.25) {
-      this.near = false;
-      const rec = this.approaches[this.approaches.length - 1];
-      if (rec) {
-        rec.leftAt = this.t;
-        rec.dwell = this.t - rec.enteredAt;
+    // Carried: the memory's own move is not the visitor's approach or retreat, so the bands hold.
+    if (!inp.carried) {
+      if (!this.near && this.distance < BANDS.near) {
+        this.near = true;
+        this.nearSince = this.t;
+        this.lastApproachAt = this.t;
+        this.approaches.push({ enteredAt: this.t, leftAt: null, dwell: 0 });
+        this.armedWithdraw = false;
+      } else if (this.near && this.distance > BANDS.near + 0.25) {
+        this.near = false;
+        const rec = this.approaches[this.approaches.length - 1];
+        if (rec) {
+          rec.leftAt = this.t;
+          rec.dwell = this.t - rec.enteredAt;
+        }
+        this.armedWithdraw = true;
       }
-      this.armedWithdraw = true;
+      if (this.near) {
+        this.totalNear += dt;
+        const rec = this.approaches[this.approaches.length - 1];
+        if (rec) rec.dwell = this.t - rec.enteredAt;
+      }
+      if (this.armedWithdraw && this.distance > BANDS.withdraw) {
+        this.armedWithdraw = false;
+        this.lastWithdrawAt = this.t;
+        const rec = this.approaches[this.approaches.length - 1];
+        // A hesitation: came close, did not stay, went back out.
+        if (rec && rec.dwell < 9) this.hesitations++;
+      }
+      if (this.distance > BANDS.far) this.totalFar += dt;
     }
-    if (this.near) {
-      this.totalNear += dt;
-      const rec = this.approaches[this.approaches.length - 1];
-      if (rec) rec.dwell = this.t - rec.enteredAt;
-    }
-    if (this.armedWithdraw && this.distance > BANDS.withdraw) {
-      this.armedWithdraw = false;
-      this.lastWithdrawAt = this.t;
-      const rec = this.approaches[this.approaches.length - 1];
-      // A hesitation: came close, did not stay, went back out.
-      if (rec && rec.dwell < 9) this.hesitations++;
-    }
-    if (this.distance > BANDS.far) this.totalFar += dt;
 
     // Surfaces
     if (inp.nearSurface) {

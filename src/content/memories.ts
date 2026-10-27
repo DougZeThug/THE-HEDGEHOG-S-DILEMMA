@@ -18,6 +18,13 @@ export interface SceneMemory {
   commit: number;
   /** Seconds before looking away may end it. */
   minHold: number;
+  /**
+   * A painted memory counts as seen only once it has been entered and played to here (its own
+   * seconds), not after `minHold` (or 8 s) watched: the woodland's heart is her look, 18 s in (a
+   * visitor who turned away as it took them in, at 9 s, was counted for good: the interaction
+   * designer's review, 2026-10-18).
+   */
+  seenAt?: number;
   /** The longest it plays (the controller closes it then). */
   maxHold: number;
   /** First visit, and returning visits in turn. */
@@ -52,11 +59,44 @@ export interface SceneMemory {
   afterFinished?: string;
   /** Heard this many times (over all visits), it no longer comes. */
   maxSeen?: number;
+  /** Its line is kept off the walls until the memory offers it (it belongs to that moment). */
+  reserved?: boolean;
+  /** Once it has played, no other painted memory is offered in that visit (it ends the arc). */
+  last?: boolean;
+  /** Seconds from its start to its very end (withdrawal and tail), if longer than the usual ~28. */
+  span?: number;
 }
 
 export const SCENE_MEMORIES: SceneMemory[] = [
   // The discoverable first memory: early, armed by reading or touching the line.
   { id: 'cereal', phraseId: 'cereal', earliest: 20, latest: 150, arc: 'first', arm: 2.5, commit: 1.0, minHold: 10, maxHold: 22, variants: { first: 'first', revisit: ['later'] }, lookBack: true },
+  // Company that becomes absence inside one memory: two people in a clearing, a hand, the dusk
+  // (docs/reviews/2026-10-woodland.md). Offered once another memory has been, ahead of the bedroom
+  // (it takes a first visit's late place; the bedroom comes on a visit after it). Nothing painted
+  // comes after it in that visit. A return visit meets the clearing again, empty, kept in the wall.
+  {
+    // (seenAt: her head turning to him, defs.ts WOODLAND_FILM.glance.head; maxHold and span the
+    // afternoon's exit and end; tested.)
+    id: 'woodland', phraseId: 'more-minutes', earliest: 200, arc: 'afterAnother', arm: 2.5, commit: 1.0, minHold: 12, seenAt: 20.2, maxHold: 38.5, span: 47.5,
+    variants: { first: 'afternoon', revisit: ['empty'] }, lookBack: false, offer: { phases: ['contradiction', 'transform'], apart: 120 }, reserved: true, last: true,
+  },
+  // Almost (docs/almost.md): a felt film, two people side by side at a kitchen table at night; a
+  // hand that reaches, a start, a hand taken back, an arm laid nearer too late. Offered once
+  // another memory has been, as the room begins to contradict itself. It counts as seen once it
+  // has been entered and played to the startle (defs.ts FILM_AT + FILM_BEATS.startle, 17.1 s). A
+  // return visit plays it again.
+  {
+    id: 'almost', phraseId: 'your-hand', earliest: 170, arc: 'afterAnother', arm: 2.5, commit: 1.0, minHold: 12, seenAt: 18, maxHold: 37.5, span: 47.5,
+    variants: { first: 'film', revisit: [] }, lookBack: false, offer: { phases: ['contradiction', 'transform'], apart: 120 }, reserved: true,
+  },
+  // Things I Should Have Said (docs/things.md): a charcoal drawing of a goodbye at a door, tried
+  // again in pencil and erased. It opens from "I didn't know what to say." Offered once another
+  // memory has been, as the room begins to contradict itself; seen once it has been entered and
+  // played to his almost (defs.ts THINGS_AT + THINGS_BEATS.found, 23.8 s).
+  {
+    id: 'things', phraseId: 'didnt-know-say', earliest: 210, arc: 'afterAnother', arm: 2.5, commit: 1.0, minHold: 12, seenAt: 26, maxHold: 53.0, span: 63.0,
+    variants: { first: 'film', revisit: [] }, lookBack: false, offer: { phases: ['contradiction', 'transform'], apart: 120 }, reserved: true,
+  },
   // Peace with a cost: the longest, once the room has begun to contradict itself.
   {
     id: 'bedroom', phraseId: 'happiest-unneeded', earliest: 150, arm: 2.5, commit: 1.0, minHold: 12, maxHold: 26,
@@ -68,7 +108,7 @@ export const SCENE_MEMORIES: SceneMemory[] = [
   // to the door and stops; a return visit, they only pass.
   {
     id: 'door', phraseId: 'door-open', earliest: 240, arc: 'afterAnother', arm: 2.5, commit: 1.0, minHold: 9, maxHold: 18,
-    variants: { first: 'approach', revisit: ['passing'] }, lookBack: false, offer: { phases: ['contradiction', 'transform'], apart: 120, wall: 'south' },
+    variants: { first: 'approach', revisit: ['passing'] }, lookBack: false, offer: { phases: ['contradiction', 'transform'], apart: 120, wall: 'south' }, reserved: true,
   },
 ];
 

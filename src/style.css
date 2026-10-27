@@ -90,6 +90,8 @@ kbd { font-family: inherit; font-size: 0.85em; border: 1px solid #c9c7c1; border
 .captions .cap.side-left { margin-left: 0; margin-right: auto; }
 .captions .cap.side-right { margin-left: auto; margin-right: 0; }
 .captions .cap.sound { display: table; margin-left: auto; margin-right: auto; font-size: max(16px, 0.95em); font-style: normal; color: rgb(30, 31, 36); background: rgba(240, 238, 232, 0.86); padding: 0.1em 0.55em; border-radius: 0.6em; }
+/* Over a dark picture: light words, a dark glow, no pill. */
+.captions.dim .cap.sound { background: transparent; color: rgba(236, 233, 226, 0.92); text-shadow: 0 0 4px rgba(0, 0, 0, 0.95), 0 0 12px rgba(0, 0, 0, 0.85); }
 .hint {
   position: fixed; left: 50%; bottom: calc(3vh + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 5;
   font-size: 0.95rem; color: rgba(60, 62, 68, 0.75); opacity: 0; transition: opacity 2s ease; pointer-events: none;

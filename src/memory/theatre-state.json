@@ -3024,6 +3024,2198 @@
           }
         }
       }
+    },
+    "woodland-afternoon": {
+      "staticOverrides": {
+        "byObject": {
+          "window": {
+            "presence": 1,
+            "parallax": 0
+          },
+          "light": {
+            "x": -0.05,
+            "y": -0.24,
+            "soft": 0.14,
+            "roomSpill": 0
+          },
+          "layer:scene": {
+            "opacity": 1
+          }
+        }
+      },
+      "sequence": {
+        "subUnitsPerUnit": 60,
+        "length": 47.5,
+        "type": "PositionalSequence",
+        "markers": [
+          {
+            "id": "m1p",
+            "label": "active",
+            "position": 6
+          },
+          {
+            "id": "m1q",
+            "label": "exit",
+            "position": 38.5
+          },
+          {
+            "id": "m1r",
+            "label": "residue",
+            "position": 44.6
+          },
+          {
+            "id": "m1s",
+            "label": "end",
+            "position": 47.5
+          },
+          {
+            "id": "m1t",
+            "label": "music:cicadas",
+            "position": 0.05
+          },
+          {
+            "id": "m1u",
+            "label": "music:woods",
+            "position": 0.05
+          },
+          {
+            "id": "m1v",
+            "label": "music:score",
+            "position": 8.2
+          },
+          {
+            "id": "m1w",
+            "label": "sfx:bird-1",
+            "position": 10.9
+          },
+          {
+            "id": "m1x",
+            "label": "music:evening",
+            "position": 30.46
+          },
+          {
+            "id": "m1y",
+            "label": "sfx:cicada-last",
+            "position": 44.2
+          }
+        ],
+        "tracksByObject": {
+          "window": {
+            "trackData": {
+              "t0": {
+                "type": "BasicKeyframedTrack",
+                "__debugName": "window:[\"sketch\"]",
+                "keyframes": [
+                  {
+                    "id": "k1",
+                    "position": 2,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 0
+                  },
+                  {
+                    "id": "k2",
+                    "position": 6,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 1
+                  },
+                  {
+                    "id": "k3",
+                    "position": 44.73,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 1
+                  },
+                  {
+                    "id": "k4",
+                    "position": 45.8,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 0
+                  }
+                ]
+              },
+              "t5": {
+                "type": "BasicKeyframedTrack",
+                "__debugName": "window:[\"reveal\"]",
+                "keyframes": [
+                  {
+                    "id": "k6",
+                    "position": 5.4,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.3333333333333333,
+                      0.3333333333333333
+                    ],
+                    "type": "bezier",
+                    "value": 0
+                  },
+                  {
+                    "id": "k7",
+                    "position": 7.6,
+                    "connectedRight": true,
+                    "handles": [
+                      0.6666666666666666,
+                      0.6666666666666666,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 1
+                  },
+                  {
+                    "id": "k8",
+                    "position": 41.8,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 1
+                  },
+                  {
+                    "id": "k9",
+                    "position": 43.78,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 0
+                  }
+                ]
+              },
+              "ta": {
+                "type": "BasicKeyframedTrack",
+                "__debugName": "window:[\"wash\"]",
+                "keyframes": [
+                  {
+                    "id": "kb",
+                    "position": 0,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 0
+                  },
+                  {
+                    "id": "kc",
+                    "position": 7.6,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 1
+                  }
+                ]
+              }
+            },
+            "trackIdByPropPath": {
+              "[\"sketch\"]": "t0",
+              "[\"reveal\"]": "t5",
+              "[\"wash\"]": "ta"
+            }
+          },
+          "light": {
+            "trackData": {
+              "td": {
+                "type": "BasicKeyframedTrack",
+                "__debugName": "light:[\"radius\"]",
+                "keyframes": [
+                  {
+                    "id": "ke",
+                    "position": 1,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 0.15
+                  },
+                  {
+                    "id": "kf",
+                    "position": 6,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 0.55
+                  },
+                  {
+                    "id": "kg",
+                    "position": 7.6,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 2.2
+                  }
+                ]
+              },
+              "th": {
+                "type": "BasicKeyframedTrack",
+                "__debugName": "light:[\"warmth\"]",
+                "keyframes": [
+                  {
+                    "id": "ki",
+                    "position": 0,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 4300
+                  },
+                  {
+                    "id": "kj",
+                    "position": 30.5,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 2900
+                  }
+                ]
+              },
+              "tk": {
+                "type": "BasicKeyframedTrack",
+                "__debugName": "light:[\"intensity\"]",
+                "keyframes": [
+                  {
+                    "id": "kl",
+                    "position": 0,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 0
+                  },
+                  {
+                    "id": "km",
+                    "position": 1.4,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 0
+                  },
+                  {
+                    "id": "kn",
+                    "position": 2.6,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 0.5
+                  },
+                  {
+                    "id": "ko",
+                    "position": 6,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 0.45
+                  },
+                  {
+                    "id": "kp",
+                    "position": 10.5,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 0.3
+                  },
+                  {
+                    "id": "kq",
+                    "position": 38.5,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 0.2
+                  },
+                  {
+                    "id": "kr",
+                    "position": 42.5,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 0.3
+                  },
+                  {
+                    "id": "ks",
+                    "position": 44.6,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 0
+                  }
+                ]
+              }
+            },
+            "trackIdByPropPath": {
+              "[\"radius\"]": "td",
+              "[\"warmth\"]": "th",
+              "[\"intensity\"]": "tk"
+            }
+          },
+          "layer:sketch": {
+            "trackData": {
+              "tt": {
+                "type": "BasicKeyframedTrack",
+                "__debugName": "layer:sketch:[\"opacity\"]",
+                "keyframes": [
+                  {
+                    "id": "ku",
+                    "position": 0,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 0.9
+                  },
+                  {
+                    "id": "kv",
+                    "position": 30.5,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 0
+                  }
+                ]
+              }
+            },
+            "trackIdByPropPath": {
+              "[\"opacity\"]": "tt"
+            }
+          },
+          "layer:sketch-after": {
+            "trackData": {
+              "tw": {
+                "type": "BasicKeyframedTrack",
+                "__debugName": "layer:sketch-after:[\"opacity\"]",
+                "keyframes": [
+                  {
+                    "id": "kx",
+                    "position": 0,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 0
+                  },
+                  {
+                    "id": "ky",
+                    "position": 30.5,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 1
+                  }
+                ]
+              }
+            },
+            "trackIdByPropPath": {
+              "[\"opacity\"]": "tw"
+            }
+          },
+          "layer:light": {
+            "trackData": {
+              "tz": {
+                "type": "BasicKeyframedTrack",
+                "__debugName": "layer:light:[\"opacity\"]",
+                "keyframes": [
+                  {
+                    "id": "k10",
+                    "position": 0,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 1
+                  },
+                  {
+                    "id": "k11",
+                    "position": 30.5,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 0
+                  }
+                ]
+              }
+            },
+            "trackIdByPropPath": {
+              "[\"opacity\"]": "tz"
+            }
+          },
+          "layer:light-after": {
+            "trackData": {
+              "t12": {
+                "type": "BasicKeyframedTrack",
+                "__debugName": "layer:light-after:[\"opacity\"]",
+                "keyframes": [
+                  {
+                    "id": "k13",
+                    "position": 0,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 0
+                  },
+                  {
+                    "id": "k14",
+                    "position": 30.5,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 1
+                  }
+                ]
+              }
+            },
+            "trackIdByPropPath": {
+              "[\"opacity\"]": "t12"
+            }
+          },
+          "scene": {
+            "trackData": {
+              "t15": {
+                "type": "BasicKeyframedTrack",
+                "__debugName": "scene:[\"approach\"]",
+                "keyframes": [
+                  {
+                    "id": "k16",
+                    "position": 1.2,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.3333333333333333,
+                      0.3333333333333333
+                    ],
+                    "type": "bezier",
+                    "value": 0
+                  },
+                  {
+                    "id": "k17",
+                    "position": 10.5,
+                    "connectedRight": true,
+                    "handles": [
+                      0.6666666666666666,
+                      0.6666666666666666,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 1
+                  },
+                  {
+                    "id": "k18",
+                    "position": 39.5,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.3333333333333333,
+                      0.3333333333333333
+                    ],
+                    "type": "bezier",
+                    "value": 1
+                  },
+                  {
+                    "id": "k19",
+                    "position": 43.5,
+                    "connectedRight": true,
+                    "handles": [
+                      0.6666666666666666,
+                      0.6666666666666666,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 0
+                  }
+                ]
+              },
+              "t1a": {
+                "type": "BasicKeyframedTrack",
+                "__debugName": "scene:[\"immerse\"]",
+                "keyframes": [
+                  {
+                    "id": "k1b",
+                    "position": 0,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 0
+                  },
+                  {
+                    "id": "k1c",
+                    "position": 6.2,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.3333333333333333,
+                      0.3333333333333333
+                    ],
+                    "type": "bezier",
+                    "value": 0
+                  },
+                  {
+                    "id": "k1d",
+                    "position": 8.2,
+                    "connectedRight": true,
+                    "handles": [
+                      0.6666666666666666,
+                      0.6666666666666666,
+                      0.3333333333333333,
+                      0.3333333333333333
+                    ],
+                    "type": "bezier",
+                    "value": 0.68
+                  },
+                  {
+                    "id": "k1e",
+                    "position": 9.8,
+                    "connectedRight": false,
+                    "handles": [
+                      0.6666666666666666,
+                      0.6666666666666666,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 1
+                  },
+                  {
+                    "id": "k1f",
+                    "position": 38.5,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.3333333333333333,
+                      0.3333333333333333
+                    ],
+                    "type": "bezier",
+                    "value": 1
+                  },
+                  {
+                    "id": "k1g",
+                    "position": 40.5,
+                    "connectedRight": true,
+                    "handles": [
+                      0.6666666666666666,
+                      0.6666666666666666,
+                      0.3333333333333333,
+                      0.3333333333333333
+                    ],
+                    "type": "bezier",
+                    "value": 0.72
+                  },
+                  {
+                    "id": "k1h",
+                    "position": 43.5,
+                    "connectedRight": true,
+                    "handles": [
+                      0.6666666666666666,
+                      0.6666666666666666,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 0
+                  }
+                ]
+              },
+              "t1i": {
+                "type": "BasicKeyframedTrack",
+                "__debugName": "scene:[\"film\"]",
+                "keyframes": [
+                  {
+                    "id": "k1j",
+                    "position": 0,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 0
+                  },
+                  {
+                    "id": "k1k",
+                    "position": 9.5,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.3333333333333333,
+                      0.3333333333333333
+                    ],
+                    "type": "bezier",
+                    "value": 0
+                  },
+                  {
+                    "id": "k1l",
+                    "position": 39,
+                    "connectedRight": false,
+                    "handles": [
+                      0.6666666666666666,
+                      0.6666666666666666,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 29.5
+                  }
+                ]
+              },
+              "t1m": {
+                "type": "BasicKeyframedTrack",
+                "__debugName": "scene:[\"after\"]",
+                "keyframes": [
+                  {
+                    "id": "k1n",
+                    "position": 0,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 0
+                  },
+                  {
+                    "id": "k1o",
+                    "position": 30.5,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 1
+                  }
+                ]
+              }
+            },
+            "trackIdByPropPath": {
+              "[\"approach\"]": "t15",
+              "[\"immerse\"]": "t1a",
+              "[\"film\"]": "t1i",
+              "[\"after\"]": "t1m"
+            }
+          }
+        }
+      }
+    },
+    "woodland-empty": {
+      "staticOverrides": {
+        "byObject": {
+          "window": {
+            "presence": 1,
+            "parallax": 0
+          },
+          "light": {
+            "x": -0.05,
+            "soft": 0.16,
+            "roomSpill": 0
+          },
+          "layer:scene": {
+            "opacity": 1
+          },
+          "layer:sketch": {
+            "opacity": 0.9
+          },
+          "layer:sketch-after": {
+            "opacity": 0
+          },
+          "layer:light": {
+            "opacity": 1
+          },
+          "layer:light-after": {
+            "opacity": 0
+          }
+        }
+      },
+      "sequence": {
+        "subUnitsPerUnit": 60,
+        "length": 24,
+        "type": "PositionalSequence",
+        "markers": [
+          {
+            "id": "m2m",
+            "label": "active",
+            "position": 6
+          },
+          {
+            "id": "m2n",
+            "label": "exit",
+            "position": 16
+          },
+          {
+            "id": "m2o",
+            "label": "residue",
+            "position": 21
+          },
+          {
+            "id": "m2p",
+            "label": "end",
+            "position": 24
+          },
+          {
+            "id": "m2q",
+            "label": "music:evening",
+            "position": 0.05
+          }
+        ],
+        "tracksByObject": {
+          "window": {
+            "trackData": {
+              "t1z": {
+                "type": "BasicKeyframedTrack",
+                "__debugName": "window:[\"sketch\"]",
+                "keyframes": [
+                  {
+                    "id": "k20",
+                    "position": 1.5,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 0
+                  },
+                  {
+                    "id": "k21",
+                    "position": 3.5,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 1
+                  }
+                ]
+              },
+              "t22": {
+                "type": "BasicKeyframedTrack",
+                "__debugName": "window:[\"reveal\"]",
+                "keyframes": [
+                  {
+                    "id": "k23",
+                    "position": 2.5,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 0
+                  },
+                  {
+                    "id": "k24",
+                    "position": 6,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 1
+                  }
+                ]
+              },
+              "t25": {
+                "type": "BasicKeyframedTrack",
+                "__debugName": "window:[\"wash\"]",
+                "keyframes": [
+                  {
+                    "id": "k26",
+                    "position": 0,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 0
+                  },
+                  {
+                    "id": "k27",
+                    "position": 6,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 1
+                  }
+                ]
+              }
+            },
+            "trackIdByPropPath": {
+              "[\"sketch\"]": "t1z",
+              "[\"reveal\"]": "t22",
+              "[\"wash\"]": "t25"
+            }
+          },
+          "light": {
+            "trackData": {
+              "t28": {
+                "type": "BasicKeyframedTrack",
+                "__debugName": "light:[\"y\"]",
+                "keyframes": [
+                  {
+                    "id": "k29",
+                    "position": 0,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": -0.2
+                  },
+                  {
+                    "id": "k2a",
+                    "position": 6,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": -0.05
+                  }
+                ]
+              },
+              "t2b": {
+                "type": "BasicKeyframedTrack",
+                "__debugName": "light:[\"radius\"]",
+                "keyframes": [
+                  {
+                    "id": "k2c",
+                    "position": 0,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 0.2
+                  },
+                  {
+                    "id": "k2d",
+                    "position": 6,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 1.2
+                  }
+                ]
+              },
+              "t2e": {
+                "type": "BasicKeyframedTrack",
+                "__debugName": "light:[\"warmth\"]",
+                "keyframes": [
+                  {
+                    "id": "k2f",
+                    "position": 0,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 2800
+                  },
+                  {
+                    "id": "k2g",
+                    "position": 16,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 2300
+                  }
+                ]
+              },
+              "t2h": {
+                "type": "BasicKeyframedTrack",
+                "__debugName": "light:[\"intensity\"]",
+                "keyframes": [
+                  {
+                    "id": "k2i",
+                    "position": 0,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 0
+                  },
+                  {
+                    "id": "k2j",
+                    "position": 4,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 0.35
+                  },
+                  {
+                    "id": "k2k",
+                    "position": 16,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 0.2
+                  },
+                  {
+                    "id": "k2l",
+                    "position": 21,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 0
+                  }
+                ]
+              }
+            },
+            "trackIdByPropPath": {
+              "[\"y\"]": "t28",
+              "[\"radius\"]": "t2b",
+              "[\"warmth\"]": "t2e",
+              "[\"intensity\"]": "t2h"
+            }
+          }
+        }
+      }
+    },
+    "almost-film": {
+      "staticOverrides": {
+        "byObject": {
+          "window": {
+            "presence": 1,
+            "parallax": 0
+          },
+          "light": {
+            "x": 0,
+            "y": 0,
+            "radius": 0.6,
+            "soft": 0.14,
+            "warmth": 2700,
+            "intensity": 0,
+            "roomSpill": 0
+          }
+        }
+      },
+      "sequence": {
+        "subUnitsPerUnit": 60,
+        "length": 47.5,
+        "type": "PositionalSequence",
+        "markers": [
+          {
+            "id": "m12",
+            "label": "active",
+            "position": 6
+          },
+          {
+            "id": "m13",
+            "label": "exit",
+            "position": 37.5
+          },
+          {
+            "id": "m14",
+            "label": "residue",
+            "position": 44.5
+          },
+          {
+            "id": "m15",
+            "label": "end",
+            "position": 47.5
+          },
+          {
+            "id": "m16",
+            "label": "music:kitchen",
+            "position": 0.6
+          },
+          {
+            "id": "m17",
+            "label": "music:film",
+            "position": 10.3
+          }
+        ],
+        "tracksByObject": {
+          "window": {
+            "trackData": {
+              "t0": {
+                "type": "BasicKeyframedTrack",
+                "__debugName": "window:[\"sketch\"]",
+                "keyframes": [
+                  {
+                    "id": "k1",
+                    "position": 1.5,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 0
+                  },
+                  {
+                    "id": "k2",
+                    "position": 5.5,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 1
+                  }
+                ]
+              },
+              "t3": {
+                "type": "BasicKeyframedTrack",
+                "__debugName": "window:[\"reveal\"]",
+                "keyframes": [
+                  {
+                    "id": "k4",
+                    "position": 5,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.3333333333333333,
+                      0.3333333333333333
+                    ],
+                    "type": "bezier",
+                    "value": 0
+                  },
+                  {
+                    "id": "k5",
+                    "position": 8,
+                    "connectedRight": true,
+                    "handles": [
+                      0.6666666666666666,
+                      0.6666666666666666,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 1
+                  }
+                ]
+              },
+              "t6": {
+                "type": "BasicKeyframedTrack",
+                "__debugName": "window:[\"wash\"]",
+                "keyframes": [
+                  {
+                    "id": "k7",
+                    "position": 0,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 0
+                  },
+                  {
+                    "id": "k8",
+                    "position": 7.2,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 1
+                  }
+                ]
+              }
+            },
+            "trackIdByPropPath": {
+              "[\"sketch\"]": "t0",
+              "[\"reveal\"]": "t3",
+              "[\"wash\"]": "t6"
+            }
+          },
+          "layer:scene": {
+            "trackData": {
+              "t9": {
+                "type": "BasicKeyframedTrack",
+                "__debugName": "layer:scene:[\"opacity\"]",
+                "keyframes": [
+                  {
+                    "id": "ka",
+                    "position": 0,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 1
+                  },
+                  {
+                    "id": "kb",
+                    "position": 41.5,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 1
+                  },
+                  {
+                    "id": "kc",
+                    "position": 43.5,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 0
+                  }
+                ]
+              }
+            },
+            "trackIdByPropPath": {
+              "[\"opacity\"]": "t9"
+            }
+          },
+          "layer:fibres": {
+            "trackData": {
+              "td": {
+                "type": "BasicKeyframedTrack",
+                "__debugName": "layer:fibres:[\"opacity\"]",
+                "keyframes": [
+                  {
+                    "id": "ke",
+                    "position": 0,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 1
+                  },
+                  {
+                    "id": "kf",
+                    "position": 7.2,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 1
+                  },
+                  {
+                    "id": "kg",
+                    "position": 8.6,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 0
+                  },
+                  {
+                    "id": "kh",
+                    "position": 41.5,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 0
+                  },
+                  {
+                    "id": "ki",
+                    "position": 43.1,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 1
+                  },
+                  {
+                    "id": "kj",
+                    "position": 44,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 1
+                  },
+                  {
+                    "id": "kk",
+                    "position": 45.5,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 0
+                  }
+                ]
+              }
+            },
+            "trackIdByPropPath": {
+              "[\"opacity\"]": "td"
+            }
+          },
+          "scene": {
+            "trackData": {
+              "tl": {
+                "type": "BasicKeyframedTrack",
+                "__debugName": "scene:[\"approach\"]",
+                "keyframes": [
+                  {
+                    "id": "km",
+                    "position": 1,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.3333333333333333,
+                      0.3333333333333333
+                    ],
+                    "type": "bezier",
+                    "value": 0
+                  },
+                  {
+                    "id": "kn",
+                    "position": 10,
+                    "connectedRight": true,
+                    "handles": [
+                      0.6666666666666666,
+                      0.6666666666666666,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 1
+                  },
+                  {
+                    "id": "ko",
+                    "position": 38.5,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.3333333333333333,
+                      0.3333333333333333
+                    ],
+                    "type": "bezier",
+                    "value": 1
+                  },
+                  {
+                    "id": "kp",
+                    "position": 42.5,
+                    "connectedRight": true,
+                    "handles": [
+                      0.6666666666666666,
+                      0.6666666666666666,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 0
+                  }
+                ]
+              },
+              "tq": {
+                "type": "BasicKeyframedTrack",
+                "__debugName": "scene:[\"immerse\"]",
+                "keyframes": [
+                  {
+                    "id": "kr",
+                    "position": 0,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 0
+                  },
+                  {
+                    "id": "ks",
+                    "position": 6.2,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.3333333333333333,
+                      0.3333333333333333
+                    ],
+                    "type": "bezier",
+                    "value": 0
+                  },
+                  {
+                    "id": "kt",
+                    "position": 8.2,
+                    "connectedRight": true,
+                    "handles": [
+                      0.6666666666666666,
+                      0.6666666666666666,
+                      0.3333333333333333,
+                      0.3333333333333333
+                    ],
+                    "type": "bezier",
+                    "value": 0.68
+                  },
+                  {
+                    "id": "ku",
+                    "position": 9.8,
+                    "connectedRight": false,
+                    "handles": [
+                      0.6666666666666666,
+                      0.6666666666666666,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 1
+                  },
+                  {
+                    "id": "kv",
+                    "position": 37.5,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.3333333333333333,
+                      0.3333333333333333
+                    ],
+                    "type": "bezier",
+                    "value": 1
+                  },
+                  {
+                    "id": "kw",
+                    "position": 39.5,
+                    "connectedRight": true,
+                    "handles": [
+                      0.6666666666666666,
+                      0.6666666666666666,
+                      0.3333333333333333,
+                      0.3333333333333333
+                    ],
+                    "type": "bezier",
+                    "value": 0.72
+                  },
+                  {
+                    "id": "kx",
+                    "position": 42.5,
+                    "connectedRight": true,
+                    "handles": [
+                      0.6666666666666666,
+                      0.6666666666666666,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 0
+                  }
+                ]
+              },
+              "ty": {
+                "type": "BasicKeyframedTrack",
+                "__debugName": "scene:[\"film\"]",
+                "keyframes": [
+                  {
+                    "id": "kz",
+                    "position": 0,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 0
+                  },
+                  {
+                    "id": "k10",
+                    "position": 10.3,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.3333333333333333,
+                      0.3333333333333333
+                    ],
+                    "type": "bezier",
+                    "value": 0
+                  },
+                  {
+                    "id": "k11",
+                    "position": 38.59166666666667,
+                    "connectedRight": false,
+                    "handles": [
+                      0.6666666666666666,
+                      0.6666666666666666,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 28.291666666666668
+                  }
+                ]
+              }
+            },
+            "trackIdByPropPath": {
+              "[\"approach\"]": "tl",
+              "[\"immerse\"]": "tq",
+              "[\"film\"]": "ty"
+            }
+          }
+        }
+      }
+    },
+    "things-film": {
+      "staticOverrides": {
+        "byObject": {
+          "window": {
+            "presence": 1,
+            "parallax": 0
+          },
+          "light": {
+            "x": 0,
+            "y": 0,
+            "radius": 0.6,
+            "soft": 0.14,
+            "warmth": 2700,
+            "intensity": 0,
+            "roomSpill": 0
+          }
+        }
+      },
+      "sequence": {
+        "subUnitsPerUnit": 60,
+        "length": 63,
+        "type": "PositionalSequence",
+        "markers": [
+          {
+            "id": "m10",
+            "label": "active",
+            "position": 7.5
+          },
+          {
+            "id": "m11",
+            "label": "exit",
+            "position": 53
+          },
+          {
+            "id": "m12",
+            "label": "residue",
+            "position": 60
+          },
+          {
+            "id": "m13",
+            "label": "end",
+            "position": 63
+          },
+          {
+            "id": "m14",
+            "label": "music:wall",
+            "position": 1.5
+          },
+          {
+            "id": "m15",
+            "label": "music:film",
+            "position": 11.5
+          }
+        ],
+        "tracksByObject": {
+          "window": {
+            "trackData": {
+              "t0": {
+                "type": "BasicKeyframedTrack",
+                "__debugName": "window:[\"sketch\"]",
+                "keyframes": [
+                  {
+                    "id": "k1",
+                    "position": 1.5,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.3333333333333333,
+                      0.3333333333333333
+                    ],
+                    "type": "bezier",
+                    "value": 0
+                  },
+                  {
+                    "id": "k2",
+                    "position": 7.5,
+                    "connectedRight": true,
+                    "handles": [
+                      0.6666666666666666,
+                      0.6666666666666666,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 1
+                  }
+                ]
+              },
+              "t3": {
+                "type": "BasicKeyframedTrack",
+                "__debugName": "window:[\"reveal\"]",
+                "keyframes": [
+                  {
+                    "id": "k4",
+                    "position": 1.5,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.3333333333333333,
+                      0.3333333333333333
+                    ],
+                    "type": "bezier",
+                    "value": 0
+                  },
+                  {
+                    "id": "k5",
+                    "position": 7.5,
+                    "connectedRight": true,
+                    "handles": [
+                      0.6666666666666666,
+                      0.6666666666666666,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 1
+                  }
+                ]
+              },
+              "t6": {
+                "type": "BasicKeyframedTrack",
+                "__debugName": "window:[\"wash\"]",
+                "keyframes": [
+                  {
+                    "id": "k7",
+                    "position": 0,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 0
+                  },
+                  {
+                    "id": "k8",
+                    "position": 7.5,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 0.35
+                  }
+                ]
+              }
+            },
+            "trackIdByPropPath": {
+              "[\"sketch\"]": "t0",
+              "[\"reveal\"]": "t3",
+              "[\"wash\"]": "t6"
+            }
+          },
+          "layer:scene": {
+            "trackData": {
+              "t9": {
+                "type": "BasicKeyframedTrack",
+                "__debugName": "layer:scene:[\"opacity\"]",
+                "keyframes": [
+                  {
+                    "id": "ka",
+                    "position": 0,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 1
+                  },
+                  {
+                    "id": "kb",
+                    "position": 57,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 1
+                  },
+                  {
+                    "id": "kc",
+                    "position": 59,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 0.4
+                  },
+                  {
+                    "id": "kd",
+                    "position": 62,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 0.28
+                  },
+                  {
+                    "id": "ke",
+                    "position": 63,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 0
+                  }
+                ]
+              }
+            },
+            "trackIdByPropPath": {
+              "[\"opacity\"]": "t9"
+            }
+          },
+          "layer:lines": {
+            "trackData": {
+              "tf": {
+                "type": "BasicKeyframedTrack",
+                "__debugName": "layer:lines:[\"opacity\"]",
+                "keyframes": [
+                  {
+                    "id": "kg",
+                    "position": 0,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 1
+                  },
+                  {
+                    "id": "kh",
+                    "position": 8,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 1
+                  },
+                  {
+                    "id": "ki",
+                    "position": 9,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 0
+                  }
+                ]
+              }
+            },
+            "trackIdByPropPath": {
+              "[\"opacity\"]": "tf"
+            }
+          },
+          "scene": {
+            "trackData": {
+              "tj": {
+                "type": "BasicKeyframedTrack",
+                "__debugName": "scene:[\"approach\"]",
+                "keyframes": [
+                  {
+                    "id": "kk",
+                    "position": 1,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.3333333333333333,
+                      0.3333333333333333
+                    ],
+                    "type": "bezier",
+                    "value": 0
+                  },
+                  {
+                    "id": "kl",
+                    "position": 10.5,
+                    "connectedRight": true,
+                    "handles": [
+                      0.6666666666666666,
+                      0.6666666666666666,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 1
+                  },
+                  {
+                    "id": "km",
+                    "position": 54,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.3333333333333333,
+                      0.3333333333333333
+                    ],
+                    "type": "bezier",
+                    "value": 1
+                  },
+                  {
+                    "id": "kn",
+                    "position": 58,
+                    "connectedRight": true,
+                    "handles": [
+                      0.6666666666666666,
+                      0.6666666666666666,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 0
+                  }
+                ]
+              },
+              "to": {
+                "type": "BasicKeyframedTrack",
+                "__debugName": "scene:[\"immerse\"]",
+                "keyframes": [
+                  {
+                    "id": "kp",
+                    "position": 0,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 0
+                  },
+                  {
+                    "id": "kq",
+                    "position": 7.8,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.3333333333333333,
+                      0.3333333333333333
+                    ],
+                    "type": "bezier",
+                    "value": 0
+                  },
+                  {
+                    "id": "kr",
+                    "position": 9.6,
+                    "connectedRight": true,
+                    "handles": [
+                      0.6666666666666666,
+                      0.6666666666666666,
+                      0.3333333333333333,
+                      0.3333333333333333
+                    ],
+                    "type": "bezier",
+                    "value": 0.68
+                  },
+                  {
+                    "id": "ks",
+                    "position": 11,
+                    "connectedRight": false,
+                    "handles": [
+                      0.6666666666666666,
+                      0.6666666666666666,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 1
+                  },
+                  {
+                    "id": "kt",
+                    "position": 53,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.3333333333333333,
+                      0.3333333333333333
+                    ],
+                    "type": "bezier",
+                    "value": 1
+                  },
+                  {
+                    "id": "ku",
+                    "position": 55,
+                    "connectedRight": true,
+                    "handles": [
+                      0.6666666666666666,
+                      0.6666666666666666,
+                      0.3333333333333333,
+                      0.3333333333333333
+                    ],
+                    "type": "bezier",
+                    "value": 0.72
+                  },
+                  {
+                    "id": "kv",
+                    "position": 58,
+                    "connectedRight": true,
+                    "handles": [
+                      0.6666666666666666,
+                      0.6666666666666666,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 0
+                  }
+                ]
+              },
+              "tw": {
+                "type": "BasicKeyframedTrack",
+                "__debugName": "scene:[\"film\"]",
+                "keyframes": [
+                  {
+                    "id": "kx",
+                    "position": 0,
+                    "connectedRight": false,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 0
+                  },
+                  {
+                    "id": "ky",
+                    "position": 11.5,
+                    "connectedRight": true,
+                    "handles": [
+                      0.5,
+                      1,
+                      0.3333333333333333,
+                      0.3333333333333333
+                    ],
+                    "type": "bezier",
+                    "value": 0
+                  },
+                  {
+                    "id": "kz",
+                    "position": 54.25,
+                    "connectedRight": false,
+                    "handles": [
+                      0.6666666666666666,
+                      0.6666666666666666,
+                      0.5,
+                      0
+                    ],
+                    "type": "bezier",
+                    "value": 42.75
+                  }
+                ]
+              }
+            },
+            "trackIdByPropPath": {
+              "[\"approach\"]": "tj",
+              "[\"immerse\"]": "to",
+              "[\"film\"]": "tw"
+            }
+          }
+        }
+      }
     }
   },
   "definitionVersion": "0.4.0",

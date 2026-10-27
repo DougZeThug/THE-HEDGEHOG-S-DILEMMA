@@ -18,7 +18,9 @@ let grainCache: HTMLCanvasElement | null = null;
 /** Fine, irregular grain used for paper fibres and pencil tooth. */
 export function grainCanvas(): HTMLCanvasElement {
   if (grainCache) return grainCache;
-  const [c, g] = canvas(256, 256);
+  // (On the CPU, as the writing it is drawn into is: a GPU canvas as its pattern made each line's
+  // read-back wait seconds on software GL, QA 2026-10-20.)
+  const [c, g] = canvas(256, 256, true);
   const img = g.createImageData(256, 256);
   const r = new Rng(99);
   for (let i = 0; i < 256 * 256; i++) {
@@ -39,7 +41,7 @@ let waxCache: HTMLCanvasElement | null = null;
  */
 export function waxCanvas(): HTMLCanvasElement {
   if (waxCache) return waxCache;
-  const [c, g] = canvas(256, 256);
+  const [c, g] = canvas(256, 256, true);
   const r = new Rng(311);
   g.strokeStyle = '#000';
   g.lineCap = 'round';
@@ -155,6 +157,35 @@ export function measureText(text: string, hand: Hand, size: Size, wrapM = WRAP[s
   const space = g.measureText(' ').width;
   for (const l of lines) max = Math.max(max, g.measureText(l).width + l.length * st.tracking * px + px * 0.12 + 0.3 * space * (l.split(' ').length - 1));
   return { w: (max + px * 0.3) / PX_PER_M, h: (lines.length * px * LINE + px * 0.35) / PX_PER_M };
+}
+
+/**
+ * Where a word lies in a phrase as it is written: which of its wrapped lines (of how many), and
+ * how far along that line it starts and how wide it is (metres). `idx`: where the word begins in
+ * the text.
+ */
+export function wordPosition(text: string, idx: number, len: number, hand: Hand, size: Size, wrapM = WRAP[size]): { line: number; lines: number; x: number; w: number } {
+  const st = HANDS[hand];
+  const px = SIZE_EM[size] * st.scale * PX_PER_M;
+  const lines = wrap(text, st, px, wrapM * PX_PER_M);
+  const g = mctx();
+  g.font = fontString(st, px);
+  const width = (s: string) => g.measureText(s).width + s.length * st.tracking * px;
+  // (The lines are the text's words rejoined by single spaces: find the word's place in them.)
+  let at = 0, seen = 0;
+  // (As wrap() reads it: leading whitespace is dropped.)
+  const flat = text.replace(/\s+/g, ' ').trimStart();
+  const flatIdx = text.slice(0, idx).replace(/\s+/g, ' ').trimStart().length;
+  for (let i = 0; i < lines.length; i++) {
+    const end = at + lines[i].length;
+    if (flatIdx < end || i === lines.length - 1) {
+      const col = Math.max(0, Math.min(lines[i].length, flatIdx - at));
+      return { line: i, lines: lines.length, x: width(lines[i].slice(0, col)) / PX_PER_M, w: width(flat.slice(flatIdx, flatIdx + len)) / PX_PER_M };
+    }
+    at = end + 1;
+    seen = i;
+  }
+  return { line: seen, lines: Math.max(1, lines.length), x: 0, w: 0 };
 }
 
 /**
@@ -324,7 +355,7 @@ export function textTexture(text: string, hand: Hand, size: Size, key: string, m
 }
 
 /** Writing's (and drawings') texture: raw bytes, rows bottom-up, red = when the hand gets there, alpha = ink. */
-export function inkTexture(data: Uint8Array, W: number, H: number): THREE.DataTexture {
+export function inkTexture(data: Uint8Array<ArrayBuffer>, W: number, H: number): THREE.DataTexture {
   const tex = new THREE.DataTexture(data, W, H, THREE.RGBAFormat, THREE.UnsignedByteType);
   // Raw values: red is timing, not colour.
   tex.colorSpace = THREE.NoColorSpace;

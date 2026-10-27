@@ -39,8 +39,42 @@ export interface MemoryDef {
   opensFrom?: string;
   /** The white room's own light goes down to this while it plays (the door: evening). */
   roomDim?: number;
+  /**
+   * The variant whose music is the room's last (the woodland's afternoon): the room's drone is
+   * silent from its start (a chord of the room's under it, a semitone from its key), and once it
+   * has been seen the room plays no music of its own again that visit, the drone, its piano, its
+   * humming: the music that belonged to that afternoon never returns, and nothing stands in for it
+   * (the artist's brief of 2026-10-19; the creative and cinematic directors' reviews).
+   */
+  lastMusic?: string;
+  /**
+   * `false`: the room's drone is silent while it plays, and comes back after (a film with no score:
+   * a chord under it would be one; the sound designer's review of "Almost", 2026-10-20).
+   */
+  drone?: false;
   /** What the picture is, for a screen reader (announced once, when it has formed). */
   describe: (variant: string) => string;
+  /**
+   * What changes later, told to a screen reader at the moment it happens (sequence seconds): only
+   * to someone taken in (`inside`), only to someone it stayed on the wall for (`wall`), or only
+   * while a close-up is shown (`shot`).
+   */
+  announce?: (variant: string) => { at: number; text: string; inside?: boolean; wall?: boolean; shot?: number }[];
+  /**
+   * A line written where the painting was, as it goes (the woodland's: decisions 119–123): once, at
+   * `at` (sequence seconds) of `variant`, in the hand and size of the memory's own line, under it
+   * and inside the painting's former place; only for someone taken in, to a memory that played on
+   * to there unbroken. Told to a screen reader as it is written.
+   */
+  coda?: { variant: string; at: number; text: string };
+  /**
+   * A living memory (animated, and entered): its scene's object names in the timeline (`scene`,
+   * `figure:a`, `figure:b`) are added to the schema, and the variants that have a living scene in
+   * the art manifest are drawn by it (src/memory/living/). The others play on the wall as usual,
+   * but sunk in the plaster as the scene is, and over their words, which go to a trace as the
+   * colour comes and come back with the pencil (src/App.ts).
+   */
+  living?: boolean;
 }
 
 export const sheetId = (id: string, variant: string) => `${id}-${variant}`;
@@ -337,4 +371,620 @@ export const DOOR: MemoryDef = {
     : 'The drawn door fills with evening: the landing light through the gap; someone comes to the door and stops, their shadow in the light. Nobody comes in.',
 };
 
-export const MEMORIES: Record<string, MemoryDef> = { cereal: CEREAL, bedroom: BEDROOM, door: DOOR };
+/**
+ * Five More Minutes (docs/reviews/2026-10-woodland.md): two people lying in a summer clearing.
+ * Nothing happens. Then they are gone. Since 2026-10-24 the afternoon is a film: four selected
+ * animated shots, precomposed into the painting's own frame (scripts/woodland-film/,
+ * references/woodland/film/), played as Almost's is (src/memory/living/FilmScene.ts), on the
+ * 48.25 s editorial timeline the artist approved (the old 53 s one less 1.75 s of the two-shot's
+ * tail, 2.25 s of the second wide's head, and 1.5 s of the ghost text's return; 0.75 s of the room
+ * before it begins is not the memory's). 47.5 s and a cicada after:
+ *
+ *   0–6       1 the room remembers: a cicada beyond the wall (1.2); the pencil finds the clearing
+ *             from the line outward from 2.0 (light lines first, the two of them last), the room's
+ *             writing with it, while the visitor drifts toward the wall (their look
+ *             their own; a look away holds it, a step held lets it go; they are taken in if they
+ *             are looking at it when it would take them)
+ *   5.4–9.5   2 crossing in: the drawing whole, the colour comes, from between the two of them
+ *             outward as one light wash, the room's writing going to a trace just ahead of it;
+ *             its light comes up (7.1–8.3), and the same move carries them on, square to it; it
+ *             opens out until it is all there is (8.2–9.8). The film holds its first frame through
+ *             all of it: what the wall resolves into is the opening shot itself. As it opens, a
+ *             piano, already playing (8.5): someone at an upright, for nobody, a plain tune going
+ *             round in its own time (scripts/woodland-score/)
+ *   9.5–15.0  3 the film begins: an ordinary afternoon, the wide, both resting, looking up;
+ *             cicadas in the trees, a far bird
+ *   15.0–25.25 4 cut: the two of them close. Both looking up. Her eyes go to him (19.3) and her
+ *             head follows (20.2–21.5), privately; he stays looking at the sky. She stays there.
+ *             (The cicada over them, and the two either side, are quiet through it; the tune comes
+ *             home once before her look, and her look falls inside its long high note.)
+ *   25.25–30.5 5 the wide again, cut while she is already looking at him and he at the sky (no
+ *             second turn); the cicada over them again; a far bird; the tune going round again,
+ *             toward home
+ *   30.5      6 a hard cut, on one frame: the same clearing, the same view, at dusk, and nobody
+ *             there. The piano stops on it, a note before home, with everything of the afternoon's
+ *             (its insects); the evening's cicadas are already singing, far off in the trees (the
+ *             artist's brief of 2026-10-19; no wind)
+ *   30.5–39.0 the empty clearing at dusk, its own small movement; the evening cicadas; no music
+ *   38.5–43.5 out (the film's last half second under it): carried back, its last frame gathering
+ *             itself to the wall
+ *   41.8–43.8 the colour goes, the empty clearing's pencil alone a while; the graphite sinks and
+ *             the room's writing comes back with it (44.7–45.8)
+ *   44.2      one evening cicada, far off, heard in the white room
+ *
+ * What they might have said, never said (no line is spoken, written or captioned):
+ *   "We should probably go." / "Yeah." / … / "Five more minutes?" (not answered)
+ *
+ * The revisit (empty): the same clearing at dusk, nobody in it, and it stays in the wall.
+ */
+const WOODLAND_SECTIONS: Sections = { active: 6, exit: 38.5, residue: 44.6, end: 47.5 };
+/**
+ * The afternoon's film (scripts/woodland-film/assemble.py; references/woodland/film/film.json): when
+ * it begins on the timeline (the opening wide, as the way in settles), its frames, and its shots
+ * (memory s). Each shot runs at its own 24 fps, its whole selected length; nothing is looped,
+ * reversed or retimed. Her glance is the close-up's own (measured on its frames: her eyes 4.3 s
+ * in, her head 5.2–6.5 s, settled by 6.8 s).
+ */
+export const WOODLAND_FILM = {
+  at: 9.5,
+  fps: 24,
+  frames: 708,
+  shots: { opening: 9.5, close: 15.0, wideAgain: 25.25, dusk: 30.5, end: 39.0 },
+  glance: { eyes: 19.3, head: 20.2, turned: 21.5, settled: 21.8 },
+};
+/** The cut: the people gone and the evening come, on the same frame (the film's frame 504). */
+export const CUT = WOODLAND_FILM.shots.dusk;
+/** The evening comes up over the afternoon's 40 ms cut, full on it (the two cross over the same
+ *  40 ms, so nothing dips: a hole of 9.5 dB had opened with the wind gone), this far into its file
+ *  (past an MP3's first moments). */
+export const EVENING_AT = CUT - 0.04;
+export const EVENING_OFFSET = 0.03;
+/** Where the score's file begins (its first note, the turnaround of a go-round already under way,
+ *  falls at 8.5, as the painting opens out: scripts/woodland-score/score.py). */
+export const SCORE_FROM = 8.2;
+/**
+ * The painted rig's two-shot (scripts/two-shot.py; the artist's brief of 2026-10-18 and its
+ * reviews), on the rig's own 53 s timeline. Dormant since 2026-10-24: the afternoon plays its film
+ * (WOODLAND_FILM), and nothing the room plays reads these. They are kept with the rig (its spec,
+ * src/memory/living/woodland.ts; its art, the manifest's `rig`; scripts/two-shot.py and
+ * her-turn.py, which read them) so it can be restored or reused, and its tests still hold it to
+ * them. The two of them close, one locked frame; her eyes lead her head toward him, and she
+ * stays there, and so does he once his eyes find her. `scene.shot` 1 was this shot.
+ */
+export const TWO_SHOT = { from: 15.0, hisBlink: 16.2, herEyes: 17.5, herTurn: 18.0, hisEyes: 24.0, hisRoll: 24.5, to: 27.0 };
+/**
+ * Her turn (`scripts/her-turn.py`; the artist's production brief, 2026-10-20): her own painted head,
+ * as a drawing carried in depth, turned a little toward him, drawn on twos. `figure:b.turn` is how
+ * far through its drawings she is (0 the panel's own head, 1 settled toward him); the scene shows the
+ * nearest drawing.
+ * - Her eyes go to him first: drawings from `herEyes` (`eyes`: their share of the way, a soft dart).
+ * - A moment.
+ * - Her head from `herTurn`: `drawings` of it, a twelfth of a second apart. It is quickest at about
+ *   a quarter of a second, then slows as she settles (velocity t² e^(−t/`ease`), its last drawing all
+ *   the way). It is 90% of the way at about two thirds of a second; on screen its last four steps
+ *   are each under a pixel.
+ * - As her head comes round her eyes ease back in their sockets, still on him.
+ * - The hair on the grass goes with her head.
+ * - Never back (the artist: "She should glance toward him, settle into that gaze, and simply remain
+ *   there").
+ *
+ * All of it lies inside 17.5–19.0: the score leaves her look clear from 17.0 to 19.5 (its notes
+ * either side are composed to the picture: scripts/woodland-score/score.py `MOMENTS`).
+ */
+export const TURN = { eyes: [0.6, 1], ease: 0.13, drawings: 12 };
+/** How far the ease has gone `t` s after `herTurn`, 0..1 (scripts/her-turn.py `turn_head`). */
+export function turnHead(t: number): number {
+  const x = Math.max(0, t) / TURN.ease;
+  return 1 - Math.exp(-x) * (1 + x + (x * x) / 2);
+}
+/** One of her turn's drawings: when it is shown (s), her eyes' and her head's share of the way, and the `figure:b.turn` that shows it. */
+export interface TurnDrawing {
+  at: number;
+  eyes: number;
+  head: number;
+  turn: number;
+}
+/** Her turn's drawings (scripts/her-turn.py `schedule` makes the same; tests check its turn.json against these). */
+export function turnDrawings(): TurnDrawing[] {
+  const T = TWO_SHOT;
+  // (Each exactly on its twelfth, the number a film's whole frames land on: rounded to four places,
+  // four of them fell 33 µs after it, and a film sampled at 24 fps held her drawings 3-1-2: the
+  // skeptic and QA, 2026-10-20.)
+  const twelfth = (t: number, i: number) => (Math.round(t * 12) + i) / 12;
+  const out = TURN.eyes.map((eyes, i) => ({ at: twelfth(T.herEyes, i), eyes, head: 0 }));
+  const all = turnHead(TURN.drawings / 12);
+  for (let i = 1; i <= TURN.drawings; i++) out.push({ at: twelfth(T.herTurn, i), eyes: 1, head: turnHead(i / 12) / all });
+  const r = (x: number, d: number) => Math.round(x * d) / d;
+  return out.map((d, k) => ({ at: d.at, eyes: d.eyes, head: r(d.head, 1e6), turn: r((k + 1) / out.length, 1e4) }));
+}
+/**
+ * The afternoon's shots as the room plays them (its film's): the cut to the two of them close, and
+ * back to the wide. The sound reads its times from here (synthWoods.ts `TIMES`).
+ */
+export const SHOTS = { two: WOODLAND_FILM.shots.close, wideAgain: WOODLAND_FILM.shots.wideAgain };
+/** The woodland's recorded sound against its insects (dB on the files as baked), set by measure:
+ *  the piano about 4.5 LU under the place round it. (There is no wind: it read as a noise louder
+ *  than anything in the clearing, and the breeze is light: the artist, 2026-10-20.) */
+const SCORE_DB = -28.5;
+const EVENING_DB = -32;
+// (The revisit stays on the wall, still: a short hold, its stillness the answer.)
+const EMPTY_SECTIONS: Sections = { active: 6, exit: 16, residue: 21, end: 24 };
+
+export const WOODLAND: MemoryDef = {
+  id: 'woodland',
+  art: 'woodland',
+  variants: ['afternoon', 'empty'],
+  layers: ['scene', 'sketch', 'sketch-after', 'light', 'light-after'],
+  sections: WOODLAND_SECTIONS,
+  markers: [
+    { label: 'music:cicadas', position: 0.05 },
+    { label: 'music:woods', position: 0.05 },
+    { label: 'music:score', position: SCORE_FROM },
+    { label: 'sfx:bird-1', position: 10.9 },
+    // (One far bird, in the first wide. The second, in the second wide, is gone with its length: in
+    // the film's 5.25 s it sang over the piano's last phrase and its call's end emptied the clearing
+    // before the cut did: the sound designer, 2026-10-24.)
+    { label: 'music:evening', position: EVENING_AT },
+    { label: 'sfx:cicada-last', position: 44.2 },
+  ],
+  seed: (variant): SheetSeed => {
+    if (variant === 'empty') {
+      const S = EMPTY_SECTIONS;
+      return {
+        tracks: {
+          'window.sketch': [[1.5, 0], [3.5, 1]],
+          'window.reveal': [[2.5, 0], [6, 1]],
+          // (The room's writing under it goes as the colour comes and stays a trace until it goes:
+          // over the empty clearing, the opening's unfinished line said what the absence meant.)
+          'window.wash': [[0, 0, 'hold'], [6, 1]],
+          'window.presence': [[0, 1]],
+          'window.parallax': [[0, 0]],
+          'light.x': [[0, -0.05]],
+          // It finds where they lay first, then opens to the sky's gap and the tree (the same place).
+          'light.y': [[0, -0.2], [6, -0.05]],
+          'light.radius': [[0, 0.2], [6, 1.2]],
+          'light.soft': [[0, 0.16]],
+          'light.warmth': [[0, 2800], [16, 2300]],
+          'light.intensity': [[0, 0], [4, 0.35], [16, 0.2], [21, 0]],
+          'light.roomSpill': [[0, 0]],
+          'layer:scene.opacity': [[0, 1]],
+          'layer:sketch.opacity': [[0, 0.9]],
+          'layer:sketch-after.opacity': [[0, 0]],
+          'layer:light.opacity': [[0, 1]],
+          // (Its own light is the dusk's already.)
+          'layer:light-after.opacity': [[0, 0]],
+        },
+        markers: [
+          { label: 'active', position: S.active },
+          { label: 'exit', position: S.exit },
+          { label: 'residue', position: S.residue },
+          { label: 'end', position: S.end },
+          { label: 'music:evening', position: 0.05 },
+        ],
+      };
+    }
+    const S = WOODLAND_SECTIONS;
+    const F = WOODLAND_FILM;
+    const filmSeconds = F.frames / F.fps;
+    return {
+      tracks: {
+        // Shot 1, the room remembers: the pencil finds the clearing on the plaster stroke by
+        // stroke (scripts/stroke-order.py), while the visitor drifts toward the wall (the lean,
+        // their look their own); shot 2: once the drawing is whole the colour comes, out from the
+        // two of them (the words lie over them) as a wash, the painting spreads, they are carried
+        // in, and it opens out until it is all there is.
+        // (The cicada first, beyond the wall (1.2 s); then the first stroke (2.0); the two of them
+        // are found last, ~4.2–5.0: cinematic review. The colour waits for them. The two clocks are
+        // scripts/stroke-order.py's too: tests/memory-defs.test.ts.)
+        // (The way back is the 53 s timeline's, retimed as the artist's 48.25 s edit retimed it: the
+        // colour gone by 43.8, the pencil alone a while, then sinking 44.7–45.8.)
+        'window.sketch': [[2.0, 0], [6.0, 1], [44.73, 1], [45.8, 0]],
+        // (The colour straight: as much of the painting takes it in each moment as in any other.)
+        'window.reveal': [[5.4, 0, 'linear'], [7.6, 1], [41.8, 1], [43.78, 0]],
+        'window.presence': [[0, 1]],
+        'window.parallax': [[0, 0]],
+        // The room's writing under the painting: going as the colour reaches it, then held a trace
+        // until the pencil goes (src/world/living/wash.ts), so the empty clearing's pencil is
+        // alone a while on the way back and the words come back to a white wall: the creative
+        // director's and the skeptic's reviews, 2026-10-18.
+        'window.wash': [[0, 0, 'hold'], [7.6, 1]],
+        // The light finds the people first (painting metres from its centre). (Drawn in order, as the
+        // film is, the pool reveals nothing: the order map does. If the film can't be had, the
+        // memory is the wall's still, revealed by this pool: it opens over the whole painting as the
+        // colour comes; held at 0.55 m it left a lit blot under the line for the whole memory: QA,
+        // 2026-10-24.)
+        'light.x': [[0, -0.05]],
+        'light.y': [[0, -0.24]],
+        'light.radius': [[1, 0.15], [6, 0.55], [7.6, 2.2]],
+        'light.soft': [[0, 0.14]],
+        // The afternoon's warmth, then (at the cut) the evening's.
+        'light.warmth': [[0, 4300, 'hold'], [CUT, 2900]],
+        // The painting's light (with its colour: before it, on bare plaster, it read as two pale
+        // smears); low while inside; it goes last.
+        'light.intensity': [[0, 0], [1.4, 0], [2.6, 0.5], [6, 0.45], [10.5, 0.3], [S.exit, 0.2], [S.exit + 4, 0.3], [S.residue, 0]],
+        'light.roomSpill': [[0, 0]],
+        'layer:scene.opacity': [[0, 1]],
+        'layer:sketch.opacity': [[0, 0.9, 'hold'], [CUT, 0]],
+        'layer:sketch-after.opacity': [[0, 0, 'hold'], [CUT, 1]],
+        // The painting's light: the afternoon's dapple until the cut, then the dusk's own (the
+        // afternoon's sun came back over the empty clearing as it went into the wall: the cinematic
+        // director, 2026-10-24).
+        'layer:light.opacity': [[0, 1, 'hold'], [CUT, 0]],
+        'layer:light-after.opacity': [[0, 0, 'hold'], [CUT, 1]],
+        // The way in, one move (shaped in Inside.ts): from the cicada, slowly; the body only until
+        // they are taken in (~6.2 s); the painting's own light up over it 7.1–8.3, then opening out
+        // to all there is over its own straight 1.6 s, 8.2–9.8 (cinematic review, 2026-10-18: it
+        // was the threshold's briefest phase); still by 10.5. Back: steadily (never a jolt), the
+        // plaster re-forming as they are carried back.
+        'scene.approach': [[1.2, 0, 'linear'], [10.5, 1], [S.exit + 1, 1, 'linear'], [S.exit + 5, 0]],
+        'scene.immerse': [[0, 0, 'hold'], [6.2, 0, 'linear'], [8.2, 0.68, 'linear'], [9.8, 1, 'hold'], [S.exit, 1, 'linear'], [S.exit + 2, 0.72, 'linear'], [S.exit + 5, 0]],
+        // The film's own time: its first frame (the opening wide) through the way in, then as a
+        // clock does, its four shots at their own speed, then its last frame (the empty clearing at
+        // dusk) held as it goes back to the wall. One clock: never looped, never restarted.
+        'scene.film': [[0, 0, 'hold'], [F.at, 0, 'linear'], [F.at + filmSeconds, filmSeconds, 'hold']],
+        // The cut, for what reads it (the captions go light over the dusk): the afternoon until
+        // it, the same place later from it. (The film cuts there itself, on its frame 504.)
+        'scene.after': [[0, 0, 'hold'], [CUT, 1]],
+      },
+      markers: [
+        { label: 'active', position: S.active },
+        { label: 'exit', position: S.exit },
+        { label: 'residue', position: S.residue },
+        { label: 'end', position: S.end },
+        ...WOODLAND.markers,
+      ],
+    };
+  },
+  cues: (variant): CueSheet => {
+    // Outdoors: almost no room at all, a little air (for the birds; all that sounds at the cut is
+    // dry: nothing of the afternoon rings on past it).
+    const room: [number, number, number] = [0.4, 3, 0.06];
+    if (variant === 'empty') {
+      // The revisit: the empty clearing at dusk, on the wall: the evening's cicadas.
+      return {
+        room,
+        cues: {
+          'music:evening': { asset: 'music/woodland-evening-empty.mp3', gainDb: EVENING_DB, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, fadeOut: 4, caption: '[evening cicadas, far off]', captionAt: 1.5 },
+        },
+      };
+    }
+    // Levels measured against each other, not normalised (the files' own levels:
+    // scripts/woodland-stems.ts, scripts/woodland-score/): stand-ins until the artist has listened
+    // (`review: pending`). The afternoon ends on the cut, every sound of it (`until`), on the same
+    // instant of the audio clock as the evening begins (its marker). The film is silent.
+    return {
+      room,
+      cues: {
+        // The cicada nearest them, in the tree over them, first heard from beyond the wall; a lull
+        // while the two of them are close (her look); cut off by the cut, mid-phrase.
+        'music:cicadas': { asset: 'synth:cicadas', gainDb: -20, place: { u: -0.3, v: 0.25, d: 1.5 }, dry: true, until: CUT, fadeOut: 3, caption: '[cicadas, beyond the wall]' },
+        // The rest of the day's insects: two more cicadas, the chorus in the trees. Named once, as
+        // the place (the piano a part of it), when the painting has come to rest and gone again
+        // before the cut to the two of them; never with a note.
+        'music:woods': { asset: 'synth:woods', gainDb: -14, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, until: CUT, fadeOut: 3, caption: '[cicadas in the trees; a piano]', captionAt: 9.85 },
+        // A far bird in the trees at the clearing's edge, in the first wide (none while they are close).
+        'sfx:bird-1': { asset: 'music/woodland-bird-1.mp3', gainDb: -12, place: { u: -0.4, v: 0.35, d: 14 }, lowpass: 5500, until: CUT },
+        // The piano: centred, dry, coming into hearing with the clearing as the painting opens out,
+        // keeping its distance from the place to the cut (its file: scripts/woodland-score/, made
+        // for the 53 s timeline and joined for this one by scripts/woodland-score/retime.py).
+        'music:score': { asset: 'music/woodland-score.mp3', gainDb: SCORE_DB, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, until: CUT, fadeOut: 3 },
+        // The evening: already singing, far off in the trees, nothing of it in front; full on the
+        // cut (crossed with the afternoon's last 40 ms). Named a second and a half after the cut,
+        // what is there first, the piano's absence a plain fact (a deaf visitor otherwise never
+        // learns that the music ended: the reviews of 2026-10-19).
+        'music:evening': { asset: 'music/woodland-evening.mp3', gainDb: EVENING_DB, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, offset: EVENING_OFFSET, fadeIn: CUT - EVENING_AT, fadeOut: 4, caption: '[evening cicadas, far off; no piano]', captionAt: CUT + 1.5 - EVENING_AT },
+        // One evening cicada, far off, heard from the white room (as through a window): the evening's own.
+        'sfx:cicada-last': { asset: 'music/woodland-cicada-last.mp3', gainDb: -41, place: { u: 0.2, v: 0.3, d: 6 }, lowpass: 5000, caption: '[an evening cicada, far off]' },
+      },
+    };
+  },
+  sways: [],
+  // An early leaving reverses the way in (about 1.5 s) and lets the rest go after.
+  exit: 3,
+  maxHold: 20,
+  tail: 2,
+  hush: 0.7,
+  living: true,
+  lastMusic: 'afternoon',
+  // (The artist's idea, the words ours as they asked: in the afternoon's voice, saying only what
+  // they had; under "five more minutes". Written as the room's writing is back, done as the
+  // aftermath begins: the skeptic, 2026-10-20; at the 53 s timeline's 52.5, retimed.)
+  coda: { variant: 'afternoon', at: 47.0, text: 'we had all afternoon' },
+  describe: (v) => v === 'empty'
+    ? 'A painting forms in the wall by the words: a clearing in a wood at dusk, a fallen log, a tree, the grass. Nobody is there.'
+    : 'A pencil drawing forms in the wall by the words: a clearing in a wood, two young people lying in the grass.',
+  // (Short, at least 3.5 s apart; only what is seen, in order, never what it means: interaction,
+  // QA and creative reviews. The film shows the same shots inside and on the wall, so what they do
+  // is told to everyone; how it opens is told as it is seen.)
+  announce: (v) => v === 'empty' ? [] : [
+    { at: 10.0, text: 'It opens until it is all there is: a summer afternoon.', inside: true },
+    { at: 10.0, text: 'The painting comes alive on the wall: a summer afternoon.', wall: true },
+    { at: WOODLAND_FILM.shots.close, text: 'Closer: the two of them side by side in the grass, looking up.' },
+    { at: WOODLAND_FILM.glance.head + 0.5, text: 'Her eyes go to him, then her head. He keeps looking up.' },
+    { at: CUT, text: 'The same clearing, at dusk. Nobody is there.' },
+    { at: WOODLAND_SECTIONS.exit, text: 'The painting goes back into the wall.' },
+  ],
+};
+
+/**
+ * Almost (docs/almost.md): a felt stop-motion film. Two figures made of felt sit side by side at a
+ * kitchen table under a hanging lamp, at night. He notices her sleeve is folded back at the cuff
+ * and reaches to fold it down. His fingertip touches it, and she starts. He takes his hand back.
+ * She lays her arm nearer him. His hands stay in his lap. Nothing is said. Photographed offline
+ * from the puppets (scripts/almost/), played as a film (src/memory/living/FilmScene.ts).
+ *
+ *   0–5.5     the kitchen is heard first through the wall, the fridge and the clock (0.6). Pale wool
+ *             fibres come through the plaster from the words outward, a cloud thinning unevenly
+ *             toward its edges: the lamp first, the room, the two of them late, their hands last
+ *             (scripts/almost/emergence.py)
+ *   5.0–8.0   the colour comes up through the wool over the whole picture together, a little
+ *             unevenly, as a print in the developer (mostly 5.7–7.0); the fibres sink into it
+ *   6.2–9.8   they are carried in, square to it; it opens out until it is all there is. The film
+ *             holds its first frame through all of this: the opening is seen, not passed through
+ *   10.3–38.6 the film, 28.3 s, once the visitor is inside (`scene.film`, its seconds; FILM_BEATS):
+ *               0     together; one slow breath each
+ *               2.5   he notices the fold at her cuff
+ *               3.75  he reaches, a little at a time; a hesitation
+ *               6.5   his fingertip on the fold; its corner rises under it
+ *               6.83  she starts: a flinch on ones, her arm snatched back, a faint creak of her chair;
+ *                     she lays it down again nearer her
+ *               6.96  then his hand comes off the cloth, and stays in the air where her sleeve was;
+ *                     back across the table into his lap
+ *               12.3  she looks at him, the first time
+ *               14.3  she lifts her arm, a hesitation in the air, and lays it down nearer him
+ *               17.3  his hand stays in his lap: one slow breath, his head turns a little toward her
+ *                     and back, and nothing follows
+ *               20.3  her eyes go down to the table between them; they sit, the fridge and the clock
+ *   37.5–42.5 out (the film's last second under it): carried back, the picture gathers itself to
+ *             the wall
+ *   41.5–45.5 the colour sinks back into the wool all at once, then the wool into the plaster
+ *
+ * The film has no sound of its own: its soundtrack is two cues on the memory's audio, the
+ * kitchen's (the fridge, the clock: the room's two indifferent clocks) and the film's (the wool, the
+ * wood, the chair), both laid by scripts/almost/sound.py.
+ */
+export const ALMOST_SECTIONS: Sections = { active: 6, exit: 37.5, residue: 44.5, end: 47.5 };
+/** The film: where it begins on the timeline (half a second after the visitor is inside), and its length (s). */
+export const FILM_AT = 10.3;
+export const FILM_SECONDS = 679 / 24;
+/** Its story's moments (seconds into the film: scripts/almost/xsheet.py). */
+export const FILM_BEATS = {
+  notice: 60 / 24, reach: 90 / 24, touch: 156 / 24, startle: 164 / 24, lap: 255 / 24, look: 295 / 24, offer: 343 / 24, tooLate: 415 / 24, almost: 487 / 24,
+};
+/** Its two sounds' levels (scripts/almost/sound.py lays both at the film mix's own balance, so the
+ *  same gain for each). Set by what is heard, A-weighted: the kitchen's file is -52 dBFS(A), so -61
+ *  on the memory bus, by the woodland's dusk (-59.6). (By loudness a 120 Hz hum counts for more
+ *  than it sounds: the sound designer's review.) Stand-ins until the artist has listened. */
+const KITCHEN_DB = -9;
+const FILM_DB = -9;
+
+export const ALMOST: MemoryDef = {
+  id: 'almost',
+  art: 'almost',
+  variants: ['film'],
+  layers: ['scene', 'fibres'],
+  sections: ALMOST_SECTIONS,
+  markers: [
+    { label: 'music:kitchen', position: 0.6 },
+    { label: 'music:film', position: FILM_AT },
+  ],
+  seed: (): SheetSeed => {
+    const S = ALMOST_SECTIONS;
+    return {
+      tracks: {
+        // The wool through the plaster, then the colour through the wool (the two clocks are
+        // scripts/almost/emergence.py's: tests/memory-defs.test.ts). Back, nothing runs in order:
+        // the colour sinks into the wool all at once, then the wool into the plaster (the layers'
+        // opacities, below). Run backwards, the two of them went first and left the lamp over an
+        // empty table: the woodland's ending again (the skeptic's review, 2026-10-20).
+        'window.sketch': [[1.5, 0], [5.5, 1]],
+        'window.reveal': [[5.0, 0, 'linear'], [8.0, 1]],
+        'window.presence': [[0, 1]],
+        'window.parallax': [[0, 0]],
+        // The room's writing under the picture goes to a trace as the colour reaches it, and comes
+        // back with the plaster.
+        'window.wash': [[0, 0, 'hold'], [7.2, 1]],
+        'light.x': [[0, 0]],
+        'light.y': [[0, 0]],
+        'light.radius': [[0, 0.6]],
+        'light.soft': [[0, 0.14]],
+        'light.warmth': [[0, 2700]],
+        'light.intensity': [[0, 0]],
+        'light.roomSpill': [[0, 0]],
+        'layer:scene.opacity': [[0, 1], [S.exit + 4, 1], [S.exit + 6, 0]],
+        // The wool sinks as the colour comes (the film is felt, not a drawing over it), comes back
+        // up as the colour goes, and goes into the plaster after it.
+        'layer:fibres.opacity': [[0, 1], [7.2, 1], [8.6, 0], [S.exit + 4, 0], [S.exit + 5.6, 1], [S.exit + 6.5, 1], [S.exit + 8, 0]],
+        // The way in, one move, as the woodland's (shaped in Inside.ts).
+        'scene.approach': [[1.0, 0, 'linear'], [10.0, 1], [S.exit + 1, 1, 'linear'], [S.exit + 5, 0]],
+        'scene.immerse': [[0, 0, 'hold'], [6.2, 0, 'linear'], [8.2, 0.68, 'linear'], [9.8, 1, 'hold'], [S.exit, 1, 'linear'], [S.exit + 2, 0.72, 'linear'], [S.exit + 5, 0]],
+        // The film's own time: its first frame until it opens out, then as a clock does, then its
+        // last frame held.
+        'scene.film': [[0, 0, 'hold'], [FILM_AT, 0, 'linear'], [FILM_AT + FILM_SECONDS, FILM_SECONDS, 'hold']],
+      },
+      markers: [
+        { label: 'active', position: S.active },
+        { label: 'exit', position: S.exit },
+        { label: 'residue', position: S.residue },
+        { label: 'end', position: S.end },
+        ...ALMOST.markers,
+      ],
+    };
+  },
+  cues: (): CueSheet => ({
+    // A small kitchen: its room is in the files (scripts/almost/sound.py), none added.
+    room: [0.3, 2, 0.04],
+    cues: {
+      // The fridge and the clock, through the wall first (muffled in the file until the picture
+      // opens), then the kitchen itself; they go on after the picture has gone, on the memory's own
+      // release, until the room's hum (the same mains) takes over.
+      'music:kitchen': { asset: 'music/almost-kitchen.mp3', gainDb: KITCHEN_DB, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, fadeIn: 2.5, caption: '[a fridge humming; a clock ticking]', captionAt: 1.2 },
+      // The wool, the wood and the chair, laid to the film's frames (it begins with the film).
+      'music:film': { asset: 'music/almost-film.mp3', gainDb: FILM_DB, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, fadeOut: 2, caption: '[her chair creaks]', captionAt: FILM_BEATS.startle + 0.05 },
+    },
+  }),
+  sways: [],
+  exit: 3,
+  maxHold: 20,
+  tail: 2,
+  hush: 0.7,
+  drone: false,
+  living: true,
+  describe: () => 'Wool, then colour, comes through the wall: a kitchen at night.',
+  // (Only what is seen, in order, at least 3.5 s apart, never what it means; each short enough to
+  // be read before the next: tests/film-scene.test.ts.)
+  announce: () => [
+    { at: FILM_AT + 0.5, text: 'Two felt figures sit side by side.', inside: true },
+    { at: FILM_AT + 0.5, text: 'On the wall, two felt figures sit together.', wall: true },
+    { at: FILM_AT + FILM_BEATS.reach + 0.3, text: 'His hand reaches toward her folded cuff.' },
+    { at: FILM_AT + FILM_BEATS.startle + 0.75, text: 'He touches it; she draws her arm back.' },
+    { at: FILM_AT + FILM_BEATS.lap + 0.5, text: 'His hand hangs, then returns to his lap.' },
+    { at: FILM_AT + FILM_BEATS.offer + 0.4, text: 'She looks at him, lays her arm nearer.' },
+    { at: FILM_AT + FILM_BEATS.tooLate + 0.95, text: 'His hand stays in his lap.' },
+    { at: FILM_AT + FILM_BEATS.almost + 1.5, text: 'Her eyes go down to the table between them. They sit.' },
+    { at: ALMOST_SECTIONS.exit, text: 'The picture goes back into the wall.' },
+  ],
+};
+
+/**
+ * Things I Should Have Said (docs/things.md): a charcoal and pencil film on one sheet (v2, the
+ * artist's review of 2026-10-22). A young man says goodbye to his mother at the door of her flat:
+ * she waves, small; he lifts the bag she packed, turns his back and goes; the door swings shut on its
+ * closer. Then the drawing tries the moment again, in graphite where what happened is charcoal: he
+ * is drawn in the doorway as he left, turns back toward her, his hand begins to rise; it is taken
+ * back. Then her: a lean after him, her hand rising toward the doorway; taken back. Then they are
+ * both taken, and what is left is the doorway with their two hands' impressions. Drawn offline on a
+ * simulated sheet (scripts/things/), played as a film (src/memory/living/FilmScene.ts).
+ *
+ *   0-7.5     the wall draws the goodbye itself, as the film did: the doorway's construction in hard
+ *             pencil, then each of them, tone and then lines, in the film's own order (the pencil
+ *             by `window.sketch` over the order map's R, the tone by `window.reveal` over its G:
+ *             scripts/things/emergence.py); the room's writing stays under the pencil until the
+ *             tone reaches it
+ *   7.8-11    carried in, square to it; the film holds the goodbye finished
+ *   11.5-54.25 the film, 42.75 s (`scene.film`, its seconds; THINGS_BEATS): the goodbye; his walk
+ *             out; the door and the latch; a silence; his almost, found, turning back, his hand
+ *             rising, held, taken back; a breath; hers; both of them taken; the empty doorway, six
+ *             seconds still
+ *   53-58     out (the film's last second and a quarter under it), its edge soft (a sheet rubbed,
+ *             not torn); on the wall the drawing goes to a trace of itself, then into the plaster
+ *
+ * The film has no sound of its own: its sound is two cues made from the same list of marks
+ * (scripts/things/soundscape.py, Mix B, the artist's choice): the wall's goodbye drawing itself, close; then,
+ * carried in, the flat (its air, his coat, the bag, his steps, the door on its closer, the latch),
+ * which withdraws as the eraser lifts the door; the pencil; the rubber taking each almost back, hers
+ * heavier; two soft piano notes while his hand is held, the first alone while hers is; the people
+ * taken, each erasure quieter; then the room's own hushed air, the second note not played again.
+ */
+export const THINGS_SECTIONS: Sections = { active: 7.5, exit: 53.0, residue: 60.0, end: 63.0 };
+/** The film: where it begins on the timeline (half a second after the visitor is inside), and its length (s). */
+export const THINGS_AT = 11.5;
+export const THINGS_SECONDS = 1026 / 24;
+/** Its story's moments (seconds into the film: scripts/things/story.py, less the 6 s the wall draws;
+ * tests/film-scene.test.ts holds them to what emergence.py read off the sheet). */
+export const THINGS_BEATS = {
+  going: 2.0, gone: 5.1, latch: 7.6, lift: 11.2, found: 12.3, turnsBack: 14.5, hand: 16.383, held: 18.495, takenBack: 20.395,
+  hers: 24.895, reach: 26.195, hersHeld: 27.508, hersTaken: 28.907, erased: 32.657, him: 34.258, empty: 35.758,
+};
+/** Its sound's level (soundscape.py places its layers from Memory II's figures' loudness: the same gain). */
+const THINGS_DB = -9;
+
+export const THINGS: MemoryDef = {
+  id: 'things',
+  art: 'things',
+  variants: ['film'],
+  layers: ['scene', 'lines'],
+  sections: THINGS_SECTIONS,
+  // (The wall's sound with the wall's drawing, its `window.sketch`; the film's with the film.)
+  markers: [{ label: 'music:wall', position: 1.5 }, { label: 'music:film', position: THINGS_AT }],
+  seed: (): SheetSeed => {
+    const S = THINGS_SECTIONS;
+    return {
+      tracks: {
+        // The pencil, then the tone, both on the draw-on's own 6 s (scripts/things/emergence.py's
+        // clocks: tests/memory-defs.test.ts).
+        'window.sketch': [[1.5, 0, 'linear'], [7.5, 1]],
+        'window.reveal': [[1.5, 0, 'linear'], [7.5, 1]],
+        'window.presence': [[0, 1]],
+        'window.parallax': [[0, 0]],
+        // Earlier marks remain beneath: the room's writing stays under the pencil, and goes only
+        // a little way as the tone comes (the artist's brief, the emergence; held to a trace, it
+        // was lost for the film's whole length: the creative director).
+        'window.wash': [[0, 0, 'hold'], [7.5, 0.35]],
+        'light.x': [[0, 0]],
+        'light.y': [[0, 0]],
+        'light.radius': [[0, 0.6]],
+        'light.soft': [[0, 0.14]],
+        'light.warmth': [[0, 2700]],
+        'light.intensity': [[0, 0]],
+        'light.roomSpill': [[0, 0]],
+        // Back on the wall, the drawing goes to a trace of itself, then into the plaster.
+        // (At 0.14 it was gone to the eye a second after the words came back: the cinematic director.)
+        'layer:scene.opacity': [[0, 1], [S.exit + 4, 1], [S.exit + 6, 0.4], [S.end - 1, 0.28], [S.end, 0]],
+        // The wall's own pencil sinks into the film's (the same lines) once it is all there.
+        'layer:lines.opacity': [[0, 1], [8.0, 1], [9.0, 0]],
+        'scene.approach': [[1.0, 0, 'linear'], [10.5, 1], [S.exit + 1, 1, 'linear'], [S.exit + 5, 0]],
+        'scene.immerse': [[0, 0, 'hold'], [7.8, 0, 'linear'], [9.6, 0.68, 'linear'], [11, 1, 'hold'], [S.exit, 1, 'linear'], [S.exit + 2, 0.72, 'linear'], [S.exit + 5, 0]],
+        // The film's own time: its first frame (the goodbye finished) until it is entered, then as
+        // a clock does, then its last frame held.
+        'scene.film': [[0, 0, 'hold'], [THINGS_AT, 0, 'linear'], [THINGS_AT + THINGS_SECONDS, THINGS_SECONDS, 'hold']],
+      },
+      markers: [
+        { label: 'active', position: S.active },
+        { label: 'exit', position: S.exit },
+        { label: 'residue', position: S.residue },
+        { label: 'end', position: S.end },
+        ...THINGS.markers,
+      ],
+    };
+  },
+  cues: (): CueSheet => ({
+    // (Its room is the white room: the file has none of its own.)
+    room: [0.3, 2, 0.04],
+    cues: {
+      // The wall drawing the goodbye, at the film's own gain: as a point 2 m in the wall it came out
+      // 10 dB under it, barely over the room's hush (QA); stopped with the picture if the visitor goes.
+      'music:wall': { asset: 'music/things-wall.mp3', gainDb: THINGS_DB, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, fadeOut: 0.8, caption: '[pencil, then charcoal, on the wall]', captionAt: 0.3 },
+      'music:film': { asset: 'music/things-film.mp3', gainDb: THINGS_DB, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, fadeOut: 2, caption: '[an eraser on paper]', captionAt: THINGS_BEATS.lift + 0.3,
+        // (one caption at a time: each held until the next, long enough to read (0.4 s a word, at
+        // least 1.2 s: tests/film-scene.test.ts; the notes in the holds are shorter than the 2.5 s
+        // every caption had before them); the pencil
+        // when it is first heard, not when its faint construction begins; every taking back named:
+        // QA, 2026-10-22)
+        captions: [
+          { at: 1.2, text: '[a quiet flat; a coat, a bag lifted]' },
+          { at: THINGS_BEATS.gone, text: '[footsteps going; a door swings shut]' },
+          { at: THINGS_BEATS.latch, text: '[a door latch clicks]' },
+          { at: THINGS_BEATS.turnsBack + 0.05, text: '[a pencil on paper]' },
+          { at: THINGS_BEATS.held, text: '[two soft piano notes]' },
+          { at: THINGS_BEATS.takenBack, text: '[an eraser, rubbing it out]' },
+          { at: THINGS_BEATS.hers, text: '[a pencil on paper]' },
+          { at: THINGS_BEATS.hersHeld, text: '[one piano note]' },
+          { at: THINGS_BEATS.hersTaken, text: '[an eraser, rubbing it out]' },
+          { at: THINGS_BEATS.erased, text: '[an eraser, softer]' },
+        ] },
+    },
+  }),
+  sways: [],
+  exit: 3,
+  maxHold: 20,
+  tail: 2,
+  hush: 0.7,
+  drone: false,
+  living: true,
+  describe: () => 'A charcoal drawing comes onto the wall: a goodbye.',
+  // (Only what is seen, in order, at least 3.5 s apart, never what it means.)
+  announce: () => [
+    { at: THINGS_AT + 0.3, text: 'A young man with a bag says goodbye to an older woman.', inside: true },
+    { at: THINGS_AT + 0.3, text: 'On the wall, a young man says goodbye to an older woman.', wall: true },
+    { at: THINGS_AT + THINGS_BEATS.gone, text: 'He turns his back and goes. The door swings shut.' },
+    { at: THINGS_AT + THINGS_BEATS.lift, text: 'An eraser lifts the door. In pencil, he is in the doorway.' },
+    { at: THINGS_AT + THINGS_BEATS.hand, text: 'He turns back toward her. His hand begins to rise.' },
+    { at: THINGS_AT + THINGS_BEATS.takenBack + 0.3, text: 'The eraser takes it back.' },
+    { at: THINGS_AT + THINGS_BEATS.hers + 0.5, text: 'In pencil, she leans after him, her hand reaching toward the doorway.' },
+    { at: THINGS_AT + THINGS_BEATS.erased, text: 'Her reach is taken back. Then she is erased.' },
+    { at: THINGS_AT + THINGS_BEATS.empty + 1.0, text: 'The doorway is empty; faint marks where their hands nearly met.' },
+    { at: THINGS_SECTIONS.exit, text: 'The drawing goes back into the wall.' },
+  ],
+};
+export const MEMORIES: Record<string, MemoryDef> = { cereal: CEREAL, bedroom: BEDROOM, door: DOOR, woodland: WOODLAND, almost: ALMOST, things: THINGS };

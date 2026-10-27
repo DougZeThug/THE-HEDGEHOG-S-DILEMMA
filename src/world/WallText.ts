@@ -3,7 +3,7 @@ import type { Phrase, Surface, Hand, Size } from '../content/types';
 import { PHRASES, PHRASE_BY_ID } from '../content/phrases';
 import type { Room } from './Room';
 import { layoutPhrases, layoutOf, surfaceSize, drawingSpots, drawingBeside, type Placement, type SurfaceLayout } from './layout';
-import { HANDS, measureText, textTexture, pencilLineTexture, inkTexture } from './textures';
+import { HANDS, measureText, wordPosition, textTexture, pencilLineTexture, inkTexture } from './textures';
 import { DRAWINGS, DRAWING_BY_ID, type DrawingDef } from '../content/drawings';
 import { bakeDrawing, bakedSize } from './sketch';
 import { wordRanges } from './handwriting';
@@ -547,7 +547,11 @@ export class WallText {
     const geo = new THREE.PlaneGeometry(1, 1, 1, 6);
     const local = Float32Array.from(geo.attributes.position.array);
     const n = geo.attributes.normal.array as Float32Array;
-    for (let i = 0; i < n.length; i += 3) (n[i] = 0), (n[i + 1] = 1), (n[i + 2] = 0);
+    for (let i = 0; i < n.length; i += 3) {
+      n[i] = 0;
+      n[i + 1] = 1;
+      n[i + 2] = 0;
+    }
     const { mat, uniforms } = makeTextMaterial(tex, hand, aspect, hashString(key), duration);
     mat.color.set(0x000000);
     // Soft enough that no letter can be read: grey under the words, not a mirror of them.
@@ -733,6 +737,57 @@ export class WallText {
     return true;
   }
 
+  /**
+   * Write a line under another inside a place on its wall (`within`, in the writing group's metres,
+   * as the memory window gives a painting's place): just under it and close, clear of what is
+   * already written there (decisions 122, 133, 136 and 137). The places kept for lines not yet shown
+   * give way, and are found again elsewhere on their wall; a line with its own place close by
+   * waits, as does one with no room left on its wall. The ids of the lines that wait (the room keeps
+   * them off the walls from then on), or null, and nothing written, if nothing fits.
+   */
+  writeWithin(o: { key: string; text: string; hand: Hand; size: Size; under: string; within: { cx: number; cy: number; w: number; h: number }; purpose: Exclude<Purpose, 'phrase'>; now: number; source?: string; start?: boolean }): string[] | null {
+    if (this.items.has(o.key)) return null;
+    const anchor = this.items.get(o.under)?.placement;
+    if (!anchor || anchor.surface === 'floor' || anchor.surface === 'ceiling') return null;
+    const size = surfaceSize(anchor.surface), s = this.room.scale;
+    const within = { u: o.within.cx / s + size.w / 2, v: o.within.cy + size.h / 2, w: o.within.w / s, h: o.within.h };
+    const m = measureText(o.text, o.hand, o.size);
+    // (A line not yet on any wall keeps a place: one with no place of its own can go elsewhere, one
+    // with its own place can only wait, as can one made ahead (the opening's) and not yet written.)
+    const slots = new Map<Placement, string>(), own = new Map<Placement, string>();
+    for (const [id, pl] of this.placements) {
+      const made = this.items.get(id);
+      if (!made) (PHRASE_BY_ID.get(id)?.at ? own : slots).set(pl, id);
+      else if (made.placement === pl && made.vis <= 0.05 && made.target <= 0) own.set(pl, id);
+    }
+    // (What is already written on that wall, drawings too, its own line aside.)
+    const written = [...this.items.values()].filter((it) => it.key !== o.under && it.placement.surface === anchor.surface && (it.vis > 0.05 || it.target > 0)).map((it) => it.placement);
+    const found = this.layout.findUnder(anchor, m.w, m.h, within, (p) => slots.has(p), written, (p) => own.has(p));
+    if (!found) return null;
+    for (const p of found.displaced) this.layout.remove(p);
+    const pl = this.layout.add({ surface: anchor.surface, ...found.rect, rot: (((hashString(o.key) % 100) / 100) - 0.5) * 0.04 });
+    // (Kept clear for the rest of the visit: nothing placed after it, those lines included, comes
+    // within 20 cm.)
+    this.layout.add({ surface: anchor.surface, u: pl.u, v: pl.v, w: pl.w + 0.4, h: pl.h + 0.4, rot: 0 });
+    // (A line moved has no place of its own: it goes elsewhere on its wall, or, with no room left
+    // there, waits with the others rather than go to another wall: QA, 2026-10-20.)
+    const waiting = found.waiting.map((p) => own.get(p)!);
+    for (const p of found.displaced) {
+      const id = slots.get(p)!;
+      const moved = this.layout.placeOn(PHRASE_BY_ID.get(id)!, (q) => measureText(q.text, q.hand, q.size));
+      if (moved) this.placements.set(id, moved);
+      else {
+        this.placements.delete(id);
+        waiting.push(id);
+      }
+    }
+    const it = this.create(o.key, o.text, o.hand, o.size, pl, o.purpose);
+    it.source = o.source;
+    it.expires = 0;
+    if (o.start !== false) this.writeOn(o.key);
+    return waiting;
+  }
+
   private makeLine(key: string, surface: Surface, seed: number): LineItem {
     const mat = new THREE.MeshStandardMaterial({
       color: new THREE.Color('#4a4b50'),
@@ -868,10 +923,15 @@ export class WallText {
     const word = idx >= 0 ? text.slice(idx, idx + keep.length) : keep;
     const m = measureText(word, it.hand, it.size);
     const pl = it.placement;
-    const single = pl.h < measureText('Ag', it.hand, it.size).h * 1.5;
-    const frac = idx >= 0 && text.length ? idx / text.length : 0;
-    const left = pl.u - pl.w / 2 + (single ? frac * pl.w : 0);
-    const kept = this.layout.add({ surface: pl.surface, u: Math.min(left + m.w / 2, pl.u + pl.w / 2 - m.w / 2), v: single ? pl.v : pl.v + pl.h / 2 - m.h / 2, w: m.w, h: m.h, rot: pl.rot });
+    // (Where it was written: its own line of the wrapped text, and how far along it.)
+    const at = idx >= 0 ? wordPosition(text, idx, keep.length, it.hand, it.size) : { line: 0, lines: 1, x: 0, w: 0 };
+    const left = pl.u - pl.w / 2 + at.x;
+    const kept = this.layout.add({
+      surface: pl.surface,
+      u: Math.min(left + m.w / 2, pl.u + pl.w / 2 - m.w / 2),
+      v: pl.v + pl.h / 2 - ((at.line + 0.5) * pl.h) / at.lines,
+      w: m.w, h: m.h, rot: pl.rot,
+    });
     const k = this.create(`${key}:kept`, word, it.hand, it.size, kept, it.purpose);
     k.vis = 0.5;
     k.target = 1;

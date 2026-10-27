@@ -9,6 +9,15 @@ export class Captions {
     if (!v) this.clear();
   }
   constructor(private el: HTMLElement) {}
+
+  /**
+   * Over a dark picture (a memory at dusk), a sound's caption is light text with a dark glow rather
+   * than a pale pill: the pill was the brightest thing in the empty clearing, eleven times its
+   * light (the cinematic director's evaluation, 2026-10-19).
+   */
+  set dim(v: boolean) {
+    this.el.classList.toggle('dim', v);
+  }
   private wordsUntil = 0;
   /** A caption of words (not a sound) is on screen: a sound's caption must not replace it. */
   get speaking() {
@@ -53,6 +62,8 @@ export class Captions {
     if (!this.enabled || !w || !w.el.isConnected || !w.el.classList.contains('on')) return;
     clearTimeout(w.timer);
     w.el.classList.add('waiting');
+    // (Its words are on screen still: a sound's caption goes beneath them, not over.)
+    this.wordsUntil = performance.now() + seconds * 1000;
     w.timer = setTimeout(() => {
       w.el.classList.remove('on');
       setTimeout(() => w.el.remove(), 1600);

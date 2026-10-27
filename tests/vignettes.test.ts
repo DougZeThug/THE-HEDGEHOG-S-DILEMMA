@@ -123,7 +123,9 @@ describe('the vignettes, as written', () => {
       expect(peak, k).toBeLessThanOrEqual(1);
       expect(render(k, 22050, 1)).toEqual(x);
     }
-  });
+    // (Every kind rendered twice, to be sure it is the same: about 4 s on a desktop, past vitest's
+    // 5 s default now and then on CI's runners, a timeout and not a failure.)
+  }, 30000);
 });
 
 /** The room's state, as the Director feeds the memories each tick. */

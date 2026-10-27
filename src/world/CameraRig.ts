@@ -144,6 +144,36 @@ export class CameraRig {
     this.lookGoal = null;
   }
 
+  /**
+   * Carried (a living memory taking the visitor to its painting, and back): the body is put
+   * exactly here and the view set at once, without bob or breath, so the move is the memory's
+   * own and seeking it gives the same view. Nothing is left moving.
+   */
+  place(x: number, z: number, yaw: number, pitch: number) {
+    this.goal = null;
+    this.lookGoal = null;
+    this.vel.set(0, 0);
+    this.yawVel = 0;
+    this.pos.set(x, 0, z);
+    this.yaw = yaw;
+    this.pitch = pitch;
+    this.camera.position.set(x, this.eye, z);
+    this.camera.rotation.set(pitch, yaw, 0);
+    this.camera.updateMatrixWorld();
+  }
+
+  /**
+   * Drawn along (a living memory's way in, before it takes them): the body put here, the look
+   * left alone (still theirs, as is a turn toward what they tapped). No walking meanwhile.
+   */
+  drift(x: number, z: number) {
+    this.goal = null;
+    this.vel.set(0, 0);
+    this.pos.set(x, 0, z);
+    this.camera.position.set(x, this.eye, z);
+    this.camera.updateMatrixWorld();
+  }
+
   setKneel(k: boolean) {
     this.kneeling = k;
     if (k) this.cancelAttend();
@@ -178,6 +208,8 @@ export class CameraRig {
     const slow = k.has('ShiftLeft') || k.has('ShiftRight') ? 0.45 : 1;
     const speed = (this.kneeling ? 0 : 1.05) * slow;
     if ((fwd || strafe || turn) && this.goal) this.cancelAttend();
+    // (Turning takes the gaze back, as a drag-look does: the attended target no longer pulls it.)
+    if (turn) this.lookGoal = null;
     if (this.kneeling && (fwd || strafe)) this.kneeling = false;
 
     // Keyboard turning is eased.

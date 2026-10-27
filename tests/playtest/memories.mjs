@@ -21,13 +21,33 @@ const BASE = process.env.BASE ?? 'http://localhost:4173/';
 const OUT = process.env.OUT ?? `test-output/review/memories/${process.env.MEMORY ?? 'cereal'}`;
 const PROFILES = (process.env.PROFILES ?? 'desktop,phone').split(',');
 const MEMORY = process.env.MEMORY ?? 'cereal';
-const VARIANT = process.env.VARIANT ?? { cereal: 'first', bedroom: 'morning', door: 'approach' }[MEMORY];
-const PHRASE = { cereal: 'cereal', bedroom: 'happiest-unneeded', door: 'door-open' }[MEMORY];
+const VARIANT = process.env.VARIANT ?? { cereal: 'first', bedroom: 'morning', door: 'approach', woodland: 'afternoon', almost: 'film', things: 'film' }[MEMORY];
+const PHRASE = { cereal: 'cereal', bedroom: 'happiest-unneeded', door: 'door-open', woodland: 'more-minutes', almost: 'your-hand', things: 'didnt-know-say' }[MEMORY];
 // Stages: [name, sequence position or null for the untouched wall], per memory.
 const STAGES = {
   cereal: [['0-untouched', null], ['1-first-drawing', 1.8], ['2-developing', 3.8], ['3-active', 9], ['4-active-late', 20], ['5-dissolving', 24.5], ['6-drawing-alone', 26.2], ['7-residue', 29]],
   bedroom: [['0-untouched', null], ['1-first-drawing', 2.6], ['2-developing', 5.5], ['3-active', 9], ['4-curtain', 11.4], ['5-active-late', 22], ['6-dissolving', 28.5], ['7-drawing-alone', 30.6]],
   door: [['0-untouched', null], ['1-first-drawing', 1.6], ['2-developing', 3.4], ['3-active', 6.5], ['4-shadow', 11], ['5-weight', 14.3], ['6-dissolving', 19.5], ['7-drawing-alone', 21]],
+  // The woodland (docs/reviews/2026-10-woodland.md): the artist's eight shots.
+  woodland: VARIANT === 'empty'
+    ? [['0-untouched', null], ['1-first-drawing', 2.6], ['2-developing', 5], ['3-active', 10], ['4-dissolving', 18], ['5-drawing-alone', 20.6]]
+    // (The afternoon is a film since 2026-10-24: src/memory/defs.ts WOODLAND_FILM.)
+    : [['00-untouched', null], ['01-pencil', 2.5], ['02-pencil-more', 4.5], ['03-colour', 6.5], ['04-carried', 8.5], ['05-crossing', 9.6], ['06-wide', 12.3], ['07-two', 16.5], ['08-her-look', 21.9], ['09-wide-again', 27.0],
+       // The cut (30.5 s): the last frame before it and the first after it, then the empty clearing.
+       ['10-last-frame-before-cut', 30.5 - 1 / 48], ['11-first-frame-after-cut', 30.5 + 1 / 48], ['12-empty-dusk', 35.5], ['13-returning', 40.5], ['14-wall', 43.5], ['15-white-room', 46.5]],
+  // Almost (docs/almost.md): the wool through the plaster, the colour, the way in, the film's
+  // beats (its first frame held until 10.3 s: src/memory/defs.ts FILM_BEATS), and the way back out
+  // (the colour into the wool at once, then the wool into the plaster).
+  almost: [['00-untouched', null], ['01-fibres', 2.5], ['02-fibres-more', 4.5], ['03-colour', 6.3], ['04-carried', 8.5], ['05-inside', 10.0],
+    ['06-notice', 13.2], ['07-reach', 15.3], ['08-touch', 16.85], ['09-startle', 17.2], ['10-hand-in-air', 18.0], ['11-silence', 22.0],
+    ['12-her-look', 23.2], ['13-offer', 26.7], ['14-almost', 32.5], ['15-returning', 40.0], ['16-colour-going', 42.5], ['17-fibres-going', 44.8],
+    ['18-white-room', 48.5]],
+  // Things I Should Have Said (docs/things.md): the wall draws the goodbye (the pencil, then the
+  // tone), the way in, the film's beats (its first frame held until 11.5 s: src/memory/defs.ts
+  // THINGS_BEATS), the way back out (a trace, then the plaster).
+  things: [['00-untouched', null], ['01-construction', 2.2], ['02-her', 4.0], ['03-him', 6.0], ['04-tone', 7.5], ['05-carried', 9.5], ['06-inside', 11.2],
+    ['07-wave', 12.4], ['08-walk', 15.0], ['09-door', 18.3], ['10-silence', 21.0], ['11-found', 25.0], ['12-turning', 27.0], ['13-his-hand', 30.0],
+    ['14-taken-back', 33.0], ['15-hers', 39.0], ['16-erased', 46.0], ['17-empty', 50.0], ['18-returning', 55.5], ['19-trace', 59.5], ['20-white-room', 63.0]],
 }[MEMORY];
 mkdirSync(OUT, { recursive: true });
 
@@ -80,7 +100,7 @@ for (const profile of PROFILES) {
   const shots = [];
   for (const [name, pos] of STAGES) {
     if (pos === null) {
-      await page.screenshot({ path: `${OUT}/${profile}-${name}.png` });
+      await page.screenshot({ path: `${OUT}/${profile}-${name}.png`, timeout: 180000 });
       shots.push(name);
       // Now it begins.
       const ok = await page.evaluate(([m, v, p]) => window.__hedgehog.playMemory(m, p, v), [MEMORY, VARIANT, PHRASE]);
@@ -89,7 +109,28 @@ for (const profile of PROFILES) {
     }
     const st = await page.evaluate((p) => window.__hedgehog.heldAt(p), pos);
     await page.waitForTimeout(name.includes('residue') || name.includes('alone') ? 3000 : 1200);
-    await page.screenshot({ path: `${OUT}/${profile}-${name}.png` });
+    // (Generous: under load, software GL can take most of a minute for a frame.)
+    await page.screenshot({ path: `${OUT}/${profile}-${name}.png`, timeout: 180000 });
+    // A living scene drawn black (nothing reached its target) is a failure, whatever the frame.
+    const blank = await page.evaluate(() => {
+      const a = window.__hedgehog;
+      const sc = a.living?.memory.prepared.living?.scene;
+      if (!sc) return false;
+      const T = sc.target, b = new Uint8Array(4);
+      let most = 0;
+      for (let i = 1; i < 6; i++) for (let j = 1; j < 6; j++) {
+        a.renderer.readRenderTargetPixels(T, Math.floor((T.width * i) / 6), Math.floor((T.height * j) / 6), 1, 1, b);
+        most = Math.max(most, b[0], b[1], b[2]);
+      }
+      return most < 8;
+    });
+    if (blank) errors.push(`the living scene is blank at ${name}`);
+    // The woodland's close-up is framed as close on every screen (the film's own shot), the wides not.
+    if (MEMORY === 'woodland' && VARIANT !== 'empty' && /^(06|07|08|09)-/.test(name)) {
+      const close = await page.evaluate(() => window.__hedgehog.post.close);
+      const want = ['07-two', '08-her-look'].includes(name) ? 1 : 0;
+      if (close !== want) errors.push(`${name} framed ${close ? 'close' : 'wide'}, not ${want ? 'close' : 'wide'}`);
+    }
     shots.push(`${name} (${st.state} @ ${st.position})`);
   }
   const programs1 = await page.evaluate(() => window.__hedgehog.renderer.info.programs.length);
@@ -103,8 +144,13 @@ for (const profile of PROFILES) {
   // Again, start to finish: what a memory leaves behind must not grow (the window's own noise and
   // blank textures are uploaded once, the first time it is drawn).
   await page.evaluate(([m, v, p]) => window.__hedgehog.playMemory(m, p, v), [MEMORY, VARIANT, PHRASE]);
-  await page.evaluate(() => window.__hedgehog.heldAt(12));
-  await page.waitForTimeout(800);
+  // (The woodland's through the two-shot and her turn, so what they make is let go too: its
+  // one-texel ground map leaked, a texture a play, unseen while this pass stopped at 12 s: QA,
+  // 2026-10-18; it stopped before her turn's drawings until QA, 2026-10-19.)
+  for (const p of MEMORY === 'woodland' && VARIANT !== 'empty' ? [2.5, 6.5, 8.5, 9.6, 12.3, 16.5, 21.9, 27.0, 31.0] : [12]) {
+    await page.evaluate((x) => window.__hedgehog.heldAt(x), p);
+    await page.waitForTimeout(1200);
+  }
   await page.evaluate(() => {
     window.__hedgehog.heldAt(null);
     window.__hedgehog.endLivingMemory('depart');
@@ -117,3 +163,10 @@ for (const profile of PROFILES) {
 }
 writeFileSync(`${OUT}/memories.json`, JSON.stringify(report, null, 2));
 await browser.close();
+// It fails (exits non-zero) on an error, a program compiled after entry, what a memory leaves
+// behind growing, or a memory still living after it was let go.
+const failed = Object.entries(report.profiles).filter(([, p]) => p.errors.length || p.programsAfter !== p.programsAtBoot || p.texturesAfterSecond !== p.texturesAfter || p.stillLiving);
+if (failed.length) {
+  console.error(`failed: ${failed.map(([k]) => k).join(', ')}`);
+  process.exitCode = 1;
+}

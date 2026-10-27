@@ -86,3 +86,19 @@ describe('where the visitor is put decides nothing by a few centimetres', () => 
     });
   }
 });
+
+describe('turning after the view was drawn to something', () => {
+  it('keyboard turning takes the gaze back: the attended target does not pull it round again', () => {
+    const r = opened();
+    // (Close enough that it only turns to face it: nothing to walk, the gaze goal left to settle.)
+    r.attend(new THREE.Vector3(r.pos.x + 2, 1.2, r.pos.z), 5);
+    run(r, 0.3);
+    run(r, 3, ['ArrowLeft']);
+    const turned = r.yaw;
+    run(r, 3);
+    // Released, the view stays where the visitor turned it.
+    expect(Math.abs(r.yaw - turned)).toBeLessThan(0.3);
+    // And the turn went on past what the spring would have allowed (about a radian).
+    expect(turned).toBeGreaterThan(1.5);
+  });
+});

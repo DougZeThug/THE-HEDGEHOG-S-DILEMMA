@@ -189,6 +189,24 @@ describe('stroke order', () => {
   });
 });
 
+describe('stroke ownership at the edges of characters', () => {
+  it("the strip of a letter inside its neighbour's padded box is written with that letter", () => {
+    const W = 40, H = 30;
+    const a = new Uint8Array(W * H);
+    for (let y = 5; y < 25; y++) a[y * W + 8] = a[y * W + 9] = 255; // first bar
+    for (let y = 5; y < 25; y++) a[y * W + 19] = a[y * W + 20] = 255; // second bar: inside both boxes
+    const boxes: CharBox[] = [
+      { i: 0, x0: 4, x1: 20, yTop: 2, yBottom: 28, base: 25, xHeight: 10 },
+      { i: 1, x0: 16, x1: 32, yTop: 2, yBottom: 28, base: 25, xHeight: 10 },
+    ];
+    const timing = handTiming('ll', 'pencil', 'test');
+    const b = bakeStrokes(a, W, H, boxes, timing, () => 0);
+    // (Nearer the second box's middle: it is the second letter, written in its time, not the first's.)
+    expect(b.time[15 * W + 19]).toBeGreaterThanOrEqual(timing.chars[1][0] - 1e-6);
+    expect(b.time[15 * W + 8]).toBeLessThanOrEqual(timing.chars[0][1] + 1e-6);
+  });
+});
+
 describe('voice timings', () => {
   it('every recording in the room has character timings that match its text and fit inside it', () => {
     const manifest = Object.entries((require('../public/voices/manifest.json') as Record<string, string[]>)).filter(([k]) => k.startsWith('phrase:')).flatMap(([, v]) => v);
@@ -218,5 +236,20 @@ describe('comfort', () => {
     // A choice the visitor made is kept.
     savePrefs({ ...loadPrefs(), reducedMotion: false, reducedMotionChosen: true });
     expect(loadPrefs().reducedMotion).toBe(false);
+  });
+  it('captions are off unless the visitor chooses them (a default saved with another preference is not a choice)', async () => {
+    const store = new Map<string, string>();
+    (globalThis as unknown as { localStorage: Storage }).localStorage = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v), removeItem: (k: string) => void store.delete(k) } as Storage;
+    (globalThis as unknown as { matchMedia: (q: string) => { matches: boolean } }).matchMedia = () => ({ matches: false });
+    const { loadPrefs, savePrefs } = await import('../src/ui/prefs');
+    expect(loadPrefs().captions).toBe(false);
+    // Saved while they were on by default (with a volume change): still off.
+    store.set('hh.prefs.v1', JSON.stringify({ volume: 0.4, captions: true }));
+    expect(loadPrefs().captions).toBe(false);
+    // Chosen in settings: kept, on or off.
+    savePrefs({ ...loadPrefs(), captions: true, captionsChosen: true });
+    expect(loadPrefs().captions).toBe(true);
+    savePrefs({ ...loadPrefs(), captions: false, captionsChosen: true });
+    expect(loadPrefs().captions).toBe(false);
   });
 });

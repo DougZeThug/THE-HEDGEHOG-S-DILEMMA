@@ -24,6 +24,13 @@ const ONLY = process.env.ONLY?.split(',');
 const DATA = JSON.parse(readFileSync(new URL('../../src/content/vignettes.json', import.meta.url), 'utf8'));
 mkdirSync(OUT, { recursive: true });
 
+// (Captions are off by default, a choice in settings: these runs check them, as a visitor who chose them.)
+const chooseCaptions = () => {
+  try {
+    const p = JSON.parse(localStorage.getItem('hh.prefs.v1') ?? '{}');
+    localStorage.setItem('hh.prefs.v1', JSON.stringify({ ...p, captions: true, captionsChosen: true }));
+  } catch {}
+};
 const browser = await chromium.launch({
   executablePath: process.env.CHROMIUM_PATH || undefined,
   args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required'],
@@ -35,6 +42,7 @@ async function open(profile, id, variant) {
   // (id null: no preview; the test starts one itself, as the Director would.)
   const opts = profile === 'phone' ? { ...devices['iPhone 13'], deviceScaleFactor: 1 } : { viewport: { width: 1280, height: 800 } };
   const ctx = await browser.newContext({ ...opts, reducedMotion: process.env.REDUCED ? 'reduce' : 'no-preference' });
+  await ctx.addInitScript(chooseCaptions);
   const page = await ctx.newPage();
   const errors = [];
   page.on('pageerror', (e) => errors.push(String(e)));

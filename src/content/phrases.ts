@@ -82,6 +82,10 @@ export const PHRASES: Phrase[] = [
   p('your-hand', 'your hand, almost', { desire: 0.7, affection: 0.5, fear: 0.4 }, {
     surface: 'north', tier: 'still', hand: 'faint', keywords: ['hand', 'touch', 'hold'],
   }),
+  // The woodland memory's line (docs/reviews/2026-10-woodland.md): written silently, never said.
+  p('more-minutes', 'five more minutes', { desire: 0.6, happiness: 0.5, grief: 0.4, connection: 0.5 }, {
+    surface: 'north', tier: 'familiar', hand: 'pencil', keywords: ['minutes', 'stay', 'more'],
+  }),
   p('door-open', 'the door, slightly open', { desire: 0.5, uncertainty: 0.5, fear: 0.3 }, {
     surface: 'north', tier: 'familiar', hand: 'cyan', keywords: ['door', 'open'],
   }),

@@ -48,16 +48,24 @@ export function bakeStrokes(alpha: Uint8ClampedArray | Uint8Array, W: number, H:
   const N = W * H;
   const time = new Float32Array(N).fill(Infinity);
   const owner = new Int32Array(N).fill(-1);
+  const ownerDx = new Float32Array(N);
   const ink = (p: number) => alpha[p] > 24;
 
-  // Which character each inked pixel belongs to: the box containing it (nearest box in the line band otherwise).
+  // Which character each inked pixel belongs to: of the boxes containing it (they overlap at the
+  // edges, padded), the one whose middle is nearest.
   for (let b = 0; b < boxes.length; b++) {
     const bx = boxes[b];
+    const mid = (bx.x0 + bx.x1) / 2;
     const x0 = Math.max(0, Math.floor(bx.x0)), x1 = Math.min(W, Math.ceil(bx.x1));
     const y0 = Math.max(0, Math.floor(bx.yTop)), y1 = Math.min(H, Math.ceil(bx.yBottom));
     for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) {
       const p = y * W + x;
-      if (ink(p) && owner[p] < 0) owner[p] = b;
+      if (!ink(p)) continue;
+      const dx = Math.abs(x + 0.5 - mid);
+      if (owner[p] < 0 || dx < ownerDx[p]) {
+        owner[p] = b;
+        ownerDx[p] = dx;
+      }
     }
   }
 
@@ -200,9 +208,21 @@ export function nearestFill(time: Float32Array, W: number, H: number, queue: Int
     const p = queue[qh++];
     const py = (p / W) | 0, px = p - py * W;
     const tv = time[p];
-    if (px > 0 && time[p - 1] === Infinity) (time[p - 1] = tv), (queue[qt++] = p - 1);
-    if (px < W - 1 && time[p + 1] === Infinity) (time[p + 1] = tv), (queue[qt++] = p + 1);
-    if (py > 0 && time[p - W] === Infinity) (time[p - W] = tv), (queue[qt++] = p - W);
-    if (py < H - 1 && time[p + W] === Infinity) (time[p + W] = tv), (queue[qt++] = p + W);
+    if (px > 0 && time[p - 1] === Infinity) {
+      time[p - 1] = tv;
+      queue[qt++] = p - 1;
+    }
+    if (px < W - 1 && time[p + 1] === Infinity) {
+      time[p + 1] = tv;
+      queue[qt++] = p + 1;
+    }
+    if (py > 0 && time[p - W] === Infinity) {
+      time[p - W] = tv;
+      queue[qt++] = p - W;
+    }
+    if (py < H - 1 && time[p + W] === Infinity) {
+      time[p + W] = tv;
+      queue[qt++] = p + W;
+    }
   }
 }

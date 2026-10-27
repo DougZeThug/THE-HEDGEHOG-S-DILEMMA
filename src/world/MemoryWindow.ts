@@ -51,6 +51,25 @@ const FRAG = /* glsl */ `
   uniform vec4 uPool;              // light pool: centre (m), radius (m), softness (m)
   uniform vec4 uReserve;           // the words: centre (m), half size (m)
   uniform float uSeed;
+  // A living memory: the part of the painting this quad shows (painting uv, as it spreads), the
+  // part its first layer (the living scene's render target) holds, and how far it is open.
+  uniform vec4 uCrop;
+  uniform vec4 uView0;
+  uniform float uOpen;
+  uniform float uSoftReserve;
+  // A living memory drawn stroke by stroke (scripts/stroke-order.py): when each line is drawn (r)
+  // and when the colour reaches each point (g), against the sketch's and the reveal's progress.
+  uniform sampler2D uOrder;
+  uniform float uOrdered;
+  // How strongly a living memory's pigment sinks into the plaster (a faded fresco, never a hole:
+  // the dusk painting multiplied in at full strength is a black stain).
+  uniform float uSunk;
+  // How far a living painting (drawn in order, or its revisit) is lifted toward the plaster (a light
+  // wash, as image 3, not a dark stain), all the way at its colour's front.
+  uniform float uLift;
+  // Its words lie on it, washed to a trace (a living memory's revisit, on the wall without a scene
+  // of its own): no plaster kept round them.
+  uniform float uUnder;
   varying vec2 vUv;
 
   vec3 toLinear(vec3 c) { return mix(c / 12.92, pow((c + 0.055) / 1.055, vec3(2.4)), step(0.04045, c)); }
@@ -69,46 +88,91 @@ const FRAG = /* glsl */ `
 
   void main() {
     vec2 m = (vUv - 0.5) * uSize; // metres from the window's centre
-    float n = texture2D(uNoise, vUv * uSize * 0.9 + uSeed).r;
-    float n2 = texture2D(uNoise, vUv * uSize * 3.1 - uSeed).r;
+    // Where on the painting (the whole of it, unless a living memory shows a part).
+    vec2 P = uCrop.xy + vUv * uCrop.zw;
+    float n = texture2D(uNoise, P * uNominal * 0.9 + uSeed).r;
+    float n2 = texture2D(uNoise, P * uNominal * 3.1 - uSeed).r;
 
     // The pool of the memory's light: what it reaches is what is revealed. The drawing is
     // found a little ahead of the colour (the light finds the pencil first).
-    vec2 mp = (vUv - 0.5) * uNominal;
+    vec2 mp = (P - 0.5) * uNominal;
     float d = length((mp - uPool.xy) / max(uPool.z, 1e-3)) + (n - 0.5) * 0.35 + (n2 - 0.5) * 0.12;
     float soft = uPool.w / max(uPool.z, 1e-3) + 0.05;
     float colourMask = 1.0 - smoothstep(uReveal - soft, uReveal + soft, d);
     float sketchMask = 1.0 - smoothstep(uSketch - soft, uSketch + soft, d);
-    // Never to the window's edge: ragged, inside its rectangle.
+    // The light's own pool (where it falls, whatever is revealed yet).
+    float pool = 1.0 - smoothstep(1.0 - soft, 1.0 + soft, d);
+    if (uOrdered > 0.5) {
+      // Each line appears in order (out from the words); the colour follows as a wash, its edge
+      // broken by the paper's grain, soft. (uSketch and uReveal run to 1.25 for the pool: 1 is all.)
+      vec2 o = texture2D(uOrder, P).rg;
+      sketchMask = clamp((uSketch / 1.25 - o.r) / 0.012 + 0.5, 0.0, 1.0);
+      float g = o.g + (n2 - 0.5) * 0.05;
+      colourMask = smoothstep(g - 0.08, g + 0.08, uReveal / 1.25);
+    }
+    // Opened across the plaster, the whole of it is found (its edge is the quad's ragged edge;
+    // one drawn in order has its order for an edge).
+    colourMask = max(colourMask, uOpen * step(0.5, uReveal) * (1.0 - uOrdered));
+    sketchMask = max(sketchMask, uOpen * step(0.5, uSketch) * (1.0 - uOrdered));
+    // Never to the window's edge: ragged, inside its rectangle (wider as a living one spreads:
+    // a brush, not a frame). One drawn in order has its corners rounded as wide as its band (no
+    // corner is ever seen: image 3 has none; the creative director's and the skeptic's reviews).
     vec2 e = min(vUv, 1.0 - vUv) * uSize;
-    float edge = smoothstep(0.0, 0.06 + 0.05 * n, min(e.x, e.y));
+    float band = (0.06 + 0.05 * n) * (1.0 + 0.6 * uOpen);
+    float rr = band * 1.5 * uOrdered;
+    float ed = (e.x < rr && e.y < rr) ? rr - length(vec2(rr) - e) : min(e.x, e.y);
+    float edge = smoothstep(0.0, band, ed + (n2 - 0.5) * 0.08 * uOpen);
 
     vec3 col = vec3(0.0); float cov = 0.0; vec3 light = vec3(0.0); vec4 lead = vec4(0.0);
-    if (uCount > 0) layer(0, texture2D(uL0, vUv + uShift[0] + vec2(uSkew[0] * (1.0 - vUv.y), 0.0)), col, cov, light, lead);
-    if (uCount > 1) layer(1, texture2D(uL1, vUv + uShift[1] + vec2(uSkew[1] * (1.0 - vUv.y), 0.0)), col, cov, light, lead);
-    if (uCount > 2) layer(2, texture2D(uL2, vUv + uShift[2] + vec2(uSkew[2] * (1.0 - vUv.y), 0.0)), col, cov, light, lead);
-    if (uCount > 3) layer(3, texture2D(uL3, vUv + uShift[3] + vec2(uSkew[3] * (1.0 - vUv.y), 0.0)), col, cov, light, lead);
-    if (uCount > 4) layer(4, texture2D(uL4, vUv + uShift[4] + vec2(uSkew[4] * (1.0 - vUv.y), 0.0)), col, cov, light, lead);
-    if (uCount > 5) layer(5, texture2D(uL5, vUv + uShift[5] + vec2(uSkew[5] * (1.0 - vUv.y), 0.0)), col, cov, light, lead);
+    if (uCount > 0) layer(0, texture2D(uL0, (P - uView0.xy) / uView0.zw + uShift[0] + vec2(uSkew[0] * (1.0 - P.y), 0.0)), col, cov, light, lead);
+    if (uCount > 1) layer(1, texture2D(uL1, P + uShift[1] + vec2(uSkew[1] * (1.0 - P.y), 0.0)), col, cov, light, lead);
+    if (uCount > 2) layer(2, texture2D(uL2, P + uShift[2] + vec2(uSkew[2] * (1.0 - P.y), 0.0)), col, cov, light, lead);
+    if (uCount > 3) layer(3, texture2D(uL3, P + uShift[3] + vec2(uSkew[3] * (1.0 - P.y), 0.0)), col, cov, light, lead);
+    if (uCount > 4) layer(4, texture2D(uL4, P + uShift[4] + vec2(uSkew[4] * (1.0 - P.y), 0.0)), col, cov, light, lead);
+    if (uCount > 5) layer(5, texture2D(uL5, P + uShift[5] + vec2(uSkew[5] * (1.0 - P.y), 0.0)), col, cov, light, lead);
 
     // Unstylized (the editor's comparison): the layers as baked, with no mask, noise or reserve.
     float mask = mix(1.0, colourMask, uStylize);
     float smask = mix(1.0, sketchMask, uStylize);
+    // Drawn in order, the colour keeps inside its ragged edge and the pencil runs on past it, to
+    // the plate's edge (image 3); otherwise both keep inside it.
+    float edgeAll = edge;
+    if (uOrdered > 0.5) {
+      mask *= edge;
+      smask *= smoothstep(0.0, 0.015, ed);
+      edgeAll = 1.0;
+    }
+    // (The light reveals as the colour does, inside its edge: before the colour, on bare plaster,
+    // it read as two pale smears, not as light (the skeptic's third review); past the colour's
+    // rounded edge it ran on to the plate's straight one (QA, 2026-10-18).)
+    float lightMask = mask;
     // Graphite is found by the light first; colour follows. Lead over colour, premultiplied.
     float cA = cov * mask, lA = lead.a * smask;
     vec3 premul = lead.rgb * smask + col * mask * (1.0 - lA);
+    if (uLift > 0.0) {
+      // (Its colour lifted toward the plaster's own lightness, all the way at the colour's front:
+      // a dark multiply read as stains coming and a scorch going.)
+      vec3 sc = col / max(cov, 1e-3);
+      float plasterS = 1.055 * pow(uPlaster, 1.0 / 2.4) - 0.055;
+      premul = lead.rgb * smask + mix(vec3(plasterS), sc, (1.0 - uLift) * smoothstep(0.0, 1.0, mask)) * cA * (1.0 - lA);
+    }
     cov = lA + cA * (1.0 - lA);
     col = premul;
-    float pigCov = clamp(cov, 0.0, 1.0) * edge * uPresence;
+    float pigCov = clamp(cov, 0.0, 1.0) * edgeAll * uPresence * uSunk;
 
     // Bare plaster round the words, feathered over 2–3 cm with a rough edge.
     vec2 r = abs(m - uReserve.xy) - uReserve.zw;
-    float rd = max(r.x, r.y) + (n2 - 0.5) * 0.02;
-    float reserve = 1.0 - smoothstep(-0.005, 0.03, rd);
-    pigCov *= 1.0 - mix(0.0, 0.85, reserve * uStylize);
+    // (A living memory's painting keeps its words in a bloom of plaster, not a card: a wider,
+    // noise-edged reserve, the painting faintly there behind them.)
+    float bloom = step(0.5, uSoftReserve);
+    float rd = max(r.x, r.y) + (n2 - 0.5) * mix(0.02, 0.07, bloom) + (n - 0.5) * 0.06 * bloom;
+    float reserve = (1.0 - smoothstep(-0.005, mix(0.03, 0.11, bloom), rd)) * mix(1.0, 0.7, bloom);
+    // (A living memory's painting, opened across the plaster, lies under its words as image 3:
+    // no card of bare plaster round them.)
+    pigCov *= 1.0 - mix(0.0, 0.85, reserve * uStylize * (1.0 - uOpen) * (1.0 - uUnder));
 
     vec3 pigment = toLinear(col / max(cov, 1e-3));
-    vec3 lit = toLinear(min(light, vec3(1.0))) * shade * uLight * mask * edge * uPresence;
+    vec3 lit = toLinear(min(light, vec3(1.0))) * shade * uLight * lightMask * edgeAll * uPresence;
 
     // dst × (cover × pigment / plaster + (1 − cover)) + dst × light (see the blend below).
     gl_FragColor = vec4(pigCov * pigment / uPlaster + lit, 1.0 - pigCov);
@@ -161,6 +225,13 @@ export function kelvin(k: number): THREE.Vector3 {
 
 /** Furthest a layer may shift, metres: a breath of depth in the plaster, not a hole in it. */
 const MAX_SHIFT = 0.02;
+/** How strongly a living memory's painting sinks into the plaster (cinematic review, 2026-10-17). */
+const SUNK = 0.72;
+/** How far a living painting (drawn in order, or its revisit) is lifted toward the plaster (the
+ *  skeptic's third review): rendered on the wall, the afternoon's median 0.45 of the bare plaster's,
+ *  linear (from about 0.34); image 3's, measured the same way, 0.42–0.53 by which plaster it is set
+ *  against. */
+const LIFT = 0.35;
 
 export class MemoryWindow {
   readonly mesh: THREE.Mesh;
@@ -173,6 +244,14 @@ export class MemoryWindow {
   private fixed: { cx: number; cy: number; w: number } | null = null;
   /** Drawings on the wall to keep clear of (group metres). */
   avoid: { x: number; y: number; w: number; h: number }[] = [];
+  /**
+   * A living memory (docs/reviews/2026-10-woodland.md): the painting is `size` metres on the wall
+   * and fixed there; the quad shows `crop` of it round the line, then (`spread` 0..1) the whole.
+   */
+  private living: { crop: [number, number, number, number]; size: [number, number]; order?: THREE.Texture | null } | null = null;
+  spread = 0;
+  /** Where the whole painting is on its wall (group metres), as last placed. */
+  readonly painting = { cx: 0, cy: 0, w: 0, h: 0 };
   /** Where the painting is on its wall now (group metres), and its scale from painting metres. */
   private at = { cx: 0, cy: 0, scale: 1 };
   private eye = new THREE.Vector3();
@@ -210,6 +289,15 @@ export class MemoryWindow {
       uPool: { value: new THREE.Vector4(0, 0, 0.5, 0.1) },
       uReserve: { value: new THREE.Vector4(0, 0, 0, 0) },
       uSeed: { value: 0 },
+      uCrop: { value: new THREE.Vector4(0, 0, 1, 1) },
+      uView0: { value: new THREE.Vector4(0, 0, 1, 1) },
+      uOpen: { value: 0 },
+      uOrder: { value: this.dummy },
+      uOrdered: { value: 0 },
+      uSoftReserve: { value: 0 },
+      uSunk: { value: 1 },
+      uLift: { value: 0 },
+      uUnder: { value: 0 },
     };
     const mat = new THREE.ShaderMaterial({
       uniforms: this.u,
@@ -254,8 +342,48 @@ export class MemoryWindow {
     this.u.uCount.value = this.layers.length;
   }
 
+  /**
+   * A living memory's painting: its size on the wall and the part shown first; null for any other.
+   * `under`: a living memory's revisit, a painting on the wall as any other, but sunk and lifted in
+   * the plaster as its scene was, and lying under its words, which are washed (src/App.ts): without,
+   * its words' bare plaster took the top half of it, and at full strength the dusk was a black stain.
+   */
+  setLiving(o: { crop: [number, number, number, number]; size: [number, number]; order?: THREE.Texture | null } | null, under = false): void {
+    this.living = o;
+    this.spread = 0;
+    this.u.uSoftReserve.value = o ? 1 : 0;
+    this.u.uSunk.value = o || under ? SUNK : 1;
+    this.u.uUnder.value = !o && under ? 1 : 0;
+    // (The revisit is the same pigment in the same plaster: lifted as well. Its dusk stays darker
+    // than the afternoon, as its own colours are: QA, 2026-10-18.)
+    this.u.uLift.value = o?.order || (!o && under) ? LIFT : 0;
+    this.u.uOrder.value = o?.order ?? this.dummy;
+    this.u.uOrdered.value = o?.order ? 1 : 0;
+    if (!o) {
+      (this.u.uCrop.value as THREE.Vector4).set(0, 0, 1, 1);
+      this.u.uOpen.value = 0;
+    }
+  }
+
+  /** The part of the painting the first layer holds (a living scene draws only what is seen). */
+  setView(v: THREE.Vector4): void {
+    (this.u.uView0.value as THREE.Vector4).copy(v);
+  }
+
+  /** Where the painting is on its wall now (centre and size, in its writing group's metres). */
+  get rect(): { cx: number; cy: number; w: number; h: number } {
+    return this.living ? this.painting : { cx: this.mesh.position.x, cy: this.mesh.position.y, w: this.mesh.scale.x, h: this.mesh.scale.y };
+  }
+
+  /** The tiling noise its mask uses (shared: the living scene and the immersion use it too). */
+  get noise(): THREE.Texture {
+    return this.u.uNoise.value as THREE.Texture;
+  }
+
   /** Let the memory's textures go (the caller disposes them); back to the neutral dummy. */
   clearLayers(): void {
+    this.setLiving(null);
+    (this.u.uView0.value as THREE.Vector4).set(0, 0, 1, 1);
     this.setLayers([]);
     this.u.uPresence.value = 0;
     this.u.uLight.value.set(0, 0, 0);
@@ -292,10 +420,12 @@ export class MemoryWindow {
     const a = this.placed;
     if (!a) return;
     const v = (k: string, d: number) => (k in final ? final[k] : d);
+    const L = this.living;
     // About as wide as the words (never a panorama, never a postage stamp), its top just above
     // them: the line is written across the painting's pale upper band, the scene lies below it.
-    const w = this.fixed ? this.fixed.w : THREE.MathUtils.clamp(a.w * 0.95, 0.8, 1.3) * v('window.scale', 1);
-    const h = w / this.aspect;
+    // (A living memory's first part is as wide as its crop of the painting.)
+    const w = L ? L.size[0] * L.crop[2] : this.fixed ? this.fixed.w : THREE.MathUtils.clamp(a.w * 0.95, 0.8, 1.3) * v('window.scale', 1);
+    const h = L ? L.size[1] * L.crop[3] : w / this.aspect;
     let cx = a.x + v('window.offsetX', 0);
     // The words sit in the band at the painting's top (never down in the scene): its top is just
     // above them, or higher if they wrap onto more lines than the band holds.
@@ -323,6 +453,11 @@ export class MemoryWindow {
     }
     cx = THREE.MathUtils.clamp(cx, a.minX + w / 2, a.maxX - w / 2);
     cy = THREE.MathUtils.clamp(cy, a.minY + h / 2, a.maxY - h / 2);
+    if (L) {
+      this.placeLiving(L, a, cx, cy);
+      this.reveal(final, v, scale);
+      return;
+    }
     this.mesh.position.set(cx, cy, 0.004);
     this.at.cx = cx;
     this.at.cy = cy;
@@ -373,6 +508,65 @@ export class MemoryWindow {
       // (Authored in the painting's own metres at its bottom edge.)
       skew[i] = -(v(k + 'skew', 0) * scale) / w;
     }
+  }
+
+  /**
+   * A living memory: the whole painting fixed on the wall (its crop where a window would be,
+   * the rest round it, kept inside the wall), and the quad showing the crop → the whole as it
+   * spreads. One drawn in order shows the whole of it from the start: its order is its edge (the
+   * pencil out from the words, the colour as a wash), never a straight one.
+   */
+  private placeLiving(L: { crop: [number, number, number, number]; size: [number, number]; order?: THREE.Texture | null }, a: NonNullable<MemoryWindow['placed']>, cx: number, cy: number): void {
+    const [W, H] = L.size;
+    const [u0, v0, du, dv] = L.crop;
+    let px = cx - (u0 + du / 2 - 0.5) * W;
+    let py = cy - (v0 + dv / 2 - 0.5) * H;
+    // The whole painting stays on its wall.
+    const keep = (p: number, lo: number, hi: number) => (lo > hi ? (lo + hi) / 2 : THREE.MathUtils.clamp(p, lo, hi));
+    px = keep(px, a.minX + W / 2, a.maxX - W / 2);
+    py = keep(py, a.minY + H / 2, a.maxY - H / 2);
+    this.painting.cx = px;
+    this.painting.cy = py;
+    this.painting.w = W;
+    this.painting.h = H;
+    const s = L.order ? 1 : THREE.MathUtils.clamp(this.spread, 0, 1);
+    const k = s * s * (3 - 2 * s);
+    const rx = u0 * (1 - k), ry = v0 * (1 - k), rw = du + (1 - du) * k, rh = dv + (1 - dv) * k;
+    const mx = px + (rx + rw / 2 - 0.5) * W, my = py + (ry + rh / 2 - 0.5) * H;
+    this.mesh.position.set(mx, my, 0.004);
+    this.mesh.scale.set(rw * W, rh * H, 1);
+    this.u.uSize.value.set(rw * W, rh * H);
+    (this.u.uCrop.value as THREE.Vector4).set(rx, ry, rw, rh);
+    (this.u.uNominal.value as THREE.Vector2).set(W, H);
+    this.u.uOpen.value = k;
+    this.u.uReserve.value.set(a.x - mx, a.y - my, a.w / 2 + 0.02, a.h / 2 + 0.015);
+    this.at.cx = px;
+    this.at.cy = py;
+    this.at.scale = 1;
+  }
+
+  /** The light and the layers of a living memory (no parallax: its scene draws its own depth). */
+  private reveal(final: Values, v: (k: string, d: number) => number, _scale: number): void {
+    this.u.uReveal.value = v('window.reveal', 0) * 1.25;
+    this.u.uSketch.value = v('window.sketch', 0) * 1.25;
+    this.u.uPresence.value = v('window.presence', 1);
+    this.u.uPool.value.set(v('light.x', 0), v('light.y', 0), v('light.radius', 0.45), v('light.soft', 0.12));
+    const k = Math.round(v('light.warmth', 3000) / 25) * 25;
+    if (k !== this.kelvinAt) {
+      this.kelvinAt = k;
+      this.kelvinRgb.copy(kelvin(k));
+    }
+    this.u.uLight.value.copy(this.kelvinRgb).multiplyScalar(v('light.intensity', 0));
+    const opac = this.u.uOpacity.value as number[];
+    const shift = this.u.uShift.value as THREE.Vector2[];
+    const skew = this.u.uSkew.value as number[];
+    for (let i = 0; i < SLOTS; i++) {
+      const l = this.layers[i];
+      opac[i] = l ? v(`layer:${l.name}.opacity`, 1) : 0;
+      shift[i].set(0, 0);
+      skew[i] = 0;
+    }
+    void final;
   }
 
   /** The editor's comparison: 1 = as in the room, 0 = the layers as baked. */

@@ -52,6 +52,8 @@ export interface SituationHost {
   speak(rule: string, p: Phrase, position: VoicePosition, delay: number, style: VoiceStyle, gain: number): void;
   musicReady(seconds: number): boolean;
   markMusic(): void;
+  /** The room's music is over for this visit (the woodland's afternoon was its last). */
+  readonly musicWithdrawn?: boolean;
   lastContribution(): ContributionTrace | null;
 }
 
@@ -122,6 +124,7 @@ export class SituationRunner {
 
   private ctx(h: SituationHost, a: Active): SituationContext {
     const rule = `sit:${a.def.id}`;
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this;
     return {
       h,

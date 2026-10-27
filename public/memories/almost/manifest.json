@@ -1,0 +1,58 @@
+{
+  "size": [
+    1.6,
+    1.8
+  ],
+  "band": 0,
+  "pane": null,
+  "register": null,
+  "crop": [
+    0.16,
+    0.3,
+    0.62,
+    0.5
+  ],
+  "plate": [
+    1280,
+    1440
+  ],
+  "variants": {
+    "film": [
+      {
+        "name": "scene",
+        "kind": "pigment",
+        "file": "film/scene",
+        "source": "photographed from the felt puppets in Blender (scripts/almost/)"
+      },
+      {
+        "name": "fibres",
+        "kind": "sketch",
+        "file": "film/fibres",
+        "source": "photographed from the felt puppets in Blender (scripts/almost/), its edges in wool fibres (emergence.py)"
+      }
+    ]
+  },
+  "living": {
+    "film": {
+      "kind": "film",
+      "film": "film/film",
+      "fps": 24,
+      "frames": 679,
+      "order": "film/order",
+      "immerse": true,
+      "orderClocks": {
+        "drawn": [
+          1.5,
+          5.5,
+          "soft"
+        ],
+        "coloured": [
+          5.0,
+          8.0,
+          "linear"
+        ],
+        "lag": 0.4
+      }
+    }
+  }
+}

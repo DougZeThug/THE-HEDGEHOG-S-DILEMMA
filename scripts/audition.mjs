@@ -127,19 +127,49 @@ const SFX_FOR = {
   'mem:floorboard': 'Door memory: someone shifting their weight outside the door (the first take); the house settling (the second).',
   'mem:bird': 'Bedroom memory: a bird outside the window, over bare plaster (two takes; one is used).',
   'mem:curtain-breeze': 'Bedroom memory: the curtain stirring as it breathes.',
+  // Almost (scripts/generate-almost.mjs): raw takes; the film uses a short slice of a few of them,
+  // cleaned and faded (scripts/almost/sound.py; which, and how, in docs/almost.md)
+  'almost:fridge': 'Almost: the fridge (not used: it came back as near-silent hiss and a burst; the fridge is made in code).',
+  'almost:clock': 'Almost: the kitchen clock, heard and never seen (four of its ticks, in turn, one a second, a little uneven).',
+  'almost:reach': 'Almost: his sleeve across the wood as he reaches (the first take, once, faint; the others not used).',
+  'almost:touch': 'Almost: his fingertip on the fold (the first take); her forearm laid back on the wood after the startle (the second).',
+  'almost:drag': 'Almost: her sleeve snatched back as she starts (the third take, its first half-second, shaped to fall away; the others not used).',
+  'almost:scrape': 'Almost: her chair as she flinches (a sixth of a second of the second take, raised a third: a creak, not a scrape; the others not used).',
+  'almost:settle': 'Almost: his arm drawn back across the table into his lap (the first take; the second not used).',
+  'almost:offer': 'Almost: her sleeve lifted off the wood (the first take) and laid down again nearer him (the second).',
 };
+// Almost's two sounds as the room plays them (scripts/almost/sound.py --publish): the kitchen, heard
+// through the wall first, and the figures' sounds on the film's frames. To judge them in the room,
+// with its hum and the cue fades, and on a phone's speaker too.
+for (const [file, what] of [
+  ['almost-kitchen.mp3', "Almost: the kitchen, as the room plays it (from 0.6 s on the memory's timeline: muffled through the wall, then the fridge and the clock)."],
+  ['almost-film.mp3', "Almost: the figures' sounds, from the film's first frame (the room plays the kitchen under them)."],
+]) {
+  const path = join(ROOT, 'public/music', file);
+  if (!existsSync(path)) continue;
+  designTakes.push({
+    id: `almost-${file.replace('.mp3', '')}`, group: 'almost', groupLabel: "Almost: the room's two sounds as they play, then the takes they are cut from — keep or not",
+    line: 'Almost', interpretation: what, voice: 'scripts/almost/sound.py', model: 'mix', stability: '—', input: what, generation: 2, lab: false, audition: false,
+    design: true, status: 'in the room', review: 'pending', m: null, path, src: OUT ? `audio/${file}` : `../public/music/${file}`,
+  });
+}
 const sfxLedger = existsSync(join(ROOT, 'scripts/sfx-ledger.json')) ? JSON.parse(readFileSync(join(ROOT, 'scripts/sfx-ledger.json'), 'utf8')) : { entries: {} };
 for (const [file, e] of Object.entries(sfxLedger.entries)) {
-  const path = join(ROOT, 'public/voices', file);
+  // (Almost's takes are raw material in audition/almost/: the room plays what scripts/almost/sound.py
+  // cut from them, below)
+  const almost = e.key.startsWith('almost:');
+  const path = join(ROOT, almost ? 'audition/almost' : 'public/voices', file);
   if (!existsSync(path)) continue;
   designTakes.push({
     id: `sfx-${file.replace('.mp3', '')}`,
-    group: e.key.startsWith('mem:') ? 'memories' : 'sounds',
-    groupLabel: e.key.startsWith('mem:') ? "living memories' sounds and music: new options for cereal first (radio and meal), then what already plays — keep or not" : 'new room sounds, already in the room: not this removes a variant',
-    line: 'Sounds',
+    group: almost ? 'almost' : e.key.startsWith('mem:') ? 'memories' : 'sounds',
+    groupLabel: almost
+      ? "Almost: the room's two sounds as they play, then the takes they are cut from — keep or not"
+      : e.key.startsWith('mem:') ? "living memories' sounds and music: new options for cereal first (radio and meal), then what already plays — keep or not" : 'new room sounds, already in the room: not this removes a variant',
+    line: almost ? 'Almost' : 'Sounds',
     interpretation: SFX_FOR[e.key] ?? e.key,
-    voice: e.key, model: 'sound effects', stability: '—', input: e.text, generation: 2, lab: false, audition: false, design: true, status: 'in the room', review: e.review ?? 'pending',
-    m: null, path, src: OUT ? `audio/${basename(file)}` : `../public/voices/${file}`,
+    voice: e.key, model: 'sound effects', stability: '—', input: e.text, generation: 2, lab: false, audition: false, design: true, status: almost ? 'a raw take' : 'in the room', review: e.review ?? 'pending',
+    m: null, path, src: OUT ? `audio/${basename(file)}` : almost ? `almost/${file}` : `../public/voices/${file}`,
   });
 }
 // The vignettes (src/content/vignettes.json): their takes, once generated, as cards to keep or

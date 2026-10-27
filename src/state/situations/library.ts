@@ -29,7 +29,10 @@ export const nextRoom: SituationDef = {
   ready: (h, claimed) => h.phase !== 'arrival' && h.now > 25 && !claimed('beyond') && h.visitor.speed < 0.6,
   begin(c) {
     if (!c.claim('beyond')) return c.end('abort');
-    const wall = c.h.rng.pick(otherWalls([c.h.facing, 'south']).length ? otherWalls([c.h.facing, 'south']) : otherWalls([c.h.facing]));
+    // (A wall with something happy on it to be found: following the laughter must lead to it.)
+    const pool = otherWalls([c.h.facing, 'south']).length ? otherWalls([c.h.facing, 'south']) : otherWalls([c.h.facing]);
+    const withMemory = pool.filter((w) => memoryOn(c.h, w));
+    const wall = c.h.rng.pick(withMemory.length ? withMemory : pool);
     c.st.data.wall = wall;
     c.st.data.laughs = 1;
     laugh(c, wall, 0.5);
@@ -58,7 +61,9 @@ export const nextRoom: SituationDef = {
         d.laughs = 2;
         // From somewhere else — never the wall the visitor is already standing at.
         const away = otherWalls([d.wall, h.facing]).filter((w) => h.distToSurface(w) > 1.6);
-        d.wall = h.rng.pick(away.length ? away : otherWalls([d.wall, h.facing]));
+        const to = away.length ? away : otherWalls([d.wall, h.facing]);
+        const withMemory = to.filter((w) => memoryOn(h, w));
+        d.wall = h.rng.pick(withMemory.length ? withMemory : to);
         laugh(c, d.wall, 0.3);
         c.go('listening');
       }
@@ -129,7 +134,8 @@ export const humming: SituationDef = {
   id: 'humming',
   maxLife: 600,
   owns: ['vf-hum'],
-  ready: (h, claimed) => h.now > 20 && h.visitor.deepStillFor > 5 && !claimed('beyond'),
+  // (Never once the room's music is over: a hum is a tune too.)
+  ready: (h, claimed) => h.now > 20 && h.visitor.deepStillFor > 5 && !claimed('beyond') && !h.musicWithdrawn,
   begin(c) {
     if (!c.claim('beyond')) return c.end('abort');
     const r = c.h.rng;
