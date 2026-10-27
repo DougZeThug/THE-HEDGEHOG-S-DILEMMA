@@ -59,7 +59,8 @@ export const ARCS: Record<string, Arc> = {
   'happy-then': [
     alone,
     [{ gestures: [{ voice: 'tender', from: 'surface', gain: 0.45 }], delay: 2 }],
-    [{ gestures: [{ annotate: 'ordinary', hand: 'pencil' }], when: { phase: ['contradiction', 'transform'] } }, { gestures: [] }],
+    // (No third beat: "Nobody tells you how ordinary it feels." beside this line glossed the charger,
+    // which now opens from it. The two still meet late, on the west wall: rc-happy-ordinary.)
   ],
   'why-understand': [
     alone,

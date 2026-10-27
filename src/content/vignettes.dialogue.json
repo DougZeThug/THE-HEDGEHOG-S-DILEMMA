@@ -1459,6 +1459,105 @@
         "before": "Years later, it was the kitchen she kept. \"That's my bowl.\" She doesn't look up:"
       },
       "variantOf": "cereal--clean-one"
+    },
+    {
+      "id": "rain--close",
+      "vignette": "rain",
+      "line": "close",
+      "voice": "warm",
+      "text": "Close that, will you?",
+      "input": "[gently, tired] Close that, will you?",
+      "direction": "A small request from across the room, between people who know each other; no edge.",
+      "seed": 8105,
+      "file": "vignettes/rain--close.mp3",
+      "stability": 0.45,
+      "scene": {
+        "before": "Years later, it was the night she kept. The first warm night of the year. She had opened the window as soon as she got in, and was standing at it, looking out. From the room behind her:",
+        "after": "\"It's nice.\""
+      }
+    },
+    {
+      "id": "rain--close-b",
+      "vignette": "rain",
+      "line": "close",
+      "voice": "warm",
+      "text": "Close that, will you?",
+      "input": "[gently, tired] Close that, will you?",
+      "direction": "A small request from across the room, between people who know each other; no edge.",
+      "seed": 8118,
+      "file": "vignettes/rain--close-b.mp3",
+      "stability": 0.45,
+      "scene": {
+        "before": "Years later, it was the night she kept. The first warm night of the year. She had opened the window as soon as she got in, and was standing at it, looking out. From the room behind her:",
+        "after": "\"It's nice.\""
+      },
+      "variantOf": "rain--close"
+    },
+    {
+      "id": "rain--nice",
+      "vignette": "rain",
+      "line": "nice",
+      "voice": "sarah",
+      "text": "It's nice.",
+      "input": "[softly] It's nice.",
+      "direction": "Means it; looking out, not at them.",
+      "seed": 8131,
+      "file": "vignettes/rain--nice.mp3",
+      "stability": 0.25,
+      "scene": {
+        "before": "Years later, it was the night she kept. The first warm night of the year. She had opened the window as soon as she got in. \"Close that, will you?\" She didn't turn round.",
+        "after": "She left it open, and stood there a while longer."
+      }
+    },
+    {
+      "id": "rain--nice-b",
+      "vignette": "rain",
+      "line": "nice",
+      "voice": "sarah",
+      "text": "It's nice.",
+      "input": "[softly] It's nice.",
+      "direction": "Means it; looking out, not at them.",
+      "seed": 8144,
+      "file": "vignettes/rain--nice-b.mp3",
+      "stability": 0.25,
+      "scene": {
+        "before": "Years later, it was the night she kept. The first warm night of the year. She had opened the window as soon as she got in. \"Close that, will you?\" She didn't turn round.",
+        "after": "She left it open, and stood there a while longer."
+      },
+      "variantOf": "rain--nice"
+    },
+    {
+      "id": "rain--nice-again",
+      "vignette": "rain",
+      "line": "nice-again",
+      "voice": "sarah",
+      "text": "…It's nice.",
+      "input": "[quietly, flat] …It's nice.",
+      "direction": "The same words, flatter and lower; she knows how it sounds and says it anyway.",
+      "seed": 8157,
+      "file": "vignettes/rain--nice-again.mp3",
+      "stability": 0.35,
+      "scene": {
+        "before": "Years later, it was the night she kept. She had said it was nice. Then it rained, all at once, straight in over the sill, and she didn't move:",
+        "after": "She still didn't close it."
+      }
+    },
+    {
+      "id": "rain--nice-again-b",
+      "vignette": "rain",
+      "line": "nice-again",
+      "voice": "sarah",
+      "text": "…It's nice.",
+      "input": "[quietly, flat] …It's nice.",
+      "direction": "The same words, flatter and lower; she knows how it sounds and says it anyway.",
+      "seed": 8170,
+      "file": "vignettes/rain--nice-again-b.mp3",
+      "stability": 0.35,
+      "scene": {
+        "before": "Years later, it was the night she kept. She had said it was nice. Then it rained, all at once, straight in over the sill, and she didn't move:",
+        "after": "She still didn't close it."
+      },
+      "variantOf": "rain--nice-again"
     }
   ]
 }
