@@ -164,8 +164,8 @@ describe('when a vignette opens', () => {
     expect(read(m, 'jumper', 160)?.id).toBe('a-bag');
     m.ended('a-bag', 175, true, true);
     // Cooled down, but not yet 90 s on.
-    expect(read(m, 'ordinary', 175 + 61)).toBeNull();
-    expect(read(m, 'ordinary', 175 + VIGNETTE_APART + 1)?.id).toBe('charger');
+    expect(read(m, 'happy-then', 175 + 61)).toBeNull();
+    expect(read(m, 'happy-then', 175 + VIGNETTE_APART + 1)?.id).toBe('charger');
     m.ended('charger', 290, true, true);
     // Two sad ones in a row wait longer.
     expect(read(m, 'lonely-birthday', 290 + VIGNETTE_APART + 1)).toBeNull();
@@ -206,10 +206,10 @@ describe('when a vignette opens', () => {
 
   it('what it leaves comes back later only if it was heard, and never after the visitor has gone', () => {
     const m = new MemoryDirector();
-    read(m, 'ordinary', 160);
+    read(m, 'happy-then', 160);
     m.ended('charger', 176, false, false); // unseen: not spent, nothing left behind
     expect(m.dueEchoes(400)).toHaveLength(0);
-    read(m, 'ordinary', 210);
+    read(m, 'happy-then', 210);
     m.ended('charger', 226, true, true);
     expect(m.dueEchoes(250)).toHaveLength(0);
     expect(m.dueEchoes(300).map((e) => e.echo.id)).toEqual(['tomorrow']);
@@ -302,12 +302,12 @@ describe('what a vignette leaves on the walls', () => {
 describe('ending without being heard', () => {
   it('a vignette unseen twice is spent for the visit, but not counted and leaves nothing behind', () => {
     const m = new MemoryDirector();
-    read(m, 'ordinary', 160);
+    read(m, 'happy-then', 160);
     expect(m.ended('charger', 170, false, false)).toBe(false);
-    read(m, 'ordinary', 210);
+    read(m, 'happy-then', 210);
     expect(m.ended('charger', 220, false, false)).toBe(false);
     expect(m.dueEchoes(400)).toHaveLength(0);
-    expect(read(m, 'ordinary', 400)).toBeNull();
+    expect(read(m, 'happy-then', 400)).toBeNull();
   });
 
   it("the chair's claim on the room's kneeling voice starts only when its vignette could", () => {
