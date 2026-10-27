@@ -46,7 +46,25 @@ describe('the vignettes, as written', () => {
       expect(painted.has(a.phrase), v.id).toBe(false);
       expect(anchors.has(a.phrase), v.id).toBe(false);
       anchors.add(a.phrase);
+      // Its other ways in: real lines, each opening only this one, never a painted memory's.
+      for (const p of a.also ?? []) {
+        expect(PHRASE_BY_ID.has(p), `${v.id}: ${p}`).toBe(true);
+        expect(painted.has(p), `${v.id}: ${p}`).toBe(false);
+        expect(anchors.has(p), `${v.id}: ${p}`).toBe(false);
+        anchors.add(p);
+      }
     }
+  });
+
+  it('one with more than one way in opens from any of its lines, placed beside the one read', () => {
+    for (const v of VIGNETTES.filter((x) => x.anchor.also?.length))
+      for (const line of [v.anchor.phrase!, ...v.anchor.also!]) {
+        const m = new MemoryDirector();
+        // (Only this line on the wall: the others are not.)
+        const s = read(m, line, Math.max(v.earliest, 160), 3, { visible: (p) => p === line });
+        expect(s?.id, `${v.id} from ${line}`).toBe(v.id);
+        expect(s?.phraseId, `${v.id} from ${line}`).toBe(line);
+      }
   });
 
   it('are late in a visit, never inside cereal\'s window', () => {
@@ -121,7 +139,9 @@ describe('the vignettes, as written', () => {
       const peak = x.reduce((a, v) => Math.max(a, Math.abs(v)), 0);
       expect(peak, k).toBeGreaterThan(0);
       expect(peak, k).toBeLessThanOrEqual(1);
-      expect(render(k, 22050, 1)).toEqual(x);
+      // The same every time, sample for sample (compared as bytes: a deep compare of a 16 s bed
+      // took seconds).
+      expect(Buffer.from(render(k, 22050, 1).buffer).equals(Buffer.from(x.buffer)), k).toBe(true);
     }
   });
 });

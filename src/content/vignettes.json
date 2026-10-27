@@ -216,7 +216,10 @@
         }
       },
       "anchor": {
-        "phrase": "alone-with-you"
+        "phrase": "alone-with-you",
+        "also": [
+          "look-at-me"
+        ]
       },
       "earliest": 240,
       "arm": 2.5,
@@ -407,7 +410,11 @@
         }
       },
       "anchor": {
-        "phrase": "this-bit"
+        "phrase": "this-bit",
+        "also": [
+          "sit-awhile",
+          "breathe-out"
+        ]
       },
       "earliest": 150,
       "arm": 2.5,
@@ -1559,7 +1566,10 @@
         }
       },
       "anchor": {
-        "phrase": "warm-night"
+        "phrase": "warm-night",
+        "also": [
+          "still-warm"
+        ]
       },
       "earliest": 150,
       "arm": 2.5,

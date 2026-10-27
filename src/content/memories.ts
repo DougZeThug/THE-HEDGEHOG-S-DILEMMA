@@ -10,6 +10,8 @@ import { VIGNETTES, type Tone } from './vignettes';
 export interface SceneMemory {
   id: string;
   phraseId: string;
+  /** Every line that opens it, its own first (a vignette's `anchor.also`). */
+  phraseIds?: string[];
   /** Earliest engine time (seconds from the hand-off) it may play. */
   earliest: number;
   /** Seconds of looking at the line that arm it (a tap arms it at once). */
@@ -117,6 +119,7 @@ export const SCENE_BY_PHRASE = new Map(SCENE_MEMORIES.map((m) => [m.phraseId, m]
 export const VIGNETTE_MEMORIES: SceneMemory[] = VIGNETTES.map((v) => ({
   id: v.id,
   phraseId: v.anchor.phrase ?? '',
+  phraseIds: v.anchor.phrase ? [v.anchor.phrase, ...(v.anchor.also ?? [])] : [],
   earliest: v.earliest,
   arm: v.arm,
   commit: v.commit,
@@ -138,4 +141,9 @@ export const VIGNETTE_MEMORIES: SceneMemory[] = VIGNETTES.map((v) => ({
 /** Every memory the Director may open: the painted ones, then the vignettes. */
 export const ALL_MEMORIES: SceneMemory[] = [...SCENE_MEMORIES, ...VIGNETTE_MEMORIES];
 /** By the line that opens it (the chair's vignette has none). */
-export const MEMORY_BY_PHRASE = new Map(ALL_MEMORIES.filter((m) => m.phraseId).map((m) => [m.phraseId, m]));
+export const MEMORY_BY_PHRASE = new Map(ALL_MEMORIES.flatMap((m) => linesOf(m).map((p) => [p, m] as const)));
+
+/** Every line that opens a memory, its own first. */
+export function linesOf(m: SceneMemory): string[] {
+  return m.phraseIds?.length ? m.phraseIds : m.phraseId ? [m.phraseId] : [];
+}

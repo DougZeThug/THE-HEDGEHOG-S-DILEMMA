@@ -1,4 +1,4 @@
-import { ALL_MEMORIES, MEMORY_BY_PHRASE, type SceneMemory } from '../content/memories';
+import { ALL_MEMORIES, MEMORY_BY_PHRASE, linesOf, type SceneMemory } from '../content/memories';
 import { VIGNETTE_BY_ID, chooseVariant, spokenLines, type Echo, type VariantContext } from '../content/vignettes';
 import { chooseVoices, voicesId } from '../content/memory-voices';
 
@@ -96,6 +96,8 @@ interface Track {
   owed: boolean;
   /** Its line has been written again for it (once a visit). */
   reinked: boolean;
+  /** Which of its lines was last read or touched (it is placed beside that one). */
+  line?: string;
 }
 
 /** A look this long begins a vignette whose line the room has just pointed at (or that is owed). */
@@ -169,6 +171,7 @@ export class MemoryDirector {
     if (!m) return;
     const t = this.tracks.get(m.id)!;
     if (t.played) return;
+    t.line = phraseId;
     t.armed = true;
     // A touch is intent: coming back to the line later begins it without looking away first.
     t.left = true;
@@ -329,11 +332,14 @@ export class MemoryDirector {
         if (start) return start;
         continue;
       }
-      if (!s.visible(m.phraseId)) continue;
+      // Any of its lines on the wall (most have one).
+      const lines = linesOf(m).filter((p) => s.visible(p));
+      if (!lines.length) continue;
       if (!this.arcAllows(m, s.now, !!s.kitchenPlayed)) continue;
       // A memory with its own place (the door, under the room's drawn door) begins only there.
       if (m.offer?.wall && s.facing !== undefined && s.facing !== m.offer.wall) continue;
-      const looking = s.gazeId === m.phraseId;
+      const looking = !!s.gazeId && lines.includes(s.gazeId);
+      if (looking) t.line = s.gazeId!;
       // Just pointed at, or owed and pointed at again: a shorter look is enough.
       const need = (m.kind === 'vignette' || !!m.offer?.wall) && s.now <= t.easyUntil ? Math.min(EASY_LOOK, m.arm) : m.arm;
       if (looking && s.gazeFor >= need && !t.armed) {
@@ -446,7 +452,9 @@ export class MemoryDirector {
     t.played = true;
     t.requestedUntil = -Infinity;
     this.active = { id: m.id, since: now };
-    if (m.kind === 'vignette') return { id: m.id, phraseId: m.phraseId, variant, minHold: m.minHold, maxHold: m.maxHold, kind: 'vignette' };
+    // Placed beside the line that was read (its own, or another that opens it).
+    const line = t.line && linesOf(m).includes(t.line) ? t.line : m.phraseId;
+    if (m.kind === 'vignette') return { id: m.id, phraseId: line, variant, minHold: m.minHold, maxHold: m.maxHold, kind: 'vignette' };
     // Which version of its voices is heard: from what the visitor has done, never by chance.
     const ctx = s?.variantCtx?.() ?? { visits: 1, field: {}, motifs: [], withdrew: false };
     const chosen = chooseVoices(m.id, variant, { ...ctx, seen: this.counts[m.id] ?? 0 });

@@ -870,7 +870,8 @@ export class App {
    * preview (`?vignette=<id>&variant=<v>`, the artist's panel): a preview plays whether or not its
    * voices are recorded (an unrecorded line is a wordless voice with its caption).
    */
-  async playVignette(id: string, variant: string, preview = false): Promise<boolean> {
+  /** `line`: which of its lines opened it (it is placed beside that one); its own, by default. */
+  async playVignette(id: string, variant: string, preview = false, line?: string): Promise<boolean> {
     const def = VIGNETTE_BY_ID.get(id);
     if (!def || this.living || this.mode !== 'room') return false;
     const host = this.vignetteHost(def);
@@ -881,8 +882,9 @@ export class App {
     $('hint').classList.remove('on');
     const gen = ++this.vignetteGen;
     // A preview shows its line, if the room hasn't written it (so what it leaves there is seen).
-    if (preview && def.anchor.phrase && !this.text.anchorOf(def.anchor.phrase)) this.text.setShown(def.anchor.phrase);
-    const a = def.anchor.phrase ? this.text.anchorOf(def.anchor.phrase, this.gazeId ?? this.lastTappedKey) : null;
+    const opens = line && (line === def.anchor.phrase || def.anchor.also?.includes(line)) ? line : def.anchor.phrase;
+    if (preview && opens && !this.text.anchorOf(opens)) this.text.setShown(opens);
+    const a = opens ? this.text.anchorOf(opens, this.gazeId ?? this.lastTappedKey) ?? (def.anchor.phrase ? this.text.anchorOf(def.anchor.phrase) : null) : null;
     const frame = this.spotFrame(a?.key ?? null);
     const player = new VignettePlayer(def, variant, host, hashString(def.id + variant));
     // Its places are fixed from now (the frame is read while preparing, too).
@@ -1665,7 +1667,7 @@ export class App {
         this.text.erode(cue.key, cue.keep, this.time);
         break;
       case 'vignette': {
-        void this.playVignette(cue.id, cue.variant).then((ok) => {
+        void this.playVignette(cue.id, cue.variant, false, cue.phraseId).then((ok) => {
           if (!ok) this.director.memoryFailed(cue.id);
         });
         break;

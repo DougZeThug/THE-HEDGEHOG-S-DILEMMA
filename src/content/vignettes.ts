@@ -130,8 +130,14 @@ export interface Echo {
 }
 
 export interface Anchor {
-  /** The wall line that opens it. */
+  /** The wall line that opens it (the one the room offers or writes again for it). */
   phrase?: string;
+  /**
+   * Other lines it may open beside, read as its own is: a scene with more than one way in (a
+   * line written late, or on a wall some never face, is not its only door). Each sits beside
+   * the scene, never one it would only act out; the line read is where it is placed.
+   */
+  also?: string[];
   /** Or: a drawing on the wall that means that line (looking at it reads it). */
   drawing?: string;
   /** Or: being still by the chair (or kneeling there). */
