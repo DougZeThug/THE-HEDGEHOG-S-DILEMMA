@@ -1395,6 +1395,70 @@
       },
       "variantOf": "gone-quiet--fine",
       "retired": true
+    },
+    {
+      "id": "cereal--my-bowl",
+      "vignette": "cereal",
+      "line": "my-bowl",
+      "voice": "restrained",
+      "text": "That's my bowl.",
+      "input": "[quietly, flat] That's my bowl.",
+      "direction": "Dry, matter-of-fact, unhurried; mouth half full. Not hurt: a claim he knows is ridiculous.",
+      "seed": 8053,
+      "file": "vignettes/cereal--my-bowl.mp3",
+      "stability": 0.45,
+      "scene": {
+        "before": "Years later, it was the kitchen she kept. Late sun, a radio low on the sill. He sits down and sees which bowl she's eating from:",
+        "after": "\"It's the clean one.\""
+      }
+    },
+    {
+      "id": "cereal--my-bowl-b",
+      "vignette": "cereal",
+      "line": "my-bowl",
+      "voice": "restrained",
+      "text": "That's my bowl.",
+      "input": "[quietly, flat] That's my bowl.",
+      "direction": "Dry, matter-of-fact, unhurried; mouth half full. Not hurt: a claim he knows is ridiculous.",
+      "seed": 8066,
+      "file": "vignettes/cereal--my-bowl-b.mp3",
+      "stability": 0.45,
+      "scene": {
+        "before": "Years later, it was the kitchen she kept. Late sun, a radio low on the sill. He sits down and sees which bowl she's eating from:",
+        "after": "\"It's the clean one.\""
+      },
+      "variantOf": "cereal--my-bowl"
+    },
+    {
+      "id": "cereal--clean-one",
+      "vignette": "cereal",
+      "line": "clean-one",
+      "voice": "sarah",
+      "text": "It's the clean one.",
+      "input": "[quietly, flat] It's the clean one.",
+      "direction": "Deadpan, not looking up, still eating, as if that settles it. Held back, never amused.",
+      "seed": 8079,
+      "file": "vignettes/cereal--clean-one.mp3",
+      "stability": 0.35,
+      "scene": {
+        "before": "Years later, it was the kitchen she kept. \"That's my bowl.\" She doesn't look up:"
+      }
+    },
+    {
+      "id": "cereal--clean-one-b",
+      "vignette": "cereal",
+      "line": "clean-one",
+      "voice": "sarah",
+      "text": "It's the clean one.",
+      "input": "[quietly, flat] It's the clean one.",
+      "direction": "Deadpan, not looking up, still eating, as if that settles it. Held back, never amused.",
+      "seed": 8092,
+      "file": "vignettes/cereal--clean-one-b.mp3",
+      "stability": 0.35,
+      "scene": {
+        "before": "Years later, it was the kitchen she kept. \"That's my bowl.\" She doesn't look up:"
+      },
+      "variantOf": "cereal--clean-one"
     }
   ]
 }

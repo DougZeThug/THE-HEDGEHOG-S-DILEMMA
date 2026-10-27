@@ -87,6 +87,7 @@ export const sheetId = (id: string, variant: string) => `${id}-${variant}`;
  *   1.5–5.5  the colour follows the light
  *   5.5      the scene is formed: the radio comes on (a folk waltz, the artist's choice)
  *   7.3      two people eating; 10.5 a laugh at the table; 15.2 one of them eating on
+ *   7.4, 8.8 (once its voices are kept) "That's my bowl." / "It's the clean one." (memory-voices.json)
  *   5.5–22   living: one arc of light. The sun's pane slides off the words and down toward the
  *            table; it lifts a little after the laugh, then the evening goes down
  *   21.2     a spoon put down: the meal ends, and 0.8 s later the light answers
@@ -108,7 +109,8 @@ export const CEREAL: MemoryDef = {
     { label: 'bed:kitchen', position: 0.6 },
     { label: 'music:radio', position: 5.5 },
     { label: 'sfx:eating', position: 7.3 },
-    // Inside the minimum hold: a visitor who gives it only that still hears the people.
+    // Just past the minimum hold (10): a visitor who stays that long hears the people, and
+    // the light lifts with them. With its voices (memory-voices.json: 7.4, 8.8), the laugh answers them.
     { label: 'sfx:laugh', position: 10.5 },
     { label: 'sfx:eating-later', position: 15.2 },
     // (The file has 0.6 s of quiet before the clink: heard at about 21.8, just before the light goes.)

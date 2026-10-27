@@ -1,4 +1,30 @@
 {
-  "$comment": "Voices overheard inside the painted memories (src/content/memory-voices.ts, docs/memories.md). The only place their words are written. Times are the memory's sequence seconds (src/memory/defs.ts); places are inside the painting (u, v across it, d metres behind the wall). Empty until the scripts are settled by review (docs/reviews/2026-10-overheard.md).",
-  "memories": []
+  "$comment": "Voices overheard inside the painted memories (src/content/memory-voices.ts, docs/memories.md; decisions in docs/reviews/2026-10-overheard.md). The only place their words are written. Times are the memory's sequence seconds (src/memory/defs.ts); places are inside the painting (u, v across it, d metres behind the wall). Only cereal's first sitting speaks: its later variant, the bedroom, the door, the woodland, Almost and Things stay wordless on purpose.",
+  "memories": [
+    {
+      "id": "cereal",
+      "speakers": {
+        "him": { "voice": "restrained", "who": "one at the table, sitting down" },
+        "her": { "voice": "sarah", "who": "the other, already eating" }
+      },
+      "lines": [
+        { "id": "my-bowl", "speaker": "him", "text": "That's my bowl." },
+        { "id": "clean-one", "speaker": "her", "text": "It's the clean one." }
+      ],
+      "variants": {
+        "first": {
+          "quiet": [[10.5, 11.6]],
+          "versions": {
+            "default": {
+              "beats": [
+                { "at": 7.4, "line": "my-bowl", "place": { "u": -0.08, "v": -0.15, "d": 0.8 }, "gainDb": -3, "lowpass": 6000 },
+                { "at": 8.8, "line": "clean-one", "place": { "u": 0.13, "v": -0.15, "d": 0.8 }, "gainDb": -3, "lowpass": 6000 }
+              ],
+              "gains": { "music:radio": -18 }
+            }
+          }
+        }
+      }
+    }
+  ]
 }

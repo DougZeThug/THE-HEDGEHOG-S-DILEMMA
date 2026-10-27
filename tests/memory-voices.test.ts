@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { MEMORY_VOICES, chooseVoices, memoryLineKey, saidFor as said, versionKeys, withVoices } from '../src/content/memory-voices';
+import { MEMORY_VOICES, chooseVoices, memoryLineKey, versionKeys, withVoices } from '../src/content/memory-voices';
 import { VIGNETTES } from '../src/content/vignettes';
 import { SCENE_MEMORIES } from '../src/content/memories';
 import { MEMORIES } from '../src/memory/defs';
@@ -9,6 +9,17 @@ import { BRIGHT_TAGS } from '../scripts/dialogue-lib.mjs';
 const DIRECTION = JSON.parse(readFileSync('src/content/vignettes.dialogue.json', 'utf8')) as {
   voices: Record<string, unknown>;
   performances: { vignette: string; line: string; text: string; input: string; voice: string }[];
+};
+const MANIFEST = JSON.parse(readFileSync('public/voices/manifest.json', 'utf8')) as Record<string, string[]>;
+const TIMINGS = JSON.parse(readFileSync('src/content/voice-timings.json', 'utf8')) as Record<string, { chars: [number, number][] }>;
+/**
+ * How long a line is said (s): its kept takes' measured speech, the longest of them, once there are
+ * any; until then a typical reading (kept short takes: about 1.1 s for three words, 1.6 for four;
+ * the skeptic's measure, 2026-10-27). The audition decides the real gaps.
+ */
+const said = (key: string, text: string) => {
+  const ends = (MANIFEST[key] ?? []).map((f) => TIMINGS[f]?.chars.at(-1)?.[1]).filter((x): x is number => x !== undefined);
+  return ends.length ? Math.max(...ends) : 0.2 + 0.3 * text.split(/\s+/).length;
 };
 const NONE = { seen: 0, visits: 1, field: {}, motifs: [], withdrew: false };
 
@@ -51,12 +62,12 @@ describe('the painted memories\' voices, as written', () => {
           const beats = [...v.beats].sort((a, b) => a.at - b.at);
           let free = -Infinity;
           for (const b of beats) {
-            const text = m.lines.find((x) => x.id === b.line)!.text;
+            const line = m.lines.find((x) => x.id === b.line)!;
             const where = `${m.id}/${variant}/${name}: ${b.line}`;
             // The visual leads: nothing said in the first second and a half of the formed scene.
             expect(b.at, where).toBeGreaterThanOrEqual(active + 1.5);
             expect(b.at, where).toBeGreaterThanOrEqual(free);
-            free = b.at + said(text);
+            free = b.at + said(memoryLineKey(m, line), line.text);
             // And the light and its afterglow are left to themselves.
             expect(free, where).toBeLessThanOrEqual(exit - 2);
             for (const [from, to] of vv.quiet ?? []) expect(free <= from || b.at >= to, `${where} speaks in ${from}–${to}`).toBe(true);
@@ -135,7 +146,7 @@ describe('the painted memories\' voices, played', () => {
   });
 
   it('only versions whose every line is kept reach visitors (nothing is kept yet: none do)', () => {
-    const manifest = JSON.parse(readFileSync('public/voices/manifest.json', 'utf8')) as Record<string, string[]>;
+    const manifest = MANIFEST;
     for (const m of MEMORY_VOICES)
       for (const l of m.lines) {
         const key = memoryLineKey(m, l);
