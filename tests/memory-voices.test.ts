@@ -59,16 +59,19 @@ describe('the painted memories\' voices, as written', () => {
             free = b.at + said(text);
             // And the light and its afterglow are left to themselves.
             expect(free, where).toBeLessThanOrEqual(exit - 2);
+            for (const [from, to] of vv.quiet ?? []) expect(free <= from || b.at >= to, `${where} speaks in ${from}–${to}`).toBe(true);
           }
         }
     }
   });
 
-  it('mute only sounds the memory has', () => {
+  it('mute and re-level only sounds the memory has', () => {
     for (const m of MEMORY_VOICES)
       for (const [variant, vv] of Object.entries(m.variants))
-        for (const v of Object.values(vv.versions))
+        for (const v of Object.values(vv.versions)) {
           for (const label of v.mute ?? []) expect(MEMORIES[m.id].markers.map((x) => x.label), `${m.id}/${variant}: ${label}`).toContain(label);
+          for (const label of Object.keys(v.gains ?? {})) expect(MEMORIES[m.id].cues(variant).cues[label], `${m.id}/${variant}: ${label}`).toBeDefined();
+        }
   });
 
   it('are directed, each line, in the room\'s held-back register, saying exactly the words written', () => {
@@ -115,8 +118,10 @@ describe('the painted memories\' voices, played', () => {
             if (Object.keys(m.speakers).length > 1) expect(cue.side).toMatch(/left|right/);
           }
           for (const label of v.mute ?? []) expect(markers.some((x) => x.label === label)).toBe(false);
-          // Its own sounds are left as they were.
-          for (const [label, cue] of Object.entries(sheet.cues)) expect(out.cues[label]).toBe(cue);
+          // Its own sounds are left as they were (but for a level the version sets).
+          for (const [label, cue] of Object.entries(sheet.cues))
+            if (v.gains?.[label] === undefined) expect(out.cues[label]).toBe(cue);
+            else expect(out.cues[label]).toEqual({ ...cue, gainDb: v.gains[label] });
           expect(versionKeys(m.id, variant, name).length).toBeGreaterThan(0);
         }
   });

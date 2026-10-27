@@ -36,9 +36,16 @@ export interface Version {
   beats: Beat[];
   /** The memory's own sound markers left out of this version (the laugh, when nobody laughs). */
   mute?: string[];
+  /** The memory's own sounds at another level (dB) while it has words (the radio, under speech). */
+  gains?: Record<string, number>;
 }
 
 export interface VariantVoices {
+  /**
+   * Where no voice may sound (sequence seconds, [from, to]): the picture's own beats (its forming,
+   * a light lifting, a curtain, the sun arriving) are left to it. Checked by the tests.
+   */
+  quiet?: [number, number][];
   /** `default` is heard unless a rule picks another. */
   versions: Record<string, Version>;
   /** First match wins. */
@@ -122,6 +129,7 @@ export function withVoices(
   const side = (speaker: string): 'left' | 'right' | undefined => (order.length < 2 ? undefined : at(speaker) < 0 ? 'left' : 'right');
   const mute = new Set(v.mute ?? []);
   const cues: Record<string, Cue> = { ...sheet.cues };
+  for (const [label, gainDb] of Object.entries(v.gains ?? {})) if (cues[label]) cues[label] = { ...cues[label], gainDb };
   const out = markers.filter((m) => !mute.has(m.label));
   v.beats.forEach((b, i) => {
     const line = def.lines.find((l) => l.id === b.line);
