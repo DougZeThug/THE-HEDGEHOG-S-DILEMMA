@@ -21,7 +21,7 @@ Small remembered fragments, heard rather than seen: one or two voices, the pause
 - **In practice: one to three in ten minutes.** A third comes late, never before about seven minutes, and never three within five. Measured with `npx vite-node scripts/vignette-reach.ts`:
   - 5 personas × seeds 1–40 × 600 s, each persona repeating the middle of its script once it runs out.
   - The seeds vary the room, not the visitor. Read anything under about 10 in 200 as "rare", not as a number to tune against.
-  - The table counts Rain as if recorded (`LIVE=rain`). The visitor's chance of noticing a line the room has just written (`NOTICE`) moves everything:
+  - Rain is live (its takes kept). The visitor's chance of noticing a line the room has just written (`NOTICE`) moves everything:
 
     | Notice chance | All | Charger | C | D | E | G | Rain |
     |---|---|---|---|---|---|---|---|
@@ -263,7 +263,7 @@ Small remembered fragments, heard rather than seen: one or two voices, the pause
   - 2.6: someone in the room (left): "Close that, will you?"
   - 5.0: the one at the window (ahead): "…It's nice."
   - 6.2: *pause, 4 s*
-- **Recorded, not kept yet:** six takes (two per line), made through the ElevenLabs connector at the artist's request: no seed, no scene context, default stability; 166 credits. Each take's speech runs only as long as its line. The connector's transcript echoed the input, so it was no independent word check. Rain goes live once one take of each line is kept on the audition sheet.
+- **Recorded and kept:** six takes (two per line), made through the ElevenLabs connector at the artist's request (no seed, no scene context, default stability; 166 credits). The artist kept the `-b` take of each line (`rain--close-b`, `rain--nice-b`, `rain--nice-again-b`), so Rain is live. Measured speech ends before each next event in both versions.
 
 ## Recording
 
@@ -275,7 +275,7 @@ Small remembered fragments, heard rather than seen: one or two voices, the pause
   - A first batch in the old "ordinary" direction: 36 takes, 426 credits. The artist heard it as too happy and expressive.
   - Replaced by the sad direction, two takes per line: 72 takes (the base take and its `-b` seed), 1,212 credits.
   - The two designed voices are saved to the account: `small-voice` from small-voice-1, `older-woman` from older-woman-2.
-  - **Kept (the artist's marks):** the first nine vignettes have every line kept, so all nine are live for visitors. Rain (K) waits for its takes.
+  - **Kept (the artist's marks):** all ten vignettes have every line kept, so all ten are live for visitors.
   - **D's line** is now "Hiya. …No.", re-recorded flat after the artist found "Hiya!" too happy.
   - **B's leaver** now says "Okay, I'll see you tomorrow." (the artist's note). The old line and its takes are no longer directed or played; the files stay in git history.
 - **Audition.** On the audition sheet, each version has a read-through at its own times. It plays the kept take of each line, or failing that the take generated for it, marked "not kept yet", placed roughly (left, right, through a wall). Then each take is listed to keep or not. Kept takes go in with `--vignettes --approve=…`, and only kept takes reach visitors.

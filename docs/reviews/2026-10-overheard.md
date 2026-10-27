@@ -118,3 +118,4 @@ Reviewed by the creative director, sound designer and interaction designer, chal
    - **Placement.** A vignette opened from a line that has since gone is placed beside one of its lines still on the wall. The App's fallback checks the wall where its own line is actually written, not the wall it belongs to.
    - **Tests added:** a touch on another way in, the owed re-ink, the paintings' priority, and unrecorded claims.
    - **Not reproduced:** a room reading overlapping its vignette. Visitors' voices never sound during a scene. A slow decode on a real phone remains to check.
+9. **Rain kept** (the artist, after listening): `rain--close-b`, `rain--nice-b` and `rain--nice-again-b`. Rain is live, met in about 12 of 200 simulated visits.
