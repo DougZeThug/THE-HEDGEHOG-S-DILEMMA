@@ -17,7 +17,7 @@
         }
       },
       "anchor": {
-        "phrase": "ordinary"
+        "phrase": "happy-then"
       },
       "earliest": 150,
       "arm": 2.5,
@@ -216,7 +216,10 @@
         }
       },
       "anchor": {
-        "phrase": "alone-with-you"
+        "phrase": "alone-with-you",
+        "also": [
+          "look-at-me"
+        ]
       },
       "earliest": 240,
       "arm": 2.5,
@@ -407,7 +410,11 @@
         }
       },
       "anchor": {
-        "phrase": "this-bit"
+        "phrase": "this-bit",
+        "also": [
+          "sit-awhile",
+          "breathe-out"
+        ]
       },
       "earliest": 150,
       "arm": 2.5,
@@ -1542,6 +1549,209 @@
         }
       ],
       "describe": "A party heard through a wall, from the hallway outside it."
+    },
+    {
+      "id": "rain",
+      "title": "Rain",
+      "tone": "bittersweet",
+      "intent": "A window kept open against someone's asking, and then against the weather: closeness on her own terms, small and stubborn.",
+      "speakers": {
+        "asker": {
+          "voice": "warm",
+          "who": "someone in the room behind her"
+        },
+        "writer": {
+          "voice": "sarah",
+          "who": "the one who opened the window"
+        }
+      },
+      "anchor": {
+        "phrase": "warm-night",
+        "also": [
+          "still-warm"
+        ]
+      },
+      "earliest": 150,
+      "arm": 2.5,
+      "commit": 1,
+      "lookBack": false,
+      "room": [
+        0.35,
+        1.8,
+        0.1
+      ],
+      "hush": 0.4,
+      "lines": [
+        {
+          "id": "close",
+          "speaker": "asker",
+          "text": "Close that, will you?"
+        },
+        {
+          "id": "nice",
+          "speaker": "writer",
+          "text": "It's nice."
+        },
+        {
+          "id": "nice-again",
+          "speaker": "writer",
+          "text": "…It's nice."
+        }
+      ],
+      "variants": {
+        "first": {
+          "span": 16.5,
+          "events": [
+            {
+              "at": 0,
+              "bed": "night",
+              "asset": "synth:air",
+              "take": 6,
+              "gainDb": -6,
+              "place": {
+                "at": "beyond"
+              },
+              "fadeIn": 1,
+              "fadeOut": 3
+            },
+            {
+              "at": 0.4,
+              "line": "close",
+              "place": {
+                "at": "left",
+                "d": 1.4
+              },
+              "gainDb": -2
+            },
+            {
+              "at": 2.8,
+              "line": "nice",
+              "place": {
+                "at": "self"
+              },
+              "dry": true
+            },
+            {
+              "at": 4.0,
+              "gap": "pause",
+              "seconds": 2.0
+            },
+            {
+              "at": 5.0,
+              "sfx": "sill1",
+              "asset": "synth:sill",
+              "take": 0,
+              "place": {
+                "at": "beyond",
+                "d": 0.3,
+                "h": 1.0
+              },
+              "gainDb": -14,
+              "caption": "[drops on the sill]"
+            },
+            {
+              "at": 5.7,
+              "sfx": "sill2",
+              "asset": "synth:sill",
+              "take": 1,
+              "place": {
+                "at": "beyond",
+                "d": 0.3,
+                "h": 1.0
+              },
+              "gainDb": -12
+            },
+            {
+              "at": 6.3,
+              "sfx": "sill3",
+              "asset": "synth:sill",
+              "take": 2,
+              "place": {
+                "at": "beyond",
+                "d": 0.3,
+                "h": 1.0
+              },
+              "gainDb": -11
+            },
+            {
+              "at": 6.7,
+              "bed": "rain",
+              "asset": "synth:rain",
+              "gainDb": 5,
+              "place": {
+                "at": "beyond"
+              },
+              "fadeIn": 3.3,
+              "fadeOut": 4,
+              "caption": "[it starts to rain]"
+            },
+            {
+              "at": 10.8,
+              "line": "nice-again",
+              "place": {
+                "at": "self"
+              },
+              "dry": true
+            },
+            {
+              "at": 12.2,
+              "gap": "pause",
+              "seconds": 4.0
+            }
+          ]
+        },
+        "again": {
+          "span": 10.5,
+          "events": [
+            {
+              "at": 0,
+              "bed": "rain",
+              "asset": "synth:rain",
+              "gainDb": 3,
+              "place": {
+                "at": "beyond"
+              },
+              "fadeIn": 2.5,
+              "fadeOut": 4,
+              "caption": "[rain, through an open window]"
+            },
+            {
+              "at": 2.6,
+              "line": "close",
+              "place": {
+                "at": "left",
+                "d": 1.4
+              },
+              "gainDb": -2
+            },
+            {
+              "at": 5.0,
+              "line": "nice-again",
+              "place": {
+                "at": "self"
+              },
+              "dry": true
+            },
+            {
+              "at": 6.2,
+              "gap": "pause",
+              "seconds": 4.0
+            }
+          ]
+        }
+      },
+      "rules": [
+        {
+          "when": {
+            "seen": [
+              1,
+              99
+            ]
+          },
+          "variant": "again"
+        }
+      ],
+      "describe": "A warm night, heard: a window open, someone asking for it to be shut, the one at it saying no; then rain."
     }
   ]
 }

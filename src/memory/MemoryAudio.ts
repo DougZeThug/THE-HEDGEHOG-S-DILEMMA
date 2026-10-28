@@ -393,7 +393,12 @@ export class MemoryAudio implements AudioSink {
     }
   }
 
-  release(mode: 'natural' | 'interrupt', fade: number): void {
+  /**
+   * `soft`: let go early but gently (a painted memory looked away from, walked off, tapped past):
+   * a sentence already begun is said to its end, as a vignette's is, and nothing new is begun.
+   * Overheard words are never chopped mid-syllable by a turned head.
+   */
+  release(mode: 'natural' | 'interrupt', fade: number, soft = false): void {
     if (this.released) return;
     this.released = true;
     // Let go naturally, a sentence or a one-shot plays on (begun or not), captioned as it is heard;
@@ -409,8 +414,8 @@ export class MemoryAudio implements AudioSink {
         continue;
       }
       if (l.kind === 'voice') {
-        // A sentence already begun is finished at a natural close; interrupted, it is cut.
-        if (mode === 'interrupt') this.fadeOut(l, l.at > this.now + 0.005 ? 0 : 0.3);
+        // A sentence already begun is finished at a natural close or a soft one; interrupted, it is cut.
+        if (mode === 'interrupt' && (l.at > this.now + 0.005 || !soft)) this.fadeOut(l, l.at > this.now + 0.005 ? 0 : 0.3);
         continue;
       }
       if (l.kind === 'sfx') {

@@ -195,8 +195,9 @@ export class Director {
   /** After a vignette, even the room finishing its own line waits (its quiet is part of it). */
   private vignetteQuietUntil = -Infinity;
 
+  /** A memory with voices of its own is playing: a vignette, or a painted memory begun with its overheard voices. */
   private get vignettePlaying(): boolean {
-    return !!this.scenes.active && VIGNETTE_BY_ID.has(this.scenes.active.id);
+    return !!this.scenes.active && (VIGNETTE_BY_ID.has(this.scenes.active.id) || !!this.scenes.active.voiced);
   }
 
   /** The hold that came with the last line offered for a memory (it doesn't hold back that memory). */
@@ -405,7 +406,7 @@ export class Director {
     // The memory's line has just been written for the visitor to stay with: the room doesn't
     // talk over it (authored situations and a finished line aside).
     if (this.now < this.memoryQuietUntil && !extra.finish && !rule.startsWith('sit:')) return;
-    // Nothing talks over a living memory (a finished line aside; nothing at all over a vignette).
+    // Nothing talks over a living memory (a finished line aside; nothing at all over one with voices of its own).
     if (this.scenes.active && (!extra.finish || this.vignettePlaying)) return;
     // A vignette's line is its own: the room doesn't say it first.
     if (extra.phraseId && !extra.finish && this.scenes.claimsVoice(extra.phraseId)) return;
@@ -1017,7 +1018,7 @@ export class Director {
     // (Never in the afternoon's aftermath: a sentence finished under its line would caption it.
     // After the other memories a long look is answered as ever: it is the visitor's.)
     if (!this.unfinished.size || this.now < 12 || (this.aftermath() && this._musicWithdrawn)) return;
-    // Not over a vignette: a heard memory has voices of its own (a painted one can take it).
+    // Not over a vignette or a painted memory's own voices (a wordless painted one can take it).
     if (this.vignettePlaying || this.now < this.vignetteQuietUntil) return;
     const v = this.visitor;
     for (const id of this.unfinished) {
@@ -1420,7 +1421,7 @@ export class Director {
       }),
     });
     if (start?.kind === 'vignette') this.queue(0, { type: 'vignette', id: start.id, phraseId: start.phraseId, variant: start.variant }, 'vignette', { major: true, ttl: 3 });
-    else if (start) this.queue(0, { type: 'memory-scene', id: start.id, phraseId: start.phraseId, variant: start.variant, minHold: start.minHold, maxHold: start.maxHold }, 'memory-scene', { major: true, ttl: 3 });
+    else if (start) this.queue(0, { type: 'memory-scene', id: start.id, phraseId: start.phraseId, variant: start.variant, minHold: start.minHold, maxHold: start.maxHold, voices: start.voices }, 'memory-scene', { major: true, ttl: 3 });
     if (this.scenes.active) this.pacing.holdFor(this.now, 0.5);
     // A later memory's line is offered as the kitchen-light memory's is: written alone, where
     // the visitor is looking, and the room holds still a moment so a visitor who stays with it
@@ -1478,8 +1479,8 @@ export class Director {
   }
 
   /** A memory the Director didn't begin is playing (the artist's panel): the room waits with it. */
-  memoryExternal(id: string): void {
-    this.scenes.external(id, this.now);
+  memoryExternal(id: string, voiced = false): void {
+    this.scenes.external(id, this.now, voiced);
   }
 
   memoryEnded(id: string, seen: boolean, ranToEnd: boolean): boolean {

@@ -65,6 +65,20 @@ To change when the film starts or how long its first frame is held, move `scene.
 Studio (`almost` / `film`), together with the `music:film` marker. To change the film itself,
 re-render (`docs/almost.md`).
 
+## Voices in painted memories
+
+A painted memory may be overheard: a few seconds of the people in it talking to each other, after the picture has formed and before its light goes. The decisions are in `docs/reviews/2026-10-overheard.md`.
+
+- **Words and timing.** The words and their times are in `src/content/memory-voices.json` (typed by `src/content/memory-voices.ts`), per memory and variant:
+  - speakers (voices from `vignettes.dialogue.json`), lines and beats (sequence seconds, places in the painting);
+  - `quiet` windows the picture keeps to itself;
+  - optionally, versions chosen by rules and the memory's own sounds re-levelled (`gains`) or left out (`mute`). These are unused so far: there is one version.
+- **Playback.** The beats become `voice:` cues and markers on the memory's own sheet and timeline (`withVoices`, in `runtime.ts`). Its clock, interruption, pause and hush are the memory's.
+- **Who hears them.** Heard only when every line of the version has a kept take (`vig:<memory>:<line>` in the manifest). Otherwise the memory is wordless, as before.
+- **So far:** only cereal's first sitting speaks ("That's my bowl." / "It's the clean one.", then the laugh), with both lines kept by the artist (`cereal--my-bowl-b`, `cereal--clean-one`), so visitors hear it. The rest are wordless on purpose.
+- **Recording.** Recorded and kept like a vignette's lines: `generate-dialogue.mjs --vignettes`, where a take's `vignette` names the memory. They are read through on the audition sheet.
+- **Preview.** `?memory=<id>&variant=<v>&voices=<version>` plays it a few seconds after the room opens, with takes not kept yet.
+
 ## Authoring in Theatre Studio (development only)
 
 ```

@@ -1,5 +1,6 @@
-import { ALL_MEMORIES, MEMORY_BY_PHRASE, type SceneMemory } from '../content/memories';
+import { ALL_MEMORIES, MEMORY_BY_PHRASE, linesOf, type SceneMemory } from '../content/memories';
 import { VIGNETTE_BY_ID, chooseVariant, spokenLines, type Echo, type VariantContext } from '../content/vignettes';
+import { chooseVoices, voicesId } from '../content/memory-voices';
 
 /**
  * When a living memory may open (docs/memories.md; decisions in
@@ -61,6 +62,8 @@ export interface SceneStart {
   minHold: number;
   maxHold: number;
   kind?: 'vignette';
+  /** A painted memory's overheard voices: which version (memory-voices.ts), if it has any. */
+  voices?: string;
 }
 
 /** Something a vignette left to come back later in the visit. */
@@ -74,6 +77,13 @@ export interface PendingEcho {
 /** Seconds a vignette keeps from the end of any other memory (more after one of its tone). */
 export const VIGNETTE_APART = 90;
 export const SAME_TONE_APART = 150;
+/**
+ * Never three in five minutes: at most this many vignettes begun in any `VIGNETTE_WINDOW` seconds.
+ * (With more than one way into some, a settled visitor met three late in a visit; three close
+ * together is the pushing the room never does: interaction review, 2026-10-27.)
+ */
+export const VIGNETTE_WINDOW = 300;
+export const VIGNETTES_IN_WINDOW = 2;
 
 interface Track {
   armed: boolean;
@@ -93,6 +103,8 @@ interface Track {
   owed: boolean;
   /** Its line has been written again for it (once a visit). */
   reinked: boolean;
+  /** Which of its lines was last read or touched (it is placed beside that one). */
+  line?: string;
 }
 
 /** A look this long begins a vignette whose line the room has just pointed at (or that is owed). */
@@ -109,11 +121,14 @@ export type OfferPick = SceneMemory & { reink?: boolean };
 
 export class MemoryDirector {
   private tracks = new Map<string, Track>();
-  active: { id: string; since: number } | null = null;
+  /** `voiced`: a painted memory begun with overheard voices of its own. */
+  active: { id: string; since: number; voiced?: boolean } | null = null;
   private cooldownUntil = -Infinity;
   private last: number | null = null;
   /** When the last memory (any) ended; kitchen-light's too, reported by the Director. */
   lastEnded = -Infinity;
+  /** When each vignette of this visit began. */
+  private vignetteStarts: number[] = [];
   /** The tone of the last vignette heard this visit. */
   private lastTone: string | null = null;
   /** Vignettes whose voices are recorded and approved (null: all, as in tests and previews). */
@@ -145,12 +160,23 @@ export class MemoryDirector {
     return (this.counts[id] ?? 0) > 0;
   }
 
+  /** A vignette begun that never played (its cue lost, or withdrawn unseen to come again) holds no place in the window. */
+  private unspend(id: string, since: number): void {
+    if (!VIGNETTE_BY_ID.has(id)) return;
+    const i = this.vignetteStarts.lastIndexOf(since);
+    if (i >= 0) this.vignetteStarts.splice(i, 1);
+  }
+
   /** Its line has been offered this visit (until then the room keeps it back). */
   wasOffered(id: string): boolean {
     return !!this.tracks.get(id)?.offered;
   }
 
-  /** Which vignettes may speak (their recordings approved); the rest wait, or play voiceless. */
+  /**
+   * Which vignettes may speak (their recordings approved); the rest wait, or play voiceless. Also
+   * which painted memories' voices may (`voicesId`): those are heard only when named here, so with
+   * nothing set a painted memory is wordless, to the Director as to the App.
+   */
   setAvailable(ids: Set<string> | null): void {
     this.available = ids;
   }
@@ -161,6 +187,7 @@ export class MemoryDirector {
     if (!m) return;
     const t = this.tracks.get(m.id)!;
     if (t.played) return;
+    t.line = phraseId;
     t.armed = true;
     // A touch is intent: coming back to the line later begins it without looking away first.
     t.left = true;
@@ -177,6 +204,8 @@ export class MemoryDirector {
     // A vignette's line answers like any other until its memory could open (a line read early
     // isn't left unanswered for minutes).
     if (m.kind === 'vignette' && (this.last ?? 0) < m.earliest) return false;
+    // Nor one that can't play (its voices not kept): its lines answer as any other (QA, 2026-10-27).
+    if (!this.isAvailable(m.id)) return false;
     return !this.tracks.get(m.id)!.played;
   }
 
@@ -255,16 +284,22 @@ export class MemoryDirector {
     // Owed vignettes first (read when they couldn't play), then memories never heard on any visit.
     const owed = (m: SceneMemory) => this.tracks.get(m.id)!.owed && m.kind === 'vignette';
     // (The door, once it may come, before other offers: it has a place of its own and is otherwise never found.)
-    const rank = (m: SceneMemory) => (owed(m) ? 0 : m.offer?.wall ? 0.5 : (this.counts[m.id] ?? 0) === 0 ? 1 : 2);
+    const rank = (m: SceneMemory) => (m.offer?.wall ? 0.5 : (this.counts[m.id] ?? 0) === 0 && m.kind !== 'vignette' ? 1 : owed(m) ? 1.5 : (this.counts[m.id] ?? 0) === 0 ? 2 : 3);
     const order = [...ALL_MEMORIES].sort((a, b) => rank(a) - rank(b));
     for (const m of order) {
       const t = this.tracks.get(m.id)!;
       if (t.played || s.now < m.earliest || this.arcEnded(m)) continue;
-      // An owed vignette whose line is already where they look: written again there, once.
-      if (owed(m) && !t.reinked && s.visibleFacing(m.phraseId) && this.isAvailable(m.id) && this.vignetteAllows(m, s) && s.now >= t.notBefore) {
+      // An owed vignette whose line is already where they look: written again there, once. The
+      // line that was read, if it is there (most owed reads come through a second way in); else its own.
+      const owedLine = t.line && t.line !== m.phraseId && s.visibleFacing(t.line) ? t.line : m.phraseId;
+      if (owed(m) && !t.reinked && s.visibleFacing(owedLine) && this.isAvailable(m.id) && this.vignetteAllows(m, s) && s.now >= t.notBefore) {
         t.reinked = true;
-        return point(m, t, true);
+        return point({ ...m, phraseId: owedLine }, t, true);
       }
+      // Owed through another way in, it is pointed at only by that line, written again: never by its
+      // own line written alone, which the visitor didn't read (it spent the painted memories' points
+      // and seldom began: QA, 2026-10-27).
+      if (owed(m) && t.line && t.line !== m.phraseId) continue;
       if (!m.offer || t.offered || !m.offer.phases.includes(s.phase as never)) continue;
       if (s.now - this.lastEnded < m.offer.apart) continue;
       if (!this.arcAllows(m, s.now, !!s.kitchenPlayed)) continue;
@@ -321,11 +356,14 @@ export class MemoryDirector {
         if (start) return start;
         continue;
       }
-      if (!s.visible(m.phraseId)) continue;
+      // Any of its lines on the wall (most have one).
+      const lines = linesOf(m).filter((p) => s.visible(p));
+      if (!lines.length) continue;
       if (!this.arcAllows(m, s.now, !!s.kitchenPlayed)) continue;
       // A memory with its own place (the door, under the room's drawn door) begins only there.
       if (m.offer?.wall && s.facing !== undefined && s.facing !== m.offer.wall) continue;
-      const looking = s.gazeId === m.phraseId;
+      const looking = !!s.gazeId && lines.includes(s.gazeId);
+      if (looking) t.line = s.gazeId!;
       // Just pointed at, or owed and pointed at again: a shorter look is enough.
       const need = (m.kind === 'vignette' || !!m.offer?.wall) && s.now <= t.easyUntil ? Math.min(EASY_LOOK, m.arm) : m.arm;
       if (looking && s.gazeFor >= need && !t.armed) {
@@ -356,6 +394,7 @@ export class MemoryDirector {
     if (m.kind !== 'vignette') return true;
     if (m.afterFinished && !(s.finished?.(m.afterFinished) ?? true)) return false;
     if (s.now - this.lastEnded < (this.lastTone === m.tone ? SAME_TONE_APART : VIGNETTE_APART)) return false;
+    if (this.vignetteStarts.filter((at) => s.now - at < VIGNETTE_WINDOW).length >= VIGNETTES_IN_WINDOW) return false;
     if (m.phases && s.phase && !m.phases.includes(s.phase as never)) return false;
     if (m.group === 'kitchen' && s.kitchenPlayed) return false;
     if (m.requires && !((this.counts[m.requires.seen] ?? 0) > 0)) return false;
@@ -422,8 +461,8 @@ export class MemoryDirector {
    * A memory playing that the Director didn't begin (the artist's panel, captures): the room
    * still waits with it.
    */
-  external(id: string, now: number): void {
-    if (!this.active) this.active = { id, since: now };
+  external(id: string, now: number, voiced = false): void {
+    if (!this.active) this.active = { id, since: now, ...(voiced ? { voiced } : {}) };
   }
 
   private begin(m: SceneMemory, now: number, s?: SceneState): SceneStart | null {
@@ -438,12 +477,24 @@ export class MemoryDirector {
     t.played = true;
     t.requestedUntil = -Infinity;
     this.active = { id: m.id, since: now };
-    return { id: m.id, phraseId: m.phraseId, variant, minHold: m.minHold, maxHold: m.maxHold, ...(m.kind === 'vignette' ? { kind: 'vignette' as const } : {}) };
+    if (m.kind === 'vignette') this.vignetteStarts.push(now);
+    // Placed beside the line that was read (its own, or another that opens it).
+    // (If that line has gone from the wall since, beside one of its lines still there.)
+    const shown = (p: string) => s?.visible(p) ?? true;
+    const line = t.line && linesOf(m).includes(t.line) && shown(t.line) ? t.line : linesOf(m).find(shown) ?? m.phraseId;
+    if (m.kind === 'vignette') return { id: m.id, phraseId: line, variant, minHold: m.minHold, maxHold: m.maxHold, kind: 'vignette' };
+    // Which version of its voices is heard: from what the visitor has done, never by chance.
+    const ctx = s?.variantCtx?.() ?? { visits: 1, field: {}, motifs: [], withdrew: false };
+    const chosen = chooseVoices(m.id, variant, { ...ctx, seen: this.counts[m.id] ?? 0 });
+    const voices = chosen && this.available?.has(voicesId(m.id, variant, chosen)) ? chosen : null;
+    if (voices) this.active.voiced = true;
+    return { id: m.id, phraseId: m.phraseId, variant, minHold: m.minHold, maxHold: m.maxHold, ...(voices ? { voices } : {}) };
   }
 
   /** Its cue never found room (something else took the moment): not spent, still armed. */
   cancel(id: string, now: number): void {
     if (this.active?.id !== id) return;
+    this.unspend(id, this.active.since);
     this.active = null;
     const t = this.tracks.get(id);
     if (!t) return;
@@ -458,6 +509,7 @@ export class MemoryDirector {
    */
   ended(id: string, now: number, seen: boolean, ranToEnd: boolean): boolean {
     if (this.active?.id !== id) return false;
+    const since = this.active.since;
     this.active = null;
     if (VIGNETTE_BY_ID.has(id)) this.lastVignetteEnded = now;
     const t = this.tracks.get(id);
@@ -465,6 +517,7 @@ export class MemoryDirector {
     if (!seen && t.unseen === 0) {
       // Withdrawn before anyone saw it: not spent; offered again once, a little later.
       t.unseen++;
+      this.unspend(id, since);
       t.played = false;
       t.armed = false;
       t.left = false;

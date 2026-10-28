@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { VIGNETTES, chooseVariant, scoreMarkers, spokenLines, toCueSheet, vignetteKeys, lineKey, type VignetteDef } from '../src/content/vignettes';
 import { SCENE_MEMORIES, VIGNETTE_MEMORIES } from '../src/content/memories';
 import { PHRASE_BY_ID } from '../src/content/phrases';
-import { MemoryDirector, VIGNETTE_APART, type SceneState } from '../src/state/MemoryDirector';
+import { MemoryDirector, VIGNETTE_APART, VIGNETTE_WINDOW, type SceneState } from '../src/state/MemoryDirector';
 import { Director } from '../src/state/Director';
 import { SYNTH_KINDS, render } from '../src/memory/synthSounds';
 
@@ -46,7 +46,25 @@ describe('the vignettes, as written', () => {
       expect(painted.has(a.phrase), v.id).toBe(false);
       expect(anchors.has(a.phrase), v.id).toBe(false);
       anchors.add(a.phrase);
+      // Its other ways in: real lines, each opening only this one, never a painted memory's.
+      for (const p of a.also ?? []) {
+        expect(PHRASE_BY_ID.has(p), `${v.id}: ${p}`).toBe(true);
+        expect(painted.has(p), `${v.id}: ${p}`).toBe(false);
+        expect(anchors.has(p), `${v.id}: ${p}`).toBe(false);
+        anchors.add(p);
+      }
     }
+  });
+
+  it('one with more than one way in opens from any of its lines, placed beside the one read', () => {
+    for (const v of VIGNETTES.filter((x) => x.anchor.also?.length))
+      for (const line of [v.anchor.phrase!, ...v.anchor.also!]) {
+        const m = new MemoryDirector();
+        // (Only this line on the wall: the others are not.)
+        const s = read(m, line, Math.max(v.earliest, 160), 3, { visible: (p) => p === line });
+        expect(s?.id, `${v.id} from ${line}`).toBe(v.id);
+        expect(s?.phraseId, `${v.id} from ${line}`).toBe(line);
+      }
   });
 
   it('are late in a visit, never inside cereal\'s window', () => {
@@ -121,7 +139,9 @@ describe('the vignettes, as written', () => {
       const peak = x.reduce((a, v) => Math.max(a, Math.abs(v)), 0);
       expect(peak, k).toBeGreaterThan(0);
       expect(peak, k).toBeLessThanOrEqual(1);
-      expect(render(k, 22050, 1)).toEqual(x);
+      // The same every time, sample for sample (compared as bytes: a deep compare of a 16 s bed
+      // took seconds).
+      expect(Buffer.from(render(k, 22050, 1).buffer).equals(Buffer.from(x.buffer)), k).toBe(true);
     }
   });
 });
@@ -164,12 +184,38 @@ describe('when a vignette opens', () => {
     expect(read(m, 'jumper', 160)?.id).toBe('a-bag');
     m.ended('a-bag', 175, true, true);
     // Cooled down, but not yet 90 s on.
-    expect(read(m, 'ordinary', 175 + 61)).toBeNull();
-    expect(read(m, 'ordinary', 175 + VIGNETTE_APART + 1)?.id).toBe('charger');
+    expect(read(m, 'happy-then', 175 + 61)).toBeNull();
+    expect(read(m, 'happy-then', 175 + VIGNETTE_APART + 1)?.id).toBe('charger');
     m.ended('charger', 290, true, true);
-    // Two sad ones in a row wait longer.
+    // Two sad ones in a row wait longer (and, a third, until five minutes after the first began).
     expect(read(m, 'lonely-birthday', 290 + VIGNETTE_APART + 1)).toBeNull();
-    expect(read(m, 'lonely-birthday', 290 + 151)?.id).toBe('gone-quiet');
+    expect(read(m, 'lonely-birthday', 160 + VIGNETTE_WINDOW + 1)?.id).toBe('gone-quiet');
+  });
+
+  it('a start that never played (its cue lost, or withdrawn unseen) holds no place in the window', () => {
+    const m = new MemoryDirector();
+    expect(read(m, 'jumper', 160)?.id).toBe('a-bag');
+    m.cancel('a-bag', 161); // its cue never sounded
+    expect(read(m, 'happy-then', 170)?.id).toBe('charger');
+    m.ended('charger', 172, false, false); // withdrawn unseen: it will come again
+    // (After the 30 s it waits for one withdrawn unseen.)
+    expect(read(m, 'good-day', 203)?.id).toBe('come-over');
+    m.ended('come-over', 280, true, true);
+    // Only come-over counts: a vignette 90 s on, still inside 300 s of the lost starts, may begin.
+    expect(read(m, 'laugh-breathe', 280 + VIGNETTE_APART + 1)?.id).toBe('biscuit');
+  });
+
+  it('never three in five minutes, however soon each may follow the last', () => {
+    const m = new MemoryDirector();
+    expect(read(m, 'jumper', 160)?.id).toBe('a-bag');
+    m.ended('a-bag', 175, true, true);
+    expect(read(m, 'happy-then', 175 + VIGNETTE_APART + 1)?.id).toBe('charger');
+    m.ended('charger', 280, true, true);
+    // Spaced enough from the last (90 s on, another tone), but the third inside the window waits.
+    const third = 280 + VIGNETTE_APART + 1;
+    expect(third - 160).toBeLessThan(VIGNETTE_WINDOW);
+    expect(read(m, 'laugh-breathe', third)).toBeNull();
+    expect(read(m, 'laugh-breathe', 160 + VIGNETTE_WINDOW + 1)?.id).toBe('biscuit');
   });
 
   it('the chair\'s opens from stillness by the chair, only once "stay" has been finished', () => {
@@ -206,10 +252,10 @@ describe('when a vignette opens', () => {
 
   it('what it leaves comes back later only if it was heard, and never after the visitor has gone', () => {
     const m = new MemoryDirector();
-    read(m, 'ordinary', 160);
+    read(m, 'happy-then', 160);
     m.ended('charger', 176, false, false); // unseen: not spent, nothing left behind
     expect(m.dueEchoes(400)).toHaveLength(0);
-    read(m, 'ordinary', 210);
+    read(m, 'happy-then', 210);
     m.ended('charger', 226, true, true);
     expect(m.dueEchoes(250)).toHaveLength(0);
     expect(m.dueEchoes(300).map((e) => e.echo.id)).toEqual(['tomorrow']);
@@ -302,12 +348,12 @@ describe('what a vignette leaves on the walls', () => {
 describe('ending without being heard', () => {
   it('a vignette unseen twice is spent for the visit, but not counted and leaves nothing behind', () => {
     const m = new MemoryDirector();
-    read(m, 'ordinary', 160);
+    read(m, 'happy-then', 160);
     expect(m.ended('charger', 170, false, false)).toBe(false);
-    read(m, 'ordinary', 210);
+    read(m, 'happy-then', 210);
     expect(m.ended('charger', 220, false, false)).toBe(false);
     expect(m.dueEchoes(400)).toHaveLength(0);
-    expect(read(m, 'ordinary', 400)).toBeNull();
+    expect(read(m, 'happy-then', 400)).toBeNull();
   });
 
   it("the chair's claim on the room's kneeling voice starts only when its vignette could", () => {
@@ -376,7 +422,8 @@ describe('reaching the rarely met (C, D, G)', () => {
     m.offer({ now, phase: 'contradiction', free: true, visibleFacing, departing: false, otherMemory: false, facing: 'north' });
 
   it('a line read when its vignette could not play is remembered: written again once it can, and a short look begins it', () => {
-    const m = new MemoryDirector();
+    // (The painted memories met before: one never met is offered ahead of an owed vignette.)
+    const m = new MemoryDirector(Object.fromEntries(SCENE_MEMORIES.map((x) => [x.id, 1])));
     // Read too early (G's opens from 150 s): nothing begins, but it is owed.
     expect(read(m, 'jumper', 100)).toBeNull();
     // Once it may play and its line is on the wall they face, the room writes it again there.
@@ -385,6 +432,48 @@ describe('reaching the rarely met (C, D, G)', () => {
     expect(pick?.reink).toBe(true);
     // For a while, a 1.5 s look is enough.
     expect(read(m, 'jumper', 201, 1.6)?.id).toBe('a-bag');
+  });
+
+  it('owed through another way in, it is pointed at by that line, written again, never by its own line written alone', () => {
+    const seen = Object.fromEntries(SCENE_MEMORIES.map((x) => [x.id, 1]));
+    const m = new MemoryDirector(seen);
+    // "Look at me." read before back-seat may play (240 s): owed.
+    expect(read(m, 'look-at-me', 100, 3, { visible: (p) => p === 'look-at-me' })).toBeNull();
+    const pick = offerAt(m, 300, (id) => id === 'look-at-me');
+    expect(pick?.id).toBe('back-seat');
+    expect(pick?.reink).toBe(true);
+    expect(pick?.phraseId).toBe('look-at-me');
+    // That line not where they look: nothing is written for it (its own line would be a stranger).
+    const n = new MemoryDirector(seen);
+    read(n, 'look-at-me', 100, 3, { visible: (p) => p === 'look-at-me' });
+    const other = offerAt(n, 300);
+    expect(other?.id === 'back-seat').toBe(false);
+  });
+
+  it('a touch on another way in begins it beside that line', () => {
+    const m = new MemoryDirector();
+    m.tapped('look-at-me');
+    const s = m.update(state({ now: 300, visible: (p) => p === 'look-at-me' }));
+    expect(s?.id).toBe('back-seat');
+    expect(s?.phraseId).toBe('look-at-me');
+  });
+
+  it('one whose voices are not kept does not keep its lines back from the room', () => {
+    const m = new MemoryDirector();
+    m.setAvailable(new Set(VIGNETTES.map((v) => v.id).filter((id) => id !== 'rain')));
+    m.update(state({ now: 200, visible: () => false }));
+    expect(m.claims('still-warm')).toBe(false);
+    expect(m.claims('warm-night')).toBe(false);
+    m.setAvailable(new Set(VIGNETTES.map((v) => v.id)));
+    expect(m.claims('still-warm')).toBe(true);
+  });
+
+  it('a painted memory never met is offered before an owed vignette (the rare paintings keep their chances)', () => {
+    const m = new MemoryDirector();
+    expect(read(m, 'jumper', 100)).toBeNull();
+    const pick = offerAt(m, 200, (id) => id === 'jumper');
+    expect(pick).toBeTruthy();
+    expect(pick!.kind).not.toBe('vignette');
   });
 
   it('a line just offered begins its vignette after a short look; later it needs the usual read', () => {
