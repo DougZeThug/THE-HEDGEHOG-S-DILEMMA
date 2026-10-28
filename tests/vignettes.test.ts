@@ -192,6 +192,19 @@ describe('when a vignette opens', () => {
     expect(read(m, 'lonely-birthday', 160 + VIGNETTE_WINDOW + 1)?.id).toBe('gone-quiet');
   });
 
+  it('a start that never played (its cue lost, or withdrawn unseen) holds no place in the window', () => {
+    const m = new MemoryDirector();
+    expect(read(m, 'jumper', 160)?.id).toBe('a-bag');
+    m.cancel('a-bag', 161); // its cue never sounded
+    expect(read(m, 'happy-then', 170)?.id).toBe('charger');
+    m.ended('charger', 172, false, false); // withdrawn unseen: it will come again
+    // (After the 30 s it waits for one withdrawn unseen.)
+    expect(read(m, 'good-day', 203)?.id).toBe('come-over');
+    m.ended('come-over', 280, true, true);
+    // Only come-over counts: a vignette 90 s on, still inside 300 s of the lost starts, may begin.
+    expect(read(m, 'laugh-breathe', 280 + VIGNETTE_APART + 1)?.id).toBe('biscuit');
+  });
+
   it('never three in five minutes, however soon each may follow the last', () => {
     const m = new MemoryDirector();
     expect(read(m, 'jumper', 160)?.id).toBe('a-bag');

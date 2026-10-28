@@ -1303,11 +1303,9 @@
       "model": "eleven_v4",
       "generatedAt": "2026-10-27T20:57:09.844Z",
       "review": "pending",
-      "transcript": "Close that, will you?",
-      "wer": 0,
       "spokenTags": [],
       "via": "connector",
-      "note": "Made through the ElevenLabs connector: no seed, no scene context, default stability. The connector transcript echoed the input; speech length was checked against the line instead (no tag read aloud). Listen before keeping."
+      "note": "Made through the ElevenLabs connector: no seed, no scene context, default stability. No independent transcription: the connector echoed the input, so no transcript or word-error rate is recorded. Speech length was checked against the line instead (no tag read aloud). Listen before keeping."
     },
     "rain--close-b": {
       "status": "validated",
@@ -1321,11 +1319,9 @@
       "model": "eleven_v4",
       "generatedAt": "2026-10-27T20:57:09.845Z",
       "review": "approved",
-      "transcript": "Close that, will you?",
-      "wer": 0,
       "spokenTags": [],
       "via": "connector",
-      "note": "Made through the ElevenLabs connector: no seed, no scene context, default stability. The connector transcript echoed the input; speech length was checked against the line instead (no tag read aloud). Listen before keeping."
+      "note": "Made through the ElevenLabs connector: no seed, no scene context, default stability. No independent transcription: the connector echoed the input, so no transcript or word-error rate is recorded. Speech length was checked against the line instead (no tag read aloud). Listen before keeping."
     },
     "rain--nice": {
       "status": "validated",
@@ -1339,11 +1335,9 @@
       "model": "eleven_v4",
       "generatedAt": "2026-10-27T20:57:09.845Z",
       "review": "pending",
-      "transcript": "It's nice.",
-      "wer": 0,
       "spokenTags": [],
       "via": "connector",
-      "note": "Made through the ElevenLabs connector: no seed, no scene context, default stability. The connector transcript echoed the input; speech length was checked against the line instead (no tag read aloud). Listen before keeping."
+      "note": "Made through the ElevenLabs connector: no seed, no scene context, default stability. No independent transcription: the connector echoed the input, so no transcript or word-error rate is recorded. Speech length was checked against the line instead (no tag read aloud). Listen before keeping."
     },
     "rain--nice-b": {
       "status": "validated",
@@ -1357,11 +1351,9 @@
       "model": "eleven_v4",
       "generatedAt": "2026-10-27T20:57:09.845Z",
       "review": "approved",
-      "transcript": "It's nice.",
-      "wer": 0,
       "spokenTags": [],
       "via": "connector",
-      "note": "Made through the ElevenLabs connector: no seed, no scene context, default stability. The connector transcript echoed the input; speech length was checked against the line instead (no tag read aloud). Listen before keeping."
+      "note": "Made through the ElevenLabs connector: no seed, no scene context, default stability. No independent transcription: the connector echoed the input, so no transcript or word-error rate is recorded. Speech length was checked against the line instead (no tag read aloud). Listen before keeping."
     },
     "rain--nice-again": {
       "status": "validated",
@@ -1375,11 +1367,9 @@
       "model": "eleven_v4",
       "generatedAt": "2026-10-27T20:57:09.845Z",
       "review": "pending",
-      "transcript": "It's nice.",
-      "wer": 0,
       "spokenTags": [],
       "via": "connector",
-      "note": "Made through the ElevenLabs connector: no seed, no scene context, default stability. The connector transcript echoed the input; speech length was checked against the line instead (no tag read aloud). Listen before keeping."
+      "note": "Made through the ElevenLabs connector: no seed, no scene context, default stability. No independent transcription: the connector echoed the input, so no transcript or word-error rate is recorded. Speech length was checked against the line instead (no tag read aloud). Listen before keeping."
     },
     "rain--nice-again-b": {
       "status": "validated",
@@ -1393,11 +1383,9 @@
       "model": "eleven_v4",
       "generatedAt": "2026-10-27T20:57:09.845Z",
       "review": "approved",
-      "transcript": "It's nice.",
-      "wer": 0,
       "spokenTags": [],
       "via": "connector",
-      "note": "Made through the ElevenLabs connector: no seed, no scene context, default stability. The connector transcript echoed the input; speech length was checked against the line instead (no tag read aloud). Listen before keeping."
+      "note": "Made through the ElevenLabs connector: no seed, no scene context, default stability. No independent transcription: the connector echoed the input, so no transcript or word-error rate is recorded. Speech length was checked against the line instead (no tag read aloud). Listen before keeping."
     }
   },
   "runs": [

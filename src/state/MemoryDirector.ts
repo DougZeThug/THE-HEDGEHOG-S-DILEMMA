@@ -160,6 +160,13 @@ export class MemoryDirector {
     return (this.counts[id] ?? 0) > 0;
   }
 
+  /** A vignette begun that never played (its cue lost, or withdrawn unseen to come again) holds no place in the window. */
+  private unspend(id: string, since: number): void {
+    if (!VIGNETTE_BY_ID.has(id)) return;
+    const i = this.vignetteStarts.lastIndexOf(since);
+    if (i >= 0) this.vignetteStarts.splice(i, 1);
+  }
+
   /** Its line has been offered this visit (until then the room keeps it back). */
   wasOffered(id: string): boolean {
     return !!this.tracks.get(id)?.offered;
@@ -487,6 +494,7 @@ export class MemoryDirector {
   /** Its cue never found room (something else took the moment): not spent, still armed. */
   cancel(id: string, now: number): void {
     if (this.active?.id !== id) return;
+    this.unspend(id, this.active.since);
     this.active = null;
     const t = this.tracks.get(id);
     if (!t) return;
@@ -501,6 +509,7 @@ export class MemoryDirector {
    */
   ended(id: string, now: number, seen: boolean, ranToEnd: boolean): boolean {
     if (this.active?.id !== id) return false;
+    const since = this.active.since;
     this.active = null;
     if (VIGNETTE_BY_ID.has(id)) this.lastVignetteEnded = now;
     const t = this.tracks.get(id);
@@ -508,6 +517,7 @@ export class MemoryDirector {
     if (!seen && t.unseen === 0) {
       // Withdrawn before anyone saw it: not spent; offered again once, a little later.
       t.unseen++;
+      this.unspend(id, since);
       t.played = false;
       t.armed = false;
       t.left = false;
