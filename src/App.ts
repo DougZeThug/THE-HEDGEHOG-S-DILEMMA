@@ -503,6 +503,7 @@ export class App {
       },
       // Not recorded yet (`?memory=` previews only): the words in a voice without words, and the caption.
       fallback: (cue, delay) => {
+        if (!this.living?.preview) return; // visitors hear only kept, loaded takes; a missing one is wordless
         const text = cue.text ?? '';
         const living = this.living;
         setTimeout(() => {
@@ -561,7 +562,7 @@ export class App {
         screen: { width: innerWidth * this.pixelRatio(), height: innerHeight * this.pixelRatio() },
         noise: this.memoryWindow.noise,
         reduced: this.prefs.reducedMotion,
-        voices: { version: this.memoryVoices(id, variant, voiced, preview), filesOf: (k) => this.voices?.filesOf(k) ?? [] },
+        voices: { version: this.memoryVoices(id, variant, voiced, preview), filesOf: (k) => this.voices?.filesOf(k) ?? [], preview },
       });
     } catch (e) {
       console.warn('memory could not be prepared', e);
@@ -793,6 +794,7 @@ export class App {
       },
       // Not recorded yet (previews only): the words in a voice without words, and the caption.
       fallback: (cue, delay) => {
+        if (!this.vignette?.preview) return; // visitors hear only kept, loaded takes; a missing one is wordless
         const text = cue.text ?? '';
         setTimeout(() => {
           if (!this.vignette || this.vignette.id !== def.id) return;

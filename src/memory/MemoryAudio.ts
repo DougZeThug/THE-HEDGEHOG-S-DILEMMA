@@ -102,6 +102,28 @@ export class MemoryAudio implements AudioSink {
     this.buffers.delete(label);
   }
 
+  /**
+   * Voice lines whose take did not decode — a kept take that failed to fetch or load (a transient
+   * 404, a decode error) — are dropped, their markers and cues gone, so the memory plays wordless
+   * where it would otherwise have fallen to the host's stand-in whisper and captions. The host's
+   * `fallback` is for `?memory=` previews only: a visitor hears only takes that loaded, never a
+   * synthetic voice with the line's words captioned. Returns whether any were dropped, so the
+   * runtime lays the memory down without its voices (a version is heard only if every one of its
+   * lines has a take that loaded; one that didn't leaves it wordless, as if unvoiced).
+   */
+  dropFailedVoices(): boolean {
+    const used = new Set(this.markers.map((m) => m.label));
+    let dropped = false;
+    for (const label of Object.keys(this.sheet.cues)) {
+      if (cueKind(label) !== 'voice' || !used.has(label) || this.buffers.has(label)) continue;
+      this.markers = this.markers.filter((m) => m.label !== label);
+      delete this.sheet.cues[label];
+      this.buffers.delete(label);
+      dropped = true;
+    }
+    return dropped;
+  }
+
   get ready(): boolean {
     const used = new Set(this.markers.map((m) => m.label));
     return Object.keys(this.sheet.cues).filter((k) => used.has(k)).every((k) => this.buffers.has(k));
