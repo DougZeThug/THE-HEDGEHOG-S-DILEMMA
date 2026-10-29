@@ -457,10 +457,14 @@ export class MemoryAudio implements AudioSink {
         back.push(l.marker);
         this.fadeOut(l, 0);
       } else if (l.kind === 'voice') {
-        // Paused mid-sentence: it is said again from the start when the room comes back.
-        back.push(l.marker);
-        this.fadeOut(l, 0.25);
-        this.fading.add(l);
+        // Paused mid-sentence, it is said again from the start when the room comes back — unless the
+        // memory has let go (a soft release's begun sentence plays out, as `release` promised: a
+        // pause can't take it back, for nothing re-says it and nothing new begins once released).
+        if (!this.released) {
+          back.push(l.marker);
+          this.fadeOut(l, 0.25);
+          this.fading.add(l);
+        }
       } else if (l.kind !== 'sfx') {
         // (Begun ahead of the frozen picture, by the lead: it begins that far ahead again.)
         const wait = Math.max(0, l.at - shown);

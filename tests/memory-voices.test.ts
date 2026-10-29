@@ -262,3 +262,105 @@ describe('the painted memories\' voices, interrupted', () => {
     expect(of('b').length).toBe(0);
   });
 });
+
+describe('the painted memories\' voices, paused during a soft release', () => {
+  // The same two lines and the laugh as cereal's (durations tell the sources apart).
+  const sheet: CueSheet = {
+    room: [0.5, 3, 0.18],
+    cues: {
+      'music:radio': { asset: 'radio', gainDb: -18, place: { u: 0.4, v: 0, d: 0.8 }, fadeIn: 1.5, fadeOut: 4 },
+      'sfx:eating': { asset: 'eating', gainDb: 0, place: { u: 0, v: -0.25, d: 0.5 } },
+      'voice:my-bowl@0': { asset: 'a', gainDb: -3, place: { u: -0.08, v: -0.15, d: 0.8 }, text: "That's my bowl.", side: 'left', cutOnInterrupt: true },
+      'voice:clean-one@1': { asset: 'b', gainDb: -3, place: { u: 0.13, v: -0.15, d: 0.8 }, text: "It's the clean one.", side: 'right', cutOnInterrupt: true },
+      'sfx:laugh': { asset: 'laugh', gainDb: -12, place: { u: 0.02, v: -0.15, d: 0.9 } },
+    },
+  };
+  const markers: Marker[] = [
+    { label: 'music:radio', position: 5.5 },
+    { label: 'sfx:eating', position: 7.3 },
+    { label: 'voice:my-bowl@0', position: 7.4 },
+    { label: 'voice:clean-one@1', position: 8.8 },
+    { label: 'sfx:laugh', position: 10.5 },
+  ];
+  const lengths: Record<string, number> = { radio: 19, eating: 3, a: 1.05, b: 1.25, laugh: 3.05 };
+
+  /** Let go at `releaseAt`, then `pauseAfter` frames later — while the begun sentence still sounds
+   *  during the withdrawal — paused for `pauseFor` s, then resumed. `why: 'switch'` makes it a hard
+   *  release; `suspendOnPause` suspends the audio context for the pause (a hidden tab). */
+  async function play(o: { releaseAt: number; pauseAfter: number; pauseFor: number; why?: 'look-away' | 'switch'; suspendOnPause?: boolean }) {
+    const ctx = new FakeCtx();
+    const host: MemoryAudioHost = {
+      ctx: ctx as unknown as BaseAudioContext, out: new FakeNode(ctx) as unknown as AudioNode,
+      load: async (asset) => ({ duration: lengths[asset] }) as AudioBuffer, impulse: () => ({}) as AudioBuffer,
+      intensity: 1, where: () => [0, 0, 0],
+    };
+    const audio = new MemoryAudio(host, sheet, markers);
+    const timeline: TimelineSource = { sections: { active: 5.5, exit: 22, residue: 28, end: 32 }, markers, at: () => ({}), dispose() {} };
+    const c = new MemoryPlaybackController({ timeline, audio, weights: FULL, reduced: false, entrance: 2, sways: [], exit: 2.4, maxHold: 22, tail: 3, living: false });
+    await audio.prepare();
+    ctx.currentTime = 100;
+    c.start(ctx.currentTime);
+    let released = false, framesSinceRelease = -1, pausedFor = -1, pauseState = '';
+    const why = o.why ?? 'look-away';
+    for (let i = 0; i < 2400 && c.state !== 'complete'; i++) {
+      const dt = 1 / 60;
+      if (!(o.suspendOnPause && pausedFor >= 0 && pausedFor < o.pauseFor)) ctx.advance(dt);
+      if (!released && c.position >= o.releaseAt) {
+        c.release(why);
+        released = true;
+        framesSinceRelease = 0;
+      }
+      if (framesSinceRelease >= 0 && pausedFor < 0 && framesSinceRelease >= o.pauseAfter) {
+        pauseState = c.state;
+        c.pause();
+        pausedFor = 0;
+        if (o.suspendOnPause) ctx.state = 'suspended';
+      }
+      if (pausedFor >= 0 && pausedFor < o.pauseFor) {
+        pausedFor += dt;
+        if (pausedFor >= o.pauseFor) {
+          if (o.suspendOnPause) ctx.state = 'running';
+          c.resume(ctx.currentTime);
+        }
+        continue;
+      }
+      c.step(dt, ctx.currentTime);
+      if (framesSinceRelease >= 0) framesSinceRelease++;
+    }
+    const of = (a: string) => ctx.sources.filter((x) => (x.buffer as { duration: number } | null)?.duration === lengths[a]) as FakeSource[];
+    return { of, c, pauseState };
+  }
+
+  it('a sentence already begun plays to its end through a settings pause, as release promised (not chopped, not re-said)', async () => {
+    const { of, pauseState } = await play({ releaseAt: 7.9, pauseAfter: 6, pauseFor: 2 });
+    // The pause falls within the soft-release withdrawal window.
+    expect(pauseState).toBe('withdrawing');
+    const a = of('a');
+    // The begun sentence is left to finish — not faded out mid-word, and not re-said (nothing can:
+    // once released, no new non-sfx cue begins): one source that runs to its natural end.
+    expect(a.length).toBe(1);
+    const wholeEnd = a[0].startAt![0] + lengths.a;
+    expect(a[0].stopAt === null || a[0].stopAt! >= wholeEnd - 0.01).toBe(true);
+    // The next sentence never begins (nothing new is begun once the memory lets go).
+    expect(of('b').length).toBe(0);
+  });
+
+  it('a sentence already begun is held across a hidden tab and finishes on return, not re-said', async () => {
+    const { of, pauseState } = await play({ releaseAt: 7.9, pauseAfter: 6, pauseFor: 2, suspendOnPause: true });
+    expect(pauseState).toBe('withdrawing');
+    const a = of('a');
+    expect(a.length).toBe(1);
+    const wholeEnd = a[0].startAt![0] + lengths.a;
+    expect(a[0].stopAt === null || a[0].stopAt! >= wholeEnd - 0.01).toBe(true);
+    expect(of('b').length).toBe(0);
+  });
+
+  it('a hard release mid-sentence still cuts it (a pause through the cut does not save it)', async () => {
+    const { of } = await play({ releaseAt: 7.9, pauseAfter: 6, pauseFor: 2, why: 'switch' });
+    const a = of('a');
+    expect(a.length).toBeGreaterThanOrEqual(1);
+    expect(a[0].stopAt).not.toBeNull();
+    expect(a[0].stopAt!).toBeLessThan(a[0].startAt![0] + lengths.a - 0.1);
+    expect(of('b').length).toBe(0);
+  });
+});
