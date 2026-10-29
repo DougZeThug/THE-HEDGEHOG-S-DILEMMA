@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { VIGNETTES, chooseVariant, scoreMarkers, spokenLines, toCueSheet, vignetteKeys, lineKey, type VignetteDef } from '../src/content/vignettes';
-import { SCENE_MEMORIES, VIGNETTE_MEMORIES } from '../src/content/memories';
+import { ALL_MEMORIES, SCENE_MEMORIES, VIGNETTE_MEMORIES } from '../src/content/memories';
 import { PHRASE_BY_ID } from '../src/content/phrases';
 import { MemoryDirector, VIGNETTE_APART, VIGNETTE_WINDOW, type SceneState } from '../src/state/MemoryDirector';
 import { Director } from '../src/state/Director';
@@ -504,5 +504,20 @@ describe('reaching the rarely met (C, D, G)', () => {
   it("C opens beside its title's line, which the room actually writes", () => {
     expect(VIGNETTES.find((v) => v.id === 'back-seat')!.anchor.phrase).toBe('alone-with-you');
     expect(VIGNETTES.find((v) => v.id === 'a-bag')!.offer).toBeTruthy();
+  });
+});
+
+describe('one kitchen', () => {
+  it('the washing up shares the kitchen with the kitchen-light memory, in both directions', () => {
+    expect(ALL_MEMORIES.filter((m) => m.group === 'kitchen').map((m) => m.id)).toEqual(['washing-up']);
+    const m = new MemoryDirector();
+    expect(m.kitchenTaken).toBe(false);
+    (m as unknown as { tracks: Map<string, { played: boolean }> }).tracks.get('washing-up')!.played = true;
+    expect(m.kitchenTaken).toBe(true); // the late light is then not offered (Director.ruleMemory)
+    const w = ALL_MEMORIES.find((x) => x.id === 'washing-up')!;
+    const allows = (kitchenPlayed: boolean) =>
+      (new MemoryDirector() as unknown as { vignetteAllows(m: unknown, s: unknown): boolean }).vignetteAllows(w, { now: 300, phase: 'transform', kitchenPlayed, finished: () => true });
+    expect(allows(true)).toBe(false); // the light has been: the kitchen is not heard again
+    expect(allows(false)).toBe(true);
   });
 });

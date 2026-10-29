@@ -538,6 +538,7 @@
     {
       "id": "washing-up",
       "title": "Washing up",
+      "group": "kitchen",
       "tone": "sad",
       "intent": "Kindness felt as intrusion; a boundary kept, and regretted only once it is respected.",
       "speakers": {
