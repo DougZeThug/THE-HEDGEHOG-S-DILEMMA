@@ -153,14 +153,16 @@ export class MemoryPlaybackController {
     // The authored withdrawal plays only from the end of the living scene; before it, leave gracefully.
     this.mode = !hard && this.pos >= this.holdAt - 0.05 ? 'natural' : 'interrupt';
     this.released = this._t;
+    const dissolve = Math.max(0.5, this.s.residue - this.s.exit);
     this.leave = leaveTimeline(this.env, {
       reduced: this.o.reduced,
       mode: this.mode,
-      dissolve: Math.max(0.5, this.s.residue - this.s.exit),
+      dissolve,
       exit: hard ? 0.3 : this.o.exit,
       residue: this.mode === 'natural' ? this.o.residue : undefined,
     });
-    this.o.audio?.release(this.mode, hard ? 0.3 : this.mode === 'natural' ? this.s.residue - this.s.exit : this.o.exit, !hard);
+    // The sound goes with the picture: under reduced motion the picture's withdrawal is slower, and so is its fade.
+    this.o.audio?.release(this.mode, hard ? 0.3 : (this.mode === 'natural' ? dissolve : this.o.exit) * (this.o.reduced ? 1.6 : 1), !hard);
     this.set('withdrawing');
   }
 
