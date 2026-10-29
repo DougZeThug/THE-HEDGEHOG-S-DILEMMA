@@ -144,16 +144,18 @@ export class VisitorModel {
     this.lastPitch = inp.pitch;
     this.lookActivity = approach(this.lookActivity, dt > 0 ? look / dt : 0, dt, 0.6);
 
-    // Stillness
-    if (this.speed < 0.04) {
-      this.stillFor += dt;
-      if (this.lookActivity < 0.12) {
-        this.deepStillFor += dt;
-        this.totalStill += dt;
-      } else this.deepStillFor = Math.max(0, this.deepStillFor - dt * 3);
-    } else {
-      this.stillFor = 0;
-      this.deepStillFor = 0;
+    // Stillness. Carried: the memory's journey is not the visitor's stillness, so the accumulators hold.
+    if (!inp.carried) {
+      if (this.speed < 0.04) {
+        this.stillFor += dt;
+        if (this.lookActivity < 0.12) {
+          this.deepStillFor += dt;
+          this.totalStill += dt;
+        } else this.deepStillFor = Math.max(0, this.deepStillFor - dt * 3);
+      } else {
+        this.stillFor = 0;
+        this.deepStillFor = 0;
+      }
     }
     this.longestStill = Math.max(this.longestStill, this.deepStillFor);
 
