@@ -216,8 +216,11 @@ export class MemoryDirector {
 
   /** Has a painted memory played (or is one playing)? (Vignettes don't change the visit's arc.) */
   get paintedPlayed(): boolean {
-    const painted = (id: string) => ALL_MEMORIES.find((m) => m.id === id)?.kind !== 'vignette';
-    return (!!this.active && painted(this.active.id)) || [...this.tracks.entries()].some(([id, t]) => t.played && painted(id));
+    return (!!this.active && this.painted(this.active.id)) || [...this.tracks.entries()].some(([id, t]) => t.played && this.painted(id));
+  }
+
+  private painted(id: string): boolean {
+    return ALL_MEMORIES.find((m) => m.id === id)?.kind !== 'vignette';
   }
 
   /** A memory of the kitchen has been heard this visit (the kitchen-light memory then waits). */
@@ -446,7 +449,8 @@ export class MemoryDirector {
   /** Its place in the arc: company first, absence only after something. */
   private arcAllows(m: SceneMemory, now: number, kitchenPlayed: boolean): boolean {
     if (this.arcEnded(m)) return false;
-    const another = kitchenPlayed || [...this.tracks.entries()].some(([id, t]) => id !== m.id && t.played);
+    // (Another painted memory: a heard vignette doesn't change the visit's arc.)
+    const another = kitchenPlayed || [...this.tracks.entries()].some(([id, t]) => id !== m.id && t.played && this.painted(id));
     if (m.arc === 'first') return !another && now <= (m.latest ?? Infinity);
     if (m.arc === 'afterAnother') return another;
     return true;

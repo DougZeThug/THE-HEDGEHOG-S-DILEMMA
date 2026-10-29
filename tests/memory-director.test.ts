@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { MemoryDirector, type SceneState } from '../src/state/MemoryDirector';
 import { Director } from '../src/state/Director';
+import { ALL_MEMORIES } from '../src/content/memories';
 import { PERSONAS } from './playtest/personas';
 import { visit } from './playtest/measure';
 
@@ -215,5 +216,25 @@ describe('never pushing: the kitchen-light memory is a pointing too', () => {
     const later = new MemoryDirector();
     later.setAvailable(new Set());
     expect(later.offer(offerState({ now: 200, darkEnded: 130, kitchenOffered: true, kitchenOfferedAt: 70 }))?.id).toBe('bedroom');
+  });
+});
+
+describe('the visit\'s arc and heard vignettes', () => {
+  type Arc = { tracks: Map<string, { played: boolean }>; arcAllows: (m: unknown, now: number, kitchen: boolean) => boolean };
+  const memory = (id: string) => ALL_MEMORIES.find((m) => m.id === id)!;
+  const vignette = ALL_MEMORIES.find((m) => m.kind === 'vignette')!;
+
+  it('a heard vignette does not unlock the absence memories, nor close the first', () => {
+    const m = new MemoryDirector() as unknown as Arc;
+    m.tracks.get(vignette.id)!.played = true;
+    expect(m.arcAllows(memory('woodland'), 400, false)).toBe(false);
+    expect(m.arcAllows(memory('door'), 400, false)).toBe(false);
+    expect(m.arcAllows(memory('cereal'), 30, false)).toBe(true);
+  });
+
+  it('a painted memory does', () => {
+    const m = new MemoryDirector() as unknown as Arc;
+    m.tracks.get('cereal')!.played = true;
+    expect(m.arcAllows(memory('woodland'), 400, false)).toBe(true);
   });
 });
