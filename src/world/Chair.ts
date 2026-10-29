@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
+import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { woodMaps, SEAT_V0 } from './wood';
 
 /**
@@ -91,26 +92,7 @@ export class Chair {
 
     // Seat: dished, a little wider at the front, softened edges.
     const seatTop = 0.345;
-    const seat = new RoundedBoxGeometry(1, 1, 1, 4, 0.12);
-    {
-      const pos = seat.attributes.position;
-      // It overhangs the legs a little at the front and sides, its front edge a visible board.
-      const W0 = 0.355, W1 = 0.395, D = 0.35, T = 0.032;
-      for (let i = 0; i < pos.count; i++) {
-        let x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
-        const front = z + 0.5; // 0 at back, 1 at front
-        x *= W0 + (W1 - W0) * front;
-        z *= D;
-        y = y * T;
-        if (y > 0) y -= 0.006 * (1 - (2 * x / W1) ** 2) * (1 - (2 * z / D) ** 2); // dished
-        pos.setXYZ(i, x, y + seatTop - T / 2, z);
-      }
-      seat.computeVertexNormals();
-      edgeWear(seat);
-      const uv = seat.attributes.uv;
-      // The seat has its own part of the wood: two boards, darker at the edges (wood.ts).
-      for (let k = 0; k < uv.count; k++) uv.setXY(k, uv.getX(k) * 0.8, SEAT_V0 + uv.getY(k) * (1 - SEAT_V0));
-    }
+    const seat = seatGeometry(seatTop);
     add(seat);
 
     // Square legs, eased at the arrises, a little slimmer at the foot. The front pair stands
@@ -257,6 +239,65 @@ function contactTextures(): { feet: THREE.DataTexture; seat: THREE.DataTexture }
 }
 
 /** Arrises (the rounded edges of a board) wear first: worn where the normal leaves the faces. */
+/**
+ * The seat: dished, a little wider at the front, softened edges. (The rounded box has no vertex
+ * inside its flat top, so the top is cut into a grid first or the dish would never be evaluated.)
+ */
+export function seatGeometry(seatTop: number): THREE.BufferGeometry {
+  const seat = tessellateTop(new RoundedBoxGeometry(1, 1, 1, 4, 0.12), 16);
+  const pos = seat.attributes.position;
+  // It overhangs the legs a little at the front and sides, its front edge a visible board.
+  const W0 = 0.355, W1 = 0.395, D = 0.35, T = 0.032;
+  for (let i = 0; i < pos.count; i++) {
+    let x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+    const front = z + 0.5; // 0 at back, 1 at front
+    x *= W0 + (W1 - W0) * front;
+    z *= D;
+    y = y * T;
+    if (y > 0) y -= 0.006 * (1 - (2 * x / W1) ** 2) * (1 - (2 * z / D) ** 2); // dished
+    pos.setXYZ(i, x, y + seatTop - T / 2, z);
+  }
+  seat.computeVertexNormals();
+  edgeWear(seat);
+  const uv = seat.attributes.uv;
+  // The seat has its own part of the wood: two boards, darker at the edges (wood.ts).
+  for (let k = 0; k < uv.count; k++) uv.setXY(k, uv.getX(k) * 0.8, SEAT_V0 + uv.getY(k) * (1 - SEAT_V0));
+  return seat;
+}
+
+/** Each triangle of the flat top (y = 0.5) cut into n² (position, normal and uv carried across), then welded back. */
+function tessellateTop(g: THREE.BufferGeometry, n: number): THREE.BufferGeometry {
+  const src = g.toNonIndexed();
+  const names = ['position', 'normal', 'uv'] as const;
+  const size = { position: 3, normal: 3, uv: 2 };
+  const out: Record<string, number[]> = { position: [], normal: [], uv: [] };
+  const at = (name: (typeof names)[number], v: number) => Array.from({ length: size[name] }, (_, k) => src.attributes[name].array[v * size[name] + k] as number);
+  for (let t = 0; t < src.attributes.position.count; t += 3) {
+    const flat = [0, 1, 2].every((k) => Math.abs(src.attributes.position.getY(t + k) - 0.5) < 1e-6);
+    if (!flat) {
+      for (const name of names) for (let k = 0; k < 3; k++) out[name].push(...at(name, t + k));
+      continue;
+    }
+    const mix = (name: (typeof names)[number], i: number, j: number) => {
+      // The point at barycentric (1 - i/n - j/n, i/n, j/n) of the triangle.
+      const a = at(name, t), b = at(name, t + 1), c = at(name, t + 2);
+      return a.map((_, k) => a[k] * (1 - (i + j) / n) + b[k] * (i / n) + c[k] * (j / n));
+    };
+    const emit = (p: [number, number][]) => {
+      for (const [i, j] of p) for (const name of names) out[name].push(...mix(name, i, j));
+    };
+    for (let i = 0; i < n; i++) {
+      for (let j = 0; i + j < n; j++) {
+        emit([[i, j], [i + 1, j], [i, j + 1]]);
+        if (i + j + 1 < n) emit([[i + 1, j], [i + 1, j + 1], [i, j + 1]]);
+      }
+    }
+  }
+  const dst = new THREE.BufferGeometry();
+  for (const name of names) dst.setAttribute(name, new THREE.BufferAttribute(new Float32Array(out[name]), size[name]));
+  return mergeVertices(dst);
+}
+
 function edgeWear(g: THREE.BufferGeometry) {
   const n = g.attributes.normal;
   const wear = new Float32Array(n.count);
