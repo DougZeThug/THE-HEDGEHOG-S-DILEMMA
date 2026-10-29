@@ -127,12 +127,13 @@ export class CameraRig {
     }
     d.normalize().multiplyScalar(len - stopAt);
     this.goal = this.pos.clone().add(d);
-    // Aimed from where the walk ends, so the target is in the middle of the view on arrival.
-    this.faceToward(target, this.goal);
+    // Aimed from where the walk ends, at the eye it ends with (a walk stands a seated visitor up),
+    // so the target is in the middle of the view on arrival.
+    this.faceToward(target, this.goal, this.kneeling ? this.eye : EYE);
   }
 
-  faceToward(target: THREE.Vector3, from: THREE.Vector3 = this.pos) {
-    const eyePos = from.clone().setY(this.eye);
+  faceToward(target: THREE.Vector3, from: THREE.Vector3 = this.pos, eye: number = this.eye) {
+    const eyePos = from.clone().setY(eye);
     const d = target.clone().sub(eyePos);
     const yaw = Math.atan2(-d.x, -d.z);
     const pitch = Math.atan2(d.y, Math.hypot(d.x, d.z));
@@ -304,11 +305,16 @@ export class CameraRig {
     // Only for the opening's composition: it goes at the hand-off, or once they look away.
     if (Math.abs(this.yaw) > 0.5) this.wideOpening = false;
     // While rising, the view narrows with the eye (one movement, not two); otherwise it eases.
-    const low = clamp((EYE - this.eye) / (EYE - OPENING_EYE));
-    const wide = this.wideOpening && !this.kneeling && !this.reducedMotion ? 10 * low : 0;
-    const fovTarget = this.baseFov + (this.kneeling && !this.reducedMotion ? 8 : 0) + wide;
+    const fovTarget = this.viewFov;
     this.camera.fov = this.rise ? fovTarget : approach(this.camera.fov, fovTarget, dt, 1.5);
     this.camera.updateProjectionMatrix();
+  }
+
+  /** The vertical field of view the eye settles to: the screen's, wider kneeling, and in the opening's low place. */
+  get viewFov(): number {
+    const low = clamp((EYE - this.eye) / (EYE - OPENING_EYE));
+    const wide = this.wideOpening && !this.kneeling && !this.reducedMotion ? 10 * low : 0;
+    return this.baseFov + (this.kneeling && !this.reducedMotion ? 8 : 0) + wide;
   }
 
   distanceToChair(): number {

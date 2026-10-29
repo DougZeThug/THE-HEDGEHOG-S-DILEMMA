@@ -59,12 +59,28 @@ describe('VisitorModel', () => {
     expect(carriedV.lastWithdrawAt).toBe(-Infinity);
     expect(carriedV.distance).toBeCloseTo(2.8);
     expect(carriedV.movedDistance).toBe(0);
+    expect(carriedV.stillFor).toBe(0);
+    expect(carriedV.deepStillFor).toBe(0);
+    expect(carriedV.totalStill).toBe(0);
+    expect(carriedV.longestStill).toBe(0);
 
     const ownV = new VisitorModel();
     sweep(ownV, false);
     expect(ownV.approaches.length).toBe(1);
     expect(ownV.hesitations).toBe(1);
     expect(ownV.totalNear).toBeGreaterThan(0);
+  });
+  it('holds stillness while a memory carries the visitor, then resumes it', () => {
+    const v = new VisitorModel();
+    for (let i = 0; i < 20; i++) v.update(0.1, inp({}));
+    const held = [v.stillFor, v.deepStillFor, v.totalStill, v.longestStill];
+    expect(held[1]).toBeGreaterThan(1);
+    for (let i = 0; i < 400; i++) v.update(0.1, inp({ z: 2 + i * 0.025, carried: true }));
+    expect([v.stillFor, v.deepStillFor, v.totalStill, v.longestStill]).toEqual(held);
+    const zEnd = 2 + 399 * 0.025;
+    for (let i = 0; i < 20; i++) v.update(0.1, inp({ z: zEnd }));
+    expect(v.deepStillFor).toBeGreaterThan(held[1]!);
+    expect(v.totalStill).toBeGreaterThan(held[2]!);
   });
   it('marks phrases as read after sustained attention', () => {
     const v = new VisitorModel();
@@ -82,9 +98,10 @@ describe('VisitorModel invariants (fast-check)', () => {
       fc.property(fc.array(step, { minLength: 1, maxLength: 80 }), (path) => {
         const v = new VisitorModel();
         v.update(0.1, inp({}));
-        const before = JSON.stringify([v.approaches, v.hesitations, v.totalNear, v.totalFar, v.lastWithdrawAt, v.lastApproachAt, v.movedDistance, v.near]);
+        const snap = () => JSON.stringify([v.approaches, v.hesitations, v.totalNear, v.totalFar, v.lastWithdrawAt, v.lastApproachAt, v.movedDistance, v.near, v.stillFor, v.deepStillFor, v.totalStill, v.longestStill]);
+        const before = snap();
         for (const s of path) v.update(0.1, inp({ ...s, carried: true }));
-        const after = JSON.stringify([v.approaches, v.hesitations, v.totalNear, v.totalFar, v.lastWithdrawAt, v.lastApproachAt, v.movedDistance, v.near]);
+        const after = snap();
         expect(after).toBe(before);
       }),
     );

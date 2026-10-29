@@ -281,6 +281,20 @@ describe('the playback controller: one clock, a clear lifecycle', () => {
     expect(audio.log).toContain('release interrupt 1.20');
   });
 
+  it('under reduced motion the sound fades as slowly as the picture withdraws', () => {
+    const fadeOf = (reduced: boolean, why: 'look-away' | 'depart', at: number) => {
+      const { c, audio } = controller({ reduced });
+      c.start();
+      run(c, at);
+      c.release(why);
+      return audio.log.find((l) => l.startsWith('release'));
+    };
+    expect(fadeOf(true, 'look-away', 3)).toBe('release interrupt 1.92'); // 1.2 × 1.6
+    expect(fadeOf(false, 'look-away', 3)).toBe('release interrupt 1.20');
+    expect(fadeOf(true, 'look-away', 27)).toBe('release natural 6.40'); // 4 × 1.6
+    expect(fadeOf(true, 'depart', 3)).toBe('release interrupt 0.30'); // a hard release is not slowed
+  });
+
   it('can be interrupted from every state, and a hard release ends it at once', () => {
     for (const at of [0.5, 7, 17, 21]) {
       const { c } = controller();

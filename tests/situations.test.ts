@@ -8,7 +8,7 @@ import type { Surface } from '../src/content/types';
 import { PHRASES, PHRASE_BY_ID } from '../src/content/phrases';
 import { layoutPhrases, layoutToWorld, ROOM } from '../src/world/layout';
 import { interpretLocally } from '../src/interpret/LocalInterpreter';
-import { keptWord, HUM_NOTE } from '../src/state/situations/library';
+import { keptWord, HUM_NOTE, nextRoom } from '../src/state/situations/library';
 
 // Geometry without a browser: the same layout, approximate font metrics.
 const SZ: Record<string, number> = { xs: 0.13, s: 0.17, m: 0.22, l: 0.31, xl: 0.53 };
@@ -267,5 +267,40 @@ describe('situation: the next room, its wall', () => {
       const wall = (first!.cue as Extract<Cue, { type: 'voice' }>).position as { kind: 'beyond'; surface: Surface };
       expect(wall.surface, `seed ${seed}`).not.toBe('north');
     }
+  });
+});
+
+describe('next-room keeping the walls for the memory at the chair', () => {
+  const run = (beyondHeld: boolean) => {
+    const claims = new Set<string>();
+    const gone: string[] = [];
+    const emitted: string[] = [];
+    const st = { stage: 'found', startedAt: 0, stageAt: 0, data: { memory: 'more-minutes', wall: 'east', laughs: 1 } as Record<string, unknown> };
+    const h = { visitor: { distance: 1.2, near: true, nearFor: 10, speed: 0, x: 0.4, z: 1.1 } } as never;
+    const c = {
+      h, st, rule: 'sit:next-room', since: 200,
+      go: (s: string) => (st.stage = s),
+      emit: (_d: number, cue: { type: string }) => emitted.push(cue.type),
+      claim: (ch: string) => (ch === 'beyond' && beyondHeld ? false : (claims.add(ch), true)),
+      release: (ch: string) => (claims.delete(ch), gone.push(ch)),
+      claimed: (ch: string) => claims.has(ch),
+      end: () => undefined,
+    };
+    nextRoom.step(c as never);
+    return { claims, gone, emitted, st };
+  };
+
+  it('keeps the chair and the walls, and writes the memory', () => {
+    const r = run(false);
+    expect([...r.claims].sort()).toEqual(['beyond', 'chair-voice']);
+    expect(r.emitted).toContain('write');
+  });
+
+  it('waits, holding nothing, while another situation has a voice through the walls', () => {
+    const r = run(true);
+    expect(r.claims.size).toBe(0);
+    expect(r.gone).toContain('chair-voice');
+    expect(r.emitted).toEqual([]);
+    expect(r.st.stage).toBe('found');
   });
 });

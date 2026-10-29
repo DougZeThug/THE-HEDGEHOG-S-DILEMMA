@@ -14,7 +14,7 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       manifest: false,
-      workbox: { globPatterns: ['**/*.{js,css,html}'], navigateFallback: null },
+      workbox: { globPatterns: ['**/*.{js,css,html,woff2}'], navigateFallback: null },
     }),
     // `npm run analyze` writes test-output/bundle.html.
     process.env.ANALYZE ? visualizer({ filename: 'test-output/bundle.html', gzipSize: true }) : null,

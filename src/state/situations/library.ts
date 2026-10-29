@@ -85,7 +85,11 @@ export const nextRoom: SituationDef = {
       }
       if (!d.keeping) {
         if (!c.claim('chair-voice')) return;
-        c.claim('beyond');
+        // (The walls too: while another situation's voice is through them, the memory waits.)
+        if (!c.claim('beyond')) {
+          c.release('chair-voice');
+          return;
+        }
         d.keeping = true;
       }
       if (!v.near || v.nearFor < 6 || v.speed > 0.15) return;

@@ -919,7 +919,8 @@ export class WallText {
     const it = this.items.get(key);
     if (!it || it.vis <= 0 || !keep) return false;
     const text = (it.mesh.userData.text as string) ?? '';
-    const idx = text.toLowerCase().indexOf(keep);
+    // (`keep` has its apostrophes straightened, one character for one, so the index holds in the text as written.)
+    const idx = text.toLowerCase().replace(/[’']/g, "'").indexOf(keep);
     const word = idx >= 0 ? text.slice(idx, idx + keep.length) : keep;
     const m = measureText(word, it.hand, it.size);
     const pl = it.placement;

@@ -97,6 +97,13 @@ export function returnYaw(leaving: 'close' | null, base: number): number | null 
 /** How far it is turned (radians), seen in the returning opening's chair-only frame. */
 export const CLOSE_TURN = 1.9;
 
+/**
+ * A designed moment is decided at the instant the room is free and has a ttl shorter than the
+ * major gap: it goes before a major kept from earlier (which would take the slot, and the moment
+ * would expire unheard with its spacing already spent).
+ */
+const DESIGNED = 3;
+
 export class Director {
   readonly visitor = new VisitorModel();
   readonly memory = new Memory();
@@ -158,6 +165,8 @@ export class Director {
   /** Which recorded reading of each line has been heard, so a second hearing can be a different one. */
   private heard = new Map<string, string>();
   private reheard = false;
+  /** The hesitation motif's reply, declined when it formed and still owed. */
+  private hesitationOwed = false;
   private heldSilenceDone = false;
   /** The memory has been offered (its line written where the visitor looks) / has played. */
   private memoryOffered = false;
@@ -393,6 +402,22 @@ export class Director {
     this.queue(delay, { type: 'reveal', phraseId: id, mode, seconds }, rule, { key: `reveal:${id}` });
   }
 
+  /**
+   * Whether the room declines to say this now. A refused voice queues nothing, so nothing may be
+   * counted for it: callers that commit state around a voice ask first, or use what `voice` returns.
+   */
+  private voiceRefused(rule: string, phraseId?: string, finish = false): boolean {
+    if (phraseId && !finish && this.withheld().includes(phraseId)) return true;
+    // The memory's line has just been written for the visitor to stay with: the room doesn't
+    // talk over it (authored situations and a finished line aside).
+    if (this.now < this.memoryQuietUntil && !finish && !rule.startsWith('sit:')) return true;
+    // Nothing talks over a living memory (a finished line aside; nothing at all over one with voices of its own).
+    if (this.scenes.active && (!finish || this.vignettePlaying)) return true;
+    // A vignette's line is its own: the room doesn't say it first.
+    return !!phraseId && !finish && this.scenes.claimsVoice(phraseId);
+  }
+
+  /** Queues the voice; false when the room declined to speak (nothing was queued or counted). */
   private voice(
     rule: string,
     delay: number,
@@ -401,15 +426,8 @@ export class Director {
     caption: string,
     position: VoicePosition,
     extra: { gain?: number; assetId?: string; phraseId?: string; ttl?: number; priority?: number; finish?: boolean } = {},
-  ) {
-    if (extra.phraseId && !extra.finish && this.withheld().includes(extra.phraseId)) return;
-    // The memory's line has just been written for the visitor to stay with: the room doesn't
-    // talk over it (authored situations and a finished line aside).
-    if (this.now < this.memoryQuietUntil && !extra.finish && !rule.startsWith('sit:')) return;
-    // Nothing talks over a living memory (a finished line aside; nothing at all over one with voices of its own).
-    if (this.scenes.active && (!extra.finish || this.vignettePlaying)) return;
-    // A vignette's line is its own: the room doesn't say it first.
-    if (extra.phraseId && !extra.finish && this.scenes.claimsVoice(extra.phraseId)) return;
+  ): boolean {
+    if (this.voiceRefused(rule, extra.phraseId, extra.finish)) return false;
     // A phrase with recorded performances: choose the one directed for this moment.
     let ranked = extra.phraseId && kind !== 'laugh' && kind !== 'murmur' && kind !== 'breath' && kind !== 'hum' ? rankPerformances(extra.phraseId, this.field.v, kind) : [];
     // Heard before: this time, the reading furthest from the one already heard.
@@ -449,12 +467,15 @@ export class Director {
       rule,
       { major: true, ttl: extra.ttl ?? 20, priority: extra.priority ?? 1 },
     );
+    return true;
   }
 
-  private speakPhrase(rule: string, p: Phrase, position: VoicePosition, delay = 0, styleOverride?: Phrase['voice'], gain = 0.8) {
+  /** Says a phrase; only a voice that was queued is counted as spoken. */
+  private speakPhrase(rule: string, p: Phrase, position: VoicePosition, delay = 0, styleOverride?: Phrase['voice'], gain = 0.8): boolean {
     const style = styleOverride ?? p.voice ?? 'whisper';
-    this.voice(rule, delay, style, p.text, p.text, position, { phraseId: p.id, gain });
+    if (!this.voice(rule, delay, style, p.text, p.text, position, { phraseId: p.id, gain })) return false;
     this.memory.spoken.set(p.id, this.now + delay);
+    return true;
   }
 
   private fragment(rule: string, f: VoiceFragment, position: VoicePosition, delay = 0, gain = 0.6) {
@@ -534,6 +555,7 @@ export class Director {
         this.ruleChairNudge(input);
         this.ruleVoices();
         this.ruleRehear();
+        this.payHesitation();
       }
       this.ruleHeldSilence();
       this.ruleAir();
@@ -1242,7 +1264,7 @@ export class Director {
     const p = PHRASE_BY_ID.get(source);
     if (!p) return;
     const ok = (x: Phrase | undefined): x is Phrase =>
-      !!x && !!x.voice && !ARCS[x.id] && !KEPT_READINGS.has(x.id) && !this.memory.spoken.has(x.id) && (x.tier !== 'transform' || this.phase === 'transform');
+      !!x && !!x.voice && !ARCS[x.id] && !KEPT_READINGS.has(x.id) && !this.memory.spoken.has(x.id) && !this.withheld().includes(x.id) && (x.tier !== 'transform' || this.phase === 'transform');
     const cands = [...(p.contradicts ?? []), ...(p.echoes ?? [])].map((r) => PHRASE_BY_ID.get(r)).filter(ok);
     // A recorded line is preferred: if nothing related has a recording, something else from
     // the same wall that does; failing that, whatever is related.
@@ -1253,12 +1275,13 @@ export class Director {
     cands.sort((a, b) => Math.sign(performancesFor(b.id).length) - Math.sign(performancesFor(a.id).length));
     const q = cands[0];
     if (!q) return;
+    const pos: VoicePosition = this.visible.has(q.id) ? { kind: 'surface', phraseId: q.id } : { kind: 'beyond', surface: q.surface === this.facing ? this.rng.pick(SURFACES.filter((w) => w !== this.facing)) : q.surface };
+    // Only a voice that sounds spends the room's one answer to this attention.
+    if (!this.speakPhrase('voice-attention', q, pos, 0.8, undefined, 0.6)) return;
     this.lastAttentionVoice = now;
     this.attentionVoices++;
     this.readsUnanswered = 0;
     this.readArmedUntil = -Infinity;
-    const pos: VoicePosition = this.visible.has(q.id) ? { kind: 'surface', phraseId: q.id } : { kind: 'beyond', surface: q.surface === this.facing ? this.rng.pick(SURFACES.filter((w) => w !== this.facing)) : q.surface };
-    this.speakPhrase('voice-attention', q, pos, 0.8, undefined, 0.6);
   }
 
   /**
@@ -1272,9 +1295,8 @@ export class Director {
     const id = [...this.heard.keys()].find((x) => performancesFor(x).length > 1 && now - (this.memory.spoken.get(x) ?? now) > 60);
     const p = id ? PHRASE_BY_ID.get(id) : undefined;
     if (!p) return;
-    this.reheard = true;
     const pos: VoicePosition = this.visitor.near ? { kind: 'beyond', surface: this.rng.pick(SURFACES) } : { kind: 'chair' };
-    this.speakPhrase('rehear', p, pos, 0.5, undefined, 0.6);
+    if (this.speakPhrase('rehear', p, pos, 0.5, undefined, 0.6)) this.reheard = true;
   }
 
   /**
@@ -1382,7 +1404,7 @@ export class Director {
     this.memoryQuietUntil = -Infinity;
     // Later memories keep their distance from this one too.
     this.scenes.lastEnded = this.now + m.attack + m.hold + m.release;
-    this.queue(0, { type: 'memory', phraseId: m.phraseId, attack: m.attack, hold: m.hold, release: m.release }, 'memory', { major: true, ttl: 3 });
+    this.queue(0, { type: 'memory', phraseId: m.phraseId, attack: m.attack, hold: m.hold, release: m.release }, 'memory', { major: true, ttl: 3, priority: DESIGNED });
     // The light is the answer: nothing else while it is there, and a moment after.
     this.pacing.holdFor(this.now, m.attack + m.hold + m.release + 3);
   }
@@ -1420,8 +1442,8 @@ export class Director {
         withdrew: v.sinceWithdraw < 60,
       }),
     });
-    if (start?.kind === 'vignette') this.queue(0, { type: 'vignette', id: start.id, phraseId: start.phraseId, variant: start.variant }, 'vignette', { major: true, ttl: 3 });
-    else if (start) this.queue(0, { type: 'memory-scene', id: start.id, phraseId: start.phraseId, variant: start.variant, minHold: start.minHold, maxHold: start.maxHold, voices: start.voices }, 'memory-scene', { major: true, ttl: 3 });
+    if (start?.kind === 'vignette') this.queue(0, { type: 'vignette', id: start.id, phraseId: start.phraseId, variant: start.variant }, 'vignette', { major: true, ttl: 3, priority: DESIGNED });
+    else if (start) this.queue(0, { type: 'memory-scene', id: start.id, phraseId: start.phraseId, variant: start.variant, minHold: start.minHold, maxHold: start.maxHold, voices: start.voices }, 'memory-scene', { major: true, ttl: 3, priority: DESIGNED });
     if (this.scenes.active) this.pacing.holdFor(this.now, 0.5);
     // A later memory's line is offered as the kitchen-light memory's is: written alone, where
     // the visitor is looking, and the room holds still a moment so a visitor who stays with it
@@ -1617,6 +1639,12 @@ export class Director {
         hold();
         continue;
       }
+      // A voice the room declines to say (a line left unfinished, a memory's quiet) is not lost:
+      // the beat waits for it, whole, rather than playing without it.
+      if (beat.gestures.some((g) => 'voice' in g) && this.voiceRefused(`encounter:${id}:${n + 1}`, id)) {
+        hold();
+        continue;
+      }
       // A beat that has already waited plays at once: the wait was its pause.
       const waited = this.heldBeats.has(id);
       this.heldBeats.delete(id);
@@ -1671,8 +1699,7 @@ export class Director {
       if ('voice' in g) {
         const pos: VoicePosition =
           g.from === 'behind' ? { kind: 'behind' } : g.from === 'chair' ? { kind: 'chair' } : g.from === 'surface' ? { kind: 'surface', phraseId: p.id } : g.from === 'nowhere' ? { kind: 'nowhere' } : beyond();
-        this.voice(rule, d, g.voice, p.text, p.text, pos, { phraseId: p.id, gain: g.gain ?? 0.5, ttl: 15, priority: 6 });
-        this.memory.spoken.set(p.id, this.now + d);
+        if (this.voice(rule, d, g.voice, p.text, p.text, pos, { phraseId: p.id, gain: g.gain ?? 0.5, ttl: 15, priority: 6 })) this.memory.spoken.set(p.id, this.now + d);
       } else if ('annotate' in g) {
         const a = PHRASE_BY_ID.get(g.annotate);
         if (!a) continue;
@@ -1868,10 +1895,18 @@ export class Director {
     if (this.visits > 1) this.reveal('moving-chair', 90, 'chair-nudge', 'emerge', 10);
   }
 
+  private payHesitation() {
+    const p = PHRASE_BY_ID.get('if-closer');
+    if (!this.hesitationOwed || !p) return;
+    if (this.speakPhrase('motif-hesitation', p, { kind: 'chair' }, 8, 'whisper', 0.6)) this.hesitationOwed = false;
+  }
+
   private onMotif(m: Motif) {
     switch (m) {
       case 'hesitation':
-        if (PHRASE_BY_ID.get('if-closer')) this.speakPhrase('motif-hesitation', PHRASE_BY_ID.get('if-closer')!, { kind: 'chair' }, 8, 'whisper', 0.6);
+        // Motifs form once: a reply the room declined to say is owed, and said when it can be.
+        this.hesitationOwed = true;
+        this.payHesitation();
         break;
       case 'stillness':
         this.reveal('dont-have-say', this.pacing.repeats('voice', this.now, 20) ? 20 : 2, 'motif-stillness', this.visitor.stillFor > 3 ? 'still' : 'emerge', 10);
