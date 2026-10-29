@@ -355,3 +355,16 @@ describe('the way in, in the App\'s order', () => {
     expect(past.slice(back).every((s) => s === 1)).toBe(true);
   });
 });
+
+describe('a tap that walks a seated visitor over', () => {
+  it('aims from the standing eye they will arrive with, so the target is centred on arrival', () => {
+    const rig = new CameraRig(16 / 9);
+    rig.frameOpening(16 / 9);
+    const target = new THREE.Vector3(0, 0.9, -3);
+    rig.attend(target, 1);
+    const goal = (rig as unknown as { goal: THREE.Vector3 }).goal;
+    const aim = (rig as unknown as { lookGoal: { pitch: number } }).lookGoal;
+    const standing = Math.atan2(target.y - 1.58, Math.hypot(target.x - goal.x, target.z - goal.z));
+    expect(aim.pitch).toBeCloseTo(standing, 6);
+  });
+});
