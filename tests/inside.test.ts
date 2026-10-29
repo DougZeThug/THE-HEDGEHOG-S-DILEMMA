@@ -113,6 +113,21 @@ describe('inside a living memory', () => {
     }
   });
 
+  it('kneeling, they see wider, and are carried to where the painting fills the view they have', () => {
+    const arrival = (kneel: boolean) => {
+      const { rig, inside, goIn } = setup();
+      rig.setKneel(kneel);
+      inside.begin(7);
+      goIn();
+      return Math.hypot(rig.pos.x - 0, rig.pos.z + 3.2);
+    };
+    const standing = arrival(false);
+    const kneeling = arrival(true);
+    expect(kneeling).toBeLessThan(standing);
+    // (62° → 70° vertical: the same painting fills it from tan(31°)/tan(35°) of the distance.)
+    expect(kneeling / standing).toBeCloseTo(Math.tan((31 * Math.PI) / 180) / Math.tan((35 * Math.PI) / 180), 1);
+  });
+
   it('one move in: the body first (their look their own), then taken in on the same curve without a jump; back to where they stood', () => {
     const { rig, inside, step } = setup();
     inside.begin(5);
