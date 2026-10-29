@@ -9,7 +9,7 @@ Small remembered fragments, heard rather than seen: one or two voices, the pause
 - **Reaching the rarely met.** Three rules make C, D and G easier to reach:
   - **A short look is enough for a while.** For 20 s after the room offers a line, a 1.5 s look (instead of 2.5 s) begins its vignette.
   - **A read is remembered.** A line read when its vignette couldn't play (too early, or the room still quiet after another memory) is owed. Once it can play, and if its line is on the wall the visitor faces, the room writes it again there, once. For 30 s, a 1.5 s look or a touch begins it.
-  - **Order.** Offers go first to owed vignettes, then to memories never heard on any visit.
+  - **Order.** Offers go first to painted memories never met, then to owed vignettes, then to those never heard on any visit.
 - **Never pushing.** The room points at a line, by offering it or writing it again, at most once every 120 s, three times a visit, and never within 60 s of a vignette ending.
 - **Visitors meet a vignette only once its recordings are kept.** Its voiced lines must all have takes the artist approved on the audition sheet. Until then the room is unchanged, apart from versions that have no voices.
 - **More than one way in.** A vignette may open beside other lines too (`anchor.also`), each one the creative director judged to sit beside its scene rather than act it out. It is placed beside the line that was read. Offers keep its own line. A line written again because the vignette is owed uses the line that was read, if it is on the wall the visitor faces. Effects and echoes that name a line keep that line. So far:

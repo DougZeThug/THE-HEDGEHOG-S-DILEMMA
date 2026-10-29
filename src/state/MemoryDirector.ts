@@ -281,7 +281,7 @@ export class MemoryDirector {
       t.easyUntil = m.offer?.wall ? Infinity : s.now + (reink && t.owed ? 30 : 20);
       return reink ? { ...m, reink: true } : m;
     };
-    // Owed vignettes first (read when they couldn't play), then memories never heard on any visit.
+    // Painted memories never met first, then owed vignettes (read when they couldn't play), then those never heard on any visit.
     const owed = (m: SceneMemory) => this.tracks.get(m.id)!.owed && m.kind === 'vignette';
     // (The door, once it may come, before other offers: it has a place of its own and is otherwise never found.)
     const rank = (m: SceneMemory) => (m.offer?.wall ? 0.5 : (this.counts[m.id] ?? 0) === 0 && m.kind !== 'vignette' ? 1 : owed(m) ? 1.5 : (this.counts[m.id] ?? 0) === 0 ? 2 : 3);
