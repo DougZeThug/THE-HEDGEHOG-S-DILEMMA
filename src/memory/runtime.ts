@@ -119,9 +119,10 @@ export interface RuntimeHost {
   /**
    * The version of its overheard voices to lay in (src/content/memory-voices.ts), already chosen by
    * the Director and allowed by the recordings (null: wordless, as it always was), and a key's
-   * recordings (to find a line's reading by name).
+   * recordings (to find a line's reading by name). `preview`: a `?memory=` preview, where a line
+   * without a kept take is heard as the host's stand-in whisper and caption rather than left wordless.
    */
-  voices?: { version: string | null; filesOf?: (key: string) => readonly string[] };
+  voices?: { version: string | null; filesOf?: (key: string) => readonly string[]; preview?: boolean };
 }
 
 /** A living memory's scene, prepared (src/memory/living/): a painting that lives, or a film. */
@@ -298,7 +299,8 @@ export async function prepare(id: string, variant: string, host: RuntimeHost): P
   const manifest = await manifestOf(base, def.art);
   const suffix = host.quality === 'low' ? '@low' : '';
   let audio: MemoryAudio | null = null;
-  const voices = host.voices?.version ? { version: host.voices.version, filesOf: host.voices.filesOf } : null;
+  const preview = host.voices?.preview ?? false;
+  let voices = host.voices?.version ? { version: host.voices.version, filesOf: host.voices.filesOf } : null;
   if (host.audio) {
     const sid = sheetId(def.id, v);
     const src = sheetSource(sid, memorySchema(def.layers, def.living), { sections: def.sections, markers: def.markers });
@@ -497,6 +499,11 @@ export async function prepare(id: string, variant: string, host: RuntimeHost): P
   }
   try {
     await audio?.prepare();
+    // A visitor hears only voice lines whose take also loaded: one that failed to fetch or decode
+    // drops the version (the memory plays wordless, as if unvoiced), so the host's stand-in whisper
+    // and captions never reach a visitor — the fallback is for `?memory=` previews only, where a
+    // line without a kept take is heard that way and so is kept here.
+    if (!preview && audio?.dropFailedVoices()) voices = null;
     // Upload one a frame, so the first frame the memory is drawn doesn't stall.
     for (const l of [...loaded.filter((x) => x.bitmap), ...extra]) {
       host.renderer.initTexture(l.texture);
