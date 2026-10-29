@@ -97,6 +97,13 @@ export function returnYaw(leaving: 'close' | null, base: number): number | null 
 /** How far it is turned (radians), seen in the returning opening's chair-only frame. */
 export const CLOSE_TURN = 1.9;
 
+/**
+ * A designed moment is decided at the instant the room is free and has a ttl shorter than the
+ * major gap: it goes before a major kept from earlier (which would take the slot, and the moment
+ * would expire unheard with its spacing already spent).
+ */
+const DESIGNED = 3;
+
 export class Director {
   readonly visitor = new VisitorModel();
   readonly memory = new Memory();
@@ -1397,7 +1404,7 @@ export class Director {
     this.memoryQuietUntil = -Infinity;
     // Later memories keep their distance from this one too.
     this.scenes.lastEnded = this.now + m.attack + m.hold + m.release;
-    this.queue(0, { type: 'memory', phraseId: m.phraseId, attack: m.attack, hold: m.hold, release: m.release }, 'memory', { major: true, ttl: 3 });
+    this.queue(0, { type: 'memory', phraseId: m.phraseId, attack: m.attack, hold: m.hold, release: m.release }, 'memory', { major: true, ttl: 3, priority: DESIGNED });
     // The light is the answer: nothing else while it is there, and a moment after.
     this.pacing.holdFor(this.now, m.attack + m.hold + m.release + 3);
   }
@@ -1435,8 +1442,8 @@ export class Director {
         withdrew: v.sinceWithdraw < 60,
       }),
     });
-    if (start?.kind === 'vignette') this.queue(0, { type: 'vignette', id: start.id, phraseId: start.phraseId, variant: start.variant }, 'vignette', { major: true, ttl: 3 });
-    else if (start) this.queue(0, { type: 'memory-scene', id: start.id, phraseId: start.phraseId, variant: start.variant, minHold: start.minHold, maxHold: start.maxHold, voices: start.voices }, 'memory-scene', { major: true, ttl: 3 });
+    if (start?.kind === 'vignette') this.queue(0, { type: 'vignette', id: start.id, phraseId: start.phraseId, variant: start.variant }, 'vignette', { major: true, ttl: 3, priority: DESIGNED });
+    else if (start) this.queue(0, { type: 'memory-scene', id: start.id, phraseId: start.phraseId, variant: start.variant, minHold: start.minHold, maxHold: start.maxHold, voices: start.voices }, 'memory-scene', { major: true, ttl: 3, priority: DESIGNED });
     if (this.scenes.active) this.pacing.holdFor(this.now, 0.5);
     // A later memory's line is offered as the kitchen-light memory's is: written alone, where
     // the visitor is looking, and the room holds still a moment so a visitor who stays with it
