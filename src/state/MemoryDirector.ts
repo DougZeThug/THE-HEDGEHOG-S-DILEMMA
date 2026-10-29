@@ -204,8 +204,10 @@ export class MemoryDirector {
     // A vignette's line answers like any other until its memory could open (a line read early
     // isn't left unanswered for minutes).
     if (m.kind === 'vignette' && (this.last ?? 0) < m.earliest) return false;
-    // Nor one that can't play (its voices not kept): its lines answer as any other (QA, 2026-10-27).
-    if (!this.isAvailable(m.id)) return false;
+    // Nor a vignette that can't play (its voices not kept): its lines answer as any other (QA,
+    // 2026-10-27). A painted memory always plays — wordless if its voices aren't kept — so its
+    // line stays its own (its voices only decide whether they attach, not whether it begins).
+    if (m.kind === 'vignette' && !this.isAvailable(m.id)) return false;
     return !this.tracks.get(m.id)!.played;
   }
 
