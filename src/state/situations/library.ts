@@ -59,9 +59,17 @@ export const nextRoom: SituationDef = {
           return c.end();
         }
         d.laughs = 2;
-        // From somewhere else — never the wall the visitor is already standing at.
-        const away = otherWalls([d.wall, h.facing]).filter((w) => h.distToSurface(w) > 1.6);
-        const to = away.length ? away : otherWalls([d.wall, h.facing]);
+        // From somewhere else — never the wall the visitor is already standing at — and somewhere
+        // that can still pay off if followed. The memory is the requirement; distance only the
+        // preference: walk the pools far-then-any and pick the first that holds a warm memory, so
+        // the second laugh never lures onto a dead-end wall (e.g. north, which never qualifies)
+        // just because the one nearby is closer than 1.6 m. Falls back to a non-empty pool only
+        // if no candidate wall carries a memory.
+        const base = otherWalls([d.wall, h.facing]);
+        const away = base.filter((w) => h.distToSurface(w) > 1.6);
+        const pools = [away, base];
+        const first = pools.find((pool) => pool.some((w) => memoryOn(h, w)));
+        const to = first ?? pools.find((p) => p.length)!;
         const withMemory = to.filter((w) => memoryOn(h, w));
         d.wall = h.rng.pick(withMemory.length ? withMemory : to);
         laugh(c, d.wall, 0.3);

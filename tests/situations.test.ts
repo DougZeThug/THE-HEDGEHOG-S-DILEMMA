@@ -102,6 +102,40 @@ describe('situation: the next room', () => {
     expect(v.of('sit:next-room').some((c) => c.cue.type === 'write')).toBe(false);
     expect(v.d.situations.finished.map((f) => f.id)).toContain('next-room');
   });
+
+  // The second laugh ("call once more, from somewhere else") relocated onto a dead-end wall
+  // when its candidate pool was narrowed by distance before filtering for memory-bearing walls,
+  // so following it led to nothing and the owed chair epilogue was silently lost for the visit.
+  // Seed 1 reproduced the dead-end pick for all three bug-exposing facings; the relocation now
+  // treats a warm memory as the requirement and distance as a preference, so following the lure
+  // pays off.
+  it('ignoring the first laugh, the second call from elsewhere still pays off when followed', () => {
+    for (const facing of ['east', 'south', 'west'] as Surface[]) {
+      const v = new Visit(['next-room'], 1);
+      v.d.scenes.setAvailable(new Set());
+      const first = v.run(240, { x: 0, z: 2.4, facing }, (c) => isVoice(c.cue) && c.cue.tag === 'next-room');
+      expect(first, `facing ${facing}`).toBeTruthy();
+      // Ignore the first laugh: stay at the start spot, never approach. After ~75s the situation
+      // calls once more, from somewhere else.
+      const second = v.run(120, { x: 0, z: 2.4, facing }, (c) => isVoice(c.cue) && c.cue.tag === 'next-room' && c.t > first!.t + 30);
+      expect(second, `facing ${facing}`).toBeTruthy();
+      const w1 = (first!.cue as Extract<Cue, { type: 'voice' }>).position as { kind: 'beyond'; surface: Surface };
+      const w2 = (second!.cue as Extract<Cue, { type: 'voice' }>).position as { kind: 'beyond'; surface: Surface };
+      expect(w2.surface, `facing ${facing}: the "somewhere else" guarantee`).not.toBe(w1.surface);
+      expect(w2.surface, `facing ${facing}: relocated-to dead-end is gone`).not.toBe('north');
+      // Follow the second laugh.
+      v.run(12, before(w2.surface));
+      const found = v.of('sit:next-room').find((c) => c.cue.type === 'reveal');
+      expect(found, `facing ${facing}`).toBeTruthy();
+      const memoryId = found && found.cue.type === 'reveal' ? found.cue.phraseId : undefined;
+      expect(memoryId, `facing ${facing}`).toBeTruthy();
+      expect(geometry(memoryId!)!.surface).toBe(w2.surface);
+      v.run(120, { x: 0, z: 2.6, facing });
+      const write = v.run(60, { x: 0.1, z: 0.8, facing }, (c) => c.rule === 'sit:next-room' && c.cue.type === 'write');
+      expect(write, `facing ${facing}`).toBeTruthy();
+      expect(write!.cue.type === 'write' && write!.cue.surface).toBe('floor');
+    }
+  });
 });
 
 describe('situation: someone humming', () => {
