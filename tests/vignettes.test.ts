@@ -6,6 +6,7 @@ import { PHRASE_BY_ID } from '../src/content/phrases';
 import { MemoryDirector, VIGNETTE_APART, VIGNETTE_WINDOW, type SceneState } from '../src/state/MemoryDirector';
 import { Director } from '../src/state/Director';
 import { SYNTH_KINDS, render } from '../src/memory/synthSounds';
+import { allVersions, voicesId } from '../src/content/memory-voices';
 
 const DIRECTION = JSON.parse(readFileSync('src/content/dialogue.json', 'utf8')) as { voices: Record<string, unknown> };
 const DESIGNS = JSON.parse(readFileSync('scripts/voice-designs.json', 'utf8')) as { designs: { id: string }[] };
@@ -466,6 +467,24 @@ describe('reaching the rarely met (C, D, G)', () => {
     expect(m.claims('warm-night')).toBe(false);
     m.setAvailable(new Set(VIGNETTES.map((v) => v.id)));
     expect(m.claims('still-warm')).toBe(true);
+  });
+
+  it('the availability guard on claims() is vignette-only: a painted memory always claims its line', () => {
+    // The App's real available set shape (App.vignettesAvailable): bare vignette ids plus painted-
+    // voice composite keys (`cereal:first:default`), never a painted memory's bare id.
+    const available = new Set<string>(VIGNETTES.map((v) => v.id).filter((id) => id !== 'rain'));
+    for (const { id, variant, version } of allVersions()) available.add(voicesId(id, variant, version));
+    const m = new MemoryDirector();
+    m.setAvailable(available);
+    m.update(state({ now: 200, visible: () => false }));
+    // An unrecorded vignette (rain) still doesn't keep its lines back (the 8bf4449 fix, preserved).
+    expect(m.claims('still-warm')).toBe(false);
+    expect(m.claims('warm-night')).toBe(false);
+    // A painted memory whose bare id is never in the set still claims its line: it always plays
+    // (wordless if its voices aren't kept), so availability only decides whether voices attach.
+    for (const phraseId of ['cereal', 'more-minutes', 'your-hand', 'didnt-know-say', 'happiest-unneeded', 'door-open']) {
+      expect(m.claims(phraseId), phraseId).toBe(true);
+    }
   });
 
   it('a painted memory never met is offered before an owed vignette (the rare paintings keep their chances)', () => {
