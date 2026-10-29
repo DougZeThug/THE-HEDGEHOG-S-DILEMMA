@@ -27,7 +27,7 @@ export interface EditorHost {
   text: { anchorOf(id: string): unknown; setShown(id: string): void };
 }
 
-const PHRASE: Record<string, string> = { cereal: 'cereal', bedroom: 'happiest-unneeded', door: 'door-open', almost: 'your-hand', things: 'didnt-know-say' };
+const PHRASE: Record<string, string> = { cereal: 'cereal', bedroom: 'happiest-unneeded', door: 'door-open', woodland: 'more-minutes', almost: 'your-hand', things: 'didnt-know-say' };
 
 export function openEditor(app: EditorHost): void {
   studio.initialize({ __experimental_rafDriver: driver, persistenceKey: 'hedgehog-memories' });
