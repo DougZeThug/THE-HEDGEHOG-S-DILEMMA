@@ -645,6 +645,11 @@ describe('the two of them close: one shot, three beats, held drawings', () => {
     expect(Object.keys(def.cues('afternoon').cues)).not.toContain('sfx:grass');
   });
 
+  it('close, the hair sways less than in the wide, but is not stilled', () => {
+    expect(SPEC.near!.wind).toBeGreaterThan(SPEC.near!.breath);
+    expect(SPEC.near!.wind).toBeLessThan(1);
+  });
+
   it('the spec, the timeline and the room agree on when it is and where its heart is', () => {
     expect(SPEC.near!.span).toEqual([T.from, T.to]);
     for (const b of [T.herEyes, T.herTurn, T.hisEyes, T.hisRoll]) expect(SPEC.near!.beats).toContain(b);
