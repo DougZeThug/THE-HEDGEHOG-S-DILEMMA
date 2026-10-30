@@ -1,0 +1,13 @@
+{
+  "_note": "STARTING POINT, engine and layout assumed. Verify against the Nothing Strange Here repo before relying on it.",
+  "project": "Nothing Strange Here",
+  "productionBranches": ["main", "master", "production"],
+  "commands": { "typecheck": "npx tsc --noEmit", "lint": "npm run lint", "unit": "npm test", "build": "npm run build", "scenes": "npm run validate:scenes", "perf": "npm run perf" },
+  "tiers": { "quick": ["typecheck", "unit"], "full": ["typecheck", "lint", "unit", "scenes", "build"] },
+  "preview": { "build": "npm run build", "serve": "npx vite preview --port 4173", "url": "http://localhost:4173/", "browserChecks": [] },
+  "protectedPaths": ["public/art/**", "src/assets/**", "story/approved/**"],
+  "forbiddenCommands": [],
+  "domainReviewers": { "agents": ["factory-reviewer"], "wanted": "a headless NPC-navigation test (spawn, path, arrive, no stuck) and a scene validator (TODO: build first)" },
+  "testingRequirements": ["NPC navigation: seeded simulation asserting every NPC reaches its goal within a time budget and never stands inside geometry.", "Performance: record frame time on the heaviest scene before and after."],
+  "limits": { "maxConcurrentTasks": 1, "maxRepairAttempts": 3, "sameFailureEscalates": 2 }
+}

@@ -1,0 +1,24 @@
+# Opt-in weekly maintenance audit. INERT until FACTORY_MAINTAIN=true. Recurring paid work: enable only after you have
+# read factory/README.md "Cost" and approved the schedule. UNTESTED.
+name: Factory (weekly maintenance)
+on:
+  schedule: [{ cron: "17 6 * * 1" }]
+  workflow_dispatch:
+jobs:
+  maintain:
+    if: vars.FACTORY_MAINTAIN == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    concurrency: { group: factory-queue, cancel-in-progress: false }
+    permissions: { contents: write, pull-requests: write, issues: write, id-token: write }
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: /factory-maintain deps security tests. Open at most 2 PRs. Never merge.
+          claude_args: --max-turns 80 --max-budget-usd 6

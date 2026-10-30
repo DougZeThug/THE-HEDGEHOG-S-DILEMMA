@@ -1,0 +1,12 @@
+{
+  "project": "TODO name",
+  "productionBranches": ["main", "master", "production"],
+  "commands": { "typecheck": "npx tsc --noEmit", "lint": "npm run lint", "unit": "npm test", "build": "npm run build" },
+  "tiers": { "quick": ["typecheck", "unit"], "full": ["typecheck", "lint", "unit", "build"] },
+  "preview": { "build": "npm run build", "serve": "npx vite preview --port 4173", "url": "http://localhost:4173/", "browserChecks": [] },
+  "protectedPaths": [],
+  "forbiddenCommands": [],
+  "domainReviewers": { "agents": [] },
+  "testingRequirements": [],
+  "limits": { "maxConcurrentTasks": 1, "maxRepairAttempts": 3, "sameFailureEscalates": 2 }
+}
