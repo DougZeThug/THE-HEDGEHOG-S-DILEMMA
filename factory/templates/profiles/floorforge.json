@@ -1,0 +1,13 @@
+{
+  "_note": "STARTING POINT, layout assumed. Verify every path and command against the FloorForge repo before relying on it.",
+  "project": "FloorForge",
+  "productionBranches": ["main", "master", "production"],
+  "commands": { "typecheck": "npx tsc --noEmit", "lint": "npm run lint", "unit": "npm test", "build": "npm run build", "visual": "npx playwright test --grep @visual", "alignment": "npm run check:alignment" },
+  "tiers": { "quick": ["typecheck", "unit"], "full": ["typecheck", "lint", "unit", "build", "visual"] },
+  "preview": { "build": "npm run build", "serve": "npx vite preview --port 4173", "url": "http://localhost:4173/", "browserChecks": ["npx playwright test"] },
+  "protectedPaths": ["public/assets/**", "src/assets/**", "art/**", "**/*.psd", "**/*.aseprite", "supabase/seed/prod*"],
+  "forbiddenCommands": [{ "pattern": "supabase\\s+db\\s+(push|reset)", "reason": "database changes need approval" }],
+  "domainReviewers": { "agents": ["factory-reviewer"], "wanted": "an asset-alignment checker and a save/load compatibility test (TODO: have the factory build these first)" },
+  "testingRequirements": ["Layered artwork: screenshot-compare every equipment/customisation layer against approved baselines before and after.", "Save/load: load a save from the previous release and confirm equipment and progression survive.", "Never modify or delete approved artwork; add new files instead."],
+  "limits": { "maxConcurrentTasks": 1, "maxRepairAttempts": 3, "sameFailureEscalates": 2 }
+}

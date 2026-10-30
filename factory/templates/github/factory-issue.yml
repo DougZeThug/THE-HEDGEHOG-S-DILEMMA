@@ -1,0 +1,33 @@
+# Opt-in: label an issue "factory" and the factory builds it and opens a PR.
+# INERT until you (1) install the Claude GitHub App, (2) add secret ANTHROPIC_API_KEY (or CLAUDE_CODE_OAUTH_TOKEN),
+# (3) set repository variable FACTORY_ENABLED=true. UNTESTED end to end: the `issues: labeled` trigger is a standard
+# GitHub event but is not in Anthropic's documented examples. Test with one throwaway issue first.
+name: Factory (issue queue)
+on:
+  issues:
+    types: [labeled]
+concurrency:
+  group: factory-queue       # one active factory run at a time; others wait (explicit concurrency ceiling = 1)
+  cancel-in-progress: false
+jobs:
+  build:
+    if: vars.FACTORY_ENABLED == 'true' && github.event.label.name == 'factory'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions: { contents: write, pull-requests: write, issues: write, id-token: write }
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            /factory-build Issue #${{ github.event.issue.number }}: ${{ github.event.issue.title }}
+
+            ${{ github.event.issue.body }}
+
+            Work on a branch named factory/issue-${{ github.event.issue.number }}. Open a pull request that says "Closes #${{ github.event.issue.number }}". Never merge. Comment the report summary on the issue.
+          claude_args: --max-turns 120 --max-budget-usd 10

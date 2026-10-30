@@ -44,3 +44,7 @@ Keep it proportionate:
 - All seven only when the overall experience changes substantially.
 
 Don't run reviews that can't produce actionable findings, and don't ask for approval rituals.
+
+## AI software factory
+
+`/factory-build`, `/factory-fix`, `/factory-review`, `/factory-polish`, `/factory-status`, `/factory-maintain` run a plan, build, verify, review, repair, deliver pipeline. Procedure: `.claude/factory/protocol.md`. This project's commands, protected assets and reviewers: `.factory/profile.json`. Task records and evidence: `.factory/tasks/`. Handbook: `factory/README.md`. The factory is additive: for visitor-visible changes the seven specialist reviewers above still apply (listed in the profile). Guard hook and permissions (`.claude/hooks/factory-guard.mjs`, `.claude/settings.json`) are protected; do not edit them to get past a block.
