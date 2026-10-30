@@ -3,9 +3,9 @@
   "title": "Guard the agent definitions with a test",
   "kind": "build",
   "risk": "normal",
-  "status": "verifying",
+  "status": "ready",
   "created": "2026-10-30T19:35:54.857Z",
-  "updated": "2026-10-30T19:45:41.499Z",
+  "updated": "2026-10-30T19:47:30.434Z",
   "issue": null,
   "branch": "claude/fervent-bohr-k1zhfz",
   "baseSha": "1a757591e0846a92d75724f92fc59ec7f50d62e5",
@@ -153,6 +153,49 @@
           "ms": 11064
         }
       ]
+    },
+    {
+      "n": 5,
+      "tier": "full",
+      "passed": true,
+      "sha": "603556cb839884b8075063ba77123752b0cadffb",
+      "dirty": false,
+      "at": "2026-10-30T19:47:30.197Z",
+      "ms": 43598,
+      "results": [
+        {
+          "name": "typecheck",
+          "cmd": "npx tsc --noEmit",
+          "ok": true,
+          "ms": 6035
+        },
+        {
+          "name": "lint",
+          "cmd": "npm run lint",
+          "ok": true,
+          "ms": 6309
+        },
+        {
+          "name": "unit",
+          "cmd": "npx vitest run",
+          "ok": true,
+          "ms": 18922,
+          "testsPassed": 588,
+          "testsFailed": 0
+        },
+        {
+          "name": "factory",
+          "cmd": "node --test .claude/factory/test/factory.test.mjs",
+          "ok": true,
+          "ms": 946
+        },
+        {
+          "name": "build",
+          "cmd": "npm run build",
+          "ok": true,
+          "ms": 11366
+        }
+      ]
     }
   ],
   "repairs": [
@@ -174,6 +217,16 @@
       "sha": "43c310107fad92d8d82d27d94a20acbaacc84d85",
       "at": "2026-10-30T19:41:15.754Z",
       "file": null
+    },
+    {
+      "reviewer": "factory-reviewer",
+      "verdict": "pass",
+      "p0": 0,
+      "p1": 0,
+      "p2": 1,
+      "sha": "603556cb839884b8075063ba77123752b0cadffb",
+      "at": "2026-10-30T19:47:30.380Z",
+      "file": null
     }
   ],
   "interventions": [],
@@ -186,6 +239,10 @@
     {
       "at": "2026-10-30T19:38:01.940Z",
       "note": "headless allowlist denied compound read-only commands (ls|head|grep); widened the allowlist"
+    },
+    {
+      "at": "2026-10-30T19:47:30.318Z",
+      "note": "round-2 review (factory-reviewer, headless) ran against 39f9b7e; code diff to HEAD is 0 lines, only task records added; recorded against HEAD"
     }
   ],
   "startedAt": "2026-10-30T19:35:54.910Z"

@@ -26,6 +26,11 @@ Right-size: a trivial change (typo, constant, one-line fix) = Director edits, `F
 8. **Ready gate.** `F set <id> ready` refuses unless: the full tier passed on the current commit with a clean tree, an independent review of that commit has no open P0/P1, and acceptance criteria exist. Do not work around a refusal; fix the cause.
 9. **Deliver.** Push the feature branch, open a PR (template if present), write `.factory/tasks/<id>/report.md` (see report format), commit it, record usage (`F usage`), `F metrics <id>`. Never merge, deploy, run production migrations or touch live data: say what the human must approve.
 
+## Operating notes (learned)
+- **Order of record-keeping:** the ready gate ties verification and review to the last commit. Commit task records (`plan.md`, `report.md`, evidence) *before* the final full verify and review, then `set ready`. Committing afterwards invalidates the gate (open issue in `known-issues.md`).
+- **Headless agents** (`claude -p --agent <name>`): strict Bash allowlists stall agents on compound commands; prefer `--allowedTools Bash` with `--disallowedTools` for push/merge/reset/rm -rf/network, and record cost with `F usage`.
+- Reviewers that cannot run commands must say so; a read-only review is weaker than one that ran the tests.
+
 ## Report format (<= 1 page, plain English, for a non-technical creative director)
 Outcome in one sentence; what changed (user-visible terms); evidence (tests: counts, screenshots with paths, what was *observed*); what is NOT verified; decisions needing the human; recommended next action; metrics (interventions, minutes, repairs, runs).
 
