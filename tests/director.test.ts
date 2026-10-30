@@ -2,6 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { simulate, scripts, rules } from './sim';
 import { Director } from '../src/state/Director';
 import { interpretLocally } from '../src/interpret/LocalInterpreter';
+import { validateInterpretation, type Gesture } from '../src/interpret/schema';
+import { PHRASE_BY_ID } from '../src/content/phrases';
+import { TIER_OPEN } from '../src/state/PhraseSelector';
 
 describe('Director', () => {
   it('is deterministic for a given seed and behaviour', () => {
@@ -91,7 +94,7 @@ describe('Director', () => {
   });
 
   it('writes a contribution on the wall and does not reply to it', () => {
-    const text = 'I miss who I used to be.';
+    const text = 'I will remember you';
     const extras: number[] = [];
     for (let seed = 1; seed <= 24; seed++) {
       const { d } = simulate(scripts.still, 20, seed);
@@ -147,5 +150,94 @@ describe('a voice that was to write its line, and was never heard', () => {
       return;
     }
     throw new Error('no seed took the write-as-heard path');
+  });
+});
+
+describe('a contribution only surfaces writing whose tier is open in the current phase', () => {
+  // Phrase ids the contribution path has decided to surface (queued, before time passes).
+  const surfaced = (d: Director): string[] => {
+    const out: string[] = [];
+    for (const e of d.scheduler.pending()) {
+      if (!/^contribution-/.test(e.payload.rule)) continue;
+      const c = e.payload.cue;
+      if (c.type === 'reveal') out.push(c.phraseId);
+      else if (c.type === 'voice' && c.phraseId) out.push(c.phraseId);
+    }
+    return out;
+  };
+  const contribution = (d: Director, related: string[], contradictions: string[], gestures: Gesture[]) =>
+    d.contribute(
+      'visitor writing',
+      validateInterpretation({
+        dims: { nostalgia: 0.6, contradiction: 0.4 },
+        related,
+        contradictions,
+        gestures,
+        intensity: 0.5,
+        tense: 'past',
+        question: true,
+      })!,
+    );
+
+  it('revealRelated never surfaces a closed-tier phrase (still or transform) during arrival', () => {
+    let count = 0;
+    for (let seed = 1; seed <= 60; seed++) {
+      const d = new Director({ seed });
+      const open = new Set(TIER_OPEN[d.phase]);
+      expect(d.phase).toBe('arrival');
+      contribution(d, ['no-one-looking', 'some-good', 'happy-then'], [], ['revealRelated']);
+      for (const id of surfaced(d)) {
+        expect(open.has(PHRASE_BY_ID.get(id)!.tier)).toBe(true);
+        count++;
+      }
+    }
+    expect(count).toBeGreaterThan(0);
+  });
+
+  it('rearrange never reveals a contradiction whose tier is closed during arrival', () => {
+    let count = 0;
+    for (let seed = 1; seed <= 60; seed++) {
+      const d = new Director({ seed });
+      const open = new Set(TIER_OPEN[d.phase]);
+      contribution(d, ['stay'], ['easier-without'], ['rearrange']);
+      for (const id of surfaced(d)) {
+        expect(open.has(PHRASE_BY_ID.get(id)!.tier)).toBe(true);
+        count++;
+      }
+    }
+    expect(count).toBe(0);
+  });
+
+  it('distantRecollection never speaks a closed-tier phrase aloud during arrival', () => {
+    let count = 0;
+    for (let seed = 1; seed <= 60; seed++) {
+      const d = new Director({ seed });
+      const open = new Set(TIER_OPEN[d.phase]);
+      contribution(d, ['who-talking', 'happy-then'], [], ['distantRecollection']);
+      for (const id of surfaced(d)) {
+        expect(open.has(PHRASE_BY_ID.get(id)!.tier)).toBe(true);
+        count++;
+      }
+    }
+    expect(count).toBeGreaterThan(0);
+  });
+
+  it('once the familiar tier has opened, a contribution may surface writing from it', () => {
+    let surfacedAny = false;
+    for (let seed = 1; seed <= 50; seed++) {
+      const d = new Director({ seed });
+      simulate(scripts.still, 42, seed, 0.1, d);
+      if (d.phase === 'arrival') continue;
+      const open = new Set(TIER_OPEN[d.phase]);
+      d.contribute(
+        'I was afraid',
+        validateInterpretation({ dims: { fear: 0.5 }, related: ['afraid-leave'], contradictions: [], gestures: ['revealRelated'], intensity: 0.5, tense: 'past', question: false })!,
+      );
+      const ids = surfaced(d);
+      if (!ids.length) continue;
+      surfacedAny = true;
+      for (const id of ids) expect(open.has(PHRASE_BY_ID.get(id)!.tier)).toBe(true);
+    }
+    expect(surfacedAny).toBe(true);
   });
 });
