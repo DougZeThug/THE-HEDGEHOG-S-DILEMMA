@@ -2000,17 +2000,18 @@ export class Director {
     if (!options.length || r.chance(0.4)) return;
     const g = r.pick(options);
     const later = r.range(60, 180);
+    const open = new Set<Tier>(TIER_OPEN[this.phase]);
     switch (g) {
       case 'quiet':
         this.queue(1, { type: 'silence', depth: 0.45 + 0.25 * it.intensity, seconds: 10 }, 'contribution-quiet', { major: true, ttl: 6 });
         break;
       case 'revealRelated': {
-        const p = it.related.map((id) => PHRASE_BY_ID.get(id)).find((x) => x && x.tier !== 'annotation' && !this.visible.has(x.id));
-        if (p) this.reveal(p.id, later, 'contribution-related', 'emerge', 12);
+        const p = it.related.map((id) => PHRASE_BY_ID.get(id)).find((x) => x && open.has(x.tier) && !this.visible.has(x.id));
+        if (p) this.reveal(p.id, later, 'contribution-related', p.tier === 'still' ? 'still' : 'emerge', 12);
         break;
       }
       case 'distantRecollection': {
-        const p = it.related.map((id) => PHRASE_BY_ID.get(id)).find((x) => x?.voice && !this.memory.spoken.has(x.id));
+        const p = it.related.map((id) => PHRASE_BY_ID.get(id)).find((x) => x && x.voice && open.has(x.tier) && !this.memory.spoken.has(x.id));
         if (p) this.speakPhrase('contribution-recollection', p, { kind: 'beyond', surface: this.rng.pick(SURFACES) }, later, 'distant', 0.45);
         else this.fragment('contribution-recollection', VOICE_FRAGMENTS.find((f) => f.id === 'vf-two-voices')!, { kind: 'beyond', surface: 'west' }, later, 0.35);
         break;
@@ -2019,10 +2020,11 @@ export class Director {
         const a = it.related[0];
         const b = it.contradictions[0];
         if (!a || !b) break;
-        if (!this.visible.has(b)) this.reveal(b, later, 'contribution-rearrange', 'emerge', 10);
         const pa = PHRASE_BY_ID.get(a);
         const pb = PHRASE_BY_ID.get(b);
-        if (pa && pb && pa.surface === pb.surface) this.queue(later + 12, { type: 'link', a, b, ttl: 60 }, 'contribution-rearrange');
+        if (!pb || !open.has(pb.tier)) break;
+        if (!this.visible.has(b)) this.reveal(b, later, 'contribution-rearrange', pb.tier === 'still' ? 'still' : 'emerge', 10);
+        if (pa && pa.surface === pb.surface) this.queue(later + 12, { type: 'link', a, b, ttl: 60 }, 'contribution-rearrange');
         break;
       }
       case 'temperatureShift': {
