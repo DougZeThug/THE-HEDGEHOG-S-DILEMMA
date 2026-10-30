@@ -1,0 +1,192 @@
+{
+  "id": "T20261030-guard-the-agent-definitions-with",
+  "title": "Guard the agent definitions with a test",
+  "kind": "build",
+  "risk": "normal",
+  "status": "verifying",
+  "created": "2026-10-30T19:35:54.857Z",
+  "updated": "2026-10-30T19:45:41.499Z",
+  "issue": null,
+  "branch": "claude/fervent-bohr-k1zhfz",
+  "baseSha": "1a757591e0846a92d75724f92fc59ec7f50d62e5",
+  "acceptance": [
+    "Every .claude/agents/*.md has frontmatter with non-empty name, description, tools; name equals filename; names unique; at least 13 files found",
+    "Agents listed in .factory/profile.json domainReviewers.agents, plus factory-architect, factory-reviewer, factory-qa, have tools that are a subset of Read,Grep,Glob,Bash (set compare); missing tools line fails",
+    "Only factory-builder, factory-repair, factory-ui may have Edit/Write/MultiEdit/NotebookEdit; any other agent (including a new one) fails unless added to an explicit list in the test",
+    "Every profile domainReviewers agent has a matching file",
+    "Mutation check: adding Edit to skeptic.md, deleting a tools line, or renaming a name each makes the test fail with a message naming file and problem"
+  ],
+  "builder": null,
+  "verifications": [
+    {
+      "n": 1,
+      "tier": "quick",
+      "passed": true,
+      "sha": "1a757591e0846a92d75724f92fc59ec7f50d62e5",
+      "dirty": true,
+      "at": "2026-10-30T19:39:21.507Z",
+      "ms": 23811,
+      "results": [
+        {
+          "name": "typecheck",
+          "cmd": "npx tsc --noEmit",
+          "ok": true,
+          "ms": 5735
+        },
+        {
+          "name": "unit",
+          "cmd": "npx vitest run",
+          "ok": true,
+          "ms": 18061,
+          "testsPassed": 586,
+          "testsFailed": 0
+        }
+      ]
+    },
+    {
+      "n": 2,
+      "tier": "full",
+      "passed": true,
+      "sha": "43c310107fad92d8d82d27d94a20acbaacc84d85",
+      "dirty": false,
+      "at": "2026-10-30T19:40:24.324Z",
+      "ms": 44154,
+      "results": [
+        {
+          "name": "typecheck",
+          "cmd": "npx tsc --noEmit",
+          "ok": true,
+          "ms": 5411
+        },
+        {
+          "name": "lint",
+          "cmd": "npm run lint",
+          "ok": true,
+          "ms": 6494
+        },
+        {
+          "name": "unit",
+          "cmd": "npx vitest run",
+          "ok": true,
+          "ms": 17951,
+          "testsPassed": 586,
+          "testsFailed": 0
+        },
+        {
+          "name": "factory",
+          "cmd": "node --test .claude/factory/test/factory.test.mjs",
+          "ok": true,
+          "ms": 841
+        },
+        {
+          "name": "build",
+          "cmd": "npm run build",
+          "ok": true,
+          "ms": 13441
+        }
+      ]
+    },
+    {
+      "n": 3,
+      "tier": "quick",
+      "passed": true,
+      "sha": "43c310107fad92d8d82d27d94a20acbaacc84d85",
+      "dirty": true,
+      "at": "2026-10-30T19:44:03.930Z",
+      "ms": 25473,
+      "results": [
+        {
+          "name": "typecheck",
+          "cmd": "npx tsc --noEmit",
+          "ok": true,
+          "ms": 5759
+        },
+        {
+          "name": "unit",
+          "cmd": "npx vitest run",
+          "ok": true,
+          "ms": 19696,
+          "testsPassed": 588,
+          "testsFailed": 0
+        }
+      ]
+    },
+    {
+      "n": 4,
+      "tier": "full",
+      "passed": true,
+      "sha": "39f9b7e89f820cf3b33787c261f4e9340b34fcfd",
+      "dirty": false,
+      "at": "2026-10-30T19:45:02.783Z",
+      "ms": 42904,
+      "results": [
+        {
+          "name": "typecheck",
+          "cmd": "npx tsc --noEmit",
+          "ok": true,
+          "ms": 5569
+        },
+        {
+          "name": "lint",
+          "cmd": "npm run lint",
+          "ok": true,
+          "ms": 6672
+        },
+        {
+          "name": "unit",
+          "cmd": "npx vitest run",
+          "ok": true,
+          "ms": 18705,
+          "testsPassed": 588,
+          "testsFailed": 0
+        },
+        {
+          "name": "factory",
+          "cmd": "node --test .claude/factory/test/factory.test.mjs",
+          "ok": true,
+          "ms": 878
+        },
+        {
+          "name": "build",
+          "cmd": "npm run build",
+          "ok": true,
+          "ms": 11064
+        }
+      ]
+    }
+  ],
+  "repairs": [
+    {
+      "n": 1,
+      "at": "2026-10-30T19:44:03.991Z",
+      "signature": null,
+      "failing": null,
+      "note": "test validated only the tools key, so permissionMode/disallowedTools/hooks etc. and case/quote variants bypassed it; reviewer coverage was profile-derived -> allowlist frontmatter keys (model must be inherit), normalise tool tokens and apply read-only subset to all non-MAY_EDIT agents, hard-code the 7 specialists and assert MAY_EDIT does not overlap"
+    }
+  ],
+  "reviews": [
+    {
+      "reviewer": "factory-reviewer",
+      "verdict": "fail",
+      "p0": 0,
+      "p1": 1,
+      "p2": 2,
+      "sha": "43c310107fad92d8d82d27d94a20acbaacc84d85",
+      "at": "2026-10-30T19:41:15.754Z",
+      "file": null
+    }
+  ],
+  "interventions": [],
+  "usage": {
+    "tokens": 514396,
+    "usd": 0.5845317999999999,
+    "agents": 7
+  },
+  "log": [
+    {
+      "at": "2026-10-30T19:38:01.940Z",
+      "note": "headless allowlist denied compound read-only commands (ls|head|grep); widened the allowlist"
+    }
+  ],
+  "startedAt": "2026-10-30T19:35:54.910Z"
+}

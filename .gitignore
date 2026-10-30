@@ -13,3 +13,6 @@ test-output
 audition/index.html
 *.untrimmed.mp3
 __pycache__/
+
+# Factory evidence logs are kept with the task record
+!.factory/tasks/**/*.log
