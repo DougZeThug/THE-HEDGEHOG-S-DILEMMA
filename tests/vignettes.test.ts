@@ -56,6 +56,13 @@ describe('the vignettes, as written', () => {
     }
   });
 
+  it('the kitchen vignette is marked as the kitchen, and is the only one that is', () => {
+    const grouped = VIGNETTES.filter((v) => v.group);
+    expect(grouped.map((v) => v.id)).toEqual(['washing-up']);
+    expect(VIGNETTES.find((v) => v.id === 'washing-up')?.group).toBe('kitchen');
+    expect(VIGNETTE_MEMORIES.find((m) => m.id === 'washing-up')?.group).toBe('kitchen');
+  });
+
   it('one with more than one way in opens from any of its lines, placed beside the one read', () => {
     for (const v of VIGNETTES.filter((x) => x.anchor.also?.length))
       for (const line of [v.anchor.phrase!, ...v.anchor.also!]) {
