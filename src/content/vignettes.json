@@ -558,6 +558,7 @@
       "arm": 2.5,
       "commit": 1,
       "lookBack": false,
+      "group": "kitchen",
       "room": [
         0.45,
         2.4,
