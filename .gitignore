@@ -13,3 +13,6 @@ test-output
 audition/index.html
 *.untrimmed.mp3
 __pycache__/
+
+# The artist's Fox and the Moon package, kept locally; what the build needs is in references/fable/
+references/The Fox the Moon/
