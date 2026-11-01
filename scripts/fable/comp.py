@@ -182,12 +182,12 @@ class Stage:
             dark = refl_rgb * 0.30 + np.array([0.012, 0.018, 0.04], np.float32)
             f = (refl_a * water_a * lt['refl_fox'])[..., None]
             out = out * (1 - f) + dark * f
-        sharp, soft = self.by['moon_refl'], self.by['moon_refl_soft']
-        rs, as_, _ = self.place(sharp)
-        _, a2, _ = self.place(soft)
-        a = as_ * (1 - lt['moon_soft']) + a2 * lt['moon_soft']
-        g = lt['moon_gain']
-        out = out * (1 - a[..., None]) + rs * g * a[..., None]
+        # the soft copy with its own blurred colour, under the sharp one, each at its share
+        g, s = lt['moon_gain'], lt['moon_soft']
+        for name, share in (('moon_refl_soft', s), ('moon_refl', 1 - s)):
+            rgb, a, _ = self.place(self.by[name])
+            f = (a * share)[..., None]
+            out = out * (1 - f) + rgb * g * f
         for L in self.layers:
             if L['name'].startswith('creep'):
                 c = lt['creep'][L['order']]
