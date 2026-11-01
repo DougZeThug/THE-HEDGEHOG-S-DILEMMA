@@ -23,7 +23,7 @@ ON = 2  # every drawing is held for two frames, the light with it
 
 # Depths toward the lens (mm; a panel px is a mm), back to front.
 Z = {'plate': 0, 'bank': 48, 'fox_tail': 50, 'fox_ear_far': 51, 'fox_ear_near': 51.5, 'fox_body': 53,
-     'fox_foreleg': 54, 'mud': 54.5, 'fox_head': 55, 'pin': 56, 'reeds_f': 60, 'water': 70, 'refl_fox': 70.4,
+     'fox_foreleg': 54, 'fox_head': 55, 'pin': 56, 'reeds_f': 60, 'water': 70, 'refl_fox': 70.4,
      'moon_refl': 70.8, 'creep': 71, 'reeds_r': 80, 'haze': 90, 'shaft': 91}
 
 # Her key comes from where she is: above and beyond the right of the frame, a little in front.
@@ -34,6 +34,12 @@ HAZE_AMOUNT = 0.12
 SHAFT_RGB = (0.95, 0.90, 0.76)
 SHAFT_AMOUNT = 0.12
 WATER_LINE = 296.0  # panel px: where the bank meets the water (his reflection's mirror)
+MUD_LIFT = 0.3  # mm: each piece's mud lies just over its fur
+
+
+def mud_z(name):
+    """A mud layer's depth: just over the piece it is on (mud_head over fox_head)."""
+    return Z['fox_' + name[len('mud_'):]] + MUD_LIFT
 
 
 def smooth(e0, e1, x):
@@ -69,7 +75,7 @@ def light(t):
         'moon_gain': ramp(t, [(0, 1.0), (7.5, 1.0), (9.5, 0.75), (10, 0.75), (14, 1.12), (19.2, 1.12), (23.2, 0.45),
                               (27.5, 0.45), (33.5, 0.7)]),
         'moon_soft': ramp(t, [(0, 0.0), (7.5, 0.0), (9.5, 1.0), (10, 1.0), (13, 0.0), (19.2, 0.0), (23.2, 0.7)]),
-        'refl_fox': ramp(t, [(0, 0.0), (11, 0.0), (17, 0.6), (19.2, 0.6), (22.5, 0.0)]),
+        'refl_fox': ramp(t, [(0, 0.0), (11, 0.0), (17, 0.85), (19.2, 0.85), (22.5, 0.0)]),
         'mud': ramp(t, [(0, 0.0), (11, 0.0), (16, 1.0)]),
         'creep': [smooth(27.5 + i, 27.9 + i, t) for i in range(6)],
     }

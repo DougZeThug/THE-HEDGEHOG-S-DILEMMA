@@ -1,8 +1,9 @@
-"""Put the bake-off in front of the artist: each route's clip for a phone, the two side by side,
-and stills of both beside the reference's panels 2 and 3.
+"""Put two renders of the pond in front of the artist: each one's clip for a phone, the two side by
+side, and stills of both beside the reference's panels 2 and 3. First the bake-off (A_clip, EEVEE,
+against B_clip, the compositor), then any render against another (B_clip against B_fix).
 
-Usage: python -I scripts/fable/bakeoff.py [--bake DIR] [--out DIR]
-(after cut.py, comp.py --clip and stage.py --clip have written their frames)
+Usage: python -I scripts/fable/bakeoff.py [--bake DIR] [--out DIR] [--pair LEFT RIGHT] [--names L R]
+(LEFT and RIGHT are folders in --bake, each with frames/ and times.json from comp.py or stage.py)
 """
 import argparse
 import json
@@ -40,9 +41,9 @@ def side_by_side(a, b, out):
            '-preset', 'slow', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', out)
 
 
-def stills(bake, out, tw=360):
-    """Rows of beats: A | B, with panels 2 and 3 heading the sheet."""
-    a_frames, b_frames = os.path.join(bake, 'A_clip', 'frames'), os.path.join(bake, 'B_clip', 'frames')
+def stills(bake, out, pair=('A_clip', 'B_clip'), names=('A', 'B'), tw=360):
+    """Rows of beats, left | right, with panels 2 and 3 heading the sheet."""
+    folders = [os.path.join(bake, p, 'frames') for p in pair]
     th = round(tw * 1440 / 1152)
     pad, cap = 12, 30
     W = pad + 2 * (tw + pad)
@@ -60,7 +61,7 @@ def stills(bake, out, tw=360):
     y += heads[0].height + cap + pad
     for t, label in BEATS:
         n = int(round(t * FPS))
-        for i, (frames, route) in enumerate(((a_frames, 'A'), (b_frames, 'B'))):
+        for i, (frames, route) in enumerate(zip(folders, names)):
             im = Image.open(os.path.join(frames, f'{n:04d}.png')).convert('RGB').resize((tw, th), Image.LANCZOS)
             x = pad + i * (tw + pad)
             sheet.paste(im, (x, y))
@@ -73,14 +74,16 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--bake', default=os.path.join(ROOT, 'test-output', 'fable', 'bake'))
     ap.add_argument('--out', default=os.path.join(ROOT, 'test-output', 'fable', 'bake', 'review'))
+    ap.add_argument('--pair', nargs=2, default=['A_clip', 'B_clip'])
+    ap.add_argument('--names', nargs=2, default=['A-eevee', 'B-compositor'])
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)
-    A, B = os.path.join(a.out, 'pond-A-eevee.mp4'), os.path.join(a.out, 'pond-B-compositor.mp4')
-    clip(os.path.join(a.bake, 'A_clip', 'frames'), A)
-    clip(os.path.join(a.bake, 'B_clip', 'frames'), B)
-    side_by_side(A, B, os.path.join(a.out, 'pond-A-left-B-right.mp4'))
-    stills(a.bake, os.path.join(a.out, 'pond-stills.jpg'))
-    times = {r: json.load(open(os.path.join(a.bake, f'{r}_clip', 'times.json'))) for r in ('A', 'B')}
+    videos = [os.path.join(a.out, f'pond-{n}.mp4') for n in a.names]
+    for folder, video in zip(a.pair, videos):
+        clip(os.path.join(a.bake, folder, 'frames'), video)
+    side_by_side(*videos, os.path.join(a.out, f'pond-{a.names[0]}-left-{a.names[1]}-right.mp4'))
+    stills(a.bake, os.path.join(a.out, 'pond-stills.jpg'), a.pair, [n.split('-')[0] for n in a.names])
+    times = {n: json.load(open(os.path.join(a.bake, p, 'times.json'))) for p, n in zip(a.pair, a.names)}
     json.dump(times, open(os.path.join(a.out, 'times.json'), 'w'), indent=1)
     print(json.dumps(times))
 

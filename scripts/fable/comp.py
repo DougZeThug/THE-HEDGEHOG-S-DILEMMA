@@ -27,6 +27,10 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 PIECES = os.path.join(ROOT, 'test-output', 'fable', 'pieces')
 CROP = (40, 0, 442, 503)  # panel px: the 4:5 column of panel 2
 RIM = 0.7  # how much a cut edge facing her gains
+LUMA = np.array([0.2126, 0.7152, 0.0722], np.float32)
+REFLECT = 0.3  # how much of his light the water gives back
+WATER_TINT = np.array([0.90, 0.95, 1.10], np.float32)  # and a little cooler
+CREEP = 1.8  # the creep's glints: added light, at her gain
 
 
 def load(name):
@@ -69,6 +73,8 @@ class Stage:
 
     def depth(self, L):
         n = L['name']
+        if n.startswith('mud_'):
+            return tl.mud_z(n)
         if n.startswith('fox_') or n.startswith('pin'):
             return tl.Z['pin'] if n.startswith('pin') else tl.Z[n]
         if n.startswith('creep'):
@@ -121,21 +127,23 @@ class Stage:
                 continue
             m = places.get(n)
             rgb, a, nm = self.place(L, m)
-            if n == 'mud':
+            if n.startswith('mud'):
                 a = a * lt['mud']
             stack.append((self.depth(L), n, rgb, a, nm, L['kind']))
         stack.sort(key=lambda s: s[0])
 
-        # His reflection: the fox flipped about the water line, darkened into the water.
+        # His reflection: the fox, mud and all, flipped about the water line and broken into the
+        # water's strips.
         refl_rgb = np.zeros((H, W, 3), np.float32)
         refl_a = np.zeros((H, W), np.float32)
         if lt['refl_fox'] > 0.001:
-            for L in self.layers:
-                if L['kind'] != 'fox' or L['name'] == 'mud':
-                    continue
+            for L in sorted((L for L in self.layers if L['kind'] == 'fox'), key=self.depth):
                 rgb, a, _ = self.place(L, tl.mirror(places[L['name']]))
+                if L['name'].startswith('mud'):
+                    a = a * lt['mud']
                 refl_rgb = refl_rgb * (1 - a[..., None]) + rgb * a[..., None]
                 refl_a = refl_a * (1 - a) + a
+            refl_rgb, refl_a = self._ripple(refl_rgb, refl_a, t)
 
         # Shadows are soft, so they are worked at half size.
         half = (W // 2, H // 2)
@@ -166,7 +174,7 @@ class Stage:
             out = out * (1 - a[..., None]) + lit * a[..., None]
             if n == 'water':
                 # her reflection and his, on the water and under the reeds that stand in it
-                out = self._reflections(out, t, lt, refl_rgb, refl_a, a)
+                out = self._reflections(out, t, lt, refl_rgb, refl_a, a, fill + key)
 
         # Haze lifts the blacks; the shaft is added light.
         h = lt['haze'] * tl.HAZE_AMOUNT * self.haze[y0:y1, x0:x1]
@@ -177,11 +185,31 @@ class Stage:
             out = cv2.resize(out, size, interpolation=cv2.INTER_AREA)
         return display(out)
 
-    def _reflections(self, out, t, lt, refl_rgb, refl_a, water_a):
+    def _ripple(self, rgb, a, t):
+        """Break a reflection into the water's horizontal strips, as the panel breaks hers: each slid
+        a little sideways (more the nearer the lens), so its edges go ragged; taller strips toward
+        the lens, and fainter with depth."""
+        H, W = a.shape
+        S = self.S
+        d = np.maximum((np.arange(H, dtype=np.float32) + self.c0[1]) / S - tl.WATER_LINE, 0)
+        n = np.floor(25 * np.log1p(0.016 * d))  # strip number: 2.5 px tall at the line, taller by 4% of the depth
+        shift = (S * (0.8 + 0.015 * d) * np.sin(2.3 * n + 0.8 * t)).astype(np.float32)
+        mx = np.arange(W, dtype=np.float32)[None, :] - shift[:, None]
+        my = np.repeat(np.arange(H, dtype=np.float32)[:, None], W, 1)
+        args = dict(interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT, borderValue=0)
+        rgb = cv2.remap(rgb, mx, my, **args)
+        a = cv2.remap(a, mx, my, **args)
+        return rgb, a * (1 - 0.4 * np.clip(d / 110, 0, 1)).astype(np.float32)[:, None]
+
+    def _reflections(self, out, t, lt, refl_rgb, refl_a, water_a, light):
         if lt['refl_fox'] > 0.001:
-            dark = refl_rgb * 0.30 + np.array([0.012, 0.018, 0.04], np.float32)
-            f = (refl_a * water_a * lt['refl_fox'])[..., None]
-            out = out * (1 - f) + dark * f
+            # as lit as he is, darker and a little cooler in the water; the water's own glints stay
+            # over him
+            grey = (refl_rgb * LUMA).sum(2, keepdims=True)
+            col = (refl_rgb * 0.6 + grey * 0.4) * WATER_TINT * (REFLECT * light)
+            glint = np.clip(((out * LUMA).sum(2) - 0.05) / 0.15, 0, 1)
+            f = (refl_a * water_a * lt['refl_fox'] * (1 - 0.8 * glint))[..., None]
+            out = out * (1 - f) + col * f
         # the soft copy with its own blurred colour, under the sharp one, each at its share
         g, s = lt['moon_gain'], lt['moon_soft']
         for name, share in (('moon_refl_soft', s), ('moon_refl', 1 - s)):
@@ -192,9 +220,10 @@ class Stage:
             if L['name'].startswith('creep'):
                 c = lt['creep'][L['order']]
                 if c > 0.001:
-                    rgb, ca, _ = self.place(L)
-                    f = (ca * c)[..., None]
-                    out = out * (1 - f) + rgb * g * f
+                    # each glint slides its last few px toward his bank as it comes, then shimmers
+                    rgb, ca, _ = self.place(L, [[1, 0, 6 * (1 - c)], [0, 1, 0]])
+                    shimmer = 0.85 + 0.15 * math.sin(2 * math.pi * (0.7 * t + 0.37 * L['order']))
+                    out = out + rgb * (ca * c * g * CREEP * shimmer)[..., None]
         return out
 
 

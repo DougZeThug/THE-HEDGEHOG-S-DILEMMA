@@ -62,6 +62,8 @@ def args():
 
 
 def depth(name):
+    if name.startswith('mud_'):
+        return tl.mud_z(name)
     if name.startswith('pin'):
         return tl.Z['pin']
     if name.startswith('creep'):
@@ -283,7 +285,7 @@ class Stage:
             ob = card(L, S, depth(n))
             ob.data.materials.append(mat)
             self.cards[n], self.mats[n] = ob, mat
-            if L['kind'] == 'fox' and n != 'mud':
+            if L['kind'] == 'fox' and not n.startswith('mud'):
                 rm = glow_material(L, rgb_scale=(0.30, 0.30, 0.30), rgb_add=(0.012, 0.018, 0.04))
                 rob = card(L, S, tl.Z['refl_fox'], name='refl_' + n)
                 rob.data.materials.append(rm)
@@ -316,7 +318,9 @@ class Stage:
                 m = self.mats[L['name']]
                 em(m).inputs['Strength'].default_value = g
                 gain(m).inputs[1].default_value = lt['creep'][L['order']]
-        gain(self.mats['mud']).inputs[1].default_value = lt['mud']
+        for n, m in self.mats.items():
+            if n.startswith('mud'):
+                gain(m).inputs[1].default_value = lt['mud']
         places = tl.placements(t, self.meta['layers'])
         for n, m in places.items():
             self.cards[n].matrix_world = to_world(m, depth(n))
