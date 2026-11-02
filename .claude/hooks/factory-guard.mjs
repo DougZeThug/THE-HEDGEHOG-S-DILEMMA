@@ -46,17 +46,17 @@ const OUTSIDE_REPO_BLOCKED = [
 // text echoed or printed into a file, a factory note, or a file written with cat/tee. Matched against the command
 // segment up to the quote or heredoc marker. Everything else (bash -c, eval, env bash, sudo sh, pipes...) is checked.
 const PROSE_CONTEXT = new RegExp([
-  String.raw`^git\s+(?:-C\s+\S+\s+)?(?:commit|tag)\b.*\s(?:-m|-am|--message)(?:\s+|=)$`,
+  String.raw`^git\s+(?:-C\s+(?:"[^"]*"|'[^']*'|\S+)\s+)?(?:commit|tag)\b.*\s(?:-m|-am|--message)(?:\s+|=)$`,
   String.raw`^gh\s+(?:pr|issue|release)\s+\w+\b.*\s--(?:title|body|notes)(?:\s+|=)$`,
   String.raw`^(?:echo|printf)\b[^<>]*$`,
   String.raw`^node\s+\S*factory\.mjs\s+(?:note|accept|issue|repair-log|new)\b.*$`,
 ].join('|'));
-const HEREDOC_DATA = /^(?:(?:cat|tee)\b[^|]*|git\s+(?:-C\s+\S+\s+)?commit\b.*\s-F\s*-\s*)$/;
+const HEREDOC_DATA = /^(?:(?:cat|tee)\b[^|]*|git\s+(?:-C\s+(?:"[^"]*"|'[^']*'|\S+)\s+)?commit\b.*\s-F\s*-\s*)$/;
 
 /**
  * Mask the inside of quoted phrases and heredoc bodies that are data (see PROSE_CONTEXT), so words in a commit
  * message or a notes file ("don't git push origin main") are not read as commands. Same length as the input so
- * positions still line up. Nothing is masked when the text is piped onward, expands variables, or sits anywhere else.
+ * positions still line up. Nothing is masked when the text is piped or process-substituted onward, expands variables, or sits anywhere else.
  */
 export function maskQuoted(cmd) {
   const out = cmd.split('');
@@ -64,6 +64,8 @@ export function maskQuoted(cmd) {
   // The current command segment before position i: back to the last separator or pipe.
   const segBefore = (i) => cmd.slice(0, i).split(/&&|\|\||;|\n|\|/).pop().trimStart();
   const lineAfter = (j) => cmd.slice(j, (cmd.indexOf('\n', j) + 1 || cmd.length + 1) - 1);
+  // Text that flows on to another command: a pipe, or a process substitution >(...) / <(...).
+  const sink = (t) => /\|(?!\|)|[<>]\(/.test(t.replace(/\|\|/g, ''));
   let i = 0;
   while (i < cmd.length) {
     const c = cmd[i];
@@ -73,7 +75,7 @@ export function maskQuoted(cmd) {
       while (j < cmd.length && cmd[j] !== c) { if (c === '"' && cmd[j] === '\\') j++; j++; }
       const body = cmd.slice(i + 1, j);
       const expands = c === '"' && /[$`]/.test(body);
-      const pipedOn = /\|(?!\|)/.test(lineAfter(j + 1).replace(/\|\|/g, ''));
+      const pipedOn = sink(lineAfter(j + 1)) || sink(segBefore(i));
       if (/\s/.test(body) && !expands && !pipedOn && PROSE_CONTEXT.test(segBefore(i))) blank(i + 1, j);
       i = j + 1; continue;
     }
@@ -82,7 +84,7 @@ export function maskQuoted(cmd) {
       const bodyStart = cmd.indexOf('\n', i);
       if (bodyStart === -1) { i += hd[0].length; continue; }
       const markerLine = cmd.slice(i + hd[0].length, bodyStart);
-      const isData = HEREDOC_DATA.test(segBefore(i).trimEnd()) && !/\|/.test(markerLine.replace(/\|\|/g, ''));
+      const isData = HEREDOC_DATA.test(segBefore(i).trimEnd()) && !sink(markerLine) && !sink(segBefore(i));
       const endRe = new RegExp(`\\n\\t*${hd[2]}(?=\\n|$)`); const m = endRe.exec(cmd.slice(bodyStart));
       const bodyEnd = m ? bodyStart + m.index : cmd.length;
       if (isData) blank(bodyStart + 1, bodyEnd);
@@ -109,14 +111,14 @@ export function checkBash(cmd, ctx) {
   for (const raw of cmd.split(/&&|\|\||;|\n/)) for (const f of forbidden) if (new RegExp(f.pattern, 'i').test(raw)) return `Blocked: ${f.reason}`;
   const segs = maskQuoted(cmd).split(/&&|\|\||;|\n/).map((s) => s.trim()).filter((s) => s && !/^_+$/.test(s));
   for (const s of segs) {
-    const gitC = /\bgit\s+-C\s+(\S+)/.exec(s);
+    const gitC = /\bgit\s+-C\s+("[^"]*"|'[^']*'|\S+)/.exec(s);
     const branch = gitC && branchOf ? branchOf(gitC[1].replace(/^['"]|['"]$/g, '')) : currentBranch;
-    if (/\bgit\s+(?:-C\s+\S+\s+)?push\b/.test(s)) {
+    if (/\bgit\s+(?:-C\s+(?:"[^"]*"|'[^']*'|\S+)\s+)?push\b/.test(s)) {
       if (/(?:^|\s)(?:--force(?![-\w])|-f(?![-\w])|--mirror\b|--delete\b)/.test(s)) return 'Blocked: force/mirror/delete pushes are not allowed. Use --force-with-lease on your own feature branch only.';
       if (new RegExp(`(?:\\s|:|/)${B}(?:\\s|$)`).test(s.replace(/^.*git\s+push/, ''))) return `Blocked: pushing to a production branch (${protectedBranches.join('/')}). Push a feature branch and open a pull request.`;
       if (protectedBranches.includes(branch) && !/\S+\s+\S*[:\w/-]+/.test(s.replace(/^.*git\s+push\s*(-u\s*)?/, ''))) return `Blocked: bare "git push" while on ${branch}.`;
     }
-    if (/\bgit\s+(?:-C\s+\S+\s+)?(commit|merge|rebase|cherry-pick|revert|reset\s+--hard|pull)\b/.test(s) && protectedBranches.includes(branch)) return `Blocked: ${branch} is a production branch. Create a feature branch first (git switch -c ...).`;
+    if (/\bgit\s+(?:-C\s+(?:"[^"]*"|'[^']*'|\S+)\s+)?(commit|merge|rebase|cherry-pick|revert|reset\s+--hard|pull)\b/.test(s) && protectedBranches.includes(branch)) return `Blocked: ${branch} is a production branch. Create a feature branch first (git switch -c ...).`;
     if (/\bgh\s+pr\s+merge\b|\bgh\s+release\b|\bgh\s+repo\s+delete\b/.test(s)) return 'Blocked: merging/releasing needs human approval.';
     if (/\b(vercel|netlify|firebase|wrangler|fly|flyctl|railway|heroku)\b.*(?:\s|^)(deploy|publish|--prod|promote)(?![\w-])/.test(s) || /\bnpm\s+publish\b/.test(s)) return 'Blocked: production deploys/publishes need human approval.';
     if (/\bsupabase\s+(db\s+(push|reset|remote)|migration\s+(up|repair)|functions\s+deploy|secrets|link)\b/.test(s) || /\b(prisma\s+migrate\s+(deploy|reset)|prisma\s+db\s+push|drizzle-kit\s+(push|migrate)|knex\s+migrate:(latest|rollback)|rails\s+db:migrate|alembic\s+upgrade)\b/.test(s)) return 'Blocked: database migrations need human approval. Write the migration file and describe it in the report.';
@@ -179,7 +181,7 @@ function main() {
   const ti = input.tool_input ?? {}; let reason = null;
   if (input.tool_name === 'Bash') {
     const cmd = String(ti.command ?? ''); const cwd = input.cwd || root;
-    const commitIn = /\bgit\s+(?:-C\s+(\S+)\s+)?commit\b/.exec(cmd);
+    const commitIn = /\bgit\s+(?:-C\s+("[^"]*"|'[^']*'|\S+)\s+)?commit\b/.exec(cmd);
     const diffCwd = commitIn?.[1] ? resolve(cwd, commitIn[1].replace(/^['"]|['"]$/g, '')) : cwd;
     reason = checkBash(cmd, {
       // A profile adds production branches; it cannot remove the defaults.

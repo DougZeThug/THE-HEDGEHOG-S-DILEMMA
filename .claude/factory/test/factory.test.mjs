@@ -82,6 +82,20 @@ test('guard: heredocs fed to a shell, git -C, credential reads, hidden search, U
   const sql = { ...ctx, forbidden: [{ pattern: 'DELETE\\s+FROM|DROP\\s+TABLE', reason: 'destructive SQL' }] };
   for (const c of ['psql -c "delete from games where 1=1"', "psql -c 'DROP TABLE teams'"]) assert.ok(checkBash(c, sql), `should block: ${c}`);
 });
+test('guard: process substitution is a sink, and git -C accepts a quoted path with spaces', () => {
+  for (const c of [
+    'echo "git push --force origin x" > >(bash)',
+    "printf 'git push --force origin x' > >(sh)",
+    'cat > >(bash) <<EOF\nnpm publish\nEOF',
+    'cat <<EOF > >(sh)\ngit push --force\nEOF',
+    'git -C "my repo" push origin main',
+    'git -C "../other repo" commit -m x',
+  ]) assert.ok(checkBash(c, { ...ctx, branchOf: (d) => (d === '../other repo' ? 'main' : 'feat/x') }), `should block: ${c}`);
+  for (const c of [
+    'git -C "my repo" commit -m "do not git push origin main"',
+    'git -C "my repo" commit -F - <<EOF\nnever git push --force\nEOF',
+  ]) assert.equal(checkBash(c, { ...ctx, branchOf: () => 'feat/x' }), null, `should allow: ${c}`);
+});
 test('edit guard follows symlinks to their real target', () => {
   const dir = mkdtempSync(join(tmpdir(), 'guard-'));
   mkdirSync(join(dir, 'repo')); mkdirSync(join(dir, 'secret', '.ssh'), { recursive: true });

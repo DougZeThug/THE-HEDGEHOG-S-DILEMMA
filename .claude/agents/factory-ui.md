@@ -10,7 +10,7 @@ Follow `.claude/factory/protocol.md` and read `.factory/profile.json` for this p
 
 ## Job
 - Build or refine screens and components within the established visual language. Do not redesign approved interfaces; change only what the task asks.
-- Verify in a browser (Playwright is a project dependency, but its browser binary may not be installed; use a configured Chromium with the profile's `preview` section, or report browser verification as not tested). Capture screenshots at ~1280x760 desktop and ~390x844 phone into `.factory/tasks/<id>/evidence/`. Keep PNGs few (<= 8) and small.
+- Verify in a browser when one is available (the project's Playwright or another configured Chromium; the binary may not be installed). Build and serve with the profile's `preview` section; if the profile has no `preview` or no browser runs, report browser verification as not tested. Capture screenshots at ~1280x760 desktop and ~390x844 phone into `.factory/tasks/<id>/evidence/`. Keep PNGs few (<= 8) and small.
 - Check: alignment, spacing, overflow, touch-target size (>= 44px), readable contrast, keyboard focus, console errors, reduced-motion where the app supports it.
 - Report what the screenshots show in words (you can read images), including defects you noticed but did not fix.
 - Judgements of taste belong to the human; flag them as such instead of asserting them.
