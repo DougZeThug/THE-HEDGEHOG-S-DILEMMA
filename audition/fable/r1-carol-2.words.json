@@ -1,0 +1,242 @@
+[
+ {
+  "text": "Every",
+  "type": "word",
+  "start": 0,
+  "end": 0.32
+ },
+ {
+  "text": "night,",
+  "type": "word",
+  "start": 0.4,
+  "end": 1.04
+ },
+ {
+  "text": "a",
+  "type": "word",
+  "start": 1.12,
+  "end": 1.2
+ },
+ {
+  "text": "fox",
+  "type": "word",
+  "start": 1.28,
+  "end": 1.6
+ },
+ {
+  "text": "climbed",
+  "type": "word",
+  "start": 1.68,
+  "end": 2
+ },
+ {
+  "text": "a",
+  "type": "word",
+  "start": 2.08,
+  "end": 2.16
+ },
+ {
+  "text": "hill",
+  "type": "word",
+  "start": 2.24,
+  "end": 2.56
+ },
+ {
+  "text": "to",
+  "type": "word",
+  "start": 2.64,
+  "end": 2.72
+ },
+ {
+  "text": "sit",
+  "type": "word",
+  "start": 2.8,
+  "end": 2.96
+ },
+ {
+  "text": "beneath",
+  "type": "word",
+  "start": 3.04,
+  "end": 3.36
+ },
+ {
+  "text": "the",
+  "type": "word",
+  "start": 3.44,
+  "end": 3.52
+ },
+ {
+  "text": "moon.",
+  "type": "word",
+  "start": 3.6,
+  "end": 4
+ },
+ {
+  "text": "He",
+  "type": "word",
+  "start": 4.64,
+  "end": 4.8
+ },
+ {
+  "text": "told",
+  "type": "word",
+  "start": 4.84,
+  "end": 5.04
+ },
+ {
+  "text": "her",
+  "type": "word",
+  "start": 5.16,
+  "end": 5.28
+ },
+ {
+  "text": "small",
+  "type": "word",
+  "start": 5.48,
+  "end": 5.68
+ },
+ {
+  "text": "things:",
+  "type": "word",
+  "start": 5.76,
+  "end": 6.8
+ },
+ {
+  "text": "where",
+  "type": "word",
+  "start": 6.88,
+  "end": 6.96
+ },
+ {
+  "text": "the",
+  "type": "word",
+  "start": 7.04,
+  "end": 7.12
+ },
+ {
+  "text": "blackberries",
+  "type": "word",
+  "start": 7.28,
+  "end": 7.76
+ },
+ {
+  "text": "grew,",
+  "type": "word",
+  "start": 7.84,
+  "end": 8.72
+ },
+ {
+  "text": "what",
+  "type": "word",
+  "start": 8.8,
+  "end": 8.88
+ },
+ {
+  "text": "he",
+  "type": "word",
+  "start": 8.96,
+  "end": 9.04
+ },
+ {
+  "text": "had",
+  "type": "word",
+  "start": 9.12,
+  "end": 9.2
+ },
+ {
+  "text": "mistaken",
+  "type": "word",
+  "start": 9.32,
+  "end": 9.76
+ },
+ {
+  "text": "for",
+  "type": "word",
+  "start": 9.84,
+  "end": 9.92
+ },
+ {
+  "text": "a",
+  "type": "word",
+  "start": 10,
+  "end": 10.08
+ },
+ {
+  "text": "bird,",
+  "type": "word",
+  "start": 10.16,
+  "end": 11.04
+ },
+ {
+  "text": "which",
+  "type": "word",
+  "start": 11.12,
+  "end": 11.36
+ },
+ {
+  "text": "paths",
+  "type": "word",
+  "start": 11.44,
+  "end": 11.84
+ },
+ {
+  "text": "he",
+  "type": "word",
+  "start": 11.92,
+  "end": 12
+ },
+ {
+  "text": "disliked",
+  "type": "word",
+  "start": 12.16,
+  "end": 12.56
+ },
+ {
+  "text": "walking",
+  "type": "word",
+  "start": 12.64,
+  "end": 12.96
+ },
+ {
+  "text": "alone.",
+  "type": "word",
+  "start": 13.04,
+  "end": 13.52
+ },
+ {
+  "text": "The",
+  "type": "word",
+  "start": 14.24,
+  "end": 14.4
+ },
+ {
+  "text": "moon",
+  "type": "word",
+  "start": 14.48,
+  "end": 14.8
+ },
+ {
+  "text": "began",
+  "type": "word",
+  "start": 14.88,
+  "end": 15.2
+ },
+ {
+  "text": "waiting",
+  "type": "word",
+  "start": 15.28,
+  "end": 15.6
+ },
+ {
+  "text": "for",
+  "type": "word",
+  "start": 15.68,
+  "end": 15.84
+ },
+ {
+  "text": "him.",
+  "type": "word",
+  "start": 15.92,
+  "end": 16.48
+ }
+]

@@ -1,0 +1,215 @@
+<title>Narrator Audition</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+  /* Layout: one narrow column read at night on a phone; each take a row with its letter, player and marks. */
+  :root {
+    --night: #12141a;
+    --panel: #1b1e26;
+    --line: #2c303b;
+    --moon: #ebe5d3;
+    --dim: #a19d92;
+    --fox: #e07b36;
+    --keep: #9cc39a;
+    --display: "Newsreader", Georgia, "Times New Roman", serif;
+    --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { background: var(--night); color: var(--moon); font: 16px/1.55 var(--body); margin: 0; }
+  main {
+    max-width: 640px; margin: 0 auto;
+    padding-block: 36px 72px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    display: grid; gap: 28px;
+  }
+  h1 { font: 500 2rem/1.15 var(--display); margin: 0; text-wrap: balance; }
+  h2 { font: 500 1.2rem/1.3 var(--display); margin: 0 0 10px; }
+  p { margin: 0; }
+  .lede { color: var(--dim); margin-top: 8px; }
+  .passage {
+    font: italic 400 1.1rem/1.6 var(--display); color: var(--moon);
+    border-left: 2px solid var(--fox); padding-left: 14px; display: grid; gap: 8px;
+  }
+  ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .takes { display: grid; gap: 10px; list-style: none; padding: 0; margin: 0; }
+  .take {
+    display: grid; grid-template-columns: 2.6rem 1fr; gap: 6px 12px; align-items: center;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px;
+  }
+  .take.marked { border-color: color-mix(in srgb, var(--line) 50%, var(--dim)); }
+  .letter { font: 500 1.6rem/1 var(--mono); color: var(--fox); text-align: center; grid-row: span 2; }
+  audio { width: 100%; height: 40px; min-width: 0; }
+  .row2 { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; min-width: 0; }
+  .marks { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+  .marks button {
+    font: 500 0.9rem var(--body); color: var(--dim); background: transparent; border: 0;
+    padding: 7px 14px; min-height: 36px; cursor: pointer;
+  }
+  .marks button + button { border-left: 1px solid var(--line); }
+  .marks button[aria-pressed="true"] { color: var(--night); background: var(--moon); }
+  .marks button[data-mark="yes"][aria-pressed="true"] { background: var(--keep); }
+  .who { color: var(--dim); font-size: 0.9rem; }
+  .who b { color: var(--moon); font-weight: 500; }
+  button:focus-visible { outline: 2px solid var(--fox); outline-offset: 2px; }
+  .reference { display: grid; gap: 8px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .actions button {
+    font: 500 1rem var(--body); border-radius: 8px; padding: 10px 16px; min-height: 44px; cursor: pointer;
+    border: 1px solid var(--fox); background: var(--fox); color: var(--night);
+  }
+  .actions button.quiet { background: transparent; color: var(--fox); }
+  .actions button:disabled { opacity: 0.45; cursor: not-allowed; }
+  .status { color: var(--dim); font-size: 0.9rem; }
+  textarea {
+    width: 100%; min-height: 9rem; font: 0.85rem/1.5 var(--mono); color: var(--moon);
+    background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px;
+  }
+  .small { color: var(--dim); font-size: 0.85rem; }
+</style>
+
+<main>
+  <header>
+    <h1>Who tells the fox and the moon?</h1>
+    <p class="lede">Round 1 of the narrator audition: six voices, two takes each, all reading the same opening. The names are hidden, the order is shuffled, and you can uncover the names once every take has a mark.</p>
+  </header>
+
+  <section>
+    <h2>The passage</h2>
+    <div class="passage">
+      <p>Every night, a fox climbed a hill to sit beneath the moon.</p>
+      <p>He told her small things: where the blackberries grew, what he had mistaken for a bird, which paths he disliked walking alone.</p>
+      <p>The moon began waiting for him.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>How to listen</h2>
+    <ul>
+      <li>Once through, on the phone's own speaker, not headphones.</li>
+      <li>Listen for someone telling it rather than performing it: uneven tempo, the small things quick and lightly amused, stress on plain words.</li>
+      <li>Listen against the same rise and fall on every sentence, and the list read as a list.</li>
+      <li>Does "The moon began waiting for him" land without being pushed?</li>
+    </ul>
+    <p class="small" style="margin-top:10px">Every take says the text word for word (checked against a transcript) and all twelve play at the same loudness, so judge only the voice and the reading. The slowness comes later, in the edit, so pace matters less than the voice. Your marks stay on this device.</p>
+  </section>
+
+  <section>
+    <h2>The takes</h2>
+    <ol class="takes" id="takes"></ol>
+  </section>
+
+  <section class="reference">
+    <h2>The room's first voice</h2>
+    <p class="small">The laugh that opens the room ("You've got crumbs on you."). The narrator should sound clearly unlike her.</p>
+    <audio controls preload="metadata" id="laugh"></audio>
+  </section>
+
+  <section>
+    <div class="actions">
+      <button type="button" id="reveal" disabled>Show the names</button>
+      <button type="button" id="copy" class="quiet">Copy my marks</button>
+      <span class="status" id="status" aria-live="polite"></span>
+    </div>
+    <textarea id="summary" aria-label="Your marks, to paste back to Claude" readonly hidden></textarea>
+  </section>
+</main>
+
+<script>
+const TAKES = /*TAKES*/[];
+const LAUGH = /*LAUGH*/'';
+const NAMES = /*NAMES*/'';
+const KEY = 'fox-moon-audition-round1';
+
+const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } };
+const save = (s) => { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) { /* marks just won't persist */ } };
+const state = load();
+state.marks ??= {};
+let names = null;
+
+// A data URI first; a blob URL if a browser refuses that.
+function attach(audio, uri) {
+  audio.src = uri;
+  audio.addEventListener('error', () => {
+    const [head, b64] = uri.split(',');
+    const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    audio.src = URL.createObjectURL(new Blob([bytes], { type: head.slice(5, head.indexOf(';')) }));
+  }, { once: true });
+}
+
+const list = document.getElementById('takes');
+const players = [];
+for (const t of TAKES) {
+  const li = document.createElement('li');
+  li.className = 'take';
+  li.innerHTML = `<div class="letter" aria-hidden="true">${t.letter}</div>
+    <audio controls preload="none" aria-label="Take ${t.letter}"></audio>
+    <div class="row2">
+      <div class="marks" role="group" aria-label="Mark take ${t.letter}">
+        <button type="button" data-mark="yes" aria-pressed="false">Yes</button>
+        <button type="button" data-mark="maybe" aria-pressed="false">Maybe</button>
+        <button type="button" data-mark="no" aria-pressed="false">No</button>
+      </div>
+      <span class="who" hidden></span>
+    </div>`;
+  const audio = li.querySelector('audio');
+  attach(audio, t.src);
+  players.push(audio);
+  li.querySelectorAll('.marks button').forEach((b) => b.addEventListener('click', () => {
+    state.marks[t.letter] = b.dataset.mark;
+    save(state);
+    paint();
+  }));
+  list.append(li);
+}
+const laugh = document.getElementById('laugh');
+attach(laugh, LAUGH);
+players.push(laugh);
+// One voice at a time.
+for (const p of players) p.addEventListener('play', () => players.forEach((o) => { if (o !== p) o.pause(); }));
+
+const revealBtn = document.getElementById('reveal');
+const status = document.getElementById('status');
+const summary = document.getElementById('summary');
+
+function paint() {
+  [...list.children].forEach((li, i) => {
+    const mark = state.marks[TAKES[i].letter];
+    li.classList.toggle('marked', !!mark);
+    li.querySelectorAll('.marks button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.mark === mark)));
+    const who = li.querySelector('.who');
+    if (names) { const n = names[TAKES[i].letter]; who.innerHTML = `<b>${n.voice}</b>, take ${n.take} · ${n.about}`; who.hidden = false; }
+  });
+  const left = TAKES.filter((t) => !state.marks[t.letter]).length;
+  revealBtn.disabled = left > 0 || !!names;
+  if (!names) status.textContent = left ? `${left} take${left === 1 ? '' : 's'} still to mark` : 'All marked';
+}
+
+function reveal() {
+  names = JSON.parse(decodeURIComponent(escape(atob(NAMES))));
+  state.revealed = true;
+  save(state);
+  status.textContent = 'Names shown';
+  paint();
+}
+revealBtn.addEventListener('click', reveal);
+
+document.getElementById('copy').addEventListener('click', () => {
+  const lines = TAKES.map((t) => {
+    const n = names?.[t.letter];
+    return `${t.letter}: ${state.marks[t.letter] ?? '-'}${n ? ` (${n.voice}, take ${n.take})` : ''}`;
+  });
+  const text = `Narrator audition, round 1\n${lines.join('\n')}`;
+  summary.value = text;
+  summary.hidden = false;
+  const fallback = () => { summary.focus(); summary.select(); status.textContent = 'Copy the selected text'; };
+  if (navigator.clipboard?.writeText) navigator.clipboard.writeText(text).then(() => { status.textContent = 'Copied. Paste it into the chat.'; }, fallback);
+  else fallback();
+});
+
+if (state.revealed && TAKES.every((t) => state.marks[t.letter])) reveal();
+paint();
+</script>

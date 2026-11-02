@@ -1,0 +1,315 @@
+{
+  "note": "Narration of The Fox and the Moon, made through the ElevenLabs claude.ai connector (eleven_v4), cap 20,000 credits. Decisions 14-16 in docs/reviews/2026-10-fable.md. Never overwrite an entry with review 'approved'.",
+  "cap": 20000,
+  "spent": {
+    "round1": 2627.74
+  },
+  "rounds": {
+    "round1": {
+      "at": "2026-11-02T00:03:00Z",
+      "flow": "cvmfzMicyKGrj0yMYaND",
+      "model": "eleven_v4",
+      "settings": "connector defaults (stability 0.5), mp3_44100_128",
+      "text": "Every night, a fox climbed a hill to sit beneath the moon.\n\nHe told her small things: where the blackberries grew, what he had mistaken for a bird, which paths he disliked walking alone.\n\nThe moon began waiting for him.",
+      "estimate": 2627.74,
+      "voices": {
+        "tom": {
+          "voiceId": "5QLE0oVq6XTzbjGTJ34H",
+          "name": "Tom - Light Northern British",
+          "node": "TIWddpYpgKoVhQFllPLP"
+        },
+        "tanksinker": {
+          "voiceId": "YrAYvOVjAFiqVwBgB4qI",
+          "name": "Tanksinker (Australian, 67, ordinary voice)",
+          "node": "48yQ4rAYCGpDwiSJpqMo"
+        },
+        "simon": {
+          "voiceId": "7IXILmY64QeWUY7Ybhi9",
+          "name": "Simon - Relaxed and real (Scottish)",
+          "node": "b2pjGYuEwZuDOX7Ixfm4"
+        },
+        "carol": {
+          "voiceId": "5u41aNhyCU6hXOcjPPv0",
+          "name": "Carol - Relatable, Real, Cool, Senior (American)",
+          "node": "AdsW15SNf0PeCl6Ascd3"
+        },
+        "esjai": {
+          "voiceId": "UWhYG4NgASy4ripg5Ov6",
+          "name": "Esjai (mature South London woman)",
+          "node": "oRigWg3OwA2NkAhbcYTb"
+        },
+        "penny": {
+          "voiceId": "TRrl1hXRI8ISfQPDN0Bf",
+          "name": "Penny - Warm Antipodean",
+          "node": "AGVzRBxfHYiggRR8RU03"
+        }
+      }
+    }
+  },
+  "entries": {
+    "r1-tom-1": {
+      "round": "round1",
+      "voice": "tom",
+      "generation": "dkI6NClaseiGOmuQDv0U",
+      "session": "bX07sirEaOKlGWrQTYRy",
+      "cost": 218.98,
+      "file": "fable/r1-tom-1.mp3",
+      "status": "validated",
+      "review": "pending",
+      "duration": 15.36,
+      "bytes": 263764,
+      "blind": "G",
+      "loudness": {
+        "lufs": -22,
+        "peak": -3.2,
+        "gain": -1,
+        "matchedLufs": -23.4,
+        "matchedPeak": -4.7
+      },
+      "transcript": "Every night, a fox climbed a hill to sit beneath the moon.\n\nHe told her small things: where the blackberries grew, what he had mistaken for a bird, which paths he disliked walking alone.\n\nThe moon began waiting for him.",
+      "wer": 0
+    },
+    "r1-tom-2": {
+      "round": "round1",
+      "voice": "tom",
+      "generation": "InECebDziqs7UosVgw9H",
+      "session": "f6Bk1ALpdIt6LqzCfTOU",
+      "cost": 218.98,
+      "file": "fable/r1-tom-2.mp3",
+      "status": "validated",
+      "review": "pending",
+      "duration": 15.44,
+      "bytes": 265436,
+      "blind": "A",
+      "loudness": {
+        "lufs": -22.3,
+        "peak": -1.7,
+        "gain": -0.7,
+        "matchedLufs": -23.4,
+        "matchedPeak": -2.9
+      },
+      "transcript": "Every night, a fox climbed a hill to sit beneath the moon.\n\nHe told her small things: where the blackberries grew, what he had mistaken for a bird, which paths he disliked walking alone.\n\nThe moon began waiting for him.",
+      "wer": 0
+    },
+    "r1-tanksinker-1": {
+      "round": "round1",
+      "voice": "tanksinker",
+      "generation": "C2uuZomAFhgWFpX4JTOu",
+      "session": "EFiyPSfYDYsN9dzsbQlu",
+      "cost": 218.98,
+      "file": "fable/r1-tanksinker-1.mp3",
+      "status": "validated",
+      "review": "pending",
+      "duration": 15.6,
+      "bytes": 267944,
+      "blind": "K",
+      "loudness": {
+        "lufs": -22.8,
+        "peak": -2.4,
+        "gain": -0.2,
+        "matchedLufs": -23.5,
+        "matchedPeak": -3.1
+      },
+      "transcript": "Every night, a fox climbed a hill to sit beneath the moon.\n\nHe told her small things: where the blackberries grew, what he had mistaken for a bird, which paths he disliked walking alone.\n\nThe moon began waiting for him.",
+      "wer": 0
+    },
+    "r1-tanksinker-2": {
+      "round": "round1",
+      "voice": "tanksinker",
+      "generation": "7dVtOybnjtavRwYZLaS0",
+      "session": "u17CuaJppw7kvIOmIgoO",
+      "cost": 218.98,
+      "file": "fable/r1-tanksinker-2.mp3",
+      "status": "validated",
+      "review": "pending",
+      "duration": 15.28,
+      "bytes": 262511,
+      "blind": "H",
+      "loudness": {
+        "lufs": -23.1,
+        "peak": -2.3,
+        "gain": 0.1,
+        "matchedLufs": -23.4,
+        "matchedPeak": -2.6
+      },
+      "transcript": "Every night, a fox climbed a hill to sit beneath the moon.\n\nHe told her small things: where the blackberries grew, what he had mistaken for a bird, which paths he disliked walking alone.\n\nThe moon began waiting for him.",
+      "wer": 0
+    },
+    "r1-simon-1": {
+      "round": "round1",
+      "voice": "simon",
+      "generation": "tTPXFxcjpbCjBbGHPhKE",
+      "session": "oKTekeezpXD6LpltrN29",
+      "cost": 218.98,
+      "file": "fable/r1-simon-1.mp3",
+      "status": "validated",
+      "review": "pending",
+      "duration": 15.12,
+      "bytes": 260003,
+      "blind": "B",
+      "loudness": {
+        "lufs": -27.1,
+        "peak": -7.6,
+        "gain": 4.1,
+        "matchedLufs": -23.5,
+        "matchedPeak": -3.9
+      },
+      "transcript": "Every night, a fox climbed a hill to sit beneath the moon.\n\nHe told her small things: where the blackberries grew, what he had mistaken for a bird, which paths he disliked walking alone.\n\nThe moon began waiting for him.",
+      "wer": 0
+    },
+    "r1-simon-2": {
+      "round": "round1",
+      "voice": "simon",
+      "generation": "vHjY3hWyYW5ip0KCn4Oh",
+      "session": "fQEkNqmoi1FsXsEl6Ub3",
+      "cost": 218.98,
+      "file": "fable/r1-simon-2.mp3",
+      "status": "validated",
+      "review": "pending",
+      "duration": 14.96,
+      "bytes": 257495,
+      "blind": "I",
+      "loudness": {
+        "lufs": -26.8,
+        "peak": -7.3,
+        "gain": 3.8,
+        "matchedLufs": -23.4,
+        "matchedPeak": -3.9
+      },
+      "transcript": "Every night, a fox climbed a hill to sit beneath the moon.\n\nHe told her small things: where the blackberries grew, what he had mistaken for a bird, which paths he disliked walking alone.\n\nThe moon began waiting for him.",
+      "wer": 0
+    },
+    "r1-carol-1": {
+      "round": "round1",
+      "voice": "carol",
+      "generation": "h20yjCOlXNVacdFQ5E2g",
+      "session": "lsQYkofw1xyN6aH0Anml",
+      "cost": 218.98,
+      "file": "fable/r1-carol-1.mp3",
+      "status": "validated",
+      "review": "pending",
+      "duration": 16.4,
+      "bytes": 280483,
+      "blind": "E",
+      "loudness": {
+        "lufs": -25.2,
+        "peak": -3.3,
+        "gain": 2.2,
+        "matchedLufs": -23.4,
+        "matchedPeak": -1.6
+      },
+      "transcript": "Every night, a fox climbed a hill to sit beneath the moon.\n\nHe told her small things: where the blackberries grew, what he had mistaken for a bird, which paths he disliked walking alone.\n\nThe moon began waiting for him.",
+      "wer": 0
+    },
+    "r1-carol-2": {
+      "round": "round1",
+      "voice": "carol",
+      "generation": "feh4H8P9os8SCgUYLqJL",
+      "session": "01Hi6fqbbEWrnGZ4Pk0y",
+      "cost": 218.98,
+      "file": "fable/r1-carol-2.mp3",
+      "status": "validated",
+      "review": "pending",
+      "duration": 16.4,
+      "bytes": 280483,
+      "blind": "C",
+      "loudness": {
+        "lufs": -25.4,
+        "peak": -7,
+        "gain": 2.4,
+        "matchedLufs": -23.5,
+        "matchedPeak": -5.1
+      },
+      "transcript": "Every night, a fox climbed a hill to sit beneath the moon.\n\nHe told her small things: where the blackberries grew, what he had mistaken for a bird, which paths he disliked walking alone.\n\nThe moon began waiting for him.",
+      "wer": 0
+    },
+    "r1-esjai-1": {
+      "round": "round1",
+      "voice": "esjai",
+      "generation": "utDnJvZuLjT6pFi84kRc",
+      "session": "8LrV3ptsrzwNs6JIofru",
+      "cost": 218.98,
+      "file": "fable/r1-esjai-1.mp3",
+      "status": "validated",
+      "review": "pending",
+      "duration": 15.76,
+      "bytes": 270452,
+      "blind": "L",
+      "loudness": {
+        "lufs": -30.8,
+        "peak": -10,
+        "gain": 7.8,
+        "matchedLufs": -23.5,
+        "matchedPeak": -2.7
+      },
+      "transcript": "Every night, a fox climbed a hill to sit beneath the moon.\n\nHe told her small things: where the blackberries grew, what he had mistaken for a bird, which paths he disliked walking alone.\n\nThe moon began waiting for him.",
+      "wer": 0
+    },
+    "r1-esjai-2": {
+      "round": "round1",
+      "voice": "esjai",
+      "generation": "FQkYYfWGFxvD3izKhfAw",
+      "session": "y8A3z7mSnb6L8iciMpqR",
+      "cost": 218.98,
+      "file": "fable/r1-esjai-2.mp3",
+      "status": "validated",
+      "review": "pending",
+      "duration": 15.84,
+      "bytes": 271706,
+      "blind": "J",
+      "loudness": {
+        "lufs": -30.9,
+        "peak": -9.4,
+        "gain": 7.9,
+        "matchedLufs": -23.5,
+        "matchedPeak": -1.9
+      },
+      "transcript": "Every night, a fox climbed a hill to sit beneath the moon.\n\nHe told her small things: where the blackberries grew, what he had mistaken for a bird, which paths he disliked walking alone.\n\nThe moon began waiting for him.",
+      "wer": 0
+    },
+    "r1-penny-1": {
+      "round": "round1",
+      "voice": "penny",
+      "generation": "Txf0iI6T0kEXzGVHC9km",
+      "session": "BlILp6p6Dxqp5cZomSBT",
+      "cost": 218.98,
+      "file": "fable/r1-penny-1.mp3",
+      "status": "validated",
+      "review": "pending",
+      "duration": 15.6,
+      "bytes": 267944,
+      "blind": "F",
+      "loudness": {
+        "lufs": -32.3,
+        "peak": -6.5,
+        "gain": 9.3,
+        "matchedLufs": -23.6,
+        "matchedPeak": -1.4
+      },
+      "transcript": "Every night, a fox climbed a hill to sit beneath the moon.\n\nHe told her small things: where the blackberries grew, what he had mistaken for a bird, which paths he disliked walking alone.\n\nThe moon began waiting for him.",
+      "wer": 0
+    },
+    "r1-penny-2": {
+      "round": "round1",
+      "voice": "penny",
+      "generation": "JoElus23iUjbvMlhKWYX",
+      "session": "OGv0vdkrnWMIbtt7VXje",
+      "cost": 218.98,
+      "file": "fable/r1-penny-2.mp3",
+      "status": "validated",
+      "review": "pending",
+      "duration": 15.36,
+      "bytes": 263764,
+      "blind": "D",
+      "loudness": {
+        "lufs": -32.2,
+        "peak": -8.9,
+        "gain": 9.2,
+        "matchedLufs": -23.5,
+        "matchedPeak": -1.4
+      },
+      "transcript": "Every night, a fox climbed a hill to sit beneath the moon.\n\nHe told her small things: where the blackberries grew, what he had mistaken for a bird, which paths he disliked walking alone.\n\nThe moon began waiting for him.",
+      "wer": 0
+    }
+  }
+}
