@@ -1,0 +1,16 @@
+{
+  "_note": "STARTING POINT, layout assumed. Verify every path and command against the 717REC repo before relying on it.",
+  "project": "717REC",
+  "productionBranches": ["main", "master", "production"],
+  "commands": { "typecheck": "npx tsc --noEmit", "lint": "npm run lint", "unit": "npm test", "build": "npm run build", "e2e": "npx playwright test" },
+  "tiers": { "quick": ["typecheck", "unit"], "full": ["typecheck", "lint", "unit", "build", "e2e"] },
+  "preview": { "build": "npm run build", "serve": "npx vite preview --port 4173", "url": "http://localhost:4173/", "browserChecks": ["npx playwright test"] },
+  "protectedPaths": [".env*", "supabase/seed/prod*", "data/production/**"],
+  "forbiddenCommands": [
+    { "pattern": "supabase\\s+(db|migration|link|functions\\s+deploy)", "reason": "league data and schema changes need approval; write migration files only" },
+    { "pattern": "DELETE\\s+FROM|DROP\\s+TABLE|TRUNCATE", "reason": "destructive SQL on league records" }
+  ],
+  "domainReviewers": { "agents": ["factory-reviewer"], "wanted": "data-integrity checks for standings, schedules and playoff brackets (TODO: have the factory build these first)" },
+  "testingRequirements": ["Standings, stats and playoff seeding: assert against fixture leagues, including ties and byes.", "Never run against the production Supabase project; use a branch/test project only with human approval."],
+  "limits": { "maxConcurrentTasks": 1, "maxRepairAttempts": 3, "sameFailureEscalates": 2 }
+}

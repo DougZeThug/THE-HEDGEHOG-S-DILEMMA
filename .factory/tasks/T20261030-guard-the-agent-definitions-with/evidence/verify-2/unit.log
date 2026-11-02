@@ -1,0 +1,12 @@
+
+ RUN  v5.0.5 /home/user/THE-HEDGEHOG-S-DILEMMA
+
+
+ Test Files  45 passed (45)
+      Tests  586 passed (586)
+   Start at  19:39:52
+   Duration  17.29s (tests 89%, import 10%, transform 1%)
+
+    Isolate  45 workers spawned · ~125ms startup each (spawn + environment, per file)
+             at least ~1.75s faster with isolate: false — reuses workers across files instead of one per file
+

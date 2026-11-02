@@ -1,0 +1,70 @@
+TAP version 13
+# Subtest: guard blocks production pushes, force pushes, merges, deploys, migrations
+ok 1 - guard blocks production pushes, force pushes, merges, deploys, migrations
+  ---
+  duration_ms: 4.507371
+  type: 'test'
+  ...
+# Subtest: guard allows ordinary work
+ok 2 - guard allows ordinary work
+  ---
+  duration_ms: 1.898982
+  type: 'test'
+  ...
+# Subtest: guard blocks committing on a production branch
+ok 3 - guard blocks committing on a production branch
+  ---
+  duration_ms: 0.473663
+  type: 'test'
+  ...
+# Subtest: guard scans staged diff for credentials
+ok 4 - guard scans staged diff for credentials
+  ---
+  duration_ms: 0.677439
+  type: 'test'
+  ...
+# Subtest: edit guard protects secrets, hooks, settings, and profile paths
+ok 5 - edit guard protects secrets, hooks, settings, and profile paths
+  ---
+  duration_ms: 1.819242
+  type: 'test'
+  ...
+# Subtest: glob matching
+ok 6 - glob matching
+  ---
+  duration_ms: 0.257574
+  type: 'test'
+  ...
+# Subtest: repair budget and repeated-failure escalation
+ok 7 - repair budget and repeated-failure escalation
+  ---
+  duration_ms: 0.309614
+  type: 'test'
+  ...
+# Subtest: failure signature ignores numbers but not content
+ok 8 - failure signature ignores numbers but not content
+  ---
+  duration_ms: 1.022411
+  type: 'test'
+  ...
+# Subtest: ready gate demands verification, current commit, independent review, acceptance
+ok 9 - ready gate demands verification, current commit, independent review, acceptance
+  ---
+  duration_ms: 1.027877
+  type: 'test'
+  ...
+# Subtest: CLI end to end in a scratch repo: ceiling, failing verify, escalation, ready refusal
+ok 10 - CLI end to end in a scratch repo: ceiling, failing verify, escalation, ready refusal
+  ---
+  duration_ms: 738.293538
+  type: 'test'
+  ...
+1..10
+# tests 10
+# suites 0
+# pass 10
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 839.033548
