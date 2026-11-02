@@ -11,13 +11,15 @@ concurrency:
   cancel-in-progress: false
 jobs:
   build:
-    if: vars.FACTORY_ENABLED == 'true' && github.event.label.name == 'factory'
+    # Only issues written by people with write access to the repo: a stranger's issue text is a prompt to an agent
+    # that can push. Labelling alone is not enough, because the label does not vouch for the body.
+    if: vars.FACTORY_ENABLED == 'true' && github.event.label.name == 'factory' && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.issue.author_association)
     runs-on: ubuntu-latest
     timeout-minutes: 90
     permissions: { contents: write, pull-requests: write, issues: write, id-token: write }
     steps:
       - uses: actions/checkout@v4
-        with: { fetch-depth: 0 }
+        with: { fetch-depth: 0, persist-credentials: false }
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
       - run: npm ci

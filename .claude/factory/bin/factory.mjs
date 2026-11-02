@@ -3,7 +3,8 @@
 // Zero dependencies. Portable: all project specifics come from .factory/profile.json.
 // The LLM agents decide *what* to build; this script keeps the facts (what ran, what passed, how many tries).
 import { execSync, spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync, appendFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync, appendFileSync, realpathSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { join, resolve } from 'node:path';
 import { createHash } from 'node:crypto';
 
@@ -264,7 +265,7 @@ const commands = {
 };
 
 const [cmd, ...args] = process.argv.slice(2);
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] && realpathSync(resolve(process.argv[1])) === realpathSync(fileURLToPath(import.meta.url))) {
   if (!cmd || !commands[cmd]) die(`factory.mjs <${Object.keys(commands).join('|')}>`);
   commands[cmd](args);
 }

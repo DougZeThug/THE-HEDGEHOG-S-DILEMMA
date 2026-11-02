@@ -10,7 +10,7 @@ Follow `.claude/factory/protocol.md` and read `.factory/profile.json` for this p
 
 ## Job
 You get: the failing check, its log path under `.factory/tasks/<id>/evidence/`, and the list of previous repair attempts (do **not** repeat one that failed).
-1. Reproduce the failure with the exact command. If you cannot, say so and stop.
+1. Reproduce the failure with the exact command. If you cannot, log the attempt with `node .claude/factory/bin/factory.mjs repair-log <id> "could not reproduce: <reason>"`, then say so and stop. An unreproducible attempt still uses the repair budget.
 2. Find the **root cause** (read the code, add a temporary probe if needed, remove it after). State it in one sentence with evidence.
 3. Apply the smallest fix at the cause. A fix that only silences the symptom (skipping a test, loosening an assertion, catching and ignoring an error, deleting the feature) is forbidden. If the test itself is wrong, say why with evidence and fix the test as a separate, explicit change.
 4. Re-run the failing command and the surrounding quick checks. Commit the fix.

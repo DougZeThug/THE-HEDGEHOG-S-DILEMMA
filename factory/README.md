@@ -38,19 +38,19 @@ You only decide: product questions it cannot answer for itself, and whether to a
 | No deploys, publishes, hosted-database commands, migrations | guard hook + `permissions.deny` (incl. Supabase, Vercel, GitHub merge MCP tools) |
 | No credentials committed | guard scans the staged diff on every `git commit` and the content of every Edit/Write; `.env*` unreadable and unwritable |
 | No changes to approved assets (`protectedPaths` in the profile) | guard blocks Edit/Write and obvious shell writes |
-| Agents cannot loosen the guard | `.claude/hooks/**`, `.claude/settings*.json`, `.claude/factory/bin/**` are deny-listed for Edit |
+| Agents cannot loosen the guard | `.claude/hooks/**`, `.claude/settings*.json`, `.claude/factory/bin/**`, `.factory/profile.json` and each task's `task.json` are deny-listed for Edit; a profile can add production branches but never remove the defaults |
 | No paid generation | profile `forbiddenCommands` + denied ElevenLabs generation tools |
 | Incomplete work cannot be marked ready | `factory set <id> ready` refuses without a passing run of every full-tier check on the current code commit and a clean tree, an independent review of that commit with no P0/P1, and acceptance criteria. A `--only` run never counts as the full tier; committing task records under `.factory/` does not invalidate the gate |
 | Repair loops are bounded | 3 attempts per task, escalate earlier if the same failure repeats (`repair-check`) |
 | One active feature at a time | `maxConcurrentTasks` in the profile, enforced by `factory start`; CI queue uses a single concurrency group |
 
-Honest limits: Bash text matching is best-effort (an agent could phrase a write the patterns miss). Quoted prose and heredoc bodies are ignored so a commit message mentioning `git push origin main` is not blocked, but anything handed to `bash -c`, `eval` or `sh <<EOF` is still checked. Outside the repository, edits are allowed except in credential and system locations (`~/.ssh`, `~/.aws`, `.env`, `~/.npmrc`, `/etc`, ...). The credential scan reads only the lines a commit adds, so removing a leaked key is never blocked. Rules in `settings.json` and branch protection are the other layers. To change the guard yourself, edit it outside a Claude session (or with `FACTORY_ALLOW_PROTECTED=1` for path rules).
+Honest limits: Bash text matching is best-effort (an agent could phrase a write the patterns miss). Quoted prose and heredoc bodies are ignored so a commit message mentioning `git push origin main` is not blocked, but anything handed to `bash -c`, `eval` or `sh <<EOF` is still checked. Outside the repository, edits are allowed except in credential and system locations (`~/.ssh`, `~/.aws`, `.env`, `~/.npmrc`, `/etc`, ...); symlinks are followed to their real target. **Read-only agents are read-only by instruction only:** the architect, QA and reviewer agents have Bash so they can run tests, and Bash can write files. The guard does not tell agents apart. The credential scan reads only the lines a commit adds, so removing a leaked key is never blocked. Rules in `settings.json` and branch protection are the other layers. To change the guard yourself, edit it outside a Claude session (or with `FACTORY_ALLOW_PROTECTED=1` for path rules).
 
 ## Verified vs. not yet verified
 
 | Capability | State | Evidence |
 |---|---|---|
-| Guard blocks protected pushes, deploys, migrations, secrets, protected paths; allows normal work | **Verified** | 13 automated tests; live in this session it blocked a staged fake key, a settings edit and an out-of-repo write |
+| Guard blocks protected pushes, deploys, migrations, secrets, protected paths; allows normal work | **Verified** | 17 automated tests; live in this session it blocked a staged fake key, a settings edit and an out-of-repo write |
 | Task state machine, concurrency ceiling, failing verify, repair budget/escalation, ready gate | **Verified** | tests + real run `T20261030-guard-the-agent-definitions-with` (gate refused before review, passed after) |
 | Skills are discovered; agents load and obey their tool limits | **Verified** (headless, `claude -p`) | skill resolved and refuses model self-invocation by design; reviewer agent described its role and tools correctly |
 | End-to-end run: architect, builder, QA checks, reviewer FAIL, repair, reviewer PASS | **Verified** (agents run as separate headless processes) | `.factory/tasks/T20261030-*/` |

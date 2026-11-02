@@ -1,6 +1,6 @@
 # Factory protocol (portable; project specifics live in `.factory/profile.json`)
 
-The **Director** is the main Claude Code session running a `/factory-*` skill. It delegates detail to subagents and owns the task record. Subagents report; the Director decides. Facts (what ran, what passed, how many tries) live in `.factory/tasks/<id>/task.json`, written only through `node .claude/factory/bin/factory.mjs` (`F` below).
+The **Director** is the main Claude Code session running a `/factory-*` skill. It delegates detail to subagents and owns the task record. Subagents report; the Director decides. Facts (what ran, what passed, how many tries) live in `.factory/tasks/<id>/task.json`, written only through `node .claude/factory/bin/factory.mjs` (`F` below). The guard blocks Edit/Write on `task.json` and `profile.json`; it cannot stop an agent with Bash from writing them, so the record is trustworthy only as far as the agents follow this protocol.
 
 ## Team (start small; add only when justified)
 | Agent | Role | Edits? |
@@ -28,7 +28,7 @@ Right-size: a trivial change (typo, constant, one-line fix) = Director edits, `F
 
 ## Operating notes (learned)
 - **Order of record-keeping:** verification and review are tied to the last commit outside `.factory/`, so task records (`plan.md`, `report.md`, evidence) can be committed before or after the final verify and review. Any other commit means verify and review again.
-- **Headless agents** (`claude -p --agent <name>`): strict Bash allowlists stall agents on compound commands; prefer `--allowedTools Bash` with `--disallowedTools` for push/merge/reset/rm -rf/network, and record cost with `F usage`.
+- **Headless agents** (`claude -p --agent <name>`): strict Bash allowlists stall agents on compound commands; prefer `--allowedTools Bash` with `--disallowedTools` for push/merge/reset/rm -rf/network, and record cost with `F usage`. Unrestricted Bash can still write files (redirects, `node -e`, `python3 -c`), so a "read-only" agent is read-only by instruction, not by enforcement.
 - Reviewers that cannot run commands must say so; a read-only review is weaker than one that ran the tests.
 
 ## Report format (<= 1 page, plain English, for a non-technical creative director)

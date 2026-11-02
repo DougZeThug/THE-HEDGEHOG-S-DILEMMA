@@ -12,8 +12,9 @@ jobs:
     concurrency: { group: factory-queue, cancel-in-progress: false }
     permissions: { contents: write, pull-requests: write, issues: write, id-token: write }
     steps:
+      # No write token left in .git/config while npm ci runs dependency install scripts.
       - uses: actions/checkout@v4
-        with: { fetch-depth: 0 }
+        with: { fetch-depth: 0, persist-credentials: false }
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
       - run: npm ci

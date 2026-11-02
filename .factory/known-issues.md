@@ -12,3 +12,7 @@ One line each: `- [open|fixed] what (task id or evidence)`. Read by `/factory-st
 - [fixed] factory.mjs `verify --tier full --only X` counted as a full verification; partial runs are now flagged and the gate requires every full-tier check (Codex review, PR #54)
 - [fixed] factory.mjs ready gate accepted a verification recorded on a dirty tree (Codex review, PR #54)
 - [fixed] factory-guard.mjs credential scan blocked commits that remove a secret; it now scans added lines only (Codex review, PR #54)
+- [open] Read-only agents (factory-architect, factory-qa, factory-reviewer, the 7 specialists) have Bash, which can write files; the guard does not tell agents apart, so read-only is by instruction (cubic review, PR #54)
+- [open] An agent with Bash can still write .factory/tasks/*/task.json or .factory/profile.json directly; only Edit/Write are blocked (cubic review, PR #54)
+- [fixed] Guard: heredoc piped into a shell, git -C on a production branch, home/absolute credential paths, printenv NAME, rg -uu, curl user@host URLs, quoted/lowercase SQL in forbiddenCommands, symlinked edit targets, MultiEdit/NotebookEdit content, guard silently off in paths with spaces (cubic review, PR #54)
+- [fixed] Workflow templates: CI repair limited to same-repo branches, checks out the failed commit and skips if the branch moved; issue queue only for issues by owners/members/collaborators; no persisted token during npm ci (cubic review, PR #54; still untested)
