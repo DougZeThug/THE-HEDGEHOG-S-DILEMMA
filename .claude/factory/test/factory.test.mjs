@@ -1,4 +1,4 @@
-// Run: node --test .claude/factory/test/
+// Run: node --test .claude/factory/test/factory.test.mjs
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync, execSync } from 'node:child_process';
@@ -6,7 +6,7 @@ import { mkdtempSync, writeFileSync, mkdirSync, cpSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { checkBash, checkEdit, globToRegex } from '../../hooks/factory-guard.mjs';
+import { checkBash, checkEdit, globToRegex, maskQuoted, addedLines } from '../../hooks/factory-guard.mjs';
 
 process.env.FACTORY_ROOT = process.cwd();
 const { repairDecision, readyGate, failureSignature } = await import('../bin/factory.mjs');
@@ -31,10 +31,41 @@ test('guard scans staged diff for credentials', () => {
   assert.ok(checkBash('git commit -m x', { ...ctx, stagedDiff: diff }));
   assert.equal(checkBash('git commit -m x', { ...ctx, stagedDiff: '+const a = 1' }), null);
 });
+test('guard lets a commit remove a credential (only added lines are scanned)', () => {
+  const diff = `--- a/src/k.ts\n+++ b/src/k.ts\n-const k = "${FAKE_KEY}"\n+const k = process.env.KEY`;
+  assert.equal(checkBash('git commit -m "use env"', { ...ctx, stagedDiff: diff }), null);
+  assert.equal(addedLines(diff), 'const k = process.env.KEY');
+});
+test('guard ignores command words inside quoted prose and heredocs', () => {
+  for (const c of [
+    'git commit -m "Docs: never git push origin main or vercel --prod"',
+    "git commit -m 'explain why rm -rf / is blocked; git push --force too'",
+    'echo "do not run supabase db push" >> notes.md',
+    'git commit -m "update public/voices notes"',
+    "cat > notes.md <<'EOF'\ngit push --force origin main\nnpm publish\nEOF",
+    'git commit -F - <<EOF\nWhy gh pr merge needs a human\nEOF',
+  ]) assert.equal(checkBash(c, ctx), null, `should allow: ${c}`);
+  for (const c of [
+    "bash -c 'git push --force origin feat/x'",
+    'sh -c "npm publish"',
+    "bash <<'EOF'\ngit push --force\nEOF",
+    'echo x > "public/voices/a.mp3"',
+    'rm -rf "/"',
+    'git commit -m "x" && git push origin main',
+    'echo "$ELEVENLABS_API_KEY"',
+  ]) assert.ok(checkBash(c, ctx), `should block: ${c}`);
+  assert.equal(maskQuoted('a "b c" d').length, 'a "b c" d'.length);
+});
 test('edit guard protects secrets, hooks, settings, and profile paths', () => {
   const c = { protectedPaths: ['public/voices/**', 'references/**'] };
-  for (const p of ['.env', 'a/.env.local', '.claude/settings.json', '.claude/hooks/factory-guard.mjs', 'public/voices/dialogue/a.mp3', 'references/woodland/x.png', '../etc/passwd'])
+  for (const p of ['.env', 'a/.env.local', '.claude/settings.json', '.claude/hooks/factory-guard.mjs', 'public/voices/dialogue/a.mp3', 'references/woodland/x.png'])
     assert.ok(checkEdit(p, c), `should block ${p}`);
+  // Outside the repo: scratch and temp files are fine, credential and system locations are not.
+  for (const a of ['/etc/passwd', '/home/u/.ssh/id_ed25519', '/home/u/.aws/credentials', '/home/u/.npmrc', '/home/u/.config/gh/hosts.yml', '/home/u/other/.env', '/home/u/.claude/settings.json'])
+    assert.ok(checkEdit('../x', { ...c, absPath: a }), `should block ${a}`);
+  for (const a of ['/tmp/claude-0/scratchpad/run-agent.sh', '/tmp/x.txt', '/home/u/other-repo/src/a.ts'])
+    assert.equal(checkEdit('../x', { ...c, absPath: a }), null, `should allow ${a}`);
+  assert.ok(checkEdit('../tmp/x.ts', { ...c, absPath: '/tmp/x.ts', content: `const k = "${FAKE_KEY}"` }), 'credential content is blocked anywhere');
   for (const p of ['src/App.ts', '.factory/profile.json', 'docs/x.md', '.claude/agents/factory-builder.md'])
     assert.equal(checkEdit(p, c), null, `should allow ${p}`);
   assert.ok(checkEdit('src/a.ts', { ...c, content: `const k = "${FAKE_KEY}"` }));
@@ -69,6 +100,13 @@ test('ready gate demands verification, current commit, independent review, accep
   assert.ok(readyGate({ ...good, reviews: [{ ...good.reviews[0], reviewer: 'factory-builder' }] }, facts).length, 'self-review');
   assert.ok(readyGate({ ...good, acceptance: [] }, facts).length);
   assert.ok(readyGate({ ...good, verifications: [{ ...good.verifications[0], tier: 'quick' }] }, facts).length, 'quick tier is not enough');
+  assert.ok(readyGate({ ...good, verifications: [{ ...good.verifications[0], dirty: true }] }, facts).length, 'verified on uncommitted changes');
+  assert.ok(readyGate({ ...good, verifications: [{ ...good.verifications[0], partial: true }] }, facts).length, '--only run is not the full tier');
+  const ran = (...names) => ({ ...good, verifications: [{ ...good.verifications[0], results: names.map((name) => ({ name, ok: true })) }] });
+  assert.ok(readyGate(ran('ok'), { ...facts, requiredChecks: ['ok', 'bad'] }).length, 'a full check missing');
+  assert.deepEqual(readyGate(ran('ok', 'bad'), { ...facts, requiredChecks: ['ok', 'bad'] }), []);
+  const moved = { ...good, verifications: [{ ...good.verifications[0], sha: 'rec', codeSha: 'abc' }], reviews: [{ ...good.reviews[0], sha: 'rec', codeSha: 'abc' }] };
+  assert.deepEqual(readyGate(moved, facts), [], 'records matched on the code commit, not HEAD');
 });
 
 test('CLI end to end in a scratch repo: ceiling, failing verify, escalation, ready refusal', () => {
@@ -91,4 +129,36 @@ test('CLI end to end in a scratch repo: ceiling, failing verify, escalation, rea
   assert.equal(rc.status, 5, 'same failure escalates'); assert.match(rc.stdout, /ESCALATE/);
   assert.equal(run('set', id1, 'ready').status, 4, 'ready is refused');
   assert.match(run('status').stdout, /escalated/);
+});
+
+test('CLI: --only cannot stand in for the full tier; committing task records keeps ready valid', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'factory-'));
+  const bin = join(dirname(fileURLToPath(import.meta.url)), '..', 'bin', 'factory.mjs');
+  const run = (...a) => spawnSync('node', [bin, ...a], { cwd: dir, encoding: 'utf8', env: { ...process.env, FACTORY_ROOT: dir } });
+  const git = (c) => execSync(c, { cwd: dir, encoding: 'utf8' });
+  git('git init -q -b work && git config user.email a@b.c && git config user.name t && git commit -q --allow-empty -m init');
+  run('init');
+  const prof = (full) => writeFileSync(join(dir, '.factory', 'profile.json'), JSON.stringify({ project: 't', commands: { ok: 'true', bad: 'exit 1' }, tiers: { quick: ['ok'], full }, limits: { maxConcurrentTasks: 1, maxRepairAttempts: 3, sameFailureEscalates: 2 } }));
+  prof(['ok', 'bad']);
+  writeFileSync(join(dir, 'a.txt'), 'a'); git('git add -A && git commit -qm code');
+  const id = run('new', 'Thing').stdout.trim(); run('start', id); run('accept', id, 'works');
+  git('git add -A && git commit -qm records');
+  assert.equal(run('verify', id, '--tier', 'full', '--only', 'ok').status, 0);
+  git('git add -A && git commit -qm records');
+  assert.equal(run('review', id, '--reviewer', 'factory-reviewer', '--verdict', 'pass').status, 0);
+  git('git add -A && git commit -qm records');
+  const refused = run('set', id, 'ready');
+  assert.equal(refused.status, 4, 'partial full run refused'); assert.match(refused.stderr, /--only/);
+  prof(['ok']); // now the full tier really is just "ok"
+  git('git add -A && git commit -qm records');
+  assert.equal(run('verify', id, '--tier', 'full').status, 0);
+  git('git add -A && git commit -qm "task records"');
+  assert.equal(run('review', id, '--reviewer', 'factory-reviewer', '--verdict', 'pass').status, 0);
+  git('git add -A && git commit -qm "task records"');
+  const ok = run('set', id, 'ready');
+  assert.equal(ok.status, 0, ok.stderr);
+  git('git add -A && git commit -qm "task records"');
+  assert.doesNotMatch(run('status').stdout, /UNVERIFIED/, 'committing records after ready is not a false alarm');
+  writeFileSync(join(dir, 'a.txt'), 'b'); git('git add -A && git commit -qm "code change"');
+  assert.match(run('status').stdout, /UNVERIFIED/, 'a real code change still invalidates ready');
 });

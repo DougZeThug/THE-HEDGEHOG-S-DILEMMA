@@ -39,6 +39,16 @@ export function allTasks() {
 const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 32);
 const head = () => sh('git rev-parse HEAD');
 const dirty = () => sh('git status --porcelain -- . ":(exclude).factory"') !== '';
+// The commit that last touched anything outside .factory. Task records live in .factory, so committing them
+// after a verification or review must not make that verification look stale.
+const codeSha = (rev = 'HEAD') => sh(`git log -1 --format=%H ${rev} -- . ":(exclude).factory"`) || sh(`git rev-parse ${rev}`);
+/** Facts the ready gate needs about the repo right now. */
+const gateFacts = (prof) => ({ head: codeSha(), dirty: dirty(), requiredChecks: prof?.tiers?.full ?? null });
+/** Older records only stored the HEAD sha; resolve it to the code commit it stood for. */
+function withCodeShas(t) {
+  for (const x of [...(t.verifications ?? []), ...(t.reviews ?? [])]) if (!x.codeSha && x.sha) x.codeSha = codeSha(x.sha);
+  return t;
+}
 
 /** A short stable fingerprint of a failure: first error-looking lines with numbers/paths-with-lines stripped. */
 export function failureSignature(output) {
@@ -57,18 +67,28 @@ export function repairDecision(task, signature, limits = DEFAULTS) {
   return { proceed: true, reason: `attempt ${reps.length + 1}/${limits.maxRepairAttempts}` };
 }
 
-/** The "ready" gate. Pure function over a task + repo facts so it is unit-tested. */
+/** The "ready" gate. Pure function over a task + repo facts so it is unit-tested.
+ * facts.head is the code commit (last commit outside .factory); records are matched on codeSha, falling back to sha.
+ * facts.requiredChecks, when given, is the full tier's check list: a full-tier run must have passed every one. */
 export function readyGate(task, facts) {
   const problems = [];
+  const at = (x) => x.codeSha ?? x.sha;
   const v = [...(task.verifications ?? [])].pop();
   if (task.risk === 'trivial') { if (!v || !v.passed) problems.push('no passing verification run'); return problems; }
   if (!v) problems.push('no verification run recorded (factory verify)');
   else {
     if (!v.passed) problems.push(`latest verification failed (${v.results.filter((r) => !r.ok).map((r) => r.name).join(', ')})`);
-    if (v.sha !== facts.head || facts.dirty) problems.push('code changed after the last verification (re-run factory verify on a clean tree)');
+    if (v.dirty) problems.push('latest verification ran on uncommitted changes (commit, then re-run factory verify)');
+    if (at(v) !== facts.head || facts.dirty) problems.push('code changed after the last verification (re-run factory verify on a clean tree)');
     if (v.tier !== 'full' && !task.allowQuickReady) problems.push('latest verification was not the full tier');
+    else if (v.tier === 'full') {
+      if (v.partial) problems.push('latest full-tier verification ran only some checks (--only); run the whole tier');
+      const passedChecks = new Set(v.results.filter((r) => r.ok).map((r) => r.name));
+      const missing = (facts.requiredChecks ?? []).filter((c) => !passedChecks.has(c));
+      if (missing.length && !v.partial) problems.push(`latest full-tier verification did not pass every full check (missing: ${missing.join(', ')})`);
+    }
   }
-  const reviews = (task.reviews ?? []).filter((r) => r.sha === facts.head);
+  const reviews = (task.reviews ?? []).filter((r) => at(r) === facts.head);
   if (!reviews.length) problems.push('no independent review recorded for the current commit (factory review)');
   for (const r of reviews) if (r.verdict !== 'pass' || r.p0 > 0 || r.p1 > 0) problems.push(`review by ${r.reviewer} has open findings (P0=${r.p0}, P1=${r.p1})`);
   if (reviews.length && reviews.every((r) => r.reviewer === task.builder)) problems.push('review was by the builder itself');
@@ -136,7 +156,7 @@ const commands = {
     const { flags, rest } = parseFlags(args); const [id, status] = rest; const t = readTask(id);
     if (!STATUSES.includes(status)) die(`Status must be one of: ${STATUSES.join(', ')}`);
     if (status === 'ready' || status === 'delivered') {
-      const problems = readyGate(t, { head: head(), dirty: dirty() });
+      const problems = readyGate(withCodeShas(structuredClone(t)), gateFacts(loadProfile()));
       if (problems.length && !(status === 'delivered' && t.status === 'ready')) die(`Refusing "${status}":\n - ${problems.join('\n - ')}`, 4);
     }
     if (flags.builder) t.builder = flags.builder;
@@ -159,7 +179,9 @@ const commands = {
   verify(args) {
     const { flags, rest } = parseFlags(args); const [id] = rest; const t = readTask(id); const prof = loadProfile();
     const tier = flags.tier ?? 'quick';
-    const names = flags.only ? String(flags.only).split(',') : (prof.tiers?.[tier] ?? die(`Unknown tier ${tier}`));
+    const tierChecks = prof.tiers?.[tier] ?? die(`Unknown tier ${tier}`);
+    const names = flags.only ? String(flags.only).split(',') : tierChecks;
+    const partial = names.length < tierChecks.length || tierChecks.some((c) => !names.includes(c));
     const n = t.verifications.length + 1; const logs = join(taskDir(id), 'evidence', `verify-${n}`); mkdirSync(logs, { recursive: true });
     const results = []; const t0 = Date.now();
     for (const name of names) {
@@ -172,9 +194,9 @@ const commands = {
       if (!res.ok && !flags['keep-going']) break;
     }
     const passed = results.length === names.length && results.every((r) => r.ok);
-    t.verifications.push({ n, tier, passed, sha: head(), dirty: dirty(), at: now(), ms: Date.now() - t0, results });
+    t.verifications.push({ n, tier, ...(partial ? { partial: true } : {}), passed, sha: head(), codeSha: codeSha(), dirty: dirty(), at: now(), ms: Date.now() - t0, results });
     t.status = passed ? 'verifying' : 'repairing'; saveTask(t);
-    console.log(passed ? `VERIFIED (run ${n}, ${tier})` : `FAILED (run ${n}); logs in ${logs}. Next: factory repair-check ${id}`);
+    console.log(passed ? `VERIFIED (run ${n}, ${tier}${partial ? ', partial: does not count for ready' : ''})` : `FAILED (run ${n}); logs in ${logs}. Next: factory repair-check ${id}`);
     process.exit(passed ? 0 : 1);
   },
 
@@ -198,20 +220,20 @@ const commands = {
     const { flags, rest } = parseFlags(args); const t = readTask(rest[0]);
     if (!flags.reviewer || !['pass', 'fail'].includes(flags.verdict)) die('Usage: review <id> --reviewer <agent> --verdict pass|fail --p0 N --p1 N --p2 N [--file report.md]');
     if (dirty()) die('Working tree has uncommitted changes; commit first so the review is tied to a commit.');
-    t.reviews.push({ reviewer: flags.reviewer, verdict: flags.verdict, p0: +flags.p0 || 0, p1: +flags.p1 || 0, p2: +flags.p2 || 0, sha: head(), at: now(), file: flags.file ?? null });
+    t.reviews.push({ reviewer: flags.reviewer, verdict: flags.verdict, p0: +flags.p0 || 0, p1: +flags.p1 || 0, p2: +flags.p2 || 0, sha: head(), codeSha: codeSha(), at: now(), file: flags.file ?? null });
     t.status = 'in-review'; saveTask(t); console.log('review recorded');
   },
 
   status(args) {
     const { flags } = parseFlags(args); const prof = existsSync(join(FACTORY, 'profile.json')) ? loadProfile() : null;
-    const tasks = allTasks(); const facts = { head: head(), dirty: dirty() };
+    const tasks = allTasks(); const facts = gateFacts(prof);
     const out = {
-      branch: sh('git rev-parse --abbrev-ref HEAD'), head: facts.head.slice(0, 7), dirty: facts.dirty,
+      branch: sh('git rev-parse --abbrev-ref HEAD'), head: head().slice(0, 7), dirty: facts.dirty,
       unpushed: sh('git log @{u}..HEAD --oneline 2>/dev/null').split('\n').filter(Boolean).length,
       ceiling: prof?.limits.maxConcurrentTasks ?? null,
       tasks: tasks.map((t) => {
         const v = t.verifications.at(-1); const flagsOut = [];
-        if (['ready', 'delivered'].includes(t.status)) { const p = readyGate(t, facts); if (p.length && t.status === 'ready') flagsOut.push(`CLAIMED READY BUT UNVERIFIED NOW: ${p.join('; ')}`); }
+        if (['ready', 'delivered'].includes(t.status)) { const p = readyGate(withCodeShas(structuredClone(t)), facts); if (p.length && t.status === 'ready') flagsOut.push(`CLAIMED READY BUT UNVERIFIED NOW: ${p.join('; ')}`); }
         if (ACTIVE.includes(t.status) && Date.now() - Date.parse(t.updated) > 48 * 3600e3) flagsOut.push('stale >48h');
         return { id: t.id, title: t.title, kind: t.kind, status: t.status, repairs: t.repairs.length, lastVerify: v ? `${v.passed ? 'pass' : 'FAIL'}/${v.tier}@${v.sha.slice(0, 7)}` : 'none', flags: flagsOut };
       }),

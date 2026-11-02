@@ -40,17 +40,17 @@ You only decide: product questions it cannot answer for itself, and whether to a
 | No changes to approved assets (`protectedPaths` in the profile) | guard blocks Edit/Write and obvious shell writes |
 | Agents cannot loosen the guard | `.claude/hooks/**`, `.claude/settings*.json`, `.claude/factory/bin/**` are deny-listed for Edit |
 | No paid generation | profile `forbiddenCommands` + denied ElevenLabs generation tools |
-| Incomplete work cannot be marked ready | `factory set <id> ready` refuses without a passing full verification on the current commit, an independent review with no P0/P1, and acceptance criteria |
+| Incomplete work cannot be marked ready | `factory set <id> ready` refuses without a passing run of every full-tier check on the current code commit and a clean tree, an independent review of that commit with no P0/P1, and acceptance criteria. A `--only` run never counts as the full tier; committing task records under `.factory/` does not invalidate the gate |
 | Repair loops are bounded | 3 attempts per task, escalate earlier if the same failure repeats (`repair-check`) |
 | One active feature at a time | `maxConcurrentTasks` in the profile, enforced by `factory start`; CI queue uses a single concurrency group |
 
-Honest limits: Bash text matching is best-effort (an agent could phrase a write the patterns miss), and it sometimes over-blocks quoted words. Rules in `settings.json` and branch protection are the other layers. To change the guard yourself, edit it outside a Claude session (or with `FACTORY_ALLOW_PROTECTED=1` for path rules).
+Honest limits: Bash text matching is best-effort (an agent could phrase a write the patterns miss). Quoted prose and heredoc bodies are ignored so a commit message mentioning `git push origin main` is not blocked, but anything handed to `bash -c`, `eval` or `sh <<EOF` is still checked. Outside the repository, edits are allowed except in credential and system locations (`~/.ssh`, `~/.aws`, `.env`, `~/.npmrc`, `/etc`, ...). The credential scan reads only the lines a commit adds, so removing a leaked key is never blocked. Rules in `settings.json` and branch protection are the other layers. To change the guard yourself, edit it outside a Claude session (or with `FACTORY_ALLOW_PROTECTED=1` for path rules).
 
 ## Verified vs. not yet verified
 
 | Capability | State | Evidence |
 |---|---|---|
-| Guard blocks protected pushes, deploys, migrations, secrets, protected paths; allows normal work | **Verified** | 10 automated tests; live in this session it blocked a staged fake key, a settings edit and an out-of-repo write |
+| Guard blocks protected pushes, deploys, migrations, secrets, protected paths; allows normal work | **Verified** | 13 automated tests; live in this session it blocked a staged fake key, a settings edit and an out-of-repo write |
 | Task state machine, concurrency ceiling, failing verify, repair budget/escalation, ready gate | **Verified** | tests + real run `T20261030-guard-the-agent-definitions-with` (gate refused before review, passed after) |
 | Skills are discovered; agents load and obey their tool limits | **Verified** (headless, `claude -p`) | skill resolved and refuses model self-invocation by design; reviewer agent described its role and tools correctly |
 | End-to-end run: architect, builder, QA checks, reviewer FAIL, repair, reviewer PASS | **Verified** (agents run as separate headless processes) | `.factory/tasks/T20261030-*/` |
@@ -81,7 +81,7 @@ Measured, proof task (small test-only change): **about $0.58** of headless agent
 node factory/install.mjs /path/to/FloorForge --profile floorforge --with-github
 ```
 
-Copies agents, skills, hook, protocol, CLI and tests; merges (never overwrites) `.claude/settings.json`; writes `.factory/profile.json` from `factory/templates/profiles/` unless one exists; adds a short pointer to CLAUDE.md. Profiles for `floorforge`, `717rec`, `nothing-strange-here` and `generic` are starting points with **assumed** paths: have the factory check them (`/factory-review the factory profile`) and fix commands, `protectedPaths` and `productionBranches`. Then `node --test .claude/factory/test/`.
+Copies agents, skills, hook, protocol, CLI and tests; merges (never overwrites) `.claude/settings.json`; writes `.factory/profile.json` from `factory/templates/profiles/` unless one exists; adds a short pointer to CLAUDE.md. Profiles for `floorforge`, `717rec`, `nothing-strange-here` and `generic` are starting points with **assumed** paths: have the factory check them (`/factory-review the factory profile`) and fix commands, `protectedPaths` and `productionBranches`. Then `node --test .claude/factory/test/factory.test.mjs`.
 
 Rule of thumb: anything generic lives in `.claude/` (copied as is); anything about one app lives only in `.factory/profile.json`, its CLAUDE.md and its own agents.
 
