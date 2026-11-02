@@ -3,9 +3,9 @@
   "title": "Guard the agent definitions with a test",
   "kind": "build",
   "risk": "normal",
-  "status": "ready",
+  "status": "verifying",
   "created": "2026-10-30T19:35:54.857Z",
-  "updated": "2026-10-30T19:47:30.434Z",
+  "updated": "2026-11-02T17:40:01.083Z",
   "issue": null,
   "branch": "claude/fervent-bohr-k1zhfz",
   "baseSha": "1a757591e0846a92d75724f92fc59ec7f50d62e5",
@@ -16,7 +16,7 @@
     "Every profile domainReviewers agent has a matching file",
     "Mutation check: adding Edit to skeptic.md, deleting a tools line, or renaming a name each makes the test fail with a message naming file and problem"
   ],
-  "builder": null,
+  "builder": "factory-builder",
   "verifications": [
     {
       "n": 1,
@@ -243,6 +243,10 @@
     {
       "at": "2026-10-30T19:47:30.318Z",
       "note": "round-2 review (factory-reviewer, headless) ran against 39f9b7e; code diff to HEAD is 0 lines, only task records added; recorded against HEAD"
+    },
+    {
+      "at": "2026-11-02T17:40:01.082Z",
+      "note": "Moved back from ready: later commits changed code after its last verification and review (PR #54 review)."
     }
   ],
   "startedAt": "2026-10-30T19:35:54.910Z"

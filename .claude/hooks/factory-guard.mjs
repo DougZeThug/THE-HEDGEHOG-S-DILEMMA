@@ -130,9 +130,12 @@ export function checkBash(cmd, ctx) {
     if (/\b(?:curl|wget|http|xh)\b[^|;]*\bhttps?:\/\/[^\s/'"?#]*@/.test(s)) return 'Blocked: a URL with "user@" in its host part can send the request somewhere other than it appears.';
     if (/\bgit\s+add\b.*(?:\s-f\b|--force|\.env)/.test(s)) return 'Blocked: never stage .env files or force-add ignored files.';
     if (/(?:>|>>|\btee\b|\bsed\s+-i\S*|\bmv\b|\bcp\b|\brm\b|\btruncate\b)[^|;&]*/.test(s) && protectedPaths.length) {
+      const writes = /(?:>|>>|\btee\b|\bsed\s+-i|\bmv\b|\brm\b|\btruncate\b)/.test(s);
+      // Path-like words in the segment, unquoted and without a leading ./, so globs such as **/*.psd can match them.
+      const words = s.split(/[\s>|]+/).map((w) => w.replace(/^['"]|['"]$/g, '').replace(/^\.\//, '')).filter((w) => w && !w.startsWith('-'));
       for (const g of protectedPaths) {
         const lit = g.replace(/\/?\*\*.*$/, '').replace(/\*.*$/, '');
-        if (lit && lit.length > 2 && s.includes(lit) && /(?:>|>>|\btee\b|\bsed\s+-i|\bmv\b|\brm\b|\btruncate\b)/.test(s)) return `Blocked: modifying protected path "${g}" via shell. Protected assets are only changed by their owner's scripts or by a human.`;
+        if (writes && ((lit && lit.length > 2 && s.includes(lit)) || words.some((w) => globToRegex(g).test(w)))) return `Blocked: modifying protected path "${g}" via shell. Protected assets are only changed by their owner's scripts or by a human.`;
       }
     }
     if (/\bgit\s+commit\b/.test(s)) {

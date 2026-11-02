@@ -5,7 +5,7 @@
 **What changed (plain terms):** the seven specialist reviewers and the factory's architect, QA and reviewer can only look, never edit. Only the builder, repair and UI agents may edit. A new agent defaults to read-only until someone deliberately adds it to the list.
 
 **Evidence**
-- Full checks on the final commit: typecheck, lint, 588 unit tests, factory tests (10), production build all passed (`evidence/verify-4/*.log`).
+- Full checks passed on `603556c`: typecheck, lint, 588 unit tests, factory tests (10), production build (`evidence/verify-4/*.log`). Later factory changes on the PR branch were verified separately, not by this task.
 - Mutation checks (the builder and two reviewer rounds each tried to defeat the test): adding `Edit` or `mcp__x__write` to a reviewer, deleting `tools`, renaming `name`, duplicating `tools`, adding `permissionMode: acceptEdits`, `disallowedTools`, `model: opus`, `tools: Read, edit` all make the test fail with a message naming the file.
 - No screenshots: the change has no visual behaviour.
 
@@ -17,6 +17,6 @@
 - The round-1 reviewer could not run commands (headless allowlist stall), so it reviewed by reading; round 2 ran the test and its own mutations.
 - Open P2: nested folders under `.claude/agents` are not scanned (`known-issues.md`).
 
-**Needs you:** nothing for this change. The factory itself has three open issues listed in `.factory/known-issues.md`; one needs your one-time approval to edit a protected file (ready-gate commit comparison).
+**Needs you:** nothing for this change. The factory's open issues are listed in `.factory/known-issues.md`.
 
 **Next:** review the PR; then try `/factory-build` on a real request.

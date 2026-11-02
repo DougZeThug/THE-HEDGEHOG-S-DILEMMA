@@ -81,7 +81,7 @@ Measured, proof task (small test-only change): **about $0.58** of headless agent
 node factory/install.mjs /path/to/FloorForge --profile floorforge --with-github
 ```
 
-Copies agents, skills, hook, protocol, CLI and tests; merges (never overwrites) `.claude/settings.json`; writes `.factory/profile.json` from `factory/templates/profiles/` unless one exists; adds a short pointer to CLAUDE.md. Profiles for `floorforge`, `717rec`, `nothing-strange-here` and `generic` are starting points with **assumed** paths: have the factory check them (`/factory-review the factory profile`) and fix commands, `protectedPaths` and `productionBranches`. Then `node --test .claude/factory/test/factory.test.mjs`.
+Copies agents, skills, hook, protocol, CLI and tests; merges (never overwrites) `.claude/settings.json`; writes `.factory/profile.json` from `factory/templates/profiles/` unless one exists; adds a short pointer to CLAUDE.md. Profiles for `floorforge`, `717rec`, `nothing-strange-here` and `generic` are starting points with **assumed** paths: have the factory review them (`/factory-review the factory profile`), then make the fixes it reports to commands, `protectedPaths` and `productionBranches` yourself (the profile is protected from agent edits). Then `node --test .claude/factory/test/factory.test.mjs`.
 
 Rule of thumb: anything generic lives in `.claude/` (copied as is); anything about one app lives only in `.factory/profile.json`, its CLAUDE.md and its own agents.
 

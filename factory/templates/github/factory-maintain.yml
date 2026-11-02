@@ -21,5 +21,6 @@ jobs:
       - uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: /factory-maintain deps security tests. Open at most 2 PRs. Never merge.
           claude_args: --max-turns 80 --max-budget-usd 6

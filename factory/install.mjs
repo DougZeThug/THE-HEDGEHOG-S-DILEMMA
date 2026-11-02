@@ -14,6 +14,8 @@ const dry = !!opt('dry-run'); const profileName = opt('profile') || 'generic';
 if (!target) { console.error('Usage: node factory/install.mjs <target-repo> [--profile name] [--with-github] [--dry-run]'); process.exit(1); }
 const T = resolve(target);
 if (!existsSync(join(T, '.git'))) { console.error(`${T} is not a git repository root.`); process.exit(1); }
+const tpl = join(SRC, 'factory/templates/profiles', `${profileName}.json`);
+if (!existsSync(join(T, '.factory/profile.json')) && !existsSync(tpl)) { console.error(`No profile template "${profileName}".`); process.exit(1); }
 const SELF = T === SRC; // installing into this repository: nothing to copy onto itself
 const log = (m) => console.log(`${dry ? '[dry-run] ' : ''}${m}`);
 const copy = (rel) => { if (SELF) return log(`keep ${rel} (installing into the factory's own repo)`); log(`copy ${rel}`); if (!dry) { mkdirSync(dirname(join(T, rel)), { recursive: true }); cpSync(join(SRC, rel), join(T, rel), { recursive: true, filter: (s) => !s.includes('node_modules') }); } };
@@ -38,8 +40,6 @@ if (!dry) { mkdirSync(dirname(sp), { recursive: true }); writeFileSync(sp, JSON.
 const pp = join(T, '.factory/profile.json');
 if (existsSync(pp)) log('keep existing .factory/profile.json');
 else {
-  const tpl = join(SRC, 'factory/templates/profiles', `${profileName}.json`);
-  if (!existsSync(tpl)) { console.error(`No profile template "${profileName}".`); process.exit(1); }
   log(`write .factory/profile.json from ${profileName}`); if (!dry) { mkdirSync(join(T, '.factory/tasks'), { recursive: true }); cpSync(tpl, pp); }
 }
 if (!dry) { mkdirSync(join(T, '.factory/tasks'), { recursive: true }); writeFileSync(join(T, '.factory/tasks/.gitkeep'), ''); }
@@ -51,5 +51,5 @@ const cm = join(T, 'CLAUDE.md'); const marker = '## AI software factory';
 const section = `\n${marker}\n\nUse \`/factory-build\`, \`/factory-fix\`, \`/factory-review\`, \`/factory-polish\`, \`/factory-status\`, \`/factory-maintain\`. Procedure: \`.claude/factory/protocol.md\`. Project settings (commands, protected paths, reviewers): \`.factory/profile.json\`. State: \`.factory/tasks/\`. Run \`node --test .claude/factory/test/factory.test.mjs\` after changing the factory.\n`;
 if (!existsSync(cm) || !readFileSync(cm, 'utf8').includes(marker)) { log('append factory section to CLAUDE.md'); if (!dry) writeFileSync(cm, (existsSync(cm) ? readFileSync(cm, 'utf8') : '# Project notes\n') + section); }
 
-if (opt('with-github')) for (const f of readdirSync(join(SRC, 'factory/templates/github'))) { log(`copy .github/workflows/${f} (inert until repo variable is set)`); if (!dry) { mkdirSync(join(T, '.github/workflows'), { recursive: true }); cpSync(join(SRC, 'factory/templates/github', f), join(T, '.github/workflows', f)); } }
+if (opt('with-github')) for (const f of readdirSync(join(SRC, 'factory/templates/github'))) { const dest = join(T, '.github/workflows', f); if (existsSync(dest)) { log(`keep .github/workflows/${f} (already there)`); continue; } log(`copy .github/workflows/${f} (inert until repo variable is set)`); if (!dry) { mkdirSync(join(T, '.github/workflows'), { recursive: true }); cpSync(join(SRC, 'factory/templates/github', f), dest); } }
 console.log(`\nDone. Next: edit .factory/profile.json (commands, protectedPaths), open Claude Code in ${T} once to accept workspace trust, then try /factory-status.`);

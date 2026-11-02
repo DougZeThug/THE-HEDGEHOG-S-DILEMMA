@@ -100,4 +100,15 @@ describe('agent definitions', () => {
       expect(toolsOf(a).filter((t) => EDIT_NORM.includes(t))).toEqual([]);
     }
   });
+
+  it('every may-edit agent exists', () => {
+    const names = agents.map((a) => a.fm.name);
+    const missing = MAY_EDIT.filter((n) => !names.includes(n));
+    expect(missing, `may-edit agents with no file: ${missing.join(', ')}`).toEqual([]);
+  });
+
+  it('agent definitions are not nested in subfolders (the policy checks above only read the top level)', () => {
+    const nested = readdirSync(AGENT_DIR, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name);
+    expect(nested, `.claude/agents has subfolders; move their agents up or extend this test: ${nested.join(', ')}`).toEqual([]);
+  });
 });

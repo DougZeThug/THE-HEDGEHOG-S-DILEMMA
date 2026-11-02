@@ -13,7 +13,7 @@ The **Director** is the main Claude Code session running a `/factory-*` skill. I
 | `factory-reviewer` | challenge plans, review diffs | no |
 | profile `domainReviewers` | project specialists (e.g. sound, security) | no |
 
-Right-size: a trivial change (typo, constant, one-line fix) = Director edits, `F verify`, done (risk `trivial`). Small = builder -> verify -> reviewer. Large or risky = architect -> reviewer challenges plan -> build -> QA -> review. Never six agents for a one-line change.
+Right-size: a trivial change (typo, constant, one-line fix) = `F new --risk trivial`, Director edits, `F verify <id>`, then `F set <id> ready`. Small = builder -> verify -> reviewer. Large or risky = architect -> reviewer challenges plan -> build -> QA -> review. Never six agents for a one-line change.
 
 ## Pipeline
 1. **Intake.** `F status` first (resume anything interrupted; inspect the repo, not memory of it). Read CLAUDE.md, `.factory/profile.json`, `.factory/known-issues.md`. Ask the human only if a missing *product* decision changes the outcome; otherwise state assumptions and proceed.
@@ -24,7 +24,7 @@ Right-size: a trivial change (typo, constant, one-line fix) = Director edits, `F
 6. **Repair (bounded).** On failure: `F repair-check <id>`. `PROCEED` -> one `factory-repair` attempt (give it the log path and the earlier attempts), then verify again. `ESCALATE` (budget or the same failure twice) -> stop, status `escalated`, report evidence and your best hypothesis. Never retry the same fix; never weaken a check.
 7. **Review.** Commit everything first. An agent that did not write the code reviews it (`factory-reviewer`, plus profile domain reviewers when the change is visitor-visible or touches their discipline). Record: `F review <id> --reviewer <agent> --verdict pass|fail --p0 N --p1 N --p2 N`. Fix P0/P1 (back to step 5); re-review on the new commit. Skeptic-style challenge of reviewers' conclusions for large changes.
 8. **Ready gate.** `F set <id> ready` refuses unless: every full-tier check passed on the current code commit (the last commit outside `.factory/`), on a clean tree, in a run that was not `--only`, an independent review of that commit has no open P0/P1, and acceptance criteria exist. Do not work around a refusal; fix the cause.
-9. **Deliver.** Push the feature branch, open a PR (template if present), write `.factory/tasks/<id>/report.md` (see report format), commit it, record usage (`F usage`), `F metrics <id>`. Never merge, deploy, run production migrations or touch live data: say what the human must approve.
+9. **Deliver.** Write `.factory/tasks/<id>/report.md` (see report format), record usage (`F usage <id> --tokens N --usd X --agents N`), commit the report and task record, push the feature branch, open a PR (template if present), run `F metrics <id>`. Never merge, deploy, run production migrations or touch live data: say what the human must approve.
 
 ## Operating notes (learned)
 - **Order of record-keeping:** verification and review are tied to the last commit outside `.factory/`, so task records (`plan.md`, `report.md`, evidence) can be committed before or after the final verify and review. Any other commit means verify and review again.

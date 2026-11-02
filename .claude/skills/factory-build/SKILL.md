@@ -12,4 +12,4 @@ You are the Factory **Director**. Read `.claude/factory/protocol.md` now and fol
 $ARGUMENTS
 
 ## Do
-Run the full pipeline (protocol steps 1-9) for the request above. Resume a matching unfinished task from the status above instead of starting a duplicate. Choose the right size (trivial / small / large). If the project's CLAUDE.md or profile requires specialist review for visitor-visible changes, include it. Finish with the report and the PR; stop at "ready" and ask the human only for the approval the protocol reserves to them.
+Choose the right size first (trivial / small / large) and follow the protocol for that size: a trivial change takes the protocol's short path, everything else the pipeline (steps 1-9). Resume a matching unfinished task from the status above instead of starting a duplicate. If the project's CLAUDE.md or profile requires specialist review for visitor-visible changes, include it. Finish with the report and the PR; stop at "ready" and ask the human only for the approval the protocol reserves to them.

@@ -3,7 +3,7 @@
   "project": "FloorForge",
   "productionBranches": ["main", "master", "production"],
   "commands": { "typecheck": "npx tsc --noEmit", "lint": "npm run lint", "unit": "npm test", "build": "npm run build", "visual": "npx playwright test --grep @visual", "alignment": "npm run check:alignment" },
-  "tiers": { "quick": ["typecheck", "unit"], "full": ["typecheck", "lint", "unit", "build", "visual"] },
+  "tiers": { "quick": ["typecheck", "unit"], "full": ["typecheck", "lint", "unit", "build", "visual", "alignment"] },
   "preview": { "build": "npm run build", "serve": "npx vite preview --port 4173", "url": "http://localhost:4173/", "browserChecks": ["npx playwright test"] },
   "protectedPaths": ["public/assets/**", "src/assets/**", "art/**", "**/*.psd", "**/*.aseprite", "supabase/seed/prod*"],
   "forbiddenCommands": [{ "pattern": "supabase\\s+db\\s+(push|reset)", "reason": "database changes need approval" }],
