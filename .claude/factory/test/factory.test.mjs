@@ -44,6 +44,8 @@ test('guard ignores command words inside quoted prose and heredocs', () => {
     'git commit -m "update public/voices notes"',
     "cat > notes.md <<'EOF'\ngit push --force origin main\nnpm publish\nEOF",
     'git commit -F - <<EOF\nWhy gh pr merge needs a human\nEOF',
+    'node .claude/factory/bin/factory.mjs note T1 "checked that npm publish is blocked"',
+    'gh pr create --title "Guard: block git push origin main" --body "never vercel --prod"',
   ]) assert.equal(checkBash(c, ctx), null, `should allow: ${c}`);
   for (const c of [
     "bash -c 'git push --force origin feat/x'",
@@ -51,6 +53,12 @@ test('guard ignores command words inside quoted prose and heredocs', () => {
     "bash <<'EOF'\ngit push --force\nEOF",
     'echo x > "public/voices/a.mp3"',
     'rm -rf "/"',
+    "cat <<'EOF' | env bash\ngit push --force\nEOF",
+    "cat <<EOF | sudo sh\nnpm publish\nEOF",
+    'echo "git push --force origin feat/x" | env bash',
+    'env bash -c "npm publish"',
+    'cat "/home/My Name/.ssh/id_ed25519"',
+    'cp "/Users/a b/.aws/credentials" /tmp/x',
     'git commit -m "x" && git push origin main',
     'echo "$ELEVENLABS_API_KEY"',
   ]) assert.ok(checkBash(c, ctx), `should block: ${c}`);

@@ -42,16 +42,28 @@ const OUTSIDE_REPO_BLOCKED = [
   /^\/(?:etc|usr|bin|sbin|boot|sys|proc)(?:\/|$)/,
 ];
 
+// Where quoted text or a here-document is data, not code: a commit or tag message, a PR/issue title or body,
+// text echoed or printed into a file, a factory note, or a file written with cat/tee. Matched against the command
+// segment up to the quote or heredoc marker. Everything else (bash -c, eval, env bash, sudo sh, pipes...) is checked.
+const PROSE_CONTEXT = new RegExp([
+  String.raw`^git\s+(?:-C\s+\S+\s+)?(?:commit|tag)\b.*\s(?:-m|-am|--message)(?:\s+|=)$`,
+  String.raw`^gh\s+(?:pr|issue|release)\s+\w+\b.*\s--(?:title|body|notes)(?:\s+|=)$`,
+  String.raw`^(?:echo|printf)\b[^<>]*$`,
+  String.raw`^node\s+\S*factory\.mjs\s+(?:note|accept|issue|repair-log|new)\b.*$`,
+].join('|'));
+const HEREDOC_DATA = /^(?:(?:cat|tee)\b[^|]*|git\s+(?:-C\s+\S+\s+)?commit\b.*\s-F\s*-\s*)$/;
+
 /**
- * Mask the inside of quoted phrases and heredoc bodies so words in a commit message, an echo or a here-document
- * ("don't git push origin main") are not read as commands. Same length as the input so positions still line up.
- * Kept unmasked: single-word quoted arguments ('/', "public/voices/a.mp3"), double-quoted text that expands
- * variables or commands, and anything handed to a shell or eval (bash -c '...', sh <<EOF).
+ * Mask the inside of quoted phrases and heredoc bodies that are data (see PROSE_CONTEXT), so words in a commit
+ * message or a notes file ("don't git push origin main") are not read as commands. Same length as the input so
+ * positions still line up. Nothing is masked when the text is piped onward, expands variables, or sits anywhere else.
  */
 export function maskQuoted(cmd) {
   const out = cmd.split('');
   const blank = (from, to) => { for (let k = from; k < to; k++) if (out[k] !== '\n') out[k] = '_'; };
-  const runsCode = (i) => /(?:\b(?:bash|sh|zsh|dash)\s+-\w*c|\beval|\b(?:node|perl|ruby)\s+-e|\bpython3?\s+-c)\s*$/.test(cmd.slice(0, i));
+  // The current command segment before position i: back to the last separator or pipe.
+  const segBefore = (i) => cmd.slice(0, i).split(/&&|\|\||;|\n|\|/).pop().trimStart();
+  const lineAfter = (j) => cmd.slice(j, (cmd.indexOf('\n', j) + 1 || cmd.length + 1) - 1);
   let i = 0;
   while (i < cmd.length) {
     const c = cmd[i];
@@ -61,19 +73,19 @@ export function maskQuoted(cmd) {
       while (j < cmd.length && cmd[j] !== c) { if (c === '"' && cmd[j] === '\\') j++; j++; }
       const body = cmd.slice(i + 1, j);
       const expands = c === '"' && /[$`]/.test(body);
-      if (/\s/.test(body) && !expands && !runsCode(i)) blank(i + 1, j);
+      const pipedOn = /\|(?!\|)/.test(lineAfter(j + 1).replace(/\|\|/g, ''));
+      if (/\s/.test(body) && !expands && !pipedOn && PROSE_CONTEXT.test(segBefore(i))) blank(i + 1, j);
       i = j + 1; continue;
     }
     const hd = /^<<-?\s*(['"]?)([A-Za-z_]\w*)\1/.exec(cmd.slice(i));
     if (hd) {
-      const lineStart = cmd.lastIndexOf('\n', i) + 1;
       const bodyStart = cmd.indexOf('\n', i);
-      const markerLine = cmd.slice(i, bodyStart === -1 ? cmd.length : bodyStart);
-      const toShell = /\b(?:bash|sh|zsh|dash|eval)\b[^|;&]*$/.test(cmd.slice(lineStart, i)) || /\|\s*(?:\S*\/)?(?:bash|sh|zsh|dash|xargs|node|python3?|perl|ruby)\b/.test(markerLine);
       if (bodyStart === -1) { i += hd[0].length; continue; }
+      const markerLine = cmd.slice(i + hd[0].length, bodyStart);
+      const isData = HEREDOC_DATA.test(segBefore(i).trimEnd()) && !/\|/.test(markerLine.replace(/\|\|/g, ''));
       const endRe = new RegExp(`\\n\\t*${hd[2]}(?=\\n|$)`); const m = endRe.exec(cmd.slice(bodyStart));
       const bodyEnd = m ? bodyStart + m.index : cmd.length;
-      if (!toShell) blank(bodyStart + 1, bodyEnd);
+      if (isData) blank(bodyStart + 1, bodyEnd);
       i = m ? bodyEnd + m[0].length : cmd.length; continue;
     }
     i++;
