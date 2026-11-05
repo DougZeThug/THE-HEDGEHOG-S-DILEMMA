@@ -798,7 +798,8 @@ export class App {
       fallback: (cue, delay) => {
         const text = cue.text ?? '';
         setTimeout(() => {
-          if (!this.vignette || this.vignette.id !== def.id) return;
+          // Previews only: a visitor hears kept takes or nothing (a take that failed to load stays silent).
+          if (!this.vignette || this.vignette.id !== def.id || !this.vignette.preview) return;
           const from = isSpot(cue.place) ? this.spotWorld(cue.place) : base.where(cue.place);
           void voices.playLine('whisper', text, { from }, 0.7, undefined, { synth: true, priority: true }).then((p) => {
             if (p.duration > 0) this.captions.show(text, p.duration, false, cue.side);
