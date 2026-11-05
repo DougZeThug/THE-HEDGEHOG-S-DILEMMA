@@ -113,7 +113,7 @@ describe('situation: the next room, called again', () => {
         const voices = () => v.cues.filter((c) => isVoice(c.cue) && c.cue.tag === 'next-room');
         v.run(500, { x: 0, z: 2.4, facing }, () => voices().length >= 2);
         const second = voices()[1];
-        if (!second) continue;
+        if (!second) throw new Error(`${facing}, seed ${seed}: no second laugh`);
         const wall = ((second.cue as Extract<Cue, { type: 'voice' }>).position as { surface: Surface }).surface;
         v.run(12, before(wall));
         const found = v.of('sit:next-room').some((c) => c.cue.type === 'reveal') || !!v.d.situations.active[0]?.st.data.memory;
