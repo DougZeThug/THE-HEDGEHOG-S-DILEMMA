@@ -113,6 +113,14 @@ describe('when a living memory opens', () => {
   });
 });
 
+describe('claims() and what may speak', () => {
+  it("a painted memory keeps its line when an available set is given that holds only vignettes and voice keys", () => {
+    const m = new MemoryDirector();
+    m.setAvailable(new Set(['rain', 'cereal:first:default']));
+    expect(m.claims('cereal')).toBe(true);
+  });
+});
+
 describe('later memories are offered, not hidden', () => {
   const offerState = (o: Partial<Parameters<MemoryDirector['offer']>[0]> = {}) => ({
     now: 200, phase: 'contradiction', free: true, visibleFacing: () => false, departing: false, otherMemory: false, ...o,
