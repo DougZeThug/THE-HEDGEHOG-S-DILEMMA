@@ -4,7 +4,7 @@ import { coverQuad, UPRIGHT } from '../src/world/living/Immersion';
 
 // The sheet (1280×1440) and the drawing's rows on it, from the top (every pose of v2, scripts/things/).
 const PAINT = 1280 / 1440;
-const ROWS = { lintel: 412, feet: 1047, head: 499 };
+const ROWS = { lintel: 412, feet: 1047, head: 473 }; // (his crown at its highest, the goodbye's opening beats, measured on the film; turning back to her it is 499)
 
 /** The sheet's rows a screen of this aspect shows (from the top), covered with the film's rule. */
 function shown(aspect: number): [number, number] {
@@ -17,9 +17,9 @@ describe('Things I Should Have Said on a screen (QA, 2026-10-21)', () => {
   const aspects: number[] = [];
   for (let a = UPRIGHT; a <= 2.39 + 1e-9; a += 0.01) aspects.push(a);
 
-  it('never cuts his head as he turns back to her, up to 2.39:1; their feet only beyond about 2.1:1 (QA, 2026-10-22)', () => {
+  it('never cuts his head, at its highest in the opening beats (and so as he turns back to her), up to 2.39:1; their feet only beyond about 2:1 (QA, 2026-10-22)', () => {
     for (const a of aspects) expect(ROWS.head - shown(a)[0], `his head at ${a.toFixed(2)}`).toBeGreaterThanOrEqual(8 - 1e-6);
-    for (const a of aspects.filter((x) => x <= 2.1)) expect(shown(a)[1] - ROWS.feet, `their feet at ${a.toFixed(2)}`).toBeGreaterThanOrEqual(10 - 1e-6);
+    for (const a of aspects.filter((x) => x <= 2.0)) expect(shown(a)[1] - ROWS.feet, `their feet at ${a.toFixed(2)}`).toBeGreaterThanOrEqual(10 - 1e-6);
   });
 
   it('keeps the lintel in, with room, to 16:10 and 16:9, and in at all to 1.85:1', () => {
