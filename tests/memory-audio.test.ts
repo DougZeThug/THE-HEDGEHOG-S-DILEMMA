@@ -704,3 +704,30 @@ describe('paused while a soft release lets a begun sentence finish', () => {
     expect(audio.pause().map((m) => m.label)).toEqual(['voice:line']);
   });
 });
+
+describe('a voice that could not be loaded', () => {
+  it('is silent and uncaptioned unless the host offers a stand-in (only a preview does)', async () => {
+    const sheet: CueSheet = {
+      room: [0.4, 3, 0.06],
+      cues: { 'voice:line': { asset: 'line', gainDb: -12, place: { u: 0, v: 0, d: 1 }, text: 'Five more minutes.' } },
+    };
+    const markers: Marker[] = [{ label: 'voice:line', position: 1 }];
+    for (const preview of [false, true]) {
+      const ctx = new FakeCtx();
+      const stoodIn: string[] = [];
+      const captions: string[] = [];
+      const host: MemoryAudioHost = {
+        ctx: ctx as unknown as BaseAudioContext, out: new FakeNode(ctx) as unknown as AudioNode,
+        load: async () => null as unknown as AudioBuffer, // the take would not fetch or decode
+        impulse: () => ({}) as AudioBuffer, intensity: 1, where: () => [0, 0, 0], caption: (t) => captions.push(t),
+        fallback: preview ? (cue) => void stoodIn.push(cue.text ?? '') : undefined,
+      };
+      const audio = new MemoryAudio(host, sheet, markers);
+      await audio.prepare();
+      audio.play([{ marker: markers[0], delay: 0 }] as never);
+      expect(audio.sounding).toBe(0);
+      expect(captions).toEqual([]);
+      expect(stoodIn, `preview ${preview}`).toEqual(preview ? ['Five more minutes.'] : []);
+    }
+  });
+});
