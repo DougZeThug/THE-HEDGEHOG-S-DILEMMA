@@ -659,3 +659,43 @@ describe('a stall inside the hand-out window', () => {
     expect(handed.length).toBe(1);
   });
 });
+
+describe('paused while a soft release lets a begun sentence finish', () => {
+  const sheet: CueSheet = {
+    room: [0.4, 3, 0.06],
+    cues: { 'voice:line': { asset: 'line', gainDb: -12, place: { u: 0, v: 0, d: 1 }, text: 'Five more minutes.' } },
+  };
+  const markers: Marker[] = [{ label: 'voice:line', position: 1 }];
+
+  async function speaking() {
+    const ctx = new FakeCtx();
+    const host: MemoryAudioHost = {
+      ctx: ctx as unknown as BaseAudioContext, out: new FakeNode(ctx) as unknown as AudioNode,
+      load: async () => ({ duration: 4 }) as AudioBuffer, impulse: () => ({}) as AudioBuffer,
+      intensity: 1, where: () => [0, 0, 0], caption: () => {},
+    };
+    const audio = new MemoryAudio(host, sheet, markers);
+    await audio.prepare();
+    ctx.currentTime = 100;
+    audio.play([{ marker: markers[0], delay: 0 }] as never);
+    ctx.advance(1);
+    const voice = ctx.sources.find((s) => s.buffer?.duration === 4)!;
+    return { ctx, audio, voice };
+  }
+
+  it('the sentence is not chopped or taken back: it plays on to its end', async () => {
+    const { ctx, audio, voice } = await speaking();
+    audio.release('interrupt', 0.6, true);
+    ctx.advance(0.5);
+    const back = audio.pause();
+    expect(back).toEqual([]);
+    expect(voice.stopAt).toBeNull();
+    audio.resume();
+    expect(voice.stopAt).toBeNull();
+  });
+
+  it('(contrast) paused while the memory is still held, the sentence is taken back to be said again', async () => {
+    const { audio } = await speaking();
+    expect(audio.pause().map((m) => m.label)).toEqual(['voice:line']);
+  });
+});

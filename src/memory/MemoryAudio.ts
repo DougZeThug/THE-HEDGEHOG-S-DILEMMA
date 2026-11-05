@@ -456,6 +456,10 @@ export class MemoryAudio implements AudioSink {
       if (l.at > t + 0.005) {
         back.push(l.marker);
         this.fadeOut(l, 0);
+      } else if (l.kind === 'voice' && this.released) {
+        // Let go while it spoke (a soft release: "a sentence already begun is said to its end"):
+        // nothing new is begun once released, so it could never be said again. It plays on, whole.
+        continue;
       } else if (l.kind === 'voice') {
         // Paused mid-sentence: it is said again from the start when the room comes back.
         back.push(l.marker);
