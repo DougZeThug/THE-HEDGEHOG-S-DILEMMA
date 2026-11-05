@@ -706,7 +706,7 @@ describe('paused while a soft release lets a begun sentence finish', () => {
 });
 
 describe('a voice that could not be loaded', () => {
-  it('is silent and uncaptioned unless the host offers a stand-in (only a preview does)', async () => {
+  it('is silent and uncaptioned unless the host offers a stand-in (App offers one only for a preview; that gate is not unit-tested)', async () => {
     const sheet: CueSheet = {
       room: [0.4, 3, 0.06],
       cues: { 'voice:line': { asset: 'line', gainDb: -12, place: { u: 0, v: 0, d: 1 }, text: 'Five more minutes.' } },
