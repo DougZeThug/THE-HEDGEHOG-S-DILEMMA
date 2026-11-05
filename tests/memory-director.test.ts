@@ -119,6 +119,11 @@ describe('claims() and what may speak', () => {
     m.setAvailable(new Set(['rain', 'cereal:first:default']));
     expect(m.claims('cereal')).toBe(true);
   });
+  it('a painted memory keeps its line when no voices are kept', () => {
+    const m = new MemoryDirector();
+    m.setAvailable(new Set());
+    expect(m.claims('cereal')).toBe(true);
+  });
 });
 
 describe('claims() once the arc has ended', () => {

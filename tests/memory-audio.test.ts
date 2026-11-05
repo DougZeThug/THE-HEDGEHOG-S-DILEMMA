@@ -667,21 +667,34 @@ describe('paused while a soft release lets a begun sentence finish', () => {
   };
   const markers: Marker[] = [{ label: 'voice:line', position: 1 }];
 
-  async function speaking() {
+  async function speaking(delay = 0) {
     const ctx = new FakeCtx();
+    const captions: string[] = [];
     const host: MemoryAudioHost = {
       ctx: ctx as unknown as BaseAudioContext, out: new FakeNode(ctx) as unknown as AudioNode,
       load: async () => ({ duration: 4 }) as AudioBuffer, impulse: () => ({}) as AudioBuffer,
-      intensity: 1, where: () => [0, 0, 0], caption: () => {},
+      intensity: 1, where: () => [0, 0, 0], caption: (text) => void captions.push(text),
     };
     const audio = new MemoryAudio(host, sheet, markers);
     await audio.prepare();
     ctx.currentTime = 100;
-    audio.play([{ marker: markers[0], delay: 0 }] as never);
+    audio.play([{ marker: markers[0], delay }] as never);
     ctx.advance(1);
     const voice = ctx.sources.find((s) => s.buffer?.duration === 4)!;
-    return { ctx, audio, voice };
+    return { ctx, audio, voice, captions };
   }
+
+  it('a sentence whose caption is still pending when the pause comes is captioned once, at the pause', async () => {
+    vi.useFakeTimers();
+    const { ctx, audio, captions } = await speaking(1.2); // (not yet begun when the memory lets go, naturally)
+    expect(captions).toEqual([]);
+    audio.release('natural', 0.6);
+    ctx.advance(0.5);
+    audio.pause();
+    expect(captions).toEqual(['Five more minutes.']);
+    vi.runAllTimers();
+    expect(captions).toEqual(['Five more minutes.']);
+  });
 
   it('the sentence is not chopped or taken back: it plays on to its end', async () => {
     const { ctx, audio, voice } = await speaking();
