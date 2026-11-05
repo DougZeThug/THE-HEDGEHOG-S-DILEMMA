@@ -692,6 +692,11 @@ describe('paused while a soft release lets a begun sentence finish', () => {
     expect(voice.stopAt).toBeNull();
     audio.resume();
     expect(voice.stopAt).toBeNull();
+    // (Still sounding just before its four seconds are up, and over after.)
+    ctx.advance(2.4);
+    expect(voice.stopAt === null && ctx.currentTime < voice.startAt![0] + 4).toBe(true);
+    ctx.advance(1.2);
+    expect(ctx.currentTime).toBeGreaterThanOrEqual(voice.startAt![0] + 4);
   });
 
   it('(contrast) paused while the memory is still held, the sentence is taken back to be said again', async () => {

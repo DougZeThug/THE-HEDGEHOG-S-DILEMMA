@@ -449,9 +449,9 @@ export class MemoryAudio implements AudioSink {
     const t = this.now;
     const shown = now - this.lead;
     this.paused = [];
-    // (A one-shot already ringing finishes: captioned at once. What is taken back, or said again,
+    // (A one-shot already ringing finishes, and so does a sentence of a released memory: captioned at once. What is taken back, or said again,
     // is captioned when it is.)
-    this.settleLater(undefined, (l) => l.kind === 'sfx' && l.at <= t + 0.005);
+    this.settleLater(undefined, (l) => (l.kind === 'sfx' || (l.kind === 'voice' && this.released)) && l.at <= t + 0.005);
     for (const l of [...this.live]) {
       if (l.at > t + 0.005) {
         back.push(l.marker);
