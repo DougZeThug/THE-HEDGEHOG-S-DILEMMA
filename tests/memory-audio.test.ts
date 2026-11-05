@@ -736,6 +736,32 @@ describe('paused while a soft release lets a begun sentence finish', () => {
     expect(shown[0][1]).toBeLessThan(2.6);
   });
 
+  it('a line cut short by stopAfter is shown only until that cut, not to the end of its recording', async () => {
+    const ctx = new FakeCtx();
+    const shown: [string, number][] = [];
+    const host: MemoryAudioHost = {
+      ctx: ctx as unknown as BaseAudioContext, out: new FakeNode(ctx) as unknown as AudioNode,
+      load: async () => ({ duration: 4 }) as AudioBuffer, impulse: () => ({}) as AudioBuffer,
+      intensity: 1, where: () => [0, 0, 0], caption: (t, s) => void shown.push([t, s]),
+    };
+    const cut: CueSheet = {
+      ...sheet,
+      cues: { 'voice:line': { ...sheet.cues['voice:line'], stopAfter: 2.5 } },
+    };
+    const audio = new MemoryAudio(host, cut, markers);
+    await audio.prepare();
+    ctx.currentTime = 100;
+    audio.play([{ marker: markers[0], delay: 0 }] as never);
+    ctx.advance(1);
+    audio.release('interrupt', 0.6, true);
+    audio.pause();
+    shown.length = 0;
+    ctx.advance(1); // 0.5 s of the 2.5 s it is given are left (3 s of the recording would be)
+    audio.resume();
+    expect(shown.length).toBe(1);
+    expect(shown[0][1]).toBeLessThan(0.7);
+  });
+
   it('(contrast) paused while the memory is still held, the sentence is taken back to be said again', async () => {
     const { audio } = await speaking();
     expect(audio.pause().map((m) => m.label)).toEqual(['voice:line']);

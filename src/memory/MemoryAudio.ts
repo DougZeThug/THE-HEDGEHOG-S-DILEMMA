@@ -463,7 +463,12 @@ export class MemoryAudio implements AudioSink {
       } else if (l.kind === 'voice' && this.released) {
         // Let go while it spoke (a soft release: "a sentence already begun is said to its end"):
         // nothing new is begun once released, so it could never be said again. It plays on, whole.
-        if (l.cue.text && l.src.buffer) this.spoken.push({ text: l.cue.text, side: l.cue.side, end: l.at + l.src.buffer.duration - l.from });
+        if (l.cue.text && l.src.buffer) {
+          // (It ends where start() would have stopped it: at its recording's end, or the cut it was given.)
+          const stop = l.cue.stopAfter !== undefined ? Math.max(0.05, l.cue.stopAfter - l.from) : Infinity;
+          const until = l.cue.until !== undefined ? l.cue.until - l.marker.position - l.from : Infinity;
+          this.spoken.push({ text: l.cue.text, side: l.cue.side, end: l.at + Math.min(l.src.buffer.duration - l.from, stop, until) });
+        }
         continue;
       } else if (l.kind === 'voice') {
         // Paused mid-sentence: it is said again from the start when the room comes back.
