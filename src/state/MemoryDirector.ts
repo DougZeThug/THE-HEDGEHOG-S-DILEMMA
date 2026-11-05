@@ -208,6 +208,8 @@ export class MemoryDirector {
     // 2026-10-27). (A painted memory's id is never in the available set: only its voices' keys
     // are, and it plays wordless without them.)
     if (m.kind === 'vignette' && !this.isAvailable(m.id)) return false;
+    // Nor a painted memory once another has ended the arc: none comes now, so its line is the room's.
+    if (this.arcEnded(m)) return false;
     return !this.tracks.get(m.id)!.played;
   }
 

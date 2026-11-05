@@ -66,6 +66,9 @@ export class MemoryAudio implements AudioSink {
   /** What a pause stopped: where in its own timeline it was, and (sent ahead of the picture by the
    *  lead, not yet reached by it) how long before the picture reaches its start. */
   private paused: { marker: Marker; at: number; wait: number }[] = [];
+  /** Sentences of a released memory that played on through a pause: their words, shown again for
+   *  what is left of them when the pause ends (the caption's own time ran on while it lasted). */
+  private spoken: { text: string; side: Cue['side']; end: number }[] = [];
   private disposed = false;
   /** Captions still to come, each with its sound: kept, shown or dropped with it. */
   private timers = new Map<ReturnType<typeof setTimeout>, { f: () => void; l: Live }>();
@@ -449,6 +452,7 @@ export class MemoryAudio implements AudioSink {
     const t = this.now;
     const shown = now - this.lead;
     this.paused = [];
+    this.spoken = [];
     // (A one-shot already ringing finishes, and so does a sentence of a released memory: captioned at once. What is taken back, or said again,
     // is captioned when it is.)
     this.settleLater(undefined, (l) => (l.kind === 'sfx' || (l.kind === 'voice' && this.released)) && l.at <= t + 0.005);
@@ -459,6 +463,7 @@ export class MemoryAudio implements AudioSink {
       } else if (l.kind === 'voice' && this.released) {
         // Let go while it spoke (a soft release: "a sentence already begun is said to its end"):
         // nothing new is begun once released, so it could never be said again. It plays on, whole.
+        if (l.cue.text && l.src.buffer) this.spoken.push({ text: l.cue.text, side: l.cue.side, end: l.at + l.src.buffer.duration - l.from });
         continue;
       } else if (l.kind === 'voice') {
         // Paused mid-sentence: it is said again from the start when the room comes back.
@@ -490,6 +495,9 @@ export class MemoryAudio implements AudioSink {
     this.fading.clear();
     for (const p of this.paused) this.start(p.marker, now - this.lead + p.wait, p.at, p.wait > 0 ? undefined : 1);
     this.paused = [];
+    // A sentence that played on through the pause: its words again, for what is left of it.
+    for (const w of this.spoken) if (w.end - this.now > 0.3) this.host.caption?.(w.text, w.end - this.now, true, w.side);
+    this.spoken = [];
   }
 
   /**

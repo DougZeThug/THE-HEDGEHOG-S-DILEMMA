@@ -699,6 +699,30 @@ describe('paused while a soft release lets a begun sentence finish', () => {
     expect(ctx.currentTime).toBeGreaterThanOrEqual(voice.startAt![0] + 4);
   });
 
+  it('its words are shown again for what is left of it when the pause ends', async () => {
+    const ctx = new FakeCtx();
+    const shown: [string, number][] = [];
+    const host: MemoryAudioHost = {
+      ctx: ctx as unknown as BaseAudioContext, out: new FakeNode(ctx) as unknown as AudioNode,
+      load: async () => ({ duration: 4 }) as AudioBuffer, impulse: () => ({}) as AudioBuffer,
+      intensity: 1, where: () => [0, 0, 0], caption: (t, s) => void shown.push([t, s]),
+    };
+    const audio = new MemoryAudio(host, sheet, markers);
+    await audio.prepare();
+    ctx.currentTime = 100;
+    audio.play([{ marker: markers[0], delay: 0 }] as never);
+    ctx.advance(1);
+    audio.release('interrupt', 0.6, true);
+    audio.pause();
+    shown.length = 0;
+    ctx.advance(1); // the pause; 2 s of the 4 are left
+    audio.resume();
+    expect(shown.length).toBe(1);
+    expect(shown[0][0]).toBe('Five more minutes.');
+    expect(shown[0][1]).toBeGreaterThan(1.5);
+    expect(shown[0][1]).toBeLessThan(2.6);
+  });
+
   it('(contrast) paused while the memory is still held, the sentence is taken back to be said again', async () => {
     const { audio } = await speaking();
     expect(audio.pause().map((m) => m.label)).toEqual(['voice:line']);
