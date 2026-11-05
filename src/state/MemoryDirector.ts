@@ -204,8 +204,12 @@ export class MemoryDirector {
     // A vignette's line answers like any other until its memory could open (a line read early
     // isn't left unanswered for minutes).
     if (m.kind === 'vignette' && (this.last ?? 0) < m.earliest) return false;
-    // Nor one that can't play (its voices not kept): its lines answer as any other (QA, 2026-10-27).
-    if (!this.isAvailable(m.id)) return false;
+    // Nor a vignette that can't play (its voices not kept): its lines answer as any other (QA,
+    // 2026-10-27). (A painted memory's id is never in the available set: only its voices' keys
+    // are, and it plays wordless without them.)
+    if (m.kind === 'vignette' && !this.isAvailable(m.id)) return false;
+    // Nor a painted memory once another has ended the arc: none comes now, so its line is the room's.
+    if (this.arcEnded(m)) return false;
     return !this.tracks.get(m.id)!.played;
   }
 

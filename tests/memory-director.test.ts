@@ -113,6 +113,29 @@ describe('when a living memory opens', () => {
   });
 });
 
+describe('claims() and what may speak', () => {
+  it("a painted memory keeps its line when an available set is given that holds only vignettes and voice keys", () => {
+    const m = new MemoryDirector();
+    m.setAvailable(new Set(['rain', 'cereal:first:default']));
+    expect(m.claims('cereal')).toBe(true);
+  });
+  it('a painted memory keeps its line when no voices are kept', () => {
+    const m = new MemoryDirector();
+    m.setAvailable(new Set());
+    expect(m.claims('cereal')).toBe(true);
+  });
+});
+
+describe('claims() once the arc has ended', () => {
+  it("a painted memory's unplayed line is the room's once the memory that ends the arc (woodland) has played", () => {
+    const m = new MemoryDirector();
+    m.update(base({ now: 300 })); // (past things' earliest time: its line is claimed first)
+    expect(m.claims('didnt-know-say')).toBe(true);
+    (m as unknown as { tracks: Map<string, { played: boolean }> }).tracks.get('woodland')!.played = true;
+    expect(m.claims('didnt-know-say')).toBe(false);
+  });
+});
+
 describe('later memories are offered, not hidden', () => {
   const offerState = (o: Partial<Parameters<MemoryDirector['offer']>[0]> = {}) => ({
     now: 200, phase: 'contradiction', free: true, visibleFacing: () => false, departing: false, otherMemory: false, ...o,
