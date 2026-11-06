@@ -1,7 +1,7 @@
 import { DRAWINGS, DRAWING_BY_ID } from '../content/drawings';
 import { MemoryDirector, type PendingEcho } from './MemoryDirector';
 import { VIGNETTE_BY_ID, lineKey } from '../content/vignettes';
-import { SCENE_MEMORIES } from '../content/memories';
+import { HEART_AFTER_RECOIL, HEART_ANSWER, HEART_BY_SHAPE, HEART_DECIDE, SCENE_MEMORIES, type HeartShape } from '../content/memories';
 import { Rng } from '../core/rng';
 import { EventScheduler } from '../core/scheduler';
 import { clamp, smoothstep } from '../core/math';
@@ -80,6 +80,11 @@ export interface DirectorOptions {
    * part of how the room answers, so a visit with and without it can be compared on the same seed.
    */
   experiments?: readonly string[];
+  /**
+   * What the last visit's heart left beside "I wanted you to stay." (a phrase id, `hh.heart.v1`):
+   * found there again on the next visit (docs/reviews/2026-11-emotional-arc.md).
+   */
+  answer?: string | null;
 }
 
 const SURFACES: Surface[] = ['north', 'east', 'south', 'west'];
@@ -272,17 +277,19 @@ export class Director {
   private stillMusic: boolean;
 
   /**
-   * The design experiments this build defines (docs/reviews/2026-11-core-loop.md). None at present:
-   * the November 2026 round's winners are how the room behaves now. A name not listed here is
+   * The design experiments this build defines (docs/reviews/2026-11-core-loop.md, 2026-11-emotional-arc.md).
+   * The November 2026 rounds' winners are how the room behaves now; `noHeart` turns the visit's heart
+   * off, so the arc battery (scripts/arc.ts) can compare with the room before it. A name not listed here is
    * ignored by the room (the App warns) and refused by the battery (scripts/experiment.ts), so two
    * arms can never be compared while running the same code.
    */
-  static readonly EXPERIMENTS: readonly string[] = [];
+  static readonly EXPERIMENTS: readonly string[] = ['noHeart'];
   /** The design experiments this visit runs (empty in the room unless `?exp=` names some). */
   readonly exp: ReadonlySet<string>;
 
   constructor(opts: DirectorOptions) {
     this.exp = new Set((opts.experiments ?? []).filter((e) => Director.EXPERIMENTS.includes(e)));
+    this.pastAnswer = opts.answer && Object.values(HEART_ANSWER).includes(opts.answer) ? opts.answer : null;
     this.rng = new Rng(opts.seed);
     this.gapRng = new Rng(opts.seed * 7919 + 101);
     this.seed = opts.seed;
@@ -542,7 +549,10 @@ export class Director {
       if (phaseChanged === 'transform') this.transformAt = this.now;
       if (this.legacy) this.ruleOpening();
       this.ruleMemory();
+      this.ruleHeart();
       this.ruleScenes();
+      this.ruleHeartAnswer();
+      this.ruleKeptAnswer();
       this.ruleEchoes();
       this.ruleAccumulate();
       this.ruleDrawings();
@@ -964,6 +974,7 @@ export class Director {
     if (this.now - this.lastTurnAt < 16 || this.scheduler.pending().some((e) => e.payload.rule.startsWith('phase-'))) return;
     const r = Director.RECOIL[this.recoils++];
     this.queue(0, { type: 'flinch', amount: r.amount, chair: r.chair }, 'return-recoil', { ttl: 0.5 });
+    if (this.recoiledAt === null) this.recoiledAt = this.now;
     this.field.nudge({ exposure: 0.2 * r.amount, tension: 0.1 * r.amount });
     // Then nothing written or said over it for a moment: a subtraction, left alone.
     this.pacing.holdFor(this.now, 7);
@@ -972,6 +983,8 @@ export class Director {
   static readonly RECOIL: { amount: number; chair?: boolean }[] = [{ amount: 1 }, { amount: 0.6, chair: true }];
   private returnSeenAt = -Infinity;
   private recoils = 0;
+  /** When the room first recoiled at them (the visit's heart may answer it). */
+  private recoiledAt: number | null = null;
   private airAt = -Infinity;
 
   /**
@@ -1439,6 +1452,9 @@ export class Director {
   private ruleMemory() {
     // Cereal is the same kitchen: if it has opened this visit, the late light isn't offered.
     if (this.memoryPlayed || this.departing || this.scenes.paintedPlayed || this.scenes.kitchenTaken) return;
+    // (Nor while the visit's heart is chosen and waiting: it is the memory this visit is for. If it
+    // was pointed at and let be, the light may still come.)
+    if (this.scenes.heart && !this.scenes.heartPlayed && !this.memoryOffered && !this.scenes.heartLapsed(this.now)) return;
     if (this.now < 150 || (this.phase !== 'contradiction' && this.phase !== 'transform')) return;
     const m = Director.MEMORY;
     // Its own hold (below) doesn't keep it waiting.
@@ -1537,6 +1553,9 @@ export class Director {
       kitchenOffered: this.memoryOffered,
       kitchenOfferedAt: this.memoryOffered ? this.memoryOfferedAt : undefined,
       prefer: this.earned(),
+      // (And only while they look at a wall, level: at the chair, looking down at it, a line written
+      // "where they look" lands out of view. Interaction designer, 2026-11-06.)
+      heartFree: this.scheduler.majorFree(this.now) && !held && !this.aftermath() && this.pacing.sinceDev(this.now) >= 4 && !this.pacing.repeats('voice', this.now, 4) && this.facing !== 'floor' && this.facing !== 'ceiling' && v.pitch > -0.3,
     });
     if (offer?.reink) {
       // Already on the wall they face: written again there, in front of them (no new line).
@@ -1570,6 +1589,82 @@ export class Director {
     return this.cameBack(this.now - 120) ? ['almost'] : [];
   }
 
+  // ─────────────────────────── the visit's heart ───────────────────────────
+  // (docs/reviews/2026-11-emotional-arc.md)
+
+  /** The last visit's heart answer, if this visit should find it. */
+  private readonly pastAnswer: string | null;
+  /** This visit's heart has been seen (its id), and its answer when written. */
+  private heartSeen: string | null = null;
+  private heartAnswerAt = Infinity;
+  /** The answer written beside "I wanted you to stay." (a phrase id), once. */
+  heartAnswer: string | null = null;
+
+  /**
+   * What this visit's heart left (a phrase id), once it is on the wall: the departure ends on it and
+   * the next visit finds it. (A heart seen in the visit's last moments, its line not yet written,
+   * leaves nothing: the card shows only what the wall shows. Creative director, 2026-11-06.)
+   */
+  answerKept(): string | null {
+    return this.heartAnswer;
+  }
+
+  /** Whether this visit has a heart at all (`noHeart`: the room before it, for comparison). */
+  private hearts(): boolean {
+    return !this.exp.has('noHeart');
+  }
+
+  /**
+   * What has happened between the visitor and the chair, as far as the heart is concerned (null:
+   * nothing yet). The recoil is an event they saw; the others are only offered from two minutes.
+   */
+  heartShape(): HeartShape | null {
+    const v = this.visitor;
+    const c = v.comings;
+    if (this.recoiledAt !== null) return 'recoiled';
+    if (this.now < HEART_DECIDE) return null;
+    if (this.leaving() === 'close') return 'close';
+    const last = c[c.length - 1];
+    if (last && last.leftAt !== null && v.t - last.leftAt >= 50) return 'refused';
+    return null;
+  }
+
+  private ruleHeart() {
+    if (this.departing || !this.hearts() || this.scenes.heartPlayed) return;
+    const shape = this.heartShape();
+    if (!shape) return;
+    // (Until its line is pointed at, the heart may change: a recoil makes it Almost.)
+    this.scenes.setHeart(HEART_BY_SHAPE[shape], shape === 'recoiled' ? this.recoiledAt! + HEART_AFTER_RECOIL : 0);
+  }
+
+  /**
+   * The last visit's answer, found: beside the first line, as if it had always been there, the
+   * first time they are turned away from that wall (never appearing in front of them).
+   */
+  private ruleKeptAnswer() {
+    if (!this.pastAnswer || this.keptFound || this.departing || !this.visible.has('stay')) return;
+    if (this.facing === PHRASE_BY_ID.get('stay')!.surface || this.facing === 'floor' || this.facing === 'ceiling') return;
+    this.keptFound = true;
+    const a = PHRASE_BY_ID.get(this.pastAnswer)!;
+    this.queue(0, { type: 'write', key: `heart:${a.id}`, text: a.text, hand: a.hand, size: 's', beside: 'stay', purpose: 'annotation', ttl: 0, source: a.id, found: true }, 'heart-kept');
+  }
+  private keptFound = false;
+
+  /**
+   * What the heart leaves: one line in the answering pencil, beside the room's first line, found
+   * rather than watched (on that wall only after a while), and kept for the next visit.
+   */
+  private ruleHeartAnswer() {
+    if (!this.heartSeen || this.heartAnswer || this.now < this.heartAnswerAt || this.departing || this.scenes.active) return;
+    if (this.pacing.holding(this.now) || this.pacing.repeats('text', this.now, 6) || !this.visible.has('stay')) return;
+    const stay = PHRASE_BY_ID.get('stay')!;
+    if (this.facing === stay.surface && this.now < this.heartAnswerAt + 40) return;
+    const a = PHRASE_BY_ID.get(HEART_ANSWER[this.heartSeen] ?? '');
+    if (!a) return;
+    this.heartAnswer = a.id;
+    this.queue(0, { type: 'write', key: `heart:${a.id}`, text: a.text, hand: a.hand, size: 's', beside: 'stay', purpose: 'annotation', ttl: 0, source: a.id }, 'heart-answer');
+  }
+
   /**
    * The App reports a living memory has gone (or could not begin). `seen`: watched past its first
    * moments. Returns whether it counts as seen (persisted for revisits).
@@ -1599,6 +1694,11 @@ export class Director {
       this.memoryQuietUntil = Math.max(this.memoryQuietUntil, this.now + 20);
       this.vignetteQuietUntil = this.now + 20;
       this.vignetteEnded = { id, at: this.now, dimmed: VIGNETTE_BY_ID.get(id)!.variants.first.events.some((e) => 'fx' in e && e.fx.kind === 'dim') };
+    }
+    if (counted && id === this.scenes.heart && !this.heartSeen) {
+      // The visit's heart has been seen: what it leaves comes once its aftermath is over.
+      this.heartSeen = id;
+      this.heartAnswerAt = this.now + (ranToEnd ? 25 : 12) + 4;
     }
     if (counted) {
       // Its aftermath (shorter if it was let go early).
@@ -2354,6 +2454,12 @@ export class Director {
   }
 
   departureLine(how: 'door' | 'menu' = 'menu'): string {
+    // The visit's sentence: the room's first line as the visit left it, and what its heart answered.
+    const answer = this.answerKept();
+    if (answer && this.hearts()) {
+      const stay = this.unfinished.has('stay') ? 'I wanted you to' : PHRASE_BY_ID.get('stay')!.text;
+      return `${stay}\n${PHRASE_BY_ID.get(answer)!.text}`;
+    }
     const shape = this.visitShape(this.left ? 'door' : how);
     // (Someone who stood still and never came to it: the stillness is what happened.)
     if (shape === 'apart' && this.memory.dominant() === 'stillness') return DEPARTURE_STILL;

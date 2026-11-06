@@ -37,7 +37,7 @@ import { Voices, type VoicePlacement, type Played } from './audio/Voices';
 import { openingScore, levelsAt, stageAt, ROOM_LEVELS, OPENING_WRITTEN, OPENING_SPOKEN, OPENING_UNFINISHED, type Score, type Levels, type Stage, type ScoreEvent } from './state/OpeningScore';
 import VOICE_TIMINGS from './content/voice-timings.json';
 import { Captions } from './ui/Captions';
-import { loadPrefs, savePrefs, readVisits, writeVisits, forgetVisits, readOpeningSeen, writeOpeningSeen, readMemoryCounts, writeMemoryCounts, readTrace, writeTrace, type Prefs } from './ui/prefs';
+import { loadPrefs, savePrefs, readVisits, writeVisits, forgetVisits, readOpeningSeen, writeOpeningSeen, readMemoryCounts, writeMemoryCounts, readTrace, writeTrace, readHeartAnswer, writeHeartAnswer, type Prefs } from './ui/prefs';
 import { SCENE_BY_PHRASE, SCENE_MEMORIES } from './content/memories';
 import { LocalInterpreter } from './interpret/LocalInterpreter';
 import type { Interpreter } from './interpret/Interpreter';
@@ -233,6 +233,8 @@ export class App {
       seed,
       visits: this.visits + 1,
       trace,
+      // What the last visit's heart left is found beside the first line again.
+      answer: this.visits > 0 ? readHeartAnswer() : null,
       memoryCounts: readMemoryCounts(),
       situations: forced,
       experiments: wanted,
@@ -1278,7 +1280,11 @@ export class App {
 
   /** One word for the next visit about how this one left the chair; nothing after a forget. */
   private keepTrace() {
-    if (!this.forgotten) writeTrace(this.director.leaving());
+    if (this.forgotten) return;
+    writeTrace(this.director.leaving());
+    // (A visit whose heart wasn't seen leaves the last one where it was.)
+    const answer = this.director.answerKept();
+    if (answer) writeHeartAnswer(answer);
   }
 
   private beginOpening() {
@@ -1644,7 +1650,7 @@ export class App {
         const c = this.chair.group.position;
         const near = cue.nearPoint && cue.surface === 'floor'
           ? { u: c.x + cue.nearPoint.x + ROOM.halfW, v: c.z + cue.nearPoint.z + ROOM.halfD }
-          : cue.surface && !cue.beside ? this.viewPointOn(cue.surface) : undefined;
+          : cue.surface && !cue.beside ? this.viewPointOn(cue.surface, cue.purpose === 'recall') : undefined;
         const size = this.touch && cue.size === 'xs' && cue.purpose === 'recall' ? 's' : cue.size;
         // A memory's line by the drawing it opens from; looking at the drawing is reading it too.
         if (cue.under && cue.source) this.text.drawingMeans(cue.under, cue.source);
@@ -1773,8 +1779,26 @@ export class App {
     return out;
   }
 
-  private viewPointOn(surface: Surface): { u: number; v: number } | undefined {
+  /**
+   * Where the view meets a surface. `level`: along the view's heading, not its pitch, and at a
+   * height a line can be read at: a line offered for a memory to someone looking down at the
+   * chair was written above the frame (interaction designer, 2026-11-06).
+   */
+  private viewPointOn(surface: Surface, level = false): { u: number; v: number } | undefined {
     const frame = this.room.frames[surface];
+    const wall = surface !== 'floor' && surface !== 'ceiling';
+    if (level && wall) {
+      const cam = this.rig.camera;
+      const dir = cam.getWorldDirection(new THREE.Vector3()).setY(0);
+      if (dir.lengthSq() > 1e-6) {
+        this.raycaster.set(new THREE.Vector3(cam.position.x, 1.35, cam.position.z), dir.normalize());
+        const hit = this.raycaster.intersectObject(frame.mesh, false)[0];
+        if (hit) {
+          const local = frame.group.worldToLocal(hit.point.clone());
+          return { u: local.x / this.room.scale + frame.size.w / 2, v: local.y + frame.size.h / 2 };
+        }
+      }
+    }
     this.raycaster.setFromCamera(new THREE.Vector2(0, 0), this.rig.camera);
     const hit = this.raycaster.intersectObject(frame.mesh, false)[0];
     if (!hit) return undefined;
@@ -2513,7 +2537,17 @@ export class App {
     this.departTimer = window.setTimeout(() => {
       dep.hidden = false;
       requestAnimationFrame(() => dep.classList.add('on'));
-      $('departure-line').textContent = line;
+      // The visit's sentence, when there is one: the room's first line, and under it, a moment later,
+      // what the visit's heart left beside it on the wall (docs/reviews/2026-11-emotional-arc.md).
+      const [first, answer] = line.split('\n');
+      const el = $('departure-line');
+      el.textContent = first;
+      if (answer) {
+        const span = document.createElement('span');
+        span.className = 'departure-answer';
+        span.textContent = answer;
+        el.append(' ', span);
+      }
       setTimeout(() => $('departure-line').classList.add('on'), 1500);
       setTimeout(() => {
         $('return').hidden = false;

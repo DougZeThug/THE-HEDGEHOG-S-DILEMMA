@@ -107,12 +107,31 @@ export function writeTrace(leaving: Leaving | null) {
   safeSet(TRACE, leaving ? JSON.stringify({ v: 1, leaving }) : null);
 }
 
+const HEART = 'hh.heart.v1';
+/**
+ * What the last visit's heart left beside the room's first line (a phrase id; docs/reviews/
+ * 2026-11-emotional-arc.md): one of the room's own lines, never anything the visitor did or wrote.
+ * The Director checks it is one it knows. Versioned; anything unexpected reads as nothing.
+ */
+export function readHeartAnswer(): string | null {
+  try {
+    const v = JSON.parse(safeGet(HEART) ?? 'null');
+    return v && v.v === 1 && typeof v.answer === 'string' && /^[a-z-]{1,40}$/.test(v.answer) ? v.answer : null;
+  } catch {
+    return null;
+  }
+}
+export function writeHeartAnswer(answer: string) {
+  safeSet(HEART, JSON.stringify({ v: 1, answer }));
+}
+
 /** Everything the room remembers about having been visited (preferences aside). */
 export function forgetVisits() {
   safeSet(VISITS, null);
   safeSet(MEMORY_COUNTS, null);
   safeSet('hh.opening-seen', null);
   safeSet(TRACE, null);
+  safeSet(HEART, null);
 }
 
 const OPENING_SEEN = 'hh.opening-seen';

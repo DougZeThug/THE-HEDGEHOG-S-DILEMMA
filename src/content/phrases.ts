@@ -114,6 +114,12 @@ export const PHRASES: Phrase[] = [
   p('didnt-know-how', "I didn't know how.", { shame: 0.5, uncertainty: 0.6, desire: 0.3, grief: 0.3 }, {
     surface: 'north', tier: 'annotation', hand: 'pencil',
   }),
+  // What Almost leaves, when the room has recoiled at the visitor and then shown them a hand taken
+  // back (docs/reviews/2026-11-emotional-arc.md): written beside "I wanted you to stay." (under "I
+  // didn't know how.", when that is there), and found there again on the next visit.
+  p('took-hand-back', 'I took my hand back.', { desire: 0.5, fear: 0.6, shame: 0.4, contradiction: 0.6 }, {
+    surface: 'north', tier: 'annotation', hand: 'pencil',
+  }),
   p('raining-anyway', 'It was raining anyway.', { relief: 0.4, nostalgia: 0.3, contradiction: 0.3, isolation: 0.2 }, {
     surface: 'south', tier: 'annotation', hand: 'faint',
   }),

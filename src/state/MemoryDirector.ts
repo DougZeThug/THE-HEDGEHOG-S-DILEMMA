@@ -1,4 +1,4 @@
-import { ALL_MEMORIES, MEMORY_BY_PHRASE, linesOf, type SceneMemory } from '../content/memories';
+import { ALL_MEMORIES, HEART_BY_SHAPE, HEART_EARLIEST, MEMORY_BY_PHRASE, linesOf, type SceneMemory } from '../content/memories';
 import { VIGNETTE_BY_ID, chooseVariant, spokenLines, type Echo, type VariantContext } from '../content/vignettes';
 import { chooseVoices, voicesId } from '../content/memory-voices';
 
@@ -115,6 +115,14 @@ export const POINT_APART = 120;
 export const POINTS_PER_VISIT = 3;
 /** …and never this soon after a vignette has ended. */
 export const POINT_AFTER_VIGNETTE = 60;
+/** The memories that can be a visit's heart. */
+const HEARTS: ReadonlySet<string> = new Set(Object.values(HEART_BY_SHAPE));
+/** A heart pointed at and let be this long no longer keeps the others back. */
+export const HEART_LAPSE = 120;
+/** A heart pointed at and not taken up is written again once, no sooner than this. */
+export const HEART_REINK = 30;
+/** The heart keeps this far from the last pointing, the last memory and the last vignette. */
+export const HEART_POINT_APART = 45;
 
 /** What the room points at: a line written alone where the visitor looks, or (`reink`) one already there, written again. */
 export type OfferPick = SceneMemory & { reink?: boolean };
@@ -141,6 +149,13 @@ export class MemoryDirector {
   private points = 0;
   private lastPointAt = -Infinity;
   private lastVignetteEnded = -Infinity;
+  /**
+   * This visit's heart (content/memories.ts HEART_BY_SHAPE): the painted memory that rhymes with
+   * how the visitor has been with the chair. Offered first and sooner, it needs no memory before it,
+   * and once it has played no other painted memory comes this visit.
+   */
+  heart: string | null = null;
+  private heartOfferedAt: number | null = null;
 
   private counts: Record<string, number>;
   /** `counts`: how many times each memory has been seen on earlier visits (persisted). */
@@ -148,6 +163,44 @@ export class MemoryDirector {
     // (Its own copy: the caller's record is never changed under it.)
     this.counts = { ...counts };
     for (const m of ALL_MEMORIES) this.tracks.set(m.id, { armed: false, away: 0, left: false, offered: false, requestedUntil: -Infinity, played: false, unseen: 0, notBefore: m.earliest, easyUntil: -Infinity, owed: false, reinked: false });
+  }
+
+  /**
+   * This visit's heart is chosen: it may come from `notBefore` (at the earliest `HEART_EARLIEST`),
+   * whatever came before. Until its line is pointed at, another may take its place.
+   */
+  setHeart(id: string, notBefore = HEART_EARLIEST): void {
+    const t = this.tracks.get(id);
+    if (!t || t.played || id === this.heart) return;
+    if (this.heart) {
+      const was = this.tracks.get(this.heart)!;
+      if (was.offered || was.played) return;
+      was.notBefore = Math.max(was.notBefore, ALL_MEMORIES.find((m) => m.id === this.heart)!.earliest);
+    }
+    this.heart = id;
+    t.notBefore = Math.max(HEART_EARLIEST, notBefore);
+  }
+
+  /** The heart is chosen, may come now, and its line hasn't been pointed at yet. */
+  heartDue(now: number): boolean {
+    if (!this.heart) return false;
+    const t = this.tracks.get(this.heart)!;
+    return !t.offered && !t.played && now >= Math.max(HEART_EARLIEST, t.notBefore);
+  }
+
+  /** The heart was pointed at long ago and let be: it no longer keeps anything back. */
+  heartLapsed(now: number): boolean {
+    return this.heartOfferedAt !== null && !this.heartPlayed && now - this.heartOfferedAt > HEART_LAPSE;
+  }
+
+  /** Has this visit's heart been begun (or is it playing)? */
+  get heartPlayed(): boolean {
+    return !!this.heart && this.tracks.get(this.heart)!.played;
+  }
+
+  /** The earliest it may come this visit (sooner for the heart). */
+  private earliestOf(m: SceneMemory): number {
+    return m.id === this.heart ? Math.min(m.earliest, HEART_EARLIEST) : m.earliest;
   }
 
   /** Forgotten (the visitor asked): what was heard on earlier visits, and this one, no longer counts. */
@@ -279,12 +332,33 @@ export class MemoryDirector {
      * one whose story rhymes with how the visitor has been with the chair. Ahead of the rest.
      */
     prefer?: readonly string[];
+    /**
+     * The room is quiet enough for the heart (its own life has been cleared for it): the heart
+     * asks a local quiet, not an empty minute (a visitor at the chair keeps the room answering).
+     */
+    heartFree?: boolean;
   }): OfferPick | null {
-    if (s.departing || this.active || !s.free || s.otherMemory) return null;
+    if (s.departing || this.active || s.otherMemory) return null;
     if (s.now < this.cooldownUntil || s.now - this.lastEnded < 0) return null;
+    // The heart's line pointed at and not taken up: written again, once, the next time they rest on
+    // that wall (half of them were never begun from a single pointing: interaction designer).
+    if (this.heart && s.heartFree) {
+      const t = this.tracks.get(this.heart)!;
+      const m = ALL_MEMORIES.find((x) => x.id === this.heart)!;
+      if (t.offered && !t.played && !t.reinked && this.heartOfferedAt !== null && s.now - this.heartOfferedAt >= HEART_REINK && !this.heartLapsed(s.now) && s.visibleFacing(m.phraseId)) {
+        t.reinked = true;
+        t.easyUntil = s.now + 20;
+        return { ...m, reink: true };
+      }
+    }
+    if (!s.free && !(this.heartDue(s.now) && s.heartFree)) return null;
     // Never pushing: at most one pointing every two minutes, three a visit, none just after a vignette.
     const pointed = this.points + (s.kitchenOffered ? 1 : 0);
-    if (pointed >= POINTS_PER_VISIT || s.now - Math.max(this.lastPointAt, s.kitchenOfferedAt ?? -Infinity) < POINT_APART || s.now - this.lastVignetteEnded < POINT_AFTER_VIGNETTE) return null;
+    const sincePoint = s.now - Math.max(this.lastPointAt, s.kitchenOfferedAt ?? -Infinity);
+    // (The heart keeps a shorter distance from the last pointing, and isn't counted out by the
+    // others: it is the one memory the visit is for.)
+    const heartOk = this.heartDue(s.now) && (s.free || !!s.heartFree) && sincePoint >= HEART_POINT_APART && s.now - this.lastVignetteEnded >= HEART_POINT_APART;
+    if (!heartOk && (pointed >= POINTS_PER_VISIT || sincePoint < POINT_APART || s.now - this.lastVignetteEnded < POINT_AFTER_VIGNETTE)) return null;
     const point = <T extends SceneMemory>(m: T, t: Track, reink: boolean): OfferPick => {
       // (A line with its own place, found there later, doesn't point at anything: it doesn't spend
       // one of the visit's three pointings, nor make the next wait. Docs/reviews/2026-11-core-loop.md.)
@@ -306,9 +380,14 @@ export class MemoryDirector {
       return i < 0 ? Infinity : i;
     };
     const order = [...ALL_MEMORIES].sort((a, b) => rank(a) - rank(b) || pref(a) - pref(b));
+    if (this.heart) order.unshift(...order.splice(order.findIndex((m) => m.id === this.heart), 1));
     for (const m of order) {
       const t = this.tracks.get(m.id)!;
-      if (t.played || s.now < m.earliest || this.arcEnded(m)) continue;
+      const heart = m.id === this.heart;
+      // (Only the heart while it is waiting to be pointed at: nothing else takes its slot.)
+      if (heartOk && !heart) continue;
+      if (!heartOk && !s.free) continue;
+      if (t.played || s.now < this.earliestOf(m) || (heart && !this.heartDue(s.now) && !t.offered) || this.arcEnded(m)) continue;
       // An owed vignette whose line is already where they look: written again there, once. The
       // line that was read, if it is there (most owed reads come through a second way in); else its own.
       const owedLine = t.line && t.line !== m.phraseId && s.visibleFacing(t.line) ? t.line : m.phraseId;
@@ -320,8 +399,9 @@ export class MemoryDirector {
       // own line written alone, which the visitor didn't read (it spent the painted memories' points
       // and seldom began: QA, 2026-10-27).
       if (owed(m) && t.line && t.line !== m.phraseId) continue;
-      if (!m.offer || t.offered || !m.offer.phases.includes(s.phase as never)) continue;
-      if (s.now - this.lastEnded < m.offer.apart) continue;
+      const free = heart;
+      if (!m.offer || t.offered || (!free && !m.offer.phases.includes(s.phase as never))) continue;
+      if (s.now - this.lastEnded < (free ? HEART_POINT_APART : m.offer.apart)) continue;
       if (!this.arcAllows(m, s.now, !!s.kitchenPlayed)) continue;
       if (m.kind === 'vignette') {
         // Offered only if it can play, keeps its distance, and the visit hasn't had two offers.
@@ -330,17 +410,19 @@ export class MemoryDirector {
         if (s.now - this.lastOfferAt < m.offer.apart) continue;
       }
       // The pale morning answers the dark: a few seconds after the held silence lifts.
-      if (m.offer.afterDark && !(s.darkEnded != null ? s.now >= s.darkEnded + 8 : s.now >= 200)) continue;
+      if (m.offer.afterDark && !heart && !(s.darkEnded != null ? s.now >= s.darkEnded + 8 : s.now >= 200)) continue;
       // Already where they are looking: written again there rather than a second time (not a new line).
       if (!m.offer.wall && s.visibleFacing(m.phraseId)) {
         t.offered = true;
+        if (heart) this.heartOfferedAt = s.now;
         t.reinked = true;
         return point(m, t, true);
       }
       // New lines written alone: two a visit at most, of any memory (one with its own place — the
       // door, written beneath the room's drawn door — is outside that: it is found there later).
-      if (!m.offer.wall && this.offersMade + (s.kitchenOffered ? 1 : 0) >= 2) continue;
+      if (!m.offer.wall && !heart && this.offersMade + (s.kitchenOffered ? 1 : 0) >= 2) continue;
       t.offered = true;
+      if (heart) this.heartOfferedAt = s.now;
       if (!m.offer.wall) this.offersMade++;
       this.lastOfferAt = s.now;
       return point(m, t, false);
@@ -459,13 +541,17 @@ export class MemoryDirector {
   comingSoon(now: number, kitchenPlayed = false): SceneMemory[] {
     return ALL_MEMORIES.filter((m) => {
       const t = this.tracks.get(m.id)!;
-      return m.kind !== 'vignette' && !t.played && !t.offered && now >= m.earliest - 60 && this.arcAllows(m, now, kitchenPlayed);
+      return m.kind !== 'vignette' && !t.played && !t.offered && now >= this.earliestOf(m) - 60 && this.arcAllows(m, now, kitchenPlayed);
     });
   }
 
   /** Its place in the arc: company first, absence only after something. */
   private arcAllows(m: SceneMemory, now: number, kitchenPlayed: boolean): boolean {
     if (this.arcEnded(m)) return false;
+    // The heart needs nothing before it.
+    if (m.id === this.heart) return true;
+    // The other hearts don't take its place while it waits (unless it was pointed at long ago and let be).
+    if (this.heart && HEARTS.has(m.id) && !this.heartPlayed && !this.heartLapsed(now)) return false;
     // (Another painted memory: a heard vignette doesn't change the visit's arc.)
     const another = kitchenPlayed || [...this.tracks.entries()].some(([id, t]) => id !== m.id && t.played && this.painted(id));
     if (m.arc === 'first') return !another && now <= (m.latest ?? Infinity);
@@ -475,7 +561,10 @@ export class MemoryDirector {
 
   /** A memory that ends the arc (`last`) has played: no other painted memory comes this visit. */
   private arcEnded(m: SceneMemory): boolean {
-    return m.kind !== 'vignette' && ALL_MEMORIES.some((x) => x.last && x.id !== m.id && this.tracks.get(x.id)!.played);
+    if (m.kind === 'vignette') return false;
+    // After the heart, the visit's painted arc is complete.
+    if (this.heart && m.id !== this.heart && this.tracks.get(this.heart)!.played) return true;
+    return ALL_MEMORIES.some((x) => x.last && x.id !== m.id && this.tracks.get(x.id)!.played);
   }
 
   /**
