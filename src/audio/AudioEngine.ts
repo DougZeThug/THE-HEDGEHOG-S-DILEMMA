@@ -146,23 +146,30 @@ export class AudioEngine {
     this.ramp(this.revLargeGain.gain, 0.5 * a + 0.05, 2);
   }
 
-  private duckDepth = 0;
-  private duckUntil = 0;
+  /** The silences under way (the deepest holds; each is returned to as deeper ones end). */
+  private silences: { depth: number; until: number; rise: number }[] = [];
 
   /**
    * A deliberate silence: ambience and music fall away, then return. A shallower silence
    * never lifts a deeper one already under way. `fall` is how quickly it falls (seconds).
+   * A deeper, shorter silence inside a longer one (a recoil inside a quiet) returns to the
+   * longer one's depth when it ends, and so on outward, before the room comes back.
    */
   silence(depth: number, seconds: number, fall = 1.4, rise = 3.5) {
     const t = this.ctx.currentTime;
-    if (t < this.duckUntil && depth < this.duckDepth) return;
-    this.duckDepth = depth;
-    this.duckUntil = t + seconds;
+    this.silences = this.silences.filter((s) => s.until > t);
+    if (this.silences.length && depth < Math.max(...this.silences.map((s) => s.depth))) return;
+    this.silences.push({ depth, until: t + seconds, rise });
     const p = this.duck.gain;
     p.cancelScheduledValues(t);
     p.setValueAtTime(p.value, t);
     p.setTargetAtTime(Math.max(0.03, 1 - depth), t, fall);
-    p.setTargetAtTime(1, t + seconds, rise);
+    const ends = [...new Set(this.silences.map((s) => s.until))].sort((a, b) => a - b);
+    for (const e of ends) {
+      const after = this.silences.filter((s) => s.until > e);
+      if (after.length) p.setTargetAtTime(Math.max(0.03, 1 - Math.max(...after.map((s) => s.depth))), e, Math.min(rise, 1.5));
+      else p.setTargetAtTime(1, e, this.silences.find((s) => s.until === e)!.rise);
+    }
   }
 
   /**
@@ -171,8 +178,7 @@ export class AudioEngine {
    */
   lift(seconds = 0.1) {
     const t = this.ctx.currentTime;
-    this.duckDepth = 0;
-    this.duckUntil = 0;
+    this.silences = [];
     const p = this.duck.gain;
     p.cancelScheduledValues(t);
     if (seconds >= 0.5) {

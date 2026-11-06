@@ -200,7 +200,11 @@ describe('after the afternoon (decision 118): two habits wait, a first approach 
       d.memoryEnded('woodland', true, true);
       d.withdrawMusic();
       drive(d, () => ({ x: 2.4, z: -2.0 }), 0, 5);
-      const cues = drive(d, (t) => ({ x: Math.max(0, 2.4 - t), z: Math.min(0.6, -2.0 + t) }), 0, 15);
+      // (Walking to it, facing it: walking backwards into it is not coming to it.)
+      const cues = drive(d, (t) => {
+        const x = Math.max(0, 2.4 - t), z = Math.min(0.6, -2.0 + t);
+        return { x, z, yaw: Math.atan2(x, z), gazeChair: true };
+      }, 0, 15);
       expect(cues.some((c) => c.rule === 'first-approach'), `seed ${seed}`).toBe(true);
     }
   });

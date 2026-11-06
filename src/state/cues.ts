@@ -83,7 +83,24 @@ export type Cue =
    * The room goes quiet. With `dim`, its light also goes back to the chair alone for the first
    * `dimSeconds` (the room's own light, the sky and the fixture down to `dim`), as at the start of the visit.
    */
-  | { type: 'silence'; depth: number; seconds: number; dim?: number; dimSeconds?: number }
+  | {
+      type: 'silence';
+      depth: number;
+      seconds: number;
+      dim?: number;
+      dimSeconds?: number;
+      /** How quickly the sound falls away (a time constant, seconds; 1.4 if absent). */
+      fall?: number;
+      /** How quickly it comes back at the end (a time constant, seconds). */
+      rise?: number;
+    }
+  /**
+   * The room recoils from someone coming back to the chair (docs/reviews/2026-11-core-loop.md): its
+   * sound taken away at once and given back soon, its own light pulled back toward the chair for a
+   * moment (the dim's grammar, small and fast), the chair's glow with it. With `chair`, only the
+   * chair's glow goes: the room stays as it is. `amount` 0–1.
+   */
+  | { type: 'flinch'; amount: number; chair?: boolean }
   /** A held silence ends early (the visitor moved away): the room's sound and light come back. */
   | { type: 'lift'; seconds: number }
   | { type: 'chairNudge'; dx: number; dz: number; dyaw: number }
@@ -114,7 +131,9 @@ export type Cue =
   /** A drawing drawn on the wall, stroke by stroke (src/content/drawings.ts). */
   | { type: 'draw'; id: string }
   /** Rub out a piece of writing except for one word. */
-  | { type: 'erode'; key: string; keep: string };
+  | { type: 'erode'; key: string; keep: string }
+  /** The visitor has left through the room itself (they stood at the door and it let them go). */
+  | { type: 'leave' };
 
 export interface TimedCue {
   t: number;
