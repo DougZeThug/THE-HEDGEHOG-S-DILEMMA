@@ -703,13 +703,17 @@ export class WallText {
       rect = this.layout.findBeside(target, m.w, m.h);
     }
     const wall = !!surface && surface !== 'floor' && surface !== 'ceiling';
-    if (!rect && surface && o.near && o.purpose === 'recall' && wall) {
+    if (!rect && surface && o.near && o.purpose === 'recall' && wall && o.key.startsWith('memory:')) {
       // A memory's line, offered where the visitor looks: at a height it can be read at, as near
       // their line of sight as the wall allows, or not at all (it is offered again elsewhere). The
-      // whole-wall scan put it by the skirting, out of frame on a phone (QA, 2026-11-06).
+      // whole-wall scan put it by the skirting, out of frame on a phone (QA, 2026-11-06). Close to
+      // where they look it may go into the space kept behind the chair, as an answer may: from the
+      // chair, facing the wall behind it, that is where they look, and the rest of the band is full.
       const size = surfaceSize(surface!);
+      const band = (spread: number, open: boolean) =>
+        this.layout.findIn(surface!, m.w, m.h, [Math.max(0, o.near!.u - spread - m.w / 2) / size.w, Math.min(size.w, o.near!.u + spread + m.w / 2) / size.w], [0.9, 1.85], 0.02, 160, open);
       for (const spread of [0.4, 0.9, 1.6, size.w]) {
-        rect = this.layout.findIn(surface!, m.w, m.h, [Math.max(0, o.near.u - spread - m.w / 2) / size.w, Math.min(size.w, o.near.u + spread + m.w / 2) / size.w], [0.9, 1.85], 0.03, 160);
+        rect = band(spread, false) ?? (spread <= 0.9 ? band(spread, true) : null);
         if (rect) break;
       }
       if (!rect) return false;

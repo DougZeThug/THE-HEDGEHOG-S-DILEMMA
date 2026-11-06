@@ -7,6 +7,7 @@ Evidence is in `docs/reviews/emotional-arc/`:
 - `arms-1.md` … `arms-4.md`: the arms compared, in order.
 - `approach-reviews.md`: the creative director, interaction designer and cinematic director on the proposal.
 - `after.md`: the result, before against after on the same visitors.
+- `evaluation.md`: QA with real input in the browser, and the creative director on the finished experience.
 
 ## How it was measured
 
@@ -55,21 +56,34 @@ All four reviews are in `emotional-arc/approach-reviews.md` (the skeptic's below
 8. **One peak.** After the heart, no other painted memory; the kitchen light waits while a heart waits and doesn't come after one. *Skeptic*, against the creative director's case for the light after Almost.
 9. **Not done:** the door as an epilogue at 360 s (cinematic; *skeptic*: feature growth, and the way out already ends the visit); writing the answer inside the held silence; the graphite sound under the card; preferring an unseen heart on a return.
 
+### After QA and the evaluation (`emotional-arc/evaluation.md`)
+
+10. **Where it can be touched.** QA found the offered line written near the skirting (the level point is in the space kept behind the chair, the rest of the eye band full) and a click on it from beside the chair kneeling instead. A memory's line is now placed only at eye height, near the line of sight, entering the space behind the chair if that is where they look; if nothing fits it is offered again later. A click on a line being looked at touches it.
+11. **A return isn't lost to the visit's turn.** In 4 of 4 real-input runs the first return to the chair got no recoil, because the visit had just turned (to "familiar", a turn that shows nothing). Only a turn that writes or dims now keeps the recoil back, and a turn waits (at most 30 s) while a return may be under way, so "I was afraid you'd leave." comes after the flinch, not over it. Simulated, 5-minute visits: a first return lost to a turn 22% → 12%; recoiled at, 3 minutes, 56% → 60%.
+12. **What Almost leaves is kept even when the visit ends first** (*creative director*: at 3 minutes a quarter saw Almost and 3–5% had the line written, so most short visits left nothing). Once Almost has been seen its line is kept for the next visit, written on the wall yet or not; the room has written it while they were away. Left for the next visit: 21% / 35% / 42% of 3/5/10-minute first visits.
+13. **The card ends on the answer only if it has been in view** (1.5 s; *creative director*: otherwise the card is the first reading, and explains). A line never seen is found on the next visit instead.
+14. **The north wall is left as the heart left it.** Once the answer is written nothing new is written, revealed or re-inked there for the rest of the visit (*creative director*, verified in one run; simulated, a median of 4 new north-wall lines after the answer in 10 minutes, now 0). The visitor's own words aside; the room chooses from the other walls.
+15. **Not taken: holding the room quiet from the recoil until the line** (*creative director*, speculative; asked if the median count of events between them was over 3: it is 4, in a median 33 s). The rhyme is carried by the line that names the flinch, not by nearness in time; a 30 s hold just after the visitor has come back leaves them unanswered at the moment they acted, and the skeptic cut the 45 s clearing as machinery. Left as a question for the artist.
+16. **Kept as decided:** the card is about this visit, not the wall (on a return the kept line is on the wall, and the card follows only this visit's own answer; *creative director*: otherwise every later card would be the couplet). The woodland and Things leave no line ("a quieter sentence", closed by the existing cards).
+
 ## Before → after (simulated, same visitors and seeds; `emotional-arc/after.md`)
 
 | | before | after |
 |---|---|---|
-| Any of Almost/Things/woodland, 3 / 5 / 10 min | 0% / 2% / 10% | **33% / 54% / 63%** |
-| By class at 3 min (reader, chair, explorer, still, phone, mixed) | all 0% | 25%, 25%, 39%, 22%, 47%, 47% |
-| Almost after the room recoiled at them (10 min) | 7% | **50%**, a median 51 s after the recoil |
-| Painted memories a visit (10 min) | 1.0 | 1.1 |
-| Kitchen light (10 min) | 48% | 17% (the heart takes its place) |
-| Largest share of one ending (10 min) | 62% | **37%** |
-| "I took my hand back." on the wall at the end (5 / 10 min) | — | 29% / 37% |
-| Developments a minute, voices, overlaps (10 min) | 7.0, 10, 0.1 | 6.8, 10, 0.2 |
-| 30 s windows an active visitor got nothing, outside memories | 17–19% | 17–18% |
-| Held silence, 3 / 10 min | 72% / 98% | 62% / 98% (at 3 minutes the heart takes its place) |
-| Second visits finding the last answer | — | 16 of 16 that had one |
+| Any of Almost/Things/woodland, 3 / 5 / 10 min | 0% / 3% / 9% | **35% / 54% / 63%** |
+| By class at 3 min (reader, chair, explorer, still, phone, mixed) | all 0% | 25%, 22%, 44%, 22%, 56%, 53% |
+| Almost after the room recoiled at them (10 min) | 7% | **52%**, a median 48 s after the recoil |
+| Painted memories a visit (10 min) | 1.1 | 1.1 |
+| Kitchen light (10 min) | 49% | 19% (the heart takes its place) |
+| Largest share of one ending (10 min) | 61% | **35%** |
+| "I took my hand back." on the wall at the end (3 / 5 / 10 min) | — | 5% / 32% / 40% |
+| …and in view, so the card ends on it | — | 2% / 28% / 38% |
+| Left for the next visit (Almost seen) | — | 21% / 35% / 42% |
+| New lines on the north wall after the answer (10 min, mean) | — | 0 |
+| Developments a minute, voices, overlaps (10 min) | 7.0, 10, 0.1 | 6.7, 10, 0.1 |
+| 30 s windows an active visitor got nothing, outside memories | 16–18% | 16–18% |
+| Held silence, 3 / 10 min | 75% / 98% | 62% / 98% (at 3 minutes the heart takes its place) |
+| Second visits finding the last answer | — | 18 of 18 that had one |
 | The core-loop measures (answers to meeting, returning, touching, coming, kneeling, withdrawing) | | unchanged within noise (`scripts/experiment.ts`, 688 visits) |
 
 ## What still needs a person
@@ -78,6 +92,8 @@ All four reviews are in `emotional-arc/approach-reviews.md` (the skeptic's below
 - **Whether "I took my hand back." deepens Almost or captions it**, and how the three lines read together under "I wanted you to stay.". The artist's words to judge.
 - **Whether the recoil reads as the room flinching or as a fault** (still open from the core-loop round); everything here depends on it.
 - **Whether the offered line is noticed** at the edge of attention, on a real phone in portrait, by someone at the chair.
+- **How quiet the room should be between the flinch and the film** (decision 15): a median of four other events in about half a minute. Whether the visitor still holds the flinch when the hand is taken back is for people to say.
+- **Whether a line found on the next visit, never seen being left, reads as the room's or as a trick** (decision 12). On a phone, from the starting position, the kept line can't be read until they come nearer.
 - **Whether the card's second line lands or explains.**
 - **Reach is an upper bound.** A third lower without the simulated turn toward new writing; phones unmeasured.
 - **Whether a returning visitor recognises the line as left from before.**

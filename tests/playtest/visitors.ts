@@ -649,6 +649,11 @@ export interface VisitSummary {
     answer: string | null;
     answerAt: number | null;
     answerMet: number | null;
+    /** The answer, once it has been in view (the card ends on it); what the next visit finds. */
+    answerRead: string | null;
+    left: string | null;
+    /** Lines written, revealed or re-inked on the north wall after the answer (the wall is kept). */
+    northAfter: number;
     kept: boolean;
     keptMet: number | null;
     /** When the room first recoiled at them; when the heart's line was pointed at. */
@@ -731,6 +736,7 @@ export function liveVisit(g: Genome, seed: number, o: VisitOptions = {}): VisitS
   let imposedQuiet = 0, ebbs = 0;
   let leftInRoom: number | null = null;
   let answerMet: number | null = null;
+  let northAfter = 0;
   let keptMet: number | null = null;
   const memorySpans: [number, number][] = [];
   let t = 0;
@@ -809,6 +815,10 @@ export function liveVisit(g: Genome, seed: number, o: VisitOptions = {}): VisitS
 
     for (const c of cues) {
       const cue = c.cue;
+      if (d.heartAnswer && c.rule !== 'contribution') {
+        const north = (x?: string) => !!x && PHRASE_BY_ID.get(x)?.surface === 'north';
+        if (((cue.type === 'reveal' || cue.type === 'redraw') && north(cue.phraseId)) || (cue.type === 'write' && !cue.key.startsWith('heart:') && (cue.surface === 'north' || north(cue.beside)))) northAfter++;
+      }
       const id = cue.type === 'write' ? cue.source ?? cue.key : cue.type === 'reveal' || cue.type === 'redraw' ? cue.phraseId : null;
       if (id && PHRASE_BY_ID.has(id)) {
         const surface = cue.type === 'write' ? cue.surface ?? (cue.beside ? writtenOn.get(cue.beside) ?? PHRASE_BY_ID.get(cue.beside)?.surface : undefined) ?? PHRASE_BY_ID.get(id)!.surface : cue.type === 'redraw' ? writtenOn.get(id) ?? PHRASE_BY_ID.get(id)!.surface : PHRASE_BY_ID.get(id)!.surface;
@@ -981,6 +991,9 @@ export function liveVisit(g: Genome, seed: number, o: VisitOptions = {}): VisitS
       answer: d.answerKept(),
       answerAt: devs.find((x) => x.rule === 'heart-answer')?.t ?? null,
       answerMet,
+      answerRead: d.answerRead(),
+      left: d.heartLeft(),
+      northAfter,
       kept: devs.some((x) => x.rule === 'heart-kept'),
       recoiledAt: devs.find((x) => x.rule === 'return-recoil')?.t ?? null,
       heartOfferedAt: d.scenes.heart ? devs.find((x) => x.rule === 'memory-offer' && x.phrase === SCENE_MEMORIES.find((m) => m.id === d.scenes.heart)?.phraseId)?.t ?? null : null,

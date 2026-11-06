@@ -63,7 +63,7 @@ for (const arm of ARMS) {
       for (let i = 0; i < RETURNS; i++) {
         const g = genomes[(i * 7) % genomes.length];
         const first = rows.find((r) => r.genome === g.id && r.seed === 1)!;
-        rows.push(liveVisit(g, 1000 + i, { ...opt, past: { visits: 2, memoryCounts: first.memoryCounts, trace: first.leaving === 'close' ? 'close' : null, answer: first.reach.answer } }));
+        rows.push(liveVisit(g, 1000 + i, { ...opt, past: { visits: 2, memoryCounts: first.memoryCounts, trace: first.leaving === 'close' ? 'close' : null, answer: first.reach.left } }));
       }
     }
     runs[arm.name][seconds] = rows;
@@ -97,8 +97,8 @@ for (const [name, h] of Object.entries(runs)) for (const [sec, rows] of Object.e
 }
 
 console.log('\n## The heart: chosen, seen, what it left, whether they came back to it (first visits)\n');
-console.log('| arm | length | heart chosen | heart seen | which (seen) | recoiled at | Almost, of those recoiled at | recoil → Almost (median s) | pointed at, never begun | answer written | answer looked at (of written) | within (median s) |');
-console.log('|---|---|---|---|---|---|---|---|---|---|---|---|');
+console.log('| arm | length | heart chosen | heart seen | which (seen) | recoiled at | Almost, of those recoiled at | recoil → Almost (median s) | pointed at, never begun | answer written | answer in view (card ends on it) | left for the next visit | north-wall lines after the answer (mean) |');
+console.log('|---|---|---|---|---|---|---|---|---|---|---|---|---|');
 for (const [name, h] of Object.entries(runs)) for (const [sec, rows] of Object.entries(h)) {
   const r = firsts(rows);
   const chosen = r.filter((x) => x.reach.heart);
@@ -111,8 +111,11 @@ for (const [name, h] of Object.entries(runs)) for (const [sec, rows] of Object.e
   const pointed = r.filter((x) => x.reach.heartOfferedAt !== null);
   const never = pointed.filter((x) => !x.reach.memories.includes(x.reach.heart!));
   const written = r.filter((x) => x.reach.answerAt !== null);
-  const met = written.filter((x) => x.reach.answerMet !== null);
-  console.log(`| ${name} | ${sec} s | ${pct(chosen.length, r.length)} | ${pct(seen.length, r.length)} | ${JSON.stringify(which)} | ${pct(recoiled.length, r.length)} | ${pct(almost.length, recoiled.length)} | ${f0(median(lag))} | ${pct(never.length, pointed.length)} | ${pct(written.length, r.length)} | ${pct(met.length, written.length)} | ${f0(median(met.map((x) => x.reach.answerMet! - x.reach.answerAt!)))} |`);
+  // (In view: the Director's own measure, the answer's wall faced in the simulation, a frustum test
+  // in the browser. The simulated visitors can't perceive a later annotation, so "looked at" is not measured.)
+  const read = written.filter((x) => x.reach.answerRead !== null);
+  const left = r.filter((x) => x.reach.left !== null);
+  console.log(`| ${name} | ${sec} s | ${pct(chosen.length, r.length)} | ${pct(seen.length, r.length)} | ${JSON.stringify(which)} | ${pct(recoiled.length, r.length)} | ${pct(almost.length, recoiled.length)} | ${f0(median(lag))} | ${pct(never.length, pointed.length)} | ${pct(written.length, r.length)} | ${pct(read.length, r.length)} | ${pct(left.length, r.length)} | ${f1(mean(written.map((x) => x.reach.northAfter)))} |`);
 }
 
 console.log('\n## Restraint (first visits; medians unless said)\n');
@@ -142,7 +145,7 @@ for (const [name, h] of Object.entries(runs)) {
   let diff = 0, same = 0, hadAnswer = 0;
   for (const s of sec) {
     const first = rows.find((r) => r.visit === 1 && r.genome === s.genome && r.seed === 1)!;
-    if (first.reach.answer) hadAnswer++;
+    if (first.reach.left) hadAnswer++;
     const now = s.reach.heart && s.reach.memories.includes(s.reach.heart) ? s.reach.heart : null;
     const then = first.reach.heart && first.reach.memories.includes(first.reach.heart) ? first.reach.heart : null;
     if (now && then && now !== then) diff++;

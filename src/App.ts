@@ -1289,8 +1289,9 @@ export class App {
   private keepTrace() {
     if (this.forgotten) return;
     writeTrace(this.director.leaving());
-    // (A visit whose heart wasn't seen leaves the last one where it was.)
-    const answer = this.director.answerKept();
+    // What the heart left, written on the wall yet or not; a visit whose heart wasn't seen leaves
+    // the last one where it was.
+    const answer = this.director.heartLeft();
     if (answer) writeHeartAnswer(answer);
   }
 

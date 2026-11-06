@@ -245,6 +245,8 @@ export class Director {
   /** When the held silence could first have come (it may wait a little for the chair). */
   private heldDueAt: number | null = null;
   private pendingPhase: Phase | null = null;
+  /** When the pending turn first could have come (it waits for a return at most 30 s). */
+  private pendingPhaseAt = -Infinity;
   /** A few seconds after a living memory ends, before the room turns a phase. */
   private scenesQuietAt = -Infinity;
   private attentionVoices = 0;
@@ -313,7 +315,7 @@ export class Director {
     this.legacy = !!opts.legacyOpening;
     for (const p of PHRASES) if (this.legacy ? p.tier === 'arrival' || p.tier === 'near' : p.tier === 'near' && p.surface === 'floor') this.visible.set(p.id, { mode: 'shown', since: 0, base: true });
     this.geometry = opts.geometry ?? (() => undefined);
-    this.inView = opts.inView ?? ((id) => PHRASE_BY_ID.get(id)?.surface === this.facing);
+    this.inView = opts.inView ?? ((id) => PHRASE_BY_ID.get(id.replace(/^heart:/, ''))?.surface === this.facing);
     this.situations = new SituationRunner(Director.repertoire(this.visits, opts.situations, opts.seed));
     this.owned = this.situations.owned();
     this.host = this.makeHost();
@@ -546,10 +548,15 @@ export class Director {
       for (const m of formed) this.onMotif(m);
       // The turn into a new phase waits for a living memory to end (it would black out the room
       // in the middle of it), and a few seconds more.
-      if (phaseChanged) this.pendingPhase = phaseChanged;
+      if (phaseChanged) {
+        if (!this.pendingPhase) this.pendingPhaseAt = this.now;
+        this.pendingPhase = phaseChanged;
+      }
       // (A phase turns after a memory's aftermath, never inside it, nor while the visitor stays
-      // with the kitchen-light line: the room waits with them.)
-      if (this.pendingPhase && !this.scenes.active && this.now >= this.scenesQuietAt && !this.aftermath() && !this.memoryAwaited() && !this.letGo && this.now - this.letGoAsked > Director.LET_GO.window) {
+      // with the kitchen-light line: the room waits with them. Nor while they may be coming back
+      // to the chair: the recoil is theirs, and the turn's line comes after it, not over it.)
+      const returnWaits = this.returnInReach() && this.now - this.pendingPhaseAt < 30;
+      if (this.pendingPhase && !returnWaits && !this.scenes.active && this.now >= this.scenesQuietAt && !this.aftermath() && !this.memoryAwaited() && !this.letGo && this.now - this.letGoAsked > Director.LET_GO.window) {
         this.onPhase(this.pendingPhase);
         this.pendingPhase = null;
       }
@@ -560,6 +567,8 @@ export class Director {
       this.ruleScenes();
       this.ruleHeartAnswer();
       this.ruleKeptAnswer();
+      // (The answer has been read: the card may end on it.)
+      if (this.heartAnswer && this.inView(`heart:${this.heartAnswer}`)) this.answerInView += dt;
       this.ruleEchoes();
       this.ruleAccumulate();
       this.ruleDrawings();
@@ -686,6 +695,10 @@ export class Director {
     }
     if (this.scenes.active && ((cue.type === 'voice' && (!cue.finish || this.vignettePlaying)) || cue.type === 'sound' || cue.type === 'music')) return false;
     if (cue.type === 'reveal' && this.withheld().includes(cue.phraseId)) return false;
+    // Once the heart's answer is written, the north wall is left as the heart left it: nothing new
+    // is written, revealed or re-inked there for the rest of the visit (the visitor's own words
+    // aside). One peak, and its last word (creative director, 2026-11-06).
+    if (this.northKept() && this.onNorth(cue) && rule !== 'contribution') return false;
     // (Nor is a line kept back written again in its own place: decision 137, QA 2026-10-20.)
     if (cue.type === 'redraw' && this.keptBack.has(cue.phraseId)) return false;
     // A situation's own sounds wait out a memory's aftermath (those answering the visitor don't).
@@ -780,6 +793,8 @@ export class Director {
 
   private hiddenExcluding(): Set<string> {
     const out = new Set([...this.visible.keys(), ...Director.RESERVED, ...this.withheld()]);
+    // (Nothing new on the north wall after the heart's answer: the room chooses from the others.)
+    if (this.northKept()) for (const id of Director.NORTH) out.add(id);
     if (!this.memoryOffered) out.add(Director.MEMORY.phraseId);
     for (const m of SCENE_MEMORIES) if (this.heldForOffer(m.phraseId)) out.add(m.phraseId);
     return out;
@@ -977,11 +992,13 @@ export class Director {
     if (this.recoils >= Director.RECOIL.length) return;
     // Not inside a memory, a held silence or a memory's aftermath; not through words just rubbed out.
     if (this.scenes.active || this.aftermath() || this.now < this.heldSilenceUntil || this.now - this.airAt < 60) return;
-    // (Nor on a turn of the visit, whose own dim it would cut short.)
-    if (this.now - this.lastTurnAt < 16 || this.scheduler.pending().some((e) => e.payload.rule.startsWith('phase-'))) return;
+    // (Nor on a turn of the visit that writes or dims, which it would cut short. A turn that does
+    // neither is not one a visitor can see: QA, 2026-11-06, found the first return lost to it.)
+    if (this.now - this.markedTurnAt < 16 || this.scheduler.pending().some((e) => e.payload.rule.startsWith('phase-'))) return;
     const r = Director.RECOIL[this.recoils++];
     this.queue(0, { type: 'flinch', amount: r.amount, chair: r.chair }, 'return-recoil', { ttl: 0.5 });
     if (this.recoiledAt === null) this.recoiledAt = this.now;
+    this.lastRecoilAt = this.now;
     this.field.nudge({ exposure: 0.2 * r.amount, tension: 0.1 * r.amount });
     // Then nothing written or said over it for a moment: a subtraction, left alone.
     this.pacing.holdFor(this.now, 7);
@@ -992,6 +1009,28 @@ export class Director {
   private recoils = 0;
   /** When the room first recoiled at them (the visit's heart may answer it). */
   private recoiledAt: number | null = null;
+  private lastRecoilAt = -Infinity;
+
+  /**
+   * A return to the chair that may be under way: they stayed with it and left it a moment ago, they
+   * are coming back to it now, or the room has just recoiled at them. The visit's turn waits for it
+   * (a few seconds of the room's own clock), so the return isn't lost to the turn: QA, 2026-11-06,
+   * found the first return lost to it in 4 of 4 real-input runs, and the recoil now decides whether
+   * the visit's heart is Almost. ("I was afraid you'd leave." then comes after the flinch.)
+   */
+  private returnInReach(): boolean {
+    if (this.now - this.lastRecoilAt < 9) return true;
+    if (this.recoils >= Director.RECOIL.length) return false;
+    const v = this.visitor;
+    const a = v.lastApproach;
+    if (!a) return false;
+    const c = v.comings;
+    // Coming in now (in reach of the chair, not yet answered): the coming before it is what they left.
+    const coming = a.leftAt === null && (a.confirmed ? a.arrivedAt! > this.returnSeenAt : this.now - a.enteredAt < 6);
+    const left = coming ? c.filter((x) => x !== a).pop() : c[c.length - 1];
+    if (!left || left.leftAt === null || left.dwell < 6) return false;
+    return coming ? a.enteredAt - left.leftAt >= 4 : this.now - left.leftAt < 12;
+  }
   private airAt = -Infinity;
 
   /**
@@ -1618,6 +1657,38 @@ export class Director {
     return this.heartAnswer;
   }
 
+  /**
+   * The answer, once the visitor has had it in view (1.5 s): only then does the card end on it. A
+   * line they never saw is not explained to them on the way out; the next visit finds it instead.
+   * (Creative director, 2026-11-06.)
+   */
+  answerRead(): string | null {
+    return this.heartAnswer && this.answerInView >= 1.5 ? this.heartAnswer : null;
+  }
+  private answerInView = 0;
+
+  /**
+   * What this visit leaves for the next: the heart's answer once its memory has been seen, written
+   * on the wall yet or not (a short visit often ends in the memory's quiet). The room writes it
+   * while they are away, and the next visit finds it beside the first line.
+   */
+  heartLeft(): string | null {
+    if (!this.hearts() || !this.heartSeen) return null;
+    return HEART_ANSWER[this.heartSeen] ?? null;
+  }
+
+  /** The north wall is left as the visit's heart left it (its answer is written). */
+  private northKept(): boolean {
+    return this.heartAnswer !== null && this.hearts();
+  }
+  private onNorth(cue: Cue): boolean {
+    const north = (id?: string) => !!id && PHRASE_BY_ID.get(id)?.surface === 'north';
+    if (cue.type === 'reveal' || cue.type === 'redraw') return north(cue.phraseId);
+    if (cue.type !== 'write' || cue.key.startsWith('heart:')) return false;
+    return cue.surface === 'north' || north(cue.beside);
+  }
+  private static readonly NORTH = PHRASES.filter((p) => p.surface === 'north').map((p) => p.id);
+
   /** Whether this visit has a heart at all (`noHeart`: the room before it, for comparison). */
   private hearts(): boolean {
     return !this.exp.has('noHeart');
@@ -2139,6 +2210,7 @@ export class Director {
 
   private onPhase(p: Phase) {
     this.lastTurnAt = this.now;
+    if (p === 'contradiction' || p === 'transform') this.markedTurnAt = this.now;
     if (p === 'contradiction') {
       // The contradiction phase brings the fear of being left onto the wall; what it means is left to later meetings.
       if (!this.visible.has('afraid-leave')) this.reveal('afraid-leave', 0, 'phase-contradiction', 'emerge', 6);
@@ -2324,6 +2396,8 @@ export class Director {
   private lastStayVoiceAt = -Infinity;
   private letGoCreaked = false;
   private lastTurnAt = -Infinity;
+  /** The last turn the visitor can see (it writes, or holds a silence and dims). */
+  private markedTurnAt = -Infinity;
   /**
    * The way out's numbers: how long the room waits for them to go (s); how far on toward the wall
    * is going (m) and how near the wall that ends; a turn (rad) or a step any other way (m) that
@@ -2473,7 +2547,7 @@ export class Director {
 
   departureLine(how: 'door' | 'menu' = 'menu'): string {
     // The visit's sentence: the room's first line as the visit left it, and what its heart answered.
-    const answer = this.answerKept();
+    const answer = this.answerRead();
     if (answer && this.hearts()) {
       const stay = this.unfinished.has('stay') ? 'I wanted you to' : PHRASE_BY_ID.get('stay')!.text;
       return `${stay}\n${PHRASE_BY_ID.get(answer)!.text}`;

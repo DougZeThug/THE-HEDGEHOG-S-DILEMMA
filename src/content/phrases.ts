@@ -115,8 +115,9 @@ export const PHRASES: Phrase[] = [
     surface: 'north', tier: 'annotation', hand: 'pencil',
   }),
   // What Almost leaves, when the room has recoiled at the visitor and then shown them a hand taken
-  // back (docs/reviews/2026-11-emotional-arc.md): written beside "I wanted you to stay." (under "I
-  // didn't know how.", when that is there), and found there again on the next visit.
+  // back (docs/reviews/2026-11-emotional-arc.md): written beside "I wanted you to stay." (wherever
+  // there is room beside it; "I didn't know how." fades, this stays), and found there again on the
+  // next visit.
   p('took-hand-back', 'I took my hand back.', { desire: 0.5, fear: 0.6, shame: 0.4, contradiction: 0.6 }, {
     surface: 'north', tier: 'annotation', hand: 'pencil',
   }),

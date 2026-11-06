@@ -121,21 +121,40 @@ describe('the heart, through whole visits', () => {
     }
   });
 
-  it('the card is the visit\'s sentence only when the wall has the answer', () => {
+  it('the card is the visit\'s sentence only when the answer is on the wall and has been in view', () => {
     let couplets = 0;
     for (const r of runs) {
-      if (r.reach.answer) {
+      if (r.reach.answerRead) {
         couplets++;
+        expect(r.reach.answer).toBe(r.reach.answerRead);
         expect(r.departure).toMatch(/^I wanted you to( stay\.)?\nI took my hand back\.$/);
       } else expect(r.departure).not.toContain('\n');
     }
     expect(couplets).toBeGreaterThan(0);
   });
 
+  it('once Almost has been seen, its answer is left for the next visit, written yet or not', { timeout: 60_000 }, () => {
+    for (const r of runs) {
+      if (r.reach.answer) expect(r.reach.left).toBe(r.reach.answer);
+      if (r.reach.left) expect(r.reach.memories).toContain('almost');
+      if (r.reach.heart !== 'almost' || !r.reach.memories.includes('almost')) expect(r.reach.left).toBeNull();
+    }
+    // A short visit that ends in the memory's quiet leaves it too.
+    const short = genomes.map((g) => liveVisit(g, 1, { seconds: 200 })).filter((r) => r.reach.left && !r.reach.answer);
+    expect(short.length).toBeGreaterThan(0);
+    for (const r of short) expect(r.reach.left).toBe('took-hand-back');
+  });
+
+  it('after the answer, nothing new is written on the north wall', () => {
+    const answered = runs.filter((r) => r.reach.answer);
+    expect(answered.length).toBeGreaterThan(0);
+    for (const r of answered) expect(r.reach.northAfter, r.genome).toBe(0);
+  });
+
   it('a returning visitor finds the last answer beside the first line', { timeout: 60_000 }, () => {
     const r = runs.find((x) => x.reach.answer)!;
     const g = genomes.find((x) => x.id === r.genome)!;
-    const back = liveVisit(g, 7, { seconds: 120, past: { visits: 2, memoryCounts: r.memoryCounts, trace: null, answer: r.reach.answer } });
+    const back = liveVisit(g, 7, { seconds: 120, past: { visits: 2, memoryCounts: r.memoryCounts, trace: null, answer: r.reach.left } });
     expect(back.reach.kept).toBe(true);
     // And not on a first visit, nor from an id that isn't one of the room's answers.
     expect(runs.every((x) => !x.reach.kept)).toBe(true);

@@ -26,11 +26,12 @@ Each visit has one painted memory reachable from early on, its *heart*, chosen f
 
 | What happened | Heart | Leaves |
 |---|---|---|
-| the room recoiled at them (`Director.answerReturn`) | Almost, pointed at ≥17 s after the recoil | "I took my hand back." beside "I wanted you to stay.", the departure card, and the next visit |
+| the room recoiled at them (`Director.answerReturn`) | Almost, pointed at ≥17 s after the recoil | "I took my hand back." beside "I wanted you to stay." (then nothing new on the north wall that visit), the departure card if the line has been in view, and the next visit (once Almost is seen, written yet or not) |
 | no recoil; from 150 s, a stay of 45 s or kneeling 8 s | the woodland | its own coda ("we had all afternoon") |
 | no recoil; from 150 s, came and went and stayed away 50 s | Things I Should Have Said | nothing more |
 
-- The heart may be pointed at from 75 s (`HEART_EARLIEST`), in any phase, with no memory before it, 45 s from the last pointing, into a local quiet (4 s with nothing new and no voice) while the visitor looks level at a wall. Its line is placed by a level ray at eye height (`App.viewPointOn(surface, level)`), not where the view's centre meets the wall.
+- The heart may be pointed at from 75 s (`HEART_EARLIEST`), in any phase, with no memory before it, 45 s from the last pointing, into a local quiet (4 s with nothing new and no voice) while the visitor looks level at a wall. Its line is placed by a level ray at eye height (`App.viewPointOn(surface, level)`), not where the view's centre meets the wall, and only at 0.9–1.85 m, as near that point as the wall allows (into the space behind the chair if that is where they look); with no room it is not spent but offered again, not on that wall for a minute (`WallText.write`, `Director.writeFailed`).
+- A turn of the visit waits while a return to the chair may be under way (at most 30 s), and only a turn that writes or dims keeps the recoil back (`Director.returnInReach`, `markedTurnAt`): the recoil decides the heart, and QA found early returns lost to a turn that showed nothing.
 - Until its line is pointed at it may change (a recoil makes it Almost). Pointed at and let be, it is written again once (`HEART_REINK`, 30 s) and lapses after `HEART_LAPSE` (120 s); then the others may come.
 - While it waits, the other hearts and the kitchen light wait. Once it has played, no other painted memory comes that visit (`arcEnded`).
 - The decisions, the alternatives measured and discarded, and what still needs a person: `docs/reviews/2026-11-emotional-arc.md`. Battery: `npx vite-node scripts/arc.ts` (`ARMS='before=noHeart;after'`).
