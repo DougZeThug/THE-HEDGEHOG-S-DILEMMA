@@ -319,7 +319,7 @@ export const PHRASES: Phrase[] = [
   }),
   // Beside the drawn door, at eye height: the room's way out (docs/reviews/2026-11-core-loop.md).
   p('party-early', 'I left the party early and walked home and it was lovely.', { relief: 0.7, happiness: 0.5, isolation: 0.4, contradiction: 0.3 }, {
-    surface: 'south', tier: 'familiar', hand: 'pen', at: [0.775, 1.5], echoes: ['alone-ok'], keywords: ['party', 'walked', 'home', 'early'],
+    surface: 'south', tier: 'familiar', hand: 'pen', at: [0.165, 1.42], echoes: ['alone-ok'], keywords: ['party', 'walked', 'home', 'early'],
   }),
   p('diagonal', 'I had the whole bed. I slept diagonally.', { relief: 0.6, isolation: 0.5, happiness: 0.4, grief: 0.2 }, {
     surface: 'west', tier: 'contradiction', hand: 'pencil', keywords: ['bed', 'slept', 'sleep'],

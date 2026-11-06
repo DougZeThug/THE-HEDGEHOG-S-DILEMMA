@@ -127,8 +127,6 @@ export class VisitorModel {
   private initialised = false;
   /** The last second of where they were (which way they were going as they came near the chair). */
   private trail: { t: number; jump: boolean; x: number; z: number }[] = [];
-  /** Passing by is not approaching: passes don't make hesitations or withdrawals (an experiment, set by the Director). */
-  distinguishPasses = false;
   private stopRun = 0;
 
   update(dt: number, inp: VisitorInput): void {
@@ -201,16 +199,18 @@ export class VisitorModel {
           rec.dwell = this.t - rec.enteredAt;
         }
         if (rec && !rec.confirmed) rec.pass = true;
-        this.armedWithdraw = !(this.distinguishPasses && rec?.pass);
+        // (Passing by is not coming near: it makes no withdrawal, and no hesitation.)
+        this.armedWithdraw = !rec?.pass;
       }
       if (this.near) {
         this.totalNear += dt;
         const rec = this.approaches[this.approaches.length - 1];
         if (rec) {
           rec.dwell = this.t - rec.enteredAt;
-          // Arrived: stopped by it half a second, or come right up to it.
+          // Arrived: stopped by it half a second, or come right up to it, or come straight at it and
+          // straight back out again (the hesitation itself: not walking past it).
           this.stopRun = this.speed < 0.15 ? this.stopRun + dt : 0;
-          if (!rec.confirmed && !rec.pass && (this.stopRun >= 0.5 || this.distance <= 0.6)) {
+          if (!rec.confirmed && !rec.pass && (this.stopRun >= 0.5 || this.distance <= 0.6 || this.heading(inp.x, inp.z, -1, 45))) {
             rec.confirmed = true;
             rec.arrivedAt = this.t;
           }
@@ -289,16 +289,19 @@ export class VisitorModel {
     this.gazeChair = inp.gazeChair;
   }
 
-  /** Moving toward the chair: the last half-second's travel within 25° of the way to it (or not moving: no evidence against). */
-  private heading(x: number, z: number): boolean {
+  /**
+   * Moving toward the chair (`sign` 1) or straight away from it (−1): the last half-second's travel
+   * within `within`° of that way. Not moving: no evidence against going toward it, none for going away.
+   */
+  private heading(x: number, z: number, sign: 1 | -1 = 1, within = 25): boolean {
     const back = this.trail.filter((p) => this.t - p.t <= 0.6);
     const from = back[0];
-    if (!from) return true;
+    if (!from) return sign === 1;
     const mx = x - from.x, mz = z - from.z;
     const m = Math.hypot(mx, mz);
-    if (m < 0.05) return true;
-    const bx = -x, bz = -z, b = Math.hypot(bx, bz) || 1;
-    return (mx * bx + mz * bz) / (m * b) > Math.cos((25 * Math.PI) / 180);
+    if (m < 0.05) return sign === 1;
+    const bx = -x * sign, bz = -z * sign, b = Math.hypot(bx, bz) || 1;
+    return (mx * bx + mz * bz) / (m * b) > Math.cos((within * Math.PI) / 180);
   }
 
   /** The approach in progress, or the last one. */

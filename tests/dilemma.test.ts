@@ -44,7 +44,6 @@ describe('coming to the chair, or only passing it', () => {
 
   it('walking past the chair is not coming to it: no withdrawal, no hesitation', () => {
     const m = new VisitorModel();
-    m.distinguishPasses = true;
     // Across the room, 0.9 m from the chair, without stopping.
     run(m, path([{ to: [-2.4, 0.9], speed: 1.05 }, { to: [2.4, 0.9], speed: 1.05 }, { to: [2.4, 2.6], speed: 1.05, hold: 1 }], [-2.4, 2.6]));
     expect(m.approaches.length).toBeGreaterThan(0);
@@ -56,11 +55,16 @@ describe('coming to the chair, or only passing it', () => {
 
   it('coming close and going away again is still a hesitation', () => {
     const m = new VisitorModel();
-    m.distinguishPasses = true;
     run(m, path([{ to: [0, 0.9], speed: 1.05, hold: 2 }, { to: [0, 2.6], speed: 1.05, hold: 1 }]));
     expect(m.comings).toHaveLength(1);
     expect(m.hesitations).toBe(1);
     expect(m.lastWithdrawAt).toBeGreaterThan(0);
+  });
+
+  it('coming straight at it and straight back out, without stopping, is coming to it: the hesitation itself', () => {
+    const m = run(new VisitorModel(), path([{ to: [0, 0.8], speed: 0.5 }, { to: [0, 2.7], speed: 0.6, hold: 1 }]));
+    expect(m.comings).toHaveLength(1);
+    expect(m.hesitations).toBe(1);
   });
 
   it('backing in is not coming to it', () => {
@@ -84,7 +88,7 @@ const rush = (hold = 4): { to: [number, number]; speed: number; hold?: number } 
 const gently = (hold = 4): { to: [number, number]; speed: number; hold?: number }[] => [{ to: [0, 1.9], speed: 1.05, hold: 1.5 }, { to: [0, 0.8], speed: 0.47, hold }];
 
 describe('coming back to the chair', () => {
-  const EXP = ['passes', 'recoil'];
+  const EXP: string[] = [];
   const start = { to: [0, 2.85] as [number, number], speed: 1, hold: 3 };
 
   it('the first time, it is met as it always was: the quiet, no recoil', () => {
@@ -116,15 +120,10 @@ describe('coming back to the chair', () => {
     expect(cues.some((c) => c.rule === 'first-approach' || c.rule === 'return-recoil')).toBe(false);
   });
 
-  it('without the experiment the room answers as it did', () => {
-    const cues = visit([], path([start, rush(), away(), rush()]));
-    expect(cues.some((c) => c.cue.type === 'flinch' || c.rule === 'return-recoil')).toBe(false);
-    expect(cues.some((c) => c.rule === 'first-approach' && c.cue.type === 'silence')).toBe(true);
-  });
 });
 
 describe('the way out', () => {
-  const EXP = ['passes', 'departure', 'exitLine'];
+  const EXP: string[] = [];
   /** A visit already in its contradiction, standing at the south wall facing the way out. */
   function atTheDoor() {
     const d = new Director({ seed: 5, experiments: EXP });
@@ -143,15 +142,26 @@ describe('the way out', () => {
     return out;
   };
 
-  it('touching it, then staying still there, the room lets them go: a dim, then they have left', () => {
+  it('touched, the room starts letting them go; touched again, they have gone', () => {
     const { d, here } = atTheDoor();
     expect(d.visible.has(Director.EXIT)).toBe(true);
     still(d, here, 2);
     d.tapped({ phraseId: Director.EXIT });
-    const cues = still(d, here, 12);
+    const cues = still(d, here, 4);
     expect(cues.some((c) => c.rule === 'leaving' && c.cue.type === 'silence' && c.cue.dim !== undefined)).toBe(true);
-    expect(cues.some((c) => c.cue.type === 'leave')).toBe(true);
+    expect(cues.some((c) => c.cue.type === 'leave')).toBe(false);
+    d.tapped({ phraseId: Director.EXIT });
+    expect(still(d, here, 1).some((c) => c.cue.type === 'leave')).toBe(true);
     expect(d.departureLine()).toBe('The chair, from the door.');
+  });
+
+  it('touched once and left alone (reading it, say), the room comes back: nobody leaves by accident', () => {
+    const { d, here } = atTheDoor();
+    still(d, here, 2);
+    d.tapped({ phraseId: Director.EXIT });
+    const cues = still(d, { ...here, gazePhraseId: Director.EXIT }, 30);
+    expect(cues.some((c) => c.cue.type === 'leave')).toBe(false);
+    expect(cues.some((c) => c.rule === 'leaving-kept' && c.cue.type === 'lift')).toBe(true);
   });
 
   it('a turn keeps them: the room comes back, and it is not offered again at once', () => {

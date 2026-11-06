@@ -98,8 +98,9 @@ async function walkUntil(key, test, limit = 30000) {
   }
   await page.keyboard.up(key);
 }
-/** Look at a line (its centre in the middle of the view) from where they stand. */
+/** Look at a line (its centre in the middle of the view) from where they stand (after a frame has moved the eye there). */
 async function lookAt(phraseId) {
+  await sleep(400);
   return hh((id) => {
     const a = window.__hedgehog;
     const key = [...a.text.items.keys()].find((k) => a.text.phraseOf(k) === id);
@@ -221,7 +222,11 @@ await place(0.3, 1.9, Math.PI, 0.02);
 await lookAt('party-early');
 await hold(1.5, 'facing the way out again');
 await page.mouse.click(440, 260);
-const left = await hold(16, 'touched again, left alone');
+await hold(4, 'touched: the room letting go');
+await shot('10-letting-go-again');
+// Touched again while it does: gone.
+await page.mouse.click(440, 260);
+const left = await hold(3, 'touched again');
 await sleep(5000);
 await shot('10-gone');
 const end = await sample('end');

@@ -241,7 +241,6 @@ export class App {
     });
     // Until the voices' manifest says which are recorded, no vignette speaks.
     this.director.scenes.setAvailable(new Set());
-    this.text.handling = this.director.exp.has('handled');
     // How the last visit left the chair, set in the dark before anything is seen: the only change
     // to it on return (docs/reviews/2026-10-emotional-depth.md).
     const yaw = returnYaw(trace, this.chair.baseYaw);
@@ -1869,7 +1868,7 @@ export class App {
       const pid = this.text.phraseOf(this.gazeId);
       this.lastTappedKey = this.gazeId;
       if (pid) this.director.tapped({ phraseId: pid });
-      if (this.director.exp.has('tapMark')) this.text.press(this.gazeId);
+      this.text.press(this.gazeId);
       if (c && it) {
         const s = it.placement.surface;
         if (s === 'floor') this.rig.attend(c, 0.8);

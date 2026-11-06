@@ -154,18 +154,6 @@ export const LEXICON: Record<string, DimVector> = {
   everyone: { connection: 0.4, isolation: 0.3, misunderstanding: 0.3 },
 };
 
-/** Departure lines: one is chosen by what the visit was like. Never a moral. */
-export const DEPARTURE_LINES: Record<string, string[]> = {
-  default: ['The light stays on.', 'Someone turned the light off next door.'],
-  hesitation: ['The chair, from the door.', 'Somebody almost knocked.'],
-  stillness: ['The hum went on for a while after.', 'Nothing moved for a long time.'],
-  closeness: ['It is still warm where you were.'],
-  distance: ['From over there it looked smaller.'],
-  warmth: ['Someone was humming.'],
-  contributor: ['There is new writing on the wall.'],
-  wandering: ['Somebody will have to paint over all of this one day.'],
-};
-
 /**
  * The departure line by how the visit went with the chair (docs/reviews/2026-11-core-loop.md):
  * what happened between them, not which habit formed. The first that holds is used, in this order.
@@ -183,6 +171,9 @@ export const DEPARTURE_BY_VISIT = {
   apart: 'From over there it looked smaller.',
   otherwise: 'The light stays on.',
 } as const;
+
+/** For someone who never came to the chair and mostly stood still. Never a moral. */
+export const DEPARTURE_STILL = 'Nothing moved for a long time.';
 
 /** Arrival line shown faintly on the threshold, varied by return visits. */
 export const THRESHOLD_LINES = [

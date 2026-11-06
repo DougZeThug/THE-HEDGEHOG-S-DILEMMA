@@ -226,6 +226,8 @@ export class Policy {
   private walkAuto = false;
   private lookYaw: number | null = null;
   private tapChair = false;
+  private confirmed = false;
+  private sawEbb: number | null = null;
 
   constructor(readonly g: Genome, private r: Rng) {
     this.writeAt = r.range(60, Math.max(90, g.session * 0.7));
@@ -475,6 +477,12 @@ export class Policy {
             }
           }
           gaze = d.visible.has('party-early') ? 'party-early' : null;
+          // Once the room has begun to let them go (they see it ebb), they touch it again.
+          if (p.light.includes('dim')) this.sawEbb ??= t;
+          if (this.sawEbb !== null && t - this.sawEbb >= 2.5 && !this.confirmed) {
+            this.confirmed = true;
+            tap = { phraseId: 'party-early' };
+          }
           if (t >= it.until) this.leftAt = t;
         }
         break;

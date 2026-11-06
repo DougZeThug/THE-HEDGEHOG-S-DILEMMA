@@ -133,8 +133,6 @@ export class MemoryDirector {
   private lastTone: string | null = null;
   /** Vignettes whose voices are recorded and approved (null: all, as in tests and previews). */
   private available: Set<string> | null = null;
-  /** Offers follow the visit's relationship with the chair (an experiment, set by the Director). */
-  relational = false;
   private pending: PendingEcho[] = [];
   /** Lines written alone for a memory this visit (the kitchen-light memory's counts too). */
   private offersMade = 0;
@@ -288,9 +286,9 @@ export class MemoryDirector {
     const pointed = this.points + (s.kitchenOffered ? 1 : 0);
     if (pointed >= POINTS_PER_VISIT || s.now - Math.max(this.lastPointAt, s.kitchenOfferedAt ?? -Infinity) < POINT_APART || s.now - this.lastVignetteEnded < POINT_AFTER_VIGNETTE) return null;
     const point = <T extends SceneMemory>(m: T, t: Track, reink: boolean): OfferPick => {
-      // (A line with its own place, found there later, doesn't point at anything: with `relational`
-      // it doesn't spend one of the visit's three pointings, nor make the next wait.)
-      if (!(this.relational && m.offer?.wall)) {
+      // (A line with its own place, found there later, doesn't point at anything: it doesn't spend
+      // one of the visit's three pointings, nor make the next wait. Docs/reviews/2026-11-core-loop.md.)
+      if (!m.offer?.wall) {
         this.points++;
         this.lastPointAt = s.now;
       }
@@ -307,7 +305,7 @@ export class MemoryDirector {
       const i = s.prefer?.indexOf(m.id) ?? -1;
       return i < 0 ? Infinity : i;
     };
-    const order = [...ALL_MEMORIES].sort((a, b) => rank(a) - rank(b) || (this.relational ? pref(a) - pref(b) : 0));
+    const order = [...ALL_MEMORIES].sort((a, b) => rank(a) - rank(b) || pref(a) - pref(b));
     for (const m of order) {
       const t = this.tracks.get(m.id)!;
       if (t.played || s.now < m.earliest || this.arcEnded(m)) continue;

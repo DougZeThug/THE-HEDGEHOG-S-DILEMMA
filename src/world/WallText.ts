@@ -962,9 +962,6 @@ export class WallText {
     }
   }
 
-  /** Read lines keep a trace of having been read (docs/reviews/2026-11-core-loop.md). */
-  handling = false;
-
   /** The visitor touched these words: the ink takes the touch (docs/reviews/2026-11-core-loop.md). */
   press(key: string): void {
     const it = this.items.get(key);
@@ -1043,10 +1040,8 @@ export class WallText {
       it.emphasis = approach(it.emphasis, gazed ? clamp((gazeFor - 0.8) / 3) * 0.7 : 0, dt, gazed ? 1.2 : 3);
       if (it.pressed) it.pressed = it.pressed < 0.01 ? 0 : approach(it.pressed, 0, dt, 0.8);
       // A line held long enough to have been read keeps a little of the look on it, fading over minutes.
-      if (this.handling) {
-        if (it.emphasis > 0.35) it.handled = Math.max(it.handled ?? 0, HANDLED);
-        else if (it.handled) it.handled = it.handled < 0.005 ? 0 : approach(it.handled, 0, dt, 240);
-      }
+      if (it.emphasis > 0.35) it.handled = Math.max(it.handled ?? 0, HANDLED);
+      else if (it.handled) it.handled = it.handled < 0.005 ? 0 : approach(it.handled, 0, dt, 240);
       // Receding: the closer, the less of it (and a look doesn't bring it back); stepping back
       // returns it, more slowly than it went.
       let recede = 0;
