@@ -188,6 +188,22 @@ export class MemoryDirector {
     return !t.offered && !t.played && now >= Math.max(HEART_EARLIEST, t.notBefore);
   }
 
+  /**
+   * A line written alone for a memory found no room on the wall the visitor faced: not offered after
+   * all (the room tries again, elsewhere). Its pointing is given back.
+   */
+  offerFailed(phraseId: string): void {
+    const m = MEMORY_BY_PHRASE.get(phraseId);
+    const t = m && this.tracks.get(m.id);
+    if (!m || !t || t.played || !t.offered) return;
+    t.offered = false;
+    if (!t.reinked && !m.offer?.wall) {
+      this.points = Math.max(0, this.points - 1);
+      if (m.id !== this.heart) this.offersMade = Math.max(0, this.offersMade - 1);
+    }
+    if (m.id === this.heart) this.heartOfferedAt = null;
+  }
+
   /** The heart was pointed at long ago and let be: it no longer keeps anything back. */
   heartLapsed(now: number): boolean {
     return this.heartOfferedAt !== null && !this.heartPlayed && now - this.heartOfferedAt > HEART_LAPSE;

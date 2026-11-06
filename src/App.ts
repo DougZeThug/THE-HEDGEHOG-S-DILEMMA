@@ -238,6 +238,13 @@ export class App {
       memoryCounts: readMemoryCounts(),
       situations: forced,
       experiments: wanted,
+      // Is a piece of writing in view (the heart's line is found, never written in front of them).
+      inView: (id) => {
+        const c = this.text.centreOf(id);
+        if (!c) return false;
+        const p = c.project(this.rig.camera);
+        return p.z < 1 && Math.abs(p.x) < 1.15 && Math.abs(p.y) < 1.15;
+      },
       // Where each piece of writing is, for situations that relate place to memory.
       geometry: (id) => {
         const w = this.text.whereIs(id);
@@ -1877,7 +1884,10 @@ export class App {
       this.rig.setKneel(false);
       return;
     }
-    if (this.gazeChair || d < 1.2) {
+    // (Writing on a wall being looked at is touched, even close to the chair: a click on a line
+    // offered there knelt instead. QA, 2026-11-06.)
+    const wallLine = !!this.gazeId && !this.gazeChair && ['north', 'east', 'south', 'west'].includes(this.text.items.get(this.gazeId)?.placement.surface ?? '');
+    if (this.gazeChair || (d < 1.2 && !wallLine)) {
       if (d < 1.5) this.rig.setKneel(true);
       else this.rig.attend(this.chair.group.position.clone().setY(0.35), 0.95);
       return;
@@ -2543,17 +2553,22 @@ export class App {
       const el = $('departure-line');
       el.textContent = first;
       if (answer) {
+        // (A pause for a screen reader between the two: "I wanted you to" runs on into the answer.)
+        const pause = document.createElement('span');
+        pause.className = 'sr-only';
+        pause.textContent = ' … ';
         const span = document.createElement('span');
         span.className = 'departure-answer';
         span.textContent = answer;
-        el.append(' ', span);
+        el.append(pause, span);
       }
       setTimeout(() => $('departure-line').classList.add('on'), 1500);
+      // (Not before the answer, when there is one, has fully come.)
       setTimeout(() => {
         $('return').hidden = false;
         $('return').focus();
         void this.audio?.suspend();
-      }, 6000);
+      }, answer && !this.prefs.reducedMotion ? 9000 : 6000);
     }, this.prefs.reducedMotion ? 1500 : 4600);
   }
 

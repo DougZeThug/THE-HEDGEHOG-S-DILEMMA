@@ -85,6 +85,11 @@ export interface DirectorOptions {
    * found there again on the next visit (docs/reviews/2026-11-emotional-arc.md).
    */
   answer?: string | null;
+  /**
+   * Whether a piece of writing is in the visitor's view now (the App knows the camera). Without it,
+   * the wall faced stands in (the battery, tests).
+   */
+  inView?: (phraseId: string) => boolean;
 }
 
 const SURFACES: Surface[] = ['north', 'east', 'south', 'west'];
@@ -155,6 +160,7 @@ export class Director {
   private readonly owned: Set<string>;
   private lastContrib: ContributionTrace | null = null;
   private geometry: (id: string) => PhraseGeometry | undefined;
+  private inView: (phraseId: string) => boolean;
   private annotationsUsed = new Set<string>();
   private recontextsUsed = new Set<string>();
   /** How many beats of each phrase's arc have been played. */
@@ -307,6 +313,7 @@ export class Director {
     this.legacy = !!opts.legacyOpening;
     for (const p of PHRASES) if (this.legacy ? p.tier === 'arrival' || p.tier === 'near' : p.tier === 'near' && p.surface === 'floor') this.visible.set(p.id, { mode: 'shown', since: 0, base: true });
     this.geometry = opts.geometry ?? (() => undefined);
+    this.inView = opts.inView ?? ((id) => PHRASE_BY_ID.get(id)?.surface === this.facing);
     this.situations = new SituationRunner(Director.repertoire(this.visits, opts.situations, opts.seed));
     this.owned = this.situations.owned();
     this.host = this.makeHost();
@@ -1555,7 +1562,7 @@ export class Director {
       prefer: this.earned(),
       // (And only while they look at a wall, level: at the chair, looking down at it, a line written
       // "where they look" lands out of view. Interaction designer, 2026-11-06.)
-      heartFree: this.scheduler.majorFree(this.now) && !held && !this.aftermath() && this.pacing.sinceDev(this.now) >= 4 && !this.pacing.repeats('voice', this.now, 4) && this.facing !== 'floor' && this.facing !== 'ceiling' && v.pitch > -0.3,
+      heartFree: this.scheduler.majorFree(this.now) && !held && !this.aftermath() && this.pacing.sinceDev(this.now) >= 4 && !this.pacing.repeats('voice', this.now, 4) && this.facing !== 'floor' && this.facing !== 'ceiling' && v.pitch > -0.3 && !(this.sceneNoRoom?.surface === this.facing && this.now - this.sceneNoRoom.at < 60),
     });
     if (offer?.reink) {
       // Already on the wall they face: written again there, in front of them (no new line).
@@ -1592,6 +1599,8 @@ export class Director {
   // ─────────────────────────── the visit's heart ───────────────────────────
   // (docs/reviews/2026-11-emotional-arc.md)
 
+  /** A wall a memory's line found no room on just now (not tried again there for a minute). */
+  private sceneNoRoom: { surface: Surface; at: number } | null = null;
   /** The last visit's heart answer, if this visit should find it. */
   private readonly pastAnswer: string | null;
   /** This visit's heart has been seen (its id), and its answer when written. */
@@ -1643,7 +1652,7 @@ export class Director {
    */
   private ruleKeptAnswer() {
     if (!this.pastAnswer || this.keptFound || this.departing || !this.visible.has('stay')) return;
-    if (this.facing === PHRASE_BY_ID.get('stay')!.surface || this.facing === 'floor' || this.facing === 'ceiling') return;
+    if (this.inView('stay') || PHRASE_BY_ID.get('stay')!.surface === this.facing) return;
     this.keptFound = true;
     const a = PHRASE_BY_ID.get(this.pastAnswer)!;
     this.queue(0, { type: 'write', key: `heart:${a.id}`, text: a.text, hand: a.hand, size: 's', beside: 'stay', purpose: 'annotation', ttl: 0, source: a.id, found: true }, 'heart-kept');
@@ -1657,8 +1666,9 @@ export class Director {
   private ruleHeartAnswer() {
     if (!this.heartSeen || this.heartAnswer || this.now < this.heartAnswerAt || this.departing || this.scenes.active) return;
     if (this.pacing.holding(this.now) || this.pacing.repeats('text', this.now, 6) || !this.visible.has('stay')) return;
-    const stay = PHRASE_BY_ID.get('stay')!;
-    if (this.facing === stay.surface && this.now < this.heartAnswerAt + 40) return;
+    // (Not while the first line is in view: found, not watched. QA: the wall faced was not enough,
+    // the line was in the middle of the frame at a diagonal.)
+    if (this.inView('stay') && this.now < this.heartAnswerAt + 40) return;
     const a = PHRASE_BY_ID.get(HEART_ANSWER[this.heartSeen] ?? '');
     if (!a) return;
     this.heartAnswer = a.id;
@@ -2260,6 +2270,14 @@ export class Director {
       this.memory.surfaced.delete(id);
       this.memoryOffered = false;
       this.memoryQuietUntil = -Infinity;
+    }
+    // A memory's line written alone found no room on the wall faced: offered again, on another wall.
+    const scene = /^memory:(.+)$/.exec(key);
+    if (scene && scene[1] !== Director.MEMORY.phraseId) {
+      this.scenes.offerFailed(scene[1]);
+      this.visible.delete(scene[1]);
+      this.memory.surfaced.delete(scene[1]);
+      this.sceneNoRoom = { surface: this.facing, at: this.now };
     }
     if (key.startsWith('stray:')) {
       if (this.strays.get(key.slice(6)) === 'south') this.heldMoved = false;

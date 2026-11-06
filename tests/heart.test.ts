@@ -67,6 +67,15 @@ describe('the heart, in the memory director', () => {
     expect(offerAt(md, 81 + HEART_REINK + 40, { facing: line })?.reink).toBeFalsy();
   });
 
+  it('a line that found no room is not spent: it is pointed at again', () => {
+    const md = new MemoryDirector();
+    md.setHeart('almost', 80);
+    expect(offerAt(md, 81)?.id).toBe('almost');
+    md.offerFailed('your-hand');
+    expect(md.heartDue(82)).toBe(true);
+    expect(offerAt(md, 130)?.id).toBe('almost');
+  });
+
   it('once it has played, no other painted memory claims its line', () => {
     const md = new MemoryDirector();
     md.setHeart('almost', 80);

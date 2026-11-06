@@ -702,6 +702,18 @@ export class WallText {
       surface = target.surface;
       rect = this.layout.findBeside(target, m.w, m.h);
     }
+    const wall = !!surface && surface !== 'floor' && surface !== 'ceiling';
+    if (!rect && surface && o.near && o.purpose === 'recall' && wall) {
+      // A memory's line, offered where the visitor looks: at a height it can be read at, as near
+      // their line of sight as the wall allows, or not at all (it is offered again elsewhere). The
+      // whole-wall scan put it by the skirting, out of frame on a phone (QA, 2026-11-06).
+      const size = surfaceSize(surface!);
+      for (const spread of [0.4, 0.9, 1.6, size.w]) {
+        rect = this.layout.findIn(surface!, m.w, m.h, [Math.max(0, o.near.u - spread - m.w / 2) / size.w, Math.min(size.w, o.near.u + spread + m.w / 2) / size.w], [0.9, 1.85], 0.03, 160);
+        if (rect) break;
+      }
+      if (!rect) return false;
+    }
     if (!rect && surface && o.near) {
       const size = surfaceSize(surface);
       for (const spread of [0.5, 1, 1.8]) {
