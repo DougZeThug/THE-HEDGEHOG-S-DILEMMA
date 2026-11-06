@@ -18,6 +18,7 @@ Forced, and said so: two runs advanced from about 47 s to 67 s; one aim set on t
 | P2 | Unfinished first line: a screen reader heard "I wanted you to I took my hand back." | A spoken pause between the two lines. |
 | P2 | The button took focus while the answer was still fading in. | With an answer, the button comes at 9 s. |
 | P2 | The privacy text was out of date. | It lists what is remembered. |
+| re-check | With the fixes, a click on the line from beside the chair began Almost, but it ended unseen 6 s later, the view turned 80° to the side and up. Traced: the first pointer move once the mouse is taken carried the cursor's whole offset as movement (yaw +1.41 = 640 px, pitch +0.84 = 380 px), so a visitor's first click of a visit turned the view away from what it touched. Pre-existing (QA's first click from the chair "lost its gaze while kneeling" the same way); it now cost the heart. | The first move after the lock is ignored if it is a jump (over 120 px). |
 | note | In 4 of 4 real-input runs the first return to the chair (about 23 s, just after the visit turned "familiar") got no recoil. Pre-existing, but it now decides whether the heart is Almost. | Fixed: a turn that neither writes nor dims no longer blocks the recoil, and a turn waits while a return may be under way (at most 30 s). Simulated, 5-minute visits: first return lost to a turn 22% → 12%. |
 
 ## Creative director, on the finished experience

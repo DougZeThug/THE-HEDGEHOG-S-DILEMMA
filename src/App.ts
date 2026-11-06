@@ -2031,6 +2031,7 @@ export class App {
     let dragInside = false;
     let lastX = 0, lastY = 0, downX = 0, downY = 0, downT = 0;
     let lockWanted = false;
+    let lockFresh = false;
     canvas.addEventListener('pointerdown', (e) => {
       if (this.mode !== 'room') return;
       downX = lastX = e.clientX;
@@ -2048,8 +2049,15 @@ export class App {
     });
     canvas.addEventListener('pointermove', (e) => {
       if (this.mode !== 'room') return;
-      if (document.pointerLockElement === canvas) this.lookBy(e.movementX, e.movementY);
-      else if (dragging && e.pointerType === 'mouse') {
+      if (document.pointerLockElement === canvas) {
+        // (The first move once the mouse is taken can carry the pointer's jump to the lock as
+        // movement: Chromium reported the cursor's whole offset from the corner, a turn of 80°
+        // nobody made, and a memory begun by that click was looked away from and lost.)
+        const fresh = lockFresh;
+        lockFresh = false;
+        if (fresh && Math.abs(e.movementX) + Math.abs(e.movementY) > 120) return;
+        this.lookBy(e.movementX, e.movementY);
+      } else if (dragging && e.pointerType === 'mouse') {
         // (A drag begun before a living memory took the view isn't a turn away from it.)
         if (!this.inside.locked || dragInside) this.lookBy((e.clientX - lastX) * 1.2, (e.clientY - lastY) * 1.2);
         lastX = e.clientX;
@@ -2080,6 +2088,7 @@ export class App {
       }
     });
     document.addEventListener('pointerlockchange', () => {
+      lockFresh = document.pointerLockElement === canvas;
       if (document.pointerLockElement !== canvas && lockWanted && this.mode === 'room') {
         lockWanted = false;
         this.openSettings();
