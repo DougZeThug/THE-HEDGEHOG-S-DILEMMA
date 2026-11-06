@@ -133,6 +133,8 @@ export class MemoryDirector {
   private lastTone: string | null = null;
   /** Vignettes whose voices are recorded and approved (null: all, as in tests and previews). */
   private available: Set<string> | null = null;
+  /** Offers follow the visit's relationship with the chair (an experiment, set by the Director). */
+  relational = false;
   private pending: PendingEcho[] = [];
   /** Lines written alone for a memory this visit (the kitchen-light memory's counts too). */
   private offersMade = 0;
@@ -274,6 +276,11 @@ export class MemoryDirector {
     kitchenOffered?: boolean;
     /** When (a pointing, for the two minutes between them). */
     kitchenOfferedAt?: number;
+    /**
+     * Painted memories this visit has earned, best first (docs/reviews/2026-11-core-loop.md): the
+     * one whose story rhymes with how the visitor has been with the chair. Ahead of the rest.
+     */
+    prefer?: readonly string[];
   }): OfferPick | null {
     if (s.departing || this.active || !s.free || s.otherMemory) return null;
     if (s.now < this.cooldownUntil || s.now - this.lastEnded < 0) return null;
@@ -281,8 +288,12 @@ export class MemoryDirector {
     const pointed = this.points + (s.kitchenOffered ? 1 : 0);
     if (pointed >= POINTS_PER_VISIT || s.now - Math.max(this.lastPointAt, s.kitchenOfferedAt ?? -Infinity) < POINT_APART || s.now - this.lastVignetteEnded < POINT_AFTER_VIGNETTE) return null;
     const point = <T extends SceneMemory>(m: T, t: Track, reink: boolean): OfferPick => {
-      this.points++;
-      this.lastPointAt = s.now;
+      // (A line with its own place, found there later, doesn't point at anything: with `relational`
+      // it doesn't spend one of the visit's three pointings, nor make the next wait.)
+      if (!(this.relational && m.offer?.wall)) {
+        this.points++;
+        this.lastPointAt = s.now;
+      }
       // For a while, a shorter look at it begins it (an offer: 20 s; a line written again for an owed
       // one: 30 s; a line written in its own place, found later: from then on).
       t.easyUntil = m.offer?.wall ? Infinity : s.now + (reink && t.owed ? 30 : 20);
@@ -292,7 +303,11 @@ export class MemoryDirector {
     const owed = (m: SceneMemory) => this.tracks.get(m.id)!.owed && m.kind === 'vignette';
     // (The door, once it may come, before other offers: it has a place of its own and is otherwise never found.)
     const rank = (m: SceneMemory) => (m.offer?.wall ? 0.5 : (this.counts[m.id] ?? 0) === 0 && m.kind !== 'vignette' ? 1 : owed(m) ? 1.5 : (this.counts[m.id] ?? 0) === 0 ? 2 : 3);
-    const order = [...ALL_MEMORIES].sort((a, b) => rank(a) - rank(b));
+    const pref = (m: SceneMemory) => {
+      const i = s.prefer?.indexOf(m.id) ?? -1;
+      return i < 0 ? Infinity : i;
+    };
+    const order = [...ALL_MEMORIES].sort((a, b) => rank(a) - rank(b) || (this.relational ? pref(a) - pref(b) : 0));
     for (const m of order) {
       const t = this.tracks.get(m.id)!;
       if (t.played || s.now < m.earliest || this.arcEnded(m)) continue;

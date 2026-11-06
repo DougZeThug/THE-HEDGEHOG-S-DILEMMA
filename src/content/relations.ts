@@ -166,6 +166,28 @@ export const DEPARTURE_LINES: Record<string, string[]> = {
   wandering: ['Somebody will have to paint over all of this one day.'],
 };
 
+/**
+ * The departure line by how the visit went with the chair (docs/reviews/2026-11-core-loop.md):
+ * what happened between them, not which habit formed. The first that holds is used, in this order.
+ */
+export const DEPARTURE_BY_VISIT = {
+  /** They left by turning their back on it and standing at the door. */
+  door: 'The chair, from the door.',
+  /** They knelt by it, or stayed by it a long while. */
+  close: 'It is still warm where you were.',
+  /** They came near, went away, and came back to it. */
+  cameBack: 'Somebody came back for the umbrella.',
+  /** They came near and went away, and didn't come back. */
+  refused: 'Somebody almost knocked.',
+  /** They never came near it. */
+  apart: 'From over there it looked smaller.',
+  /** A memory was met (it is next door now, and dark). */
+  memory: 'Someone turned the light off next door.',
+  /** They read and read, and moved about. */
+  restless: 'Somebody will have to paint over all of this one day.',
+  otherwise: 'The light stays on.',
+} as const;
+
 /** Arrival line shown faintly on the threshold, varied by return visits. */
 export const THRESHOLD_LINES = [
   'A white room. A small chair. Some things written on the walls.',

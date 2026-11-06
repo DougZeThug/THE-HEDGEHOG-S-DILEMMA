@@ -111,12 +111,12 @@ for (const [name, rows] of Object.entries(out)) for (const dev of ['desktop', 'p
 
 // ── Pacing and restraint ──
 console.log('\n## Restraint and passivity (first visits; medians unless said)\n');
-console.log('| arm | per min | longest seen gap | voices / visit | imposed quiet (mean) | most own in 20 s (max) | overlaps | same-kind repeats | passive 30 s windows |');
-console.log('|---|---|---|---|---|---|---|---|---|');
+console.log('| arm | per min | longest seen gap | voices / visit | imposed quiet (mean) | most own in 20 s (max) | overlaps | same-kind repeats | passive 30 s windows | identical answer to a repeated act |');
+console.log('|---|---|---|---|---|---|---|---|---|---|');
 for (const [name, rows] of Object.entries(out)) {
   const r = firsts(rows);
   const pw = r.reduce((p, x) => ({ w: p.w + x.passive.windows, e: p.e + x.passive.empty }), { w: 0, e: 0 });
-  console.log(`| ${name} | ${f1(median(r.map((x) => x.perMinute)))} | ${f1(median(r.map((x) => x.longestSeenGap)))} | ${f1(median(r.map((x) => x.voices)))} | ${pct(mean(r.map((x) => x.imposedQuiet)) * 100, 100)} | ${Math.max(...r.map((x) => x.most20))} | ${f1(median(r.map((x) => x.overlaps)))} | ${f1(median(r.map((x) => x.repeatsSameKind)))} | ${pct(pw.e, pw.w)} |`);
+  console.log(`| ${name} | ${f1(median(r.map((x) => x.perMinute)))} | ${f1(median(r.map((x) => x.longestSeenGap)))} | ${f1(median(r.map((x) => x.voices)))} | ${pct(mean(r.map((x) => x.imposedQuiet)) * 100, 100)} | ${Math.max(...r.map((x) => x.most20))} | ${f1(median(r.map((x) => x.overlaps)))} | ${f1(median(r.map((x) => x.repeatsSameKind)))} | ${pct(pw.e, pw.w)} | ${pct(r.reduce((a, x) => a + x.vending.same, 0), r.reduce((a, x) => a + x.vending.pairs, 0))} of ${r.reduce((a, x) => a + x.vending.pairs, 0)} |`);
 }
 
 // ── Reach ──

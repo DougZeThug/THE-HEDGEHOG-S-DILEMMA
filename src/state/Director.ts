@@ -6,7 +6,7 @@ import { Rng } from '../core/rng';
 import { EventScheduler } from '../core/scheduler';
 import { clamp, smoothstep } from '../core/math';
 import { PHRASES, PHRASE_BY_ID } from '../content/phrases';
-import { DEPARTURE_LINES, RECONTEXTS, VOICE_FRAGMENTS, type VoiceFragment } from '../content/relations';
+import { DEPARTURE_BY_VISIT, DEPARTURE_LINES, RECONTEXTS, VOICE_FRAGMENTS, type VoiceFragment } from '../content/relations';
 import type { Phase, Phrase, Surface, Tier } from '../content/types';
 import { VisitorModel, type VisitorInput } from './VisitorModel';
 import { Memory, warmthOf, type Motif } from './Memory';
@@ -80,6 +80,8 @@ export interface DirectorOptions {
    * part of how the room answers, so a visit with and without it can be compared on the same seed.
    */
   experiments?: readonly string[];
+  /** Walking is a thumb's drag on a touch screen: its speed says nothing about how someone came. */
+  touch?: boolean;
 }
 
 const SURFACES: Surface[] = ['north', 'east', 'south', 'west'];
@@ -293,7 +295,10 @@ export class Director {
     this.legacy = !!opts.legacyOpening;
     for (const p of PHRASES) if (this.legacy ? p.tier === 'arrival' || p.tier === 'near' : p.tier === 'near' && p.surface === 'floor') this.visible.set(p.id, { mode: 'shown', since: 0, base: true });
     this.geometry = opts.geometry ?? (() => undefined);
-    this.situations = new SituationRunner(Director.repertoire(this.visits, opts.situations));
+    this.visitor.distinguishPasses = this.exp.has('passes');
+    this.visitor.touchScreen = !!opts.touch;
+    this.scenes.relational = this.exp.has('offerOrder');
+    this.situations = new SituationRunner(Director.repertoire(this.visits, opts.situations, this.exp.has('hygiene') ? opts.seed : undefined));
     this.owned = this.situations.owned();
     this.host = this.makeHost();
     this.env = this.computeEnv();
@@ -303,9 +308,11 @@ export class Director {
   }
 
   /** Seeded choice of which situations this visit can hold: three of the four, plus erosion if the visitor writes. */
-  static repertoire(visits: number, forced?: string[]) {
+  static repertoire(visits: number, forced?: string[], seed?: number) {
     if (forced?.length) return forced.map((id) => SITUATION_BY_ID.get(id)).filter((d): d is NonNullable<typeof d> => !!d);
-    const r = new Rng(hashString(`situations:${visits}`));
+    // (With a visit's own seed every visit can hold any three; by visit count alone, every visitor's
+    // first visit held the same three, and one of them never came on a first or second visit.)
+    const r = new Rng(hashString(seed === undefined ? `situations:${visits}` : `situations:${visits}:${seed}`));
     const main = SITUATIONS.filter((d) => d.id !== 'erosion');
     for (let i = main.length - 1; i > 0; i--) {
       const j = r.int(0, i);
@@ -502,6 +509,9 @@ export class Director {
     // During the opening the room's own life hasn't begun: no rule runs and no time passes
     // for it (its clock is the visitor model's), so nothing is owed at the hand-off.
     if (this.held) return [];
+    // Kneeling is kneeling by the chair (the App's own reach for it, 1.5 m): K pressed across the
+    // room lowers the eye, but the room doesn't take it for kneeling there.
+    if (this.exp.has('kneelAtChair') && input.kneeling && Math.hypot(input.x, input.z) > 1.5) input = { ...input, kneeling: false };
     this._facing = facing;
     const v = this.visitor;
     v.update(dt, input);
@@ -572,6 +582,7 @@ export class Director {
       this.ruleTableLift();
     }
     this.pacing.tick(dt, this.now, this.phase, this.engagement.activity(this.now));
+    if (this.closeSince === null && this.exp.has('offerOrder') && this.leaving() === 'close') this.closeSince = this.now;
 
     this.env = this.computeEnv();
 
@@ -874,8 +885,9 @@ export class Director {
    */
   private ruleApproach() {
     const v = this.visitor;
+    if (this.exp.has('approachManner')) this.answerManner();
     if (!v.near) return;
-    if (!this.spokenFirstApproach && v.nearFor > 1.2) {
+    if (!this.spokenFirstApproach && v.nearFor > 1.2 && !this.exp.has('approachManner')) {
       this.spokenFirstApproach = true;
       // Coming close is answered at once, quietly: the room goes still, and the chair is
       // either heard (a creak, as if someone just got up), breathed beside, or simply left alone.
@@ -919,6 +931,52 @@ export class Director {
       this.reveal('thank-staying', 0, 'long-near', 'emerge', 14);
     }
   }
+
+  /**
+   * Coming to the chair (docs/reviews/2026-11-core-loop.md). An arrival is answered as it happens:
+   * someone who walked to it and stopped by it, not someone passing. The first is never graded:
+   * however they came, the room goes quiet and a little warmth gathers at the chair, slowly. After
+   * that, rushing at it again makes it recoil (its sound taken away at once, its light pulled back
+   * toward the chair for a moment), at most twice, less the second time; coming gently, it holds
+   * its breath while they are there. A thumb's walk on a phone is never a rush (VisitorModel).
+   */
+  private answerManner() {
+    const v = this.visitor;
+    const a = v.lastApproach;
+    if (!a || !a.confirmed || a.arrivedAt === null || a.arrivedAt <= this.mannerSeenAt) return;
+    this.mannerSeenAt = a.arrivedAt;
+    if (!this.spokenFirstApproach) {
+      this.spokenFirstApproach = true;
+      this.queue(0, { type: 'silence', depth: 0.4, seconds: 7 }, 'first-approach', { major: true, ttl: 4 });
+      // A swell, not a flash: in over seconds, at the chair (seen without sound, on a phone).
+      this.queue(0.3, { type: 'flash', kind: 'warm', amount: Director.MANNER.welcome.amount, seconds: Director.MANNER.welcome.seconds }, 'first-approach', { ttl: 4 });
+      const r = this.rng.next();
+      if (r < 0.2 && this.creaks < 2) {
+        this.creaks++;
+        this.queue(2.5, { type: 'sound', kind: 'chair-creak', position: { kind: 'chair' }, gain: 0.3 }, 'first-approach');
+      } else if (r < 0.45 && this.phase === 'transform' && !this.situations.claimed('chair-voice'))
+        this.fragment('first-approach', VOICE_FRAGMENTS.find((f) => f.id === 'vf-breath')!, { kind: 'chair' }, 5, 0.4);
+      return;
+    }
+    // Not inside a memory, a held silence or a memory's aftermath: those are the room's own stillness.
+    if (this.scenes.active || this.aftermath() || this.now < this.heldSilenceUntil) return;
+    if (a.manner === 'abrupt' && this.flinches < Director.MANNER.flinches.length) {
+      const amount = Director.MANNER.flinches[this.flinches++];
+      this.queue(0, { type: 'flinch', amount }, 'approach-flinch', { ttl: 0.5 });
+      this.field.nudge({ exposure: 0.2, tension: 0.1 });
+    } else if (a.manner === 'gentle' && this.now - this.lastHeldNear > 45) {
+      this.lastHeldNear = this.now;
+      this.queue(0, { type: 'silence', depth: 0.4, seconds: 12 }, 'approach-gentle', { ttl: 3 });
+    }
+  }
+  /** The welcome's swell (a warm flash's amount and length) and each recoil's strength, in order. */
+  static readonly MANNER = {
+    welcome: { amount: 0.3, seconds: 6 },
+    flinches: [1, 0.86],
+  };
+  private mannerSeenAt = -Infinity;
+  private flinches = 0;
+  private lastHeldNear = -Infinity;
 
   /**
    * The first seconds. The room must not feel as if it is loading: the line in front of the
@@ -1116,7 +1174,9 @@ export class Director {
     this.lastTapAt = this.now;
     this.engagement.raise('tap', this.now, t.phraseId);
     this.taps++;
-    if (this.taps <= 2 && this.rng.chance(0.5)) {
+    // (With `tapMark` the touch is felt in the ink instead, by the world: WallText.press. A dip in the hum
+    // can't be heard on a phone's speaker, where most touches are.)
+    if (!this.exp.has('tapMark') && this.taps <= 2 && this.rng.chance(0.5)) {
       this.queue(0.2, { type: 'silence', depth: 0.22, seconds: 3 }, 'tap');
     }
     return true;
@@ -1470,6 +1530,7 @@ export class Director {
       kitchenPlayed: this.memoryPlayed,
       kitchenOffered: this.memoryOffered,
       kitchenOfferedAt: this.memoryOffered ? this.memoryOfferedAt : undefined,
+      prefer: this.exp.has('offerOrder') ? this.earned() : undefined,
     });
     if (offer?.reink) {
       // Already on the wall they face: written again there, in front of them (no new line).
@@ -1492,6 +1553,28 @@ export class Director {
       }, 'memory-offer');
     }
   }
+
+  /**
+   * Which painted memory this visit has earned (docs/reviews/2026-11-core-loop.md): the one whose
+   * story rhymes with how the visitor has been with the chair, at least two minutes after it
+   * (the room choosing, not a mirror). Almost (a hand reaches, starts, is taken back, comes nearer
+   * too late) for someone who came near, went away and came back; the woodland ("five more
+   * minutes": what closeness earns is knowing it ends) for someone who stayed close; Things (a
+   * goodbye at a door, two hands that nearly meet across it) for someone who kept their distance.
+   */
+  private earned(): string[] {
+    const v = this.visitor;
+    const lag = 120;
+    const out: string[] = [];
+    if (this.cameBack(this.now - lag)) out.push('almost');
+    if (this.closeSince !== null && this.now - this.closeSince >= lag) out.push('woodland');
+    const comings = v.comings;
+    const lastNear = comings.length ? Math.max(...comings.map((a) => a.leftAt ?? v.t)) : -Infinity;
+    if (this.now >= 240 && this.closeSince === null && this.now - lastNear >= 180) out.push('things');
+    return out;
+  }
+  /** When the visit first counted as close (knelt, or stayed by the chair). */
+  private closeSince: number | null = null;
 
   /**
    * The App reports a living memory has gone (or could not begin). `seen`: watched past its first
@@ -1566,7 +1649,10 @@ export class Director {
     const v = this.visitor;
     // An answer to stepping back (well clear of the chair, so there is room to come closer), not
     // to standing by the door; only after a long time apart for someone who never came near.
-    const back = v.approaches.length > 0;
+    // (With `airLine`: only after they have been let in — come to it gently, stayed a little — and
+    // gone: spines go up after being left, not after being met. Docs/reviews/2026-11-core-loop.md.)
+    const left = v.comings.filter((a) => a.leftAt !== null);
+    const back = this.exp.has('airLine') ? left.some((a) => a.manner === 'gentle' && a.dwell >= 6) : v.approaches.length > 0;
     if (v.distance < 2.1 || v.gazeChairFor < 1.5 || v.speed > 0.3) return;
     if (!back && this.now < 150) return;
     // Words that are not already on a wall: a repeat would read as a copy, not as something said.
@@ -1996,6 +2082,7 @@ export class Director {
    */
   contribute(text: string, it: Interpretation): void {
     this.contributionCount++;
+    if (this.exp.has('hygiene')) this.engagement.raise('contribute', this.now);
     this.memory.contributions.push({ dims: it.dims, at: this.now });
     const key = `contrib:${this.contributionCount}`;
     this.lastContrib = { key, keep: keptWord(text), surface: this.facing, at: this.now };
@@ -2107,10 +2194,41 @@ export class Director {
    */
   leaving(): 'close' | null {
     const v = this.visitor;
-    return v.kneelTime >= 8 || v.approaches.some((a) => a.dwell >= 25 || (a.leftAt === null && v.t - a.enteredAt >= 25)) ? 'close' : null;
+    // (Walking past the chair, or reading the floor beside it, is not staying with it.)
+    const comings = this.exp.has('passes') ? v.comings : v.approaches;
+    return v.kneelTime >= 8 || comings.some((a) => a.dwell >= 25 || (a.leftAt === null && v.t - a.enteredAt >= 25)) ? 'close' : null;
   }
 
-  departureLine(): string {
+  /** How the visit went with the chair, in one word (see DEPARTURE_BY_VISIT). */
+  visitShape(how: 'door' | 'menu' = 'menu'): keyof typeof DEPARTURE_BY_VISIT {
+    const v = this.visitor;
+    const comings = v.comings;
+    if (how === 'door') return 'door';
+    if (this.leaving() === 'close') return 'close';
+    if (this.cameBack()) return 'cameBack';
+    if (comings.length && comings[comings.length - 1].leftAt !== null) return 'refused';
+    if (!comings.length) return 'apart';
+    if (this.scenes.paintedPlayed || this.memoryPlayed) return 'memory';
+    const m = this.memory.dominant();
+    if (m === 'wandering' || m === 'reading') return 'restless';
+    return 'otherwise';
+  }
+
+  /** They came near, went away past the withdraw distance, and came near again and stayed a little (≥ 8 s). */
+  private cameBack(before = Infinity): boolean {
+    const c = this.visitor.comings;
+    for (let i = 1; i < c.length; i++) {
+      if (c[i].enteredAt > before) break;
+      // Away a while (not a step back and in again), then near again for a moment.
+      const away = c.slice(0, i).some((a) => a.leftAt !== null && c[i].enteredAt - a.leftAt >= 4);
+      const stayed = c[i].dwell >= 8 || (c[i].leftAt === null && this.visitor.t - c[i].enteredAt >= 8);
+      if (away && stayed) return true;
+    }
+    return false;
+  }
+
+  departureLine(how: 'door' | 'menu' = 'menu'): string {
+    if (this.exp.has('departure')) return DEPARTURE_BY_VISIT[this.visitShape(how)];
     const m = this.memory.dominant() ?? 'default';
     const key = m === 'reading' ? 'wandering' : m;
     const lines = DEPARTURE_LINES[key] ?? DEPARTURE_LINES.default;

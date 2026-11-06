@@ -66,7 +66,9 @@ export class Lighting {
    * Light as a motif later in the visit: the room's own light (panel and sky) goes down until
    * only the chair is lit, as it was at the start, then comes back. The key light is untouched.
    */
-  private dimming: { from: number; to: number; start: number; seconds: number; rise?: number } | null = null;
+  private dimming: { from: number; to: number; start: number; seconds: number; rise?: number; fall?: number; glow?: boolean } | null = null;
+  /** How much of the chair's own glow a recoil leaves (1 = all of it). */
+  private glowKept = 1;
   private mood = 1;
 
   constructor(quality: 'low' | 'medium' | 'high') {
@@ -118,9 +120,10 @@ export class Lighting {
   }
 
   /** Take the room back to the chair alone (area and sky to `to`) for `seconds`, then return. */
-  dimToChair(to: number, seconds: number, now: number) {
+  dimToChair(to: number, seconds: number, now: number, o: { fall?: number; rise?: number; delay?: number; glow?: boolean } = {}) {
     // From wherever the light is now: a second dim during a first never lifts the room first.
-    this.dimming = { from: this.mood, to: Math.min(to, this.mood), start: now, seconds };
+    // (A recoil: `delay` after its sound, quicker down (`fall`), the chair's glow taken with it.)
+    this.dimming = { from: this.mood, to: Math.min(to, this.mood), start: now + (o.delay ?? 0), seconds, rise: o.rise, fall: o.fall, glow: o.glow };
   }
 
   /** A dim let go early (a vignette interrupted; a held silence left): the room's light comes back over `seconds`, from where it is. */
@@ -155,20 +158,23 @@ export class Lighting {
       this.residue.intensity = f.amount * 1.1 * e * this.intensityScale * this.fade;
       if (t >= 1) this.residueFade = null;
     }
-    let mood = 1;
-    if (this.dimming) {
+    let mood = this.dimming && now < this.dimming.start ? this.mood : 1;
+    let glowKept = 1;
+    if (this.dimming && now >= this.dimming.start) {
       const d = this.dimming;
       const t = now - d.start;
       if (t >= d.seconds) this.dimming = null;
       else {
         // Down over 3 s, held, back over 4 s: slow enough to read as the room, not a fault.
         const s = (x: number) => x * x * (3 - 2 * x);
-        const down = s(Math.min(1, t / 3)), up = s(Math.max(0, Math.min(1, (d.seconds - t) / (d.rise ?? 4))));
+        const down = s(Math.min(1, t / (d.fall ?? 3))), up = s(Math.max(0, Math.min(1, (d.seconds - t) / (d.rise ?? 4))));
         const level = d.from + (d.to - d.from) * down;
         mood = 1 - (1 - level) * up;
+        if (d.glow) glowKept = 1 - down * up;
       }
     }
     this.mood = mood;
+    this.glowKept = glowKept;
     const c = this.cur;
     c.intensity = approach(c.intensity, env.lightIntensity, dt, 3);
     c.warmth = approach(c.warmth, env.lightWarmth, dt, 4);
@@ -220,7 +226,7 @@ export class Lighting {
     this.key.angle = sc.cone * as(L.cone);
     this.hemi.color.copy(col).lerp(this.white, 0.4);
     this.hemi.intensity = HEMI * (0.75 + 0.25 * I) * k * sc.hemi * mood * asLit(L.fill, lit);
-    this.glow.intensity = (0.1 + c.glow * 0.7 + c.extraWarm * 1.2) * k * sc.glow * as(L.glow);
+    this.glow.intensity = (0.1 + c.glow * 0.7 + c.extraWarm * 1.2) * k * sc.glow * as(L.glow) * this.glowKept;
     // The skylight's glow belongs to the lit room: it comes and goes with the room's own light.
     this.skyGlow.color.copy(col);
     this.skyGlow.intensity = L.skyGlow * I * k * lit;

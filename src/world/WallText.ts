@@ -162,6 +162,8 @@ export interface TextItem {
   rate: number;
   shy: number;
   emphasis: number;
+  /** A touch on the words, felt in the ink: darker at once, settling back over about a second. */
+  pressed?: number;
   expires: number;
   centre: THREE.Vector3;
   normal: THREE.Vector3;
@@ -955,6 +957,12 @@ export class WallText {
     }
   }
 
+  /** The visitor touched these words: the ink takes the touch (docs/reviews/2026-11-core-loop.md). */
+  press(key: string): void {
+    const it = this.items.get(key);
+    if (it) it.pressed = 1;
+  }
+
   /** Which phrase holds the visitor's attention: nearest to the centre of view, within its own angular size. */
   attention(cam: THREE.Camera): string | null {
     const pos = cam.getWorldPosition(new THREE.Vector3());
@@ -1025,6 +1033,7 @@ export class WallText {
       }
       const gazed = gazeId === it.key;
       it.emphasis = approach(it.emphasis, gazed ? clamp((gazeFor - 0.8) / 3) * 0.7 : 0, dt, gazed ? 1.2 : 3);
+      if (it.pressed) it.pressed = it.pressed < 0.01 ? 0 : approach(it.pressed, 0, dt, 0.8);
       // Receding: the closer, the less of it (and a look doesn't bring it back); stepping back
       // returns it, more slowly than it went.
       let recede = 0;
@@ -1058,7 +1067,7 @@ export class WallText {
       }
       it.uniforms.uReveal.value = it.vis * (1 - 0.55 * recede);
       it.uniforms.uOpacity.value = clamp(base * legible * Math.min(it.shy, 1 - 0.5 * recede) * env.textContrast * (1 + it.emphasis * 0.3), 0, 1);
-      it.uniforms.uEmphasis.value = it.emphasis;
+      it.uniforms.uEmphasis.value = Math.min(1, it.emphasis + (it.pressed ?? 0) * 0.35);
     }
     for (const ln of [...this.lines.values()]) {
       if (ln.expires && now > ln.expires) ln.target = 0;

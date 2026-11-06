@@ -155,15 +155,38 @@ export class AudioEngine {
    */
   silence(depth: number, seconds: number, fall = 1.4, rise = 3.5) {
     const t = this.ctx.currentTime;
+    // After a shorter silence inside a longer one, the longer one is what holds.
+    if (t >= this.duckUntil && t < this.restUntil) {
+      this.duckDepth = this.restDepth;
+      this.duckUntil = this.restUntil;
+      this.restDepth = this.restUntil = 0;
+    }
     if (t < this.duckUntil && depth < this.duckDepth) return;
-    this.duckDepth = depth;
-    this.duckUntil = t + seconds;
     const p = this.duck.gain;
     p.cancelScheduledValues(t);
     p.setValueAtTime(p.value, t);
     p.setTargetAtTime(Math.max(0.03, 1 - depth), t, fall);
-    p.setTargetAtTime(1, t + seconds, rise);
+    const end = t + seconds;
+    if (t < this.duckUntil && end < this.duckUntil && this.duckDepth > 0) {
+      // A deeper, shorter silence inside a longer one (a flinch inside a quiet): afterwards the
+      // room goes back to the longer one's depth until its end, not up to full and back down.
+      p.setTargetAtTime(Math.max(0.03, 1 - this.duckDepth), end, Math.min(rise, 1.5));
+      p.setTargetAtTime(1, this.duckUntil, this.duckRise);
+      this.restDepth = this.duckDepth;
+      this.restUntil = this.duckUntil;
+    } else {
+      p.setTargetAtTime(1, end, rise);
+      this.duckRise = rise;
+      this.restDepth = 0;
+      this.restUntil = 0;
+    }
+    this.duckDepth = depth;
+    this.duckUntil = end;
   }
+  /** The longer silence a shorter one sits inside (restored after it), and how it rises. */
+  private restDepth = 0;
+  private restUntil = 0;
+  private duckRise = 3.5;
 
   /**
    * End any silence at once, however deep (coming back into the room after leaving): the
@@ -173,6 +196,8 @@ export class AudioEngine {
     const t = this.ctx.currentTime;
     this.duckDepth = 0;
     this.duckUntil = 0;
+    this.restDepth = 0;
+    this.restUntil = 0;
     const p = this.duck.gain;
     p.cancelScheduledValues(t);
     if (seconds >= 0.5) {

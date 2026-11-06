@@ -231,6 +231,7 @@ export class App {
       situations: forced,
       // Design experiments for inspection (`?exp=a,b`; docs/reviews/2026-11-core-loop.md).
       experiments: params.get('exp')?.split(',').map((s) => s.trim()).filter(Boolean),
+      touch: this.touch,
       // Where each piece of writing is, for situations that relate place to memory.
       geometry: (id) => {
         const w = this.text.whereIs(id);
@@ -1089,7 +1090,7 @@ export class App {
    */
   private prefetchMemories() {
     if (this.mode !== 'room' || (this.frameCount++ & 31) !== 0) return;
-    const soon = new Set(this.director.scenes.comingSoon(this.director.now).map((m) => m.id));
+    const soon = new Set(this.director.scenes.comingSoon(this.director.now, this.director.memoryPlayed).map((m) => m.id));
     for (const [phraseId, m] of SCENE_BY_PHRASE) {
       // Its line on a wall, or its offer near (a reserved line is written only as it is offered).
       if (this.prefetched.has(m.id) || !(this.text.anchorOf(phraseId) || soon.has(m.id))) continue;
@@ -1720,7 +1721,7 @@ export class App {
         // A silence dimmed for its whole length (at the chair): its sound starts back a few seconds
         // before its light does (heard, then seen).
         if (cue.dim !== undefined && cue.dimSeconds === cue.seconds) this.audio?.silence(cue.depth * (this.prefs.intensity === 'gentle' ? 0.8 : 1), Math.max(1, cue.seconds - 8), 1.4, 2.5);
-        else this.audio?.silence(cue.depth * (this.prefs.intensity === 'gentle' ? 0.8 : 1), cue.seconds);
+        else this.audio?.silence(cue.depth * (this.prefs.intensity === 'gentle' ? 0.8 : 1), cue.seconds, cue.fall, cue.rise);
         if (cue.dim !== undefined) this.lighting.dimToChair(this.prefs.intensity === 'gentle' ? Math.max(cue.dim, 0.5) : cue.dim, Math.min(cue.seconds, cue.dimSeconds ?? 11), this.time);
         break;
       case 'lift':
@@ -1734,6 +1735,15 @@ export class App {
       case 'flash':
         this.lighting.triggerFlash(cue.kind, cue.amount * (this.prefs.intensity === 'gentle' ? 0.5 : 1), cue.seconds, this.time);
         break;
+      case 'flinch': {
+        // Sound first (a 70 ms fall, held a moment, back soon), then the room's light pulls back
+        // toward the chair a quarter-second later: in over 0.9 s, held 1 s, out over 5 s.
+        const gentle = this.prefs.intensity === 'gentle';
+        this.audio?.silence(0.62 * cue.amount * (gentle ? 0.8 : 1), 1.2, 0.07, 1.5);
+        const to = 1 - 0.28 * cue.amount * (gentle ? 0.55 : 1);
+        this.lighting.dimToChair(to, 0.9 + 1 + 5, this.time, { delay: 0.25, fall: 0.9, rise: 5, glow: true });
+        break;
+      }
     }
   }
 
@@ -1853,6 +1863,7 @@ export class App {
       const pid = this.text.phraseOf(this.gazeId);
       this.lastTappedKey = this.gazeId;
       if (pid) this.director.tapped({ phraseId: pid });
+      if (this.director.exp.has('tapMark')) this.text.press(this.gazeId);
       if (c && it) {
         const s = it.placement.surface;
         if (s === 'floor') this.rig.attend(c, 0.8);
@@ -1986,8 +1997,12 @@ export class App {
       dragging = false;
       const moved = Math.hypot(e.clientX - downX, e.clientY - downY);
       if (moved < 5 && performance.now() - downT < 350 && this.mode === 'room') {
-        // A click: try to take the mouse; if refused, a click still interacts.
+        // A click: try to take the mouse; if refused, a click still interacts. A click on what is in
+        // the middle of the view (the words being looked at, the chair) is also that touch: the
+        // first click on writing used to do nothing but take the mouse (docs/reviews/2026-11-core-loop.md).
         if (!this.touch && canvas.requestPointerLock) {
+          const r = canvas.getBoundingClientRect();
+          if (Math.abs(e.clientX - (r.left + r.width / 2)) < r.width * 0.12 && Math.abs(e.clientY - (r.top + r.height / 2)) < r.height * 0.14) this.interact();
           lockWanted = true;
           try {
             const r = canvas.requestPointerLock() as unknown as Promise<void> | undefined;

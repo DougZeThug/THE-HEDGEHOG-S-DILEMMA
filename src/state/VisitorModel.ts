@@ -23,6 +23,8 @@ export interface VisitorInput {
   /** Nearest surface if close to one (within ~1.1 m), else null. */
   nearSurface: Surface | null;
   kneeling: boolean;
+  /** Attention rests on any writing at all (a visitor's own words and drawings have no phrase id). */
+  gazeWriting?: boolean;
   /**
    * Moved by a memory (its way in, its carry), not by themselves: not counted as walking or
    * looking (the room must not take the memory's own move for the visitor's restlessness).
@@ -53,10 +55,26 @@ export const BANDS = {
   far: 2.6,
 };
 
+/**
+ * How someone came near (docs/reviews/2026-11-core-loop.md), from what the room can see: the
+ * leg since they were last beyond 2.4 m. Gentle: they stopped a moment on the way in (1.2–2.2 m),
+ * or came the last metre slowly (Shift, walking to it, a light drag). Abrupt: the last metre at a
+ * walk, no stop. A pass: walking by rather than to it (the distance closing at well under the
+ * walking speed), backing in, or a jump (a memory's carry) — not an approach at all.
+ */
+export type Manner = 'gentle' | 'abrupt' | 'neutral' | 'pass';
+
 export interface ApproachRecord {
   enteredAt: number;
   leftAt: number | null;
   dwell: number;
+  manner: Manner;
+  /**
+   * They arrived: heading for the chair as they came in, then stopped by it (or reached it).
+   * Until then it may be a pass; one that leaves unconfirmed was (manner 'pass').
+   */
+  confirmed: boolean;
+  arrivedAt: number | null;
 }
 
 export class VisitorModel {
@@ -116,6 +134,14 @@ export class VisitorModel {
   private lastYaw = 0;
   private lastPitch = 0;
   private initialised = false;
+  /** The last ~10 s of distance and speed (for how an approach was made). */
+  private trail: { t: number; d: number; s: number; jump: boolean; x: number; z: number }[] = [];
+  /** Passing by is not approaching: passes don't make hesitations or withdrawals (an experiment, set by the Director). */
+  distinguishPasses = false;
+  /** Walking is a thumb's drag on a touch screen (its speed is not a manner). */
+  touchScreen = false;
+  private stopRun = 0;
+  gazeWriting = false;
 
   update(dt: number, inp: VisitorInput): void {
     this.t += dt;
@@ -165,13 +191,23 @@ export class VisitorModel {
     // Distance to chair and approach/withdraw cycles (hysteresis).
     this.distance = Math.hypot(inp.x, inp.z);
     this.distanceSlow = approach(this.distanceSlow, this.distance, dt, 4);
+    this.trail.push({ t: this.t, d: this.distance, s: dt > 0 ? step / dt : 0, jump: step > 0.4 || !!inp.carried, x: inp.x, z: inp.z });
+    while (this.trail.length && this.t - this.trail[0].t > 10) this.trail.shift();
+    this.gazeWriting = !!inp.gazeWriting || !!inp.gazePhraseId;
     // Carried: the memory's own move is not the visitor's approach or retreat, so the bands hold.
     if (!inp.carried) {
       if (!this.near && this.distance < BANDS.near) {
         this.near = true;
         this.nearSince = this.t;
         this.lastApproachAt = this.t;
-        this.approaches.push({ enteredAt: this.t, leftAt: null, dwell: 0 });
+        // Backing in, the chair out of view, or heading somewhere else: not coming to it.
+        const toward = this.heading(inp.x, inp.z);
+        let manner = this.chairOutOfViewFor > 0.5 || !toward ? 'pass' : mannerOf(this.trail);
+        // A touch screen's walk is a thumb's push, saturating a few millimetres past a gentle one:
+        // its speed says nothing about how someone came. Gentle (a stop, walking to it) or neither.
+        if (this.touchScreen && manner === 'abrupt') manner = 'neutral';
+        this.approaches.push({ enteredAt: this.t, leftAt: null, dwell: 0, manner, confirmed: false, arrivedAt: null });
+        this.stopRun = 0;
         this.armedWithdraw = false;
       } else if (this.near && this.distance > BANDS.near + 0.25) {
         this.near = false;
@@ -180,12 +216,21 @@ export class VisitorModel {
           rec.leftAt = this.t;
           rec.dwell = this.t - rec.enteredAt;
         }
-        this.armedWithdraw = true;
+        if (rec && !rec.confirmed) rec.manner = 'pass';
+        this.armedWithdraw = !(this.distinguishPasses && rec?.manner === 'pass');
       }
       if (this.near) {
         this.totalNear += dt;
         const rec = this.approaches[this.approaches.length - 1];
-        if (rec) rec.dwell = this.t - rec.enteredAt;
+        if (rec) {
+          rec.dwell = this.t - rec.enteredAt;
+          // Arrived: stopped by it half a second, or come right up to it.
+          this.stopRun = this.speed < 0.15 ? this.stopRun + dt : 0;
+          if (!rec.confirmed && rec.manner !== 'pass' && (this.stopRun >= 0.5 || this.distance <= 0.6)) {
+            rec.confirmed = true;
+            rec.arrivedAt = this.t;
+          }
+        }
       }
       if (this.armedWithdraw && this.distance > BANDS.withdraw) {
         this.armedWithdraw = false;
@@ -260,6 +305,28 @@ export class VisitorModel {
     this.gazeChair = inp.gazeChair;
   }
 
+  /** Moving toward the chair: the last half-second's travel within 25° of the way to it (or not moving: no evidence against). */
+  private heading(x: number, z: number): boolean {
+    const back = this.trail.filter((p) => this.t - p.t <= 0.6);
+    const from = back[0];
+    if (!from) return true;
+    const mx = x - from.x, mz = z - from.z;
+    const m = Math.hypot(mx, mz);
+    if (m < 0.05) return true;
+    const bx = -x, bz = -z, b = Math.hypot(bx, bz) || 1;
+    return (mx * bx + mz * bz) / (m * b) > Math.cos((25 * Math.PI) / 180);
+  }
+
+  /** The approach in progress, or the last one. */
+  get lastApproach(): ApproachRecord | undefined {
+    return this.approaches[this.approaches.length - 1];
+  }
+
+  /** Approaches that were approaches (not walking past the chair). */
+  get comings(): ApproachRecord[] {
+    return this.approaches.filter((a) => a.confirmed);
+  }
+
   /** The visitor touched these words: treat it as deliberate, settled attention. */
   touch(id: string): void {
     this.touched = id;
@@ -296,4 +363,34 @@ export class VisitorModel {
       surfaces: [...this.surfacesVisited].join(','),
     };
   }
+}
+
+/** How the leg into the chair's band was made (see `Manner`). */
+export function mannerOf(trail: readonly { t: number; d: number; s: number; jump: boolean }[]): Manner {
+  let start = 0;
+  for (let i = trail.length - 1; i >= 0; i--)
+    if (trail[i].d > 2.4) {
+      start = i;
+      break;
+    }
+  const leg = trail.slice(start);
+  if (leg.some((x) => x.jump)) return 'pass';
+  let still = 0;
+  let stopped = false;
+  for (let i = 1; i < leg.length; i++) {
+    if (leg[i].s < 0.1 && leg[i].d >= 1.2 && leg[i].d <= 2.2) {
+      still += leg[i].t - leg[i - 1].t;
+      if (still >= 0.8) stopped = true;
+    } else still = 0;
+  }
+  // The last metre or so.
+  const last = leg.filter((x) => x.d <= 2.15);
+  if (last.length < 2) return 'neutral';
+  const mean = last.reduce((a, x) => a + x.s, 0) / last.length;
+  const span = last[last.length - 1].t - last[0].t;
+  const closing = span > 0 ? (last[0].d - last[last.length - 1].d) / span : 0;
+  if (mean > 0.15 && closing < 0.6 * mean) return 'pass';
+  if (stopped || mean <= 0.6) return 'gentle';
+  if (mean >= 0.85) return 'abrupt';
+  return 'neutral';
 }

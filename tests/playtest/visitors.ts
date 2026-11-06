@@ -184,7 +184,7 @@ interface Frame {
 type Intent =
   | { k: 'read'; id: string; face: Surface; stand: [number, number]; until: number | null; tapped: boolean }
   | { k: 'chair'; stage: 'ring' | 'pause' | 'in' | 'stay' | 'back'; until: number; manner: Manner }
-  | { k: 'still'; until: number; yaw: number }
+  | { k: 'still'; until: number; yaw: number; chair?: boolean }
   | { k: 'wander'; to: [number, number]; until: number }
   | { k: 'listen'; face: Surface; stand: [number, number]; until: number | null }
   | { k: 'leave'; until: number | null }
@@ -438,13 +438,16 @@ export class Policy {
             this.walk([(this.x / n) * 2.4, (this.z / n) * 2.4]);
           } else this.intent = null;
         } else if (it.stage === 'back' && (this.arrived(0.12) || t >= it.until)) {
-          this.intent = null;
+          // Stepped back: often they look back at it a moment (an assumption).
+          if (r.chance(0.6)) this.intent = { k: 'still', until: t + r.range(1.5, 5), yaw: yawTo(this.x, this.z, 0, 0), chair: true };
+          else this.intent = null;
         } else if (it.stage === 'in' && t >= it.until) this.intent = null;
         break;
       }
       case 'still':
         face = it.yaw;
-        this.pitch = g.floorOnly ? -0.7 : -0.04;
+        this.pitch = g.floorOnly ? -0.7 : it.chair ? -0.35 : -0.04;
+        if (it.chair) gazeChair = Math.abs(wrap(this.yaw - it.yaw)) < 0.3;
         if (t >= it.until) this.intent = null;
         break;
       case 'wander':
@@ -514,7 +517,7 @@ export class Policy {
     this.lookYaw = null;
 
     // A look that rests on writing: what they chose to read, or else what is in front of them when standing.
-    if (!gaze && !gazeChair && it.k === 'still') {
+    if (!gaze && !gazeChair && it.k === 'still' && !it.chair) {
       const id = [...d.visible.entries()].find(([vid, s]) => s.mode === 'shown' && (writtenOn.get(vid) ?? PHRASE_BY_ID.get(vid)?.surface) === facingOf(this.yaw))?.[0];
       if (id) gaze = id;
     }
@@ -581,6 +584,8 @@ export interface VisitSummary {
   seconds: number;
   actions: Record<string, { n: number; answered: number; caused: number; kinds: Record<string, number> }>;
   placebo: { n: number; hit: number };
+  /** The same act on the same thing again (a line, the chair): how often the room gave the identical answer (a vending machine would always). */
+  vending: { pairs: number; same: number };
   passive: { windows: number; empty: number };
   longestSeenGap: number;
   perMinute: number;
@@ -669,7 +674,7 @@ function local(a: Action, x: Dev): boolean {
         (!!a.phrase && (x.phrase === a.phrase || x.beside === a.phrase)) ||
         (x.kind === 'text' && !!a.surface && x.surface === a.surface) ||
         (x.kind === 'voice' && x.at === 'beyond' && x.surface === a.surface) ||
-        (x.kind === 'voice' && x.at === 'surface' && x.surface === a.surface) ||
+        ((x.kind === 'voice' || x.kind === 'sound') && x.at === 'surface' && x.surface === a.surface) ||
         (a.kind === 'tap' && x.kind === 'silence')
       );
     case 'approach':
@@ -690,7 +695,7 @@ function local(a: Action, x: Dev): boolean {
 export function liveVisit(g: Genome, seed: number, o: VisitOptions = {}): VisitSummary {
   const seconds = o.seconds ?? 600;
   const dt = o.dt ?? 0.1;
-  const d = new Director({ seed, experiments: o.experiments, visits: o.past?.visits, memoryCounts: o.past?.memoryCounts, trace: o.past?.trace ?? null });
+  const d = new Director({ seed, experiments: o.experiments, visits: o.past?.visits, memoryCounts: o.past?.memoryCounts, trace: o.past?.trace ?? null, touch: g.device === 'phone' });
   d.scenes.setAvailable(AVAILABLE);
   d.release({ written: OPENING_WRITTEN, spoken: OPENING_SPOKEN, unfinished: OPENING_UNFINISHED });
   const pol = new Policy(g, new Rng(seed * 104729 + hash(g.id)));
@@ -849,6 +854,21 @@ export function liveVisit(g: Genome, seed: number, o: VisitOptions = {}): VisitS
       if (ap) ap.answer = k;
     }
   }
+  // Repeated acts on the same thing: was the answer identical (rule and what it was)?
+  const vending = { pairs: 0, same: 0 };
+  const lastAnswer = new Map<string, string>();
+  for (const a of actions) {
+    if (a.kind === 'turn' || a.kind === 'pause' || a.kind === 'withdraw') continue;
+    const target = `${a.kind === 'return' ? 'meet' : a.kind}:${a.phrase ?? 'chair'}`;
+    const ans = devs.find((x) => x.t > a.t && x.t <= a.t + 8 && x.seen && !x.room && local(a, x));
+    const label = ans ? `${ans.rule}|${ans.label}` : 'none';
+    const prev = lastAnswer.get(target);
+    if (prev !== undefined && prev !== 'none') {
+      vending.pairs++;
+      if (prev === label) vending.same++;
+    }
+    lastAnswer.set(target, label);
+  }
   // The same test at moments when they had done nothing for 8 s: how often would "an answer" have come anyway?
   const placebo = { n: 0, hit: 0 };
   for (let s = 30; s < end - 8; s += 7) {
@@ -906,7 +926,7 @@ export function liveVisit(g: Genome, seed: number, o: VisitOptions = {}): VisitS
   const nonLeaver = g.leave !== 'turn';
   return {
     genome: g.id, cls: g.cls, device: g.device, seed, arm: o.arm ?? 'base', visit: o.past?.visits ?? 1, seconds: +end.toFixed(1),
-    actions: table, placebo, passive,
+    actions: table, placebo, vending, passive,
     longestSeenGap: +gap.toFixed(1),
     perMinute: +(meaningfulDevs.length / (end / 60)).toFixed(2),
     voices: devs.filter((x) => x.kind === 'voice').length,
