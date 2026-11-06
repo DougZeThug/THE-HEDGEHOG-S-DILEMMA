@@ -38,3 +38,18 @@ Three specialists reviewed `brief.md` and the prototype (`?exp=heart,bookend`) i
 5. [P1] The woodland as heart doubles its ending (coda, then the answer 29 s later), and its `lastMusic` now takes the room's music from ~2.5 min in 19% of visits (was 4%). Almost and Things don't break as a first memory.
 6. [P1] The card plays the bookend as a couplet (one `<p>`, one fade). Stage it: first line alone at +1.5 s; the answer at +6.5 s, a blank line below, 0.85em, upright, pencil grey; button and audio suspend at +10.5 s; reduced motion +1.5/+2.5/+4 s.
 7. [P2] The graphite sound ~0.4 s before the second line.
+
+## Skeptic (on the proposal and the three reviews)
+
+**Verdict.** The heart bundles two things: easier gates for one strong memory (measured and real) and a four-way "rhyme" (mostly invisible). "A visitor can only feel a rhyme between two things they actually saw." Only one branch is like that: the room recoils when the visitor comes back (−14.5% of the frame, core-loop), then Almost shows a hand taken back. The prototype gave Almost to only 13–15% of the visitors it recoiled at, because their heart was fixed at about 60 s from another shape.
+
+1. [P1, verified] The recoil happens in 56/77/85% of 3/5/10-minute visits; Almost followed it in 14/13/15% (`scratchpad/skeptic/simple.ts`).
+2. [P1, verified] The extra reach comes from the eased gates, not the rhyme (Almost-for-everyone reached more). `loosen` was not a fair control (it still needed `free`, the 120 s spacing and the two-line cap).
+3. [P1, verified] The simplest version works: Almost only after a recoil reaches 24/36/45% of visits, 42–54% of the recoiled.
+4. [P1, verified] About two-thirds of the gain survives removing the simulated turn toward fresh writing (heart 42 → 26% at 3 min, 50 → 36% at 5 min).
+5. [P1] The other three rhymes exist only in the inspector: lengths of time, not moments a visitor remembers. The core-loop round had decided "kept for Almost only".
+6. [P1] The interaction designer's visibility fix is essential.
+- Answer lines: keep only "I took my hand back.". Card: only what the wall shows, one line break, at most a CSS delay. Kitchen light: neither after the heart nor lost everywhere; its gates for visits with no recoil. "Came back" = the recoil, the only trigger.
+- **KEEP:** Almost after a recoil with the heart's gates; nothing painted after it; "I took my hand back."; the answer kept for the next visit; the line placed where it can be seen; the voice check.
+- **CHANGE:** the trigger to the recoil; the card only if the wall has the answer; the kept answer present without being written in view; re-inking only if >30% are still never begun after the visibility fix.
+- **CUT:** the woodland, Things and bedroom hearts and their answers; the door epilogue; the kitchen light after the heart; the answer inside the held silence; the staged card and the graphite sound; preferring an unseen heart on return; the stillness requirement in the gaze gate; the `loosen` and `heartAlmost` scaffolding.

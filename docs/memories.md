@@ -20,6 +20,21 @@ A line on the wall can open into a memory: the light finds a pencil drawing unde
 
 The App steps the playing memory once a frame (`App.stepLivingMemory`), with one reading of the audio clock that its clock and every sound it schedules, resumes or brings back share (its position 0 is the instant it began, for its first sounds and its first frame alike). If its sound stops (or isn't running yet as it begins) it waits for it, and is let go uncounted after ten seconds visible without it. Its art and recordings are fetched when its line is armed, or as soon as it may be offered (`MemoryDirector.comingSoon`), and decoded only as it begins (`runtime.prefetch`). GSAP's timelines are paused and seeked; its ticker is put back to sleep after every seek (a test fails otherwise). Theatre's sequence position is set by the controller and read back at once; production never plays a sequence.
 
+## Which memory a visit is for: the heart (November 2026)
+
+Each visit has one painted memory reachable from early on, its *heart*, chosen from what has happened at the chair (`HEART_BY_SHAPE` in `src/content/memories.ts`; `Director.ruleHeart`; `MemoryDirector.setHeart`, `heartDue`, `offer`):
+
+| What happened | Heart | Leaves |
+|---|---|---|
+| the room recoiled at them (`Director.answerReturn`) | Almost, pointed at ≥17 s after the recoil | "I took my hand back." beside "I wanted you to stay.", the departure card, and the next visit |
+| no recoil; from 150 s, a stay of 45 s or kneeling 8 s | the woodland | its own coda ("we had all afternoon") |
+| no recoil; from 150 s, came and went and stayed away 50 s | Things I Should Have Said | nothing more |
+
+- The heart may be pointed at from 75 s (`HEART_EARLIEST`), in any phase, with no memory before it, 45 s from the last pointing, into a local quiet (4 s with nothing new and no voice) while the visitor looks level at a wall. Its line is placed by a level ray at eye height (`App.viewPointOn(surface, level)`), not where the view's centre meets the wall.
+- Until its line is pointed at it may change (a recoil makes it Almost). Pointed at and let be, it is written again once (`HEART_REINK`, 30 s) and lapses after `HEART_LAPSE` (120 s); then the others may come.
+- While it waits, the other hearts and the kitchen light wait. Once it has played, no other painted memory comes that visit (`arcEnded`).
+- The decisions, the alternatives measured and discarded, and what still needs a person: `docs/reviews/2026-11-emotional-arc.md`. Battery: `npx vite-node scripts/arc.ts` (`ARMS='before=noHeart;after'`).
+
 ## Living memories (animated, and entered)
 
 The woodland ("five more minutes", `docs/reviews/2026-10-woodland.md`) is the first. It runs on the same controller, clock, timeline and sound as the others; what is new:
