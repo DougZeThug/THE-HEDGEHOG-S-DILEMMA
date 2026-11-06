@@ -146,7 +146,7 @@ await page.keyboard.press('Space');
 // 6. A line read, then looked away from: does it keep a trace?
 const target = await hh(() => {
   const a = window.__hedgehog;
-  const k = [...a.text.items.keys()].find((k) => a.text.items.get(k).placement?.surface === 'east' && a.text.phraseOf(k));
+  const k = [...a.text.items.keys()].find((k) => a.text.items.get(k).placement?.surface === 'east' && a.text.phraseOf(k) && a.text.items.get(k).vis > 0.9);
   return k ? a.text.phraseOf(k) : null;
 });
 await place(1.4, 0.3, -Math.PI / 2, 0.02);
@@ -196,6 +196,7 @@ for (let i = 0; i < 40; i++) {
   if (ok) break;
   await hh(() => window.__hedgehog.advance(5));
 }
+for (let i = 0; i < 40 && !(await hh(() => window.__hedgehog.director.exitOpen())); i++) await hh(() => window.__hedgehog.advance(3));
 await place(0.3, 1.9, Math.PI, 0.02);
 const exit = await lookAt('party-early');
 await hold(1.5, 'facing the way out');
@@ -218,13 +219,15 @@ await hold(8, 'kept');
 await shot('09-kept');
 // After a while, touched again, and left alone: gone.
 await hh(() => window.__hedgehog.advance(95));
+for (let i = 0; i < 40 && !(await hh(() => window.__hedgehog.director.exitOpen())); i++) await hh(() => window.__hedgehog.advance(3));
 await place(0.3, 1.9, Math.PI, 0.02);
 await lookAt('party-early');
 await hold(1.5, 'facing the way out again');
 await page.mouse.click(440, 260);
-await hold(4, 'touched: the room letting go');
+// The room begins to let them go once they stand there after the touch; seen, they touch it again.
+for (let i = 0; i < 40 && !(await hh(() => !!window.__hedgehog.director.letGo)); i++) await hold(0.3, 'touched: settling');
+await hold(3, 'touched: the room letting go');
 await shot('10-letting-go-again');
-// Touched again while it does: gone.
 await page.mouse.click(440, 260);
 const left = await hold(3, 'touched again');
 await sleep(5000);

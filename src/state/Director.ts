@@ -526,7 +526,7 @@ export class Director {
       if (phaseChanged) this.pendingPhase = phaseChanged;
       // (A phase turns after a memory's aftermath, never inside it, nor while the visitor stays
       // with the kitchen-light line: the room waits with them.)
-      if (this.pendingPhase && !this.scenes.active && this.now >= this.scenesQuietAt && !this.aftermath() && !this.memoryAwaited()) {
+      if (this.pendingPhase && !this.scenes.active && this.now >= this.scenesQuietAt && !this.aftermath() && !this.memoryAwaited() && !this.letGo) {
         this.onPhase(this.pendingPhase);
         this.pendingPhase = null;
       }
@@ -2185,7 +2185,7 @@ export class Director {
 
   /** The way out may be taken: the visit has turned (contradiction or later), nothing else holds the room. */
   private exitOpen(): boolean {
-    return !this.departing && !this.letGo && (this.phase === 'contradiction' || this.phase === 'transform') && this.now >= 120 &&
+    return !this.departing && !this.letGo && !this.pendingPhase && (this.phase === 'contradiction' || this.phase === 'transform') && this.now >= 120 &&
       this.now - this.keptAt >= Director.LET_GO.again && !this.scenes.active && !this.aftermath() && this.now >= this.heldSilenceUntil && this.visible.has(Director.EXIT);
   }
 
@@ -2217,7 +2217,9 @@ export class Director {
       this.exitShown = true;
       this.reveal(Director.EXIT, 0, 'exit-line', 'emerge', 8);
     }
-    if (this.now - this.letGoAsked <= 8 && !this.letGo && this.visitor.deepStillFor >= 0.5 && this.exitOpen()) {
+    // (Standing there after the touch: the touch's own short walk to the words is not them going.)
+    const since = this.now - this.letGoAsked;
+    if (since <= 8 && since >= 1 && !this.letGo && this.visitor.deepStillFor >= Math.min(0.8, since) && this.exitOpen()) {
       this.letGoAsked = -Infinity;
       this.beginLetGo();
     }
