@@ -20,7 +20,7 @@ This file is the shared evidence for the specialist reviewers. The full baseline
 
 **1. Most of what a visitor does gets no perceptible answer in place.** First visits, engine. "Answered" means a perceived development at the same line, wall or chair within 8 s.
 
-| action | n | answered | no answer |
+| action | n | answered | no caused answer |
 |---|---|---|---|
 | reading a line (first meeting) | 14,930 | 28% | 80% |
 | coming back to a line | 11,273 | 35% | 70% |

@@ -112,6 +112,14 @@ describe("the room's silences inside one another", () => {
     expect(ev[1][1]).toBeCloseTo(0.6, 9);
     expect(ev[1][2]).toBeCloseTo(13.2, 9);
     expect(ev[2]).toEqual(['target', 1, 22]);
+    // A third, deeper still, inside both: when it ends, back to the second; then the first; then the room.
+    ctx.currentTime = 12.5;
+    a.silence(0.8, 0.3, 0.07, 1);
+    const three = g.duck.gain.events.slice(-4);
+    expect(three[0][1]).toBeCloseTo(0.2, 9);
+    expect([three[1][1], three[1][2]]).toEqual([expect.closeTo(0.38, 9), expect.closeTo(12.8, 9)]);
+    expect([three[2][1], three[2][2]]).toEqual([expect.closeTo(0.6, 9), expect.closeTo(13.2, 9)]);
+    expect(three[3]).toEqual(['target', 1, 22]);
     // Between the two ends, the longer silence still holds: a shallower one doesn't lift it.
     ctx.currentTime = 15;
     const n = g.duck.gain.events.length;

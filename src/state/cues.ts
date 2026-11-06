@@ -83,7 +83,17 @@ export type Cue =
    * The room goes quiet. With `dim`, its light also goes back to the chair alone for the first
    * `dimSeconds` (the room's own light, the sky and the fixture down to `dim`), as at the start of the visit.
    */
-  | { type: 'silence'; depth: number; seconds: number; dim?: number; dimSeconds?: number; fall?: number; rise?: number }
+  | {
+      type: 'silence';
+      depth: number;
+      seconds: number;
+      dim?: number;
+      dimSeconds?: number;
+      /** How quickly the sound falls away (a time constant, seconds; 1.4 if absent). */
+      fall?: number;
+      /** How quickly it comes back at the end (a time constant, seconds). */
+      rise?: number;
+    }
   /**
    * The room recoils from someone coming back to the chair (docs/reviews/2026-11-core-loop.md): its
    * sound taken away at once and given back soon, its own light pulled back toward the chair for a

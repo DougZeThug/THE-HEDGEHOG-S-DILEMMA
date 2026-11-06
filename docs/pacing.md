@@ -82,14 +82,14 @@ Pacing settings that changed:
 - The words in the air hold the room for 12 s from when they appear, not from when they are decided.
 - The way out's dim (the room's light to 0.25, the chair lit) belongs to the visitor: the turn into the last phase waits for it, and it waits for the turn.
 
-Measured on first visits, before → after (desktop / phone; placebo in brackets):
-- coming to the chair: 15% / 18% → 35% / 37% (8% / 4%);
-- coming back to it: 12% / 15% → 35% / 37%;
-- kneeling: 23% / 31% → 36% / 44%;
-- active 30 s windows with nothing answered: 21% → 18%;
-- developments a minute: 6.8 → 7.1; imposed quiet: 40% → 41%; overlapping sounds: 0 → 0.
+Measured on first visits, before → after (desktop / phone; placebo in brackets; the final run, `docs/reviews/core-loop/after.md`):
+- coming to the chair: 15% / 18% → 32% / 37% (7% / 5%);
+- coming back to it: 12% / 15% → 31% / 37%;
+- kneeling: 23% / 31% → 34% / 42%;
+- active 30 s windows with nothing answered: 21% → 20%;
+- developments a minute: 6.8 → 6.9; imposed quiet: 40% → 43%; overlapping sounds: 0 → 0.
 
-`tests/pacing.test.ts` still holds the targets above, unchanged.
+`tests/pacing.test.ts` still holds its existing timing and restraint targets, unchanged; it does not assert these rates (the battery reports them).
 
 ## What it is now
 

@@ -271,11 +271,18 @@ export class Director {
   private stillVoice: boolean;
   private stillMusic: boolean;
 
+  /**
+   * The design experiments this build defines (docs/reviews/2026-11-core-loop.md). None at present:
+   * the November 2026 round's winners are how the room behaves now. A name not listed here is
+   * ignored by the room (the App warns) and refused by the battery (scripts/experiment.ts), so two
+   * arms can never be compared while running the same code.
+   */
+  static readonly EXPERIMENTS: readonly string[] = [];
   /** The design experiments this visit runs (empty in the room unless `?exp=` names some). */
   readonly exp: ReadonlySet<string>;
 
   constructor(opts: DirectorOptions) {
-    this.exp = new Set(opts.experiments ?? []);
+    this.exp = new Set((opts.experiments ?? []).filter((e) => Director.EXPERIMENTS.includes(e)));
     this.rng = new Rng(opts.seed);
     this.gapRng = new Rng(opts.seed * 7919 + 101);
     this.seed = opts.seed;

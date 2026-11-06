@@ -41,7 +41,7 @@ export interface Development {
  * migration, recontext, music, life next door, situations' own ambience, and the room's
  * filler when it is waiting (sounds, writing behind you) — is the room's own life.
  */
-export const RESPONSIVE = /^(finish-|accumulate-turn|accumulate-read|encounter:|first-approach|near-|long-near|still-|still-voice|withdraw-|kneel|motif-|tap|respond-line|respond-chair|respond-still|voice-attention|rehear|contribution|sit:residue|sit:listening|withhold|vignette|echo:)/;
+export const RESPONSIVE = /^(finish-|accumulate-turn|accumulate-read|encounter:|first-approach|near-|long-near|still-|still-voice|withdraw-|kneel|motif-|tap|return-recoil|leaving|respond-line|respond-chair|respond-still|voice-attention|rehear|contribution|sit:residue|sit:listening|withhold|vignette|echo:)/;
 
 const HALF = 3.2;
 

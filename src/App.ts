@@ -225,14 +225,17 @@ export class App {
     this.rig = new CameraRig(innerWidth / innerHeight);
     const forced = params.get('situations')?.split(',').map((s) => s.trim()).filter(Boolean);
     const trace = this.visits > 0 ? readTrace() : null;
+    // Design experiments for inspection (`?exp=a,b`): only those this build defines.
+    const wanted = params.get('exp')?.split(',').map((s) => s.trim()).filter(Boolean) ?? [];
+    const unknown = wanted.filter((e) => !Director.EXPERIMENTS.includes(e));
+    if (unknown.length) console.warn(`[hedgehog] no such experiment: ${unknown.join(', ')} (defined: ${Director.EXPERIMENTS.join(', ') || 'none'})`);
     this.director = new Director({
       seed,
       visits: this.visits + 1,
       trace,
       memoryCounts: readMemoryCounts(),
       situations: forced,
-      // Design experiments for inspection (`?exp=a,b`; docs/reviews/2026-11-core-loop.md).
-      experiments: params.get('exp')?.split(',').map((s) => s.trim()).filter(Boolean),
+      experiments: wanted,
       // Where each piece of writing is, for situations that relate place to memory.
       geometry: (id) => {
         const w = this.text.whereIs(id);
@@ -1726,7 +1729,7 @@ export class App {
       case 'silence':
         // A silence dimmed for its whole length (at the chair): its sound starts back a few seconds
         // before its light does (heard, then seen).
-        if (cue.dim !== undefined && cue.dimSeconds === cue.seconds) this.audio?.silence(cue.depth * (this.prefs.intensity === 'gentle' ? 0.8 : 1), Math.max(1, cue.seconds - 8), 1.4, 2.5);
+        if (cue.dim !== undefined && cue.dimSeconds === cue.seconds) this.audio?.silence(cue.depth * (this.prefs.intensity === 'gentle' ? 0.8 : 1), Math.max(1, cue.seconds - 8), cue.fall ?? 1.4, cue.rise ?? 2.5);
         else this.audio?.silence(cue.depth * (this.prefs.intensity === 'gentle' ? 0.8 : 1), cue.seconds, cue.fall, cue.rise);
         if (cue.dim !== undefined) this.lighting.dimToChair(this.prefs.intensity === 'gentle' ? Math.max(cue.dim, 0.5) : cue.dim, Math.min(cue.seconds, cue.dimSeconds ?? 11), this.time);
         break;

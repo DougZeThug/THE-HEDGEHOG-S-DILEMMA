@@ -362,6 +362,7 @@ export class Policy {
     // The room flinching at them as they come close.
     if (this.intent?.k === 'chair' && (this.intent.stage === 'in' || this.intent.stage === 'stay') && p.light.includes('recoil') && this.distance < 2.2 && r.chance(g.flinchy)) {
       this.log.push({ t, kind: 'flinch-back' });
+      this.kneeling = false;
       const n = this.distance || 1;
       this.intent = { k: 'chair', stage: 'back', until: t + r.range(3, 7), manner: this.intent.manner };
       this.walk([(this.x / n) * 2.3, (this.z / n) * 2.3]);

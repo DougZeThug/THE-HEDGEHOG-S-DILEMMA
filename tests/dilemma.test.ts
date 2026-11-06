@@ -76,12 +76,13 @@ describe('coming to the chair, or only passing it', () => {
     const m = new VisitorModel();
     run(m, path([{ to: [0, 0.8], speed: 0.8, hold: 2 }]).map((i) => ({ ...i, yaw: Math.PI + i.yaw, gazeChair: false })));
     expect(m.approaches[0].pass).toBe(true);
+    expect(m.comings).toHaveLength(0);
   });
 });
 
-/** A visit from the hand-off, walking these paths, with experiments on. */
-function visit(experiments: string[], inputs: VisitorInput[], o: { seed?: number } = {}): TimedCue[] {
-  const d = new Director({ seed: o.seed ?? 3, experiments });
+/** A visit from the hand-off, walking these paths. */
+function visit(inputs: VisitorInput[]): TimedCue[] {
+  const d = new Director({ seed: 3 });
   d.release({ written: OPENING_WRITTEN, spoken: OPENING_SPOKEN, unfinished: OPENING_UNFINISHED });
   const out: TimedCue[] = [];
   for (const i of inputs) out.push(...d.tick(DT, i, 'north'));
@@ -93,50 +94,48 @@ const rush = (hold = 4): { to: [number, number]; speed: number; hold?: number } 
 const gently = (hold = 4): { to: [number, number]; speed: number; hold?: number }[] => [{ to: [0, 1.9], speed: 1.05, hold: 1.5 }, { to: [0, 0.8], speed: 0.47, hold }];
 
 describe('coming back to the chair', () => {
-  const EXP: string[] = [];
   const start = { to: [0, 2.85] as [number, number], speed: 1, hold: 3 };
 
   it('the first time, it is met as it always was: the quiet, no recoil', () => {
-    const cues = visit(EXP, path([start, rush()]));
+    const cues = visit(path([start, rush()]));
     expect(cues.some((c) => c.rule === 'first-approach' && c.cue.type === 'silence')).toBe(true);
     expect(cues.some((c) => c.cue.type === 'flinch')).toBe(false);
   });
 
   it('coming back after a stay makes it recoil, at once; the second time only the chair; then never', () => {
     const legs = [rush(7), away(), rush(7), away(), rush(7), away(), rush(7), away()];
-    const cues = visit(EXP, path([start, ...legs]));
+    const cues = visit(path([start, ...legs]));
     const recoils = cues.filter((c) => c.cue.type === 'flinch');
     expect(recoils.map((c) => (c.cue.type === 'flinch' ? [c.cue.amount, !!c.cue.chair] : null))).toEqual([[1, false], [0.6, true]]);
     expect(recoils.every((c) => c.rule === 'return-recoil')).toBe(true);
   });
 
   it('a first visit too short to be a stay (under 6 s) is not left: no recoil on coming back', () => {
-    const cues = visit(EXP, path([start, rush(3), away(), rush(7)]));
+    const cues = visit(path([start, rush(3), away(), rush(7)]));
     expect(cues.some((c) => c.cue.type === 'flinch')).toBe(false);
   });
 
   it('however they come back: slowly is a return too', () => {
-    const cues = visit(EXP, path([start, rush(7), away(), ...gently()]));
+    const cues = visit(path([start, rush(7), away(), ...gently()]));
     expect(cues.filter((c) => c.cue.type === 'flinch')).toHaveLength(1);
   });
 
   it('a step back and in again is not a return', () => {
-    const cues = visit(EXP, path([start, rush(), { to: [0, 2.3], speed: 1.05 }, rush()]));
+    const cues = visit(path([start, rush(), { to: [0, 2.3], speed: 1.05 }, rush()]));
     expect(cues.some((c) => c.cue.type === 'flinch')).toBe(false);
   });
 
   it('walking past the chair is never answered as coming to it', () => {
-    const cues = visit(EXP, path([{ to: [-2.4, 0.9], speed: 1.05 }, { to: [2.4, 0.9], speed: 1.05 }, { to: [2.4, -2.4], speed: 1.05, hold: 10 }], [-2.4, 2.6]));
+    const cues = visit(path([{ to: [-2.4, 0.9], speed: 1.05 }, { to: [2.4, 0.9], speed: 1.05 }, { to: [2.4, -2.4], speed: 1.05, hold: 10 }], [-2.4, 2.6]));
     expect(cues.some((c) => c.rule === 'first-approach' || c.rule === 'return-recoil')).toBe(false);
   });
 
 });
 
 describe('the way out', () => {
-  const EXP: string[] = [];
   /** A visit already in its contradiction, standing at the south wall facing the way out. */
   function atTheDoor() {
-    const d = new Director({ seed: 5, experiments: EXP });
+    const d = new Director({ seed: 5 });
     d.release({ written: OPENING_WRITTEN, spoken: OPENING_SPOKEN, unfinished: OPENING_UNFINISHED });
     const here = input(0.3, 2.3, { yaw: Math.PI, gazeChair: false, gazePhraseId: null });
     const cues: TimedCue[] = [];
@@ -227,7 +226,7 @@ describe('the way out', () => {
   });
 
   it('not before the visit has turned; and touching other words never begins it', () => {
-    const d = new Director({ seed: 5, experiments: EXP });
+    const d = new Director({ seed: 5 });
     d.release({ written: OPENING_WRITTEN, spoken: OPENING_SPOKEN, unfinished: OPENING_UNFINISHED });
     const here = input(0.3, 2.3, { yaw: Math.PI, gazeChair: false });
     still(d, here, 5);

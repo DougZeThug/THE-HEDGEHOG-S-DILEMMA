@@ -965,7 +965,8 @@ export class WallText {
 
   /**
    * The visitor touched these words: the ink takes the touch, and keeps a little of it for some
-   * minutes, like handled paper; each further touch leaves less (docs/reviews/2026-11-core-loop.md).
+   * minutes, like handled paper. Touching again never deepens it: each further touch can leave less
+   * than the last, never more (docs/reviews/2026-11-core-loop.md).
    */
   press(key: string): void {
     const it = this.items.get(key);

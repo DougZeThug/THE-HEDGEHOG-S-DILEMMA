@@ -107,6 +107,8 @@ Frames in `test-output/cine-core-loop/`.
 
 ## Draft decisions (main session)
 
+These were the decisions sent to the skeptic. Several were superseded after the challenge: decisions 2–4 (the speed-graded flinch, the warm swell, the gentle hold) gave way to a recoil on *returning*, and decision 9 to a way out that is touched, not detected. The final decisions are in `docs/reviews/2026-11-core-loop.md`. Below, "0.86" and "0.6" are strength multipliers on the recoil (its hush depth and how far the light pulls back), and the light starts 0.25 s after the hush.
+
 1. **A1a, confirmed approaches: ship.**
    - An approach counts once the visitor has headed for the chair (±25°) and then arrived (stopped 0.5 s inside 1.15 m, or reached 0.6 m). Leaving unconfirmed is a pass.
    - Passes make no withdrawals, no hesitations, no close trace.
@@ -116,7 +118,7 @@ Frames in `test-output/cine-core-loop/`.
    - The swell is for coming, not for coming gently.
 3. **The flinch.**
    - Only on a later confirmed arrival that is abrupt (desktop), at most twice a visit, the second at 0.86.
-   - It is the room's light pulling back toward the chair (cinematic numbers) with the sound designer's hush (0.62 / 0.07 / 1.2 / 1.5), in the same tick.
+   - It is the room's light pulling back toward the chair (cinematic numbers, the light starting 0.25 s after the hush) with the sound designer's hush (0.62 / 0.07 / 1.2 / 1.5), both decided in the same tick as the arrival. (A confirmed arrival needs a 0.5 s stop, so it lands as they stop, not within 0.3 s of entering reach: "on arrival" is the cinematic director's moment, met.)
    - No colour flash, no shadow move, no voice change.
    - Where the creative director (shadow) and the cinematic director (room light) differ, the cinematic director is followed. Shadow drift has a 6 s time constant, costs shadow redraws, and is out of frame after a rush; the room light pulling back is the same subtraction, and it is visible.
 4. **Later gentle arrivals.** Nothing new: the 0.4 hush held a while (the sound designer's state), no swell (the creative director's "no reward").

@@ -29,6 +29,7 @@ const browser = await chromium.launch({
   args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required', '--ignore-gpu-blocklist'],
 });
 // Small and at low quality: software rendering is the bottleneck, and room time only runs as fast as frames come.
+try {
 const ctx = await browser.newContext({ viewport: { width: 880, height: 520 } });
 await ctx.addInitScript(() => {
   try {
@@ -50,6 +51,8 @@ const t0 = Date.now();
 await page.waitForFunction(() => window.__hedgehog?.director && !window.__hedgehog.director.held, null, { timeout: 120000 }).catch(async () => {
   await page.click('#skip').catch(() => {});
 });
+const handedOff = await page.waitForFunction(() => window.__hedgehog?.director && !window.__hedgehog.director.held, null, { timeout: 15000 }).then(() => true, () => false);
+if (!handedOff) throw new Error('the opening never handed the room over (nor did Skip)');
 console.log(`hand-off after ${((Date.now() - t0) / 1000).toFixed(1)} s`);
 
 // Sampling: the room's cues since the last sample, the light on the chair, the room tone.
@@ -87,9 +90,12 @@ async function hold(ms, label, every = 250) {
   const end = Date.now() + ms * 12;
   while (Date.now() < end) {
     const s = await sample(label);
-    if (s.now - start >= ms / 1000) break;
+    if (s.now - start >= ms / 1000) return true;
     await sleep(every);
   }
+  // (The room's time ran too slowly to hold this long: what follows came sooner than it says.)
+  console.warn(`hold '${label}': cut short at ${(((await sample(label)).now - start) * 1000).toFixed(0)} of ${ms} ms of room time`);
+  return false;
 }
 async function mark(name) {
   marks.push(name);
@@ -108,13 +114,16 @@ async function walkUntil(key, test, shift = false, limit = 9000) {
   if (shift) await page.keyboard.down('ShiftLeft');
   await page.keyboard.down(key);
   const end = Date.now() + limit;
+  let reached = false;
   while (Date.now() < end) {
     const s = await sample(`walk ${key}${shift ? '+shift' : ''}`);
-    if (test(s)) break;
+    if ((reached = test(s))) break;
     await sleep(60);
   }
   await page.keyboard.up(key);
   if (shift) await page.keyboard.up('ShiftLeft');
+  if (!reached) console.warn(`walk ${key}: limit reached before the target (timings after this are suspect)`);
+  return reached;
 }
 const faceChair = () => page.keyboard.press('KeyC');
 
@@ -176,4 +185,6 @@ for (const a of acts) {
 }
 console.log(`errors: ${errors.length}${errors.length ? '\n' + errors.join('\n') : ''}`);
 writeFileSync(`${OUT}/core-loop.json`, JSON.stringify({ exp: EXP, timeline, errors }, null, 1));
-await browser.close();
+} finally {
+  await browser.close();
+}

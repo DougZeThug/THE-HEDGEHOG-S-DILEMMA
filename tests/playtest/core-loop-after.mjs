@@ -26,6 +26,7 @@ const browser = await chromium.launch({
   executablePath: process.env.CHROMIUM_PATH || undefined,
   args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required', '--ignore-gpu-blocklist'],
 });
+try {
 const ctx = await browser.newContext({ viewport: { width: 880, height: 520 } });
 await ctx.addInitScript(() => {
   try {
@@ -43,6 +44,7 @@ await page.goto(`${BASE}?seed=${SEED}&exp=${EXP}`);
 await page.waitForFunction(() => !document.getElementById('enter').disabled, null, { timeout: 90000 });
 await page.click('#enter');
 await page.waitForFunction(() => window.__hedgehog?.director && !window.__hedgehog.director.held, null, { timeout: 120000 }).catch(async () => page.click('#skip').catch(() => {}));
+if (!(await page.waitForFunction(() => window.__hedgehog?.director && !window.__hedgehog.director.held, null, { timeout: 15000 }).then(() => true, () => false))) throw new Error('the opening never handed the room over (nor did Skip)');
 
 const log = [];
 let lastT = -1;
@@ -91,12 +93,15 @@ async function place(x, z, yaw, pitch = -0.2) {
 async function walkUntil(key, test, limit = 30000) {
   await page.keyboard.down(key);
   const end = Date.now() + limit;
+  let reached = false;
   while (Date.now() < end) {
     const s = await sample(`walk ${key}`);
-    if (test(s)) break;
+    if ((reached = test(s))) break;
     await sleep(40);
   }
   await page.keyboard.up(key);
+  if (!reached) console.warn(`walk ${key}: limit reached before the target (what follows is suspect)`);
+  return reached;
 }
 /** Look at a line (its centre in the middle of the view) from where they stand (after a frame has moved the eye there). */
 async function lookAt(phraseId) {
@@ -253,4 +258,6 @@ for (const c of log) console.log(`room ${String(c.t).padStart(7)}  ${c.label.pad
 console.log(JSON.stringify({ ...summary, frames: undefined }, null, 1));
 writeFileSync(`${OUT}/after.json`, JSON.stringify({ summary, log }, null, 1));
 void left;
-await browser.close();
+} finally {
+  await browser.close();
+}

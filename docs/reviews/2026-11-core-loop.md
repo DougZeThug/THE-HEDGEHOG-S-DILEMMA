@@ -13,12 +13,12 @@ Evidence is in `docs/reviews/core-loop/`:
 
 **Simulated, in the engine.** The five scripted personas never react to the room, so they cannot test a loop. `tests/playtest/visitors.ts` adds closed-loop visitors.
 - Each visitor has a genome: how they move (keys, Shift, walking to a target, a phone's drag), what they are drawn to, how long they stay with a line, whether they tap, kneel, write, and how they leave.
-- They are drawn from six classes (reader, chair, explorer, still, phone, mixed), plus eight chosen to break things: a speed-walker, an idle visitor, a tap-spammer, one who kneels anywhere, a wall-hugger, one who never goes to the chair, an early leaver, a floor-reader.
+- They are drawn from six classes (reader, chair, explorer, still, phone, mixed), plus visitors chosen to break things: a speed-walker, an idle visitor, a tap-spammer, one who kneels anywhere, a wall-hugger, one who never goes to the chair, an early leaver, a floor-reader, and (added for the final run) a "prober" who touches again whatever just answered a touch.
 - They perceive what the room does, with a field of view, and react to it: they turn to new writing, go toward a sound beyond a wall, come to the chair when it is spoken from, and back off when the room recoils.
 - **Those reactions are assumptions.** They make the loop testable; they do not say what a person feels.
 
 `scripts/experiment.ts` runs about a thousand such visits in under two minutes:
-- 162 genomes × 5 seeds, plus 120 adversarial visits and 60 second visits.
+- 162 genomes × 5 seeds, plus 120 adversarial visits (135 with the prober) and 60 second visits.
 - Experiments are compared on identical visitors and seeds.
 
 **About 24,000 simulated visits in all,** across the baseline, the first A/B, two batteries of eight and nine arms, departure runs at 300 s, the final battery and 300 second visits.
@@ -144,7 +144,7 @@ The first proposal said the room should behave like someone caught in the dilemm
 
 ## Before → after (engine, simulated)
 
-Same instrument and the same 930 first visits: the 9-arm battery's `base` against `after.md`. "Caused" means a perceived development in place within 8 s, not the room's own life; the placebo is in brackets.
+Same instrument and the same visitors and seeds: the 9-arm battery's `base` (930 first visits) against `after.md` (945: the same 930 plus the prober's 15). "Caused" means a perceived development in place within 8 s, not the room's own life; the placebo is in brackets.
 
 | | before (desktop / phone) | after (desktop / phone) |
 |---|---|---|
@@ -171,7 +171,7 @@ Same instrument and the same 930 first visits: the 9-arm battery's `base` agains
   - Touched by click, the frame went to 0.17 with the chair lit (the leaving palette).
   - Turned back: the opening's image, the chair alone in a dark room under "I wanted you to stay." (top 0.20, bottom 0.42).
   - Kept: back to 0.53.
-  - Touched, then touched again: gone, with "The chair, from the door."
+  - Touched again: nothing happened. Walking on toward the wall: gone, with "The chair, from the door." (An earlier build left on a second touch; that was changed, see below.)
   - Touched once and left alone: the room came back on its own.
 - **The read trace.** After 6 s on "I wanted you to stay.", emphasis 0.67 and the trace 0.25. Eight seconds after looking away the look had gone (0.05) and the trace remained (0.24).
 - **A click on writing** pressed the ink (0.88, settling).

@@ -64,7 +64,8 @@ export class Lighting {
   readonly score = { key: 1, area: 1, hemi: 1, glow: 1, cone: 0.82 };
   /**
    * Light as a motif later in the visit: the room's own light (panel and sky) goes down until
-   * only the chair is lit, as it was at the start, then comes back. The key light is untouched.
+   * only the chair is lit, as it was at the start, then comes back. The key light is untouched,
+   * except by a recoil's `key` (the chair's own light dipping, docs/reviews/2026-11-core-loop.md).
    */
   private dimming: { from: number; to: number; start: number; seconds: number; rise?: number; fall?: number; glow?: number; key?: number } | null = null;
   /** How much of the chair's own glow, and of its key light, a recoil leaves (1 = all of it). */
@@ -177,8 +178,9 @@ export class Lighting {
       }
     }
     this.mood = mood;
-    this.glowKept = glowKept;
-    this.keyKept = keyKept;
+    // (Eased, so a dim that replaces a recoil's never snaps the chair's glow or key back in a frame.)
+    this.glowKept = approach(this.glowKept, glowKept, dt, 0.25);
+    this.keyKept = approach(this.keyKept, keyKept, dt, 0.25);
     const c = this.cur;
     c.intensity = approach(c.intensity, env.lightIntensity, dt, 3);
     c.warmth = approach(c.warmth, env.lightWarmth, dt, 4);
@@ -217,7 +219,7 @@ export class Lighting {
 
     const k = this.intensityScale * this.fade;
     const I = c.intensity * (1 + c.extraCold * 0.15);
-    // The key on the chair: weighted by the opening only (a dim never touches the key).
+    // The key on the chair: weighted by the opening only (a dim never touches the key; a recoil's `key` dips it, keyKept).
     const room = THREE.MathUtils.clamp(sc.area, 0, 1);
     const as = (m: number) => 1 + (m - 1) * room;
     // The room's own light: weighted by the dim (the area light's own level is already zero while

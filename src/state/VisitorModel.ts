@@ -61,7 +61,8 @@ export interface ApproachRecord {
    * They came to the chair (docs/reviews/2026-11-core-loop.md): heading for it as they came within
    * reach, then stopped by it a moment or came right up to it. Walking past it, backing in, or
    * being carried there by a memory is not coming to it; nor is coming in and going without
-   * stopping (`pass`).
+   * stopping (`pass`) — unless, however they came in, they then stand still right beside it,
+   * seeing it.
    */
   confirmed: boolean;
   arrivedAt: number | null;

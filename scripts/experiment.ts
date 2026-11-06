@@ -13,8 +13,10 @@
  * Everything here is simulated: the visitors' reactions are assumptions (visitors.ts). Read the
  * numbers as differences between arms on the same visitors, not as what people feel.
  */
-import { writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { dirname } from 'node:path';
 import { Rng } from '../src/core/rng';
+import { Director } from '../src/state/Director';
 import { LocalInterpreter } from '../src/interpret/LocalInterpreter';
 import { CLASSES, adversaries, drawGenome, liveVisit, type Genome, type VisitSummary } from '../tests/playtest/visitors';
 
@@ -34,6 +36,9 @@ const ARMS = (process.env.ARMS ?? 'base').split(';').map((a) => {
   const [name, list] = a.includes('=') ? a.split('=') : [a, ''];
   return { name, experiments: list.split(',').filter(Boolean) };
 });
+// An arm naming an experiment the Director doesn't define would run the same code as the others.
+const unknown = [...new Set(ARMS.flatMap((a) => a.experiments))].filter((e) => !Director.EXPERIMENTS.includes(e));
+if (unknown.length) throw new Error(`no such experiment: ${unknown.join(', ')} (defined: ${Director.EXPERIMENTS.join(', ') || 'none'})`);
 
 const genomes: Genome[] = [];
 const gr = new Rng(20261106);
@@ -186,5 +191,6 @@ for (const [name, rows] of Object.entries(out)) for (const g of advs) {
   console.log(`| ${name} | ${g.id} | ${f1(median(r.map((x) => x.perMinute)))} | ${f1(median(r.map((x) => x.longestSeenGap)))} | ${f1(median(r.map((x) => x.voices)))} | ${pct(a, n)} | ${pct(r.filter((x) => x.reach.memories.length).length, r.length)} | ${r.filter((x) => x.falseLeave).length} | ${pct(r.filter((x) => x.leaving === 'close').length, r.length)} close |`);
 }
 
+for (const f of [process.env.OUT, process.env.REPORT]) if (f) mkdirSync(dirname(f), { recursive: true });
 if (process.env.OUT) writeFileSync(process.env.OUT, JSON.stringify(out));
 if (process.env.REPORT) writeFileSync(process.env.REPORT, printed.join('\n') + '\n');

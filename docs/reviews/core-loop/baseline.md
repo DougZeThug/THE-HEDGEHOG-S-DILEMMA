@@ -1,3 +1,18 @@
+# Baseline (first instrument version)
+
+Produced by the first version of `scripts/experiment.ts` (commit 58194e1), before the skeptic's review corrected what counts as perceived. Its columns differ from the current script's: there was one placebo for all acts, no arrival section, and these Δexposure, Δwarmth and flinch-back columns no longer exist. The baseline on the corrected instrument is the `base` arm in `arms.md`.
+
+Legend:
+- **n:** acts of that kind.
+- **answered:** a perceived development in place within 8 s.
+- **caused:** answered by something that isn't the room's own life.
+- **none:** no caused answer.
+- **H:** entropy of the answers' kinds, in bits.
+- **placebo:** the same test at moments when nothing was done for 8 s.
+- **Δexposure g/a, Δwarmth g/a:** the field's change 6 s after a gentle / abrupt approach.
+- **air:** writing in the air.
+- **held silence:** the visit's long held silence.
+
 990 visits in 78.6 s (79 ms each). Simulated visitors; reactions are assumptions.
 
 ## Is what they do answered, in place, within 8 s? (first visits)
