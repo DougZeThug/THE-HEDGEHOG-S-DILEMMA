@@ -162,7 +162,7 @@ Same instrument and the same visitors and seeds: the 9-arm battery's `base` (930
 | "Listening" situation | 0 of 930 | 577 of 945 |
 | Visits whose trace turns the chair away next time | 78% | 64% |
 | Largest share of one departure line | 40%, the same two lines for every kind of visitor | **62%, worse**: "Somebody came back for the umbrella." The line now follows what the visitor did, but on this decision metric the result regressed, and it is not resolved (see below) |
-| The way out | (none) | taken by 111 of the 225 visitors who went to leave (by walking on); **0 unintended** among about 780 who didn't, including a "prober" who re-touches whatever answered |
+| The way out | (none) | taken by 111 of the 225 visitors assigned to leave by the door (by walking on); **0 unintended** among about 780 who didn't, including a "prober" who re-touches whatever answered |
 
 ## Observed in the browser (real input, measured frames)
 
