@@ -2,7 +2,7 @@
 
 `ARMS='before=noHeart;after' npx vite-node scripts/arc.ts`, run on the finished build (after QA's fixes and the creative director's cuts). Both arms carry the fix for a return lost to the visit's turn, which is why "recoiled at" in the before arm is a little higher than in `brief.md`. The core-loop battery (`N=12 SEEDS=3 RETURNS=20 ARMS='before=noHeart;after' npx vite-node scripts/experiment.ts`, 688 visits) is unchanged within noise between the arms. "Answer in view" is the Director's own measure (the answer's wall faced, in the simulation); the simulated visitors can't perceive a later annotation, so whether anyone looks at it is not measured.
 
-1592 visits in 76.9 s. Simulated visitors; their reactions are assumptions.
+1592 visits in 71.0 s. Simulated visitors; their reactions are assumptions.
 
 ## Does a visit reach one of the strongest memories, and when? (first visits)
 
@@ -55,7 +55,7 @@
 **before, 600 s** (largest share 61%): "Somebody came back for the umbrella." 153, "It is still warm where you were." 39, "The chair, from the door." 34, "Somebody almost knocked." 18, "The light stays on." 4, "From over there it looked smaller." 4
 **after, 180 s** (largest share 36%): "It is still warm where you were." 91, "Somebody came back for the umbrella." 81, "Somebody almost knocked." 60, "Nothing moved for a long time." 6, "The light stays on." 6, "From over there it looked smaller." 4, "I wanted you to / I took my hand back." 3, "I wanted you to stay. / I took my hand back." 1
 **after, 300 s** (largest share 39%): "Somebody came back for the umbrella." 98, "It is still warm where you were." 46, "I wanted you to stay. / I took my hand back." 39, "I wanted you to / I took my hand back." 31, "Somebody almost knocked." 29, "From over there it looked smaller." 4, "Nothing moved for a long time." 3, "The light stays on." 2
-**after, 600 s** (largest share 35%): "Somebody came back for the umbrella." 89, "I wanted you to stay. / I took my hand back." 73, "It is still warm where you were." 28, "I wanted you to / I took my hand back." 24, "Somebody almost knocked." 17, "The chair, from the door." 16, "From over there it looked smaller." 4, "The light stays on." 1
+**after, 600 s** (largest share 35%): "Somebody came back for the umbrella." 89, "I wanted you to stay. / I took my hand back." 69, "It is still warm where you were." 28, "I wanted you to / I took my hand back." 28, "Somebody almost knocked." 17, "The chair, from the door." 16, "From over there it looked smaller." 4, "The light stays on." 1
 
 ## Coming back (second visits)
 

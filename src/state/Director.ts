@@ -2090,7 +2090,9 @@ export class Director {
     }
 
     // A wall the visitor isn't looking at, so the change is found rather than watched.
-    const walls = CHARACTER_WALLS.filter((w) => w !== this.facing && w !== 'south');
+    // (Not onto the north wall once the heart's answer is there: it is left as the heart left it.)
+    const walls = CHARACTER_WALLS.filter((w) => w !== this.facing && w !== 'south' && !(w === 'north' && this.northKept()));
+    if (!walls.length) return;
     const wall = this.rng.pick(walls);
     const anchor = PHRASES.filter((p) => p.surface === wall && this.visible.get(p.id)?.mode === 'shown' && p.tier !== 'near' && !this.strayAnchors.has(p.id))
       .map((p) => ({ p, b: belonging(p, wall) }))
