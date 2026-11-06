@@ -66,9 +66,10 @@ export class Lighting {
    * Light as a motif later in the visit: the room's own light (panel and sky) goes down until
    * only the chair is lit, as it was at the start, then comes back. The key light is untouched.
    */
-  private dimming: { from: number; to: number; start: number; seconds: number; rise?: number; fall?: number; glow?: boolean } | null = null;
-  /** How much of the chair's own glow a recoil leaves (1 = all of it). */
+  private dimming: { from: number; to: number; start: number; seconds: number; rise?: number; fall?: number; glow?: number; key?: number } | null = null;
+  /** How much of the chair's own glow, and of its key light, a recoil leaves (1 = all of it). */
   private glowKept = 1;
+  private keyKept = 1;
   private mood = 1;
 
   constructor(quality: 'low' | 'medium' | 'high') {
@@ -120,10 +121,10 @@ export class Lighting {
   }
 
   /** Take the room back to the chair alone (area and sky to `to`) for `seconds`, then return. */
-  dimToChair(to: number, seconds: number, now: number, o: { fall?: number; rise?: number; delay?: number; glow?: boolean } = {}) {
+  dimToChair(to: number, seconds: number, now: number, o: { fall?: number; rise?: number; delay?: number; glow?: number; key?: number } = {}) {
     // From wherever the light is now: a second dim during a first never lifts the room first.
     // (A recoil: `delay` after its sound, quicker down (`fall`), the chair's glow taken with it.)
-    this.dimming = { from: this.mood, to: Math.min(to, this.mood), start: now + (o.delay ?? 0), seconds, rise: o.rise, fall: o.fall, glow: o.glow };
+    this.dimming = { from: this.mood, to: Math.min(to, this.mood), start: now + (o.delay ?? 0), seconds, rise: o.rise, fall: o.fall, glow: o.glow, key: o.key };
   }
 
   /** A dim let go early (a vignette interrupted; a held silence left): the room's light comes back over `seconds`, from where it is. */
@@ -160,6 +161,7 @@ export class Lighting {
     }
     let mood = this.dimming && now < this.dimming.start ? this.mood : 1;
     let glowKept = 1;
+    let keyKept = 1;
     if (this.dimming && now >= this.dimming.start) {
       const d = this.dimming;
       const t = now - d.start;
@@ -170,11 +172,13 @@ export class Lighting {
         const down = s(Math.min(1, t / (d.fall ?? 3))), up = s(Math.max(0, Math.min(1, (d.seconds - t) / (d.rise ?? 4))));
         const level = d.from + (d.to - d.from) * down;
         mood = 1 - (1 - level) * up;
-        if (d.glow) glowKept = 1 - down * up;
+        if (d.glow) glowKept = 1 - d.glow * down * up;
+        if (d.key) keyKept = 1 - d.key * down * up;
       }
     }
     this.mood = mood;
     this.glowKept = glowKept;
+    this.keyKept = keyKept;
     const c = this.cur;
     c.intensity = approach(c.intensity, env.lightIntensity, dt, 3);
     c.warmth = approach(c.warmth, env.lightWarmth, dt, 4);
@@ -222,7 +226,7 @@ export class Lighting {
     this.area.color.copy(col);
     this.area.intensity = AREA * I * k * sc.area * mood * asLit(L.area, mood);
     this.key.color.copy(col);
-    this.key.intensity = KEY * I * k * (1 + c.extraCold * 0.4) * sc.key * as(L.key);
+    this.key.intensity = KEY * I * k * (1 + c.extraCold * 0.4) * sc.key * as(L.key) * this.keyKept;
     this.key.angle = sc.cone * as(L.cone);
     this.hemi.color.copy(col).lerp(this.white, 0.4);
     this.hemi.intensity = HEMI * (0.75 + 0.25 * I) * k * sc.hemi * mood * asLit(L.fill, lit);

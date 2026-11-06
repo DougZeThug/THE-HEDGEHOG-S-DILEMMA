@@ -210,6 +210,8 @@ export class VisitorModel {
           // Arrived: stopped by it half a second, or come right up to it, or come straight at it and
           // straight back out again (the hesitation itself: not walking past it).
           this.stopRun = this.speed < 0.15 ? this.stopRun + dt : 0;
+          // (However they came in: standing still right beside it, seeing it, is being with it — QA, 2026-11-06.)
+          if (!rec.confirmed && this.stopRun >= 0.5 && this.distance <= 0.9 && this.chairOutOfViewFor === 0 && !inp.carried) rec.pass = false;
           if (!rec.confirmed && !rec.pass && (this.stopRun >= 0.5 || this.distance <= 0.6 || this.heading(inp.x, inp.z, -1, 45))) {
             rec.confirmed = true;
             rec.arrivedAt = this.t;

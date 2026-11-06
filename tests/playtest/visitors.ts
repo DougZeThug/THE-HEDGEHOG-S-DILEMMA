@@ -72,6 +72,8 @@ export interface Genome {
   floorOnly?: boolean;
   /** Keeps to the walls. */
   wallHugger?: boolean;
+  /** Touches again whatever just answered a touch (2–6 s later): the explorer's reflex. */
+  prober?: boolean;
 }
 
 const SPAWN: [number, number] = [0, 2.85];
@@ -162,6 +164,8 @@ export function adversaries(): Genome[] {
     { ...base, id: 'never-chair', chair: 0, manner: 'never', reading: 1 },
     { ...base, id: 'early-leaver', session: 75, leave: 'turn' },
     { ...base, id: 'floor-reader', floorOnly: true, reading: 1, chair: 0.6 },
+    // Reads the south wall, touches what it reads, and touches it again when the room answers.
+    { ...base, id: 'prober', device: 'phone', move: 'auto', prober: true, tap: 1, reading: 1.4, span: 8, tempo: 0.3, curiosity: 0.9 },
   ];
 }
 
@@ -227,6 +231,8 @@ export class Policy {
   private lookYaw: number | null = null;
   private tapChair = false;
   private confirmed = false;
+  private reTapAt: number | null = null;
+  private reTapId: string | null = null;
   private sawEbb: number | null = null;
 
   constructor(readonly g: Genome, private r: Rng) {
@@ -287,7 +293,8 @@ export class Policy {
     let x = r.next() * total;
     if ((x -= w.read) < 0) {
       const unread = onWalls.filter((id) => !this.readSet.has(id));
-      const pool = unread.length && !r.chance(g.revisit) ? unread : onWalls;
+      const south = g.prober ? onWalls.filter((id) => (writtenOn.get(id) ?? PHRASE_BY_ID.get(id)?.surface) === 'south') : [];
+      const pool = south.length && r.chance(0.6) ? south : unread.length && !r.chance(g.revisit) ? unread : onWalls;
       // Nearer lines are likelier: people read what is in front of them.
       const id = pool[r.int(0, pool.length - 1)];
       const face = (writtenOn.get(id) ?? PHRASE_BY_ID.get(id)!.surface) as Surface;
@@ -411,6 +418,16 @@ export class Policy {
           }
           gaze = it.id;
           this.readSet.add(it.id);
+          if (g.prober && it.tapped !== true && it.until !== null && (p.light.length || p.sounds.length)) {
+            it.tapped = true;
+            this.reTapAt = t + r.range(2, 6);
+            this.reTapId = it.id;
+          }
+          if (this.reTapAt !== null && t >= this.reTapAt && this.reTapId === it.id) {
+            this.reTapAt = null;
+            tap = { phraseId: it.id };
+            this.log.push({ t, kind: 'tap', phrase: it.id });
+          }
           if (t >= it.until) this.intent = null;
         }
         break;
@@ -477,11 +494,11 @@ export class Policy {
             }
           }
           gaze = d.visible.has('party-early') ? 'party-early' : null;
-          // Once the room has begun to let them go (they see it ebb), they touch it again.
+          // Once the room has begun to let them go (they see it ebb), they walk on, toward the wall.
           if (p.light.includes('dim')) this.sawEbb ??= t;
           if (this.sawEbb !== null && t - this.sawEbb >= 2.5 && !this.confirmed) {
             this.confirmed = true;
-            tap = { phraseId: 'party-early' };
+            this.walk([this.x, Math.min(2.85, this.z + 0.6)]);
           }
           if (t >= it.until) this.leftAt = t;
         }

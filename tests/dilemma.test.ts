@@ -67,6 +67,11 @@ describe('coming to the chair, or only passing it', () => {
     expect(m.hesitations).toBe(1);
   });
 
+  it('walking to stand right beside it, at an angle, and staying is coming to it (QA)', () => {
+    const m = run(new VisitorModel(), path([{ to: [0.55, 0.15], speed: 1.05, hold: 10 }]));
+    expect(m.comings).toHaveLength(1);
+  });
+
   it('backing in is not coming to it', () => {
     const m = new VisitorModel();
     run(m, path([{ to: [0, 0.8], speed: 0.8, hold: 2 }]).map((i) => ({ ...i, yaw: Math.PI + i.yaw, gazeChair: false })));
@@ -147,7 +152,7 @@ describe('the way out', () => {
     return out;
   };
 
-  it('touched, the room starts letting them go; touched again, they have gone', () => {
+  it('touched, the room starts letting them go; walking on, toward the wall, they have gone', () => {
     const { d, here } = atTheDoor();
     expect(d.visible.has(Director.EXIT)).toBe(true);
     still(d, here, 2);
@@ -155,18 +160,31 @@ describe('the way out', () => {
     const cues = still(d, here, 4);
     expect(cues.some((c) => c.rule === 'leaving' && c.cue.type === 'silence' && c.cue.dim !== undefined)).toBe(true);
     expect(cues.some((c) => c.cue.type === 'leave')).toBe(false);
-    d.tapped({ phraseId: Director.EXIT });
-    expect(still(d, here, 1).some((c) => c.cue.type === 'leave')).toBe(true);
+    // Walking on (facing south, z grows toward the wall they came in by).
+    const on: TimedCue[] = [];
+    for (let t = 0; t < 1; t += DT) on.push(...d.tick(DT, { ...here, z: here.z + 0.4 * t }, 'south'));
+    expect(on.some((c) => c.cue.type === 'leave')).toBe(true);
     expect(d.departureLine()).toBe('The chair, from the door.');
   });
 
-  it('touched once and left alone (reading it, say), the room comes back: nobody leaves by accident', () => {
+  it('touching the words again does nothing: the explorer\'s reflex never ends the visit', () => {
     const { d, here } = atTheDoor();
     still(d, here, 2);
     d.tapped({ phraseId: Director.EXIT });
-    const cues = still(d, { ...here, gazePhraseId: Director.EXIT }, 30);
+    still(d, here, 4);
+    d.tapped({ phraseId: Director.EXIT });
+    d.tapped({ phraseId: Director.EXIT });
+    const cues = still(d, here, 20);
     expect(cues.some((c) => c.cue.type === 'leave')).toBe(false);
-    expect(cues.some((c) => c.rule === 'leaving-kept' && c.cue.type === 'lift')).toBe(true);
+    expect(cues.some((c) => c.rule === 'leaving-kept')).toBe(true);
+  });
+
+  it('while it lets them go, the chair creaks behind them, once', () => {
+    const { d, here } = atTheDoor();
+    still(d, here, 2);
+    d.tapped({ phraseId: Director.EXIT });
+    const cues = still(d, here, 20);
+    expect(cues.filter((c) => c.rule === 'leaving-creak' && c.cue.type === 'sound')).toHaveLength(1);
   });
 
   it('a turn keeps them: the room comes back, and it is not offered again at once', () => {
@@ -178,6 +196,7 @@ describe('the way out', () => {
     expect(back.some((c) => c.cue.type === 'leave')).toBe(false);
     expect(back.some((c) => c.rule === 'leaving-kept' && c.cue.type === 'lift')).toBe(true);
     still(d, here, 2);
+    // (Not again at once: half a minute.)
     d.tapped({ phraseId: Director.EXIT });
     expect(still(d, here, 12).some((c) => c.rule === 'leaving')).toBe(false);
   });

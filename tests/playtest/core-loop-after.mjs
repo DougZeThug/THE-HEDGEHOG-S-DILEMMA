@@ -131,12 +131,17 @@ for (const [i, secs] of [[1, 0.6], [2, 0.6], [3, 0.8], [4, 1.5], [5, 4]]) {
   await hold(secs, 'returned');
   await shot(`03-return-${i}`);
 }
-// 4. Away and back again: the second, smaller.
+// 4. Away and back again: the second, the chair's own light (the key level on the chair is sampled).
 await walkUntil('KeyS', (s) => s.d > 2.5);
 await hold(6, 'away again');
 await walkUntil('KeyW', (s) => s.d < 0.95);
-await hold(1.6, 'returned again');
-await shot('04-second-return');
+const keyBefore = await hh(() => window.__hedgehog.lighting.keyLevel);
+let keyMin = keyBefore;
+for (let i = 0; i < 12; i++) {
+  await hold(0.25, 'returned again');
+  keyMin = Math.min(keyMin, await hh(() => window.__hedgehog.lighting.keyLevel));
+  if (i === 5) await shot('04-second-return');
+}
 await hold(5, 'returned again');
 // 5. Kneeling by it.
 await page.keyboard.press('Space');
@@ -228,14 +233,19 @@ await page.mouse.click(440, 260);
 for (let i = 0; i < 40 && !(await hh(() => !!window.__hedgehog.director.letGo)); i++) await hold(0.3, 'touched: settling');
 await hold(3, 'touched: the room letting go');
 await shot('10-letting-go-again');
+// Touched again: nothing (the explorer's reflex never ends the visit).
 await page.mouse.click(440, 260);
-const left = await hold(3, 'touched again');
+await hold(1.5, 'touched again');
+const afterSecondTouch = await hh(() => window.__hedgehog.mode);
+// Walking on, toward the wall: gone.
+await walkUntil('KeyW', (s) => s.mode !== 'room', 8000);
+const left = await hold(2, 'walked on');
 await sleep(5000);
 await shot('10-gone');
 const end = await sample('end');
 
 const summary = {
-  exp: EXP, read: target, aimed, reading, handled, pressed, exit, mode: end.mode, departure: end.departure,
+  exp: EXP, read: target, aimed, reading, handled, pressed, exit, keyBefore, keyMin, afterSecondTouch, mode: end.mode, departure: end.departure,
   recoils: log.filter((c) => c.type === 'flinch'), leaving: log.filter((c) => /^leaving/.test(c.rule) || c.type === 'leave'),
   air: log.filter((c) => c.type === 'air'), frames, errors,
 };

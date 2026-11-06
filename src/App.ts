@@ -28,7 +28,7 @@ import { ROOM } from './world/layout';
 import { Director, returnYaw } from './state/Director';
 import type { Cue, VoicePosition } from './state/cues';
 import type { Surface } from './content/types';
-import { PHRASES } from './content/phrases';
+import { PHRASE_BY_ID, PHRASES } from './content/phrases';
 import { THRESHOLD_LINES } from './content/relations';
 import { AudioEngine } from './audio/AudioEngine';
 import { Ambience } from './audio/Ambience';
@@ -1580,7 +1580,7 @@ export class App {
       for (const c of cues) {
         this.apply(c.cue);
         // The way out is told to a screen reader as it is seen: the room going, and what keeps or takes it.
-        if (c.rule === 'leaving' && c.cue.type === 'silence') this.srRegion().textContent = 'The room begins to let you go. Touch the words again to leave; move, or wait, to stay.';
+        if (c.rule === 'leaving' && c.cue.type === 'silence') this.srRegion().textContent = 'The room begins to let you go. Walk on to leave; turn back, or wait, to stay.';
         else if (c.rule === 'leaving-kept') this.srRegion().textContent = 'The room comes back.';
       }
     }
@@ -1750,8 +1750,9 @@ export class App {
         // toward the chair a quarter-second later: in over 0.9 s, held 1 s, out over 5 s.
         const gentle = this.prefs.intensity === 'gentle';
         this.audio?.silence(0.62 * cue.amount * (gentle ? 0.8 : 1), 1.2, 0.07, 1.5);
+        // The second time the room stays as it is and the chair's own light goes: the hurt in the chair.
         const to = cue.chair ? 1 : 1 - 0.28 * cue.amount * (gentle ? 0.55 : 1);
-        this.lighting.dimToChair(to, 0.9 + 1 + 5, this.time, { delay: 0.25, fall: 0.9, rise: 5, glow: true });
+        this.lighting.dimToChair(to, 0.9 + 1 + 5, this.time, { delay: 0.25, fall: 0.9, rise: 5, glow: gentle ? 0.5 : 1, key: cue.chair ? 0.4 * (gentle ? 0.6 : 1) : 0 });
         break;
       }
     }
@@ -1885,9 +1886,11 @@ export class App {
 
   private cyclePhrase(dir: 1 | -1) {
     const cam = this.rig.camera.position;
-    const vis: { centre: THREE.Vector3 }[] = [...this.text.items.values()].filter((i) => i.vis > 0.5 && i.purpose !== 'drawing' && i.uniforms.uOpacity.value > 0.2 && i.placement.surface !== 'ceiling');
+    const vis: { centre: THREE.Vector3; words?: string }[] = [...this.text.items.values()]
+      .filter((i) => i.vis > 0.5 && i.purpose !== 'drawing' && i.uniforms.uOpacity.value > 0.2 && i.placement.surface !== 'ceiling')
+      .map((i) => ({ centre: i.centre, words: i.phrase?.text ?? (i.source ? PHRASE_BY_ID.get(i.source)?.text : undefined) }));
     const air = this.text.airCentre;
-    if (air) vis.push({ centre: air });
+    if (air) vis.push({ centre: air, words: 'words written in the air' });
     if (!vis.length) return;
     vis.sort((a, b) => {
       const aa = Math.atan2(-(a.centre.x - cam.x), -(a.centre.z - cam.z));
@@ -1896,6 +1899,9 @@ export class App {
     });
     this.tabIndex = (this.tabIndex + dir + vis.length) % vis.length;
     this.rig.faceToward(vis[this.tabIndex].centre);
+    // Without sight, the writing turned to is read out (the way out among it: QA, 2026-11-06).
+    const words = vis[this.tabIndex].words;
+    if (words) this.srRegion().textContent = `On the wall: ${words}`;
   }
 
   private bindInput() {
@@ -2012,13 +2018,15 @@ export class App {
         // first click on writing used to do nothing but take the mouse (docs/reviews/2026-11-core-loop.md).
         if (!this.touch && canvas.requestPointerLock) {
           const r = canvas.getBoundingClientRect();
-          if (Math.abs(e.clientX - (r.left + r.width / 2)) < r.width * 0.12 && Math.abs(e.clientY - (r.top + r.height / 2)) < r.height * 0.14) this.interact();
+          const centre = Math.abs(e.clientX - (r.left + r.width / 2)) < r.width * 0.12 && Math.abs(e.clientY - (r.top + r.height / 2)) < r.height * 0.14;
+          if (centre) this.interact();
           lockWanted = true;
+          // (Refused, the click still acts — once: not again if it already has.)
           try {
             const r = canvas.requestPointerLock() as unknown as Promise<void> | undefined;
-            r?.catch?.(() => this.interact());
+            r?.catch?.(() => !centre && this.interact());
           } catch {
-            this.interact();
+            if (!centre) this.interact();
           }
         } else this.interact();
       }
@@ -2236,6 +2244,8 @@ export class App {
     const pid = this.text.phraseOf(it.key);
     this.lastTappedKey = it.key;
     if (pid) this.director.tapped({ phraseId: pid });
+    // The ink takes a touch from a finger as from a click.
+    this.text.press(it.key);
     const c = it.centre;
     // A line that opens into a memory: stop where its painting is seen whole (on a portrait
     // phone 1.25 m shows only about a metre of wall).

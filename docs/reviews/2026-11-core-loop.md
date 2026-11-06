@@ -108,7 +108,8 @@ The first proposal said the room should behave like someone caught in the dilemm
 2. **The room recoils at a return, not at speed.**
    - The first arrival is met as it always was.
    - Coming back after going away (4 s or more) brings a recoil: a 70 ms fall of the room's sound, held 1.2 s and given back, and the room's own light pulled back toward the chair (0.9 s in, 1 s held, 5 s out), the chair's glow with it.
-   - The second return gets 0.6 of that; then never again. The room gets used to you.
+   - The second return: the room stays as it is and the chair's own key light dips (to 0.60 of itself, measured), "the hurt in the chair". Then never again. The room gets used to you.
+   - It needs the first stay to have lasted 6 s. Nothing is written or said over it for 7 s.
    - It works on every device. It never happens inside a memory, a held silence or an aftermath, nor straight after the words in the air were rubbed out.
    - The skeptic's design. The light is the cinematic director's, the sound the sound designer's.
    - The creative director wanted the chair's *shadow* to draw back. Not done: drift has a 6 s time constant, costs shadow redraws, and is out of frame after a rush. The room light pulling back is the same subtraction, and it can be seen.
@@ -117,15 +118,17 @@ The first proposal said the room should behave like someone caught in the dilemm
    - Kneeling is kneeling within 1.5 m of the chair.
    - A touch is felt in the ink. The hum dip it used to get half the time is removed.
    - A read line keeps a quarter of its look, fading over minutes ("handled paper"; the skeptic's).
-5. **The departure line says how the visit went with the chair:** close, came back, refused, apart, still, otherwise.
+5. **The departure line says how the visit ended with the chair:** leaving from a long stay ("still warm"), came back after 20 s or more away ("umbrella"), stayed close earlier, refused, apart, still, otherwise.
    - The creative director's mapping, with one new line, "Somebody came back for the umbrella."
    - "Close" now means kneeling 8 s or one stay of 45 s, not 25 s.
    - The motif-based lines that could no longer be reached were removed (contributor, warmth, wandering, the two defaults). "Nothing moved for a long time." stays, for one who never came near and stood still.
 6. **The way out.**
-   - From the middle of a visit, touching "I left the party early and walked home and it was lovely." begins the room letting the visitor go, once they stand there.
-   - The line was moved to eye height above the drawn door.
-   - Touching it again leaves. Anything else, a pause, or twelve seconds of nothing keeps them.
-   - The skeptic proposed a touched line instead of a detector; two touches came from the battery's false departures.
+   - From the middle of a visit, touching "I left the party early and walked home and it was lovely." begins the room letting the visitor go, once they stand there. The line is small, beside the drawn door, under its "hello?"; its placement was measured clear of everything else on the wall.
+   - The chair creaks once behind them, so going is a choice *against* something.
+   - **Walking on, toward the wall, leaves.** Touching the words again does nothing.
+   - A turn, a step any other way, anything else, a pause, or twelve seconds of nothing keeps them.
+   - No encounter beat or reassurance comes on the line, and "stay" is never said within 20 s of it.
+   - The skeptic proposed a touched line instead of a detector. Two touches came from the battery's false departures. Walking on came from the interaction designer: a second touch is the explorer's reflex.
    - The line was chosen because it is already on the wall they came in by, and makes leaving a relief, not a moral.
    - **The artist should judge the line and the placement.**
 7. **Memories.**
@@ -145,21 +148,21 @@ Same instrument and the same 930 first visits: the 9-arm battery's `base` agains
 
 | | before (desktop / phone) | after (desktop / phone) |
 |---|---|---|
-| Coming to the chair | 15% / 18% (8% / 3%) | **35% / 37%** (8% / 4%) |
-| Coming *back* to it | 12% / 15% | **35% / 37%** |
-| Kneeling | 23% / 31% | **36% / 44%** |
+| Coming to the chair | 15% / 18% (8% / 3%) | **32% / 37%** (7% / 5%) |
+| Coming *back* to it | 12% / 15% | **31% / 37%** |
+| Kneeling | 23% / 31% | **34% / 42%** |
 | Tapping the chair (phone) | 16% | **34%** |
-| Stepping back | 41% / 40% | 46% / 49% |
-| Reading a line (first meeting) | 19% / 24% | 20% / 24%: unchanged in the engine (its answer, the read trace, is visual) |
-| Active 30 s windows with nothing perceived in answer | 21% | 18% |
-| Identical answer to a repeated act | 0% | 9% (the recoil, twice, then never) |
-| Developments a minute, imposed quiet, overlapping sounds | 6.8, 40%, 0 | 7.1, 41%, 0 |
-| Writing in the air reached | 3% | **31%** |
-| Any painted memory; Almost | 44%; 1% | 45%; 5% |
-| "Listening" situation | 0 of 930 | 562 of 930 |
+| Stepping back | 41% / 40% | 45% / 47% |
+| Reading a line (first meeting) | 19% / 24% | 19% / 24%: unchanged in the engine (its answer, the trace a touch leaves, is visual) |
+| Active 30 s windows with nothing perceived in answer | 21% | 20% |
+| Identical answer to a repeated act | 0% | 3% |
+| Developments a minute, imposed quiet, overlapping sounds | 6.8, 40%, 0 | 6.9, 43%, 0 |
+| Writing in the air reached | 3% | **30%** |
+| Any painted memory; Almost | 44%; 1% | 44%; 5% |
+| "Listening" situation | 0 of 930 | 575 of 945 |
 | Visits whose trace turns the chair away next time | 78% | 65% |
-| Largest share of one departure line | 40%, the same two lines for every kind of visitor | 53%, by behaviour: chair-seekers 100% "still warm", explorers 52% "umbrella" |
-| The way out | (none) | taken by 150 of 225 visitors who went to leave; **0 unintended** among about 700 who didn't |
+| Largest share of one departure line | 40%, the same two lines for every kind of visitor | 62% "Somebody came back for the umbrella.": by behaviour, and this simulated population leaves the chair and comes back a lot |
+| The way out | (none) | taken by 112 of 225 visitors who went to leave (by walking on); **0 unintended** among about 780 who didn't, including a "prober" who re-touches whatever answered |
 
 ## Observed in the browser (real input, measured frames)
 
@@ -174,12 +177,43 @@ Same instrument and the same 930 first visits: the 9-arm battery's `base` agains
 - **A click on writing** pressed the ink (0.88, settling).
 - **No console errors.** The opening's real-time check passes. The smoke test and the phone playtest pass.
 
+## Evaluating the finished build (QA, creative director, interaction designer)
+
+**QA/accessibility**, in a real browser:
+- The core loop works with no console errors, and going back in resets everything.
+- Found and fixed:
+  - standing still beside the chair at an angle never counted as coming to it;
+  - phone taps didn't mark the ink;
+  - a far touch on the way out could time out;
+  - a click could act twice when the pointer lock was refused;
+  - gentle intensity didn't soften the glow cut;
+  - a recoil could land on a turn of the visit;
+  - a blind visitor couldn't find the way out. Tab now reads the writing it turns to, and "go back in" is described by the departure line.
+
+**Creative director:** "for the first time the visit has an arc a visitor could feel in the body". Both ends were spoiled by the room talking over itself. Fixed:
+- an encounter beat ("There's nothing wrong with being alone.") set off by touching the way out;
+- "I wanted you to stay." spoken just before it;
+- the recoil written over at once;
+- a second recoil that differed only in strength;
+- the way out reading as an EXIT sign;
+- the read trace: the eye's, now the hand's (a touch leaves a little, less each time).
+
+The creak behind the visitor as the room lets them go is theirs.
+
+**Interaction designer:** coming back now gets "one clear, well-timed visible answer", and the let-go and turning back is "the strongest caused moment in the room". But a second touch is the explorer's reflex, so it would have ended visits by accident; hence walking on. The second recoil couldn't be seen; hence the chair's own light. The way out is an encounter, not something leavers will look for: the menu stays the ordinary exit, and the numbers above should be read that way.
+
+Observed after these fixes:
+- the first recoil −14.5% of the frame;
+- the second, the chair's key light to 0.60;
+- touch, then let go, then a second touch did nothing, then walking on left, with "The chair, from the door.";
+- no errors.
+
 ## What still needs a person
 
 - **Whether the recoil reads as the room flinching or as a fault**, at real frame rate, on an OLED phone with auto-brightness. Stills at about 15 fps can't say.
 - **Whether a 70 ms drop in the room tone reads as a flinch or a dropout.** That needs the artist's ears, on headphones and on a phone.
-- **Whether anyone finds the way out, and whether the second touch feels like a choice or a confirmation dialog.** Only people can say. A screen reader is told what to do; sighted visitors are not.
-- **Whether the read trace reads as a hand's trace or as a "visited link".** Tune it by eye (`HANDLED` in `WallText.ts`).
+- **Whether anyone finds the way out, and whether walking on into the dark, with the chair creaking behind, reads as going.** Only people can say. A screen reader is told what to do; sighted visitors are not. Whether the creak makes people turn round (and so stay) needs the artist's ears.
+- **Whether the trace a touch leaves reads as a hand's or as a "visited link".** Tune it by eye (`HANDLED` in `WallText.ts`).
 - **The departure lines are now honest but uneven.** In this simulated population many visitors kneel, so "It is still warm where you were." is the most common line. Real visitors may kneel far less.
 - **Second visits meeting a new painted memory:** 42% → 34% (60, then 300 visits). Within noise, unexplained, and worth watching.
 - **Reading, the most frequent act, still has no engine-visible answer beyond chance.** That is deliberate (the README's rule survives for words); the read trace is its only answer.
