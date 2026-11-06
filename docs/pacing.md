@@ -68,6 +68,29 @@ Measured, before → after (first visits, 40):
   | the bedroom | 9 | 4 |
   | charger (B) | 2 | 0 |
 
+## The core loop: answers to what the visitor does (November 2026)
+
+The pacing above asks whether *something* happens. The core-loop audit (`docs/reviews/2026-11-core-loop.md`) asked whether what the visitor did was answered **where they did it, within 8 s, perceptibly, and more often than chance**.
+
+It was measured with closed-loop visitors who react to the room (`tests/playtest/visitors.ts`, `npx vite-node scripts/experiment.ts`): about 24,000 simulated visits, plus real-browser runs with measured frames.
+
+Pacing settings that changed:
+- A recoil at a return to the chair: a fast hush (depth 0.62, 70 ms fall, 1.2 s hold, 1.5 s rise) and the room's light pulled back toward the chair (to 0.72, 0.9 s in, 1 s held, 5 s out), twice a visit at most.
+  - It never comes inside a memory, a held silence or an aftermath, nor after the words in the air were just rubbed out.
+  - It is an answer, so the scheduler doesn't space it.
+- The first approach is answered only once the visitor has arrived (walking past the chair answers nothing).
+- The words in the air hold the room for 12 s from when they appear, not from when they are decided.
+- The way out's dim (the room's light to 0.25, the chair lit) belongs to the visitor: the turn into the last phase waits for it, and it waits for the turn.
+
+Measured on first visits, before → after (desktop / phone; placebo in brackets):
+- coming to the chair: 15% / 18% → 35% / 37% (8% / 4%);
+- coming back to it: 12% / 15% → 35% / 37%;
+- kneeling: 23% / 31% → 36% / 44%;
+- active 30 s windows with nothing answered: 21% → 18%;
+- developments a minute: 6.8 → 7.1; imposed quiet: 40% → 41%; overlapping sounds: 0 → 0.
+
+`tests/pacing.test.ts` still holds the targets above, unchanged.
+
 ## What it is now
 
 - **Engagement** (`src/state/Engagement.ts`). What a visitor does becomes signals: reading a line, coming back to one after looking away, touching writing or the chair, approaching, staying with the chair, kneeling, looking around, crossing the room, pausing on purpose, writing. Attending to the writing counts for more than moving about. The visit's *depth* grows from these, and slowly by itself.

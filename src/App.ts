@@ -1577,7 +1577,12 @@ export class App {
         carried: this.inside.carrying,
       };
       const cues = this.director.tick(dt, input, this.room.facing(this.rig.yaw));
-      for (const c of cues) this.apply(c.cue);
+      for (const c of cues) {
+        this.apply(c.cue);
+        // The way out is told to a screen reader as it is seen: the room going, and what keeps or takes it.
+        if (c.rule === 'leaving' && c.cue.type === 'silence') this.srRegion().textContent = 'The room begins to let you go. Touch the words again to leave; move, or wait, to stay.';
+        else if (c.rule === 'leaving-kept') this.srRegion().textContent = 'The room comes back.';
+      }
     }
 
     const env = this.director.env;
@@ -2409,6 +2414,8 @@ export class App {
   openSettings() {
     if (this.mode !== 'room') return;
     this.mode = 'settings';
+    // (Paused as the room let them go: they stayed.)
+    this.director.stayed();
     if (document.pointerLockElement) document.exitPointerLock();
     this.rig.keys.clear();
     this.rig.cancelAttend();

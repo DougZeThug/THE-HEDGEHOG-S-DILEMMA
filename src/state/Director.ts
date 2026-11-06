@@ -2203,6 +2203,12 @@ export class Director {
     this.queue(0, { type: 'leave' }, 'leaving', { ttl: 2 });
   }
 
+  /** The visitor paused the room (settings): a leaving under way is not taken. */
+  stayed(): void {
+    this.letGoAsked = -Infinity;
+    if (this.letGo) this.keep();
+  }
+
   /** They stayed: the room comes back (heard first, then seen, a moment after they turn). */
   private keep(): void {
     this.letGo = null;
@@ -2363,6 +2369,11 @@ export class Director {
   returnAfterDeparture(): void {
     this.departing = false;
     this.visits++;
+    // Back in: they have not left by the way out (it may be taken again, in a while).
+    this.left = false;
+    this.letGo = null;
+    this.letGoAsked = -Infinity;
+    this.keptAt = this.now;
     const p = this.selector.select(this.ctx(), {
       exclude: this.hiddenExcluding(),
       tiers: ['familiar', 'contradiction', 'transform', 'arrival'],
