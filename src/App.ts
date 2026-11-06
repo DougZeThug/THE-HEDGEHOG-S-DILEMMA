@@ -190,7 +190,9 @@ export class App {
   async boot() {
     const params = new URLSearchParams(location.search);
     const seedParam = Number(params.get('seed'));
-    const seed = Number.isFinite(seedParam) && seedParam > 0 ? seedParam : 1000 + (this.visits + 1) * 7919;
+    // Each visit its own draw (`?seed=` fixes it): by visit count alone, every first visit anyone
+    // ever made drew the same room (docs/reviews/2026-11-core-loop.md).
+    const seed = Number.isFinite(seedParam) && seedParam > 0 ? seedParam : 1 + Math.floor(Math.random() * 2 ** 30);
     $('threshold-line').textContent = THRESHOLD_LINES[Math.min(THRESHOLD_LINES.length - 1, this.visits)];
 
     // The fonts (at most four seconds), then the material scans the room's surfaces are baked with
@@ -231,7 +233,6 @@ export class App {
       situations: forced,
       // Design experiments for inspection (`?exp=a,b`; docs/reviews/2026-11-core-loop.md).
       experiments: params.get('exp')?.split(',').map((s) => s.trim()).filter(Boolean),
-      touch: this.touch,
       // Where each piece of writing is, for situations that relate place to memory.
       geometry: (id) => {
         const w = this.text.whereIs(id);
@@ -240,6 +241,7 @@ export class App {
     });
     // Until the voices' manifest says which are recorded, no vignette speaks.
     this.director.scenes.setAvailable(new Set());
+    this.text.handling = this.director.exp.has('handled');
     // How the last visit left the chair, set in the dark before anything is seen: the only change
     // to it on return (docs/reviews/2026-10-emotional-depth.md).
     const yaw = returnYaw(trace, this.chair.baseYaw);

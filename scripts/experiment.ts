@@ -75,38 +75,43 @@ console.log(`${total} visits in ${(ms / 1000).toFixed(1)} s (${(ms / total).toFi
 const firsts = (rows: VisitSummary[]) => rows.filter((r) => r.visit === 1);
 
 // ── Agency ──
-console.log('## Is what they do answered, in place, within 8 s? (first visits)\n');
+// (Decide on these: perceptible answers per device against their own placebo. Ignore entropy, field
+// deltas and anything an act counts for itself; skeptic review, 2026-11-06.)
+console.log('## Is what they do answered, in place, within 8 s? (first visits; caused answers, perceived)\n');
 const KINDS = ['meet', 'return', 'tap', 'turn', 'approach', 'kneel', 'tap-chair', 'pause-chair', 'withdraw', 'pause', 'write'];
-console.log(`| arm | ${KINDS.map((k) => `${k} n · answered · caused · none · H`).join(' | ')} | placebo |`);
-console.log(`|---|${KINDS.map(() => '---').join('|')}|---|`);
-for (const [name, rows] of Object.entries(out)) {
+const PLACEBO_OF: Record<string, string> = { meet: 'meet', return: 'meet', tap: 'meet', turn: 'turn', approach: 'approach', kneel: 'approach', 'tap-chair': 'approach', 'pause-chair': 'approach', withdraw: 'withdraw', pause: 'withdraw', write: 'withdraw' };
+console.log(`| arm | device | ${KINDS.map((k) => `${k}: n · caused (placebo)`).join(' | ')} |`);
+console.log(`|---|---|${KINDS.map(() => '---').join('|')}|`);
+for (const [name, rows] of Object.entries(out)) for (const dev of ['desktop', 'phone'] as const) {
+  const rs = firsts(rows).filter((r) => r.device === dev);
   const cells = KINDS.map((k) => {
-    let n = 0, a = 0, c = 0;
-    const kinds: Record<string, number> = {};
-    for (const r of firsts(rows)) {
+    let n = 0, c = 0, pn = 0, ph = 0;
+    for (const r of rs) {
       const row = r.actions[k];
-      if (!row) continue;
-      n += row.n;
-      a += row.answered;
-      c += row.caused;
-      for (const [kk, v] of Object.entries(row.kinds)) kinds[kk] = (kinds[kk] ?? 0) + v;
+      if (row) {
+        n += row.n;
+        c += row.caused;
+      }
+      const p = r.placeboBy[PLACEBO_OF[k]];
+      if (p) {
+        pn += p.n;
+        ph += p.hit;
+      }
     }
-    return `${n} · ${pct(a, n)} · ${pct(c, n)} · ${pct(kinds.none ?? 0, n)} · ${entropy(kinds).toFixed(2)}`;
+    return `${n} · ${pct(c, n)} (${pct(ph, pn)})`;
   });
-  const pl = firsts(rows).reduce((p, r) => ({ n: p.n + r.placebo.n, h: p.h + r.placebo.hit }), { n: 0, h: 0 });
-  console.log(`| ${name} | ${cells.join(' | ')} | ${pct(pl.h, pl.n)} |`);
+  console.log(`| ${name} | ${dev} | ${cells.join(' | ')} |`);
 }
 
-// ── Answer kinds for the chair ──
-console.log('\n## How coming near is answered, by manner (first visits)\n');
-console.log('| arm | device | gentle · abrupt · neutral · pass | answered (caused) gentle | abrupt | neutral | Δexposure g/a | Δwarmth g/a | after a flinch-back: next approach gentler |');
-console.log('|---|---|---|---|---|---|---|---|---|');
+// ── Coming to the chair ──
+console.log('\n## Arriving at the chair: the first, a return after going away, again (first visits)\n');
+console.log('| arm | device | first · return · again | answered: first | return | again |');
+console.log('|---|---|---|---|---|---|');
 for (const [name, rows] of Object.entries(out)) for (const dev of ['desktop', 'phone'] as const) {
   const aps = firsts(rows).filter((r) => r.device === dev).flatMap((r) => r.approaches);
   const by = (m: string) => aps.filter((a) => a.manner === m);
-  const ans = (m: string) => `${pct(by(m).filter((a) => a.answer !== 'none').length, by(m).length)} ${JSON.stringify(Object.fromEntries(Object.entries(by(m).reduce((o, a) => ({ ...o, [a.answer]: ((o as Record<string, number>)[a.answer] ?? 0) + 1 }), {} as Record<string, number>))))}`;
-  const lr = firsts(rows).filter((r) => r.device === dev).reduce((p, r) => ({ a: p.a + r.learned.after, g: p.g + r.learned.gentler }), { a: 0, g: 0 });
-  console.log(`| ${name} | ${dev} | ${by('gentle').length} · ${by('abrupt').length} · ${by('neutral').length} · ${by('pass').length} | ${ans('gentle')} | ${ans('abrupt')} | ${ans('neutral')} | ${f1(100 * mean(by('gentle').map((a) => a.dExposure)))} / ${f1(100 * mean(by('abrupt').map((a) => a.dExposure)))} | ${f1(100 * mean(by('gentle').map((a) => a.dWarmth)))} / ${f1(100 * mean(by('abrupt').map((a) => a.dWarmth)))} | ${lr.g}/${lr.a} |`);
+  const ans = (m: string) => `${pct(by(m).filter((a) => a.answer !== 'none').length, by(m).length)} ${JSON.stringify(by(m).reduce((o, a) => ({ ...o, [a.answer]: (o[a.answer] ?? 0) + 1 }), {} as Record<string, number>))}`;
+  console.log(`| ${name} | ${dev} | ${by('first').length} · ${by('return').length} · ${by('again').length} | ${ans('first')} | ${ans('return')} | ${ans('again')} |`);
 }
 
 // ── Pacing and restraint ──
@@ -142,8 +147,9 @@ for (const [name, rows] of Object.entries(out)) {
   const dep: Record<string, number> = {};
   for (const x of r) dep[x.departure] = (dep[x.departure] ?? 0) + 1;
   const turners = r.filter((x) => x.cls !== 'adversary' && x.genome && rowsLeave(x) === 'turn');
-  console.log(`**${name}.** situations ${JSON.stringify(sit)}; contradiction median ${f1(median(r.filter((x) => x.phases.contradiction !== undefined).map((x) => x.phases.contradiction)))} s, transform ${f1(median(r.filter((x) => x.phases.transform !== undefined).map((x) => x.phases.transform)))} s (reached ${pct(r.filter((x) => x.phases.transform !== undefined).length, r.length)}); leaving 'close' ${pct(r.filter((x) => x.leaving === 'close').length, r.length)}; left in the room: ${r.filter((x) => x.leftInRoom !== null).length} (of ${turners.length} who turned to go), false ${r.filter((x) => x.falseLeave).length}, ebbs ${r.reduce((a, x) => a + x.ebbs, 0)}`);
-  console.log(`  departure lines: ${Object.entries(dep).sort((a, b) => b[1] - a[1]).map(([k, v]) => `"${k}" ${v}`).join(', ')}`);
+  console.log(`**${name}.** situations ${JSON.stringify(sit)}; contradiction median ${f1(median(r.filter((x) => x.phases.contradiction !== undefined).map((x) => x.phases.contradiction)))} s, transform ${f1(median(r.filter((x) => x.phases.transform !== undefined).map((x) => x.phases.transform)))} s (reached ${pct(r.filter((x) => x.phases.transform !== undefined).length, r.length)}); leaving 'close' ${pct(r.filter((x) => x.leaving === 'close').length, r.length)}; left by the way out: ${r.filter((x) => x.leftInRoom !== null).length} (of ${turners.length} who went to the door to leave), unintended ${r.filter((x) => x.falseLeave).length}, let-go begun ${r.reduce((a, x) => a + x.ebbs, 0)}`);
+  const top = Math.max(...Object.values(dep));
+  console.log(`  departure lines (largest share ${pct(top, r.length)}): ${Object.entries(dep).sort((a, b) => b[1] - a[1]).map(([k, v]) => `"${k}" ${v}`).join(', ')}`);
 }
 function rowsLeave(x: VisitSummary) {
   return [...genomes, ...advs].find((g) => g.id === x.genome)?.leave;

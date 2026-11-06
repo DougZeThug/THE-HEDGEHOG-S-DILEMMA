@@ -197,7 +197,7 @@ export interface Percept {
   /** Voices and sounds, and where they come from. */
   sounds: { at: string; surface: Surface | null }[];
   /** The room's light changing at once (a flash, a dim). */
-  light: ('warm' | 'cold' | 'dim')[];
+  light: ('warm' | 'cold' | 'dim' | 'recoil')[];
   /** A memory has begun (they watch it). */
   memoryUntil: number | null;
 }
@@ -351,7 +351,7 @@ export class Policy {
       }
     }
     // The room flinching at them as they come close.
-    if (this.intent?.k === 'chair' && (this.intent.stage === 'in' || this.intent.stage === 'stay') && p.light.includes('cold') && this.distance < 2.2 && r.chance(g.flinchy)) {
+    if (this.intent?.k === 'chair' && (this.intent.stage === 'in' || this.intent.stage === 'stay') && p.light.includes('recoil') && this.distance < 2.2 && r.chance(g.flinchy)) {
       this.log.push({ t, kind: 'flinch-back' });
       const n = this.distance || 1;
       this.intent = { k: 'chair', stage: 'back', until: t + r.range(3, 7), manner: this.intent.manner };
@@ -463,10 +463,18 @@ export class Policy {
         }
         break;
       case 'leave':
+        // To the wall they came in by; if the way out is written there, touch it and stand still.
         face = Math.PI;
         this.pitch = -0.04;
-        if (this.arrived(0.12)) {
-          it.until ??= t + 25;
+        if (this.arrived(0.12) && Math.abs(wrap(this.yaw - Math.PI)) < 0.08) {
+          if (it.until === null) {
+            it.until = t + 25;
+            if (d.visible.has('party-early') && writtenOn.get('party-early') !== 'east' && writtenOn.get('party-early') !== 'west' && writtenOn.get('party-early') !== 'north') {
+              tap = { phraseId: 'party-early' };
+              this.log.push({ t, kind: 'tap', phrase: 'party-early' });
+            }
+          }
+          gaze = d.visible.has('party-early') ? 'party-early' : null;
           if (t >= it.until) this.leftAt = t;
         }
         break;
@@ -561,17 +569,16 @@ export interface Action {
   kind: ActionKind;
   phrase?: string;
   surface?: Surface;
-  manner?: 'gentle' | 'abrupt' | 'neutral' | 'pass';
+  /** For an arrival at the chair: the visit's first, a return after going away, or again (a step back and in). */
+  manner?: 'first' | 'return' | 'again';
 }
 
 export interface ApproachRow {
   t: number;
-  manner: 'gentle' | 'abrupt' | 'neutral' | 'pass';
+  manner: 'first' | 'return' | 'again';
   answer: AnswerKind;
-  /** Field change over the 6 s after coming near. */
   dExposure: number;
   dWarmth: number;
-  /** Their next approach was gentler (closed loop). */
 }
 
 export interface VisitSummary {
@@ -584,6 +591,8 @@ export interface VisitSummary {
   seconds: number;
   actions: Record<string, { n: number; answered: number; caused: number; kinds: Record<string, number> }>;
   placebo: { n: number; hit: number };
+  /** The chance baseline of each act's own criterion (caused answers at quiet moments). */
+  placeboBy: Record<string, { n: number; hit: number }>;
   /** The same act on the same thing again (a line, the chair): how often the room gave the identical answer (a vending machine would always). */
   vending: { pairs: number; same: number };
   passive: { windows: number; empty: number };
@@ -607,8 +616,6 @@ export interface VisitSummary {
     offers: number;
   };
   approaches: ApproachRow[];
-  /** Approaches after a flinch-back that were gentler than the one before. */
-  learned: { after: number; gentler: number };
   field: Record<string, number[]>;
   phases: Record<string, number>;
   leaving: string | null;
@@ -632,40 +639,12 @@ export interface VisitOptions {
   dt?: number;
 }
 
-/** Classify one approach leg from what the room could see (speed over the last metre; a stop in the ring). */
-export function mannerOf(trail: { t: number; d: number; s: number }[]): 'gentle' | 'abrupt' | 'neutral' | 'pass' {
-  // The leg: since they were last beyond 2.4 m.
-  let start = 0;
-  for (let i = trail.length - 1; i >= 0; i--) if (trail[i].d > 2.4) {
-    start = i;
-    break;
-  }
-  const leg = trail.slice(start);
-  let stop = 0, stopped = false;
-  for (let i = 1; i < leg.length; i++) {
-    if (leg[i].s < 0.1 && leg[i].d >= 1.2 && leg[i].d <= 2.2) {
-      stop += leg[i].t - leg[i - 1].t;
-      if (stop >= 0.8) stopped = true;
-    } else stop = 0;
-  }
-  const last = leg.filter((x) => x.d <= 2.15);
-  const mean = last.length > 1 ? last.reduce((a, x) => a + x.s, 0) / last.length : 0;
-  // Passing by rather than coming to it: the distance closing at well under the walking speed.
-  if (last.length > 2) {
-    const dt = last[last.length - 1].t - last[0].t;
-    const radial = dt > 0 ? (last[0].d - last[last.length - 1].d) / dt : 0;
-    if (mean > 0.15 && radial < 0.6 * mean) return 'pass';
-  }
-  if (stopped || (last.length > 1 && mean <= 0.6)) return 'gentle';
-  if (mean >= 0.85) return 'abrupt';
-  return 'neutral';
-}
-
 const answerOf = (x: Dev): AnswerKind =>
   /^(vignette|memory-scene|memory) /.test(x.label) || x.cue === 'memory' ? 'memory' : x.kind === 'text' ? 'text' : x.kind === 'chair' ? 'chair' : (x.kind as AnswerKind);
 
-/** Is this development an answer, in place, to that action? */
+/** Is this development an answer, in place, to that action? (An act's own acknowledgement — the hum's dip at a touch — is not.) */
 function local(a: Action, x: Dev): boolean {
+  if (x.rule === 'tap') return false;
   switch (a.kind) {
     case 'meet':
     case 'return':
@@ -695,7 +674,7 @@ function local(a: Action, x: Dev): boolean {
 export function liveVisit(g: Genome, seed: number, o: VisitOptions = {}): VisitSummary {
   const seconds = o.seconds ?? 600;
   const dt = o.dt ?? 0.1;
-  const d = new Director({ seed, experiments: o.experiments, visits: o.past?.visits, memoryCounts: o.past?.memoryCounts, trace: o.past?.trace ?? null, touch: g.device === 'phone' });
+  const d = new Director({ seed, experiments: o.experiments, visits: o.past?.visits, memoryCounts: o.past?.memoryCounts, trace: o.past?.trace ?? null });
   d.scenes.setAvailable(AVAILABLE);
   d.release({ written: OPENING_WRITTEN, spoken: OPENING_SPOKEN, unfinished: OPENING_UNFINISHED });
   const pol = new Policy(g, new Rng(seed * 104729 + hash(g.id)));
@@ -703,7 +682,6 @@ export function liveVisit(g: Genome, seed: number, o: VisitOptions = {}): VisitS
   for (const id of OPENING_WRITTEN) writtenOn.set(id, PHRASE_BY_ID.get(id)!.surface);
   const devs: Dev[] = [];
   const actions: Action[] = [];
-  const trail: { t: number; d: number; s: number }[] = [];
   const traj: { t: number; yaw: number; x: number; z: number; facing: Surface }[] = [];
   const fieldSamples: FieldValues[] = [];
   const approaches: ApproachRow[] = [];
@@ -712,10 +690,9 @@ export function liveVisit(g: Genome, seed: number, o: VisitOptions = {}): VisitS
   let lastApproaches = 0, lastWithdraw = -Infinity, wasKneeling = false, pausedAt = -Infinity, facing: Surface = 'north', facingSince = 0, turnLogged = true;
   let imposedQuiet = 0, ebbs = 0;
   let leftInRoom: number | null = null;
-  let px = SPAWN[0], pz = SPAWN[1];
   let t = 0;
   for (; t < seconds; t += dt) {
-    if (pol.leftAt !== null) break;
+    if (pol.leftAt !== null || leftInRoom !== null) break;
     if (t >= 30 && t < 300 && (d.aftermath() || d.pacing.holding(d.now))) imposedQuiet += dt;
     if (memoryEnds && t >= memoryEnds.at) {
       d.memoryEnded(memoryEnds.id, true, true);
@@ -727,6 +704,7 @@ export function liveVisit(g: Genome, seed: number, o: VisitOptions = {}): VisitS
       if (x.kind === 'text' && x.seen) percept.writing.push({ id: x.phrase ?? null, surface: x.surface ?? null });
       if ((x.kind === 'voice' || x.kind === 'sound') && x.at) percept.sounds.push({ at: x.at, surface: x.surface ?? null });
       if (x.cue === 'flash' && x.flashKind) percept.light.push(x.flashKind);
+      if (x.cue === 'flinch') percept.light.push('recoil');
       if (x.dim) percept.light.push('dim');
     }
     if (memoryEnds && devs.some((x) => x.t > t - dt - 1e-6 && (x.cue === 'memory-scene' || x.cue === 'vignette'))) percept.memoryUntil = memoryEnds.at;
@@ -741,26 +719,25 @@ export function liveVisit(g: Genome, seed: number, o: VisitOptions = {}): VisitS
       actions.push({ t, kind: 'write', surface: facingOf(f.yaw) });
     }
     const fc = facingOf(f.yaw);
-    const step = Math.hypot(f.x - px, f.z - pz);
-    px = f.x;
-    pz = f.z;
     const cues: TimedCue[] = d.tick(dt, {
       x: f.x, z: f.z, yaw: f.yaw, pitch: f.pitch, gazePhraseId: readable(d, f.gaze, fc, writtenOn), gazeChair: f.gazeChair, nearSurface: nearWall(f.x, f.z), kneeling: f.kneeling,
     }, fc);
     traj.push({ t, yaw: f.yaw, x: f.x, z: f.z, facing: fc });
-    trail.push({ t, d: Math.hypot(f.x, f.z), s: step / dt });
-    if (trail.length > 120) trail.shift();
     if (Math.round(t / dt) % 20 === 0) fieldSamples.push({ ...d.field.v });
     if (d.phase !== 'arrival' && phases[d.phase] === undefined) phases[d.phase] = +t.toFixed(1);
 
     // What the visitor did, as the room could see it.
     const v = d.visitor;
     for (const e of v.encounterStarted) actions.push({ t, kind: e.count > 1 ? 'return' : 'meet', phrase: e.id, surface: writtenOn.get(e.id) ?? PHRASE_BY_ID.get(e.id)?.surface });
-    if (v.approaches.length > lastApproaches) {
-      lastApproaches = v.approaches.length;
-      const manner = mannerOf(trail);
+    // Coming to the chair, counted when they arrive (walking past is not an approach).
+    const arrived = v.approaches.filter((a) => a.confirmed).length;
+    if (arrived > lastApproaches) {
+      lastApproaches = arrived;
+      const comings = v.approaches.filter((a) => a.confirmed);
+      const cur = comings[comings.length - 1], prev = comings[comings.length - 2];
+      const manner = !prev ? 'first' : prev.leftAt !== null && cur.enteredAt - prev.leftAt >= 4 ? 'return' : 'again';
       actions.push({ t, kind: 'approach', manner });
-      approaches.push({ t, manner, answer: 'none', dExposure: d.field.v.exposure, dWarmth: d.field.v.warmth });
+      approaches.push({ t, manner, answer: 'none', dExposure: 0, dWarmth: 0 });
     }
     if (v.lastWithdrawAt > lastWithdraw) {
       lastWithdraw = v.lastWithdrawAt;
@@ -779,10 +756,6 @@ export function liveVisit(g: Genome, seed: number, o: VisitOptions = {}): VisitS
     } else if (!turnLogged && t - facingSince >= 1.5 && v.speed < 0.15 && fc !== 'floor' && fc !== 'ceiling') {
       turnLogged = true;
       actions.push({ t: facingSince, kind: 'turn', surface: fc });
-    }
-    for (const a of approaches) if (t - a.t >= 6 && t - a.t < 6 + dt) {
-      a.dExposure = +(d.field.v.exposure - a.dExposure).toFixed(3);
-      a.dWarmth = +(d.field.v.warmth - a.dWarmth).toFixed(3);
     }
 
     for (const c of cues) {
@@ -804,11 +777,16 @@ export function liveVisit(g: Genome, seed: number, o: VisitOptions = {}): VisitS
       const audible = k.kind === 'voice' || k.kind === 'sound' || k.kind === 'music';
       const dim = cue.type === 'silence' && !!cue.dim;
       let seen: boolean;
+      // (Skeptic, 2026-11-06: light counts as seen only where the frame changes by about 8% or more —
+      // a dim, a recoil measured at −14% desk, −11% phone; a flash's colour swing at constant
+      // brightness and a 0.3 warm swell do not. A hush only when deep: laptop and phone speakers
+      // lose the hum it takes away.)
       if (audible) seen = true;
       else if (k.kind === 'text') seen = !surface || surface === fc || surface === 'floor' && pol.distance < 2.6;
-      else if (cue.type === 'flash' || dim) seen = true;
-      // A hush: heard at a desk when it is deep enough; on a phone's speaker the hum it takes away is not there to miss.
-      else if (cue.type === 'silence') seen = g.device === 'desktop' && cue.depth >= 0.35;
+      else if (dim) seen = true;
+      else if (cue.type === 'flinch') seen = cue.amount >= 0.5;
+      else if (cue.type === 'flash') seen = cue.amount >= 0.6;
+      else if (cue.type === 'silence') seen = g.device === 'desktop' && cue.depth >= 0.6;
       else if (cue.type === 'memory') seen = (writtenOn.get(cue.phraseId) ?? PHRASE_BY_ID.get(cue.phraseId)?.surface) === fc;
       else if (cue.type === 'memory-scene') seen = true;
       else if (cue.type === 'glow') seen = pol.chairInView();
@@ -871,11 +849,19 @@ export function liveVisit(g: Genome, seed: number, o: VisitOptions = {}): VisitS
   }
   // The same test at moments when they had done nothing for 8 s: how often would "an answer" have come anyway?
   const placebo = { n: 0, hit: 0 };
+  const placeboBy: Record<string, { n: number; hit: number }> = {};
   for (let s = 30; s < end - 8; s += 7) {
     if (actions.some((a) => a.t > s - 8 && a.t <= s + 8)) continue;
     const p = traj[Math.min(traj.length - 1, Math.round(s / dt))];
     placebo.n++;
     if (devs.some((x) => x.t > s && x.t <= s + 8 && perceived(x) && ((x.kind === 'text' && x.surface === p.facing) || (x.kind === 'voice' && x.surface === p.facing)))) placebo.hit++;
+    // Each act's own criterion, as if it had been done here and now with nothing done.
+    for (const kind of ['meet', 'approach', 'withdraw', 'turn'] as const) {
+      const a: Action = { t: s, kind, surface: p.facing };
+      const row = (placeboBy[kind] ??= { n: 0, hit: 0 });
+      row.n++;
+      if (devs.some((x) => x.t > s && x.t <= s + 8 && perceived(x) && !x.room && local(a, x))) row.hit++;
+    }
   }
   // Windows of 30 s in which they did something and nothing the room did in answer was perceived.
   const passive = { windows: 0, empty: 0 };
@@ -903,16 +889,6 @@ export function liveVisit(g: Genome, seed: number, o: VisitOptions = {}): VisitS
   const memories = devs.filter((x) => x.cue === 'memory-scene').map((x) => x.label.replace('memory-scene ', ''));
   const vignettes = devs.filter((x) => x.cue === 'vignette').map((x) => x.label.replace('vignette ', ''));
   const firstMem = devs.find((x) => x.cue === 'memory-scene' || x.cue === 'memory');
-  const learned = { after: 0, gentler: 0 };
-  const backs = pol.log.filter((l) => l.kind === 'flinch-back');
-  for (const b of backs) {
-    const before = approaches.filter((a) => a.t <= b.t).pop();
-    const next = approaches.find((a) => a.t > b.t);
-    if (!before || !next) continue;
-    learned.after++;
-    const rank = { abrupt: 0, neutral: 1, pass: 1, gentle: 2 };
-    if (rank[next.manner] > rank[before.manner]) learned.gentler++;
-  }
   const thirds: Record<string, number[]> = {};
   for (const k of FIELD_KEYS) {
     const n = fieldSamples.length;
@@ -926,7 +902,7 @@ export function liveVisit(g: Genome, seed: number, o: VisitOptions = {}): VisitS
   const nonLeaver = g.leave !== 'turn';
   return {
     genome: g.id, cls: g.cls, device: g.device, seed, arm: o.arm ?? 'base', visit: o.past?.visits ?? 1, seconds: +end.toFixed(1),
-    actions: table, placebo, vending, passive,
+    actions: table, placebo, placeboBy, vending, passive,
     longestSeenGap: +gap.toFixed(1),
     perMinute: +(meaningfulDevs.length / (end / 60)).toFixed(2),
     voices: devs.filter((x) => x.kind === 'voice').length,
@@ -945,7 +921,7 @@ export function liveVisit(g: Genome, seed: number, o: VisitOptions = {}): VisitS
       firstMemoryAt: firstMem?.t ?? null,
       offers: devs.filter((x) => x.rule === 'memory-offer').length,
     },
-    approaches, learned, field: thirds, phases,
+    approaches, field: thirds, phases,
     leaving: d.leaving(), departure: d.departureLine(),
     leftInRoom, ebbs, falseLeave: nonLeaver && leftInRoom !== null,
     labels: [...new Set(devs.filter((x) => !x.room).map((x) => `${x.rule}|${x.label}`))],

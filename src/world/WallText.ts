@@ -164,6 +164,8 @@ export interface TextItem {
   emphasis: number;
   /** A touch on the words, felt in the ink: darker at once, settling back over about a second. */
   pressed?: number;
+  /** Read, and it shows a little afterwards, like handled paper (fades over minutes). */
+  handled?: number;
   expires: number;
   centre: THREE.Vector3;
   normal: THREE.Vector3;
@@ -274,6 +276,9 @@ interface LineItem {
   to?: Placement;
   strikeOf?: Placement;
 }
+
+/** How much of a long look a read line keeps (of the emphasis, 0–1; the look itself reaches 0.7). */
+const HANDLED = 0.25;
 
 export class WallText {
   readonly items = new Map<string, TextItem>();
@@ -957,6 +962,9 @@ export class WallText {
     }
   }
 
+  /** Read lines keep a trace of having been read (docs/reviews/2026-11-core-loop.md). */
+  handling = false;
+
   /** The visitor touched these words: the ink takes the touch (docs/reviews/2026-11-core-loop.md). */
   press(key: string): void {
     const it = this.items.get(key);
@@ -1034,6 +1042,11 @@ export class WallText {
       const gazed = gazeId === it.key;
       it.emphasis = approach(it.emphasis, gazed ? clamp((gazeFor - 0.8) / 3) * 0.7 : 0, dt, gazed ? 1.2 : 3);
       if (it.pressed) it.pressed = it.pressed < 0.01 ? 0 : approach(it.pressed, 0, dt, 0.8);
+      // A line held long enough to have been read keeps a little of the look on it, fading over minutes.
+      if (this.handling) {
+        if (it.emphasis > 0.35) it.handled = Math.max(it.handled ?? 0, HANDLED);
+        else if (it.handled) it.handled = it.handled < 0.005 ? 0 : approach(it.handled, 0, dt, 240);
+      }
       // Receding: the closer, the less of it (and a look doesn't bring it back); stepping back
       // returns it, more slowly than it went.
       let recede = 0;
@@ -1067,7 +1080,7 @@ export class WallText {
       }
       it.uniforms.uReveal.value = it.vis * (1 - 0.55 * recede);
       it.uniforms.uOpacity.value = clamp(base * legible * Math.min(it.shy, 1 - 0.5 * recede) * env.textContrast * (1 + it.emphasis * 0.3), 0, 1);
-      it.uniforms.uEmphasis.value = Math.min(1, it.emphasis + (it.pressed ?? 0) * 0.35);
+      it.uniforms.uEmphasis.value = Math.min(1, Math.max(it.emphasis, it.handled ?? 0) + (it.pressed ?? 0) * 0.35);
     }
     for (const ln of [...this.lines.values()]) {
       if (ln.expires && now > ln.expires) ln.target = 0;

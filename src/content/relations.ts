@@ -171,20 +171,16 @@ export const DEPARTURE_LINES: Record<string, string[]> = {
  * what happened between them, not which habit formed. The first that holds is used, in this order.
  */
 export const DEPARTURE_BY_VISIT = {
-  /** They left by turning their back on it and standing at the door. */
+  /** They left by the way out on the south wall, their back to the chair. */
   door: 'The chair, from the door.',
   /** They knelt by it, or stayed by it a long while. */
   close: 'It is still warm where you were.',
-  /** They came near, went away, and came back to it. */
+  /** They came to it, went away, and came back to it. */
   cameBack: 'Somebody came back for the umbrella.',
-  /** They came near and went away, and didn't come back. */
+  /** They came to it and went away, and didn't come back. */
   refused: 'Somebody almost knocked.',
-  /** They never came near it. */
+  /** They never came to it. */
   apart: 'From over there it looked smaller.',
-  /** A memory was met (it is next door now, and dark). */
-  memory: 'Someone turned the light off next door.',
-  /** They read and read, and moved about. */
-  restless: 'Somebody will have to paint over all of this one day.',
   otherwise: 'The light stays on.',
 } as const;
 
