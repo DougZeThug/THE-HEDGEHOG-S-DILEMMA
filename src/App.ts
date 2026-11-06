@@ -1750,7 +1750,7 @@ export class App {
         // toward the chair a quarter-second later: in over 0.9 s, held 1 s, out over 5 s.
         const gentle = this.prefs.intensity === 'gentle';
         this.audio?.silence(0.62 * cue.amount * (gentle ? 0.8 : 1), 1.2, 0.07, 1.5);
-        const to = 1 - 0.28 * cue.amount * (gentle ? 0.55 : 1);
+        const to = cue.chair ? 1 : 1 - 0.28 * cue.amount * (gentle ? 0.55 : 1);
         this.lighting.dimToChair(to, 0.9 + 1 + 5, this.time, { delay: 0.25, fall: 0.9, rise: 5, glow: true });
         break;
       }

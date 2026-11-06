@@ -97,16 +97,21 @@ describe('coming back to the chair', () => {
     expect(cues.some((c) => c.cue.type === 'flinch')).toBe(false);
   });
 
-  it('coming back after going away makes it recoil, at once; less the second time; then never', () => {
-    const legs = [rush(), away(), rush(), away(), rush(), away(), rush(), away()];
+  it('coming back after a stay makes it recoil, at once; the second time only the chair; then never', () => {
+    const legs = [rush(7), away(), rush(7), away(), rush(7), away(), rush(7), away()];
     const cues = visit(EXP, path([start, ...legs]));
     const recoils = cues.filter((c) => c.cue.type === 'flinch');
-    expect(recoils.map((c) => (c.cue.type === 'flinch' ? c.cue.amount : 0))).toEqual([1, 0.6]);
+    expect(recoils.map((c) => (c.cue.type === 'flinch' ? [c.cue.amount, !!c.cue.chair] : null))).toEqual([[1, false], [0.6, true]]);
     expect(recoils.every((c) => c.rule === 'return-recoil')).toBe(true);
   });
 
+  it('a first visit too short to be a stay (under 6 s) is not left: no recoil on coming back', () => {
+    const cues = visit(EXP, path([start, rush(3), away(), rush(7)]));
+    expect(cues.some((c) => c.cue.type === 'flinch')).toBe(false);
+  });
+
   it('however they come back: slowly is a return too', () => {
-    const cues = visit(EXP, path([start, rush(), away(), ...gently()]));
+    const cues = visit(EXP, path([start, rush(7), away(), ...gently()]));
     expect(cues.filter((c) => c.cue.type === 'flinch')).toHaveLength(1);
   });
 

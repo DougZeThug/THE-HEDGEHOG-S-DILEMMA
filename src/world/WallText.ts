@@ -164,8 +164,9 @@ export interface TextItem {
   emphasis: number;
   /** A touch on the words, felt in the ink: darker at once, settling back over about a second. */
   pressed?: number;
-  /** Read, and it shows a little afterwards, like handled paper (fades over minutes). */
+  /** Touched, and it shows a little afterwards, like handled paper (fades over minutes). */
   handled?: number;
+  presses?: number;
   expires: number;
   centre: THREE.Vector3;
   normal: THREE.Vector3;
@@ -277,7 +278,7 @@ interface LineItem {
   strikeOf?: Placement;
 }
 
-/** How much of a long look a read line keeps (of the emphasis, 0–1; the look itself reaches 0.7). */
+/** How much of a touch the words keep (of the emphasis, 0–1; a long look reaches 0.7). */
 const HANDLED = 0.25;
 
 export class WallText {
@@ -962,10 +963,16 @@ export class WallText {
     }
   }
 
-  /** The visitor touched these words: the ink takes the touch (docs/reviews/2026-11-core-loop.md). */
+  /**
+   * The visitor touched these words: the ink takes the touch, and keeps a little of it for some
+   * minutes, like handled paper; each further touch leaves less (docs/reviews/2026-11-core-loop.md).
+   */
   press(key: string): void {
     const it = this.items.get(key);
-    if (it) it.pressed = 1;
+    if (!it) return;
+    it.pressed = 1;
+    it.presses = (it.presses ?? 0) + 1;
+    it.handled = Math.max(it.handled ?? 0, HANDLED * 0.6 ** (it.presses - 1));
   }
 
   /** Which phrase holds the visitor's attention: nearest to the centre of view, within its own angular size. */
@@ -1039,9 +1046,8 @@ export class WallText {
       const gazed = gazeId === it.key;
       it.emphasis = approach(it.emphasis, gazed ? clamp((gazeFor - 0.8) / 3) * 0.7 : 0, dt, gazed ? 1.2 : 3);
       if (it.pressed) it.pressed = it.pressed < 0.01 ? 0 : approach(it.pressed, 0, dt, 0.8);
-      // A line held long enough to have been read keeps a little of the look on it, fading over minutes.
-      if (it.emphasis > 0.35) it.handled = Math.max(it.handled ?? 0, HANDLED);
-      else if (it.handled) it.handled = it.handled < 0.005 ? 0 : approach(it.handled, 0, dt, 240);
+      // A touch leaves a little of itself on the words, fading over minutes (the hand's, not the eye's).
+      if (it.handled) it.handled = it.handled < 0.005 ? 0 : approach(it.handled, 0, dt, 240);
       // Receding: the closer, the less of it (and a look doesn't bring it back); stepping back
       // returns it, more slowly than it went.
       let recede = 0;

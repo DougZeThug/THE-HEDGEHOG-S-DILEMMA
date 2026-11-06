@@ -85,11 +85,12 @@ export type Cue =
    */
   | { type: 'silence'; depth: number; seconds: number; dim?: number; dimSeconds?: number; fall?: number; rise?: number }
   /**
-   * The room recoils from someone who rushed at it (docs/reviews/2026-11-core-loop.md): its sound
-   * taken away at once and given back soon, its own light pulled back toward the chair for a
-   * moment (the dim's grammar, small and fast), the chair's glow with it. `amount` 0–1.
+   * The room recoils from someone coming back to the chair (docs/reviews/2026-11-core-loop.md): its
+   * sound taken away at once and given back soon, its own light pulled back toward the chair for a
+   * moment (the dim's grammar, small and fast), the chair's glow with it. With `chair`, only the
+   * chair's glow goes: the room stays as it is. `amount` 0–1.
    */
-  | { type: 'flinch'; amount: number }
+  | { type: 'flinch'; amount: number; chair?: boolean }
   /** A held silence ends early (the visitor moved away): the room's sound and light come back. */
   | { type: 'lift'; seconds: number }
   | { type: 'chairNudge'; dx: number; dz: number; dyaw: number }
