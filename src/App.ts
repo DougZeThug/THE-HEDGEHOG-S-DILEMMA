@@ -1735,6 +1735,10 @@ export class App {
       case 'flash':
         this.lighting.triggerFlash(cue.kind, cue.amount * (this.prefs.intensity === 'gentle' ? 0.5 : 1), cue.seconds, this.time);
         break;
+      case 'leave':
+        // They stood at the door and the room let them go.
+        this.depart('door');
+        break;
       case 'flinch': {
         // Sound first (a 70 ms fall, held a moment, back soon), then the room's light pulls back
         // toward the chair a quarter-second later: in over 0.9 s, held 1 s, out over 5 s.
@@ -2455,14 +2459,14 @@ export class App {
 
   // ─────────────────────────────── leaving ───────────────────────────────
 
-  depart() {
+  depart(how: 'door' | 'menu' = 'menu') {
     if (this.mode !== 'settings' && this.mode !== 'room') return;
     this.endLivingMemory('depart');
     $('settings').hidden = true;
     this.mode = 'departed';
     void this.wakeLock?.release().catch(() => {});
     this.wakeLock = null;
-    const line = this.director.departureLine();
+    const line = this.director.departureLine(how);
     this.keepTrace();
     this.director.depart();
     this.leaving = wallClock();
