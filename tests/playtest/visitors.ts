@@ -551,7 +551,8 @@ export class Policy {
     this.lookYaw = null;
 
     // A look that rests on writing: what they chose to read, or else what is in front of them when standing.
-    if (!gaze && !gazeChair && it.k === 'still' && !it.chair) {
+    // (Not for someone who only ever looks down: their look is on the floor, not the wall they face.)
+    if (!gaze && !gazeChair && it.k === 'still' && !it.chair && !g.floorOnly) {
       const id = [...d.visible.entries()].find(([vid, s]) => s.mode === 'shown' && (writtenOn.get(vid) ?? PHRASE_BY_ID.get(vid)?.surface) === facingOf(this.yaw))?.[0];
       if (id) gaze = id;
     }

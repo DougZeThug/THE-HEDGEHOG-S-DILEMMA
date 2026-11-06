@@ -156,7 +156,9 @@ export const LEXICON: Record<string, DimVector> = {
 
 /**
  * The departure line by how the visit went with the chair (docs/reviews/2026-11-core-loop.md):
- * what happened between them, not which habit formed. The first that holds is used, in this order.
+ * what happened between them, not which habit formed. `Director.visitShape` decides which holds,
+ * by how the visit ended: the door; leaving from a long stay by it (close); coming back; having
+ * stayed close earlier (close); refused; apart; otherwise.
  */
 export const DEPARTURE_BY_VISIT = {
   /** They left by the way out on the south wall, their back to the chair. */

@@ -2214,6 +2214,10 @@ export class Director {
    */
   static readonly LET_GO = { wait: 12, on: 0.25, wall: 2.55, turn: 0.35, step: 0.25, window: 20, again: 30 };
   private letGo: { at: number; x: number; z: number; yaw: number } | null = null;
+  /** The room is letting them go (the way out touched, then stood still): the App doesn't walk them on for a touch. */
+  get lettingGo(): boolean {
+    return this.letGo !== null;
+  }
   private letGoAsked = -Infinity;
   private keptAt = -Infinity;
   private exitShown = false;

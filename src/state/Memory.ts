@@ -40,7 +40,8 @@ export class Memory {
     const s = this.strength;
     s.hesitation = clamp((v.hesitations - 0.5) / 2.5);
     s.closeness = clamp(v.totalNear / 45 + v.kneelTime / 30);
-    s.distance = clamp(v.totalFar / 150 - v.approaches.length * 0.15);
+    // (Only coming to the chair takes away from distance; walking past it on the way to a wall doesn't.)
+    s.distance = clamp(v.totalFar / 150 - v.comings.length * 0.15);
     s.stillness = clamp(Math.max(v.longestStill / 35, v.totalStill / 80));
     s.warmth = clamp(this.warmGaze / 18);
     s.wandering = clamp((v.surfacesVisited.size / 4) * (v.movedDistance / 55));

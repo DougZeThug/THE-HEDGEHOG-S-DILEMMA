@@ -148,21 +148,21 @@ Same instrument and the same visitors and seeds: the 9-arm battery's `base` (930
 
 | | before (desktop / phone) | after (desktop / phone) |
 |---|---|---|
-| Coming to the chair | 15% / 18% (8% / 3%) | **32% / 37%** (7% / 5%) |
-| Coming *back* to it | 12% / 15% | **31% / 37%** |
-| Kneeling | 23% / 31% | **34% / 42%** |
+| Coming to the chair | 15% / 18% (8% / 3%) | **31% / 36%** (7% / 5%) |
+| Coming *back* to it | 12% / 15% | **30% / 35%** |
+| Kneeling | 23% / 31% | **32% / 42%** |
 | Tapping the chair (phone) | 16% | **34%** |
-| Stepping back | 41% / 40% | 45% / 47% |
+| Stepping back | 41% / 40% | 46% / 46% |
 | Reading a line (first meeting) | 19% / 24% | 19% / 24%: unchanged in the engine (its answer, the trace a touch leaves, is visual) |
-| Active 30 s windows with nothing perceived in answer | 21% | 20% |
-| Identical answer to a repeated act | 0% | 3% |
-| Developments a minute, imposed quiet, overlapping sounds | 6.8, 40%, 0 | 6.9, 43%, 0 |
-| Writing in the air reached | 3% | **30%** |
+| Active 30 s windows with nothing perceived in answer | 21% | 19% |
+| Identical answer to a repeated act | 0% | 2% |
+| Developments a minute, imposed quiet, overlapping sounds | 6.8, 40%, 0 | 7.0, 43%, 0 |
+| Writing in the air reached | 3% | **31%** |
 | Any painted memory; Almost | 44%; 1% | 44%; 5% |
-| "Listening" situation | 0 of 930 | 575 of 945 |
-| Visits whose trace turns the chair away next time | 78% | 65% |
-| Largest share of one departure line | 40%, the same two lines for every kind of visitor | 62% "Somebody came back for the umbrella.": by behaviour, and this simulated population leaves the chair and comes back a lot |
-| The way out | (none) | taken by 112 of 225 visitors who went to leave (by walking on); **0 unintended** among about 780 who didn't, including a "prober" who re-touches whatever answered |
+| "Listening" situation | 0 of 930 | 577 of 945 |
+| Visits whose trace turns the chair away next time | 78% | 64% |
+| Largest share of one departure line | 40%, the same two lines for every kind of visitor | **62%, worse**: "Somebody came back for the umbrella." The line now follows what the visitor did, but on this decision metric the result regressed, and it is not resolved (see below) |
+| The way out | (none) | taken by 111 of the 225 visitors who went to leave (by walking on); **0 unintended** among about 780 who didn't, including a "prober" who re-touches whatever answered |
 
 ## Observed in the browser (real input, measured frames)
 
@@ -206,6 +206,7 @@ Observed after these fixes:
 - the first recoil −14.5% of the frame;
 - the second, the chair's key light to 0.60;
 - touch, then let go, then a second touch did nothing, then walking on left, with "The chair, from the door.";
+- re-observed for PR #56 with every touch a real click: a second click during the let-go *could* walk the visitor on, and so out. Wall writing moves a few centimetres as the room's scale breathes, so a click's walk to the words is never quite over, and each click starts it again (measured: 1.39 m from the words after the first walk, then another 0.27 m). A touch on the way out while the room lets them go now only turns them to it (`Director.lettingGo`); re-observed, the second click moved them 1 mm, they stayed, and walking on left;
 - no errors.
 
 ## What still needs a person
@@ -214,6 +215,6 @@ Observed after these fixes:
 - **Whether a 70 ms drop in the room tone reads as a flinch or a dropout.** That needs the artist's ears, on headphones and on a phone.
 - **Whether anyone finds the way out, and whether walking on into the dark, with the chair creaking behind, reads as going.** Only people can say. A screen reader is told what to do; sighted visitors are not. Whether the creak makes people turn round (and so stay) needs the artist's ears.
 - **Whether the trace a touch leaves reads as a hand's or as a "visited link".** Tune it by eye (`HANDLED` in `WallText.ts`).
-- **The departure lines are now honest but uneven.** In this simulated population many visitors kneel, so "It is still warm where you were." is the most common line. Real visitors may kneel far less.
+- **The departure lines regressed on their own decision metric, and it is not resolved.** One line, "Somebody came back for the umbrella.", ends 62% of first visits (40% before, when two lines covered 77%). It follows behaviour: these simulated visitors leave the chair and come back to it often. Whether real visitors do is unknown; if they do, the line will be the usual ending and the next round should split "came back" (by how long away, or by how the return was met).
 - **Second visits meeting a new painted memory:** 42% → 34% (60, then 300 visits). Within noise, unexplained, and worth watching.
 - **Reading, the most frequent act, still has no engine-visible answer beyond chance.** That is deliberate (the README's rule survives for words); the read trace is its only answer.

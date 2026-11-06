@@ -143,6 +143,9 @@ describe('the way out', () => {
     // holding still (the long held silence, a memory's aftermath: the way out waits for them).
     for (let t = 0; t < 600 && !(d.visible.has(Director.EXIT) && t > 200 && !d.pacing.holding(d.now) && !d.aftermath() && !d.scenes.active); t += DT)
       cues.push(...d.tick(DT, input(1.6, 0.3, { yaw: -Math.PI / 2, gazeChair: false }), 'east'));
+    // (If the visit never got there, the tests below would run in an unknown room: fail here instead.)
+    expect(d.visible.has(Director.EXIT)).toBe(true);
+    expect(d.pacing.holding(d.now) || d.aftermath() || !!d.scenes.active).toBe(false);
     return { d, here, cues };
   }
   const still = (d: Director, i: VisitorInput, seconds: number, facing: 'south' | 'north' = 'south') => {
@@ -159,6 +162,8 @@ describe('the way out', () => {
     const cues = still(d, here, 4);
     expect(cues.some((c) => c.rule === 'leaving' && c.cue.type === 'silence' && c.cue.dim !== undefined)).toBe(true);
     expect(cues.some((c) => c.cue.type === 'leave')).toBe(false);
+    // (What the room tells the App, so a touch then turns them to the words but never walks them on.)
+    expect(d.lettingGo).toBe(true);
     // Walking on (facing south, z grows toward the wall they came in by).
     const on: TimedCue[] = [];
     for (let t = 0; t < 1; t += DT) on.push(...d.tick(DT, { ...here, z: here.z + 0.4 * t }, 'south'));

@@ -1880,7 +1880,11 @@ export class App {
       this.text.press(this.gazeId);
       if (c && it) {
         const s = it.placement.surface;
-        if (s === 'floor') this.rig.attend(c, 0.8);
+        // (Touched again while the room lets them go: a touch never walks them on. The words drift
+        // as the room's scale breathes, so the walk to them is never quite over, and walking on
+        // toward the wall is what leaves. QA, PR #56.)
+        if (pid === Director.EXIT && this.director.lettingGo) this.rig.faceToward(c);
+        else if (s === 'floor') this.rig.attend(c, 0.8);
         else if (s === 'ceiling') this.rig.faceToward(c);
         else this.rig.attend(c, 1.25);
       }
@@ -1889,11 +1893,17 @@ export class App {
 
   private cyclePhrase(dir: 1 | -1) {
     const cam = this.rig.camera.position;
-    const vis: { centre: THREE.Vector3; words?: string }[] = [...this.text.items.values()]
+    // (What is written there, wherever it came from: a phrase, a recalled line, the visitor's own words.)
+    const vis: { centre: THREE.Vector3; words?: string; where: string }[] = [...this.text.items.values()]
       .filter((i) => i.vis > 0.5 && i.purpose !== 'drawing' && i.uniforms.uOpacity.value > 0.2 && i.placement.surface !== 'ceiling')
-      .map((i) => ({ centre: i.centre, words: i.phrase?.text ?? (i.source ? PHRASE_BY_ID.get(i.source)?.text : undefined) }));
+      .map((i) => ({
+        centre: i.centre,
+        words: i.phrase?.text ?? (i.source ? PHRASE_BY_ID.get(i.source)?.text : undefined) ?? ((i.mesh.userData.text as string) || undefined),
+        where: i.placement.surface === 'floor' ? 'On the floor' : 'On the wall',
+      }));
     const air = this.text.airCentre;
-    if (air) vis.push({ centre: air, words: 'words written in the air' });
+    const airKey = this.text.airState?.key.replace(/^air:/, '');
+    if (air) vis.push({ centre: air, words: (airKey && PHRASE_BY_ID.get(airKey)?.text) || 'words written in the air', where: 'In the air' });
     if (!vis.length) return;
     vis.sort((a, b) => {
       const aa = Math.atan2(-(a.centre.x - cam.x), -(a.centre.z - cam.z));
@@ -1903,8 +1913,8 @@ export class App {
     this.tabIndex = (this.tabIndex + dir + vis.length) % vis.length;
     this.rig.faceToward(vis[this.tabIndex].centre);
     // Without sight, the writing turned to is read out (the way out among it: QA, 2026-11-06).
-    const words = vis[this.tabIndex].words;
-    if (words) this.srRegion().textContent = `On the wall: ${words}`;
+    const { words, where } = vis[this.tabIndex];
+    if (words) this.srRegion().textContent = `${where}: ${words}`;
   }
 
   private bindInput() {
@@ -2260,7 +2270,8 @@ export class App {
     }
     // (For a memory's line, aim a little below the words, at the painting that forms under them.)
     const aim = stop > 1.25 || (pid && SCENE_BY_PHRASE.has(pid)) ? c.clone().setY(c.y - 0.2) : c;
-    if (it.placement.surface === 'ceiling') this.rig.faceToward(c);
+    // (Touched again while the room lets them go: never a walk on, which would be leaving; see attendGaze.)
+    if (it.placement.surface === 'ceiling' || (pid === Director.EXIT && this.director.lettingGo)) this.rig.faceToward(c);
     else this.rig.attend(aim, it.placement.surface === 'floor' ? 0.8 : stop);
   }
 

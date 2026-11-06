@@ -4,7 +4,8 @@
 // touched and taken. Real keyboard and clicks; positions set between acts. Frames for measuring
 // in OUT; cues and the room's state in OUT/after.json.
 //
-//   BASE=http://localhost:4173/ EXP=passes,recoil,… OUT=dir node tests/playtest/core-loop-after.mjs
+//   BASE=http://localhost:4173/ OUT=dir node tests/playtest/core-loop-after.mjs
+// (EXP=name,… passes `?exp=` for a future experiment; this build defines none.)
 import { createRequire } from 'node:module';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { execSync } from 'node:child_process';
@@ -17,7 +18,7 @@ try {
   ({ chromium } = require(`${execSync('npm root -g').toString().trim()}/playwright`));
 }
 const BASE = process.env.BASE ?? 'http://localhost:4173/';
-const EXP = process.env.EXP ?? 'passes,recoil,airLine,kneelAtChair,tapMark,handled,departure,offerOrder,exitLine,hygiene';
+const EXP = process.env.EXP ?? '';
 const OUT = process.env.OUT ?? 'test-output/core-loop/observed-after';
 const SEED = process.env.SEED ?? '7';
 mkdirSync(OUT, { recursive: true });
@@ -40,7 +41,7 @@ page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const hh = (fn, arg) => page.evaluate(fn, arg);
 
-await page.goto(`${BASE}?seed=${SEED}&exp=${EXP}`);
+await page.goto(`${BASE}?seed=${SEED}${EXP ? `&exp=${EXP}` : ''}`);
 await page.waitForFunction(() => !document.getElementById('enter').disabled, null, { timeout: 90000 });
 await page.click('#enter');
 await page.waitForFunction(() => window.__hedgehog?.director && !window.__hedgehog.director.held, null, { timeout: 120000 }).catch(async () => page.click('#skip').catch(() => {}));
@@ -211,11 +212,8 @@ await place(0.3, 1.9, Math.PI, 0.02);
 const exit = await lookAt('party-early');
 await hold(1.5, 'facing the way out');
 await shot('08-the-way-out');
-// Touched, then turned back: kept.
-await hh(() => {
-  const a = window.__hedgehog;
-  a.director.tapped({ phraseId: 'party-early' });
-});
+// Touched (a click on the middle of the view, facing the words), then turned back: kept.
+await page.mouse.click(440, 260);
 await hold(4, 'touched the way out');
 await shot('08-letting-go');
 await hh(() => {

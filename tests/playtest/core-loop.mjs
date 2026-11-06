@@ -3,7 +3,7 @@
 // room did in answer: every cue with its wall-clock and room time, the light on the chair (its key
 // level and warmth) and the room tone, a screenshot a moment after each act.
 //
-//   BASE=http://localhost:4173/ EXP=approachManner OUT=dir node tests/playtest/core-loop.mjs
+//   BASE=http://localhost:4173/ OUT=dir node tests/playtest/core-loop.mjs   (EXP=name,… for a future `?exp=`)
 //
 // Software rendering runs at about 10–18 fps here: room time runs slower than the clock, so read
 // timings as upper bounds; what was emitted, and in what order, is what this shows.

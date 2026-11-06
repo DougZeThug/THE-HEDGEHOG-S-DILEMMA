@@ -1,3 +1,27 @@
+# The nine arms (simulated)
+
+Produced by `scripts/experiment.ts` at commit 7039b58, while each change was still a named experiment, with:
+
+```
+ARMS='base;P=passes;R=passes,recoil;AIR=passes,airLine;DEP=passes,departure,kneelAtChair;D=passes,offerOrder;EXIT=passes,departure,exitLine;E=hygiene;ALL=passes,recoil,airLine,kneelAtChair,departure,offerOrder,exitLine,hygiene'
+```
+
+The winners have since become how the room behaves, so these names no longer exist in the Director (`Director.EXPERIMENTS` is empty). What each was:
+- **base:** the room as it was.
+- **passes** (P): an approach counts only when they come to the chair; walking past it doesn't.
+- **recoil** (R): the room recoils when they come back to the chair after a stay.
+- **airLine** (AIR): "Please don't come any closer." in the air after stepping back from a stay.
+- **kneelAtChair** (in DEP): kneeling counts only within 1.5 m of the chair.
+- **departure** (DEP): the departure line by how the visit went.
+- **offerOrder** (D): a wall offer doesn't spend a pointing; Almost is earned by coming back.
+- **exitLine** (EXIT): the way out by the drawn door.
+- **hygiene** (E): a seed per visit, situations seeded per visit, the `contribute` signal raised.
+- **ALL:** all of the above together.
+
+Columns: "caused" is a perceived development in place within 8 s that isn't the room's own life; the placebo, in brackets, is the same test at moments when nothing was done for 8 s, for the same device.
+
+In "left by the way out: N (of M …)" below, N also counts the early-leaver among the visitors chosen to break things, who isn't among the M; the script now counts N within the M (`after.md`).
+
 8910 visits in 700.9 s (79 ms each). Simulated visitors; reactions are assumptions.
 
 ## Is what they do answered, in place, within 8 s? (first visits; caused answers, perceived)

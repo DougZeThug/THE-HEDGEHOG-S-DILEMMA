@@ -93,6 +93,10 @@ export class Engagement {
       else if ((this.seenReturns.get(e.id) ?? 0) < e.count) this.raise('return', t, e.id);
       this.seenReturns.set(e.id, e.count);
     }
+    // (Any coming within reach of the chair, walking past it included: this is activity, which paces
+    // the visit's phases, not the relationship. What answers coming *to* the chair reads
+    // `VisitorModel.comings`. Counting only those here measured as phases turning 5–10 s later and
+    // fewer second visits meeting a new painted memory: a retune, not a fix. 2026-11 core loop.)
     if (v.approaches.length > this.seenApproaches) {
       this.seenApproaches = v.approaches.length;
       this.raise('approach', t);
