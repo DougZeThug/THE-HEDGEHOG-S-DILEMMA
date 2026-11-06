@@ -8,7 +8,8 @@
  *   ARMS='base;A1=approachManner;A2=airLine' npx vite-node scripts/experiment.ts
  *   N=8 SEEDS=3 RETURNS=10 …      (genomes per class, seeds per genome, second-visit pairs)
  *   OUT=test-output/core-loop/base.json …   (every visit's numbers)
- *   REPORT=docs/reviews/core-loop/baseline.md …   (the printed tables)
+ *   REPORT=test-output/core-loop/base.md …   (the printed tables; the files in docs/reviews/core-loop
+ *                                              carry notes on top of a run, so copy, don't overwrite)
  *
  * Everything here is simulated: the visitors' reactions are assumptions (visitors.ts). Read the
  * numbers as differences between arms on the same visitors, not as what people feel.

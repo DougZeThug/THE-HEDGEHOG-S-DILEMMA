@@ -230,6 +230,27 @@ describe('the way out', () => {
     expect(still(d, here, 12).some((c) => c.rule === 'leaving')).toBe(false);
   });
 
+  it('a step back on the diagonal keeps them at once; walking on a little off straight still goes (cubic, PR #56)', () => {
+    const diag = atTheDoor();
+    still(diag.d, diag.here, 2);
+    diag.d.tapped({ phraseId: Director.EXIT });
+    still(diag.d, diag.here, 3);
+    // 0.2 m aside and 0.2 m back: neither alone a step, together 0.28 m away from going.
+    const step: TimedCue[] = [];
+    for (let t = 0; t < 0.5; t += DT) step.push(...diag.d.tick(DT, { ...diag.here, x: diag.here.x + 0.4 * t, z: diag.here.z - 0.4 * t }, 'south'));
+    const after = [...step, ...still(diag.d, { ...diag.here, x: diag.here.x + 0.2, z: diag.here.z - 0.2 }, 3)];
+    expect(after.some((c) => c.rule === 'leaving-kept' && c.cue.type === 'lift')).toBe(true);
+    expect(after.some((c) => c.cue.type === 'leave')).toBe(false);
+    // Walking on 30° off straight, at a walking pace: gone.
+    const on = atTheDoor();
+    still(on.d, on.here, 2);
+    on.d.tapped({ phraseId: Director.EXIT });
+    still(on.d, on.here, 3);
+    const walk: TimedCue[] = [];
+    for (let t = 0; t < 1; t += DT) walk.push(...on.d.tick(DT, { ...on.here, x: on.here.x + 0.5 * t, z: on.here.z + 0.866 * t }, 'south'));
+    expect(walk.some((c) => c.cue.type === 'leave')).toBe(true);
+  });
+
   it('not before the visit has turned; and touching other words never begins it', () => {
     const d = new Director({ seed: 5 });
     d.release({ written: OPENING_WRITTEN, spoken: OPENING_SPOKEN, unfinished: OPENING_UNFINISHED });

@@ -2297,8 +2297,11 @@ export class Director {
       this.goNow();
       return;
     }
-    // A step back or aside, a turn: they stay. (A step on that isn't yet going is still waiting.)
-    if (turn > Director.LET_GO.turn || aside >= Director.LET_GO.step || on <= -Director.LET_GO.step || input.kneeling || this.scenes.active) {
+    // A step back or aside, a turn: they stay. (A step on that isn't yet going is still waiting; a
+    // step that goes more aside or back than on, of a step's length, diagonals included, is staying.
+    // Not the plain distance: walking on a little off straight would stay before it could go. PR #56.)
+    const moved = Math.hypot(dx, dz);
+    if (turn > Director.LET_GO.turn || aside >= Director.LET_GO.step || on <= -Director.LET_GO.step || (moved > Director.LET_GO.step && on < moved * Math.SQRT1_2) || input.kneeling || this.scenes.active) {
       this.keep();
       return;
     }
