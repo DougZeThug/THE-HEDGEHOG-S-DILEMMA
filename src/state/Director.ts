@@ -731,7 +731,8 @@ export class Director {
   }
 
   private cull() {
-    const revealed = [...this.visible.entries()].filter(([, s]) => !s.base && s.mode === 'shown');
+    // (Never the way out, once it is the way out: Codex review, PR #56.)
+    const revealed = [...this.visible.entries()].filter(([id, s]) => !s.base && s.mode === 'shown' && !(id === Director.EXIT && this.exitShown));
     const over = revealed.length - this.budget();
     if (over <= 0) return;
     revealed.sort((a, b) => a[1].since - b[1].since);
@@ -2264,6 +2265,8 @@ export class Director {
       this.exitShown = true;
       this.exitShownAt = this.now;
     }
+    // Taken off the wall by something else: written back, while they face elsewhere.
+    if (this.exitShown && !this.visible.has(Director.EXIT) && this.facing !== 'south' && !this.scheduler.hasPending(`reveal:${Director.EXIT}`)) this.reveal(Director.EXIT, 0, 'exit-line', 'emerge', 8);
     const g = this.letGo;
     if (!g) return;
     // A moment in, the chair behind them, once: what they would be leaving (creative director).
@@ -2277,11 +2280,14 @@ export class Director {
     const fx = -Math.sin(g.yaw), fz = -Math.cos(g.yaw);
     const dx = input.x - g.x, dz = input.z - g.z;
     const on = dx * fx + dz * fz, aside = Math.abs(dx * fz - dz * fx);
-    if (turn <= Director.LET_GO.turn && aside < Director.LET_GO.step && (on >= Director.LET_GO.on || (on > 0.05 && input.z >= Director.LET_GO.wall)) && this.now - g.at >= 1) {
+    // (At once if they like: the room only begins once they have stood still after the touch, so
+    // its own walk to the words is over. Codex review, PR #56.)
+    if (turn <= Director.LET_GO.turn && aside < Director.LET_GO.step && (on >= Director.LET_GO.on || (on > 0.05 && input.z >= Director.LET_GO.wall))) {
       this.goNow();
       return;
     }
-    if (turn > Director.LET_GO.turn || Math.hypot(dx, dz) > Director.LET_GO.step || input.kneeling || this.scenes.active) {
+    // A step back or aside, a turn: they stay. (A step on that isn't yet going is still waiting.)
+    if (turn > Director.LET_GO.turn || aside >= Director.LET_GO.step || on <= -Director.LET_GO.step || input.kneeling || this.scenes.active) {
       this.keep();
       return;
     }

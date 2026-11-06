@@ -167,6 +167,31 @@ describe('the way out', () => {
     expect(d.departureLine()).toBe('The chair, from the door.');
   });
 
+  it('walking on at once, as the room begins to let them go, is going too (Codex review, PR #56)', () => {
+    const { d, here } = atTheDoor();
+    still(d, here, 2);
+    d.tapped({ phraseId: Director.EXIT });
+    // Stand until the room begins, then walk on straight away at a walking pace.
+    const cues: TimedCue[] = [];
+    for (let t = 0; t < 10 && !cues.some((c) => c.rule === 'leaving'); t += DT) cues.push(...d.tick(DT, here, 'south'));
+    expect(cues.some((c) => c.rule === 'leaving')).toBe(true);
+    const on: TimedCue[] = [];
+    for (let t = 0; t < 1; t += DT) on.push(...d.tick(DT, { ...here, z: here.z + 1.05 * t }, 'south'));
+    expect(on.some((c) => c.cue.type === 'leave')).toBe(true);
+    expect(on.some((c) => c.rule === 'leaving-kept')).toBe(false);
+  });
+
+  it('the way out is never culled from its wall once it is the way out (Codex review, PR #56)', () => {
+    for (const seed of [1, 2, 3, 4, 5]) {
+      const d = new Director({ seed });
+      d.release({ written: OPENING_WRITTEN, spoken: OPENING_SPOKEN, unfinished: OPENING_UNFINISHED });
+      const cues: TimedCue[] = [];
+      for (let t = 0; t < 900; t += DT) cues.push(...d.tick(DT, input(1.6, 0.3, { yaw: -Math.PI / 2, gazeChair: false }), 'east'));
+      expect(cues.some((c) => c.rule === 'cull' && c.cue.type === 'hide' && c.cue.phraseId === Director.EXIT), `seed ${seed}`).toBe(false);
+      expect(d.visible.has(Director.EXIT), `seed ${seed}`).toBe(true);
+    }
+  });
+
   it('touching the words again does nothing: the explorer\'s reflex never ends the visit', () => {
     const { d, here } = atTheDoor();
     still(d, here, 2);
