@@ -75,6 +75,11 @@ export interface DirectorOptions {
    * now begins nearly empty and an authored opening (src/state/OpeningScore.ts) comes first.
    */
   legacyOpening?: boolean;
+  /**
+   * Design experiments, off unless named (docs/reviews/2026-11-core-loop.md): each changes one
+   * part of how the room answers, so a visit with and without it can be compared on the same seed.
+   */
+  experiments?: readonly string[];
 }
 
 const SURFACES: Surface[] = ['north', 'east', 'south', 'west'];
@@ -266,7 +271,11 @@ export class Director {
   private stillVoice: boolean;
   private stillMusic: boolean;
 
+  /** The design experiments this visit runs (empty in the room unless `?exp=` names some). */
+  readonly exp: ReadonlySet<string>;
+
   constructor(opts: DirectorOptions) {
+    this.exp = new Set(opts.experiments ?? []);
     this.rng = new Rng(opts.seed);
     this.gapRng = new Rng(opts.seed * 7919 + 101);
     this.seed = opts.seed;

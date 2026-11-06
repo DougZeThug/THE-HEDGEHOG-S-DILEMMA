@@ -1,0 +1,184 @@
+/**
+ * The core-loop battery (docs/reviews/2026-11-core-loop.md): closed-loop visitors
+ * (tests/playtest/visitors.ts) drawn from six classes, plus visitors chosen to break things,
+ * plus second visits, run through the real Director, for one or more arms (sets of design
+ * experiments) on identical visitors and seeds.
+ *
+ *   npx vite-node scripts/experiment.ts
+ *   ARMS='base;A1=approachManner;A2=airLine' npx vite-node scripts/experiment.ts
+ *   N=8 SEEDS=3 RETURNS=10 …      (genomes per class, seeds per genome, second-visit pairs)
+ *   OUT=test-output/core-loop/base.json …   (every visit's numbers)
+ *   REPORT=docs/reviews/core-loop/baseline.md …   (the printed tables)
+ *
+ * Everything here is simulated: the visitors' reactions are assumptions (visitors.ts). Read the
+ * numbers as differences between arms on the same visitors, not as what people feel.
+ */
+import { writeFileSync } from 'node:fs';
+import { Rng } from '../src/core/rng';
+import { LocalInterpreter } from '../src/interpret/LocalInterpreter';
+import { CLASSES, adversaries, drawGenome, liveVisit, type Genome, type VisitSummary } from '../tests/playtest/visitors';
+
+// (REPORT=file also writes what is printed: the guard forbids redirecting a script's output.)
+const printed: string[] = [];
+const log = console.log;
+console.log = (...xs: unknown[]) => {
+  printed.push(xs.join(' '));
+  log(...xs);
+};
+const N = Number(process.env.N ?? 27);
+const SEEDS = Number(process.env.SEEDS ?? 5);
+const ADV_SEEDS = Number(process.env.ADV_SEEDS ?? 12);
+const RETURNS = Number(process.env.RETURNS ?? 30);
+const SECONDS = Number(process.env.SECONDS ?? 600);
+const ARMS = (process.env.ARMS ?? 'base').split(';').map((a) => {
+  const [name, list] = a.includes('=') ? a.split('=') : [a, ''];
+  return { name, experiments: list.split(',').filter(Boolean) };
+});
+
+const genomes: Genome[] = [];
+const gr = new Rng(20261106);
+for (const cls of CLASSES) for (let i = 0; i < N; i++) genomes.push(drawGenome(cls, gr, i));
+const advs = adversaries();
+
+const interpretation = await new LocalInterpreter().interpret('the kettle, and you not saying anything');
+
+const pct = (a: number, b: number) => (b ? `${Math.round((100 * a) / b)}%` : '—');
+const median = (xs: number[]) => (xs.length ? [...xs].sort((a, b) => a - b)[Math.floor((xs.length - 1) / 2)] : NaN);
+const mean = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : NaN);
+const f1 = (x: number) => (Number.isFinite(x) ? x.toFixed(1) : '—');
+const entropy = (counts: Record<string, number>) => {
+  const n = Object.values(counts).reduce((a, b) => a + b, 0);
+  if (!n) return 0;
+  let h = 0;
+  for (const c of Object.values(counts)) if (c) h -= (c / n) * Math.log2(c / n);
+  return h;
+};
+
+const out: Record<string, VisitSummary[]> = {};
+const t0 = Date.now();
+for (const arm of ARMS) {
+  const rows: VisitSummary[] = [];
+  for (const g of genomes) for (let s = 1; s <= SEEDS; s++) rows.push(liveVisit(g, s, { seconds: SECONDS, experiments: arm.experiments, arm: arm.name, interpretation }));
+  for (const g of advs) for (let s = 1; s <= ADV_SEEDS; s++) rows.push(liveVisit(g, 100 + s, { seconds: SECONDS, experiments: arm.experiments, arm: arm.name, interpretation }));
+  // Second visits: the same visitor comes back, with what the first visit left (counts, the trace).
+  for (let i = 0; i < RETURNS; i++) {
+    const g = genomes[(i * 7) % genomes.length];
+    const first = rows.find((r) => r.genome === g.id && r.seed === 1)!;
+    rows.push(liveVisit(g, 1000 + i, { seconds: SECONDS, experiments: arm.experiments, arm: arm.name, interpretation, past: { visits: 2, memoryCounts: first.memoryCounts, trace: first.leaving === 'close' ? 'close' : null } }));
+  }
+  out[arm.name] = rows;
+}
+const ms = Date.now() - t0;
+const total = Object.values(out).reduce((a, r) => a + r.length, 0);
+console.log(`${total} visits in ${(ms / 1000).toFixed(1)} s (${(ms / total).toFixed(0)} ms each). Simulated visitors; reactions are assumptions.\n`);
+
+const firsts = (rows: VisitSummary[]) => rows.filter((r) => r.visit === 1);
+
+// ── Agency ──
+console.log('## Is what they do answered, in place, within 8 s? (first visits)\n');
+const KINDS = ['meet', 'return', 'tap', 'turn', 'approach', 'kneel', 'tap-chair', 'pause-chair', 'withdraw', 'pause', 'write'];
+console.log(`| arm | ${KINDS.map((k) => `${k} n · answered · caused · none · H`).join(' | ')} | placebo |`);
+console.log(`|---|${KINDS.map(() => '---').join('|')}|---|`);
+for (const [name, rows] of Object.entries(out)) {
+  const cells = KINDS.map((k) => {
+    let n = 0, a = 0, c = 0;
+    const kinds: Record<string, number> = {};
+    for (const r of firsts(rows)) {
+      const row = r.actions[k];
+      if (!row) continue;
+      n += row.n;
+      a += row.answered;
+      c += row.caused;
+      for (const [kk, v] of Object.entries(row.kinds)) kinds[kk] = (kinds[kk] ?? 0) + v;
+    }
+    return `${n} · ${pct(a, n)} · ${pct(c, n)} · ${pct(kinds.none ?? 0, n)} · ${entropy(kinds).toFixed(2)}`;
+  });
+  const pl = firsts(rows).reduce((p, r) => ({ n: p.n + r.placebo.n, h: p.h + r.placebo.hit }), { n: 0, h: 0 });
+  console.log(`| ${name} | ${cells.join(' | ')} | ${pct(pl.h, pl.n)} |`);
+}
+
+// ── Answer kinds for the chair ──
+console.log('\n## How coming near is answered, by manner (first visits)\n');
+console.log('| arm | device | gentle · abrupt · neutral · pass | answered (caused) gentle | abrupt | neutral | Δexposure g/a | Δwarmth g/a | after a flinch-back: next approach gentler |');
+console.log('|---|---|---|---|---|---|---|---|---|');
+for (const [name, rows] of Object.entries(out)) for (const dev of ['desktop', 'phone'] as const) {
+  const aps = firsts(rows).filter((r) => r.device === dev).flatMap((r) => r.approaches);
+  const by = (m: string) => aps.filter((a) => a.manner === m);
+  const ans = (m: string) => `${pct(by(m).filter((a) => a.answer !== 'none').length, by(m).length)} ${JSON.stringify(Object.fromEntries(Object.entries(by(m).reduce((o, a) => ({ ...o, [a.answer]: ((o as Record<string, number>)[a.answer] ?? 0) + 1 }), {} as Record<string, number>))))}`;
+  const lr = firsts(rows).filter((r) => r.device === dev).reduce((p, r) => ({ a: p.a + r.learned.after, g: p.g + r.learned.gentler }), { a: 0, g: 0 });
+  console.log(`| ${name} | ${dev} | ${by('gentle').length} · ${by('abrupt').length} · ${by('neutral').length} · ${by('pass').length} | ${ans('gentle')} | ${ans('abrupt')} | ${ans('neutral')} | ${f1(100 * mean(by('gentle').map((a) => a.dExposure)))} / ${f1(100 * mean(by('abrupt').map((a) => a.dExposure)))} | ${f1(100 * mean(by('gentle').map((a) => a.dWarmth)))} / ${f1(100 * mean(by('abrupt').map((a) => a.dWarmth)))} | ${lr.g}/${lr.a} |`);
+}
+
+// ── Pacing and restraint ──
+console.log('\n## Restraint and passivity (first visits; medians unless said)\n');
+console.log('| arm | per min | longest seen gap | voices / visit | imposed quiet (mean) | most own in 20 s (max) | overlaps | same-kind repeats | passive 30 s windows |');
+console.log('|---|---|---|---|---|---|---|---|---|');
+for (const [name, rows] of Object.entries(out)) {
+  const r = firsts(rows);
+  const pw = r.reduce((p, x) => ({ w: p.w + x.passive.windows, e: p.e + x.passive.empty }), { w: 0, e: 0 });
+  console.log(`| ${name} | ${f1(median(r.map((x) => x.perMinute)))} | ${f1(median(r.map((x) => x.longestSeenGap)))} | ${f1(median(r.map((x) => x.voices)))} | ${pct(mean(r.map((x) => x.imposedQuiet)) * 100, 100)} | ${Math.max(...r.map((x) => x.most20))} | ${f1(median(r.map((x) => x.overlaps)))} | ${f1(median(r.map((x) => x.repeatsSameKind)))} | ${pct(pw.e, pw.w)} |`);
+}
+
+// ── Reach ──
+console.log('\n## What a visit reaches (first visits)\n');
+const MEMS = ['cereal', 'woodland', 'almost', 'things', 'bedroom', 'door'];
+console.log(`| arm | class | n | any painted | kitchen light | ${MEMS.join(' | ')} | vignettes / visit | "stay" finished (median s) | air | held silence | table | first memory (median s) | offers / visit |`);
+console.log(`|---|---|---|---|---|${MEMS.map(() => '---').join('|')}|---|---|---|---|---|---|---|`);
+for (const [name, rows] of Object.entries(out)) {
+  for (const cls of [...CLASSES, 'adversary', 'all']) {
+    const r = firsts(rows).filter((x) => cls === 'all' || x.cls === cls);
+    if (!r.length) continue;
+    const fin = r.filter((x) => x.reach.finishedAt !== null);
+    console.log(`| ${name} | ${cls} | ${r.length} | ${pct(r.filter((x) => x.reach.memories.length).length, r.length)} | ${pct(r.filter((x) => x.reach.kitchen).length, r.length)} | ${MEMS.map((m) => pct(r.filter((x) => x.reach.memories.includes(m)).length, r.length)).join(' | ')} | ${f1(mean(r.map((x) => x.reach.vignettes.length)))} | ${pct(fin.length, r.length)} (${f1(median(fin.map((x) => x.reach.finishedAt!)))}) | ${pct(r.filter((x) => x.reach.air).length, r.length)} | ${pct(r.filter((x) => x.reach.held).length, r.length)} | ${pct(r.filter((x) => x.reach.table).length, r.length)} | ${f1(median(r.filter((x) => x.reach.firstMemoryAt !== null).map((x) => x.reach.firstMemoryAt!)))} | ${f1(mean(r.map((x) => x.reach.offers)))} |`);
+  }
+}
+
+// ── Situations and phases ──
+console.log('\n## Situations, phases, leaving (first visits)\n');
+for (const [name, rows] of Object.entries(out)) {
+  const r = firsts(rows);
+  const sit: Record<string, number> = {};
+  for (const x of r) for (const s of x.reach.situations) sit[s] = (sit[s] ?? 0) + 1;
+  const dep: Record<string, number> = {};
+  for (const x of r) dep[x.departure] = (dep[x.departure] ?? 0) + 1;
+  const turners = r.filter((x) => x.cls !== 'adversary' && x.genome && rowsLeave(x) === 'turn');
+  console.log(`**${name}.** situations ${JSON.stringify(sit)}; contradiction median ${f1(median(r.filter((x) => x.phases.contradiction !== undefined).map((x) => x.phases.contradiction)))} s, transform ${f1(median(r.filter((x) => x.phases.transform !== undefined).map((x) => x.phases.transform)))} s (reached ${pct(r.filter((x) => x.phases.transform !== undefined).length, r.length)}); leaving 'close' ${pct(r.filter((x) => x.leaving === 'close').length, r.length)}; left in the room: ${r.filter((x) => x.leftInRoom !== null).length} (of ${turners.length} who turned to go), false ${r.filter((x) => x.falseLeave).length}, ebbs ${r.reduce((a, x) => a + x.ebbs, 0)}`);
+  console.log(`  departure lines: ${Object.entries(dep).sort((a, b) => b[1] - a[1]).map(([k, v]) => `"${k}" ${v}`).join(', ')}`);
+}
+function rowsLeave(x: VisitSummary) {
+  return [...genomes, ...advs].find((g) => g.id === x.genome)?.leave;
+}
+
+// ── Second visits ──
+console.log('\n## Coming back (second visits)\n');
+console.log('| arm | n | new answers vs first visit | painted memory | new painted memory | vignettes |');
+console.log('|---|---|---|---|---|---|');
+for (const [name, rows] of Object.entries(out)) {
+  const sec = rows.filter((r) => r.visit === 2);
+  const novelty: number[] = [];
+  let newMem = 0;
+  for (const s of sec) {
+    const first = rows.find((r) => r.visit === 1 && r.genome === s.genome && r.seed === 1)!;
+    const seen = new Set(first.labels);
+    novelty.push(s.labels.filter((l) => !seen.has(l)).length / Math.max(1, s.labels.length));
+    if (s.reach.memories.some((m) => !first.reach.memories.includes(m))) newMem++;
+  }
+  console.log(`| ${name} | ${sec.length} | ${pct(mean(novelty) * 100, 100)} | ${pct(sec.filter((x) => x.reach.memories.length).length, sec.length)} | ${pct(newMem, sec.length)} | ${f1(mean(sec.map((x) => x.reach.vignettes.length)))} |`);
+}
+
+// ── Adversaries ──
+console.log('\n## Visitors chosen to break things\n');
+console.log('| arm | visitor | per min | longest seen gap | voices | answered (all actions) | painted | false leave | leaving trace |');
+console.log('|---|---|---|---|---|---|---|---|---|');
+for (const [name, rows] of Object.entries(out)) for (const g of advs) {
+  const r = rows.filter((x) => x.genome === g.id);
+  let n = 0, a = 0;
+  for (const x of r) for (const row of Object.values(x.actions)) {
+    n += row.n;
+    a += row.answered;
+  }
+  console.log(`| ${name} | ${g.id} | ${f1(median(r.map((x) => x.perMinute)))} | ${f1(median(r.map((x) => x.longestSeenGap)))} | ${f1(median(r.map((x) => x.voices)))} | ${pct(a, n)} | ${pct(r.filter((x) => x.reach.memories.length).length, r.length)} | ${r.filter((x) => x.falseLeave).length} | ${pct(r.filter((x) => x.leaving === 'close').length, r.length)} close |`);
+}
+
+if (process.env.OUT) writeFileSync(process.env.OUT, JSON.stringify(out));
+if (process.env.REPORT) writeFileSync(process.env.REPORT, printed.join('\n') + '\n');

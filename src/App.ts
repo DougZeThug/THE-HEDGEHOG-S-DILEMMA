@@ -229,6 +229,8 @@ export class App {
       trace,
       memoryCounts: readMemoryCounts(),
       situations: forced,
+      // Design experiments for inspection (`?exp=a,b`; docs/reviews/2026-11-core-loop.md).
+      experiments: params.get('exp')?.split(',').map((s) => s.trim()).filter(Boolean),
       // Where each piece of writing is, for situations that relate place to memory.
       geometry: (id) => {
         const w = this.text.whereIs(id);
