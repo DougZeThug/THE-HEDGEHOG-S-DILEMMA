@@ -1,5 +1,11 @@
 {
  "version": 1,
+ "locked": {
+  "version": 1,
+  "at": "2026-11-07",
+  "by": "artist",
+  "note": "Locked as heard on the listening page, with no silence marked shorter or longer."
+ },
  "note": "Written by scripts/fable/radio_cut.mjs from the ledger reading. Times in seconds on the film; take times are in the original take file.",
  "reading": {
   "voice": "tom",

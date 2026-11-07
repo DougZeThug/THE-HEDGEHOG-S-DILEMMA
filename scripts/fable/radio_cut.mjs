@@ -16,6 +16,14 @@ const RATE = 44100;
 const VERSION = 1;
 mkdirSync(out, { recursive: true });
 
+// A version the artist has locked is the film's timing (the picture is keyed to it): never rebuild
+// it in place. Raise VERSION for a new cut, or pass --relock to rebuild the locked one on purpose.
+const EDL = join(ROOT, 'scripts/fable/radio-cut.json');
+let locked = null;
+try { ({ locked } = JSON.parse(readFileSync(EDL, 'utf8'))); } catch { /* no timeline yet */ }
+if (locked && locked.version === VERSION && !process.argv.includes('--relock'))
+  throw new Error(`radio cut v${VERSION} was locked by the ${locked.by} on ${locked.at}; raise VERSION or pass --relock`);
+
 // Silences, voice to voice, in seconds. Decision 12: time goes only to the bible's three silences,
 // the ease, the waiting, the end hold and the curtains; every other gap is 1 s or less. The slowness
 // is made in the edit (decision 16), so ordinary gaps sit at that 1 s.
@@ -156,6 +164,7 @@ const loud = { narration: measure(join(out, 'narration.wav')), night: measure(jo
 
 const edl = {
   version: VERSION,
+  locked: locked?.version === VERSION ? locked : undefined,
   note: 'Written by scripts/fable/radio_cut.mjs from the ledger reading. Times in seconds on the film; take times are in the original take file.',
   reading: ledger.reading,
   plan: { leadIn: LEAD_IN, gap: GAP, after: AFTER, split: SPLIT, black: BLACK, ceiling: CEILING, narrationLufs: NARRATION_LUFS, nightLufs: NIGHT_LUFS },
@@ -164,7 +173,7 @@ const edl = {
   units: units.map((u) => ({ p: u.p, part: u.part || undefined, take: u.take, from: fixed(u.v0), to: fixed(u.v1), at: fixed(u.at),
     end: fixed(u.end), gapAfter: fixed(u.gap[0], 2), why: u.gap[1] ?? undefined, text: u.text })),
 };
-writeFileSync(join(ROOT, 'scripts/fable/radio-cut.json'), JSON.stringify(edl, null, 1) + '\n');
+writeFileSync(EDL, JSON.stringify(edl, null, 1) + '\n');
 
 const mmss = (s) => `${Math.floor(s / 60)}:${(s % 60).toFixed(1).padStart(4, '0')}`;
 for (const u of edl.units) console.log(`${mmss(u.at)}  ¶${u.p}${u.part ?? ''}`.padEnd(14), `${(u.end - u.at).toFixed(1)} s`.padStart(7),
