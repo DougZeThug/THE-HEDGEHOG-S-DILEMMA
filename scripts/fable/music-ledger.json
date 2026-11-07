@@ -96,6 +96,35 @@
         "pick": "m2-d-2",
         "note": "Only D2 (hedgerow folk and strings, take 2) marked yes; the pick was given in chat (\"d2\")."
       }
+    },
+    "m3": {
+      "at": "2026-11-07",
+      "purpose": "The artist, after hearing score v1: \"i cant hear the music beneath him it only plays in the silences, i think the whole thing should be scored where there is music through the entire fable\". One through-composed score for the whole fable, with D2 as the Audio Reference so it keeps the sound the artist chose.",
+      "flow": "O48uIu8RgtheF1BbIS5r",
+      "model": "eleven_music_v2_5",
+      "settings": {
+        "duration_seconds": 180,
+        "instrumental": true,
+        "lyrics_type": "instrumental"
+      },
+      "nodes": {
+        "f": {
+          "node": "PiQE2l07BL6yL9aC3QpY",
+          "label": "the whole fable, D2 as reference",
+          "reference": {
+            "node": "mMMcsx70fPgUIhFrChou",
+            "generation": "cf7Rzp3uRJ3AZJyIA3Ps",
+            "take": "m2-d-2",
+            "port": "audio"
+          },
+          "prompt": "Through-composed, slow cinematic English folk score in the sound of the reference: fingerpicked gut-string harp, low wooden whistle, solo viola and very soft low strings; intimate and close, no drums, no vocals, no piano, no synth pads. 0:00-0:30 sparse harp notes and a distant low whistle, quiet wonder. 0:30-0:55 warmer: a gentle harp melody answered by the whistle and viola over soft strings, tender and unhurried. 0:55-1:30 thinner and darker: low sustained strings and fragments of the melody, uneasy but never menacing. 1:30-1:45 a fragile, hushed moment of relief; the melody begins and is left unfinished. 1:45-2:10 the melody falls away over slowly descending strings, sorrowful. 2:10-2:22 a few broken harp notes, almost silence. 2:22-2:37 sparse, cold and solitary, single notes far apart, no melody. 2:37-3:00 the opening harp phrase returns softly and is left unresolved, ending on an open chord with no final cadence."
+        }
+      },
+      "estimate": {
+        "oneTake": 4950,
+        "twoTakes": 9900
+      },
+      "status": "priced; waiting for the artist before running"
     }
   },
   "entries": {
