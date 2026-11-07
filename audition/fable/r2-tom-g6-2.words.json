@@ -1,0 +1,332 @@
+[
+ {
+  "text": "Neither",
+  "type": "word",
+  "start": 0,
+  "end": 0.48
+ },
+ {
+  "text": "returned",
+  "type": "word",
+  "start": 0.72,
+  "end": 0.96
+ },
+ {
+  "text": "to",
+  "type": "word",
+  "start": 1,
+  "end": 1.04
+ },
+ {
+  "text": "the",
+  "type": "word",
+  "start": 1.12,
+  "end": 1.2
+ },
+ {
+  "text": "pond.",
+  "type": "word",
+  "start": 1.28,
+  "end": 2
+ },
+ {
+  "text": "Then,",
+  "type": "word",
+  "start": 2.32,
+  "end": 2.88
+ },
+ {
+  "text": "one",
+  "type": "word",
+  "start": 2.96,
+  "end": 3.12
+ },
+ {
+  "text": "evening,",
+  "type": "word",
+  "start": 3.24,
+  "end": 3.84
+ },
+ {
+  "text": "the",
+  "type": "word",
+  "start": 3.88,
+  "end": 3.92
+ },
+ {
+  "text": "fox",
+  "type": "word",
+  "start": 4,
+  "end": 4.32
+ },
+ {
+  "text": "climbed",
+  "type": "word",
+  "start": 4.4,
+  "end": 4.72
+ },
+ {
+  "text": "the",
+  "type": "word",
+  "start": 4.76,
+  "end": 4.8
+ },
+ {
+  "text": "hill",
+  "type": "word",
+  "start": 4.88,
+  "end": 5.12
+ },
+ {
+  "text": "with",
+  "type": "word",
+  "start": 5.2,
+  "end": 5.28
+ },
+ {
+  "text": "a",
+  "type": "word",
+  "start": 5.36,
+  "end": 5.44
+ },
+ {
+  "text": "small,",
+  "type": "word",
+  "start": 5.64,
+  "end": 6
+ },
+ {
+  "text": "unimportant",
+  "type": "word",
+  "start": 6.08,
+  "end": 6.72
+ },
+ {
+  "text": "story",
+  "type": "word",
+  "start": 6.8,
+  "end": 7.12
+ },
+ {
+  "text": "he",
+  "type": "word",
+  "start": 7.2,
+  "end": 7.36
+ },
+ {
+  "text": "had",
+  "type": "word",
+  "start": 7.44,
+  "end": 7.52
+ },
+ {
+  "text": "saved",
+  "type": "word",
+  "start": 7.6,
+  "end": 7.92
+ },
+ {
+  "text": "for",
+  "type": "word",
+  "start": 8.04,
+  "end": 8.16
+ },
+ {
+  "text": "her.",
+  "type": "word",
+  "start": 8.24,
+  "end": 8.4
+ },
+ {
+  "text": "She",
+  "type": "word",
+  "start": 8.88,
+  "end": 9.04
+ },
+ {
+  "text": "was",
+  "type": "word",
+  "start": 9.12,
+  "end": 9.2
+ },
+ {
+  "text": "already",
+  "type": "word",
+  "start": 9.44,
+  "end": 9.68
+ },
+ {
+  "text": "looking",
+  "type": "word",
+  "start": 9.76,
+  "end": 10.08
+ },
+ {
+  "text": "down.",
+  "type": "word",
+  "start": 10.28,
+  "end": 10.56
+ },
+ {
+  "text": "He",
+  "type": "word",
+  "start": 11.04,
+  "end": 11.12
+ },
+ {
+  "text": "began",
+  "type": "word",
+  "start": 11.2,
+  "end": 11.52
+ },
+ {
+  "text": "telling",
+  "type": "word",
+  "start": 11.6,
+  "end": 11.84
+ },
+ {
+  "text": "it.",
+  "type": "word",
+  "start": 11.92,
+  "end": 12.16
+ },
+ {
+  "text": "Halfway",
+  "type": "word",
+  "start": 12.64,
+  "end": 13.04
+ },
+ {
+  "text": "through,",
+  "type": "word",
+  "start": 13.12,
+  "end": 13.68
+ },
+ {
+  "text": "he",
+  "type": "word",
+  "start": 13.76,
+  "end": 13.84
+ },
+ {
+  "text": "looked",
+  "type": "word",
+  "start": 13.92,
+  "end": 14.08
+ },
+ {
+  "text": "toward",
+  "type": "word",
+  "start": 14.16,
+  "end": 14.48
+ },
+ {
+  "text": "the",
+  "type": "word",
+  "start": 14.52,
+  "end": 14.56
+ },
+ {
+  "text": "pond.",
+  "type": "word",
+  "start": 14.64,
+  "end": 15.12
+ },
+ {
+  "text": "The",
+  "type": "word",
+  "start": 15.6,
+  "end": 15.68
+ },
+ {
+  "text": "moon",
+  "type": "word",
+  "start": 15.76,
+  "end": 16.08
+ },
+ {
+  "text": "looked",
+  "type": "word",
+  "start": 16.16,
+  "end": 16.4
+ },
+ {
+  "text": "too.",
+  "type": "word",
+  "start": 16.48,
+  "end": 17.24
+ },
+ {
+  "text": "Every",
+  "type": "word",
+  "start": 17.68,
+  "end": 17.92
+ },
+ {
+  "text": "night,",
+  "type": "word",
+  "start": 18,
+  "end": 18.48
+ },
+ {
+  "text": "a",
+  "type": "word",
+  "start": 18.56,
+  "end": 18.64
+ },
+ {
+  "text": "fox",
+  "type": "word",
+  "start": 18.72,
+  "end": 19.04
+ },
+ {
+  "text": "climbed",
+  "type": "word",
+  "start": 19.12,
+  "end": 19.44
+ },
+ {
+  "text": "a",
+  "type": "word",
+  "start": 19.48,
+  "end": 19.52
+ },
+ {
+  "text": "hill",
+  "type": "word",
+  "start": 19.6,
+  "end": 19.84
+ },
+ {
+  "text": "to",
+  "type": "word",
+  "start": 19.92,
+  "end": 20.08
+ },
+ {
+  "text": "sit",
+  "type": "word",
+  "start": 20.16,
+  "end": 20.32
+ },
+ {
+  "text": "beneath",
+  "type": "word",
+  "start": 20.4,
+  "end": 20.72
+ },
+ {
+  "text": "the",
+  "type": "word",
+  "start": 20.76,
+  "end": 20.8
+ },
+ {
+  "text": "moon.",
+  "type": "word",
+  "start": 20.88,
+  "end": 21.6
+ }
+]

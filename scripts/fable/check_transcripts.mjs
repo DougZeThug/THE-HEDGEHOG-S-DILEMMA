@@ -24,7 +24,8 @@ for (const t of run.transcripts) {
   const id = map[t.generation_id];
   if (!id) { console.log('unmapped', t.generation_id); continue; }
   const e = ledger.entries[id];
-  const ref = words(ledger.rounds[e.round].text);
+  const round = ledger.rounds[e.round];
+  const ref = words(e.group ? round.groups[e.group].text : round.text);
   const hyp = words(t.text);
   const wer = distance(ref, hyp) / ref.length;
   const spoken = t.words.filter((w) => w.type === undefined || w.type === 'word');

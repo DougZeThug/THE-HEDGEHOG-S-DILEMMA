@@ -2,7 +2,8 @@
   "note": "Narration of The Fox and the Moon, made through the ElevenLabs claude.ai connector (eleven_v4), cap 20,000 credits. Decisions 14-16 in docs/reviews/2026-10-fable.md. Never overwrite an entry with review 'approved'.",
   "cap": 20000,
   "spent": {
-    "round1": 2627.74
+    "round1": 2627.74,
+    "round2": 1271.87
   },
   "rounds": {
     "round1": {
@@ -97,7 +98,7 @@
         }
       },
       "estimate": 1271.87,
-      "status": "priced; waiting for the artist before running"
+      "status": "run once, 2026-11-07, after the artist approved the estimate"
     }
   },
   "entries": {
@@ -376,6 +377,130 @@
       "transcript": "Every night, a fox climbed a hill to sit beneath the moon.\n\nHe told her small things: where the blackberries grew, what he had mistaken for a bird, which paths he disliked walking alone.\n\nThe moon began waiting for him.",
       "wer": 0,
       "mark": "no"
+    },
+    "r2-tom-g1-1": {
+      "round": "round2",
+      "voice": "tom",
+      "group": "g1",
+      "generation": "Sbq41CA3MEPy8RVX54bW",
+      "session": "V4D4zfnINEkr1QrWkrGR",
+      "file": "fable/r2-tom-g1-1.mp3",
+      "status": "validated",
+      "review": "pending",
+      "duration": 23.04,
+      "bytes": 386644,
+      "cost": 327.97,
+      "transcript": "Every night, a fox climbed a hill to sit beneath the moon.\n\nHe told her small things: where the blackberries grew, what he had mistaken for a bird, which paths he disliked walking alone.\n\nThe moon began waiting for him.\n\nFrom so far away, each found the other easy to love.\n\nOne evening, she asked him to meet her beside a pond.",
+      "wer": 0,
+      "cut": {
+        "in": 0,
+        "out": 19.825,
+        "duration": 19.825,
+        "inDb": null,
+        "outDb": -87.9,
+        "firstWord": "Every",
+        "lastWord": "love.",
+        "voiceEnds": 19.225
+      },
+      "loudness": {
+        "lufs": -22.2,
+        "peak": -3.2,
+        "gain": -0.8,
+        "matchedLufs": -23.5
+      }
+    },
+    "r2-tom-g1-2": {
+      "round": "round2",
+      "voice": "tom",
+      "group": "g1",
+      "generation": "Lvj2iUYt64lIcfK2lC6P",
+      "session": "ophwb6j7IMmfCz4z1APb",
+      "file": "fable/r2-tom-g1-2.mp3",
+      "status": "validated",
+      "review": "pending",
+      "duration": 23.36,
+      "bytes": 392078,
+      "cost": 327.97,
+      "transcript": "Every night, a fox climbed a hill to sit beneath the moon.\n\nHe told her small things: where the blackberries grew, what he had mistaken for a bird, which paths he disliked walking alone.\n\nThe moon began waiting for him.\n\nFrom so far away, each found the other easy to love.\n\nOne evening, she asked him to meet her beside a pond.",
+      "wer": 0,
+      "cut": {
+        "in": 0,
+        "out": 20.07,
+        "duration": 20.07,
+        "inDb": null,
+        "outDb": -87.7,
+        "firstWord": "Every",
+        "lastWord": "love.",
+        "voiceEnds": 19.45
+      },
+      "loudness": {
+        "lufs": -22.6,
+        "peak": -3,
+        "gain": -0.4,
+        "matchedLufs": -23.4
+      }
+    },
+    "r2-tom-g6-1": {
+      "round": "round2",
+      "voice": "tom",
+      "group": "g6",
+      "generation": "kqzfGcA4dTAZnUj0jwf1",
+      "session": "WYUovs0XqOeVpKdzpzWU",
+      "file": "fable/r2-tom-g6-1.mp3",
+      "status": "validated",
+      "review": "pending",
+      "duration": 21.04,
+      "bytes": 354880,
+      "cost": 307.97,
+      "transcript": "Neither returned to the pond.\n\nThen, one evening, the fox climbed the hill with a small, unimportant story he had saved for her.\n\nShe was already looking down.\n\nHe began telling it.\n\nHalfway through, he looked toward the pond.\n\nThe moon looked too.\n\nEvery night, a fox climbed a hill to sit beneath the moon.",
+      "wer": 0,
+      "cut": {
+        "in": 2.136,
+        "out": 17.141,
+        "duration": 15.005,
+        "inDb": -88.6,
+        "outDb": -88.8,
+        "firstWord": "Then,",
+        "lastWord": "too.",
+        "voiceEnds": 14.415
+      },
+      "loudness": {
+        "lufs": -21.7,
+        "peak": -2.6,
+        "gain": -1.3,
+        "matchedLufs": -23.4
+      }
+    },
+    "r2-tom-g6-2": {
+      "round": "round2",
+      "voice": "tom",
+      "group": "g6",
+      "generation": "l7mYNNWJCfgDST6XlTOW",
+      "session": "nZrGAY3aTzK7c6hmT1RA",
+      "file": "fable/r2-tom-g6-2.mp3",
+      "status": "validated",
+      "review": "pending",
+      "duration": 21.52,
+      "bytes": 362403,
+      "cost": 307.97,
+      "transcript": "Neither returned to the pond.\n\nThen, one evening, the fox climbed the hill with a small, unimportant story he had saved for her.\n\nShe was already looking down.\n\nHe began telling it.\n\nHalfway through, he looked toward the pond.\n\nThe moon looked too.\n\nEvery night, a fox climbed a hill to sit beneath the moon.",
+      "wer": 0,
+      "cut": {
+        "in": 2.225,
+        "out": 17.31,
+        "duration": 15.085,
+        "inDb": -90,
+        "outDb": -87.7,
+        "firstWord": "Then,",
+        "lastWord": "too.",
+        "voiceEnds": 14.635
+      },
+      "loudness": {
+        "lufs": -22.1,
+        "peak": -1.9,
+        "gain": -0.9,
+        "matchedLufs": -23.4
+      }
     }
   }
 }

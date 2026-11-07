@@ -1,0 +1,184 @@
+<title>Tom's First Takes</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+  /* Layout: one narrow column read at night on a phone; each group its passage, its takes and one choice. */
+  :root {
+    --night: #12141a;
+    --panel: #1b1e26;
+    --line: #2c303b;
+    --moon: #ebe5d3;
+    --dim: #a19d92;
+    --fox: #e07b36;
+    --keep: #9cc39a;
+    --display: "Newsreader", Georgia, "Times New Roman", serif;
+    --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { background: var(--night); color: var(--moon); font: 16px/1.55 var(--body); margin: 0; }
+  main {
+    max-width: 640px; margin: 0 auto;
+    padding-block: 36px 72px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    display: grid; gap: 28px;
+  }
+  h1 { font: 500 2rem/1.15 var(--display); margin: 0; text-wrap: balance; }
+  h2 { font: 500 1.2rem/1.3 var(--display); margin: 0 0 10px; }
+  h2 .para { font: 500 0.8rem var(--mono); color: var(--dim); letter-spacing: 0.04em; margin-left: 6px; }
+  p { margin: 0; }
+  .lede { color: var(--dim); margin-top: 8px; }
+  ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .group { display: grid; gap: 12px; }
+  .passage {
+    font: italic 400 1.05rem/1.6 var(--display); color: var(--moon);
+    border-left: 2px solid var(--fox); padding-left: 14px; display: grid; gap: 6px;
+  }
+  .takes { display: grid; gap: 10px; list-style: none; padding: 0; margin: 0; }
+  .take {
+    display: grid; gap: 6px; min-width: 0;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px;
+  }
+  .take.chosen { border-color: var(--keep); }
+  .take-name { font: 500 0.85rem var(--mono); color: var(--fox); letter-spacing: 0.04em; }
+  .take-name span { color: var(--dim); font-family: var(--body); font-weight: 400; letter-spacing: 0; }
+  audio { width: 100%; height: 40px; min-width: 0; }
+  .ask { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+  .ask > span { color: var(--dim); font-size: 0.9rem; }
+  .marks { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+  .marks button {
+    font: 500 0.9rem var(--body); color: var(--dim); background: transparent; border: 0;
+    padding: 7px 14px; min-height: 36px; cursor: pointer;
+  }
+  .marks button + button { border-left: 1px solid var(--line); }
+  .marks button[aria-pressed="true"] { color: var(--night); background: var(--moon); }
+  .marks button.keep[aria-pressed="true"] { background: var(--keep); }
+  button:focus-visible { outline: 2px solid var(--fox); outline-offset: 2px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .actions button {
+    font: 500 1rem var(--body); border-radius: 8px; padding: 10px 16px; min-height: 44px; cursor: pointer;
+    border: 1px solid var(--fox); background: var(--fox); color: var(--night);
+  }
+  .status { color: var(--dim); font-size: 0.9rem; }
+  textarea {
+    width: 100%; min-height: 7rem; font: 0.85rem/1.5 var(--mono); color: var(--moon);
+    background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px;
+  }
+  .small { color: var(--dim); font-size: 0.85rem; }
+</style>
+
+<main>
+  <header>
+    <h1>Tom, the opening and the ending</h1>
+    <p class="lede">Tom read the first and last groups of the fable twice each. Choose one take for each group. The lines borrowed from the neighbouring groups are already cut away, so this is the reading the film would use.</p>
+  </header>
+
+  <section>
+    <h2>How to listen</h2>
+    <ul>
+      <li>Once through, on the phone's own speaker, not headphones.</li>
+      <li>The opening: someone telling it rather than performing it. The list read as a list, and "The moon began waiting for him." landing without being pushed.</li>
+      <li>The ending: "The moon looked too." should stay open, not settle like the last line of a story. Each ending take runs on into 3 seconds of silence and the room's first laugh, so you hear Tom hand over to the room.</li>
+    </ul>
+    <p class="small" style="margin-top:10px">Every take says the text word for word (checked against a transcript), and both takes of a group play at the same loudness. The laugh sits a little under him, as planned for the room. The longer silences between paragraphs come later, in the edit, so judge the voice and the reading rather than the pace. Your choices stay on this device.</p>
+  </section>
+
+  <div id="groups" style="display:grid;gap:28px"></div>
+
+  <section>
+    <div class="actions">
+      <button type="button" id="copy">Copy my choices</button>
+      <span class="status" id="status" aria-live="polite"></span>
+    </div>
+    <textarea id="summary" aria-label="Your choices, to paste back to Claude" readonly hidden></textarea>
+  </section>
+</main>
+
+<script>
+const GROUPS = /*GROUPS*/[];
+const ROUND = /*ROUND*/'';
+const KEY = `fox-moon-takes-${ROUND}`;
+const LAUGH_Q = 'Does the laugh sound like a different person?';
+
+const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } };
+const save = (s) => { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) { /* choices just won't persist */ } };
+const state = load();
+state.picks ??= {};
+
+// A data URI first; a blob URL if a browser refuses that.
+function attach(audio, uri) {
+  audio.src = uri;
+  audio.addEventListener('error', () => {
+    const [head, b64] = uri.split(',');
+    const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    audio.src = URL.createObjectURL(new Blob([bytes], { type: head.slice(5, head.indexOf(';')) }));
+  }, { once: true });
+}
+
+function choice(name, label, options) {
+  const div = document.createElement('div');
+  div.className = 'ask';
+  div.innerHTML = `<span>${label}</span><div class="marks" role="group" aria-label="${label}">${options.map(([value, text, keep]) =>
+    `<button type="button" data-pick="${value}" class="${keep ? 'keep' : ''}" aria-pressed="false">${text}</button>`).join('')}</div>`;
+  div.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { state.picks[name] = b.dataset.pick; save(state); paint(); }));
+  div.dataset.name = name;
+  return div;
+}
+
+const root = document.getElementById('groups');
+const players = [];
+for (const g of GROUPS) {
+  const sec = document.createElement('section');
+  sec.className = 'group';
+  sec.innerHTML = `<h2>${g.label}<span class="para">&para;${g.paragraphs.replace('-', '&ndash;')}</span></h2>
+    <div class="passage">${g.lines.map((l) => `<p>${l}</p>`).join('')}</div>
+    <ol class="takes"></ol>`;
+  const ol = sec.querySelector('.takes');
+  for (const t of g.takes) {
+    const li = document.createElement('li');
+    li.className = 'take';
+    li.dataset.group = g.key;
+    li.dataset.take = String(t.n);
+    li.innerHTML = `<div class="take-name">Take ${t.n} <span>&middot; ${t.seconds.toFixed(0)} s${g.ending ? ', then silence and the laugh' : ''}</span></div>
+      <audio controls preload="none" aria-label="${g.label}, take ${t.n}"></audio>`;
+    const audio = li.querySelector('audio');
+    attach(audio, t.src);
+    players.push(audio);
+    ol.append(li);
+  }
+  sec.append(choice(g.key, 'Use', [...g.takes.map((t) => [String(t.n), `Take ${t.n}`, true]), ['neither', 'Neither']]));
+  if (g.ending) sec.append(choice('laugh', LAUGH_Q, [['yes', 'Yes', true], ['no', 'No']]));
+  root.append(sec);
+}
+// One voice at a time.
+for (const p of players) p.addEventListener('play', () => players.forEach((o) => { if (o !== p) o.pause(); }));
+
+const status = document.getElementById('status');
+const summary = document.getElementById('summary');
+const asks = () => [...GROUPS.map((g) => g.key), ...(GROUPS.some((g) => g.ending) ? ['laugh'] : [])];
+
+function paint() {
+  document.querySelectorAll('.ask').forEach((a) => a.querySelectorAll('button').forEach((b) =>
+    b.setAttribute('aria-pressed', String(state.picks[a.dataset.name] === b.dataset.pick))));
+  document.querySelectorAll('.take').forEach((li) => li.classList.toggle('chosen', state.picks[li.dataset.group] === li.dataset.take));
+  const left = asks().filter((k) => !state.picks[k]).length;
+  status.textContent = left ? `${left} choice${left === 1 ? '' : 's'} still to make` : 'All chosen';
+}
+
+document.getElementById('copy').addEventListener('click', () => {
+  const pick = (k) => state.picks[k] ?? '-';
+  const lines = GROUPS.map((g) => `${g.label} (¶${g.paragraphs}): ${/^\d+$/.test(pick(g.key)) ? `take ${pick(g.key)}` : pick(g.key)}`);
+  if (GROUPS.some((g) => g.ending)) lines.push(`The laugh sounds like a different person: ${pick('laugh')}`);
+  const text = `Tom's takes, ${ROUND.replace(/(\d+)$/, ' $1')}\n${lines.join('\n')}`;
+  summary.value = text;
+  summary.hidden = false;
+  const fallback = () => { summary.focus(); summary.select(); status.textContent = 'Copy the selected text'; };
+  if (navigator.clipboard?.writeText) navigator.clipboard.writeText(text).then(() => { status.textContent = 'Copied. Paste it into the chat.'; }, fallback);
+  else fallback();
+});
+
+paint();
+</script>
