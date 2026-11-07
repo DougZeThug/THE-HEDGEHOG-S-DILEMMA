@@ -1,7 +1,8 @@
 {
   "note": "Music for the fable, made with Eleven Music through the full ElevenLabs connector (the artist's direction, 2026-11-07). Placement, level and material follow the music review under decision 13 in docs/reviews/2026-10-fable.md. Licence: the live Music Terms exclude film, TV, radio and Studio Games on self-serve plans and do not define film; the artist decided to proceed.",
   "spent": {
-    "m1": 2399.48
+    "m1": 2399.48,
+    "m2": 3599.22
   },
   "rounds": {
     "m1": {
@@ -76,7 +77,7 @@
       },
       "takesPerNode": 2,
       "estimate": 6600,
-      "status": "priced; waiting for the artist before running",
+      "status": "run once, 2026-11-07, after the artist approved the estimate",
       "sheet": {
         "title": "Fox and Moon Music, Round 2",
         "heading": "The music: dark wonder",
@@ -86,7 +87,8 @@
           "\"With Tom\" plays 0:26 to 1:01 of the locked cut: the take enters under \"There, she could lay her reflection&hellip;\", rises a little in the pause after \"they were happy\", and is gone by \"But there were things&hellip;\". It runs on as generated, so it is busier than the film will be; the final places each note.",
           "Listen for subtle dark wonder and melancholy without sentiment: nothing should swell, sweeten or tell you what to feel. The prompts ruled out a choir, any voice, piano (the room's own instrument) and synth pads.",
           "The picture and the sound effects aren't in it yet."
-        ]
+        ],
+        "published": true
       }
     }
   },
@@ -213,6 +215,192 @@
         "underWordsGainDb": -21.6,
         "easeGainDb": -11.6,
         "aloneGainDb": -2.3
+      }
+    },
+    "m2-c-1": {
+      "round": "m2",
+      "palette": "c",
+      "generation": "8R4VQekocum58EuExEV5",
+      "session": "354N13CbuyZSlCHsaCkJ",
+      "file": "fable/music/m2-c-1.mp3",
+      "status": "saved",
+      "review": "pending",
+      "duration": 40,
+      "bytes": 978514,
+      "cost": 599.87,
+      "facts": {
+        "notes": 85,
+        "notesPerMinute": 127.5,
+        "longestGap": 7.91,
+        "nearSilence": 0.19,
+        "quietestBelowLoudest": 51.6,
+        "channelCorrelation": 0.62
+      },
+      "preview": {
+        "window": [
+          26,
+          61
+        ],
+        "enters": 31,
+        "goneBy": 57,
+        "underWordsGainDb": -27,
+        "easeGainDb": -17,
+        "aloneGainDb": -5.7
+      }
+    },
+    "m2-c-2": {
+      "round": "m2",
+      "palette": "c",
+      "generation": "b5rPEpf0PwAZkwAUsbZg",
+      "session": "EvXdki5G7rxJ00NMvNGL",
+      "file": "fable/music/m2-c-2.mp3",
+      "status": "saved",
+      "review": "pending",
+      "duration": 40,
+      "bytes": 978514,
+      "cost": 599.87,
+      "facts": {
+        "notes": 91,
+        "notesPerMinute": 136.5,
+        "longestGap": 4.76,
+        "nearSilence": 0.13,
+        "quietestBelowLoudest": 31.6,
+        "channelCorrelation": 0.38
+      },
+      "preview": {
+        "window": [
+          26,
+          61
+        ],
+        "enters": 31,
+        "goneBy": 57,
+        "underWordsGainDb": -18.7,
+        "easeGainDb": -8.7,
+        "aloneGainDb": 1.9
+      }
+    },
+    "m2-d-1": {
+      "round": "m2",
+      "palette": "d",
+      "generation": "RZXvYGHsmAFZK6CD1mKy",
+      "session": "5UehA14SWVygwESaRC02",
+      "file": "fable/music/m2-d-1.mp3",
+      "status": "saved",
+      "review": "pending",
+      "duration": 40,
+      "bytes": 978514,
+      "cost": 599.87,
+      "facts": {
+        "notes": 101,
+        "notesPerMinute": 151.5,
+        "longestGap": 5.76,
+        "nearSilence": 0.09,
+        "quietestBelowLoudest": 28.8,
+        "channelCorrelation": 0.86
+      },
+      "preview": {
+        "window": [
+          26,
+          61
+        ],
+        "enters": 31,
+        "goneBy": 57,
+        "underWordsGainDb": -25.2,
+        "easeGainDb": -15.2,
+        "aloneGainDb": -2.8
+      }
+    },
+    "m2-d-2": {
+      "round": "m2",
+      "palette": "d",
+      "generation": "cf7Rzp3uRJ3AZJyIA3Ps",
+      "session": "tKMthmInCpuQb0WxxOD9",
+      "file": "fable/music/m2-d-2.mp3",
+      "status": "saved",
+      "review": "pending",
+      "duration": 40,
+      "bytes": 978514,
+      "cost": 599.87,
+      "facts": {
+        "notes": 98,
+        "notesPerMinute": 147,
+        "longestGap": 6.24,
+        "nearSilence": 0.09,
+        "quietestBelowLoudest": 29.5,
+        "channelCorrelation": 0.55
+      },
+      "preview": {
+        "window": [
+          26,
+          61
+        ],
+        "enters": 31,
+        "goneBy": 57,
+        "underWordsGainDb": -26.6,
+        "easeGainDb": -16.6,
+        "aloneGainDb": -3.2
+      }
+    },
+    "m2-e-1": {
+      "round": "m2",
+      "palette": "e",
+      "generation": "h0hSzVHQlZmVI9HQmnPX",
+      "session": "wREpudZsBA1L3iWQ53aU",
+      "file": "fable/music/m2-e-1.mp3",
+      "status": "saved",
+      "review": "pending",
+      "duration": 40,
+      "bytes": 978514,
+      "cost": 599.87,
+      "facts": {
+        "notes": 85,
+        "notesPerMinute": 127.5,
+        "longestGap": 8.23,
+        "nearSilence": 0.08,
+        "quietestBelowLoudest": 27.1,
+        "channelCorrelation": 0.42
+      },
+      "preview": {
+        "window": [
+          26,
+          61
+        ],
+        "enters": 31,
+        "goneBy": 57,
+        "underWordsGainDb": -18.6,
+        "easeGainDb": -8.6,
+        "aloneGainDb": 4.7
+      }
+    },
+    "m2-e-2": {
+      "round": "m2",
+      "palette": "e",
+      "generation": "w4KVZkhEALgsWXKNRoga",
+      "session": "de9ZTfjGtItgbKFBhnQE",
+      "file": "fable/music/m2-e-2.mp3",
+      "status": "saved",
+      "review": "pending",
+      "duration": 40,
+      "bytes": 978514,
+      "cost": 599.87,
+      "facts": {
+        "notes": 99,
+        "notesPerMinute": 148.5,
+        "longestGap": 6.74,
+        "nearSilence": 0.09,
+        "quietestBelowLoudest": 29.3,
+        "channelCorrelation": 0.58
+      },
+      "preview": {
+        "window": [
+          26,
+          61
+        ],
+        "enters": 31,
+        "goneBy": 57,
+        "underWordsGainDb": -19.9,
+        "easeGainDb": -9.9,
+        "aloneGainDb": 0.7
       }
     }
   },
