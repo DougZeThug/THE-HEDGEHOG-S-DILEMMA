@@ -1,0 +1,220 @@
+{
+  "note": "Music for the fable, made with Eleven Music through the full ElevenLabs connector (the artist's direction, 2026-11-07). Placement, level and material follow the music review under decision 13 in docs/reviews/2026-10-fable.md. Licence: the live Music Terms exclude film, TV, radio and Studio Games on self-serve plans and do not define film; the artist decided to proceed.",
+  "spent": {
+    "m1": 2399.48
+  },
+  "rounds": {
+    "m1": {
+      "at": "2026-11-07",
+      "purpose": "Source pieces: two instrument palettes, two takes each, so all three placements can be cut from one chosen take.",
+      "flow": "O48uIu8RgtheF1BbIS5r",
+      "model": "eleven_music_v2_5",
+      "settings": {
+        "duration_seconds": 40,
+        "instrumental": true,
+        "lyrics_type": "instrumental"
+      },
+      "nodes": {
+        "a": {
+          "node": "lfulPny1MKSzW1HvpSBQ",
+          "label": "koto and bamboo flute",
+          "prompt": "Japanese minimalist folk, solo and very sparse: a koto plucks a few single notes in an open pentatonic with no semitones, a low bamboo flute answers with two plain held notes, and soft knocks on a wooden instrument body fall between phrases. Slow and free, no beat or pulse, long silences between notes, gentle and quietly warm rather than sad. Dry, close, intimate recording with the finger and breath audible; no reverb wash, no pads, no drones, no bells, no vocals."
+        },
+        "b": {
+          "node": "qhrkiMUvUuSmOtHc21RR",
+          "label": "shamisen and low bamboo flute",
+          "prompt": "Japanese minimalist folk, solo and very sparse: a shamisen softly plucked with the fingers plays a few single notes in an open folk pentatonic, a low transverse bamboo flute answers plainly with two or three notes, and a few soft taps on a wooden box fall between phrases. Slow, unhurried and free, no beat or pulse, long silences, tender and unsentimental. Dry, close, intimate recording with the hand and breath audible; no reverb wash, no pads, no drones, no bells, no vocals."
+        }
+      },
+      "estimate": 4400,
+      "status": "run once, 2026-11-07, after the artist approved the estimate",
+      "verdict": {
+        "at": "2026-11-07",
+        "by": "artist",
+        "said": "that sounds a little too japanese, i think we need to lean more of a blend toward the opening of a movie, do further research to determine the music style to give the fable some subtle dark wonder and melancholy"
+      },
+      "sheet": {
+        "title": "Fox and Moon Music Takes",
+        "heading": "The music: four takes",
+        "lede": "Two instrument palettes from Eleven Music, two takes of each, 40 seconds long. These are source pieces, not the score.",
+        "notes": [
+          "On the phone's own speaker. Hear each take alone first, then with Tom.",
+          "\"With Tom\" plays 0:26 to 1:01 of the locked cut: the take enters under \"There, she could lay her reflection&hellip;\", rises a little in the pause after \"they were happy\", and is gone by \"But there were things&hellip;\". It runs on as generated, so it is busier than the film will be; the final places each note.",
+          "Listen for anything the review ruled out: bells, drones, a wash of reverb, a breathy, ornamental flute, anything that sounds like a temple, a spa or a meditation app.",
+          "The picture and the sound effects aren't in it yet."
+        ],
+        "published": false,
+        "note": "Not published: the artist turned the palette down before the page was ready."
+      }
+    },
+    "m2": {
+      "at": "2026-11-07",
+      "purpose": "After round 1 was too Japanese: three film-opening directions with subtle dark wonder and melancholy (style brief under decision 13 in docs/reviews/2026-10-fable.md).",
+      "flow": "O48uIu8RgtheF1BbIS5r",
+      "model": "eleven_music_v2_5",
+      "settings": {
+        "duration_seconds": 40,
+        "instrumental": true,
+        "lyrics_type": "instrumental"
+      },
+      "nodes": {
+        "c": {
+          "node": "yjEMWKNdW4nd5yoYC9cn",
+          "label": "storybook lullaby",
+          "prompt": "Dark fairy-tale film score, the quiet opening of a storybook film: a simple, slow minor-key lullaby melody on celesta and harp, answered by a solo cello, over very soft muted strings. Tender, melancholy and quietly uncanny with a sense of wonder; slow and rubato, no percussion, long spaces between phrases. Intimate chamber recording in a small natural room, no choir, no vocals, no piano, no synth pads."
+        },
+        "d": {
+          "node": "mMMcsx70fPgUIhFrChou",
+          "label": "hedgerow folk and strings",
+          "prompt": "Cinematic English folk score for the opening of an animated fable: a fingerpicked gut-string harp plays a sparse modal melody, a low wooden whistle answers, and a solo viola enters over very soft, low string harmonies. Wistful and melancholy with a quiet sense of dark wonder; slow, unhurried and rubato, long pauses between phrases, no drums. Warm, close, intimate recording in a small natural room; no vocals, no piano, no synth pads."
+        },
+        "e": {
+          "node": "O5RmWkeVF3NkD5RLcAyy",
+          "label": "moonlit nocturne",
+          "prompt": "Restrained cinematic nocturne for the opening of a film: a solo cello carries a slow, sorrowful melody over hushed strings played sul tasto, with a few high harp and celesta notes glinting like moonlight. Dark, wondering and melancholy; very slow and spacious, softly swelling then receding, never building to a climax. Intimate orchestral recording, no percussion, no vocals, no piano, no synth pads."
+        }
+      },
+      "takesPerNode": 2,
+      "estimate": 6600,
+      "status": "priced; waiting for the artist before running",
+      "sheet": {
+        "title": "Fox and Moon Music, Round 2",
+        "heading": "The music: dark wonder",
+        "lede": "Three directions from Eleven Music, two takes of each, 40 seconds long: a storybook lullaby, English folk with strings, and a moonlit nocturne. These are source pieces, not the score. The film's music will be cut from the one you choose: the phrase whole in the pause after \"they were happy\", stopped mid-answer before \"But when he stayed quiet\", and begun and stopped at his saved story.",
+        "notes": [
+          "On the phone's own speaker. Hear each take alone first, then with Tom.",
+          "\"With Tom\" plays 0:26 to 1:01 of the locked cut: the take enters under \"There, she could lay her reflection&hellip;\", rises a little in the pause after \"they were happy\", and is gone by \"But there were things&hellip;\". It runs on as generated, so it is busier than the film will be; the final places each note.",
+          "Listen for subtle dark wonder and melancholy without sentiment: nothing should swell, sweeten or tell you what to feel. The prompts ruled out a choir, any voice, piano (the room's own instrument) and synth pads.",
+          "The picture and the sound effects aren't in it yet."
+        ]
+      }
+    }
+  },
+  "entries": {
+    "m1-a-1": {
+      "round": "m1",
+      "palette": "a",
+      "generation": "TUQ12pKFAGIGImLh1FGn",
+      "session": "vrB4Cn40eEbUIPAnhBmN",
+      "file": "fable/music/m1-a-1.mp3",
+      "status": "saved",
+      "review": "rejected",
+      "duration": 40,
+      "bytes": 978514,
+      "cost": 599.87,
+      "facts": {
+        "notes": 89,
+        "notesPerMinute": 133.5,
+        "longestGap": 8.9,
+        "nearSilence": 0.52,
+        "quietestBelowLoudest": 43.2,
+        "channelCorrelation": 0.79
+      },
+      "preview": {
+        "window": [
+          26,
+          61
+        ],
+        "enters": 31,
+        "goneBy": 57,
+        "underWordsGainDb": -19.8,
+        "easeGainDb": -9.8,
+        "aloneGainDb": 1.9
+      }
+    },
+    "m1-a-2": {
+      "round": "m1",
+      "palette": "a",
+      "generation": "7vLvVbAyRpXdvXq61OTw",
+      "session": "YRW0iLJ1XcjNeA3RRXdM",
+      "file": "fable/music/m1-a-2.mp3",
+      "status": "saved",
+      "review": "rejected",
+      "duration": 40,
+      "bytes": 978514,
+      "cost": 599.87,
+      "facts": {
+        "notes": 103,
+        "notesPerMinute": 154.5,
+        "longestGap": 5,
+        "nearSilence": 0.36,
+        "quietestBelowLoudest": 53.3,
+        "channelCorrelation": 0.85
+      },
+      "preview": {
+        "window": [
+          26,
+          61
+        ],
+        "enters": 31,
+        "goneBy": 57,
+        "underWordsGainDb": -18.7,
+        "easeGainDb": -8.7,
+        "aloneGainDb": 0.6
+      }
+    },
+    "m1-b-1": {
+      "round": "m1",
+      "palette": "b",
+      "generation": "3CEi8XSQbpYJf0iSpnaK",
+      "session": "VNVGUDMYRPcneiscnmky",
+      "file": "fable/music/m1-b-1.mp3",
+      "status": "saved",
+      "review": "rejected",
+      "duration": 40,
+      "bytes": 978514,
+      "cost": 599.87,
+      "facts": {
+        "notes": 86,
+        "notesPerMinute": 129,
+        "longestGap": 20.18,
+        "nearSilence": 0.68,
+        "quietestBelowLoudest": 50.4,
+        "channelCorrelation": 0.75
+      },
+      "preview": {
+        "window": [
+          26,
+          61
+        ],
+        "enters": 31,
+        "goneBy": 57,
+        "underWordsGainDb": -17,
+        "easeGainDb": -7,
+        "aloneGainDb": -2
+      }
+    },
+    "m1-b-2": {
+      "round": "m1",
+      "palette": "b",
+      "generation": "r2J4KCibsszSNXUOBhLc",
+      "session": "94GoBHlzGaXiKEKmQhSQ",
+      "file": "fable/music/m1-b-2.mp3",
+      "status": "saved",
+      "review": "rejected",
+      "duration": 40,
+      "bytes": 978514,
+      "cost": 599.87,
+      "facts": {
+        "notes": 49,
+        "notesPerMinute": 73.5,
+        "longestGap": 20.4,
+        "nearSilence": 0.76,
+        "quietestBelowLoudest": 37,
+        "channelCorrelation": 0.96
+      },
+      "preview": {
+        "window": [
+          26,
+          61
+        ],
+        "enters": 31,
+        "goneBy": 57,
+        "underWordsGainDb": -21.6,
+        "easeGainDb": -11.6,
+        "aloneGainDb": -2.3
+      }
+    }
+  },
+  "audio": "The takes are kept locally in audition/fable/music/ and not committed: the Music Terms bar making output available as a downloadable music library, and the repository may be public. The generation ids above reach them in the ElevenLabs workspace."
+}

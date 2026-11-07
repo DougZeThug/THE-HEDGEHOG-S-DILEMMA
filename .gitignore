@@ -16,3 +16,7 @@ __pycache__/
 
 # The artist's Fox and the Moon package, kept locally; what the build needs is in references/fable/
 references/The Fox the Moon/
+
+# Eleven Music takes stay local: the Music Terms bar offering output as a downloadable library
+# (scripts/fable/music-ledger.json has their generation ids)
+audition/fable/music/

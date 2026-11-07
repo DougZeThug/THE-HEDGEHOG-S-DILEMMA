@@ -1,0 +1,190 @@
+<title>__TITLE__</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+  /* Layout: one narrow column read at night on a phone; each palette its takes, each take heard
+     alone and under Tom, with a mark and a pick. */
+  :root {
+    --night: #12141a;
+    --panel: #1b1e26;
+    --line: #2c303b;
+    --moon: #ebe5d3;
+    --dim: #a19d92;
+    --fox: #e07b36;
+    --keep: #9cc39a;
+    --display: "Newsreader", Georgia, "Times New Roman", serif;
+    --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { background: var(--night); color: var(--moon); font: 16px/1.55 var(--body); margin: 0; }
+  main {
+    max-width: 640px; margin: 0 auto;
+    padding-block: 36px 72px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    display: grid; gap: 28px;
+  }
+  h1 { font: 500 2rem/1.15 var(--display); margin: 0; text-wrap: balance; }
+  h2 { font: 500 1.2rem/1.3 var(--display); margin: 0 0 4px; }
+  p { margin: 0; }
+  .lede { color: var(--dim); margin-top: 8px; }
+  ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .small { color: var(--dim); font-size: 0.85rem; }
+  .palette { display: grid; gap: 12px; }
+  .palette .prompt { font: italic 400 0.95rem/1.5 var(--display); color: var(--dim); border-left: 2px solid var(--fox); padding-left: 12px; }
+  .take {
+    display: grid; gap: 8px; min-width: 0;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px;
+  }
+  .take.chosen { border-color: var(--keep); }
+  .take-name { font: 500 0.95rem var(--mono); color: var(--fox); letter-spacing: 0.03em; }
+  .take-name span { color: var(--dim); font: 400 0.85rem var(--body); letter-spacing: 0; }
+  .listen { display: grid; gap: 2px; }
+  .listen label { font-size: 0.8rem; color: var(--dim); }
+  audio { width: 100%; height: 40px; min-width: 0; }
+  .ask { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+  .ask > span { color: var(--dim); font-size: 0.9rem; }
+  .marks { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+  .marks button {
+    font: 500 0.9rem var(--body); color: var(--dim); background: transparent; border: 0;
+    padding: 7px 14px; min-height: 36px; cursor: pointer;
+  }
+  .marks button + button { border-left: 1px solid var(--line); }
+  .marks button[aria-pressed="true"] { color: var(--night); background: var(--moon); }
+  .marks button.keep[aria-pressed="true"] { background: var(--keep); }
+  button:focus-visible { outline: 2px solid var(--fox); outline-offset: 2px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .actions button {
+    font: 500 1rem var(--body); border-radius: 8px; padding: 10px 16px; min-height: 44px; cursor: pointer;
+    border: 1px solid var(--fox); background: var(--fox); color: var(--night);
+  }
+  .status { color: var(--dim); font-size: 0.9rem; }
+  textarea {
+    width: 100%; min-height: 6rem; font: 0.9rem/1.5 var(--body); color: var(--moon);
+    background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px;
+  }
+  textarea.out { font: 0.85rem/1.5 var(--mono); }
+</style>
+
+<main>
+  <header>
+    <h1>__HEADING__</h1>
+    <p class="lede">__LEDE__</p>
+  </header>
+
+  <section>
+    <h2>How to listen</h2>
+    <ul>
+<!--NOTES-->
+    </ul>
+    <p class="small" style="margin-top:10px">All four play at the same loudness alone, and at the planned levels under Tom: at least 18 LU under his voice while he speaks. Your marks stay on this device.</p>
+  </section>
+
+  <div id="palettes" style="display:grid;gap:28px"></div>
+
+  <section>
+    <h2>Anything else</h2>
+    <p class="small" style="margin:0 0 6px">The instruments, the level, a moment you liked in a take you didn't pick.</p>
+    <textarea id="notes" aria-label="Notes on the music takes"></textarea>
+  </section>
+
+  <section>
+    <div class="actions">
+      <button type="button" id="copy">Copy my choices</button>
+      <span class="status" id="status" aria-live="polite"></span>
+    </div>
+    <textarea id="summary" class="out" aria-label="Your choices, to paste back to Claude" readonly hidden></textarea>
+  </section>
+</main>
+
+<script>
+const PALETTES = /*PALETTES*/[];
+const ROUND = /*ROUND*/'';
+const KEY = `fox-moon-music-${ROUND}`;
+const DOT = String.fromCharCode(0xb7);
+const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } };
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* choices just won't persist */ } };
+const state = load();
+state.marks ??= {};
+
+// A data URI first; a blob URL if a browser refuses that.
+function attach(audio, uri) {
+  audio.src = uri;
+  audio.addEventListener('error', () => {
+    const [head, b64] = uri.split(',');
+    const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    audio.src = URL.createObjectURL(new Blob([bytes], { type: head.slice(5, head.indexOf(';')) }));
+  }, { once: true });
+}
+
+const takes = PALETTES.flatMap((p) => p.takes);
+const players = [];
+const root = document.getElementById('palettes');
+for (const p of PALETTES) {
+  const sec = document.createElement('section');
+  sec.className = 'palette';
+  sec.innerHTML = `<h2>${p.key.toUpperCase()} ${DOT} ${p.label}</h2><p class="prompt"></p>`;
+  sec.querySelector('.prompt').textContent = p.prompt;
+  for (const t of p.takes) {
+    const div = document.createElement('div');
+    div.className = 'take';
+    div.dataset.id = t.id;
+    div.innerHTML = `<div class="take-name">${t.label} <span>${DOT} quiet for ${Math.round(t.nearSilence * 100)}% of it, longest silence ${t.longestGap.toFixed(0)} s</span></div>
+      <div class="listen"><label>Alone</label><audio controls preload="none" aria-label="${t.label} alone"></audio></div>
+      <div class="listen"><label>With Tom, 0:26 to 1:01</label><audio controls preload="none" aria-label="${t.label} with Tom"></audio></div>
+      <div class="ask"><span>Belongs with Tom's voice?</span>
+        <div class="marks" role="group" aria-label="Does ${t.label} belong with Tom's voice">
+          <button type="button" data-mark="yes" class="keep" aria-pressed="false">Yes</button>
+          <button type="button" data-mark="maybe" aria-pressed="false">Maybe</button>
+          <button type="button" data-mark="no" aria-pressed="false">No</button>
+        </div></div>
+      <div class="ask"><div class="marks" role="group" aria-label="Pick ${t.label}">
+          <button type="button" data-pick="1" class="keep" aria-pressed="false">Cut the music from this one</button>
+        </div></div>`;
+    const [alone, withTom] = div.querySelectorAll('audio');
+    attach(alone, t.alone);
+    attach(withTom, t.withTom);
+    players.push(alone, withTom);
+    div.querySelectorAll('[data-mark]').forEach((b) => b.addEventListener('click', () => { state.marks[t.id] = b.dataset.mark; save(); paint(); }));
+    div.querySelector('[data-pick]').addEventListener('click', () => { state.pick = state.pick === t.id ? undefined : t.id; save(); paint(); });
+    sec.append(div);
+  }
+  root.append(sec);
+}
+// One sound at a time.
+for (const a of players) a.addEventListener('play', () => players.forEach((o) => { if (o !== a) o.pause(); }));
+
+const notes = document.getElementById('notes');
+notes.value = state.notes ?? '';
+notes.addEventListener('input', () => { state.notes = notes.value; save(); });
+
+const status = document.getElementById('status');
+function paint() {
+  document.querySelectorAll('.take').forEach((div) => {
+    const id = div.dataset.id;
+    div.querySelectorAll('[data-mark]').forEach((b) => b.setAttribute('aria-pressed', String(state.marks[id] === b.dataset.mark)));
+    div.querySelector('[data-pick]').setAttribute('aria-pressed', String(state.pick === id));
+    div.classList.toggle('chosen', state.pick === id);
+  });
+  const left = takes.filter((t) => !state.marks[t.id]).length;
+  status.textContent = left ? `${left} take${left === 1 ? '' : 's'} still to mark` : state.pick ? 'All marked, one picked' : 'All marked; pick one, or say none';
+}
+
+const summary = document.getElementById('summary');
+document.getElementById('copy').addEventListener('click', () => {
+  const lines = [`Music takes, round ${ROUND.replace(/^\D+/, '')}`, ...takes.map((t) => `${t.label}: ${state.marks[t.id] ?? '-'}${state.pick === t.id ? ' (cut the music from this one)' : ''}`)];
+  if (!state.pick) lines.push('Pick: none');
+  if (state.notes?.trim()) lines.push(`Notes: ${state.notes.trim()}`);
+  const text = lines.join('\n');
+  summary.value = text;
+  summary.hidden = false;
+  const fallback = () => { summary.focus(); summary.select(); status.textContent = 'Copy the selected text'; };
+  if (navigator.clipboard?.writeText) navigator.clipboard.writeText(text).then(() => { status.textContent = 'Copied. Paste it into the chat.'; }, fallback);
+  else fallback();
+});
+
+paint();
+</script>

@@ -1,11 +1,12 @@
-// Save a connector run's audio to audition/ under the names the narration ledger gives each generation.
-// Usage: node scripts/fable/save_takes.mjs RUN_STATUS_JSON
+// Save a connector run's audio to audition/ under the names a ledger gives each generation
+// (the narration ledger unless another is named).
+// Usage: node scripts/fable/save_takes.mjs RUN_STATUS_JSON [LEDGER]
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
-const LEDGER = join(ROOT, 'scripts/fable/narration-ledger.json');
+const LEDGER = join(ROOT, process.argv[3] ?? 'scripts/fable/narration-ledger.json');
 const run = JSON.parse(readFileSync(process.argv[2], 'utf8'));
 const ledger = JSON.parse(readFileSync(LEDGER, 'utf8'));
 const byGen = Object.fromEntries(Object.entries(ledger.entries).map(([id, e]) => [e.generation, id]));
