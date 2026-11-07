@@ -1,0 +1,41 @@
+{
+  "note": "The fable's music as cues cut from one approved Eleven Music take, placed on the locked radio cut (radio-cut.json v1). take = seconds in the take, at = film seconds where the cue's first sample lands, fadeIn/fadeOut in seconds, stop = the cue ends while still ringing (a short fade), group = cues of one phrase share one level, why = what it is for. Versions follow the music review under decision 13: B, the reviewers' gaps-only version (notes start only in silences; their rings are faded as he speaks), C, the skeptic's 'beneath' version (notes may start under words in the company and the return). Both: nothing before the pond, nothing in ¶10-16, the branch, the touch or the separate nights, nothing after ¶31; the hold and the black are night only.",
+  "version": 1,
+  "take": "m2-d-2",
+  "takeMap": {
+    "chord1": "0.06 attack from silence, rings to about 5.8",
+    "chord2": "6.04 attack, rings to about 11.0",
+    "chord3": "12.06 attack, rings to about 17.4",
+    "call": "17.94 attack, a run of plucks 18.2-21.6, decays to about 23.8",
+    "answer": "23.97 attack, a run of plucks 24.2-27.7, decays to about 29.8"
+  },
+  "gates": {
+    "underWordsLU": 18, "underWordsPhoneLU": 15,
+    "gapShortTermTarget": -34, "gapShortTermMax": -33, "gapMomentaryMax": -31,
+    "longGap": 1.3, "rideDown": 1.0, "rideUp": 0.5,
+    "truePeakMax": -3
+  },
+  "versions": {
+    "B": [
+      { "group": "pond", "why": "the pond: a chord in the 1 s after 'beside a pond.', faded as ¶6 begins", "take": [0.0, 1.6], "at": 30.88, "fadeIn": 0.01, "fadeOut": 0.8 },
+      { "group": "pond", "why": "the pond: a second chord in the 1 s after ¶6, faded as ¶7 begins", "take": [5.95, 7.6], "at": 36.24, "fadeIn": 0.01, "fadeOut": 0.8 },
+      { "group": "ease", "why": "the ease: the call, whole", "take": [17.85, 21.75], "at": 39.1, "fadeIn": 0.01, "fadeOut": 0.25 },
+      { "group": "ease", "why": "the ease: the answer, overlapping the call's last notes, faded as ¶8 begins", "take": [23.85, 25.75], "at": 42.9, "fadeIn": 0.01, "fadeOut": 0.35 },
+      { "group": "rest", "why": "the rest: the call", "take": [17.85, 22.6], "at": 99.05, "fadeIn": 0.01, "fadeOut": 0.4 },
+      { "group": "rest", "why": "the rest: the answer's first two notes, stopped 0.4 s before 'But when he stayed quiet'", "take": [23.85, 24.45], "at": 103.85, "fadeIn": 0.01, "fadeOut": 0.05, "stop": true },
+      { "group": "return", "why": "the return: the first chord again, after 'She was already looking down.', faded as ¶31 begins", "take": [0.0, 1.4], "at": 165.62, "fadeIn": 0.01, "fadeOut": 0.6 },
+      { "group": "return", "why": "the return: the second chord after 'He began telling it.', unanswered, faded as ¶32 begins", "take": [5.95, 7.55], "at": 167.72, "fadeIn": 0.01, "fadeOut": 0.8 }
+    ],
+    "C": [
+      { "group": "pond", "why": "the company: a chord under 'There, she could lay her reflection...'", "take": [0.0, 5.8], "at": 32.4, "fadeIn": 0.01, "fadeOut": 0.6 },
+      { "group": "pond", "why": "the company: a second chord under '...rest his head beside it'", "take": [5.95, 10.3], "at": 34.95, "fadeIn": 0.01, "fadeOut": 0.7 },
+      { "group": "ease", "why": "the ease: the call", "take": [17.85, 22.6], "at": 39.1, "fadeIn": 0.01, "fadeOut": 0.4 },
+      { "group": "ease", "why": "the ease: the answer, overlapping the call's decay, running on under ¶8", "take": [23.85, 29.8], "at": 43.48, "fadeIn": 0.01, "fadeOut": 0.8 },
+      { "group": "thin", "why": "the company thins: a last chord under ¶9, gone by 57 s", "take": [11.95, 14.6], "at": 54.09, "fadeIn": 0.01, "fadeOut": 1.2 },
+      { "group": "rest", "why": "the rest: the call", "take": [17.85, 22.6], "at": 99.05, "fadeIn": 0.01, "fadeOut": 0.4 },
+      { "group": "rest", "why": "the rest: the answer's first two notes, stopped 0.4 s before 'But when he stayed quiet'", "take": [23.85, 24.45], "at": 103.85, "fadeIn": 0.01, "fadeOut": 0.05, "stop": true },
+      { "group": "return", "why": "the return: the call begins beneath ¶29", "take": [17.85, 23.8], "at": 159.35, "fadeIn": 0.01, "fadeOut": 0.6 },
+      { "group": "return", "why": "the return: a chord under 'He began telling it.', stopped by hand 0.4 s before 'Halfway through'", "take": [5.95, 7.4], "at": 166.8, "fadeIn": 0.01, "fadeOut": 0.06, "stop": true }
+    ]
+  }
+}

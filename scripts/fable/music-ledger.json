@@ -89,6 +89,12 @@
           "The picture and the sound effects aren't in it yet."
         ],
         "published": true
+      },
+      "choices": {
+        "at": "2026-11-07",
+        "by": "artist, on the round 2 page",
+        "pick": "m2-d-2",
+        "note": "Only D2 (hedgerow folk and strings, take 2) marked yes; the pick was given in chat (\"d2\")."
       }
     }
   },
@@ -224,7 +230,7 @@
       "session": "354N13CbuyZSlCHsaCkJ",
       "file": "fable/music/m2-c-1.mp3",
       "status": "saved",
-      "review": "pending",
+      "review": "rejected",
       "duration": 40,
       "bytes": 978514,
       "cost": 599.87,
@@ -246,7 +252,8 @@
         "underWordsGainDb": -27,
         "easeGainDb": -17,
         "aloneGainDb": -5.7
-      }
+      },
+      "mark": "no"
     },
     "m2-c-2": {
       "round": "m2",
@@ -255,7 +262,7 @@
       "session": "EvXdki5G7rxJ00NMvNGL",
       "file": "fable/music/m2-c-2.mp3",
       "status": "saved",
-      "review": "pending",
+      "review": "rejected",
       "duration": 40,
       "bytes": 978514,
       "cost": 599.87,
@@ -277,7 +284,8 @@
         "underWordsGainDb": -18.7,
         "easeGainDb": -8.7,
         "aloneGainDb": 1.9
-      }
+      },
+      "mark": "no"
     },
     "m2-d-1": {
       "round": "m2",
@@ -286,7 +294,7 @@
       "session": "5UehA14SWVygwESaRC02",
       "file": "fable/music/m2-d-1.mp3",
       "status": "saved",
-      "review": "pending",
+      "review": "rejected",
       "duration": 40,
       "bytes": 978514,
       "cost": 599.87,
@@ -308,7 +316,8 @@
         "underWordsGainDb": -25.2,
         "easeGainDb": -15.2,
         "aloneGainDb": -2.8
-      }
+      },
+      "mark": "no"
     },
     "m2-d-2": {
       "round": "m2",
@@ -317,7 +326,7 @@
       "session": "tKMthmInCpuQb0WxxOD9",
       "file": "fable/music/m2-d-2.mp3",
       "status": "saved",
-      "review": "pending",
+      "review": "approved",
       "duration": 40,
       "bytes": 978514,
       "cost": 599.87,
@@ -339,7 +348,8 @@
         "underWordsGainDb": -26.6,
         "easeGainDb": -16.6,
         "aloneGainDb": -3.2
-      }
+      },
+      "mark": "yes"
     },
     "m2-e-1": {
       "round": "m2",
@@ -348,7 +358,7 @@
       "session": "wREpudZsBA1L3iWQ53aU",
       "file": "fable/music/m2-e-1.mp3",
       "status": "saved",
-      "review": "pending",
+      "review": "rejected",
       "duration": 40,
       "bytes": 978514,
       "cost": 599.87,
@@ -370,7 +380,8 @@
         "underWordsGainDb": -18.6,
         "easeGainDb": -8.6,
         "aloneGainDb": 4.7
-      }
+      },
+      "mark": "no"
     },
     "m2-e-2": {
       "round": "m2",
@@ -379,7 +390,7 @@
       "session": "de9ZTfjGtItgbKFBhnQE",
       "file": "fable/music/m2-e-2.mp3",
       "status": "saved",
-      "review": "pending",
+      "review": "rejected",
       "duration": 40,
       "bytes": 978514,
       "cost": 599.87,
@@ -401,7 +412,8 @@
         "underWordsGainDb": -19.9,
         "easeGainDb": -9.9,
         "aloneGainDb": 0.7
-      }
+      },
+      "mark": "no"
     }
   },
   "audio": "The takes are kept locally in audition/fable/music/ and not committed: the Music Terms bar making output available as a downloadable music library, and the repository may be public. The generation ids above reach them in the ElevenLabs workspace."

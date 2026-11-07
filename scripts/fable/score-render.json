@@ -1,0 +1,245 @@
+{
+ "take": "m2-d-2",
+ "scoreVersion": 1,
+ "radioCut": 1,
+ "versions": {
+  "B": {
+   "gains": {
+    "pond": {
+     "underWords": -26.8,
+     "inSilence": -26.8
+    },
+    "ease": {
+     "underWords": -17.7,
+     "inSilence": -17.7
+    },
+    "rest": {
+     "underWords": -17.6,
+     "inSilence": -17.6
+    },
+    "return": {
+     "underWords": -24.0,
+     "inSilence": -24.0
+    }
+   },
+   "loudness": {
+    "lufs": -23.7,
+    "lra": 9.0,
+    "truePeak": -3.5
+   },
+   "checks": {
+    "lastSound": 169.31,
+    "beforeLastLine": true,
+    "touchSilent": true,
+    "afterCutSilent": true,
+    "limiterActed": false
+   },
+   "underWords": {
+    "worstMargin": 18.0,
+    "worstPhoneMargin": 18.7,
+    "lines": [
+     {
+      "p": "5",
+      "margin": 23.4,
+      "phoneMargin": 25.6
+     },
+     {
+      "p": "6",
+      "margin": 18.0,
+      "phoneMargin": 23.5
+     },
+     {
+      "p": "7",
+      "margin": 19.3,
+      "phoneMargin": 26.7
+     },
+     {
+      "p": "8",
+      "margin": 21.2,
+      "phoneMargin": 21.6
+     },
+     {
+      "p": "16",
+      "margin": 26.5,
+      "phoneMargin": 32.6
+     },
+     {
+      "p": "30",
+      "margin": 21.6,
+      "phoneMargin": 18.7
+     },
+     {
+      "p": "31",
+      "margin": 18.0,
+      "phoneMargin": 20.9
+     },
+     {
+      "p": "32",
+      "margin": 19.3,
+      "phoneMargin": 21.1
+     }
+    ]
+   },
+   "gaps": [
+    {
+     "after": "5",
+     "long": false,
+     "shortTermMax": -51.4,
+     "momentaryMax": -44.2
+    },
+    {
+     "after": "6",
+     "long": false,
+     "shortTermMax": -49.0,
+     "momentaryMax": -41.5
+    },
+    {
+     "after": "7",
+     "long": true,
+     "shortTermMax": -34.6,
+     "momentaryMax": -31.0
+    },
+    {
+     "after": "16",
+     "long": true,
+     "shortTermMax": -34.5,
+     "momentaryMax": -31.0
+    },
+    {
+     "after": "30",
+     "long": false,
+     "shortTermMax": -46.0,
+     "momentaryMax": -41.5
+    },
+    {
+     "after": "31",
+     "long": false,
+     "shortTermMax": -45.8,
+     "momentaryMax": -38.7
+    }
+   ],
+   "musicSeconds": 14.1
+  },
+  "C": {
+   "gains": {
+    "pond": {
+     "underWords": -28.9,
+     "inSilence": -28.9
+    },
+    "ease": {
+     "underWords": -27.2,
+     "inSilence": -19.1
+    },
+    "thin": {
+     "underWords": -25.3,
+     "inSilence": -25.3
+    },
+    "rest": {
+     "underWords": -17.6,
+     "inSilence": -17.6
+    },
+    "return": {
+     "underWords": -28.6,
+     "inSilence": -28.6
+    }
+   },
+   "loudness": {
+    "lufs": -23.6,
+    "lra": 9.0,
+    "truePeak": -3.5
+   },
+   "checks": {
+    "lastSound": 168.25,
+    "beforeLastLine": true,
+    "touchSilent": true,
+    "afterCutSilent": true,
+    "limiterActed": false
+   },
+   "underWords": {
+    "worstMargin": 18.0,
+    "worstPhoneMargin": 18.7,
+    "lines": [
+     {
+      "p": "6",
+      "margin": 18.0,
+      "phoneMargin": 22.5
+     },
+     {
+      "p": "7",
+      "margin": 23.6,
+      "phoneMargin": 31.0
+     },
+     {
+      "p": "8",
+      "margin": 18.1,
+      "phoneMargin": 18.7
+     },
+     {
+      "p": "9",
+      "margin": 18.0,
+      "phoneMargin": 21.0
+     },
+     {
+      "p": "16",
+      "margin": 26.5,
+      "phoneMargin": 32.6
+     },
+     {
+      "p": "29",
+      "margin": 18.0,
+      "phoneMargin": 19.1
+     },
+     {
+      "p": "30",
+      "margin": 37.4,
+      "phoneMargin": 34.4
+     },
+     {
+      "p": "31",
+      "margin": 20.7,
+      "phoneMargin": 23.1
+     }
+    ]
+   },
+   "gaps": [
+    {
+     "after": "6",
+     "long": false,
+     "shortTermMax": -50.5,
+     "momentaryMax": -51.6
+    },
+    {
+     "after": "7",
+     "long": true,
+     "shortTermMax": -36.1,
+     "momentaryMax": -32.4
+    },
+    {
+     "after": "16",
+     "long": true,
+     "shortTermMax": -34.5,
+     "momentaryMax": -31.0
+    },
+    {
+     "after": "29",
+     "long": false,
+     "shortTermMax": -48.0,
+     "momentaryMax": -47.0
+    },
+    {
+     "after": "30",
+     "long": false,
+     "shortTermMax": -50.7,
+     "momentaryMax": -67.2
+    },
+    {
+     "after": "31",
+     "long": false,
+     "shortTermMax": -50.5,
+     "momentaryMax": -49.6
+    }
+   ],
+   "musicSeconds": 22.1
+  }
+ }
+}

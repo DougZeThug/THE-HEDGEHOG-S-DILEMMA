@@ -1,0 +1,245 @@
+<title>Fox and Moon Music in the Film</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+  /* Layout: one narrow column read at night on a phone. One transport for the whole film with an
+     A/B/C switch that keeps the place, jumps to the three places the music lives, then two questions. */
+  :root {
+    --night: #12141a;
+    --panel: #1b1e26;
+    --line: #2c303b;
+    --moon: #ebe5d3;
+    --dim: #a19d92;
+    --fox: #e07b36;
+    --keep: #9cc39a;
+    --display: "Newsreader", Georgia, "Times New Roman", serif;
+    --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { background: var(--night); color: var(--moon); font: 16px/1.55 var(--body); margin: 0; }
+  main {
+    max-width: 640px; margin: 0 auto;
+    padding-block: 36px 72px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    display: grid; gap: 28px;
+  }
+  h1 { font: 500 2rem/1.15 var(--display); margin: 0; text-wrap: balance; }
+  h2 { font: 500 1.2rem/1.3 var(--display); margin: 0 0 10px; }
+  p { margin: 0; }
+  .lede { color: var(--dim); margin-top: 8px; }
+  ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .small { color: var(--dim); font-size: 0.85rem; }
+  .transport { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: grid; gap: 12px; }
+  .versions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .versions button {
+    font: 500 0.9rem var(--body); color: var(--dim); background: transparent; cursor: pointer;
+    border: 1px solid var(--line); border-radius: 8px; padding: 8px 6px; min-height: 52px; text-align: left; display: grid; gap: 2px;
+  }
+  .versions button b { font: 500 1rem var(--mono); color: var(--fox); }
+  .versions button[aria-pressed="true"] { border-color: var(--fox); color: var(--moon); background: color-mix(in srgb, var(--fox) 12%, transparent); }
+  .row { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .play {
+    flex: none; width: 52px; height: 52px; border-radius: 50%; cursor: pointer;
+    border: 1px solid var(--fox); background: var(--fox); color: var(--night); font: 500 0.85rem var(--body);
+  }
+  .seek { flex: 1; min-width: 0; display: grid; gap: 2px; }
+  input[type="range"] { width: 100%; accent-color: var(--fox); }
+  .time { font: 500 0.8rem var(--mono); color: var(--dim); display: flex; justify-content: space-between; }
+  .jumps { display: flex; flex-wrap: wrap; gap: 6px; }
+  .jumps button {
+    font: 500 0.85rem var(--body); color: var(--moon); background: transparent; cursor: pointer;
+    border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; min-height: 36px;
+  }
+  .where { font-size: 0.85rem; color: var(--dim); min-height: 1.3em; }
+  .ask { display: grid; gap: 8px; }
+  .marks { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; width: max-content; max-width: 100%; }
+  .marks button {
+    font: 500 0.9rem var(--body); color: var(--dim); background: transparent; border: 0;
+    padding: 7px 14px; min-height: 36px; cursor: pointer;
+  }
+  .marks button + button { border-left: 1px solid var(--line); }
+  .marks button[aria-pressed="true"] { color: var(--night); background: var(--moon); }
+  .marks button.keep[aria-pressed="true"] { background: var(--keep); }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--fox); outline-offset: 2px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .actions button {
+    font: 500 1rem var(--body); border-radius: 8px; padding: 10px 16px; min-height: 44px; cursor: pointer;
+    border: 1px solid var(--fox); background: var(--fox); color: var(--night);
+  }
+  .status { color: var(--dim); font-size: 0.9rem; }
+  textarea {
+    width: 100%; min-height: 6rem; font: 0.9rem/1.5 var(--body); color: var(--moon);
+    background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px;
+  }
+  textarea.out { font: 0.85rem/1.5 var(--mono); }
+</style>
+
+<main>
+  <header>
+    <h1>The music in the film</h1>
+    <p class="lede">The whole radio cut three ways, with D2 (hedgerow folk and strings) cut into the three places the plan gives it: the pond and the ease, the rest, and the return. Switch between them as it plays; the place is kept.</p>
+  </header>
+
+  <section>
+    <h2>How to listen</h2>
+    <ul>
+      <li>On the phone's own speaker. Once straight through in B, once in C, then use the jumps and switch between A, B and C at each place.</li>
+      <li>Everywhere else the three are the same. Tom is identical in all of them, and under his voice the music sits at least 18 LU down.</li>
+      <li>In the rest the phrase is stopped on purpose before "But when he stayed quiet", and at the return before "Halfway through". The last line, the hold and the black have no music.</li>
+      <li>The picture and the sound effects aren't in it yet.</li>
+    </ul>
+  </section>
+
+  <section class="transport" aria-label="Player">
+    <div class="versions" role="group" aria-label="Version">
+      <button type="button" data-v="A" aria-pressed="false"><b>A</b>No music</button>
+      <button type="button" data-v="B" aria-pressed="true"><b>B</b>In the silences</button>
+      <button type="button" data-v="C" aria-pressed="false"><b>C</b>Beneath him</button>
+    </div>
+    <div class="row">
+      <button type="button" class="play" id="play" aria-label="Play">Play</button>
+      <div class="seek">
+        <input type="range" id="seek" min="0" max="181" step="0.1" value="0" aria-label="Position in the film">
+        <div class="time"><span id="now">0:00</span><span id="total">3:01</span></div>
+      </div>
+    </div>
+    <div class="jumps" id="jumps"></div>
+    <div class="where" id="where" aria-live="off"></div>
+  </section>
+
+  <section class="ask">
+    <h2>Do these instruments belong with Tom's voice?</h2>
+    <div class="marks" role="group" aria-label="Do the instruments belong with Tom's voice">
+      <button type="button" data-q="belongs" data-a="yes" class="keep" aria-pressed="false">Yes</button>
+      <button type="button" data-q="belongs" data-a="not quite" aria-pressed="false">Not quite</button>
+      <button type="button" data-q="belongs" data-a="no" aria-pressed="false">No</button>
+    </div>
+  </section>
+
+  <section class="ask">
+    <h2>Which amount?</h2>
+    <div class="marks" role="group" aria-label="Which amount of music">
+      <button type="button" data-q="amount" data-a="A, no music" aria-pressed="false">A, none</button>
+      <button type="button" data-q="amount" data-a="B, in the silences" class="keep" aria-pressed="false">B, in the silences</button>
+      <button type="button" data-q="amount" data-a="C, beneath him" class="keep" aria-pressed="false">C, beneath him</button>
+    </div>
+  </section>
+
+  <section>
+    <h2>Anything else</h2>
+    <p class="small" style="margin:0 0 6px">A place that wants more or less, the level, the stops, the instruments.</p>
+    <textarea id="notes" aria-label="Notes on the music in the film"></textarea>
+  </section>
+
+  <section>
+    <div class="actions">
+      <button type="button" id="copy">Copy my choices</button>
+      <span class="status" id="status" aria-live="polite"></span>
+    </div>
+    <textarea id="summary" class="out" aria-label="Your choices, to paste back to Claude" readonly hidden></textarea>
+  </section>
+</main>
+
+<script>
+const DATA = /*DATA*/{};
+const KEY = `fox-moon-score-v${DATA.scoreVersion}`;
+const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } };
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* choices just won't persist */ } };
+const state = load();
+const mmss = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+
+// One audio element per version; only the chosen one plays, and switching carries the place over.
+const players = {};
+for (const v of ['A', 'B', 'C']) {
+  const a = new Audio();
+  a.preload = 'auto';
+  a.src = DATA.src[v];
+  a.addEventListener('error', () => {
+    const [head, b64] = DATA.src[v].split(',');
+    const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    a.src = URL.createObjectURL(new Blob([bytes], { type: head.slice(5, head.indexOf(';')) }));
+  }, { once: true });
+  players[v] = a;
+}
+let current = state.version && players[state.version] ? state.version : 'B';
+const playBtn = document.getElementById('play');
+const seek = document.getElementById('seek');
+const now = document.getElementById('now');
+const where = document.getElementById('where');
+seek.max = String(DATA.length);
+document.getElementById('total').textContent = mmss(DATA.length);
+
+function playing() { return !players[current].paused; }
+function setVersion(v) {
+  if (v === current) return;
+  const from = players[current], to = players[v];
+  const t = from.currentTime, wasPlaying = !from.paused;
+  from.pause();
+  to.currentTime = t;
+  current = v;
+  state.version = v; save();
+  if (wasPlaying) to.play();
+  paint();
+}
+function jump(t) {
+  const a = players[current];
+  a.currentTime = t;
+  a.play();
+}
+document.querySelectorAll('[data-v]').forEach((b) => b.addEventListener('click', () => setVersion(b.dataset.v)));
+playBtn.addEventListener('click', () => { const a = players[current]; if (a.paused) a.play(); else a.pause(); });
+seek.addEventListener('input', () => { players[current].currentTime = Number(seek.value); });
+const jumps = document.getElementById('jumps');
+for (const j of DATA.jumps) {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.textContent = `${j.label} ${mmss(j.at)}`;
+  b.addEventListener('click', () => jump(j.at));
+  jumps.append(b);
+}
+for (const [v, a] of Object.entries(players)) {
+  a.addEventListener('timeupdate', () => {
+    if (v !== current) return;
+    seek.value = String(a.currentTime);
+    now.textContent = mmss(a.currentTime);
+    const place = DATA.places.find((p) => a.currentTime >= p.from && a.currentTime < p.to);
+    where.textContent = place ? `${place.label}: ${v === 'A' ? 'no music in A' : place[v]}` : '';
+  });
+  a.addEventListener('play', () => paint());
+  a.addEventListener('pause', () => paint());
+  a.addEventListener('ended', () => paint());
+}
+
+document.querySelectorAll('[data-q]').forEach((b) => b.addEventListener('click', () => { state[b.dataset.q] = b.dataset.a; save(); paint(); }));
+const notes = document.getElementById('notes');
+notes.value = state.notes ?? '';
+notes.addEventListener('input', () => { state.notes = notes.value; save(); });
+
+const status = document.getElementById('status');
+function paint() {
+  document.querySelectorAll('[data-v]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === current)));
+  document.querySelectorAll('[data-q]').forEach((b) => b.setAttribute('aria-pressed', String(state[b.dataset.q] === b.dataset.a)));
+  const on = playing();
+  playBtn.textContent = on ? 'Pause' : 'Play';
+  playBtn.setAttribute('aria-label', on ? 'Pause' : 'Play');
+}
+
+const summary = document.getElementById('summary');
+document.getElementById('copy').addEventListener('click', () => {
+  const lines = [`Music in the film, ${DATA.take} (score v${DATA.scoreVersion})`,
+    `Instruments belong with Tom: ${state.belongs ?? '-'}`, `Amount: ${state.amount ?? '-'}`];
+  if (state.notes?.trim()) lines.push(`Notes: ${state.notes.trim()}`);
+  const text = lines.join('\n');
+  summary.value = text;
+  summary.hidden = false;
+  const fallback = () => { summary.focus(); summary.select(); status.textContent = 'Copy the selected text'; };
+  if (navigator.clipboard?.writeText) navigator.clipboard.writeText(text).then(() => { status.textContent = 'Copied. Paste it into the chat.'; }, fallback);
+  else fallback();
+});
+
+paint();
+</script>
