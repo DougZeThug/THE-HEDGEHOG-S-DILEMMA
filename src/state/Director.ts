@@ -562,8 +562,9 @@ export class Director {
       }
       if (phaseChanged === 'transform') this.transformAt = this.now;
       if (this.legacy) this.ruleOpening();
-      this.ruleMemory();
+      // (The heart is decided before the kitchen light may be offered: it waits for the heart.)
       this.ruleHeart();
+      this.ruleMemory();
       this.ruleScenes();
       this.ruleHeartAnswer();
       this.ruleKeptAnswer();
@@ -1649,9 +1650,8 @@ export class Director {
   heartAnswer: string | null = null;
 
   /**
-   * What this visit's heart left (a phrase id), once it is on the wall: the departure ends on it and
-   * the next visit finds it. (A heart seen in the visit's last moments, its line not yet written,
-   * leaves nothing: the card shows only what the wall shows. Creative director, 2026-11-06.)
+   * What this visit's heart has written on the wall (a phrase id), once it has found room there.
+   * The card ends on it once it has been read (`answerRead`); the next visit finds `heartLeft`.
    */
   answerKept(): string | null {
     return this.heartAnswer;
@@ -1677,16 +1677,23 @@ export class Director {
     return HEART_ANSWER[this.heartSeen] ?? null;
   }
 
-  /** The north wall is left as the visit's heart left it (its answer is written). */
+  /**
+   * The north wall is left as the visit's heart left it: from its answer, and while the answer
+   * waits for room there (lines that fade make room for it; nothing new takes that room).
+   */
   private northKept(): boolean {
-    return this.heartAnswer !== null && this.hearts();
+    return (this.heartAnswer !== null || this.answerWaits) && this.hearts();
   }
+  /** The answer found no room beside the first line: it is tried again (`heartAnswerAt`). */
+  private answerWaits = false;
   private onNorth(cue: Cue): boolean {
     const north = (id?: string) => !!id && PHRASE_BY_ID.get(id)?.surface === 'north';
     if (cue.type === 'reveal' || cue.type === 'redraw') return north(cue.phraseId);
     if (cue.type !== 'write' || cue.key.startsWith('heart:')) return false;
     return cue.surface === 'north' || north(cue.beside);
   }
+  /** Seconds before the heart's line, finding no room, is tried again. */
+  private static readonly HEART_RETRY = 20;
   private static readonly NORTH = PHRASES.filter((p) => p.surface === 'north').map((p) => p.id);
 
   /** Whether this visit has a heart at all (`noHeart`: the room before it, for comparison). */
@@ -1722,13 +1729,16 @@ export class Director {
    * first time they are turned away from that wall (never appearing in front of them).
    */
   private ruleKeptAnswer() {
-    if (!this.pastAnswer || this.keptFound || this.departing || !this.visible.has('stay')) return;
+    if (!this.pastAnswer || !this.hearts() || this.keptFound || this.now < this.keptAgainAt || this.departing || !this.visible.has('stay')) return;
     if (this.inView('stay') || PHRASE_BY_ID.get('stay')!.surface === this.facing) return;
     this.keptFound = true;
+    // (This visit's own heart has already written the same line there.)
+    if (this.heartAnswer === this.pastAnswer) return;
     const a = PHRASE_BY_ID.get(this.pastAnswer)!;
     this.queue(0, { type: 'write', key: `heart:${a.id}`, text: a.text, hand: a.hand, size: 's', beside: 'stay', purpose: 'annotation', ttl: 0, source: a.id, found: true }, 'heart-kept');
   }
   private keptFound = false;
+  private keptAgainAt = 0;
 
   /**
    * What the heart leaves: one line in the answering pencil, beside the room's first line, found
@@ -1743,6 +1753,9 @@ export class Director {
     const a = PHRASE_BY_ID.get(HEART_ANSWER[this.heartSeen] ?? '');
     if (!a) return;
     this.heartAnswer = a.id;
+    this.answerWaits = false;
+    // (The last visit left the same line, and it has been found there: it is already written.)
+    if (this.keptFound && this.pastAnswer === a.id) return;
     this.queue(0, { type: 'write', key: `heart:${a.id}`, text: a.text, hand: a.hand, size: 's', beside: 'stay', purpose: 'annotation', ttl: 0, source: a.id }, 'heart-answer');
   }
 
@@ -2352,6 +2365,20 @@ export class Director {
       this.visible.delete(scene[1]);
       this.memory.surfaced.delete(scene[1]);
       this.sceneNoRoom = { surface: this.facing, at: this.now };
+    }
+    // The heart's line found no room beside the first line (the wall full): it is not spent. The
+    // wall is held for it and it is tried again in a while, as lines there fade (Codex, PR #57).
+    const heart = /^heart:(.+)$/.exec(key);
+    if (heart) {
+      if (heart[1] === this.heartAnswer) {
+        this.heartAnswer = null;
+        this.answerWaits = true;
+        this.heartAnswerAt = this.now + Director.HEART_RETRY;
+      }
+      if (heart[1] === this.pastAnswer && this.keptFound) {
+        this.keptFound = false;
+        this.keptAgainAt = this.now + Director.HEART_RETRY;
+      }
     }
     if (key.startsWith('stray:')) {
       if (this.strays.get(key.slice(6)) === 'south') this.heldMoved = false;

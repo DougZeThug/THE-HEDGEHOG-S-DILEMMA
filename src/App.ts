@@ -2052,10 +2052,11 @@ export class App {
       if (document.pointerLockElement === canvas) {
         // (The first move once the mouse is taken can carry the pointer's jump to the lock as
         // movement: Chromium reported the cursor's whole offset from the corner, a turn of 80°
-        // nobody made, and a memory begun by that click was looked away from and lost.)
+        // nobody made, and a memory begun by that click was looked away from and lost. However
+        // small the jump, the first move is dropped: it is a few pixels of a real move at most.)
         const fresh = lockFresh;
         lockFresh = false;
-        if (fresh && Math.abs(e.movementX) + Math.abs(e.movementY) > 120) return;
+        if (fresh) return;
         this.lookBy(e.movementX, e.movementY);
       } else if (dragging && e.pointerType === 'mouse') {
         // (A drag begun before a living memory took the view isn't a turn away from it.)

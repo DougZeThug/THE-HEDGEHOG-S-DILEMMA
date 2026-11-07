@@ -1,3 +1,7 @@
+# Arms, second comparison: the clearing (prototype snapshot)
+
+`ARMS='base;heart=heart,bookend;short=heart,bookend,shortClear;noclear=heart,bookend,noClear' npx vite-node scripts/arc.ts`. `heart`: the four-way rhyme with a 45 s clearing of the room's own life before the heart. `short`: the same with a 20 s clearing. `noclear`: with none. Run on the prototype, whose experiment flags were removed when the heart was built in; superseded by `after.md` (the finished build), with the decisions in `../2026-11-emotional-arc.md`.
+
 3184 visits in 154.8 s. Simulated visitors; their reactions are assumptions.
 
 ## Does a visit reach one of the strongest memories, and when? (first visits)

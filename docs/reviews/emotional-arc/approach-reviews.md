@@ -1,6 +1,6 @@
 # Approach reviews: the visit's heart
 
-Three specialists reviewed `brief.md` and the prototype (`?exp=heart,bookend`) independently, read-only. Their findings, condensed; evidence paths are theirs. The skeptic's challenge and the decisions follow in `../2026-11-emotional-arc.md`.
+Three specialists reviewed `brief.md` and the prototype (`?exp=heart,bookend`) independently, read-only. Their findings, condensed; evidence paths are theirs. The skeptic's challenge is below (*Skeptic*); the decisions are in `../2026-11-emotional-arc.md`.
 
 ## Creative director
 

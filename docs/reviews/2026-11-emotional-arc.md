@@ -11,7 +11,7 @@ Evidence is in `docs/reviews/emotional-arc/`:
 
 ## How it was measured
 
-The November core-loop visitors (`tests/playtest/visitors.ts`: 216 genomes over six classes, 36 adversarial visits, 40 second visits), run through the real Director for **3, 5 and 10 minutes** by a new battery, `scripts/arc.ts`. It reports which memories a visit reaches and when, the heart and what it left, restraint, how visits end, and what a second visit finds. About 13,000 simulated visits over the round.
+The November core-loop visitors (`tests/playtest/visitors.ts`: 72 genomes over six classes, three seeds each, so 216 ordinary first visits at each length, plus 36 adversarial visits and 40 second visits), run through the real Director for **3, 5 and 10 minutes** by a new battery, `scripts/arc.ts`. It reports which memories a visit reaches and when, the heart and what it left, restraint, how visits end, and what a second visit finds. About 13,000 simulated visits over the round.
 
 **What these numbers are not.** The visitors' reactions are assumptions. The interaction designer showed that reach leans on one of them: simulated visitors turn toward fresh writing. Without that turn, 5-minute reach falls by about a third (50% → 35% in their probe), and phone reach is unmeasured (simulated phones see the whole wall and tap what they read). Whether a person feels any of this is not something a simulation can say. Read the tables as differences between arms on the same visitors.
 
@@ -19,7 +19,7 @@ The November core-loop visitors (`tests/playtest/visitors.ts`: 216 genomes over 
 
 1. **The strongest memories were almost never met.** Almost, Things and the woodland reached 0% of 3-minute first visits, 2% of 5-minute and 10% of 10-minute ones (Things 0% at every length). Each needed another painted memory first, an earliest time of 170–240 s, the contradiction phase, and a free place among three pointings a visit, 120 s apart, two new lines a visit; cereal and the kitchen light took those places.
 2. **The room's best moment of meaning was left unanswered.** The recoil (the room flinching when the visitor comes back to the chair, decided in the core-loop round) happens in 56% / 77% / 85% of 3/5/10-minute visits. Almost, a film of exactly that gesture between two people, followed it in 0% / 0% / 7%.
-3. **Nothing a memory showed came back.** After a memory, the room went on as before; nothing later referred to it.
+3. **Nothing a memory showed came back.** After a memory, the room went on as before; nothing later referred to it, except two rare threads ("tomorrow", "the table").
 4. **The ending described behaviour, mostly the same behaviour.** "Somebody came back for the umbrella." ended 62% of 5- and 10-minute visits.
 5. **A short visit** had the opening, the unfinished line, the chair's answers and a one-in-four chance of cereal.
 
@@ -34,6 +34,8 @@ The November core-loop visitors (`tests/playtest/visitors.ts`: 216 genomes over 
 | A 45 s clearing of the room's own life before the heart | no difference | Machinery nobody would feel. Cut. |
 | Recoil only: Almost after a recoil, nothing else | 25% / 40% / 52% | The skeptic's simplest version. Almost for 44–54% of the visitors the room recoiled at. |
 | **Chosen: recoil → Almost first; otherwise, from 150 s, woodland or Things** | **33% / 54% / 63%** | Almost for 46–50% of visitors the room recoiled at (recoil-only: 44–54%), plus the woodland and Things for visitors the room never recoiled at, which recoil-only leaves at 0%. |
+
+(These are the prototype runs, `arms-1.md` … `arms-4.md`. The before → after table below is a later run on the finished build; its before arm carries the fix for a return lost to the visit's turn, so it differs by a point or two.)
 
 ## Reviews, and who was followed
 
@@ -61,29 +63,31 @@ All four reviews are in `emotional-arc/approach-reviews.md` (the skeptic's below
 10. **Where it can be touched.** QA found the offered line written near the skirting (the level point is in the space kept behind the chair, the rest of the eye band full) and a click on it from beside the chair kneeling instead. A memory's line is now placed only at eye height, near the line of sight, entering the space behind the chair if that is where they look; if nothing fits it is offered again later. A click on a line being looked at touches it.
 10a. **A first click doesn't turn the view away.** Re-checking in the browser, Almost begun by a click from beside the chair ended unseen: the first pointer move once the mouse was taken carried the cursor's offset as an 80° turn, and the visitor "looked away". That first jump is ignored now. (Pre-existing; any first click of a visit did it.)
 11. **A return isn't lost to the visit's turn.** In 4 of 4 real-input runs the first return to the chair got no recoil, because the visit had just turned (to "familiar", a turn that shows nothing). Only a turn that writes or dims now keeps the recoil back, and a turn waits (at most 30 s) while a return may be under way, so "I was afraid you'd leave." comes after the flinch, not over it. Simulated, 5-minute visits: a first return lost to a turn 22% → 12%; recoiled at, 3 minutes, 56% → 60%.
-12. **What Almost leaves is kept even when the visit ends first** (*creative director*: at 3 minutes a quarter saw Almost and 3–5% had the line written, so most short visits left nothing). Once Almost has been seen its line is kept for the next visit, written on the wall yet or not; the room has written it while they were away. Left for the next visit: 21% / 35% / 42% of 3/5/10-minute first visits.
+12. **What Almost leaves is kept even when the visit ends first** (*creative director*: at 3 minutes a quarter saw Almost and 3–5% had the line written, so most short visits left nothing). Once Almost has been seen its line is kept for the next visit, written on the wall yet or not; the room has written it while they were away. Left for the next visit: 20% / 34% / 41% of 3/5/10-minute first visits.
 13. **The card ends on the answer only if it has been in view** (1.5 s; *creative director*: otherwise the card is the first reading, and explains). A line never seen is found on the next visit instead.
 14. **The north wall is left as the heart left it.** Once the answer is written nothing new is written, revealed or re-inked there for the rest of the visit (*creative director*, verified in one run; simulated, a median of 4 new north-wall lines after the answer in 10 minutes, now 0). The visitor's own words aside; the room chooses from the other walls.
 15. **Not taken: holding the room quiet from the recoil until the line** (*creative director*, speculative; asked if the median count of events between them was over 3: it is 4, in a median 33 s). The rhyme is carried by the line that names the flinch, not by nearness in time; a 30 s hold just after the visitor has come back leaves them unanswered at the moment they acted, and the skeptic cut the 45 s clearing as machinery. Left as a question for the artist.
 16. **Kept as decided:** the card is about this visit, not the wall (on a return the kept line is on the wall, and the card follows only this visit's own answer; *creative director*: otherwise every later card would be the couplet). The woodland and Things leave no line ("a quieter sentence", closed by the existing cards).
+17. **An answer that finds no room is not lost** (*Codex*, on the PR). If the north wall had no room beside the first line, the answer was marked written anyway: the visit lost its line and its card's last words, and the wall was held for nothing. Now it is tried again every 20 s, the wall held for it meanwhile (lines that fade make room; nothing new takes it). The same for the line a returning visitor finds. Not measured: the simulated visitors don't model room on the walls.
+18. **From the code review** (*cubic*, on the PR). The heart was offered whenever the room was free, even while the visitor looked down at the chair, where its line lands out of view: it now waits for the local quiet it asks (and nothing else takes its place meanwhile). The heart is decided before the kitchen light may be offered, not a moment after; its line written again counts as a pointing, so the next keeps its distance; the first mouse move once the mouse is taken is always dropped, not only a large one; a memory's line is looked for cell by cell along the eye band before it is given up; the control arm (`noHeart`) finds no line from a past visit; and "forget" also forgets the touch hint. Re-run (`emotional-arc/after.md`): reach 33% / 54% / 62% (was 35 / 54 / 63), Almost after a recoil 50% (52), within a point or two elsewhere; the core-loop battery unchanged within noise.
 
 ## Before → after (simulated, same visitors and seeds; `emotional-arc/after.md`)
 
 | | before | after |
 |---|---|---|
-| Any of Almost/Things/woodland, 3 / 5 / 10 min | 0% / 3% / 9% | **35% / 54% / 63%** |
-| By class at 3 min (reader, chair, explorer, still, phone, mixed) | all 0% | 25%, 22%, 44%, 22%, 56%, 53% |
-| Almost after the room recoiled at them (10 min) | 7% | **52%**, a median 48 s after the recoil |
+| Any of Almost/Things/woodland, 3 / 5 / 10 min | 0% / 3% / 9% | **33% / 54% / 62%** |
+| By class at 3 min (reader, chair, explorer, still, phone, mixed) | all 0% | 25%, 17%, 44%, 22%, 53%, 50% |
+| Almost after the room recoiled at them (10 min) | 7% | **50%**, a median 48 s after the recoil |
 | Painted memories a visit (10 min) | 1.1 | 1.1 |
 | Kitchen light (10 min) | 49% | 19% (the heart takes its place) |
-| Largest share of one ending (10 min) | 61% | **35%** |
-| "I took my hand back." on the wall at the end (3 / 5 / 10 min) | — | 5% / 32% / 40% |
-| …and in view, so the card ends on it | — | 2% / 28% / 38% |
-| Left for the next visit (Almost seen) | — | 21% / 35% / 42% |
+| Largest share of one ending (10 min) | 61% | **36%** |
+| "I took my hand back." on the wall at the end (3 / 5 / 10 min) | — | 4% / 30% / 38% |
+| …and in view, so the card ends on it | — | 2% / 26% / 37% |
+| Left for the next visit (Almost seen) | — | 20% / 34% / 41% |
 | New lines on the north wall after the answer (10 min, mean) | — | 0 |
-| Developments a minute, voices, overlaps (10 min) | 7.0, 10, 0.1 | 6.7, 10, 0.1 |
-| 30 s windows an active visitor got nothing, outside memories | 16–18% | 16–18% |
-| Held silence, 3 / 10 min | 75% / 98% | 62% / 98% (at 3 minutes the heart takes its place) |
+| Developments a minute, voices, overlaps (5 / 10 min) | 7.4, 6, 0.1 / 7.0, 10, 0.1 | 7.0, 6, 0.1 / 6.7, 10, 0.1 (a little fewer: the heart's quiet) |
+| 30 s windows an active visitor got nothing, outside memories | 16–18% | 16–19% |
+| Held silence, 3 / 5 / 10 min | 75% / 98% / 98% | 63% / 95% / 98% (at 3 minutes the heart takes its place) |
 | Second visits finding the last answer | — | 18 of 18 that had one |
 | The core-loop measures (answers to meeting, returning, touching, coming, kneeling, withdrawing) | | unchanged within noise (`scripts/experiment.ts`, 688 visits) |
 

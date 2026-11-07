@@ -151,6 +151,16 @@ describe('the heart, through whole visits', () => {
     for (const r of answered) expect(r.reach.northAfter, r.genome).toBe(0);
   });
 
+  it('an answer that finds no room is not spent: the wall is held for it and it is written later', { timeout: 60_000 }, () => {
+    // (Codex, PR #57: the wall full, the answer was lost and the north wall held for nothing.)
+    const r = runs.find((x) => x.reach.answerAt !== null && x.reach.answerAt < 300)!;
+    const g = genomes.find((x) => x.id === r.genome)!;
+    const f = liveVisit(g, 1, { seconds: 420, failOnce: 'heart:' });
+    expect(f.reach.answer).toBe('took-hand-back');
+    expect(f.reach.answerAt!).toBeGreaterThan(r.reach.answerAt!);
+    expect(f.reach.northAfter).toBe(0);
+  });
+
   it('a returning visitor finds the last answer beside the first line', { timeout: 60_000 }, () => {
     const r = runs.find((x) => x.reach.answer)!;
     const g = genomes.find((x) => x.id === r.genome)!;
@@ -160,5 +170,8 @@ describe('the heart, through whole visits', () => {
     expect(runs.every((x) => !x.reach.kept)).toBe(true);
     const odd = liveVisit(g, 7, { seconds: 120, past: { visits: 2, memoryCounts: {}, trace: null, answer: 'didnt-know-how' } });
     expect(odd.reach.kept).toBe(false);
+    // A kept line that found no room is looked for again.
+    const full = liveVisit(g, 7, { seconds: 120, past: { visits: 2, memoryCounts: r.memoryCounts, trace: null, answer: r.reach.left }, failOnce: 'heart:' });
+    expect(full.reach.kept).toBe(true);
   });
 });

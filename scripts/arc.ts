@@ -4,7 +4,7 @@
  * change how the visit's strongest memories are reached, what they leave, and how the visit ends.
  *
  *   npx vite-node scripts/arc.ts
- *   ARMS='base;heart=heart,bookend' HORIZONS=180,300,600 N=12 SEEDS=3 RETURNS=40 npx vite-node scripts/arc.ts
+ *   ARMS='before=noHeart;after' HORIZONS=180,300,600 N=12 SEEDS=3 RETURNS=40 npx vite-node scripts/arc.ts
  *   REPORT=test-output/arc/arms.md …
  *
  * Everything here is simulated. The visitors' reactions are assumptions; "met" means a simulated
@@ -45,8 +45,9 @@ const interpretation = await new LocalInterpreter().interpret('the kettle, and y
 const pct = (a: number, b: number) => (b ? `${Math.round((100 * a) / b)}%` : '—');
 const median = (xs: number[]) => (xs.length ? [...xs].sort((a, b) => a - b)[Math.floor((xs.length - 1) / 2)] : NaN);
 const mean = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : NaN);
-const f0 = (x: number) => (Number.isFinite(x) ? x.toFixed(0) : '—');
-const f1 = (x: number) => (Number.isFinite(x) ? x.toFixed(1) : '—');
+// (A median of -0.4 s is 0 s, not "-0".)
+const f0 = (x: number) => (Number.isFinite(x) ? (Math.round(x) || 0).toFixed(0) : '—');
+const f1 = (x: number) => (Number.isFinite(x) ? (Math.round(x * 10) / 10 || 0).toFixed(1) : '—');
 const STRONG = ['almost', 'things', 'woodland'];
 
 const t0 = Date.now();
@@ -80,10 +81,11 @@ console.log(`|---|---|---|---|${STRONG.map(() => '---').join('|')}|---|---|---|-
 for (const [name, h] of Object.entries(runs)) for (const [sec, rows] of Object.entries(h)) {
   const r = firsts(rows);
   const strongAt = r.map((x) => x.reach.memories.find((m) => STRONG.includes(m))).filter(Boolean);
+  // (The first of them to begin, heart or not: the before arm reaches them without one.)
   const firstStrong: number[] = [];
   for (const x of r) {
-    const m = x.reach.memories.find((id) => STRONG.includes(id));
-    if (m && x.reach.heartAt !== null && m === x.reach.heart) firstStrong.push(x.reach.heartAt);
+    const ts = STRONG.map((m) => x.reach.memoryAt[m]).filter((t) => t !== undefined);
+    if (ts.length) firstStrong.push(Math.min(...ts));
   }
   console.log(`| ${name} | ${sec} s | ${r.length} | ${pct(strongAt.length, r.length)} | ${STRONG.map((m) => pct(r.filter((x) => x.reach.memories.includes(m)).length, r.length)).join(' | ')} | ${pct(r.filter((x) => x.reach.memories.includes('door')).length, r.length)} | ${pct(r.filter((x) => x.reach.memories.includes('bedroom')).length, r.length)} | ${pct(r.filter((x) => x.reach.memories.includes('cereal')).length, r.length)} | ${pct(r.filter((x) => x.reach.kitchen).length, r.length)} | ${f1(mean(r.map((x) => x.reach.memories.length + (x.reach.kitchen ? 1 : 0))))} | ${f0(median(firstStrong))} |`);
 }
@@ -151,7 +153,7 @@ for (const [name, h] of Object.entries(runs)) {
     if (now && then && now !== then) diff++;
     if (now && then && now === then) same++;
   }
-  console.log(`| ${name} | ${sec.length} | ${sec.filter((x) => x.reach.kept).length} (${sec.filter((x) => x.reach.keptMet !== null).length}) of ${hadAnswer} | ${pct(sec.filter((x) => x.reach.heart && x.reach.memories.includes(x.reach.heart)).length, sec.length)} | ${diff} | ${same} | ${f1(mean(sec.map((x) => x.reach.memories.length + (x.reach.kitchen ? 1 : 0))))} |`);
+  console.log(`| ${name} | ${sec.length} | ${sec.filter((x) => x.reach.kept).length} of ${hadAnswer} | ${pct(sec.filter((x) => x.reach.heart && x.reach.memories.includes(x.reach.heart)).length, sec.length)} | ${diff} | ${same} | ${f1(mean(sec.map((x) => x.reach.memories.length + (x.reach.kitchen ? 1 : 0))))} |`);
 }
 
 if (process.env.REPORT) {

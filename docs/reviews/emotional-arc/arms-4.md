@@ -1,3 +1,7 @@
+# Arms, fourth comparison (prototype snapshot)
+
+`ARMS='heart=heart;recoil=recoilOnly' npx vite-node scripts/arc.ts`, the two arms of `arms-3.md` re-run after further changes to the heart. Its "answer looked at" and "within" columns used an earlier measure, dropped since (`after.md` uses the Director's own, "answer in view"); the bracketed number after "found last visit's answer" is as in `arms-3.md`. Run on the prototype, whose experiment flags were removed when the heart was built in; superseded by `after.md` (the finished build), with the decisions in `../2026-11-emotional-arc.md`.
+
 1592 visits in 75.5 s. Simulated visitors; their reactions are assumptions.
 
 ## Does a visit reach one of the strongest memories, and when? (first visits)
@@ -27,11 +31,11 @@
 | arm | length | heart chosen | heart seen | which (seen) | recoiled at | Almost, of those recoiled at | recoil → Almost (median s) | pointed at, never begun | answer written | answer looked at (of written) | within (median s) |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | heart | 180 s | 83% | 33% | {"things":9,"almost":63,"woodland":10} | 55% | 46% | 40 | 50% | 4% | 0% | — |
-| heart | 300 s | 96% | 54% | {"things":23,"almost":86,"woodland":26} | 71% | 48% | 48 | 42% | 29% | 3% | -0 |
-| heart | 600 s | 98% | 63% | {"things":27,"almost":102,"woodland":29} | 81% | 50% | 54 | 36% | 39% | 2% | -0 |
+| heart | 300 s | 96% | 54% | {"things":23,"almost":86,"woodland":26} | 71% | 48% | 48 | 42% | 29% | 3% | 0 |
+| heart | 600 s | 98% | 63% | {"things":27,"almost":102,"woodland":29} | 81% | 50% | 54 | 36% | 39% | 2% | 0 |
 | recoil | 180 s | 56% | 25% | {"almost":63} | 56% | 44% | 40 | 49% | 4% | 0% | — |
-| recoil | 300 s | 77% | 40% | {"almost":100} | 77% | 52% | 47 | 46% | 29% | 3% | -0 |
-| recoil | 600 s | 85% | 51% | {"almost":129} | 85% | 61% | 57 | 38% | 48% | 2% | -0 |
+| recoil | 300 s | 77% | 40% | {"almost":100} | 77% | 52% | 47 | 46% | 29% | 3% | 0 |
+| recoil | 600 s | 85% | 51% | {"almost":129} | 85% | 61% | 57 | 38% | 48% | 2% | 0 |
 
 ## Restraint (first visits; medians unless said)
 

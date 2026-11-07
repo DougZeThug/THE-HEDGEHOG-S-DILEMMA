@@ -364,6 +364,9 @@ export class MemoryDirector {
       if (t.offered && !t.played && !t.reinked && this.heartOfferedAt !== null && s.now - this.heartOfferedAt >= HEART_REINK && !this.heartLapsed(s.now) && s.visibleFacing(m.phraseId)) {
         t.reinked = true;
         t.easyUntil = s.now + 20;
+        // (A pointing like any other: the next keeps its distance from it.)
+        this.points++;
+        this.lastPointAt = s.now;
         return { ...m, reink: true };
       }
     }
@@ -373,7 +376,11 @@ export class MemoryDirector {
     const sincePoint = s.now - Math.max(this.lastPointAt, s.kitchenOfferedAt ?? -Infinity);
     // (The heart keeps a shorter distance from the last pointing, and isn't counted out by the
     // others: it is the one memory the visit is for.)
-    const heartOk = this.heartDue(s.now) && (s.free || !!s.heartFree) && sincePoint >= HEART_POINT_APART && s.now - this.lastVignetteEnded >= HEART_POINT_APART;
+    // (Only into the local quiet it asks, never merely a free room: looking down at the chair, a
+    // line written where they look lands out of view.)
+    const heartOk = this.heartDue(s.now) && !!s.heartFree && sincePoint >= HEART_POINT_APART && s.now - this.lastVignetteEnded >= HEART_POINT_APART;
+    // While it waits, nothing else takes its place.
+    if (this.heartDue(s.now) && !heartOk) return null;
     if (!heartOk && (pointed >= POINTS_PER_VISIT || sincePoint < POINT_APART || s.now - this.lastVignetteEnded < POINT_AFTER_VIGNETTE)) return null;
     const point = <T extends SceneMemory>(m: T, t: Track, reink: boolean): OfferPick => {
       // (A line with its own place, found there later, doesn't point at anything: it doesn't spend

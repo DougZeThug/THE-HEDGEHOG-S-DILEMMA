@@ -710,12 +710,16 @@ export class WallText {
       // where they look it may go into the space kept behind the chair, as an answer may: from the
       // chair, facing the wall behind it, that is where they look, and the rest of the band is full.
       const size = surfaceSize(surface!);
-      const band = (spread: number, open: boolean) =>
-        this.layout.findIn(surface!, m.w, m.h, [Math.max(0, o.near!.u - spread - m.w / 2) / size.w, Math.min(size.w, o.near!.u + spread + m.w / 2) / size.w], [0.9, 1.85], 0.02, 160, open);
+      const near = o.near;
+      const across = (spread: number): [number, number] => [Math.max(0, near.u - spread - m.w / 2) / size.w, Math.min(size.w, near.u + spread + m.w / 2) / size.w];
+      const band = (spread: number, open: boolean) => this.layout.findIn(surface!, m.w, m.h, across(spread), [0.9, 1.85], 0.02, 160, open);
       for (const spread of [0.4, 0.9, 1.6, size.w]) {
         rect = band(spread, false) ?? (spread <= 0.9 ? band(spread, true) : null);
         if (rect) break;
       }
+      // (The tries are random: before it is given up, the band is gone over cell by cell, so a
+      // narrow place they missed is still found.)
+      rect ??= this.layout.scanIn(surface!, m.w, m.h, across(0.9), [0.9, 1.85], 0.02, near, true) ?? this.layout.scanIn(surface!, m.w, m.h, [0, 1], [0.9, 1.85], 0.02, near, false);
       if (!rect) return false;
     }
     if (!rect && surface && o.near) {

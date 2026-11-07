@@ -1,3 +1,7 @@
+# Arms, first comparison (prototype snapshot)
+
+`ARMS='base;loosen=loosen;almost=heartAlmost,bookend;heart=heart,bookend' npx vite-node scripts/arc.ts`. `base`: the room before. `loosen`: the strong memories' gates lowered, nothing else. `almost`: Almost as everyone's heart. `heart`: the four-way rhyme of the brief. `bookend`: the heart's answer line beside "I wanted you to stay." and the card ending on it. Run on the prototype, whose experiment flags were removed when the heart was built in; superseded by `after.md` (the finished build), with the decisions in `../2026-11-emotional-arc.md`.
+
 3184 visits in 152.7 s. Simulated visitors; their reactions are assumptions.
 
 ## Does a visit reach one of the strongest memories, and when? (first visits)

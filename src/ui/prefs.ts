@@ -132,6 +132,7 @@ export function forgetVisits() {
   safeSet('hh.opening-seen', null);
   safeSet(TRACE, null);
   safeSet(HEART, null);
+  safeSet('hh.touch-hint', null);
 }
 
 const OPENING_SEEN = 'hh.opening-seen';

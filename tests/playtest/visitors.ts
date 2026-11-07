@@ -648,14 +648,14 @@ export interface VisitSummary {
     heartAt: number | null;
     answer: string | null;
     answerAt: number | null;
-    answerMet: number | null;
     /** The answer, once it has been in view (the card ends on it); what the next visit finds. */
     answerRead: string | null;
     left: string | null;
     /** Lines written, revealed or re-inked on the north wall after the answer (the wall is kept). */
     northAfter: number;
     kept: boolean;
-    keptMet: number | null;
+    /** When each painted memory first began (s). */
+    memoryAt: Record<string, number>;
     /** When the room first recoiled at them; when the heart's line was pointed at. */
     recoiledAt: number | null;
     heartOfferedAt: number | null;
@@ -682,6 +682,8 @@ export interface VisitOptions {
   past?: { visits: number; memoryCounts: Record<string, number>; trace: 'close' | null; answer?: string | null };
   interpretation?: Interpretation;
   dt?: number;
+  /** The first write whose key starts with this finds no room on the wall (reported as the App does). */
+  failOnce?: string;
 }
 
 const answerOf = (x: Dev): AnswerKind =>
@@ -735,9 +737,9 @@ export function liveVisit(g: Genome, seed: number, o: VisitOptions = {}): VisitS
   let lastApproaches = 0, lastWithdraw = -Infinity, wasKneeling = false, pausedAt = -Infinity, facing: Surface = 'north', facingSince = 0, turnLogged = true;
   let imposedQuiet = 0, ebbs = 0;
   let leftInRoom: number | null = null;
-  let answerMet: number | null = null;
   let northAfter = 0;
-  let keptMet: number | null = null;
+  let failed = false;
+  let answerTried = false;
   const memorySpans: [number, number][] = [];
   let t = 0;
   for (; t < seconds; t += dt) {
@@ -769,11 +771,8 @@ export function liveVisit(g: Genome, seed: number, o: VisitOptions = {}): VisitS
     }
     const fc = facingOf(f.yaw);
     const gazed = readable(d, f.gaze, fc, writtenOn);
-    // (A look at the answer itself, not at the first line beside it: the resting gaze is often there.)
-    // (Annotations aren't in the Director's visible set, so the visitor's own gaze on it, on its wall.)
-    const onIt = (id: string) => f.gaze === id && writtenOn.get(id) === fc;
-    if (d.heartAnswer && onIt(d.heartAnswer)) answerMet ??= t;
-    if (o.past?.answer && onIt(o.past.answer) && devs.some((x) => x.rule === 'heart-kept')) keptMet ??= t;
+    // (Whether the answer is looked at is the Director's own measure, `answerRead`: the simulated
+    // visitors choose among the room's lines, and an annotation is not one of them.)
     const cues: TimedCue[] = d.tick(dt, {
       x: f.x, z: f.z, yaw: f.yaw, pitch: f.pitch, gazePhraseId: gazed, gazeChair: f.gazeChair, nearSurface: nearWall(f.x, f.z), kneeling: f.kneeling,
     }, fc);
@@ -815,7 +814,14 @@ export function liveVisit(g: Genome, seed: number, o: VisitOptions = {}): VisitS
 
     for (const c of cues) {
       const cue = c.cue;
-      if (d.heartAnswer && c.rule !== 'contribution') {
+      // (From the answer's first attempt: the wall is held for it while it waits for room.)
+      if (c.rule === 'heart-answer') answerTried = true;
+      if (o.failOnce && !failed && cue.type === 'write' && cue.key.startsWith(o.failOnce)) {
+        failed = true;
+        d.writeFailed(cue.key);
+        continue;
+      }
+      if (answerTried && c.rule !== 'contribution') {
         const north = (x?: string) => !!x && PHRASE_BY_ID.get(x)?.surface === 'north';
         if (((cue.type === 'reveal' || cue.type === 'redraw') && north(cue.phraseId)) || (cue.type === 'write' && !cue.key.startsWith('heart:') && (cue.surface === 'north' || north(cue.beside)))) northAfter++;
       }
@@ -990,14 +996,13 @@ export function liveVisit(g: Genome, seed: number, o: VisitOptions = {}): VisitS
       heartAt: d.scenes.heart ? devs.find((x) => x.label === `memory-scene ${d.scenes.heart}`)?.t ?? null : null,
       answer: d.answerKept(),
       answerAt: devs.find((x) => x.rule === 'heart-answer')?.t ?? null,
-      answerMet,
       answerRead: d.answerRead(),
       left: d.heartLeft(),
       northAfter,
       kept: devs.some((x) => x.rule === 'heart-kept'),
       recoiledAt: devs.find((x) => x.rule === 'return-recoil')?.t ?? null,
       heartOfferedAt: d.scenes.heart ? devs.find((x) => x.rule === 'memory-offer' && x.phrase === SCENE_MEMORIES.find((m) => m.id === d.scenes.heart)?.phraseId)?.t ?? null : null,
-      keptMet,
+      memoryAt: Object.fromEntries(devs.filter((x) => x.cue === 'memory-scene').reverse().map((x) => [x.label.replace('memory-scene ', ''), x.t])),
     },
     approaches, field: thirds, phases,
     leaving: d.leaving(), departure: d.departureLine(),
