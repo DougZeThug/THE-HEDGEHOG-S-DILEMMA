@@ -1,6 +1,6 @@
 # Arms, fourth comparison (prototype snapshot)
 
-`ARMS='heart=heart;recoil=recoilOnly' npx vite-node scripts/arc.ts`, the two arms of `arms-3.md` re-run after further changes to the heart. Its "answer looked at" and "within" columns used an earlier measure, dropped since (`after.md` uses the Director's own, "answer in view"); the bracketed number after "found last visit's answer" is as in `arms-3.md`. Run on the prototype, whose experiment flags were removed when the heart was built in; superseded by `after.md` (the finished build), with the decisions in `../2026-11-emotional-arc.md`.
+`ARMS='heart=heart;recoil=recoilOnly' npx vite-node scripts/arc.ts`, the two arms of `arms-3.md` re-run after further changes to the heart. **Its "answer looked at" and "within" columns are invalid; do not read them:** the simulated gaze was taken as the answer was queued, before it was on the wall, which is why "within" is 0 s. They were dropped (`after.md` uses the Director's own measure, "answer in view"); the bracketed number after "found last visit's answer" is as in `arms-3.md`. None of this file is evidence for the finished build. Run on the prototype, whose experiment flags were removed when the heart was built in; superseded by `after.md` (the finished build), with the decisions in `../2026-11-emotional-arc.md`.
 
 1592 visits in 75.5 s. Simulated visitors; their reactions are assumptions.
 

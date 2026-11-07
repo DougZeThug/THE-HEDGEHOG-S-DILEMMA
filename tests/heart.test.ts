@@ -53,6 +53,20 @@ describe('the heart, in the memory director', () => {
       const o = offerAt(md, t, { free: true, phase: 'transform' });
       if (o) expect(['woodland', 'things']).not.toContain(o.id);
     }
+    // It lapses only once HEART_LAPSE has gone by, not at it.
+    expect(md.heartLapsed(81 + HEART_LAPSE)).toBe(false);
+    expect(md.heartLapsed(81 + HEART_LAPSE + 1)).toBe(true);
+    // The same visit, with another painted memory behind it (the others' own gate): at the boundary
+    // the woodland is still kept back; just after, it may be pointed at.
+    const visit = () => {
+      const m = new MemoryDirector({});
+      m.setHeart('almost', 80);
+      expect(offerAt(m, 81)?.id).toBe('almost');
+      return m;
+    };
+    const after = (m: MemoryDirector, now: number) => m.offer({ now, phase: 'transform', free: true, heartFree: true, visibleFacing: () => false, departing: false, otherMemory: false, kitchenPlayed: true, prefer: ['woodland'] });
+    expect(after(visit(), 81 + HEART_LAPSE)?.id).not.toBe('woodland');
+    expect(after(visit(), 81 + HEART_LAPSE + 1)?.id).toBe('woodland');
   });
 
   it('is written again once, on its wall, if it was not taken up', () => {

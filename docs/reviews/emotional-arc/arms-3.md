@@ -1,6 +1,6 @@
 # Arms, third comparison: after the reviews (prototype snapshot)
 
-`ARMS='base;heart=heart;recoil=recoilOnly' npx vite-node scripts/arc.ts`. `heart`: the heart as revised after the reviews (the recoil leads to Almost; otherwise, later, the woodland or Things). `recoil`: the skeptic's version, Almost after a recoil and nothing else. The number in brackets after "found last visit's answer" was a look the simulated visitors couldn't make; it has been removed from the battery. Run on the prototype, whose experiment flags were removed when the heart was built in; superseded by `after.md` (the finished build), with the decisions in `../2026-11-emotional-arc.md`.
+`ARMS='base;heart=heart;recoil=recoilOnly' npx vite-node scripts/arc.ts`. `heart`: the heart as revised after the reviews (the recoil leads to Almost; otherwise, later, the woodland or Things). `recoil`: the skeptic's version, Almost after a recoil and nothing else. **Its "answer looked at" and "within" columns are invalid; do not read them:** the simulated gaze was taken as the answer was queued, before it was on the wall. The number in brackets after "found last visit's answer" was a look the simulated visitors couldn't make. All three have been removed from the battery, and none of this file is evidence for the finished build. Run on the prototype, whose experiment flags were removed when the heart was built in; superseded by `after.md` (the finished build), with the decisions in `../2026-11-emotional-arc.md`.
 
 2388 visits in 116.0 s. Simulated visitors; their reactions are assumptions.
 

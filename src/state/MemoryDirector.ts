@@ -199,7 +199,7 @@ export class MemoryDirector {
     t.offered = false;
     if (!t.reinked && !m.offer?.wall) {
       this.points = Math.max(0, this.points - 1);
-      if (m.id !== this.heart) this.offersMade = Math.max(0, this.offersMade - 1);
+      this.offersMade = Math.max(0, this.offersMade - 1);
     }
     if (m.id === this.heart) this.heartOfferedAt = null;
   }

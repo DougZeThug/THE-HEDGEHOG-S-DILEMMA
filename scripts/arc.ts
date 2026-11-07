@@ -29,6 +29,7 @@ const SEEDS = Number(process.env.SEEDS ?? 3);
 const ADV_SEEDS = Number(process.env.ADV_SEEDS ?? 4);
 const RETURNS = Number(process.env.RETURNS ?? 40);
 const HORIZONS = (process.env.HORIZONS ?? '180,300,600').split(',').map(Number);
+if (!HORIZONS.length || HORIZONS.some((h) => !Number.isFinite(h) || h <= 0)) throw new Error(`HORIZONS must be visit lengths in seconds, greater than 0: ${process.env.HORIZONS}`);
 const ARMS = (process.env.ARMS ?? 'base').split(';').map((a) => {
   const [name, list] = a.includes('=') ? a.split('=') : [a, ''];
   return { name, experiments: list.split(',').filter(Boolean) };
@@ -139,7 +140,8 @@ for (const [name, h] of Object.entries(runs)) for (const [sec, rows] of Object.e
 }
 
 console.log('\n## Coming back (second visits)\n');
-console.log('| arm | n | last visit\'s answer found (looked at) | a heart seen | a different heart from last time | same heart again | painted / visit |');
+// (Back on the wall: the room wrote it there, `heart-kept`; not a look at it, which isn't simulated.)
+console.log('| arm | n | last visit\'s answer back on the wall (of those that left one) | a heart seen | a different heart from last time | same heart again | painted / visit |');
 console.log('|---|---|---|---|---|---|---|');
 for (const [name, h] of Object.entries(runs)) {
   const rows = h[Math.max(...HORIZONS)];

@@ -1,6 +1,6 @@
 # After: the finished heart, before against after (simulated)
 
-`ARMS='before=noHeart;after' npx vite-node scripts/arc.ts`, run on the finished build (after QA's fixes, the creative director's cuts and the fixes from the pull request's code review, chiefly that the heart is offered only into its local quiet). Both arms carry the fix for a return lost to the visit's turn, which is why "recoiled at" in the before arm is a little higher than in `brief.md`. The core-loop battery (`N=12 SEEDS=3 RETURNS=20 ARMS='before=noHeart;after' npx vite-node scripts/experiment.ts`, 688 visits) is unchanged within noise between the arms. "Answer in view" is the Director's own measure (the answer's wall faced, in the simulation); the simulated visitors can't perceive a later annotation, so whether anyone looks at it is not measured. "First strong" is the first of Almost, Things and the woodland to begin, whether or not it is the heart.
+`ARMS='before=noHeart;after' npx vite-node scripts/arc.ts`, run on the finished build (after QA's fixes, the creative director's cuts and the fixes from the pull request's code review, chiefly that the heart is offered only into its local quiet). Both arms carry the fix for a return lost to the visit's turn, which is why "recoiled at" in the before arm is a little higher than in `brief.md`. The core-loop battery (`N=12 SEEDS=3 RETURNS=20 ARMS='before=noHeart;after' npx vite-node scripts/experiment.ts`, 688 visits) is unchanged within noise between the arms. "Answer in view" is the Director's own measure (the answer's wall faced, in the simulation); the simulated visitors can't perceive a later annotation, so whether anyone looks at it is not measured. Likewise "last visit's answer back on the wall" on a second visit counts the room writing it there (`heart-kept`), not a look at it. "First strong" is the first of Almost, Things and the woodland to begin, whether or not it is the heart.
 
 1592 visits in 71.5 s. Simulated visitors; their reactions are assumptions.
 
@@ -59,7 +59,7 @@
 
 ## Coming back (second visits)
 
-| arm | n | last visit's answer found (looked at) | a heart seen | a different heart from last time | same heart again | painted / visit |
+| arm | n | last visit's answer back on the wall (of those that left one) | a heart seen | a different heart from last time | same heart again | painted / visit |
 |---|---|---|---|---|---|---|
 | before | 40 | 0 of 0 | 0% | 0 | 0 | 1.1 |
 | after | 40 | 18 of 18 | 58% | 8 | 7 | 1.1 |
