@@ -834,7 +834,8 @@ export function liveVisit(g: Genome, seed: number, o: VisitOptions = {}): VisitS
         failed = true;
         if (c.rule === 'heart-kept') {
           keptWaiting = true;
-          keptFailedAt = t;
+          // (On the clock the visit's developments use: the end of this tick.)
+          keptFailedAt = +(t + dt).toFixed(2);
         }
         d.writeFailed(cue.key);
         continue;
