@@ -233,7 +233,7 @@ def main():
         print(f"   mix {loud}; music audible {r['musicSeconds']} s; {checks}")
 
     mp3(stems / 'radio-cut.wav', out / 'A.mp3')
-    (ROOT / 'scripts/fable/score-render.json').write_text(json.dumps(report, indent=1) + '\n', encoding='utf8')
+    (ROOT / 'scripts/fable/score-render.json').write_bytes((json.dumps(report, indent=1) + '\n').encode('utf8'))  # LF on Windows too
 
 
 if __name__ == '__main__':

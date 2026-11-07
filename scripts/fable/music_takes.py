@@ -175,7 +175,7 @@ def main():
         print(f"{take_id}: {f['notes']} notes ({f['notesPerMinute']}/min), longest gap {f['longestGap']} s, near silence {f['nearSilence']:.0%},"
               f" quietest {f['quietestBelowLoudest']} dB under loudest, L/R {f['channelCorrelation']};"
               f" with Tom: words {words_gain:+.1f} dB, ease {ease_gain:+.1f} dB")
-    LEDGER.write_text(json.dumps(ledger, indent=2) + '\n', encoding='utf8')
+    LEDGER.write_bytes((json.dumps(ledger, indent=2) + '\n').encode('utf8'))  # LF on Windows too
 
 
 if __name__ == '__main__':
