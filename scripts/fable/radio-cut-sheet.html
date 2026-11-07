@@ -1,0 +1,239 @@
+<title>Fox and Moon Radio Cut</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+  /* Layout: one narrow column read at night on a phone. The player stays at the top; below it the
+     script, line by line, with each silence between the lines shown as its own row. */
+  :root {
+    --night: #12141a;
+    --panel: #1b1e26;
+    --line: #2c303b;
+    --moon: #ebe5d3;
+    --dim: #a19d92;
+    --fox: #e07b36;
+    --keep: #9cc39a;
+    --display: "Newsreader", Georgia, "Times New Roman", serif;
+    --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { background: var(--night); color: var(--moon); font: 16px/1.55 var(--body); margin: 0; }
+  body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); background: var(--night); z-index: 10; }
+  main {
+    max-width: 640px; margin: 0 auto;
+    padding-block: 36px 72px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    display: grid; gap: 28px;
+  }
+  h1 { font: 500 2rem/1.15 var(--display); margin: 0; text-wrap: balance; }
+  h2 { font: 500 1.2rem/1.3 var(--display); margin: 0 0 10px; }
+  p { margin: 0; }
+  .lede { color: var(--dim); margin-top: 8px; }
+  ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+  .small { color: var(--dim); font-size: 0.85rem; }
+  .player {
+    position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+    background: var(--night); padding-block: 10px; border-bottom: 1px solid var(--line);
+    display: grid; gap: 6px;
+  }
+  audio { width: 100%; height: 40px; min-width: 0; }
+  .where { font: 500 0.8rem var(--mono); color: var(--fox); letter-spacing: 0.04em; min-height: 1.2em; }
+  .script { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+  .say {
+    display: grid; grid-template-columns: 3.4rem 1fr; gap: 10px; align-items: baseline;
+    padding: 6px 8px; border-radius: 8px; cursor: pointer; border-left: 2px solid transparent;
+  }
+  .say .t { font: 500 0.75rem var(--mono); color: var(--dim); letter-spacing: 0.03em; }
+  .say .t b { display: block; color: var(--fox); font-weight: 500; }
+  .say q { font: italic 400 1.05rem/1.5 var(--display); quotes: none; min-width: 0; }
+  .say.now { background: var(--panel); border-left-color: var(--fox); }
+  .gap {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px;
+    margin-left: calc(3.4rem + 18px); padding: 2px 0; color: var(--dim); font-size: 0.85rem;
+  }
+  .gap .len { font: 500 0.8rem var(--mono); color: var(--dim); }
+  .gap.named .len { color: var(--moon); }
+  .gap.now .len { color: var(--fox); }
+  .marks { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+  .marks button {
+    font: 500 0.8rem var(--body); color: var(--dim); background: transparent; border: 0;
+    padding: 4px 10px; min-height: 30px; cursor: pointer;
+  }
+  .marks button + button { border-left: 1px solid var(--line); }
+  .marks button[aria-pressed="true"] { color: var(--night); background: var(--moon); }
+  .marks button.keep[aria-pressed="true"] { background: var(--keep); }
+  button:focus-visible, .say:focus-visible { outline: 2px solid var(--fox); outline-offset: 2px; }
+  .verdict { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+  .verdict .marks button { font-size: 0.9rem; padding: 7px 14px; min-height: 36px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .actions button {
+    font: 500 1rem var(--body); border-radius: 8px; padding: 10px 16px; min-height: 44px; cursor: pointer;
+    border: 1px solid var(--fox); background: var(--fox); color: var(--night);
+  }
+  .status { color: var(--dim); font-size: 0.9rem; }
+  textarea {
+    width: 100%; min-height: 6rem; font: 0.9rem/1.5 var(--body); color: var(--moon);
+    background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px;
+  }
+  textarea.out { font: 0.85rem/1.5 var(--mono); }
+</style>
+
+<main>
+  <header>
+    <h1>The radio cut</h1>
+    <p class="lede" id="lede"></p>
+  </header>
+
+  <section>
+    <h2>How to listen</h2>
+    <ul>
+      <li>Once straight through, on the phone's own speaker. Then again with the script, marking any silence that feels too long or too short.</li>
+      <li>The silences are the plan's starting lengths, each shown in the script: the curtains before he speaks, about a second between paragraphs, and longer only where the plan gives time (the waiting, the ease, his request, the rest, her obscured reflection, the touch and the last glance).</li>
+      <li>The night air is very low on purpose. It sits about 21 LU under his voice, which keeps the loudness range inside the plan's 8 LU. If you want more night, say so.</li>
+      <li>At the end the night stops with the image, then 3 seconds of true silence follow, where the title will appear.</li>
+    </ul>
+    <p class="small" style="margin-top:10px">Tap any line to play from just before it. Your marks stay on this device.</p>
+  </section>
+
+  <section>
+    <div class="player">
+      <audio controls preload="auto" id="cut" aria-label="The radio cut"></audio>
+      <div class="where" id="where" aria-hidden="true"></div>
+    </div>
+    <ol class="script" id="script"></ol>
+  </section>
+
+  <section>
+    <h2>Lock it?</h2>
+    <div class="verdict">
+      <div class="marks" role="group" aria-label="Lock the radio cut">
+        <button type="button" data-lock="yes" class="keep" aria-pressed="false">Lock it</button>
+        <button type="button" data-lock="not yet" aria-pressed="false">Not yet</button>
+      </div>
+    </div>
+    <p class="small" style="margin:10px 0 6px">Anything else: a line read wrong, the night, the curtains, the end.</p>
+    <textarea id="notes" aria-label="Notes on the radio cut"></textarea>
+  </section>
+
+  <section>
+    <div class="actions">
+      <button type="button" id="copy">Copy my notes</button>
+      <span class="status" id="status" aria-live="polite"></span>
+    </div>
+    <textarea id="summary" class="out" aria-label="Your notes, to paste back to Claude" readonly hidden></textarea>
+  </section>
+</main>
+
+<script>
+const CUT = /*CUT*/{};
+const KEY = `fox-moon-radio-v${CUT.version}`;
+const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } };
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* notes just won't persist */ } };
+const state = load();
+state.gaps ??= {};
+
+const mmss = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+// The pilcrow and the middle dot as codes, so the file is plain ASCII whatever charset it is read in.
+const PARA = String.fromCharCode(0xb6), DOT = String.fromCharCode(0xb7);
+const label = (u) => `${PARA}${u.p}${u.part ?? ''}`;
+document.getElementById('lede').textContent =
+  `Tom's six takes in order, joined by the planned silences, over night air. ${mmss(CUT.length.toCut)} to the cut, against a ceiling of 3:30, then the 3 seconds of black before the title. No effects or music yet: they come once this is locked.`;
+
+// A data URI first; a blob URL if a browser refuses that.
+const audio = document.getElementById('cut');
+audio.src = CUT.src;
+audio.addEventListener('error', () => {
+  const [head, b64] = CUT.src.split(',');
+  const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+  audio.src = URL.createObjectURL(new Blob([bytes], { type: head.slice(5, head.indexOf(';')) }));
+}, { once: true });
+
+// The rows: the curtains, then each line and the silence after it, then the black.
+const gaps = [{ key: 'lead-in', name: 'before he speaks', len: CUT.leadIn[0], why: CUT.leadIn[1], from: 0, to: CUT.units[0].at }];
+CUT.units.forEach((u, i) => gaps.push({ key: `after ${label(u)}`, name: `after ${label(u)}`, len: u.gapAfter, why: u.why,
+  from: u.end, to: CUT.units[i + 1]?.at ?? CUT.length.toCut }));
+const list = document.getElementById('script');
+const rows = [];
+function gapRow(g) {
+  const li = document.createElement('li');
+  li.className = `gap${g.why ? ' named' : ''}`;
+  li.innerHTML = `<span class="len">${g.len.toFixed(1)} s${g.why ? ` ${DOT} ${g.why}` : ''}</span>
+    <span class="marks" role="group" aria-label="The silence ${g.name}">
+      <button type="button" data-v="shorter" aria-pressed="false">Shorter</button>
+      <button type="button" data-v="longer" aria-pressed="false">Longer</button>
+    </span>`;
+  li.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
+    state.gaps[g.key] = state.gaps[g.key] === b.dataset.v ? undefined : b.dataset.v;
+    save(); paint();
+  }));
+  li.dataset.key = g.key;
+  rows.push({ li, from: g.from, to: g.to });
+  return li;
+}
+list.append(gapRow(gaps[0]));
+CUT.units.forEach((u, i) => {
+  const li = document.createElement('li');
+  li.className = 'say';
+  li.tabIndex = 0;
+  li.innerHTML = `<span class="t"><b>${label(u)}</b>${mmss(u.at)}</span><q></q>`;
+  li.querySelector('q').textContent = u.text;
+  const go = () => { audio.currentTime = Math.max(0, u.at - 0.6); audio.play(); };
+  li.addEventListener('click', go);
+  li.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
+  rows.push({ li, from: u.at, to: u.end, u });
+  list.append(li, gapRow(gaps[i + 1]));
+});
+const black = document.createElement('li');
+black.className = 'gap named';
+black.innerHTML = `<span class="len">${CUT.black.toFixed(1)} s ${DOT} black and true silence, then the title</span>`;
+rows.push({ li: black, from: CUT.length.toCut, to: CUT.length.withBlack });
+list.append(black);
+
+// Follow the playhead: light the line or silence under it, and keep it in view unless the reader is scrolling.
+const where = document.getElementById('where');
+let lastTouch = 0, current = null;
+['touchstart', 'wheel'].forEach((ev) => addEventListener(ev, () => { lastTouch = Date.now(); }, { passive: true }));
+audio.addEventListener('timeupdate', () => {
+  const t = audio.currentTime;
+  const r = rows.find((r) => t >= r.from && t < r.to) ?? null;
+  if (r === current) return;
+  current?.li.classList.remove('now');
+  current = r;
+  if (!r) { where.textContent = ''; return; }
+  r.li.classList.add('now');
+  where.textContent = r.u ? `${label(r.u)} ${DOT} ${mmss(t)}` : r.li.querySelector('.len').textContent;
+  if (!audio.paused && Date.now() - lastTouch > 4000) r.li.scrollIntoView({ block: 'center', behavior: 'smooth' });
+});
+
+document.querySelectorAll('[data-lock]').forEach((b) => b.addEventListener('click', () => { state.lock = b.dataset.lock; save(); paint(); }));
+const notes = document.getElementById('notes');
+notes.value = state.notes ?? '';
+notes.addEventListener('input', () => { state.notes = notes.value; save(); });
+
+function paint() {
+  document.querySelectorAll('.gap[data-key]').forEach((li) => li.querySelectorAll('button').forEach((b) =>
+    b.setAttribute('aria-pressed', String(state.gaps[li.dataset.key] === b.dataset.v))));
+  document.querySelectorAll('[data-lock]').forEach((b) => b.setAttribute('aria-pressed', String(state.lock === b.dataset.lock)));
+}
+
+const status = document.getElementById('status');
+const summary = document.getElementById('summary');
+document.getElementById('copy').addEventListener('click', () => {
+  const marked = (v) => gaps.filter((g) => state.gaps[g.key] === v).map((g) => `${g.name}${g.why ? ` (${g.why}, ${g.len.toFixed(1)} s)` : ` (${g.len.toFixed(1)} s)`}`);
+  const lines = [`Radio cut v${CUT.version} (${mmss(CUT.length.toCut)} to the cut)`, `Lock it: ${state.lock ?? '-'}`];
+  if (marked('longer').length) lines.push(`Longer: ${marked('longer').join('; ')}`);
+  if (marked('shorter').length) lines.push(`Shorter: ${marked('shorter').join('; ')}`);
+  if (state.notes?.trim()) lines.push(`Notes: ${state.notes.trim()}`);
+  const text = lines.join('\n');
+  summary.value = text;
+  summary.hidden = false;
+  const fallback = () => { summary.focus(); summary.select(); status.textContent = 'Copy the selected text'; };
+  if (navigator.clipboard?.writeText) navigator.clipboard.writeText(text).then(() => { status.textContent = 'Copied. Paste it into the chat.'; }, fallback);
+  else fallback();
+});
+
+paint();
+</script>

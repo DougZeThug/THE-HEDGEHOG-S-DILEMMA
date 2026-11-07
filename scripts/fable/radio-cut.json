@@ -1,0 +1,429 @@
+{
+ "version": 1,
+ "note": "Written by scripts/fable/radio_cut.mjs from the ledger reading. Times in seconds on the film; take times are in the original take file.",
+ "reading": {
+  "voice": "tom",
+  "g1": "r2-tom-g1-2",
+  "g2": "r3-tom-g2-1",
+  "g3": "r3-tom-g3-1",
+  "g4": "r3-tom-g4-1",
+  "g5": "r3-tom-g5-1",
+  "g6": "r2-tom-g6-1"
+ },
+ "plan": {
+  "leadIn": [
+   6,
+   "the curtains"
+  ],
+  "gap": 1,
+  "after": {
+   "3": [
+    1.3,
+    "the waiting"
+   ],
+   "7": [
+    6,
+    "the ease"
+   ],
+   "15": [
+    3,
+    "his request"
+   ],
+   "16": [
+    6,
+    "the rest"
+   ],
+   "21": [
+    3.5,
+    "her obscured reflection"
+   ],
+   "33": [
+    4.5,
+    "the last glance"
+   ]
+  },
+  "split": {
+   "23": [
+    1,
+    "the touch"
+   ]
+  },
+  "black": 3,
+  "ceiling": 210,
+  "narrationLufs": -23.5,
+  "nightLufs": -45
+ },
+ "length": {
+  "toCut": 177.72,
+  "withBlack": 180.72,
+  "voice": 119.42
+ },
+ "loudness": {
+  "narration": {
+   "lufs": -23.5,
+   "lra": 5.9,
+   "truePeak": -2.9
+  },
+  "night": {
+   "lufs": -45,
+   "lra": 4.5,
+   "truePeak": -29.4
+  },
+  "mix": {
+   "lufs": -23.5,
+   "lra": 7.3,
+   "truePeak": -3.5
+  }
+ },
+ "units": [
+  {
+   "p": 1,
+   "take": "r2-tom-g1-2",
+   "from": 0.06,
+   "to": 3.86,
+   "at": 6,
+   "end": 9.8,
+   "gapAfter": 1,
+   "text": "Every night, a fox climbed a hill to sit beneath the moon."
+  },
+  {
+   "p": 2,
+   "take": "r2-tom-g1-2",
+   "from": 4.44,
+   "to": 12.5,
+   "at": 10.8,
+   "end": 18.86,
+   "gapAfter": 1,
+   "text": "He told her small things: where the blackberries grew, what he had mistaken for a bird, which paths he disliked walking alone."
+  },
+  {
+   "p": 3,
+   "take": "r2-tom-g1-2",
+   "from": 13.21,
+   "to": 15.15,
+   "at": 19.86,
+   "end": 21.8,
+   "gapAfter": 1.3,
+   "why": "the waiting",
+   "text": "The moon began waiting for him."
+  },
+  {
+   "p": 4,
+   "take": "r2-tom-g1-2",
+   "from": 15.67,
+   "to": 19.45,
+   "at": 23.1,
+   "end": 26.88,
+   "gapAfter": 1,
+   "text": "From so far away, each found the other easy to love."
+  },
+  {
+   "p": 5,
+   "take": "r3-tom-g2-1",
+   "from": 4.787,
+   "to": 7.695,
+   "at": 27.88,
+   "end": 30.788,
+   "gapAfter": 1,
+   "text": "One evening, she asked him to meet her beside a pond."
+  },
+  {
+   "p": 6,
+   "take": "r3-tom-g2-1",
+   "from": 8.265,
+   "to": 12.64,
+   "at": 31.788,
+   "end": 36.163,
+   "gapAfter": 1,
+   "text": "There, she could lay her reflection close enough for him to rest his head beside it."
+  },
+  {
+   "p": 7,
+   "take": "r3-tom-g2-1",
+   "from": 13.32,
+   "to": 15.105,
+   "at": 37.163,
+   "end": 38.948,
+   "gapAfter": 6,
+   "why": "the ease",
+   "text": "For many nights, they were happy."
+  },
+  {
+   "p": 8,
+   "take": "r3-tom-g2-1",
+   "from": 15.525,
+   "to": 23.067,
+   "at": 44.948,
+   "end": 52.49,
+   "gapAfter": 1,
+   "text": "She lit the paths he had been afraid to walk. He told her stories about the world beneath the trees, where she had never been."
+  },
+  {
+   "p": 9,
+   "take": "r3-tom-g3-1",
+   "from": 5.501,
+   "to": 8.745,
+   "at": 53.49,
+   "end": 56.734,
+   "gapAfter": 1,
+   "text": "But there were things the fox did not like anyone to see."
+  },
+  {
+   "p": 10,
+   "take": "r3-tom-g3-1",
+   "from": 9.325,
+   "to": 15.19,
+   "at": 57.734,
+   "end": 63.599,
+   "gapAfter": 1,
+   "text": "When he was frightened, he hid. When he was ashamed, he pretended he had somewhere else to go."
+  },
+  {
+   "p": 11,
+   "take": "r3-tom-g3-1",
+   "from": 15.98,
+   "to": 22.03,
+   "at": 64.599,
+   "end": 70.649,
+   "gapAfter": 1,
+   "text": "The moon had her own difficulty. When someone grew quiet, she felt herself disappearing."
+  },
+  {
+   "p": 12,
+   "take": "r3-tom-g3-1",
+   "from": 22.59,
+   "to": 26.985,
+   "at": 71.649,
+   "end": 76.044,
+   "gapAfter": 1,
+   "text": "So when the fox withdrew beneath the reeds, she shone a little brighter."
+  },
+  {
+   "p": 13,
+   "take": "r3-tom-g3-1",
+   "from": 27.525,
+   "to": 29.88,
+   "at": 77.044,
+   "end": 79.399,
+   "gapAfter": 1,
+   "text": "She wanted him to know she was still there."
+  },
+  {
+   "p": 14,
+   "take": "r3-tom-g3-1",
+   "from": 30.58,
+   "to": 39.33,
+   "at": 80.399,
+   "end": 89.149,
+   "gapAfter": 1,
+   "text": "But now he could see the whole of himself in the water: his muddy coat, his trembling legs, the face he made when he was trying not to cry."
+  },
+  {
+   "p": 15,
+   "take": "r3-tom-g3-1",
+   "from": 39.94,
+   "to": 41.892,
+   "at": 90.149,
+   "end": 92.101,
+   "gapAfter": 3,
+   "why": "his request",
+   "text": "He asked for a little darkness."
+  },
+  {
+   "p": 16,
+   "take": "r3-tom-g4-1",
+   "from": 2.552,
+   "to": 6.305,
+   "at": 95.101,
+   "end": 98.854,
+   "gapAfter": 6,
+   "why": "the rest",
+   "text": "She dimmed her light. For a while, they rested together."
+  },
+  {
+   "p": 17,
+   "take": "r3-tom-g4-1",
+   "from": 6.805,
+   "to": 11.165,
+   "at": 104.854,
+   "end": 109.214,
+   "gapAfter": 1,
+   "text": "But when he stayed quiet, she began to wonder whether he wanted her there at all."
+  },
+  {
+   "p": 18,
+   "take": "r3-tom-g4-1",
+   "from": 11.775,
+   "to": 13.975,
+   "at": 110.214,
+   "end": 112.414,
+   "gapAfter": 1,
+   "text": "Her light crept back across the pond."
+  },
+  {
+   "p": 19,
+   "take": "r3-tom-g4-1",
+   "from": 14.495,
+   "to": 16.705,
+   "at": 113.414,
+   "end": 115.624,
+   "gapAfter": 1,
+   "text": "The fox pulled a branch over the water."
+  },
+  {
+   "p": 20,
+   "take": "r3-tom-g4-1",
+   "from": 17.145,
+   "to": 18.87,
+   "at": 116.624,
+   "end": 118.349,
+   "gapAfter": 1,
+   "text": "He meant to make a hiding place."
+  },
+  {
+   "p": 21,
+   "take": "r3-tom-g4-1",
+   "from": 19.33,
+   "to": 22.786,
+   "at": 119.349,
+   "end": 122.805,
+   "gapAfter": 3.5,
+   "why": "her obscured reflection",
+   "text": "From beneath the leaves, the moon watched her face disappear."
+  },
+  {
+   "p": 22,
+   "take": "r3-tom-g5-1",
+   "from": 4.402,
+   "to": 6.125,
+   "at": 126.305,
+   "end": 128.028,
+   "gapAfter": 1,
+   "text": "She rose away from the pond."
+  },
+  {
+   "p": 23,
+   "part": "a",
+   "take": "r3-tom-g5-1",
+   "from": 6.845,
+   "to": 9.665,
+   "at": 129.028,
+   "end": 131.848,
+   "gapAfter": 1,
+   "why": "the touch",
+   "text": "The fox pushed the branch aside and reached after her."
+  },
+  {
+   "p": 23,
+   "part": "b",
+   "take": "r3-tom-g5-1",
+   "from": 10.105,
+   "to": 13.835,
+   "at": 132.848,
+   "end": 136.578,
+   "gapAfter": 1,
+   "text": "His paw struck the water, breaking her reflection into pieces."
+  },
+  {
+   "p": 24,
+   "take": "r3-tom-g5-1",
+   "from": 14.425,
+   "to": 18.115,
+   "at": 137.578,
+   "end": 141.268,
+   "gapAfter": 1,
+   "text": "By the time the pond was still, she was high above the hill again."
+  },
+  {
+   "p": 25,
+   "take": "r3-tom-g5-1",
+   "from": 18.985,
+   "to": 21.94,
+   "at": 142.268,
+   "end": 145.223,
+   "gapAfter": 1,
+   "text": "For several nights, he slept without being seen."
+  },
+  {
+   "p": 26,
+   "take": "r3-tom-g5-1",
+   "from": 22.42,
+   "to": 26.845,
+   "at": 146.223,
+   "end": 150.648,
+   "gapAfter": 1,
+   "text": "For several nights, she crossed the sky without wondering whether she was welcome."
+  },
+  {
+   "p": 27,
+   "take": "r3-tom-g5-1",
+   "from": 27.485,
+   "to": 28.785,
+   "at": 151.648,
+   "end": 152.948,
+   "gapAfter": 1,
+   "text": "Neither was hurt again."
+  },
+  {
+   "p": 28,
+   "take": "r3-tom-g5-1",
+   "from": 29.225,
+   "to": 31.032,
+   "at": 153.948,
+   "end": 155.755,
+   "gapAfter": 1,
+   "text": "Neither returned to the pond."
+  },
+  {
+   "p": 29,
+   "take": "r2-tom-g6-1",
+   "from": 2.206,
+   "to": 8.355,
+   "at": 156.755,
+   "end": 162.904,
+   "gapAfter": 1,
+   "text": "Then, one evening, the fox climbed the hill with a small, unimportant story he had saved for her."
+  },
+  {
+   "p": 30,
+   "take": "r2-tom-g6-1",
+   "from": 8.885,
+   "to": 10.51,
+   "at": 163.904,
+   "end": 165.529,
+   "gapAfter": 1,
+   "text": "She was already looking down."
+  },
+  {
+   "p": 31,
+   "take": "r2-tom-g6-1",
+   "from": 10.95,
+   "to": 12.085,
+   "at": 166.529,
+   "end": 167.664,
+   "gapAfter": 1,
+   "text": "He began telling it."
+  },
+  {
+   "p": 32,
+   "take": "r2-tom-g6-1",
+   "from": 12.535,
+   "to": 14.895,
+   "at": 168.664,
+   "end": 171.024,
+   "gapAfter": 1,
+   "text": "Halfway through, he looked toward the pond."
+  },
+  {
+   "p": 33,
+   "take": "r2-tom-g6-1",
+   "from": 15.355,
+   "to": 16.551,
+   "at": 172.024,
+   "end": 173.22,
+   "gapAfter": 4.5,
+   "why": "the last glance",
+   "text": "The moon looked too."
+  }
+ ]
+}

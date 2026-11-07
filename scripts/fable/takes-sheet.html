@@ -166,7 +166,7 @@ function paint() {
 
 document.getElementById('copy').addEventListener('click', () => {
   const pick = (k) => state.picks[k] ?? '-';
-  const lines = GROUPS.map((g) => `${g.label} (¶${g.paragraphs}): ${/^\d+$/.test(pick(g.key)) ? `take ${pick(g.key)}` : pick(g.key)}`);
+  const lines = GROUPS.map((g) => `${g.label} (${String.fromCharCode(0xb6)}${g.paragraphs}):${/^\d+$/.test(pick(g.key)) ? `take ${pick(g.key)}` : pick(g.key)}`);
   const text = `Tom's takes, ${ROUND.replace(/(\d+)$/, ' $1')}\n${lines.join('\n')}`;
   summary.value = text;
   summary.hidden = false;
