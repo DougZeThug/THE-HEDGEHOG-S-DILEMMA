@@ -1,0 +1,36 @@
+{
+  "key": "v1",
+  "title": "Fox and Moon Music in the Film",
+  "heading": "The music in the film",
+  "lede": "The whole radio cut three ways, with D2 (hedgerow folk and strings) cut into the three places the plan gives it: the pond and the ease, the rest, and the return. Switch between them as it plays; the place is kept.",
+  "notes": [
+    "On the phone's own speaker. Once straight through in B, once in C, then use the jumps and switch between A, B and C at each place.",
+    "Everywhere else the three are the same. Tom is identical in all of them, and under his voice the music sits at least 18 LU down.",
+    "In the rest the phrase is stopped on purpose before \"But when he stayed quiet\", and at the return before \"Halfway through\". The last line, the hold and the black have no music.",
+    "The picture and the sound effects aren't in it yet."
+  ],
+  "versions": [
+    { "key": "A", "label": "No music", "file": "A.mp3" },
+    { "key": "B", "label": "In the silences", "file": "B.mp3" },
+    { "key": "C", "label": "Beneath him", "file": "C.mp3" }
+  ],
+  "start": "B",
+  "choose": {
+    "title": "Which amount?", "short": "Amount",
+    "options": [
+      { "value": "A, no music", "label": "A, none" },
+      { "value": "B, in the silences", "label": "B, in the silences", "keep": true },
+      { "value": "C, beneath him", "label": "C, beneath him", "keep": true }
+    ]
+  },
+  "copyTitle": "Music in the film, m2-d-2 (score v1)",
+  "jumps": [{ "label": "The pond", "p": 5, "offset": -1 }, { "label": "The rest", "p": 16, "offset": -0.5 }, { "label": "The return", "p": 28, "offset": -0.5 }],
+  "places": [
+    { "label": "The pond and the ease", "from": [5, -0.5], "to": [10, 0],
+      "B": "two chords in the pauses, then the call and its answer in the ease", "C": "chords under his words, the call and answer in the ease, thinning under the next lines" },
+    { "label": "The rest", "from": [16, 0], "to": [17, 2],
+      "B": "the call, then the answer stopped before \"But when he stayed quiet\"", "C": "the call, then the answer stopped before \"But when he stayed quiet\"" },
+    { "label": "The return", "from": [29, -1], "to": [33, 6],
+      "B": "two chords in the last pauses, unanswered; nothing on the last line", "C": "the call beneath the saved story, stopped before \"Halfway through\"" }
+  ]
+}

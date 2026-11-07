@@ -2,7 +2,8 @@
   "note": "Music for the fable, made with Eleven Music through the full ElevenLabs connector (the artist's direction, 2026-11-07). Placement, level and material follow the music review under decision 13 in docs/reviews/2026-10-fable.md. Licence: the live Music Terms exclude film, TV, radio and Studio Games on self-serve plans and do not define film; the artist decided to proceed.",
   "spent": {
     "m1": 2399.48,
-    "m2": 3599.22
+    "m2": 3599.22,
+    "m3": 2699.4
   },
   "rounds": {
     "m1": {
@@ -124,7 +125,11 @@
         "oneTake": 4950,
         "twoTakes": 9900
       },
-      "status": "priced; waiting for the artist before running"
+      "status": "run once, 2026-11-07, after the artist approved one take",
+      "sheet": {
+        "published": true,
+        "config": "scripts/fable/score-sheet-through.json"
+      }
     }
   },
   "entries": {
@@ -443,6 +448,19 @@
         "aloneGainDb": 0.7
       },
       "mark": "no"
+    },
+    "m3-f-1": {
+      "round": "m3",
+      "palette": "f",
+      "generation": "QVFdayFfUH6UtACOaFG0",
+      "session": "wU0lu28WLQOcZOCR9k5T",
+      "file": "fable/music/m3-f-1.mp3",
+      "status": "saved",
+      "review": "pending",
+      "duration": 180,
+      "bytes": 4338322,
+      "cost": 2699.4,
+      "reference": "m2-d-2 (confirmed in the run result)"
     }
   },
   "audio": "The takes are kept locally in audition/fable/music/ and not committed: the Music Terms bar making output available as a downloadable music library, and the repository may be public. The generation ids above reach them in the ElevenLabs workspace."

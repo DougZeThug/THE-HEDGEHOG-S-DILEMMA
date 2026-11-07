@@ -1,0 +1,44 @@
+{
+  "key": "through-m3",
+  "title": "Fox and Moon Full Score",
+  "heading": "The whole fable, scored",
+  "lede": "One three-minute score made in D2's sound (Eleven Music with D2 as its Audio Reference), running from the curtains to the cut, where it stops with the image. Three levels under Tom, and the locked cut without music. Switch between them as it plays; the place is kept.",
+  "notes": [
+    "On the phone's own speaker, at the volume you'd watch at. Once straight through at 2, then use the jumps and switch between the levels where it matters to you.",
+    "The numbers are how far under Tom the music sits under a typical line: 1 is 15 LU under, 2 is 12, 3 is 9. Tom is identical in all of them.",
+    "The score is busiest from the exposure to the branch, so there it is ridden down slowly under his lines (up to about 7 dB) and lifts in the long silences. It never pumps word by word.",
+    "It stops with the image at the cut; the 3 seconds of black stay silent. The picture and the sound effects aren't in it yet."
+  ],
+  "versions": [
+    { "key": "A", "label": "No music", "file": "A.mp3" },
+    { "key": "1", "label": "Quieter", "file": "15.mp3" },
+    { "key": "2", "label": "Middle", "file": "12.mp3" },
+    { "key": "3", "label": "Closer", "file": "9.mp3" }
+  ],
+  "start": "2",
+  "choose": {
+    "title": "Which level?", "short": "Level",
+    "options": [
+      { "value": "1, quieter (15 LU under)", "label": "1", "keep": true },
+      { "value": "2, middle (12 LU under)", "label": "2", "keep": true },
+      { "value": "3, closer (9 LU under)", "label": "3", "keep": true },
+      { "value": "none of them", "label": "None" }
+    ]
+  },
+  "copyTitle": "The whole fable scored, m3-f-1",
+  "jumps": [
+    { "label": "The start", "at": 0 }, { "label": "The company", "p": 5, "offset": -1 }, { "label": "He hides", "p": 9, "offset": -1 },
+    { "label": "The rest", "p": 16, "offset": -0.5 }, { "label": "The branch", "p": 19, "offset": -1 },
+    { "label": "Separate nights", "p": 25, "offset": -1 }, { "label": "The return", "p": 29, "offset": -1 }
+  ],
+  "places": [
+    { "label": "The curtains and the hill", "from": [1, -6], "to": [5, 0] },
+    { "label": "The company", "from": [5, 0], "to": [9, 0] },
+    { "label": "He hides", "from": [9, 0], "to": [15, 0] },
+    { "label": "His request and the rest", "from": [15, 0], "to": [17, 0] },
+    { "label": "Her light returns, the branch", "from": [17, 0], "to": [22, 0] },
+    { "label": "The reach and the broken reflection", "from": [22, 0], "to": [25, 0] },
+    { "label": "Separate nights", "from": [25, 0], "to": [29, 0] },
+    { "label": "The return", "from": [29, 0], "to": [33, 6] }
+  ]
+}
