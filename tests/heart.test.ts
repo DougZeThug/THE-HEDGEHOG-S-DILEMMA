@@ -3,15 +3,17 @@ import { MemoryDirector, HEART_LAPSE, HEART_REINK } from '../src/state/MemoryDir
 import { HEART_ANSWER, HEART_BY_SHAPE, HEART_EARLIEST } from '../src/content/memories';
 import { PHRASE_BY_ID } from '../src/content/phrases';
 import { Rng } from '../src/core/rng';
-import { CLASSES, drawGenome, liveVisit, type VisitSummary } from './playtest/visitors';
+import { Director } from '../src/state/Director';
+import { OPENING_WRITTEN, OPENING_SPOKEN, OPENING_UNFINISHED } from '../src/state/OpeningScore';
+import { AVAILABLE, CLASSES, drawGenome, liveVisit, type VisitSummary } from './playtest/visitors';
 
 /**
  * The visit's heart (docs/reviews/2026-11-emotional-arc.md): one painted memory a visit, reachable
  * early, chosen from what happened at the chair; the recoil leads to Almost, which leaves one line
  * beside the room's first, ends the visit's card and is found on the next visit.
  */
-const offerAt = (md: MemoryDirector, now: number, o: { free?: boolean; heartFree?: boolean; facing?: (id: string) => boolean; phase?: string } = {}) =>
-  md.offer({ now, phase: o.phase ?? 'arrival', free: o.free ?? false, heartFree: o.heartFree ?? true, visibleFacing: o.facing ?? (() => false), departing: false, otherMemory: false });
+const offerAt = (md: MemoryDirector, now: number, o: { free?: boolean; heartFree?: boolean; facing?: (id: string) => boolean; wall?: string; phase?: string } = {}) =>
+  md.offer({ now, phase: o.phase ?? 'arrival', free: o.free ?? false, heartFree: o.heartFree ?? true, visibleFacing: o.facing ?? (() => false), facing: o.wall ?? 'north', departing: false, otherMemory: false });
 
 describe('the heart, in the memory director', () => {
   it('is pointed at once it may come, in any phase, with nothing before it, in a busy room that is locally quiet', () => {
@@ -69,16 +71,33 @@ describe('the heart, in the memory director', () => {
     expect(after(visit(), 81 + HEART_LAPSE + 1)?.id).toBe('woodland');
   });
 
-  it('is written again once, on its wall, if it was not taken up', () => {
+  it('is written again once, on the wall it was written on, if it was not taken up', () => {
     const md = new MemoryDirector();
     md.setHeart('almost', 80);
-    expect(offerAt(md, 81)?.id).toBe('almost');
-    const line = (id: string) => id === 'your-hand';
-    expect(offerAt(md, 81 + HEART_REINK - 1, { facing: line })).toBeNull();
-    const again = offerAt(md, 81 + HEART_REINK, { facing: line });
+    // Written where the visitor looked: the east wall, not its phrase's own (the north).
+    expect(PHRASE_BY_ID.get('your-hand')!.surface).toBe('north');
+    expect(offerAt(md, 81, { wall: 'east' })?.id).toBe('almost');
+    expect(offerAt(md, 81 + HEART_REINK - 1, { wall: 'east' })).toBeNull();
+    // Facing the phrase's own wall, nothing: the line written there would be another one.
+    const own = (id: string) => id === 'your-hand';
+    expect(offerAt(md, 81 + HEART_REINK, { wall: 'north', facing: own })).toBeNull();
+    // Back on the wall it was written on: that line, written again (not the phrase in its own place).
+    const again = offerAt(md, 81 + HEART_REINK + 1, { wall: 'east' });
     expect(again?.id).toBe('almost');
     expect(again?.reink).toBe(true);
-    expect(offerAt(md, 81 + HEART_REINK + 40, { facing: line })?.reink).toBeFalsy();
+    expect(again?.key).toBe('memory:your-hand');
+    expect(offerAt(md, 81 + HEART_REINK + 40, { wall: 'east' })?.reink).toBeFalsy();
+  });
+
+  it('written again, a shorter look begins it; written the first time, it takes the usual look', () => {
+    const look = (md: MemoryDirector, now: number, gazeFor: number) =>
+      md.update({ now, visible: () => true, gazeId: 'your-hand', gazeFor, free: true, otherMemory: false, departing: false, facing: 'east' });
+    const md = new MemoryDirector();
+    md.setHeart('almost', 80);
+    expect(offerAt(md, 81, { wall: 'east' })?.id).toBe('almost');
+    expect(look(md, 90, 1.6)).toBeNull();
+    expect(offerAt(md, 81 + HEART_REINK, { wall: 'east' })?.reink).toBe(true);
+    expect(look(md, 81 + HEART_REINK + 1, 1.6)?.id).toBe('almost');
   });
 
   it('a line that found no room is not spent: it is pointed at again', () => {
@@ -173,6 +192,64 @@ describe('the heart, through whole visits', () => {
     expect(f.reach.answer).toBe('took-hand-back');
     expect(f.reach.answerAt!).toBeGreaterThan(r.reach.answerAt!);
     expect(f.reach.northAfter).toBe(0);
+  });
+
+  it('the last answer is not found while a memory plays (nothing is written then): it is found after', () => {
+    // (CodeRabbit, PR #57: found during a memory, its line was refused and never looked for again.)
+    const d = new Director({ seed: 3, visits: 2, memoryCounts: {}, trace: null, answer: 'took-hand-back' });
+    d.scenes.setAvailable(AVAILABLE);
+    d.release({ written: OPENING_WRITTEN, spoken: OPENING_SPOKEN, unfinished: OPENING_UNFINISHED });
+    d.memoryExternal('woodland');
+    const still = { x: 0, z: 1.5, yaw: Math.PI / 2, pitch: -0.04, gazePhraseId: null, gazeChair: false, nearSurface: null, kneeling: false };
+    const found = (n: number) => {
+      let kept = false;
+      for (let i = 0; i < n; i++) kept = d.tick(0.1, still, 'east').some((c) => c.rule === 'heart-kept') || kept;
+      return kept;
+    };
+    expect(found(40)).toBe(false);
+    d.memoryEnded('woodland', true, true);
+    expect(found(20)).toBe(true);
+  });
+
+  it('nothing is offered on the north wall while it is held: the heart waits for another wall, not spent', () => {
+    // (CodeRabbit, PR #57: offered there, its line was refused by the hold and the offer spent.)
+    const d = new Director({ seed: 3, visits: 2, memoryCounts: {}, trace: null, answer: 'took-hand-back' });
+    d.scenes.setAvailable(AVAILABLE);
+    d.release({ written: OPENING_WRITTEN, spoken: OPENING_SPOKEN, unfinished: OPENING_UNFINISHED });
+    const at = (yaw: number) => ({ x: 0, z: 1.5, yaw, pitch: -0.04, gazePhraseId: null, gazeChair: false, nearSurface: null, kneeling: false });
+    const run = (s: number, facing: 'north' | 'east') => {
+      const out: string[] = [];
+      for (let t = 0; t < s; t += 0.1) for (const c of d.tick(0.1, at(facing === 'east' ? Math.PI / 2 : 0), facing)) out.push(c.rule);
+      return out;
+    };
+    // The last visit's answer is found, then finds no room: the north wall is held for it (20 s).
+    expect(run(HEART_EARLIEST, 'east')).toContain('heart-kept');
+    d.writeFailed('heart:took-hand-back');
+    d.scenes.setHeart('almost', 0);
+    expect(d.scenes.heartDue(d.now)).toBe(true);
+    expect(run(15, 'north')).not.toContain('memory-offer');
+    expect(d.scenes.heartDue(d.now)).toBe(true);
+    // Turned to another wall, it is offered there.
+    expect(run(30, 'east')).toContain('memory-offer');
+  });
+
+  it('Almost let go unseen twice leaves nothing: its answer is about what happens in it', () => {
+    // (CodeRabbit, PR #57: a painting withdrawn unseen twice counts as played, and its answer was left.)
+    const d = new Director({ seed: 3 });
+    d.scenes.setHeart('almost', 0);
+    const counted = [1, 2].map(() => {
+      d.memoryExternal('almost');
+      return d.memoryEnded('almost', false, false);
+    });
+    // (The second time it counts as played: it was there to be seen.)
+    expect(counted).toEqual([false, true]);
+    expect(d.heartLeft()).toBeNull();
+    // Cut off while it plays, already past its heart (a tab closed): it was seen, and it is left.
+    const e = new Director({ seed: 3 });
+    e.scenes.setHeart('almost', 0);
+    expect(e.heartLeft()).toBeNull();
+    expect(e.heartLeft('almost')).toBe(HEART_ANSWER.almost);
+    expect(e.heartLeft('woodland')).toBeNull();
   });
 
   it('a returning visitor finds the last answer beside the first line', { timeout: 120_000 }, () => {

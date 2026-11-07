@@ -485,7 +485,8 @@ export class Director {
     if (ranked.length && extra.phraseId) this.heard.set(extra.phraseId, ranked[0].id);
     // Sometimes what is said writes itself where it belongs, as it is heard — not always: some
     // voices leave a mark, most leave nothing at all.
-    const writes = !extra.finish && !!extra.phraseId && ranked.length > 0 && !this.visible.has(extra.phraseId) && !this.legacy && this.rng.chance(0.35);
+    // (Never onto the north wall while the heart holds it: the voice is heard, nothing is written.)
+    const writes = !extra.finish && !!extra.phraseId && ranked.length > 0 && !this.visible.has(extra.phraseId) && !this.legacy && !(this.northKept() && PHRASE_BY_ID.get(extra.phraseId)?.surface === 'north') && this.rng.chance(0.35);
     if (writes) {
       this.accumulating.add(extra.phraseId!);
       this.visible.set(extra.phraseId!, { mode: 'shown', since: this.now + delay, base: true });
@@ -649,6 +650,8 @@ export class Director {
     // A memory that never found room isn't spent: it waits for the next look.
     if (cue.type === 'memory-scene' || cue.type === 'vignette') this.scenes.cancel(cue.id, this.now);
     if (cue.type === 'memory') this.memoryPlayed = false;
+    // A memory's line, or the heart's, decided on and never written: as if it found no room (not spent).
+    if (cue.type === 'write' && /^(memory|heart):/.test(cue.key)) this.writeFailed(cue.key);
     // The held silence that never sounded: the visit still has it.
     if (cue.type === 'silence' && (rule === 'held-silence' || rule === 'resonance:table')) {
       this.heldSilenceDone = false;
@@ -659,18 +662,21 @@ export class Director {
     if (cue.finish) this.unfinished.add(cue.phraseId);
     // A voice that was to write its line as it was heard: the line was marked as there when the
     // voice was queued. Unheard, it was never written, so it isn't there.
-    if (cue.write) {
-      const st = this.visible.get(cue.phraseId);
-      if (st?.base && this.accumulating.has(cue.phraseId)) {
-        this.visible.delete(cue.phraseId);
-        this.accumulating.delete(cue.phraseId);
-        this.memory.surfaced.delete(cue.phraseId);
-      }
-    }
+    if (cue.write) this.unwrite(cue.phraseId);
     if (this.memory.spoken.get(cue.phraseId) !== undefined) this.memory.spoken.delete(cue.phraseId);
     this.heard.delete(cue.phraseId);
     const m = /^encounter:([^:]+):(\d+)$/.exec(rule);
     if (m) this.played.set(m[1], Math.max(0, Number(m[2]) - 1));
+  }
+
+  /** A line marked as there when its voice was queued, to be written as it was heard, that won't be. */
+  private unwrite(id: string) {
+    const st = this.visible.get(id);
+    if (st?.base && this.accumulating.has(id)) {
+      this.visible.delete(id);
+      this.accumulating.delete(id);
+      this.memory.surfaced.delete(id);
+    }
   }
 
   /** How the cue now being accepted was scheduled (put back the same when it must wait). */
@@ -700,6 +706,11 @@ export class Director {
     // is written, revealed or re-inked there for the rest of the visit (the visitor's own words
     // aside). One peak, and its last word (creative director, 2026-11-06).
     if (this.northKept() && this.onNorth(cue) && rule !== 'contribution') return false;
+    // (A voice queued to write its line there before the wall was held is heard, and writes nothing.)
+    if (cue.type === 'voice' && cue.write && cue.phraseId && this.northKept() && PHRASE_BY_ID.get(cue.phraseId)?.surface === 'north') {
+      this.unwrite(cue.phraseId);
+      delete cue.write;
+    }
     // (Nor is a line kept back written again in its own place: decision 137, QA 2026-10-20.)
     if (cue.type === 'redraw' && this.keptBack.has(cue.phraseId)) return false;
     // A situation's own sounds wait out a memory's aftermath (those answering the visitor don't).
@@ -1509,7 +1520,7 @@ export class Director {
     const free = this.scheduler.majorFree(this.now) && !this.aftermath() && (!this.pacing.holding(this.now) || this.pacing.heldUntil <= this.memoryHoldTo);
     if (!this.visible.has(m.phraseId)) {
       // Not in the quiet a vignette leaves behind (the light offered there would answer it).
-      if (this.memoryOffered || !free || this.now < this.memoryQuietUntil || this.pacing.repeats('text', this.now, 8) || this.withheld().includes(m.phraseId)) return;
+      if (this.memoryOffered || !free || this.northHeld() || this.now < this.memoryQuietUntil || this.pacing.repeats('text', this.now, 8) || this.withheld().includes(m.phraseId)) return;
       // (A wall it found no room on is not tried again for a minute: it was written there eight times.)
       if (this.memoryNoRoom && this.memoryNoRoom.surface === this.facing && this.now - this.memoryNoRoom.at < 60) return;
       const p = PHRASE_BY_ID.get(m.phraseId)!;
@@ -1586,12 +1597,15 @@ export class Director {
     // A later memory's line is offered as the kitchen-light memory's is: written alone, where
     // the visitor is looking, and the room holds still a moment so a visitor who stays with it
     // gets the memory, not whatever else happened at the same time.
+    // (Nor, facing the north wall while it is held, onto it: it waits until they face another wall.)
+    const northHeld = this.northHeld();
     const offer = this.scenes.offer({
       now: this.now,
       phase: this.phase,
       // (Never into a busy room: the line arrives into quiet, or waits. Nor into a memory's aftermath.)
-      free: free && !this.aftermath() && !this.pacing.repeats('text', this.now, 8) && !this.pacing.crowded(this.now),
+      free: free && !northHeld && !this.aftermath() && !this.pacing.repeats('text', this.now, 8) && !this.pacing.crowded(this.now),
       visibleFacing: (id) => this.visible.has(id) && !this.keptBack.has(id) && PHRASE_BY_ID.get(id)?.surface === this.facing,
+      visible: (id) => this.visible.has(id),
       departing: this.departing,
       otherMemory: this.memoryAwaited(),
       facing: this.facing,
@@ -1602,13 +1616,14 @@ export class Director {
       prefer: this.earned(),
       // (And only while they look at a wall, level: at the chair, looking down at it, a line written
       // "where they look" lands out of view. Interaction designer, 2026-11-06.)
-      heartFree: this.scheduler.majorFree(this.now) && !held && !this.aftermath() && this.pacing.sinceDev(this.now) >= 4 && !this.pacing.repeats('voice', this.now, 4) && this.facing !== 'floor' && this.facing !== 'ceiling' && v.pitch > -0.3 && !(this.sceneNoRoom?.surface === this.facing && this.now - this.sceneNoRoom.at < 60),
+      // (Nor looking steeply up: the band it is written in, at eye height, is then below the frame.)
+      heartFree: this.scheduler.majorFree(this.now) && !held && !northHeld && !this.aftermath() && this.pacing.sinceDev(this.now) >= 4 && !this.pacing.repeats('voice', this.now, 4) && this.facing !== 'floor' && this.facing !== 'ceiling' && v.pitch > -0.3 && v.pitch < 0.25 && !(this.sceneNoRoom?.surface === this.facing && this.now - this.sceneNoRoom.at < 60),
     });
     if (offer?.reink) {
       // Already on the wall they face: written again there, in front of them (no new line).
       this.pacing.holdFor(this.now, 2.4);
       this.offerHoldTo = this.now + 2.4;
-      this.queue(0, { type: 'redraw', phraseId: offer.phraseId, seconds: 3 }, 'memory-offer');
+      this.queue(0, { type: 'redraw', phraseId: offer.phraseId, ...(offer.key ? { key: offer.key } : {}), seconds: 3 }, 'memory-offer');
     } else if (offer) {
       const p = PHRASE_BY_ID.get(offer.phraseId);
       if (!p) return;
@@ -1672,9 +1687,11 @@ export class Director {
    * on the wall yet or not (a short visit often ends in the memory's quiet). The room writes it
    * while they are away, and the next visit finds it beside the first line.
    */
-  heartLeft(): string | null {
-    if (!this.hearts() || !this.heartSeen) return null;
-    return HEART_ANSWER[this.heartSeen] ?? null;
+  heartLeft(watched?: string): string | null {
+    // (`watched`: a memory still playing, already past its heart, when the visit is cut off.)
+    const seen = this.heartSeen ?? (watched !== undefined && watched === this.scenes.heart ? watched : null);
+    if (!this.hearts() || !seen) return null;
+    return HEART_ANSWER[seen] ?? null;
   }
 
   /**
@@ -1685,10 +1702,16 @@ export class Director {
   private northKept(): boolean {
     return (this.heartAnswer !== null || this.answerWaits || this.keptWaits) && this.hearts();
   }
+  /** Facing the north wall while it is held: nothing is offered there (it would be refused, and spent). */
+  private northHeld(): boolean {
+    return this.facing === 'north' && this.northKept();
+  }
   /** The answer found no room beside the first line: it is tried again (`heartAnswerAt`). */
   private answerWaits = false;
   private onNorth(cue: Cue): boolean {
     const north = (id?: string) => !!id && PHRASE_BY_ID.get(id)?.surface === 'north';
+    // (A line written alone for a memory is written again on the wall it is on: the one faced.)
+    if (cue.type === 'redraw' && cue.key) return this.facing === 'north';
     if (cue.type === 'reveal' || cue.type === 'redraw') return north(cue.phraseId);
     if (cue.type !== 'write' || cue.key.startsWith('heart:')) return false;
     return cue.surface === 'north' || north(cue.beside);
@@ -1732,7 +1755,8 @@ export class Director {
   private ruleKeptAnswer() {
     // (With the first line gone there is nothing to write it beside: the wall is not held for it.)
     if (this.keptWaits && !this.visible.has('stay')) this.keptWaits = false;
-    if (!this.pastAnswer || this.pastForgotten || !this.hearts() || this.keptFound || this.now < this.keptAgainAt || this.departing || !this.visible.has('stay')) return;
+    // (Not while a memory plays: nothing is written then, and it would be lost. After it, it is found.)
+    if (!this.pastAnswer || this.pastForgotten || !this.hearts() || this.keptFound || this.now < this.keptAgainAt || this.departing || this.scenes.active || !this.visible.has('stay')) return;
     if (this.inView('stay') || PHRASE_BY_ID.get('stay')!.surface === this.facing) return;
     this.keptFound = true;
     this.keptWaits = false;
@@ -1797,7 +1821,9 @@ export class Director {
       this.vignetteQuietUntil = this.now + 20;
       this.vignetteEnded = { id, at: this.now, dimmed: VIGNETTE_BY_ID.get(id)!.variants.first.events.some((e) => 'fx' in e && e.fx.kind === 'dim') };
     }
-    if (counted && id === this.scenes.heart && !this.heartSeen) {
+    // (Seen, not only spent: a painting let go unseen twice counts as played, but its answer is
+    // about what happens in it, and they didn't see it happen. CodeRabbit, PR #57.)
+    if (counted && seen && id === this.scenes.heart && !this.heartSeen) {
       // The visit's heart has been seen: what it leaves comes once its aftermath is over.
       this.heartSeen = id;
       this.heartAnswerAt = this.now + (ranToEnd ? 25 : 12) + 4;

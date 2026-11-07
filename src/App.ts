@@ -240,6 +240,8 @@ export class App {
       experiments: wanted,
       // Is a piece of writing in view (the heart's line is found, never written in front of them).
       inView: (id) => {
+        // (The heart's answer is read once it is all there: not while the hand is still writing it.)
+        if (id.startsWith('heart:') && this.text.writing(id)) return false;
         const c = this.text.centreOf(id);
         if (!c) return false;
         const p = c.project(this.rig.camera);
@@ -1290,8 +1292,11 @@ export class App {
     if (this.forgotten) return;
     writeTrace(this.director.leaving());
     // What the heart left, written on the wall yet or not; a visit whose heart wasn't seen leaves
-    // the last one where it was.
-    const answer = this.director.heartLeft();
+    // the last one where it was. (A tab closed in the heart's memory, already played past its
+    // heart, closed on a heart that was seen: the memory never ended, but it counts.)
+    const l = this.living;
+    const watched = l && !l.preview && l.seenAt !== undefined && l.reached >= l.seenAt && (this.inside.entered || !l.memory.prepared.living?.immerse) ? l.id : undefined;
+    const answer = this.director.heartLeft(watched);
     if (answer) writeHeartAnswer(answer);
   }
 
@@ -1652,7 +1657,7 @@ export class App {
         this.text.hide(cue.phraseId, cue.seconds);
         break;
       case 'redraw':
-        this.text.redraw(cue.phraseId, cue.seconds * (this.prefs.reducedMotion ? 0.7 : 1));
+        this.text.redraw(cue.key ?? cue.phraseId, cue.seconds * (this.prefs.reducedMotion ? 0.7 : 1));
         break;
       case 'write': {
         const c = this.chair.group.position;

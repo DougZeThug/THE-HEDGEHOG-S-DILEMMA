@@ -28,7 +28,8 @@ const N = Number(process.env.N ?? 12);
 const SEEDS = Number(process.env.SEEDS ?? 3);
 const ADV_SEEDS = Number(process.env.ADV_SEEDS ?? 4);
 const RETURNS = Number(process.env.RETURNS ?? 40);
-const HORIZONS = (process.env.HORIZONS ?? '180,300,600').split(',').map(Number);
+// (Each once, in the order given: a repeated length would be simulated twice and reported once.)
+const HORIZONS = [...new Set((process.env.HORIZONS ?? '180,300,600').split(',').map(Number))];
 if (!HORIZONS.length || HORIZONS.some((h) => !Number.isFinite(h) || h <= 0)) throw new Error(`HORIZONS must be visit lengths in seconds, greater than 0: ${process.env.HORIZONS}`);
 const ARMS = (process.env.ARMS ?? 'base').split(';').map((a) => {
   const [name, list] = a.includes('=') ? a.split('=') : [a, ''];

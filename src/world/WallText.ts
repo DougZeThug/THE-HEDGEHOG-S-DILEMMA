@@ -701,6 +701,9 @@ export class WallText {
     if (target) {
       surface = target.surface;
       rect = this.layout.findBeside(target, m.w, m.h);
+      // The heart's answer is beside the first line or not yet written: anywhere else on that wall it
+      // reads as a line of its own, not an answer. (The room tries again as lines there fade.)
+      if (!rect && o.key.startsWith('heart:')) return false;
     }
     const wall = !!surface && surface !== 'floor' && surface !== 'ceiling';
     if (!rect && surface && o.near && o.purpose === 'recall' && wall && o.key.startsWith('memory:')) {

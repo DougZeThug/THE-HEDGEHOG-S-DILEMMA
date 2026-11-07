@@ -125,7 +125,8 @@ export const HEART_REINK = 30;
 export const HEART_POINT_APART = 45;
 
 /** What the room points at: a line written alone where the visitor looks, or (`reink`) one already there, written again. */
-export type OfferPick = SceneMemory & { reink?: boolean };
+/** `key`: a re-ink of a line written alone for it (`memory:<phrase>`), not of the phrase in its own place. */
+export type OfferPick = SceneMemory & { reink?: boolean; key?: string };
 
 export class MemoryDirector {
   private tracks = new Map<string, Track>();
@@ -156,6 +157,8 @@ export class MemoryDirector {
    */
   heart: string | null = null;
   private heartOfferedAt: number | null = null;
+  /** The wall the heart's line was written on, alone (it is written again there, and only there). */
+  private heartOfferWall: string | null = null;
 
   private counts: Record<string, number>;
   /** `counts`: how many times each memory has been seen on earlier visits (persisted). */
@@ -201,7 +204,10 @@ export class MemoryDirector {
       this.points = Math.max(0, this.points - 1);
       this.offersMade = Math.max(0, this.offersMade - 1);
     }
-    if (m.id === this.heart) this.heartOfferedAt = null;
+    if (m.id === this.heart) {
+      this.heartOfferedAt = null;
+      this.heartOfferWall = null;
+    }
   }
 
   /** The heart was pointed at long ago and let be: it no longer keeps anything back. */
@@ -333,6 +339,8 @@ export class MemoryDirector {
     phase: string;
     free: boolean;
     visibleFacing: (phraseId: string) => boolean;
+    /** The line is on a wall (wherever it was written). */
+    visible?: (phraseId: string) => boolean;
     departing: boolean;
     otherMemory: boolean;
     facing?: string;
@@ -361,13 +369,16 @@ export class MemoryDirector {
     if (this.heart && s.heartFree) {
       const t = this.tracks.get(this.heart)!;
       const m = ALL_MEMORIES.find((x) => x.id === this.heart)!;
-      if (t.offered && !t.played && !t.reinked && this.heartOfferedAt !== null && s.now - this.heartOfferedAt >= HEART_REINK && !this.heartLapsed(s.now) && s.visibleFacing(m.phraseId)) {
+      // (On the wall it was written on, which needn't be its phrase's own: the line written there is
+      // the one written again. CodeRabbit, PR #57.)
+      if (t.offered && !t.played && !t.reinked && this.heartOfferedAt !== null && s.now - this.heartOfferedAt >= HEART_REINK && !this.heartLapsed(s.now) && this.heartOfferWall !== null && s.facing === this.heartOfferWall && (s.visible?.(m.phraseId) ?? true)) {
         t.reinked = true;
+        // (A shorter look begins it for a while, as a vignette's line pointed at again.)
         t.easyUntil = s.now + 20;
         // (A pointing like any other: the next keeps its distance from it.)
         this.points++;
         this.lastPointAt = s.now;
-        return { ...m, reink: true };
+        return { ...m, reink: true, key: `memory:${m.phraseId}` };
       }
     }
     if (!s.free && !(this.heartDue(s.now) && s.heartFree)) return null;
@@ -445,7 +456,10 @@ export class MemoryDirector {
       // door, written beneath the room's drawn door — is outside that: it is found there later).
       if (!m.offer.wall && !heart && this.offersMade + (s.kitchenOffered ? 1 : 0) >= 2) continue;
       t.offered = true;
-      if (heart) this.heartOfferedAt = s.now;
+      if (heart) {
+        this.heartOfferedAt = s.now;
+        this.heartOfferWall = s.facing ?? null;
+      }
       if (!m.offer.wall) this.offersMade++;
       this.lastOfferAt = s.now;
       return point(m, t, false);
@@ -490,7 +504,9 @@ export class MemoryDirector {
       const looking = !!s.gazeId && lines.includes(s.gazeId);
       if (looking) t.line = s.gazeId!;
       // Just pointed at, or owed and pointed at again: a shorter look is enough.
-      const need = (m.kind === 'vignette' || !!m.offer?.wall) && s.now <= t.easyUntil ? Math.min(EASY_LOOK, m.arm) : m.arm;
+      // (Of the painted memories, only the door's line, and the heart's written again in front of them.)
+      const easy = m.kind === 'vignette' || !!m.offer?.wall || (m.id === this.heart && t.reinked);
+      const need = easy && s.now <= t.easyUntil ? Math.min(EASY_LOOK, m.arm) : m.arm;
       if (looking && s.gazeFor >= need && !t.armed) {
         t.armed = true;
         t.away = 0;

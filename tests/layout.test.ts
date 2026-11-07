@@ -200,6 +200,10 @@ describe('scanning a band cell by cell', () => {
     expect(r!.u - r!.w / 2).toBeGreaterThanOrEqual(2.0);
     expect(r!.u + r!.w / 2).toBeLessThanOrEqual(2.4);
     for (const q of l.placed.get('east')!) expect(overlaps(r!, q, 0.02)).toBe(false);
+    // The nearest of the free cells (on the 5 cm grid): the gap's first that fits, at the height
+    // nearest the point (two cells are 2.5 cm from it), not merely one that fits.
+    expect(r!.u).toBeCloseTo(2.2, 6);
+    expect(Math.abs(r!.v - 1.4)).toBeCloseTo(0.025, 6);
     // And nothing where there is no room.
     expect(l.scanIn('east', 0.6, 0.15, [0, 1], [0.9, 1.85], 0.02, { u: 0.5, v: 1.4 })).toBeNull();
   });

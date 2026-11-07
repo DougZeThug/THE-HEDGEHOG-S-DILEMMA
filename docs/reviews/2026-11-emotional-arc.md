@@ -70,25 +70,32 @@ All four reviews are in `emotional-arc/approach-reviews.md` (the skeptic's below
 16. **Kept as decided:** the card is about this visit, not the wall (on a return the kept line is on the wall, and the card follows only this visit's own answer; *creative director*: otherwise every later card would be the couplet). The woodland and Things leave no line ("a quieter sentence", closed by the existing cards).
 17. **An answer that finds no room is not lost** (*Codex*, on the PR). If the north wall had no room beside the first line, the answer was marked written anyway: the visit lost its line and its card's last words, and the wall was held for nothing. Now it is tried again every 20 s, the wall held for it meanwhile (lines that fade make room; nothing new takes it). The same for the line a returning visitor finds. Not measured: the simulated visitors don't model room on the walls.
 18. **From the code review** (*cubic*, on the PR). The heart was offered whenever the room was free, even while the visitor looked down at the chair, where its line lands out of view: it now waits for the local quiet it asks (and nothing else takes its place meanwhile). The heart is decided before the kitchen light may be offered, not a moment after; its line written again counts as a pointing, so the next keeps its distance; the first mouse move once the mouse is taken is always dropped, not only a large one; a memory's line is looked for cell by cell along the eye band before it is given up; the control arm (`noHeart`) finds no line from a past visit; and "forget" also forgets the touch hint. Re-run (`emotional-arc/after.md`): reach 33% / 54% / 62% (was 35 / 54 / 63), Almost after a recoil 50% (52), within a point or two elsewhere; the core-loop battery unchanged within noise. A second round: only the space kept behind the chair may take a memory's line, never the band kept on the south wall for visitors' words; a heart offer that found no room gives back its slot; and the last visit's answer, waiting for room, holds the north wall too, as decision 17 said it did (it didn't: with one failed write forced on 72 simulated returns, 34 had something new written there in the wait; now none). Once the visitor presses "forget", the last visit's answer is no longer written that visit, nor tried again. The arc battery's numbers are unchanged by these.
+19. **A third round of code review** (*CodeRabbit*, on the PR), all taken:
+    - The heart's line, let be, was written again on its phrase's own wall (the north), not where it had been written: facing north drew a second "your hand, almost" in the phrase's own place, and coming back to the wall it was on did nothing. It is now that line, written again on that wall, as decision 5 says, and for 20 s a shorter look (1.5 s) begins it, as for a vignette's line pointed at again (the code set that window and never used it).
+    - Facing the north wall while it was held, a memory's line could be offered there, refused by the hold and spent. It now waits until they face another wall. A voice that writes its line as it is heard no longer writes on the held wall (simulated, one 7-minute visit in 18 had one after the answer; the test now counts voices).
+    - The last visit's answer, found while a memory played, was refused and never looked for again; it now waits until the memory has gone. A memory's or the heart's line refused for any reason is given back as one that found no room.
+    - Almost let go unseen twice counts as played (a painting "was there to be seen") but leaves no answer, which is about what happens in it. A tab closed in Almost, already past its heart, leaves it.
+    - The answer counts as read only once it is all written. The heart waits while the visitor looks steeply up (its line would be below the frame). The answer is written beside the first line or not yet, never elsewhere on that wall; it is tried again.
+    Re-run (`emotional-arc/after.md`): reach 33% / 54% / 65% (62 at 10 minutes before this round), Almost after a recoil 52% (50), pointed at and never begun 34% at 10 minutes (37), left for the next visit 20% / 34% / 43% (41); the core-loop battery unchanged within noise against the previous commit.
 
 ## Before → after (simulated, same visitors and seeds; `emotional-arc/after.md`)
 
 | | before | after |
 |---|---|---|
-| Any of Almost/Things/woodland, 3 / 5 / 10 min | 0% / 3% / 9% | **33% / 54% / 62%** |
-| By class at 3 min (reader, chair, explorer, still, phone, mixed) | all 0% | 25%, 17%, 44%, 22%, 53%, 50% |
-| Almost after the room recoiled at them (10 min) | 7% | **50%**, a median 48 s after the recoil |
+| Any of Almost/Things/woodland, 3 / 5 / 10 min | 0% / 3% / 9% | **33% / 54% / 65%** |
+| By class at 3 min (reader, chair, explorer, still, phone, mixed) | all 0% | 28%, 17%, 44%, 19%, 50%, 50% |
+| Almost after the room recoiled at them (10 min) | 7% | **52%**, a median 51 s after the recoil |
 | Painted memories a visit (10 min) | 1.1 | 1.1 |
-| Kitchen light (10 min) | 49% | 19% (the heart takes its place) |
+| Kitchen light (10 min) | 49% | 16% (the heart takes its place) |
 | Largest share of one ending (10 min) | 61% | **36%** |
-| "I took my hand back." on the wall at the end (3 / 5 / 10 min) | — | 4% / 30% / 38% |
-| …and in view, so the card ends on it | — | 2% / 26% / 37% |
-| Left for the next visit (Almost seen) | — | 20% / 34% / 41% |
+| "I took my hand back." on the wall at the end (3 / 5 / 10 min) | — | 4% / 31% / 39% |
+| …and in view, so the card ends on it | — | 2% / 27% / 38% |
+| Left for the next visit (Almost seen) | — | 20% / 34% / 43% |
 | New lines on the north wall after the answer (10 min, mean) | — | 0 |
 | Developments a minute, voices, overlaps (5 / 10 min) | 7.4, 6, 0.1 / 7.0, 10, 0.1 | 7.0, 6, 0.1 / 6.7, 10, 0.1 (a little fewer: the heart's quiet) |
 | 30 s windows an active visitor got nothing, outside memories | 16–18% | 16–19% |
 | Held silence, 3 / 5 / 10 min | 75% / 98% / 98% | 63% / 95% / 98% (at 3 minutes the heart takes its place) |
-| Second visits with the last answer back on the wall | — | 18 of 18 that had one |
+| Second visits with the last answer back on the wall | — | 20 of 20 that had one |
 | The core-loop measures (answers to meeting, returning, touching, coming, kneeling, withdrawing) | | unchanged within noise (`scripts/experiment.ts`, 688 visits) |
 
 ## What still needs a person

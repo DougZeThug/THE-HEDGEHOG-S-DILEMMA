@@ -842,7 +842,11 @@ export function liveVisit(g: Genome, seed: number, o: VisitOptions = {}): VisitS
       }
       if (c.rule !== 'contribution') {
         const north = (x?: string) => !!x && PHRASE_BY_ID.get(x)?.surface === 'north';
-        const onNorth = ((cue.type === 'reveal' || cue.type === 'redraw') && north(cue.phraseId)) || (cue.type === 'write' && !cue.key.startsWith('heart:') && (cue.surface === 'north' || north(cue.beside)));
+        // (A line written alone for a memory, written again: on the wall it was written on.)
+        const redrawn = cue.type === 'redraw' && (cue.key ? writtenOn.get(cue.phraseId) === 'north' : north(cue.phraseId));
+        // (And a voice that writes its line there as it is heard.)
+        const voiced = cue.type === 'voice' && !!cue.write && north(cue.phraseId);
+        const onNorth = (cue.type === 'reveal' && north(cue.phraseId)) || redrawn || voiced || (cue.type === 'write' && !cue.key.startsWith('heart:') && (cue.surface === 'north' || north(cue.beside)));
         if (onNorth && answerTried) northAfter++;
         if (onNorth && keptWaiting) northWhileKept++;
       }
