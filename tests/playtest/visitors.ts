@@ -857,7 +857,7 @@ export function liveVisit(g: Genome, seed: number, o: VisitOptions = {}): VisitS
       }
       if (cue.type === 'silence' && c.rule === 'leaving') ebbs++;
       if ((cue as { type: string }).type === 'leave') leftInRoom = t;
-      const k = classify(cue);
+      const k = classify(cue, (id) => writtenOn.get(id));
       if (!k) continue;
       const phrase = 'phraseId' in cue ? (cue.phraseId as string | undefined) : cue.type === 'write' ? cue.source : undefined;
       const surface = k.surface ?? (cue.type === 'write' && cue.beside ? writtenOn.get(cue.beside) : undefined) ?? (phrase ? writtenOn.get(phrase) : undefined);

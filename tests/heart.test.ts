@@ -6,6 +6,7 @@ import { Rng } from '../src/core/rng';
 import { Director } from '../src/state/Director';
 import { OPENING_WRITTEN, OPENING_SPOKEN, OPENING_UNFINISHED } from '../src/state/OpeningScore';
 import { AVAILABLE, CLASSES, drawGenome, liveVisit, type VisitSummary } from './playtest/visitors';
+import { classify } from './playtest/measure';
 
 /**
  * The visit's heart (docs/reviews/2026-11-emotional-arc.md): one painted memory a visit, reachable
@@ -87,6 +88,13 @@ describe('the heart, in the memory director', () => {
     expect(again?.reink).toBe(true);
     expect(again?.key).toBe('memory:your-hand');
     expect(offerAt(md, 81 + HEART_REINK + 40, { wall: 'east' })?.reink).toBeFalsy();
+  });
+
+  it('written again, it is measured on the wall it was written on, not its phrase\'s own', () => {
+    const where = (id: string) => (id === 'your-hand' ? 'east' as const : undefined);
+    expect(classify({ type: 'redraw', phraseId: 'your-hand', key: 'memory:your-hand', seconds: 3 }, where)?.surface).toBe('east');
+    // The phrase in its own place stays where it is authored.
+    expect(classify({ type: 'redraw', phraseId: 'your-hand', seconds: 3 }, where)?.surface).toBe('north');
   });
 
   it('written again, a shorter look begins it; written the first time, it takes the usual look', () => {

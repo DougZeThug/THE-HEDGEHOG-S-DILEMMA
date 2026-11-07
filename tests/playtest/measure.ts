@@ -62,7 +62,8 @@ export function nearWall(x: number, z: number): Surface | null {
   return d[0][1] < 1.1 ? d[0][0] : null;
 }
 
-export function classify(cue: Cue): { kind: Kind; label: string; recorded: boolean; surface?: Surface } | null {
+/** `where`: the wall a phrase's line was written on this visit, for a line written alone for a memory. */
+export function classify(cue: Cue, where?: (phraseId: string) => Surface | undefined): { kind: Kind; label: string; recorded: boolean; surface?: Surface } | null {
   switch (cue.type) {
     case 'voice':
       return cue.text
@@ -82,7 +83,8 @@ export function classify(cue: Cue): { kind: Kind; label: string; recorded: boole
         surface: cue.surface ?? (cue.beside ? PHRASE_BY_ID.get(cue.beside)?.surface : undefined),
       };
     case 'redraw':
-      return { kind: 'text', label: `redraw ${cue.phraseId}`, recorded: false, surface: PHRASE_BY_ID.get(cue.phraseId)?.surface };
+      // (A keyed redraw writes again the line written alone for a memory, on the wall it was written on.)
+      return { kind: 'text', label: `redraw ${cue.phraseId}`, recorded: false, surface: (cue.key ? where?.(cue.phraseId) : undefined) ?? PHRASE_BY_ID.get(cue.phraseId)?.surface };
     case 'link':
       return { kind: 'text', label: `link ${cue.a}–${cue.b}`, recorded: false, surface: PHRASE_BY_ID.get(cue.a)?.surface };
     case 'erode':
@@ -207,7 +209,7 @@ export function visit(p: Persona, seconds: number, seed: number, dt = 0.1, past:
     }
     for (const c of cues) {
       if (c.cue.type === 'stopVoice') interruptions++;
-      const k = classify(c.cue);
+      const k = classify(c.cue, (id) => writtenOn.get(id));
       if (!k) continue;
       devs.push({
         t: +(t + dt).toFixed(1), rule: c.rule, kind: k.kind, recorded: k.recorded, label: k.label, surface: k.surface,

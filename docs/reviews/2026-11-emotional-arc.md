@@ -76,26 +76,27 @@ All four reviews are in `emotional-arc/approach-reviews.md` (the skeptic's below
     - The last visit's answer, found while a memory played, was refused and never looked for again; it now waits until the memory has gone. A memory's or the heart's line refused for any reason is given back as one that found no room.
     - Almost let go unseen twice counts as played (a painting "was there to be seen") but leaves no answer, which is about what happens in it. A tab closed in Almost, already past its heart, leaves it.
     - The answer counts as read only once it is all written. The heart waits while the visitor looks steeply up (its line would be below the frame). The answer is written beside the first line or not yet, never elsewhere on that wall; it is tried again.
-    Re-run (`emotional-arc/after.md`): reach 33% / 54% / 65% (62 at 10 minutes before this round), Almost after a recoil 52% (50), pointed at and never begun 34% at 10 minutes (37), left for the next visit 20% / 34% / 43% (41); the core-loop battery unchanged within noise against the previous commit.
+    - *cubic*, after these: the simulation still placed a line written again for a memory on its phrase's own wall, so a simulated visitor facing it, on the wall it was written on, did not see it and could not turn to read it. It is now measured where it is written (`tests/playtest/measure.ts`, `classify`); this changes no behaviour of the room, only the battery's count.
+    Re-run (`emotional-arc/after.md`): reach 33% / 56% / 67% (62 at 10 minutes before this round), Almost after a recoil 54% (50), pointed at and never begun 32% at 10 minutes (37), left for the next visit 20% / 35% / 44% (41); the core-loop battery unchanged within noise against the previous commit. The rise from the last re-run (reach 54 → 56 and 65 → 67 at 5 and 10 minutes, Almost after a recoil 52 → 54) is this measurement alone: the same battery without it reproduces the last numbers exactly. Simulated visitors who face the re-inked line now notice it, as they notice any line written in front of them.
 
 ## Before → after (simulated, same visitors and seeds; `emotional-arc/after.md`)
 
 | | before | after |
 |---|---|---|
-| Any of Almost/Things/woodland, 3 / 5 / 10 min | 0% / 3% / 9% | **33% / 54% / 65%** |
-| By class at 3 min (reader, chair, explorer, still, phone, mixed) | all 0% | 28%, 17%, 44%, 19%, 50%, 50% |
-| Almost after the room recoiled at them (10 min) | 7% | **52%**, a median 51 s after the recoil |
+| Any of Almost/Things/woodland, 3 / 5 / 10 min | 0% / 3% / 9% | **33% / 56% / 67%** |
+| By class at 3 min (reader, chair, explorer, still, phone, mixed) | all 0% | 31%, 17%, 44%, 19%, 50%, 50% |
+| Almost after the room recoiled at them (10 min) | 7% | **54%**, a median 51 s after the recoil |
 | Painted memories a visit (10 min) | 1.1 | 1.1 |
-| Kitchen light (10 min) | 49% | 16% (the heart takes its place) |
+| Kitchen light (10 min) | 49% | 14% (the heart takes its place) |
 | Largest share of one ending (10 min) | 61% | **36%** |
-| "I took my hand back." on the wall at the end (3 / 5 / 10 min) | — | 4% / 31% / 39% |
-| …and in view, so the card ends on it | — | 2% / 27% / 38% |
-| Left for the next visit (Almost seen) | — | 20% / 34% / 43% |
+| "I took my hand back." on the wall at the end (3 / 5 / 10 min) | — | 4% / 31% / 40% |
+| …and in view, so the card ends on it | — | 2% / 27% / 39% |
+| Left for the next visit (Almost seen) | — | 20% / 35% / 44% |
 | New lines on the north wall after the answer (10 min, mean) | — | 0 |
 | Developments a minute, voices, overlaps (5 / 10 min) | 7.4, 6, 0.1 / 7.0, 10, 0.1 | 7.0, 6, 0.1 / 6.7, 10, 0.1 (a little fewer: the heart's quiet) |
 | 30 s windows an active visitor got nothing, outside memories | 16–18% | 16–19% |
 | Held silence, 3 / 5 / 10 min | 75% / 98% / 98% | 63% / 95% / 98% (at 3 minutes the heart takes its place) |
-| Second visits with the last answer back on the wall | — | 20 of 20 that had one |
+| Second visits with the last answer back on the wall | — | 21 of 21 that had one |
 | The core-loop measures (answers to meeting, returning, touching, coming, kneeling, withdrawing) | | unchanged within noise (`scripts/experiment.ts`, 688 visits) |
 
 ## What still needs a person
