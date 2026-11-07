@@ -181,6 +181,14 @@
           "Group 4: the branch told plainly, with no blame in it, and \"&hellip;watched her face disappear.\" left to land.",
           "Group 5: his reach told as regret, not drama, and the two \"Neither&hellip;\" lines kept level."
         ]
+      },
+      "choices": {
+        "at": "2026-11-07",
+        "by": "artist, on the takes sheet",
+        "g2": "r3-tom-g2-1",
+        "g3": "r3-tom-g3-1",
+        "g4": "r3-tom-g4-1",
+        "g5": "r3-tom-g5-1"
       }
     }
   },
@@ -593,7 +601,7 @@
       "session": "lSM0SUljNt7aidHwH3Lg",
       "file": "fable/r3-tom-g2-1.mp3",
       "status": "validated",
-      "review": "pending",
+      "review": "approved",
       "duration": 27.04,
       "bytes": 451010,
       "cost": 414.96,
@@ -624,7 +632,7 @@
       "session": "7yovLpOGFvSUaXCLUAEM",
       "file": "fable/r3-tom-g2-2.mp3",
       "status": "validated",
-      "review": "pending",
+      "review": "rejected",
       "duration": 27.76,
       "bytes": 462295,
       "cost": 414.96,
@@ -655,7 +663,7 @@
       "session": "2nrGs737OOllcxx6gCSj",
       "file": "fable/r3-tom-g3-1.mp3",
       "status": "validated",
-      "review": "pending",
+      "review": "approved",
       "duration": 43.76,
       "bytes": 718504,
       "cost": 640.94,
@@ -686,7 +694,7 @@
       "session": "QIJYYrsp6iiqvSF7UyfN",
       "file": "fable/r3-tom-g3-2.mp3",
       "status": "validated",
-      "review": "pending",
+      "review": "rejected",
       "duration": 42.72,
       "bytes": 701786,
       "cost": 640.94,
@@ -717,7 +725,7 @@
       "session": "8IrOdwtBTdiUJvS2vCzc",
       "file": "fable/r3-tom-g4-1.mp3",
       "status": "validated",
-      "review": "pending",
+      "review": "approved",
       "duration": 25.12,
       "bytes": 420081,
       "cost": 378.96,
@@ -748,7 +756,7 @@
       "session": "QIPvUtuvSDHTGO08KxF5",
       "file": "fable/r3-tom-g4-2.mp3",
       "status": "validated",
-      "review": "pending",
+      "review": "rejected",
       "duration": 25.68,
       "bytes": 429276,
       "cost": 378.96,
@@ -779,7 +787,7 @@
       "session": "7GJGZGhQ8l9pmZKO2Z3j",
       "file": "fable/r3-tom-g5-1.mp3",
       "status": "validated",
-      "review": "pending",
+      "review": "approved",
       "duration": 38.16,
       "bytes": 628643,
       "cost": 566.94,
@@ -810,7 +818,7 @@
       "session": "ky3ApC6A9RUsd2AA6Ax5",
       "file": "fable/r3-tom-g5-2.mp3",
       "status": "validated",
-      "review": "pending",
+      "review": "rejected",
       "duration": 37.28,
       "bytes": 614850,
       "cost": 566.94,
@@ -833,5 +841,14 @@
         "matchedLufs": -23.5
       }
     }
+  },
+  "reading": {
+    "voice": "tom",
+    "g1": "r2-tom-g1-2",
+    "g2": "r3-tom-g2-1",
+    "g3": "r3-tom-g3-1",
+    "g4": "r3-tom-g4-1",
+    "g5": "r3-tom-g5-1",
+    "g6": "r2-tom-g6-1"
   }
 }
