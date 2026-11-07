@@ -175,7 +175,7 @@ describe('the heart, through whole visits', () => {
     expect(f.reach.northAfter).toBe(0);
   });
 
-  it('a returning visitor finds the last answer beside the first line', { timeout: 60_000 }, () => {
+  it('a returning visitor finds the last answer beside the first line', { timeout: 120_000 }, () => {
     const r = runs.find((x) => x.reach.answer)!;
     const g = genomes.find((x) => x.id === r.genome)!;
     const back = liveVisit(g, 7, { seconds: 120, past: { visits: 2, memoryCounts: r.memoryCounts, trace: null, answer: r.reach.left } });
@@ -187,5 +187,10 @@ describe('the heart, through whole visits', () => {
     // A kept line that found no room is looked for again.
     const full = liveVisit(g, 7, { seconds: 120, past: { visits: 2, memoryCounts: r.memoryCounts, trace: null, answer: r.reach.left }, failOnce: 'heart:' });
     expect(full.reach.kept).toBe(true);
+    // While it waits, the wall is held for it: nothing new is written or revealed there (cubic,
+    // PR #57; without the hold, 34 of 72 such simulated returns wrote there in the wait).
+    const waits = genomes.map((x) => liveVisit(x, 7, { seconds: 240, past: { visits: 2, memoryCounts: {}, trace: null, answer: 'took-hand-back' }, failOnce: 'heart:' }));
+    expect(waits.filter((w) => w.reach.kept).length).toBeGreaterThan(waits.length / 2);
+    for (const w of waits) expect(w.reach.northWhileKept, w.genome).toBe(0);
   });
 });

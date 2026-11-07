@@ -653,6 +653,8 @@ export interface VisitSummary {
     left: string | null;
     /** Lines written, revealed or re-inked on the north wall after the answer (the wall is kept). */
     northAfter: number;
+    /** The same, while the last visit's answer waits for room there (from a failed write until it is tried again). */
+    northWhileKept: number;
     kept: boolean;
     /** When each painted memory first began (s). */
     memoryAt: Record<string, number>;
@@ -740,6 +742,8 @@ export function liveVisit(g: Genome, seed: number, o: VisitOptions = {}): VisitS
   let northAfter = 0;
   let failed = false;
   let answerTried = false;
+  let keptWaiting = false;
+  let northWhileKept = 0;
   const memorySpans: [number, number][] = [];
   let t = 0;
   for (; t < seconds; t += dt) {
@@ -816,14 +820,18 @@ export function liveVisit(g: Genome, seed: number, o: VisitOptions = {}): VisitS
       const cue = c.cue;
       // (From the answer's first attempt: the wall is held for it while it waits for room.)
       if (c.rule === 'heart-answer') answerTried = true;
+      if (c.rule === 'heart-kept') keptWaiting = false;
       if (o.failOnce && !failed && cue.type === 'write' && cue.key.startsWith(o.failOnce)) {
         failed = true;
+        if (c.rule === 'heart-kept') keptWaiting = true;
         d.writeFailed(cue.key);
         continue;
       }
-      if (answerTried && c.rule !== 'contribution') {
+      if (c.rule !== 'contribution') {
         const north = (x?: string) => !!x && PHRASE_BY_ID.get(x)?.surface === 'north';
-        if (((cue.type === 'reveal' || cue.type === 'redraw') && north(cue.phraseId)) || (cue.type === 'write' && !cue.key.startsWith('heart:') && (cue.surface === 'north' || north(cue.beside)))) northAfter++;
+        const onNorth = ((cue.type === 'reveal' || cue.type === 'redraw') && north(cue.phraseId)) || (cue.type === 'write' && !cue.key.startsWith('heart:') && (cue.surface === 'north' || north(cue.beside)));
+        if (onNorth && answerTried) northAfter++;
+        if (onNorth && keptWaiting) northWhileKept++;
       }
       const id = cue.type === 'write' ? cue.source ?? cue.key : cue.type === 'reveal' || cue.type === 'redraw' ? cue.phraseId : null;
       if (id && PHRASE_BY_ID.has(id)) {
@@ -999,6 +1007,7 @@ export function liveVisit(g: Genome, seed: number, o: VisitOptions = {}): VisitS
       answerRead: d.answerRead(),
       left: d.heartLeft(),
       northAfter,
+      northWhileKept,
       kept: devs.some((x) => x.rule === 'heart-kept'),
       recoiledAt: devs.find((x) => x.rule === 'return-recoil')?.t ?? null,
       heartOfferedAt: d.scenes.heart ? devs.find((x) => x.rule === 'memory-offer' && x.phrase === SCENE_MEMORIES.find((m) => m.id === d.scenes.heart)?.phraseId)?.t ?? null : null,

@@ -1679,10 +1679,11 @@ export class Director {
 
   /**
    * The north wall is left as the visit's heart left it: from its answer, and while the answer
-   * waits for room there (lines that fade make room for it; nothing new takes that room).
+   * waits for room there (lines that fade make room for it; nothing new takes that room). The last
+   * visit's answer, waiting for room the same way, holds it too, until it is tried again.
    */
   private northKept(): boolean {
-    return (this.heartAnswer !== null || this.answerWaits) && this.hearts();
+    return (this.heartAnswer !== null || this.answerWaits || this.keptWaits) && this.hearts();
   }
   /** The answer found no room beside the first line: it is tried again (`heartAnswerAt`). */
   private answerWaits = false;
@@ -1729,9 +1730,12 @@ export class Director {
    * first time they are turned away from that wall (never appearing in front of them).
    */
   private ruleKeptAnswer() {
+    // (With the first line gone there is nothing to write it beside: the wall is not held for it.)
+    if (this.keptWaits && !this.visible.has('stay')) this.keptWaits = false;
     if (!this.pastAnswer || !this.hearts() || this.keptFound || this.now < this.keptAgainAt || this.departing || !this.visible.has('stay')) return;
     if (this.inView('stay') || PHRASE_BY_ID.get('stay')!.surface === this.facing) return;
     this.keptFound = true;
+    this.keptWaits = false;
     // (This visit's own heart has already written the same line there.)
     if (this.heartAnswer === this.pastAnswer) return;
     const a = PHRASE_BY_ID.get(this.pastAnswer)!;
@@ -1739,6 +1743,8 @@ export class Director {
   }
   private keptFound = false;
   private keptAgainAt = 0;
+  /** The last visit's answer found no room beside the first line: the wall is held until it is tried again. */
+  private keptWaits = false;
 
   /**
    * What the heart leaves: one line in the answering pencil, beside the room's first line, found
@@ -2377,6 +2383,7 @@ export class Director {
       }
       if (heart[1] === this.pastAnswer && this.keptFound) {
         this.keptFound = false;
+        this.keptWaits = true;
         this.keptAgainAt = this.now + Director.HEART_RETRY;
       }
     }
