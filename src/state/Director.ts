@@ -1732,7 +1732,7 @@ export class Director {
   private ruleKeptAnswer() {
     // (With the first line gone there is nothing to write it beside: the wall is not held for it.)
     if (this.keptWaits && !this.visible.has('stay')) this.keptWaits = false;
-    if (!this.pastAnswer || !this.hearts() || this.keptFound || this.now < this.keptAgainAt || this.departing || !this.visible.has('stay')) return;
+    if (!this.pastAnswer || this.pastForgotten || !this.hearts() || this.keptFound || this.now < this.keptAgainAt || this.departing || !this.visible.has('stay')) return;
     if (this.inView('stay') || PHRASE_BY_ID.get('stay')!.surface === this.facing) return;
     this.keptFound = true;
     this.keptWaits = false;
@@ -1745,6 +1745,8 @@ export class Director {
   private keptAgainAt = 0;
   /** The last visit's answer found no room beside the first line: the wall is held until it is tried again. */
   private keptWaits = false;
+  /** The visitor asked to be forgotten: the last visit's answer is not written from then on. */
+  private pastForgotten = false;
 
   /**
    * What the heart leaves: one line in the answering pencil, beside the room's first line, found
@@ -2381,7 +2383,7 @@ export class Director {
         this.answerWaits = true;
         this.heartAnswerAt = this.now + Director.HEART_RETRY;
       }
-      if (heart[1] === this.pastAnswer && this.keptFound) {
+      if (heart[1] === this.pastAnswer && this.keptFound && !this.pastForgotten) {
         this.keptFound = false;
         this.keptWaits = true;
         this.keptAgainAt = this.now + Director.HEART_RETRY;
@@ -2404,6 +2406,9 @@ export class Director {
   forgetVisits(): void {
     this.scenes.forgetCounts();
     this.visits = 1;
+    // (Nor is the last visit's answer written now, if it hasn't been, or tried again: cubic, PR #57.)
+    this.pastForgotten = true;
+    this.keptWaits = false;
   }
 
   forgetContributions(): void {

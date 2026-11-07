@@ -655,6 +655,8 @@ export interface VisitSummary {
     northAfter: number;
     /** The same, while the last visit's answer waits for room there (from a failed write until it is tried again). */
     northWhileKept: number;
+    /** When the last visit's answer was written and found no room (with `failOnce`). */
+    keptFailedAt: number | null;
     kept: boolean;
     /** When each painted memory first began (s). */
     memoryAt: Record<string, number>;
@@ -686,6 +688,8 @@ export interface VisitOptions {
   dt?: number;
   /** The first write whose key starts with this finds no room on the wall (reported as the App does). */
   failOnce?: string;
+  /** At this many seconds the visitor presses "forget" (as the App does: contributions and visits). */
+  forgetAt?: number;
 }
 
 const answerOf = (x: Dev): AnswerKind =>
@@ -744,6 +748,7 @@ export function liveVisit(g: Genome, seed: number, o: VisitOptions = {}): VisitS
   let answerTried = false;
   let keptWaiting = false;
   let northWhileKept = 0;
+  let keptFailedAt: number | null = null;
   const memorySpans: [number, number][] = [];
   let t = 0;
   for (; t < seconds; t += dt) {
@@ -777,6 +782,10 @@ export function liveVisit(g: Genome, seed: number, o: VisitOptions = {}): VisitS
     const gazed = readable(d, f.gaze, fc, writtenOn);
     // (Whether the answer is looked at is the Director's own measure, `answerRead`: the simulated
     // visitors choose among the room's lines, and an annotation is not one of them.)
+    if (o.forgetAt !== undefined && t - dt < o.forgetAt && t >= o.forgetAt) {
+      d.forgetContributions();
+      d.forgetVisits();
+    }
     const cues: TimedCue[] = d.tick(dt, {
       x: f.x, z: f.z, yaw: f.yaw, pitch: f.pitch, gazePhraseId: gazed, gazeChair: f.gazeChair, nearSurface: nearWall(f.x, f.z), kneeling: f.kneeling,
     }, fc);
@@ -823,7 +832,10 @@ export function liveVisit(g: Genome, seed: number, o: VisitOptions = {}): VisitS
       if (c.rule === 'heart-kept') keptWaiting = false;
       if (o.failOnce && !failed && cue.type === 'write' && cue.key.startsWith(o.failOnce)) {
         failed = true;
-        if (c.rule === 'heart-kept') keptWaiting = true;
+        if (c.rule === 'heart-kept') {
+          keptWaiting = true;
+          keptFailedAt = t;
+        }
         d.writeFailed(cue.key);
         continue;
       }
@@ -1008,6 +1020,7 @@ export function liveVisit(g: Genome, seed: number, o: VisitOptions = {}): VisitS
       left: d.heartLeft(),
       northAfter,
       northWhileKept,
+      keptFailedAt,
       kept: devs.some((x) => x.rule === 'heart-kept'),
       recoiledAt: devs.find((x) => x.rule === 'return-recoil')?.t ?? null,
       heartOfferedAt: d.scenes.heart ? devs.find((x) => x.rule === 'memory-offer' && x.phrase === SCENE_MEMORIES.find((m) => m.id === d.scenes.heart)?.phraseId)?.t ?? null : null,

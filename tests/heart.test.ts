@@ -192,5 +192,14 @@ describe('the heart, through whole visits', () => {
     const waits = genomes.map((x) => liveVisit(x, 7, { seconds: 240, past: { visits: 2, memoryCounts: {}, trace: null, answer: 'took-hand-back' }, failOnce: 'heart:' }));
     expect(waits.filter((w) => w.reach.kept).length).toBeGreaterThan(waits.length / 2);
     for (const w of waits) expect(w.reach.northWhileKept, w.genome).toBe(0);
+    // Forgotten, it isn't written, nor tried again (cubic, PR #57): "forget" pressed before it is found, or in the wait.
+    const past = { visits: 2, memoryCounts: {}, trace: null, answer: 'took-hand-back' };
+    for (const x of genomes.slice(0, 6)) expect(liveVisit(x, 7, { seconds: 240, past, forgetAt: 0 }).reach.kept, x.id).toBe(false);
+    for (const w of waits.filter((x) => x.reach.kept && x.reach.keptFailedAt !== null).slice(0, 6)) {
+      const g2 = genomes.find((x) => x.id === w.genome)!;
+      const f = liveVisit(g2, 7, { seconds: 240, past, failOnce: 'heart:', forgetAt: w.reach.keptFailedAt! + 1 });
+      expect(f.reach.keptFailedAt, w.genome).toBe(w.reach.keptFailedAt);
+      expect(f.reach.kept, w.genome).toBe(false);
+    }
   });
 });
