@@ -98,7 +98,15 @@
         }
       },
       "estimate": 1271.87,
-      "status": "run once, 2026-11-07, after the artist approved the estimate"
+      "status": "run once, 2026-11-07, after the artist approved the estimate",
+      "choices": {
+        "at": "2026-11-07",
+        "by": "artist, on the takes sheet",
+        "g1": "r2-tom-g1-2",
+        "g6": "r2-tom-g6-1",
+        "laughSoundsDifferent": "yes",
+        "note": "The artist does not want the laugh after the fable: the ending goes to the title card, with no room yet. The laugh was only on the sheet, as the decision-15 check."
+      }
     }
   },
   "entries": {
@@ -386,7 +394,7 @@
       "session": "V4D4zfnINEkr1QrWkrGR",
       "file": "fable/r2-tom-g1-1.mp3",
       "status": "validated",
-      "review": "pending",
+      "review": "rejected",
       "duration": 23.04,
       "bytes": 386644,
       "cost": 327.97,
@@ -417,7 +425,7 @@
       "session": "ophwb6j7IMmfCz4z1APb",
       "file": "fable/r2-tom-g1-2.mp3",
       "status": "validated",
-      "review": "pending",
+      "review": "approved",
       "duration": 23.36,
       "bytes": 392078,
       "cost": 327.97,
@@ -448,7 +456,7 @@
       "session": "WYUovs0XqOeVpKdzpzWU",
       "file": "fable/r2-tom-g6-1.mp3",
       "status": "validated",
-      "review": "pending",
+      "review": "approved",
       "duration": 21.04,
       "bytes": 354880,
       "cost": 307.97,
@@ -479,7 +487,7 @@
       "session": "nZrGAY3aTzK7c6hmT1RA",
       "file": "fable/r2-tom-g6-2.mp3",
       "status": "validated",
-      "review": "pending",
+      "review": "rejected",
       "duration": 21.52,
       "bytes": 362403,
       "cost": 307.97,

@@ -1,6 +1,6 @@
 // Build the takes sheet for a production round: each group's cut takes at -23 LUFS, and for the
-// fable's last group the ending as decision 15 plays it: the take, 3 s of silence, then the room's
-// first laugh 2.5 LU under the narration (decision 17). All inline, so the page needs no other file.
+// fable's last group the ending as the film has it: the take, then 3 s of silence before the silent
+// title. Nothing of the room follows (the artist, 2026-11-07). All inline, so the page needs no other file.
 // Usage: node scripts/fable/build_takes_sheet.mjs ROUND CUT_DIR TEMPLATE OUT
 import { execFileSync, spawnSync } from 'node:child_process';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
@@ -10,9 +10,8 @@ import { fileURLToPath } from 'node:url';
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const LEDGER = join(ROOT, 'scripts/fable/narration-ledger.json');
 const [roundId, cut, template, out] = process.argv.slice(2);
-const TARGET = -23, LAUGH_UNDER = 2.5, SILENCE = 3;
+const TARGET = -23, SILENCE = 3;
 const LABEL = { g1: 'The opening', g6: 'The ending' };
-const LAUGH = join(ROOT, 'public/voices/dialogue/crumbs--laughing.mp3');
 const PARAGRAPHS = readFileSync(join(ROOT, 'references/fable/narration.txt'), 'utf8').replace(/\r/g, '').trim().split(/\n\n+/).length;
 const sheet = join(cut, 'sheet');
 mkdirSync(sheet, { recursive: true });
@@ -29,7 +28,6 @@ const mp3 = ['-ar', '44100', '-ac', '1', '-c:a', 'libmp3lame', '-b:a', '128k'];
 
 const ledger = JSON.parse(readFileSync(LEDGER, 'utf8'));
 const round = ledger.rounds[roundId];
-const laugh = measure(LAUGH);
 const groups = Object.entries(round.groups).map(([key, g]) => {
   const lines = g.text.split('\n\n');
   if (g.cut.head) lines.shift();
@@ -47,11 +45,10 @@ const groups = Object.entries(round.groups).map(([key, g]) => {
         play = join(sheet, `${id}-ending.mp3`);
         // The silence counts from his last word, so the take's own room tone is part of it.
         const pad = Math.max(0, SILENCE - (e.cut.duration - e.cut.voiceEnds)).toFixed(3);
-        execFileSync('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', '-i', src, '-i', LAUGH, '-filter_complex',
-          `[0]${gainTo(TARGET, before.lufs)}[a];anullsrc=r=44100:cl=mono,atrim=0:${pad}[s];` +
-          `[1]aformat=channel_layouts=mono,${gainTo(TARGET - LAUGH_UNDER, laugh.lufs)}[l];[a][s][l]concat=n=3:v=0:a=1`, ...mp3, play]);
+        execFileSync('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', '-i', src, '-af',
+          `${gainTo(TARGET, before.lufs)},apad=pad_dur=${pad}`, ...mp3, play]);
       }
-      console.log(id, `${before.lufs} -> ${e.loudness.matchedLufs} LUFS`, ending ? '(with silence and laugh)' : '');
+      console.log(id, `${before.lufs} -> ${e.loudness.matchedLufs} LUFS`, ending ? '(then the silence)' : '');
       return { id, n: Number(id.split('-').pop()), seconds: e.cut.duration, src: uri(play) };
     });
   return { key, label: LABEL[key] ?? `Group ${key.slice(1)}`, paragraphs: g.paragraphs, lines, ending, takes };

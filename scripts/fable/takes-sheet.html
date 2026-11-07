@@ -81,9 +81,9 @@
     <ul>
       <li>Once through, on the phone's own speaker, not headphones.</li>
       <li>The opening: someone telling it rather than performing it. The list read as a list, and "The moon began waiting for him." landing without being pushed.</li>
-      <li>The ending: "The moon looked too." should stay open, not settle like the last line of a story. Each ending take runs on into 3 seconds of silence and the room's first laugh, so you hear Tom hand over to the room.</li>
+      <li>The ending: "The moon looked too." should stay open, not settle like the last line of a story. Each ending take runs on into the 3 seconds of silence before the title.</li>
     </ul>
-    <p class="small" style="margin-top:10px">Every take says the text word for word (checked against a transcript), and both takes of a group play at the same loudness. The laugh sits a little under him, as planned for the room. The longer silences between paragraphs come later, in the edit, so judge the voice and the reading rather than the pace. Your choices stay on this device.</p>
+    <p class="small" style="margin-top:10px">Every take says the text word for word (checked against a transcript), and both takes of a group play at the same loudness. The longer silences between paragraphs come later, in the edit, so judge the voice and the reading rather than the pace. Your choices stay on this device.</p>
   </section>
 
   <div id="groups" style="display:grid;gap:28px"></div>
@@ -101,7 +101,6 @@
 const GROUPS = /*GROUPS*/[];
 const ROUND = /*ROUND*/'';
 const KEY = `fox-moon-takes-${ROUND}`;
-const LAUGH_Q = 'Does the laugh sound like a different person?';
 
 const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } };
 const save = (s) => { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) { /* choices just won't persist */ } };
@@ -142,7 +141,7 @@ for (const g of GROUPS) {
     li.className = 'take';
     li.dataset.group = g.key;
     li.dataset.take = String(t.n);
-    li.innerHTML = `<div class="take-name">Take ${t.n} <span>&middot; ${t.seconds.toFixed(0)} s${g.ending ? ', then silence and the laugh' : ''}</span></div>
+    li.innerHTML = `<div class="take-name">Take ${t.n} <span>&middot; ${t.seconds.toFixed(0)} s${g.ending ? ', then the silence' : ''}</span></div>
       <audio controls preload="none" aria-label="${g.label}, take ${t.n}"></audio>`;
     const audio = li.querySelector('audio');
     attach(audio, t.src);
@@ -150,7 +149,6 @@ for (const g of GROUPS) {
     ol.append(li);
   }
   sec.append(choice(g.key, 'Use', [...g.takes.map((t) => [String(t.n), `Take ${t.n}`, true]), ['neither', 'Neither']]));
-  if (g.ending) sec.append(choice('laugh', LAUGH_Q, [['yes', 'Yes', true], ['no', 'No']]));
   root.append(sec);
 }
 // One voice at a time.
@@ -158,7 +156,7 @@ for (const p of players) p.addEventListener('play', () => players.forEach((o) =>
 
 const status = document.getElementById('status');
 const summary = document.getElementById('summary');
-const asks = () => [...GROUPS.map((g) => g.key), ...(GROUPS.some((g) => g.ending) ? ['laugh'] : [])];
+const asks = () => GROUPS.map((g) => g.key);
 
 function paint() {
   document.querySelectorAll('.ask').forEach((a) => a.querySelectorAll('button').forEach((b) =>
@@ -171,7 +169,6 @@ function paint() {
 document.getElementById('copy').addEventListener('click', () => {
   const pick = (k) => state.picks[k] ?? '-';
   const lines = GROUPS.map((g) => `${g.label} (¶${g.paragraphs}): ${/^\d+$/.test(pick(g.key)) ? `take ${pick(g.key)}` : pick(g.key)}`);
-  if (GROUPS.some((g) => g.ending)) lines.push(`The laugh sounds like a different person: ${pick('laugh')}`);
   const text = `Tom's takes, ${ROUND.replace(/(\d+)$/, ' $1')}\n${lines.join('\n')}`;
   summary.value = text;
   summary.hidden = false;
