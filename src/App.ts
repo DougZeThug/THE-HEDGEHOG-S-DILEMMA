@@ -37,7 +37,7 @@ import { Voices, type VoicePlacement, type Played } from './audio/Voices';
 import { openingScore, levelsAt, stageAt, ROOM_LEVELS, OPENING_WRITTEN, OPENING_SPOKEN, OPENING_UNFINISHED, type Score, type Levels, type Stage, type ScoreEvent } from './state/OpeningScore';
 import VOICE_TIMINGS from './content/voice-timings.json';
 import { Captions } from './ui/Captions';
-import { loadPrefs, savePrefs, readVisits, writeVisits, forgetVisits, readOpeningSeen, writeOpeningSeen, readMemoryCounts, writeMemoryCounts, readTrace, writeTrace, type Prefs } from './ui/prefs';
+import { loadPrefs, savePrefs, readVisits, writeVisits, forgetVisits, readOpeningSeen, writeOpeningSeen, readMemoryCounts, writeMemoryCounts, readTrace, writeTrace, readHeartAnswer, writeHeartAnswer, type Prefs } from './ui/prefs';
 import { SCENE_BY_PHRASE, SCENE_MEMORIES } from './content/memories';
 import { LocalInterpreter } from './interpret/LocalInterpreter';
 import type { Interpreter } from './interpret/Interpreter';
@@ -233,9 +233,18 @@ export class App {
       seed,
       visits: this.visits + 1,
       trace,
+      // What the last visit's heart left is found beside the first line again.
+      answer: this.visits > 0 ? readHeartAnswer() : null,
       memoryCounts: readMemoryCounts(),
       situations: forced,
       experiments: wanted,
+      // Is a piece of writing in view (the heart's line is found, never written in front of them).
+      inView: (id) => {
+        const c = this.text.centreOf(id);
+        if (!c) return false;
+        const p = c.project(this.rig.camera);
+        return p.z < 1 && Math.abs(p.x) < 1.15 && Math.abs(p.y) < 1.15;
+      },
       // Where each piece of writing is, for situations that relate place to memory.
       geometry: (id) => {
         const w = this.text.whereIs(id);
@@ -1278,7 +1287,12 @@ export class App {
 
   /** One word for the next visit about how this one left the chair; nothing after a forget. */
   private keepTrace() {
-    if (!this.forgotten) writeTrace(this.director.leaving());
+    if (this.forgotten) return;
+    writeTrace(this.director.leaving());
+    // What the heart left, written on the wall yet or not; a visit whose heart wasn't seen leaves
+    // the last one where it was.
+    const answer = this.director.heartLeft();
+    if (answer) writeHeartAnswer(answer);
   }
 
   private beginOpening() {
@@ -1644,7 +1658,7 @@ export class App {
         const c = this.chair.group.position;
         const near = cue.nearPoint && cue.surface === 'floor'
           ? { u: c.x + cue.nearPoint.x + ROOM.halfW, v: c.z + cue.nearPoint.z + ROOM.halfD }
-          : cue.surface && !cue.beside ? this.viewPointOn(cue.surface) : undefined;
+          : cue.surface && !cue.beside ? this.viewPointOn(cue.surface, cue.purpose === 'recall') : undefined;
         const size = this.touch && cue.size === 'xs' && cue.purpose === 'recall' ? 's' : cue.size;
         // A memory's line by the drawing it opens from; looking at the drawing is reading it too.
         if (cue.under && cue.source) this.text.drawingMeans(cue.under, cue.source);
@@ -1773,8 +1787,26 @@ export class App {
     return out;
   }
 
-  private viewPointOn(surface: Surface): { u: number; v: number } | undefined {
+  /**
+   * Where the view meets a surface. `level`: along the view's heading, not its pitch, and at a
+   * height a line can be read at: a line offered for a memory to someone looking down at the
+   * chair was written above the frame (interaction designer, 2026-11-06).
+   */
+  private viewPointOn(surface: Surface, level = false): { u: number; v: number } | undefined {
     const frame = this.room.frames[surface];
+    const wall = surface !== 'floor' && surface !== 'ceiling';
+    if (level && wall) {
+      const cam = this.rig.camera;
+      const dir = cam.getWorldDirection(new THREE.Vector3()).setY(0);
+      if (dir.lengthSq() > 1e-6) {
+        this.raycaster.set(new THREE.Vector3(cam.position.x, 1.35, cam.position.z), dir.normalize());
+        const hit = this.raycaster.intersectObject(frame.mesh, false)[0];
+        if (hit) {
+          const local = frame.group.worldToLocal(hit.point.clone());
+          return { u: local.x / this.room.scale + frame.size.w / 2, v: local.y + frame.size.h / 2 };
+        }
+      }
+    }
     this.raycaster.setFromCamera(new THREE.Vector2(0, 0), this.rig.camera);
     const hit = this.raycaster.intersectObject(frame.mesh, false)[0];
     if (!hit) return undefined;
@@ -1853,7 +1885,10 @@ export class App {
       this.rig.setKneel(false);
       return;
     }
-    if (this.gazeChair || d < 1.2) {
+    // (Writing on a wall being looked at is touched, even close to the chair: a click on a line
+    // offered there knelt instead. QA, 2026-11-06.)
+    const wallLine = !!this.gazeId && !this.gazeChair && ['north', 'east', 'south', 'west'].includes(this.text.items.get(this.gazeId)?.placement.surface ?? '');
+    if (this.gazeChair || (d < 1.2 && !wallLine)) {
       if (d < 1.5) this.rig.setKneel(true);
       else this.rig.attend(this.chair.group.position.clone().setY(0.35), 0.95);
       return;
@@ -1996,6 +2031,7 @@ export class App {
     let dragInside = false;
     let lastX = 0, lastY = 0, downX = 0, downY = 0, downT = 0;
     let lockWanted = false;
+    let lockFresh = false;
     canvas.addEventListener('pointerdown', (e) => {
       if (this.mode !== 'room') return;
       downX = lastX = e.clientX;
@@ -2013,8 +2049,16 @@ export class App {
     });
     canvas.addEventListener('pointermove', (e) => {
       if (this.mode !== 'room') return;
-      if (document.pointerLockElement === canvas) this.lookBy(e.movementX, e.movementY);
-      else if (dragging && e.pointerType === 'mouse') {
+      if (document.pointerLockElement === canvas) {
+        // (The first move once the mouse is taken can carry the pointer's jump to the lock as
+        // movement: Chromium reported the cursor's whole offset from the corner, a turn of 80°
+        // nobody made, and a memory begun by that click was looked away from and lost. However
+        // small the jump, the first move is dropped: it is a few pixels of a real move at most.)
+        const fresh = lockFresh;
+        lockFresh = false;
+        if (fresh) return;
+        this.lookBy(e.movementX, e.movementY);
+      } else if (dragging && e.pointerType === 'mouse') {
         // (A drag begun before a living memory took the view isn't a turn away from it.)
         if (!this.inside.locked || dragInside) this.lookBy((e.clientX - lastX) * 1.2, (e.clientY - lastY) * 1.2);
         lastX = e.clientX;
@@ -2045,6 +2089,7 @@ export class App {
       }
     });
     document.addEventListener('pointerlockchange', () => {
+      lockFresh = document.pointerLockElement === canvas;
       if (document.pointerLockElement !== canvas && lockWanted && this.mode === 'room') {
         lockWanted = false;
         this.openSettings();
@@ -2513,13 +2558,28 @@ export class App {
     this.departTimer = window.setTimeout(() => {
       dep.hidden = false;
       requestAnimationFrame(() => dep.classList.add('on'));
-      $('departure-line').textContent = line;
+      // The visit's sentence, when there is one: the room's first line, and under it, a moment later,
+      // what the visit's heart left beside it on the wall (docs/reviews/2026-11-emotional-arc.md).
+      const [first, answer] = line.split('\n');
+      const el = $('departure-line');
+      el.textContent = first;
+      if (answer) {
+        // (A pause for a screen reader between the two: "I wanted you to" runs on into the answer.)
+        const pause = document.createElement('span');
+        pause.className = 'sr-only';
+        pause.textContent = ' … ';
+        const span = document.createElement('span');
+        span.className = 'departure-answer';
+        span.textContent = answer;
+        el.append(pause, span);
+      }
       setTimeout(() => $('departure-line').classList.add('on'), 1500);
+      // (Not before the answer, when there is one, has fully come.)
       setTimeout(() => {
         $('return').hidden = false;
         $('return').focus();
         void this.audio?.suspend();
-      }, 6000);
+      }, answer && !this.prefs.reducedMotion ? 9000 : 6000);
     }, this.prefs.reducedMotion ? 1500 : 4600);
   }
 

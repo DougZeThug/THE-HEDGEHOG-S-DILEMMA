@@ -4,9 +4,10 @@ import { RECONTEXTS, VOICE_FRAGMENTS } from '../src/content/relations';
 import { DIMENSIONS } from '../src/content/types';
 
 describe('phrase corpus', () => {
-  it('has 80–120 phrases with unique ids', () => {
+  it('has 80–121 phrases with unique ids', () => {
     expect(PHRASES.length).toBeGreaterThanOrEqual(80);
-    expect(PHRASES.length).toBeLessThanOrEqual(120);
+    // (121: the one line Almost leaves beside the first, written only as a consequence; 2026-11-emotional-arc.)
+    expect(PHRASES.length).toBeLessThanOrEqual(121);
     expect(new Set(PHRASES.map((p) => p.id)).size).toBe(PHRASES.length);
   });
   it('every relation points at a real phrase', () => {

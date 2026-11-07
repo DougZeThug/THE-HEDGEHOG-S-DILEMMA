@@ -91,6 +91,10 @@ Measured on first visits, before → after (desktop / phone; placebo in brackets
 
 `tests/pacing.test.ts` still holds its existing timing and restraint targets, unchanged; it does not assert these rates (the battery reports them).
 
+## The visit's heart (November 2026)
+
+The strongest memories (Almost, Things, the woodland) needed another memory first, a late phase and a free slot among three pointings a visit, so they reached 0% of 3-minute and 10% of 10-minute first visits. A visit now has one heart, reachable from 75 s and chosen from what happened at the chair, the recoil above all (`docs/memories.md`, *Which memory a visit is for*; most visits have one, 84–98% by length). Simulated, same visitors and seeds: any of the three in 33% / 54% / 62% of 3/5/10-minute first visits; developments a minute a little fewer (7.4 → 7.0 at five minutes, 7.0 → 6.7 at ten), voices and overlaps unchanged; held silence 98% → 95% at five minutes and 98% at ten; 30 s windows with nothing perceived outside memory playtime 16–18% → 16–19%. After Almost's answer the room writes and reveals nothing new on the north wall for the rest of the visit (it chooses from the other walls; a visitor's own words still go where they write them), and a turn of the visit waits while a return to the chair may be under way, so the recoil isn't lost to it. The full record: `docs/reviews/2026-11-emotional-arc.md`.
+
 ## What it is now
 
 - **Engagement** (`src/state/Engagement.ts`). What a visitor does becomes signals: reading a line, coming back to one after looking away, touching writing or the chair, approaching, staying with the chair, kneeling, looking around, crossing the room, pausing on purpose, writing. Attending to the writing counts for more than moving about. The visit's *depth* grows from these, and slowly by itself.

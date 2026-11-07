@@ -125,6 +125,10 @@ export class VisitorModel {
 
   private lastYaw = 0;
   private lastPitch = 0;
+  /** How far up (+) or down (−) they are looking, radians. */
+  get pitch(): number {
+    return this.lastPitch;
+  }
   private initialised = false;
   /** The last second of where they were (which way they were going as they came near the chair). */
   private trail: { t: number; jump: boolean; x: number; z: number }[] = [];
