@@ -107,6 +107,58 @@
         "laughSoundsDifferent": "yes",
         "note": "The artist does not want the laugh after the fable: the ending goes to the title card, with no room yet. The laugh was only on the sheet, as the decision-15 check."
       }
+    },
+    "round3": {
+      "at": "2026-11-07",
+      "purpose": "Decision 16: Tom records the four middle groups as production takes.",
+      "flow": "5soZ6QBbrhRViHjWiu1s",
+      "model": "eleven_v4",
+      "settings": "connector defaults (stability 0.5), mp3_44100_128",
+      "voice": {
+        "name": "tom",
+        "voiceId": "5QLE0oVq6XTzbjGTJ34H"
+      },
+      "takesPerGroup": 2,
+      "groups": {
+        "g2": {
+          "paragraphs": "5-8",
+          "node": "HbYIebSwPaY4ds25C6PX",
+          "cut": {
+            "head": "From so far away, each found the other easy to love.",
+            "tail": "But there were things the fox did not like anyone to see."
+          },
+          "text": "From so far away, each found the other easy to love.\n\nOne evening, she asked him to meet her beside a pond.\n\nThere, she could lay her reflection close enough for him to rest his head beside it.\n\nFor many nights, they were happy.\n\nShe lit the paths he had been afraid to walk. He told her stories about the world beneath the trees, where she had never been.\n\nBut there were things the fox did not like anyone to see."
+        },
+        "g3": {
+          "paragraphs": "9-15",
+          "node": "Vb94PlmUp9h9eK0VmaEi",
+          "cut": {
+            "head": "He told her stories about the world beneath the trees, where she had never been.",
+            "tail": "She dimmed her light."
+          },
+          "text": "He told her stories about the world beneath the trees, where she had never been.\n\nBut there were things the fox did not like anyone to see.\n\nWhen he was frightened, he hid. When he was ashamed, he pretended he had somewhere else to go.\n\nThe moon had her own difficulty. When someone grew quiet, she felt herself disappearing.\n\nSo when the fox withdrew beneath the reeds, she shone a little brighter.\n\nShe wanted him to know she was still there.\n\nBut now he could see the whole of himself in the water: his muddy coat, his trembling legs, the face he made when he was trying not to cry.\n\nHe asked for a little darkness.\n\nShe dimmed her light."
+        },
+        "g4": {
+          "paragraphs": "16-21",
+          "node": "I7iPDYsPetZaNwb7DSuP",
+          "cut": {
+            "head": "He asked for a little darkness.",
+            "tail": "She rose away from the pond."
+          },
+          "text": "He asked for a little darkness.\n\nShe dimmed her light. For a while, they rested together.\n\nBut when he stayed quiet, she began to wonder whether he wanted her there at all.\n\nHer light crept back across the pond.\n\nThe fox pulled a branch over the water.\n\nHe meant to make a hiding place.\n\nFrom beneath the leaves, the moon watched her face disappear.\n\nShe rose away from the pond."
+        },
+        "g5": {
+          "paragraphs": "22-28",
+          "node": "NXCkrFWTm2KmTUlp1rA3",
+          "cut": {
+            "head": "From beneath the leaves, the moon watched her face disappear.",
+            "tail": "Then, one evening, the fox climbed the hill with a small, unimportant story he had saved for her."
+          },
+          "text": "From beneath the leaves, the moon watched her face disappear.\n\nShe rose away from the pond.\n\nThe fox pushed the branch aside and reached after her. His paw struck the water, breaking her reflection into pieces.\n\nBy the time the pond was still, she was high above the hill again.\n\nFor several nights, he slept without being seen.\n\nFor several nights, she crossed the sky without wondering whether she was welcome.\n\nNeither was hurt again.\n\nNeither returned to the pond.\n\nThen, one evening, the fox climbed the hill with a small, unimportant story he had saved for her."
+        }
+      },
+      "estimate": 4003.6,
+      "status": "priced; waiting for the artist before running"
     }
   },
   "entries": {
