@@ -3,7 +3,8 @@
   "cap": 20000,
   "spent": {
     "round1": 2627.74,
-    "round2": 1271.87
+    "round2": 1271.87,
+    "round3": 4003.6
   },
   "rounds": {
     "round1": {
@@ -106,6 +107,16 @@
         "g6": "r2-tom-g6-1",
         "laughSoundsDifferent": "yes",
         "note": "The artist does not want the laugh after the fable: the ending goes to the title card, with no room yet. The laugh was only on the sheet, as the decision-15 check."
+      },
+      "sheet": {
+        "title": "Tom's First Takes",
+        "heading": "Tom, the opening and the ending",
+        "lede": "Tom read the first and last groups of the fable twice each. Choose one take for each group. The lines borrowed from the neighbouring groups are already cut away, so this is the reading the film would use.",
+        "notes": [
+          "Once through, on the phone's own speaker, not headphones.",
+          "The opening: someone telling it rather than performing it. The list read as a list, and \"The moon began waiting for him.\" landing without being pushed.",
+          "The ending: \"The moon looked too.\" should stay open, not settle like the last line of a story. Each ending take runs on into the 3 seconds of silence before the title."
+        ]
       }
     },
     "round3": {
@@ -158,7 +169,19 @@
         }
       },
       "estimate": 4003.6,
-      "status": "priced; waiting for the artist before running"
+      "status": "run once, 2026-11-07, after the artist approved the estimate",
+      "sheet": {
+        "title": "Tom's Middle Takes",
+        "heading": "Tom, the middle of the fable",
+        "lede": "Tom read the four middle groups (&para;5&ndash;28) twice each, to go between the opening and the ending you chose. Choose one take for each group. The lines borrowed from the neighbouring groups are already cut away, so this is the reading the film would use.",
+        "notes": [
+          "Once through, on the phone's own speaker, not headphones.",
+          "Someone telling it rather than performing it: uneven tempo, plain words stressed, nothing pushed.",
+          "Group 3: the stress on frightened, ashamed, disappearing and cry; what he sees in the water read as a list; and \"He asked for a little darkness.\" said simply, because a silence follows it.",
+          "Group 4: the branch told plainly, with no blame in it, and \"&hellip;watched her face disappear.\" left to land.",
+          "Group 5: his reach told as regret, not drama, and the two \"Neither&hellip;\" lines kept level."
+        ]
+      }
     }
   },
   "entries": {
@@ -560,6 +583,254 @@
         "peak": -1.9,
         "gain": -0.9,
         "matchedLufs": -23.4
+      }
+    },
+    "r3-tom-g2-1": {
+      "round": "round3",
+      "voice": "tom",
+      "group": "g2",
+      "generation": "EDTsdDwvltCJ2rVJ77wC",
+      "session": "lSM0SUljNt7aidHwH3Lg",
+      "file": "fable/r3-tom-g2-1.mp3",
+      "status": "validated",
+      "review": "pending",
+      "duration": 27.04,
+      "bytes": 451010,
+      "cost": 414.96,
+      "transcript": "From so far away, each found the other easy to love.\n\nOne evening, she asked him to meet her beside a pond.\n\nThere, she could lay her reflection close enough for him to rest his head beside it.\n\nFor many nights, they were happy.\n\nShe lit the paths he had been afraid to walk. He told her stories about the world beneath the trees, where she had never been.\n\nBut there were things the fox did not like anyone to see.",
+      "wer": 0,
+      "cut": {
+        "in": 4.737,
+        "out": 23.507,
+        "duration": 18.77,
+        "inDb": -89.1,
+        "outDb": -90,
+        "firstWord": "One",
+        "lastWord": "been.",
+        "voiceEnds": 18.33
+      },
+      "loudness": {
+        "lufs": -22,
+        "peak": -3.3,
+        "gain": -1,
+        "matchedLufs": -23.5
+      }
+    },
+    "r3-tom-g2-2": {
+      "round": "round3",
+      "voice": "tom",
+      "group": "g2",
+      "generation": "KksncWjbuchMIs71ZLG0",
+      "session": "7yovLpOGFvSUaXCLUAEM",
+      "file": "fable/r3-tom-g2-2.mp3",
+      "status": "validated",
+      "review": "pending",
+      "duration": 27.76,
+      "bytes": 462295,
+      "cost": 414.96,
+      "transcript": "From so far away, each found the other easy to love.\n\nOne evening, she asked him to meet her beside a pond.\n\nThere, she could lay her reflection close enough for him to rest his head beside it.\n\nFor many nights, they were happy.\n\nShe lit the paths he had been afraid to walk. He told her stories about the world beneath the trees, where she had never been.\n\nBut there were things the fox did not like anyone to see.",
+      "wer": 0,
+      "cut": {
+        "in": 4.707,
+        "out": 24.162,
+        "duration": 19.455,
+        "inDb": -89.4,
+        "outDb": -88.2,
+        "firstWord": "One",
+        "lastWord": "been.",
+        "voiceEnds": 18.865
+      },
+      "loudness": {
+        "lufs": -21.9,
+        "peak": -2.4,
+        "gain": -1.1,
+        "matchedLufs": -23.5
+      }
+    },
+    "r3-tom-g3-1": {
+      "round": "round3",
+      "voice": "tom",
+      "group": "g3",
+      "generation": "ITDHXu0XhXkuHg1z2JBa",
+      "session": "2nrGs737OOllcxx6gCSj",
+      "file": "fable/r3-tom-g3-1.mp3",
+      "status": "validated",
+      "review": "pending",
+      "duration": 43.76,
+      "bytes": 718504,
+      "cost": 640.94,
+      "transcript": "He told her stories about the world beneath the trees, where she had never been.\n\nBut there were things the fox did not like anyone to see.\n\nWhen he was frightened, he hid. When he was ashamed, he pretended he had somewhere else to go.\n\nThe moon had her own difficulty. When someone grew quiet, she felt herself disappearing.\n\nSo when the fox withdrew beneath the reeds, she shone a little brighter.\n\nShe wanted him to know she was still there.\n\nBut now he could see the whole of himself in the water: his muddy coat, his trembling legs, the face he made when he was trying not to cry.\n\nHe asked for a little darkness.\n\nShe dimmed her light.",
+      "wer": 0,
+      "cut": {
+        "in": 5.071,
+        "out": 42.142,
+        "duration": 37.071,
+        "inDb": -88.3,
+        "outDb": -87.1,
+        "firstWord": "But",
+        "lastWord": "darkness.",
+        "voiceEnds": 36.821
+      },
+      "loudness": {
+        "lufs": -22.2,
+        "peak": -2.5,
+        "gain": -0.8,
+        "matchedLufs": -23.4
+      }
+    },
+    "r3-tom-g3-2": {
+      "round": "round3",
+      "voice": "tom",
+      "group": "g3",
+      "generation": "26j9xSciwHLMVToB4Hag",
+      "session": "QIJYYrsp6iiqvSF7UyfN",
+      "file": "fable/r3-tom-g3-2.mp3",
+      "status": "validated",
+      "review": "pending",
+      "duration": 42.72,
+      "bytes": 701786,
+      "cost": 640.94,
+      "transcript": "He told her stories about the world beneath the trees, where she had never been.\n\nBut there were things the fox did not like anyone to see.\n\nWhen he was frightened, he hid. When he was ashamed, he pretended he had somewhere else to go.\n\nThe moon had her own difficulty. When someone grew quiet, she felt herself disappearing.\n\nSo when the fox withdrew beneath the reeds, she shone a little brighter.\n\nShe wanted him to know she was still there.\n\nBut now he could see the whole of himself in the water: his muddy coat, his trembling legs, the face he made when he was trying not to cry.\n\nHe asked for a little darkness.\n\nShe dimmed her light.",
+      "wer": 0,
+      "cut": {
+        "in": 5.346,
+        "out": 40.877,
+        "duration": 35.531,
+        "inDb": -88.6,
+        "outDb": -86.1,
+        "firstWord": "But",
+        "lastWord": "darkness.",
+        "voiceEnds": 35.401
+      },
+      "loudness": {
+        "lufs": -22,
+        "peak": -1.9,
+        "gain": -1,
+        "matchedLufs": -23.5
+      }
+    },
+    "r3-tom-g4-1": {
+      "round": "round3",
+      "voice": "tom",
+      "group": "g4",
+      "generation": "Qpc3tdvoeiAgAjvDpYgk",
+      "session": "8IrOdwtBTdiUJvS2vCzc",
+      "file": "fable/r3-tom-g4-1.mp3",
+      "status": "validated",
+      "review": "pending",
+      "duration": 25.12,
+      "bytes": 420081,
+      "cost": 378.96,
+      "transcript": "He asked for a little darkness.\n\nShe dimmed her light. For a while, they rested together.\n\nBut when he stayed quiet, she began to wonder whether he wanted her there at all.\n\nHer light crept back across the pond.\n\nThe fox pulled a branch over the water.\n\nHe meant to make a hiding place.\n\nFrom beneath the leaves, the moon watched her face disappear.\n\nShe rose away from the pond.",
+      "wer": 0,
+      "cut": {
+        "in": 2.152,
+        "out": 22.896,
+        "duration": 20.744,
+        "inDb": -90.2,
+        "outDb": -89.7,
+        "firstWord": "She",
+        "lastWord": "disappear.",
+        "voiceEnds": 20.634
+      },
+      "loudness": {
+        "lufs": -22.1,
+        "peak": -2.9,
+        "gain": -0.9,
+        "matchedLufs": -23.5
+      }
+    },
+    "r3-tom-g4-2": {
+      "round": "round3",
+      "voice": "tom",
+      "group": "g4",
+      "generation": "pXUgug9tdkw8EZ5Ii8UF",
+      "session": "QIPvUtuvSDHTGO08KxF5",
+      "file": "fable/r3-tom-g4-2.mp3",
+      "status": "validated",
+      "review": "pending",
+      "duration": 25.68,
+      "bytes": 429276,
+      "cost": 378.96,
+      "transcript": "He asked for a little darkness.\n\nShe dimmed her light. For a while, they rested together.\n\nBut when he stayed quiet, she began to wonder whether he wanted her there at all.\n\nHer light crept back across the pond.\n\nThe fox pulled a branch over the water.\n\nHe meant to make a hiding place.\n\nFrom beneath the leaves, the moon watched her face disappear.\n\nShe rose away from the pond.",
+      "wer": 0,
+      "cut": {
+        "in": 2.578,
+        "out": 23.697,
+        "duration": 21.119,
+        "inDb": -89.5,
+        "outDb": -90,
+        "firstWord": "She",
+        "lastWord": "disappear.",
+        "voiceEnds": 20.599
+      },
+      "loudness": {
+        "lufs": -22.1,
+        "peak": -2.2,
+        "gain": -0.9,
+        "matchedLufs": -23.5
+      }
+    },
+    "r3-tom-g5-1": {
+      "round": "round3",
+      "voice": "tom",
+      "group": "g5",
+      "generation": "d977zJzqjKIFGCWaYG2D",
+      "session": "7GJGZGhQ8l9pmZKO2Z3j",
+      "file": "fable/r3-tom-g5-1.mp3",
+      "status": "validated",
+      "review": "pending",
+      "duration": 38.16,
+      "bytes": 628643,
+      "cost": 566.94,
+      "transcript": "From beneath the leaves, the moon watched her face disappear.\n\nShe rose away from the pond.\n\nThe fox pushed the branch aside and reached after her. His paw struck the water, breaking her reflection into pieces.\n\nBy the time the pond was still, she was high above the hill again.\n\nFor several nights, he slept without being seen.\n\nFor several nights, she crossed the sky without wondering whether she was welcome.\n\nNeither was hurt again.\n\nNeither returned to the pond.\n\nThen, one evening, the fox climbed the hill with a small, unimportant story he had saved for her.",
+      "wer": 0,
+      "cut": {
+        "in": 4.162,
+        "out": 31.822,
+        "duration": 27.66,
+        "inDb": -87.9,
+        "outDb": -88.6,
+        "firstWord": "She",
+        "lastWord": "pond.",
+        "voiceEnds": 26.87
+      },
+      "loudness": {
+        "lufs": -21.5,
+        "peak": -2.4,
+        "gain": -1.5,
+        "matchedLufs": -23.4
+      }
+    },
+    "r3-tom-g5-2": {
+      "round": "round3",
+      "voice": "tom",
+      "group": "g5",
+      "generation": "Q6wft9sdOqPU2zjDyILA",
+      "session": "ky3ApC6A9RUsd2AA6Ax5",
+      "file": "fable/r3-tom-g5-2.mp3",
+      "status": "validated",
+      "review": "pending",
+      "duration": 37.28,
+      "bytes": 614850,
+      "cost": 566.94,
+      "transcript": "From beneath the leaves, the moon watched her face disappear.\n\nShe rose away from the pond.\n\nThe fox pushed the branch aside and reached after her. His paw struck the water, breaking her reflection into pieces.\n\nBy the time the pond was still, she was high above the hill again.\n\nFor several nights, he slept without being seen.\n\nFor several nights, she crossed the sky without wondering whether she was welcome.\n\nNeither was hurt again.\n\nNeither returned to the pond.\n\nThen, one evening, the fox climbed the hill with a small, unimportant story he had saved for her.",
+      "wer": 0,
+      "cut": {
+        "in": 4.072,
+        "out": 30.756,
+        "duration": 26.684,
+        "inDb": -89.3,
+        "outDb": -88.6,
+        "firstWord": "She",
+        "lastWord": "pond.",
+        "voiceEnds": 26.304
+      },
+      "loudness": {
+        "lufs": -21.5,
+        "peak": -3,
+        "gain": -1.5,
+        "matchedLufs": -23.5
       }
     }
   }

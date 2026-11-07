@@ -54,7 +54,13 @@ const groups = Object.entries(round.groups).map(([key, g]) => {
   return { key, label: LABEL[key] ?? `Group ${key.slice(1)}`, paragraphs: g.paragraphs, lines, ending, takes };
 });
 
+// The page's words for this round (title, heading, lede, listening notes) live with the round in the ledger.
+const s = round.sheet;
 const html = readFileSync(template, 'utf8')
+  .replace('__TITLE__', () => s.title)
+  .replace('__HEADING__', () => s.heading)
+  .replace('__LEDE__', () => s.lede)
+  .replace('<!--NOTES-->', () => s.notes.map((n) => `      <li>${n}</li>`).join('\n'))
   .replace('/*GROUPS*/[]', JSON.stringify(groups))
   .replace("/*ROUND*/''", JSON.stringify(roundId));
 writeFileSync(out, html);

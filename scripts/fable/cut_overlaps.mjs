@@ -45,9 +45,11 @@ for (const [id, e] of Object.entries(ledger.entries)) {
   const src = join(ROOT, 'audition', e.file);
   const x = pcm(src);
   const length = x.length / RATE;
-  // Keep 50 ms clear of the words on either side; Scribe's timings are good to about that.
-  const cin = headN ? quietest(x, timed[headN - 1].end + 0.05, first.start - 0.05) : { t: 0, db: null };
-  const cout = tailN ? quietest(x, last.end + 0.05, timed[timed.length - tailN].start - 0.05) : { t: length, db: null };
+  // Search from inside the word before the gap: Scribe's word starts are good to about 50 ms, but it
+  // can run a held word's end on into the pause ("darkness." by 0.4 s). A real pause is near digital
+  // silence, so it is quieter than anything inside a word.
+  const cin = headN ? quietest(x, timed[headN - 1].start + 0.1, first.start - 0.05) : { t: 0, db: null };
+  const cout = tailN ? quietest(x, last.start + 0.1, timed[timed.length - tailN].start - 0.05) : { t: length, db: null };
   const dur = cout.t - cin.t;
   // Where his voice really stops: Scribe can run a held last word on past the sound by a third of a second.
   let voiceEnds = cout.t;
@@ -63,6 +65,8 @@ for (const [id, e] of Object.entries(ledger.entries)) {
     '-ac', '1', '-ar', String(RATE), '-c:a', 'pcm_s16le', join(out, `${id}.wav`)]);
   e.cut = { in: cin.t, out: Number(cout.t.toFixed(3)), duration: Number(dur.toFixed(3)), inDb: cin.db, outDb: cout.db,
     firstWord: first.text, lastWord: last.text, voiceEnds: Number((voiceEnds - cin.t).toFixed(3)) };
-  console.log(id, `${cin.t}-${e.cut.out} s (${e.cut.duration} s)`, `"${first.text} … ${last.text}"`, `cut levels ${cin.db ?? '-'} / ${cout.db ?? '-'} dBFS`);
+  const loud = [cin.db, cout.db].some((db) => db !== null && db > -60);
+  console.log(id, `${cin.t}-${e.cut.out} s (${e.cut.duration} s)`, `"${first.text} … ${last.text}"`, `cut levels ${cin.db ?? '-'} / ${cout.db ?? '-'} dBFS`,
+    loud ? '  <- NOT IN SILENCE, check by ear' : '');
 }
 writeFileSync(LEDGER, JSON.stringify(ledger, null, 2) + '\n');
