@@ -117,7 +117,19 @@
         "url": "https://claude.ai/artifact/VwMhJ1rXDAyWamDPKyqyXa",
         "built": "node scripts/fable/build_sfx_sheet.mjs s1 COPIES_DIR scripts/fable/sfx-sheet.html OUT, from python scripts/fable/sfx_takes.py s1 STEMS_DIR COPIES_DIR"
       },
-      "measured": "Curtains: two events each, over by 3.9-4.4 s, so all end before the first line; take 1 peaks late (3.4 s), the others at 0.4-1.1 s. Branch: 25-78% of energy above 4 kHz is leaf texture; longest dip 0.4-0.9 s, so each reads as one rustle; on the phone stand-in a rustle sits closer to Tom than on headphones, so its level carries a 9 LU phone floor. With the score at level 9 the closest line under it is 6.2-6.5 LU (phone 2.4-2.8, the score alone 3.2): the mix may ease the score a little under the rustle. Touch: takes 1 and 4 are one event, 2 and 3 two; 3 and 4 have sharp attacks (true peak -2.3 and -1.3 dBTP at -26 LUFS momentary, over the film's -3 limit), 1 and 2 stay at -3.7. Pond: both wrap without a click (the wrap step is 0.18 and 0.03 of the largest step inside the take); the level steps 4.2 and 2.8 dB at the seam; take 1 is brighter (9.7% above 4 kHz against 1.0%). No take was checked by ear here: the page is where the artist decides."
+      "measured": "Curtains: two events each, over by 3.9-4.4 s, so all end before the first line; take 1 peaks late (3.4 s), the others at 0.4-1.1 s. Branch: 25-78% of energy above 4 kHz is leaf texture; longest dip 0.4-0.9 s, so each reads as one rustle; on the phone stand-in a rustle sits closer to Tom than on headphones, so its level carries a 9 LU phone floor. With the score at level 9 the closest line under it is 6.2-6.5 LU (phone 2.4-2.8, the score alone 3.2): the mix may ease the score a little under the rustle. Touch: takes 1 and 4 are one event, 2 and 3 two; 3 and 4 have sharp attacks (true peak -2.3 and -1.3 dBTP at -26 LUFS momentary, over the film's -3 limit), 1 and 2 stay at -3.7. Pond: both wrap without a click (the wrap step is 0.18 and 0.03 of the largest step inside the take); the level steps 4.2 and 2.8 dB at the seam; take 1 is brighter (9.7% above 4 kHz against 1.0%). No take was checked by ear here: the page is where the artist decides.",
+      "choices": {
+        "at": "2026-11-08",
+        "by": "artist, on the sound-effects page",
+        "picks": {
+          "curtains": "s1-curtains-1",
+          "branch": "s1-branch-2",
+          "touch": "s1-touch-2",
+          "pond": "s1-pond-1"
+        },
+        "said": "Curtains: 1: yes, 2-4: no; use 1 / Branch: 2: yes, 1, 3, 4: no; use 2 / Touch: 2: yes, 1, 3, 4: no; use 2 / Pond: 1: yes, 2: no; use 1",
+        "note": "Each pick is the only take of its sound marked yes."
+      }
     }
   },
   "entries": {
@@ -128,7 +140,7 @@
       "session": "GIrtPH5gkxzeTJJ341Yj",
       "file": "fable/sfx/s1-curtains-1.mp3",
       "status": "saved",
-      "review": "pending",
+      "review": "approved",
       "duration": 5,
       "bytes": 98253,
       "cost": 16.67,
@@ -155,7 +167,8 @@
         "effectUnderWordsPhoneLU": null,
         "withScoreLU": 12.4,
         "withScorePhoneLU": 16.8
-      }
+      },
+      "mark": "yes"
     },
     "s1-curtains-2": {
       "round": "s1",
@@ -164,7 +177,7 @@
       "session": "rx3RonyNMQqHA0qLrSVy",
       "file": "fable/sfx/s1-curtains-2.mp3",
       "status": "saved",
-      "review": "pending",
+      "review": "rejected",
       "duration": 5,
       "bytes": 98253,
       "cost": 16.67,
@@ -191,7 +204,8 @@
         "effectUnderWordsPhoneLU": null,
         "withScoreLU": 12.4,
         "withScorePhoneLU": 16.8
-      }
+      },
+      "mark": "no"
     },
     "s1-curtains-3": {
       "round": "s1",
@@ -200,7 +214,7 @@
       "session": "RwtCHaiyPzNy82ZYoDmp",
       "file": "fable/sfx/s1-curtains-3.mp3",
       "status": "saved",
-      "review": "pending",
+      "review": "rejected",
       "duration": 5,
       "bytes": 98253,
       "cost": 16.67,
@@ -227,7 +241,8 @@
         "effectUnderWordsPhoneLU": null,
         "withScoreLU": 12.4,
         "withScorePhoneLU": 16.8
-      }
+      },
+      "mark": "no"
     },
     "s1-curtains-4": {
       "round": "s1",
@@ -236,7 +251,7 @@
       "session": "jxWpO6S4UEcLU25qjZUt",
       "file": "fable/sfx/s1-curtains-4.mp3",
       "status": "saved",
-      "review": "pending",
+      "review": "rejected",
       "duration": 5,
       "bytes": 98253,
       "cost": 16.67,
@@ -263,7 +278,8 @@
         "effectUnderWordsPhoneLU": null,
         "withScoreLU": 12.4,
         "withScorePhoneLU": 16.8
-      }
+      },
+      "mark": "no"
     },
     "s1-branch-1": {
       "round": "s1",
@@ -272,7 +288,7 @@
       "session": "pcKOGDPO5Wr611d8OGFq",
       "file": "fable/sfx/s1-branch-1.mp3",
       "status": "saved",
-      "review": "pending",
+      "review": "rejected",
       "duration": 10,
       "bytes": 178083,
       "cost": 33.33,
@@ -299,7 +315,8 @@
         "effectUnderWordsPhoneLU": 9.0,
         "withScoreLU": 6.2,
         "withScorePhoneLU": 2.7
-      }
+      },
+      "mark": "no"
     },
     "s1-branch-2": {
       "round": "s1",
@@ -308,7 +325,7 @@
       "session": "zTIt4ix7CS70CjMoHwI1",
       "file": "fable/sfx/s1-branch-2.mp3",
       "status": "saved",
-      "review": "pending",
+      "review": "approved",
       "duration": 10,
       "bytes": 178083,
       "cost": 33.33,
@@ -335,7 +352,8 @@
         "effectUnderWordsPhoneLU": 9.0,
         "withScoreLU": 6.5,
         "withScorePhoneLU": 2.8
-      }
+      },
+      "mark": "yes"
     },
     "s1-branch-3": {
       "round": "s1",
@@ -344,7 +362,7 @@
       "session": "Jcym4HXZ0n2Lzkfgkfr8",
       "file": "fable/sfx/s1-branch-3.mp3",
       "status": "saved",
-      "review": "pending",
+      "review": "rejected",
       "duration": 10,
       "bytes": 178083,
       "cost": 33.33,
@@ -371,7 +389,8 @@
         "effectUnderWordsPhoneLU": 9.0,
         "withScoreLU": 6.5,
         "withScorePhoneLU": 2.8
-      }
+      },
+      "mark": "no"
     },
     "s1-branch-4": {
       "round": "s1",
@@ -380,7 +399,7 @@
       "session": "wOpjM6d2VH4S4Q1XwMo4",
       "file": "fable/sfx/s1-branch-4.mp3",
       "status": "saved",
-      "review": "pending",
+      "review": "rejected",
       "duration": 10,
       "bytes": 178083,
       "cost": 33.33,
@@ -407,7 +426,8 @@
         "effectUnderWordsPhoneLU": 9.0,
         "withScoreLU": 6.3,
         "withScorePhoneLU": 2.4
-      }
+      },
+      "mark": "no"
     },
     "s1-touch-1": {
       "round": "s1",
@@ -416,7 +436,7 @@
       "session": "1NmgGUquuXQM8vHdibZZ",
       "file": "fable/sfx/s1-touch-1.mp3",
       "status": "saved",
-      "review": "pending",
+      "review": "rejected",
       "duration": 2,
       "bytes": 50187,
       "cost": 6.67,
@@ -443,7 +463,8 @@
         "effectUnderWordsPhoneLU": 16.6,
         "withScoreLU": 7.5,
         "withScorePhoneLU": 3.5
-      }
+      },
+      "mark": "no"
     },
     "s1-touch-2": {
       "round": "s1",
@@ -452,7 +473,7 @@
       "session": "GTDdrMYk5vJCEuoYo5kf",
       "file": "fable/sfx/s1-touch-2.mp3",
       "status": "saved",
-      "review": "pending",
+      "review": "approved",
       "duration": 2,
       "bytes": 50187,
       "cost": 6.67,
@@ -479,7 +500,8 @@
         "effectUnderWordsPhoneLU": 6.2,
         "withScoreLU": 7.5,
         "withScorePhoneLU": 3.5
-      }
+      },
+      "mark": "yes"
     },
     "s1-touch-3": {
       "round": "s1",
@@ -488,7 +510,7 @@
       "session": "pxhSYvvBFsZQkcpG1SsB",
       "file": "fable/sfx/s1-touch-3.mp3",
       "status": "saved",
-      "review": "pending",
+      "review": "rejected",
       "duration": 2,
       "bytes": 50187,
       "cost": 6.67,
@@ -515,7 +537,8 @@
         "effectUnderWordsPhoneLU": 15.5,
         "withScoreLU": 7.5,
         "withScorePhoneLU": 3.5
-      }
+      },
+      "mark": "no"
     },
     "s1-touch-4": {
       "round": "s1",
@@ -524,7 +547,7 @@
       "session": "O0gqpOXz12XMgt2vEs2l",
       "file": "fable/sfx/s1-touch-4.mp3",
       "status": "saved",
-      "review": "pending",
+      "review": "rejected",
       "duration": 2,
       "bytes": 50187,
       "cost": 6.67,
@@ -551,7 +574,8 @@
         "effectUnderWordsPhoneLU": 27.6,
         "withScoreLU": 7.5,
         "withScorePhoneLU": 3.5
-      }
+      },
+      "mark": "no"
     },
     "s1-pond-1": {
       "round": "s1",
@@ -560,7 +584,7 @@
       "session": "5NvTRcCXOgaUHmnhm9Xf",
       "file": "fable/sfx/s1-pond-1.mp3",
       "status": "saved",
-      "review": "pending",
+      "review": "approved",
       "duration": 20,
       "bytes": 338161,
       "cost": 66.66,
@@ -591,7 +615,8 @@
         "effectUnderWordsPhoneLU": 6.4,
         "withScoreLU": 5.6,
         "withScorePhoneLU": 3.0
-      }
+      },
+      "mark": "yes"
     },
     "s1-pond-2": {
       "round": "s1",
@@ -600,7 +625,7 @@
       "session": "kKcvBB56CNHxkzNBhGax",
       "file": "fable/sfx/s1-pond-2.mp3",
       "status": "saved",
-      "review": "pending",
+      "review": "rejected",
       "duration": 20,
       "bytes": 338161,
       "cost": 66.66,
@@ -631,7 +656,42 @@
         "effectUnderWordsPhoneLU": 5.9,
         "withScoreLU": 6.2,
         "withScorePhoneLU": 3.1
-      }
+      },
+      "mark": "no"
     }
+  },
+  "effects": {
+    "chosen": {
+      "at": "2026-11-08",
+      "by": "artist"
+    },
+    "radioCut": 1,
+    "takes": {
+      "curtains": {
+        "take": "s1-curtains-1",
+        "file": "fable/sfx/s1-curtains-1.mp3",
+        "firstLevelGainDb": -9.2,
+        "rule": "momentary max -30 LUFS"
+      },
+      "branch": {
+        "take": "s1-branch-2",
+        "file": "fable/sfx/s1-branch-2.mp3",
+        "firstLevelGainDb": 10.7,
+        "rule": "momentary max 12 LU under each line it lies under (9 through the phone stand-in)"
+      },
+      "touch": {
+        "take": "s1-touch-2",
+        "file": "fable/sfx/s1-touch-2.mp3",
+        "firstLevelGainDb": 9.4,
+        "rule": "momentary max -26 LUFS, peak 0.25 s into the gap"
+      },
+      "pond": {
+        "take": "s1-pond-1",
+        "file": "fable/sfx/s1-pond-1.mp3",
+        "firstLevelGainDb": -9.0,
+        "rule": "-42 LUFS over the take, looped without a crossfade"
+      }
+    },
+    "note": "The film's four generated effects. Their places and levels on the page were a first setting; the final ones are set in the mix. The pond bed's in and out follow the picture (the exposure sheet), and the ripples after the touch are made in code."
   }
 }
