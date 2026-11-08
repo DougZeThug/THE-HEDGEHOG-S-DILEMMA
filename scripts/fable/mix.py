@@ -24,7 +24,7 @@ headphones and through the phone stand-in (a 400 Hz high-pass).
 Usage: python scripts/fable/mix.py STEMS_DIR OUT_DIR
   STEMS_DIR holds radio_cut.mjs's narration.wav, night.wav and radio-cut.wav for the locked cut.
   OUT_DIR gets the stems, soundtrack.wav and the listening copies A (the locked cut), B (with the
-  score as chosen), C (the mix) and D (Tom, night and effects, no music: decision 25's strangers);
+  score as chosen), mix and no-music (Tom, night and effects: decision 25's strangers);
   scripts/fable/mix-render.json gets the measurements.
 """
 import json
@@ -204,14 +204,21 @@ def main():
     effects, report = np.zeros(n), {'mix': CONF['version'], 'radioCut': CUT['version'], 'score': MUSIC['score']['take'], 'effects': {}}
     for cue, c in CONF['effects'].items():
         x, gain = place(cue, mono(c['take']), n, vt, vl, pt, pl, out)
-        effects += x
-        report['effects'][cue] = {'take': c['take'], 'gainDb': round(float(gain), 1)}
+        trim = c.get('trimDb', 0.0)  # the artist's ear, after the effects page's first level
+        effects += x * 10 ** (trim / 20)
+        report['effects'][cue] = {'take': c['take'], 'gainDb': round(float(gain + trim), 1), 'trimDb': trim}
     wet, report['pond'] = pond(n, tt, out, night, (vt, vl, pt, pl))
     effects += wet
     effects[int(CUT_AT * RATE):] = 0.0  # nothing passes the cut
 
     # The score, eased only where the bed under a line would come within the floors.
     cap = CONF['score']['dipMaxDb']
+    # Held dips the artist asked for by ear (mix.json score.holds), through the same 2 s smoothing as
+    # the ride, so the score moves over seconds, never as an edit.
+    held = np.zeros(n)
+    for h in CONF['score'].get('holds', []):
+        held[int(h['from'] * RATE):int(h['to'] * RATE)] = np.minimum(held[int(h['from'] * RATE):int(h['to'] * RATE)], h['db'])
+    held = smooth(held, 2.0)
     need = {id(u): 0.0 for u in units}
     for _ in range(10):
         dip = np.zeros(n)
@@ -221,14 +228,14 @@ def main():
                 dip[i:j] = np.minimum(dip[i:j], need[id(u)])
         dip = np.maximum(smooth(dip, 2.0), -cap)
         short = False
-        for u, m, pm in margins(units, score * 10 ** (dip / 20) + effects + night, vt, vl, pt, pl):
+        for u, m, pm in margins(units, score * 10 ** ((dip + held) / 20) + effects + night, vt, vl, pt, pl):
             deficit = max(G['underWordsLU'] - m, G['underWordsPhoneLU'] - pm)
             if deficit > 0.05 and need[id(u)] > -cap:
                 need[id(u)] -= deficit + 0.2
                 short = True
         if not short:
             break
-    music = score * 10 ** (dip / 20)
+    music = score * 10 ** ((dip + held) / 20)
 
     soundtrack = voice + night + music + effects
     for name, x in {'dialogue': voice, 'night': night, 'music': music, 'effects': effects, 'soundtrack': soundtrack,
@@ -237,8 +244,8 @@ def main():
     write_wav(decode(stems / 'radio-cut.wav') + score, out / 'with-score.wav')  # B as the artist heard it
     mp3(stems / 'radio-cut.wav', out / 'A.mp3')
     mp3(out / 'with-score.wav', out / 'B.mp3')
-    mp3(out / 'soundtrack.wav', out / 'C.mp3')
-    mp3(out / 'no-music.wav', out / 'D.mp3')
+    mp3(out / 'soundtrack.wav', out / 'mix.mp3')
+    mp3(out / 'no-music.wav', out / 'no-music.mp3')
     (out / 'with-score.wav').unlink()
 
     # Measurements and gates.
@@ -279,6 +286,7 @@ def main():
         'lockedCutLagSamples': lag,
         'scoreDip': {'deepestDb': round(float(dip.min()), 1), 'secondsEased': round(float(r.sum() / RATE), 1),
                      'spans': [round(float(tt[r][0]), 1), round(float(tt[r][-1]), 1)] if r.any() else None},
+        'scoreHolds': [{**h, 'deepestDb': round(float(held[int(h['from'] * RATE):int(h['to'] * RATE)].min()), 1)} for h in CONF['score'].get('holds', [])],
         'loudness': loud,
         'deliveryTruePeak': codec_true_peak(out / 'soundtrack.wav', out),
         'lines': [{'p': f"{u['p']}{u.get('part', '')}", 'margin': round(m, 1), 'phoneMargin': round(pm, 1),
@@ -292,7 +300,7 @@ def main():
     (ROOT / 'scripts/fable/mix-render.json').write_bytes((json.dumps(report, indent=1, ensure_ascii=False) + '\n').encode('utf8'))
     print('effects:', report['effects'])
     print('pond:', report['pond'])
-    print('score dip:', report['scoreDip'])
+    print('score dip:', report['scoreDip'], '| holds:', report['scoreHolds'])
     print('loudness:', loud, '| after codecs:', report['deliveryTruePeak'])
     print('worst lines:', report['worstLines'], '| phone:', report['worstPhoneLines'], '| effects cost most (phone):', report['effectsCostPhoneMost'])
     print('loudest silences:', sorted(silences, key=lambda x: -(x['momentaryMax'] or -99))[:4])

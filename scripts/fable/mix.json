@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "radioCut": 1,
   "note": "The soundtrack mix of the fable on radio cut v1: Tom, the night, the score the artist chose (m3-f-1 at level 3) and the four effects the artist chose (round s1), with the pond's ripples made in code from the pond take. Read by scripts/fable/mix.py; its measurements go to scripts/fable/mix-render.json. Reviewed by the sound designer before rendering (decision 17, 2026-11-08).",
   "effects": {
@@ -13,7 +13,9 @@
     },
     "touch": {
       "take": "s1-touch-2",
-      "why": "peak 0.25 s into the 1 s gap at the touch, -26 LUFS momentary, faded where Tom resumes"
+      "why": "peak 0.25 s into the 1 s gap at the touch, -26 LUFS momentary, faded where Tom resumes",
+      "trimDb": -3.0,
+      "trim": "Mix 2: the artist heard the touch as an impact on mix 1 (2026-11-08), so it is 3 dB under the effects page's first level (-29 LUFS momentary)."
     }
   },
   "pond": {
@@ -47,7 +49,15 @@
   },
   "score": {
     "dipMaxDb": 2.0,
-    "why": "The score is the one the artist chose; it is eased only where the effects and night under a line would bring the bed within the floors below, held 1.5 s before to 2.5 s after the line and smoothed over 2 s, as its own ride."
+    "why": "The score is the one the artist chose; it is eased only where the effects and night under a line would bring the bed within the floors below, held 1.5 s before to 2.5 s after the line and smoothed over 2 s, as its own ride.",
+    "holds": [
+      {
+        "from": 132.6,
+        "to": 134.5,
+        "db": -4.0,
+        "why": "Mix 2: the artist heard the score answer the touch on mix 1 (it rises at 133.0 s, 0.9 s after it); one held dip, smoothed like the ride, not an edit (the sound designer's contingency)."
+      }
+    ]
   },
   "night": {
     "lufs": -45,
@@ -62,5 +72,12 @@
     "dialogueLraMax": 8.0,
     "dialogueAndEffectsLraMax": 8.0,
     "rippleInGapOverBedDb": 6.0
+  },
+  "artist": {
+    "mix1": {
+      "at": "2026-11-08",
+      "said": "The mix: yes / Effects: as they are / The touch: an impact / Music answers the touch: yes / Pond falls still: yes / Notes: i dont have it on a phone so i dont know about those too but it's great",
+      "note": "Heard without a phone. Mix 2 makes the two changes those answers called for; the phone listening is still to come."
+    }
   }
 }
