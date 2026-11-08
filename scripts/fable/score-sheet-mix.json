@@ -1,0 +1,265 @@
+{
+  "key": "mix-1",
+  "title": "Fox and Moon Soundtrack",
+  "heading": "The whole soundtrack",
+  "lede": "Everything you chose, mixed: Tom, the night, the score at level 3, the curtains, the pond, the branch and the touch, with the ripples made from the pond itself. Three minutes, from the curtains to the black.",
+  "notes": [
+    "On the phone's own speaker, at the volume you'd watch at, then once on headphones. Straight through as C first, then use the jumps and switch; the place is kept.",
+    "A is Tom and the night, the locked cut. B adds the score as you chose it. C is the whole mix.",
+    "The pond cuts in with the cut to the pond and stays at one quiet level: under Tom it would only blur his consonants, so you'll hear it most in the long silences.",
+    "At the touch the pond is stirred: a lap comes in the silence after the paw, then the water settles, and it is still (silent) by &ldquo;By the time the pond was still&rdquo;. It doesn't come back: not over the empty pond, not at the last glance.",
+    "The score is as you chose it, eased by at most 0.7 dB in places. Tom is the locked cut, untouched.",
+    "It stops with the image at the cut; the 3 seconds of black stay silent. The picture isn't in it yet."
+  ],
+  "versions": [
+    {
+      "key": "A",
+      "label": "Tom",
+      "file": "A.mp3"
+    },
+    {
+      "key": "B",
+      "label": "Score",
+      "file": "B.mp3"
+    },
+    {
+      "key": "C",
+      "label": "Mix",
+      "file": "C.mp3"
+    }
+  ],
+  "start": "C",
+  "asks": [
+    {
+      "key": "mix",
+      "title": "Is this the film's sound?",
+      "short": "The mix",
+      "options": [
+        {
+          "value": "yes",
+          "label": "Yes",
+          "keep": true
+        },
+        {
+          "value": "nearly",
+          "label": "Nearly"
+        },
+        {
+          "value": "no",
+          "label": "No"
+        }
+      ]
+    },
+    {
+      "key": "effects",
+      "title": "The effects, against Tom and the score?",
+      "short": "Effects",
+      "options": [
+        {
+          "value": "as they are",
+          "label": "As they are",
+          "keep": true
+        },
+        {
+          "value": "louder",
+          "label": "Louder"
+        },
+        {
+          "value": "quieter",
+          "label": "Quieter"
+        }
+      ]
+    },
+    {
+      "key": "touch",
+      "title": "The touch, on the phone: small, or an impact?",
+      "short": "The touch",
+      "options": [
+        {
+          "value": "small",
+          "label": "Small",
+          "keep": true
+        },
+        {
+          "value": "an impact",
+          "label": "An impact"
+        }
+      ]
+    },
+    {
+      "key": "answer",
+      "title": "Does the music seem to answer the touch?",
+      "short": "Music answers the touch",
+      "options": [
+        {
+          "value": "no",
+          "label": "No",
+          "keep": true
+        },
+        {
+          "value": "yes",
+          "label": "Yes"
+        }
+      ]
+    },
+    {
+      "key": "pond",
+      "title": "The pond falling still after the touch, and staying silent?",
+      "short": "Pond falls still",
+      "options": [
+        {
+          "value": "yes",
+          "label": "Yes",
+          "keep": true
+        },
+        {
+          "value": "no",
+          "label": "No"
+        }
+      ]
+    }
+  ],
+  "notesHint": "A sound that should go or come in, a place that wants more or less, anything that pulls you out.",
+  "copyTitle": "The whole soundtrack, mix 1",
+  "jumps": [
+    {
+      "label": "The curtains",
+      "at": 0
+    },
+    {
+      "label": "The pond",
+      "p": 6,
+      "offset": -1
+    },
+    {
+      "label": "The ease",
+      "p": 7,
+      "offset": 1.5
+    },
+    {
+      "label": "The rest",
+      "p": 16,
+      "offset": -0.5
+    },
+    {
+      "label": "The branch",
+      "p": 19,
+      "offset": -1.5
+    },
+    {
+      "label": "The touch",
+      "p": 23,
+      "offset": 1.5
+    },
+    {
+      "label": "Falls still",
+      "p": 24,
+      "offset": -1
+    },
+    {
+      "label": "The empty pond",
+      "p": 28,
+      "offset": -1
+    },
+    {
+      "label": "The end",
+      "p": 32,
+      "offset": -1
+    }
+  ],
+  "places": [
+    {
+      "label": "The curtains and the hill",
+      "from": [
+        1,
+        -6
+      ],
+      "to": [
+        6,
+        0
+      ],
+      "C": "the curtains part"
+    },
+    {
+      "label": "The company",
+      "from": [
+        6,
+        0
+      ],
+      "to": [
+        9,
+        0
+      ],
+      "C": "the pond comes in"
+    },
+    {
+      "label": "He hides",
+      "from": [
+        9,
+        0
+      ],
+      "to": [
+        15,
+        0
+      ]
+    },
+    {
+      "label": "His request and the rest",
+      "from": [
+        15,
+        0
+      ],
+      "to": [
+        17,
+        0
+      ]
+    },
+    {
+      "label": "Her light returns, the branch",
+      "from": [
+        17,
+        0
+      ],
+      "to": [
+        22,
+        0
+      ],
+      "C": "the branch"
+    },
+    {
+      "label": "The reach and the broken reflection",
+      "from": [
+        22,
+        0
+      ],
+      "to": [
+        25,
+        0
+      ],
+      "C": "the touch, the ripples, the pond falls still"
+    },
+    {
+      "label": "Separate nights",
+      "from": [
+        25,
+        0
+      ],
+      "to": [
+        29,
+        0
+      ],
+      "C": "the night air only"
+    },
+    {
+      "label": "The return",
+      "from": [
+        29,
+        0
+      ],
+      "to": [
+        33,
+        6
+      ]
+    }
+  ]
+}

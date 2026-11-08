@@ -14,12 +14,19 @@ const at = (p) => cut.units.find((u) => u.p === p).at;
 const time = ([p, offset]) => Math.max(0, at(p) + offset);
 const uri = (file) => `data:audio/mpeg;base64,${readFileSync(file).toString('base64')}`;
 
+// The questions: a page lists its own `asks`; the music pages asked whether the instruments belong,
+// then their `choose`.
+const BELONGS = {
+  key: 'belongs', title: "Do these instruments belong with Tom's voice?", short: 'Instruments belong with Tom',
+  options: [{ value: 'yes', label: 'Yes', keep: true }, { value: 'not quite', label: 'Not quite' }, { value: 'no', label: 'No' }],
+};
 const data = {
   key: page.key,
   length: cut.length.withBlack,
   versions: page.versions.map(({ key, label }) => ({ key, label })),
   start: page.start,
-  choose: page.choose,
+  asks: page.asks ?? [BELONGS, { key: 'choice', ...page.choose }],
+  notesHint: page.notesHint ?? 'A place that wants more or less, the level, the instruments, anything that pulls you out.',
   copyTitle: page.copyTitle,
   src: Object.fromEntries(page.versions.map((v) => [v.key, uri(join(mixes, v.file))])),
   jumps: page.jumps.map((j) => ({ label: j.label, at: Math.floor('at' in j ? j.at : at(j.p) + j.offset) })),

@@ -23,3 +23,5 @@ audition/fable/music/
 # Sound-effect takes too: the Sound Effects terms bar isolated audio files and effects libraries
 # (scripts/fable/sfx-ledger.json has their generation ids)
 audition/fable/sfx/
+# The soundtrack mix and its stems hold that music and those effects (scripts/fable/mix.py)
+audition/fable/mix/

@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "radioCut": 1,
+  "note": "The soundtrack mix of the fable on radio cut v1: Tom, the night, the score the artist chose (m3-f-1 at level 3) and the four effects the artist chose (round s1), with the pond's ripples made in code from the pond take. Read by scripts/fable/mix.py; its measurements go to scripts/fable/mix-render.json. Reviewed by the sound designer before rendering (decision 17, 2026-11-08).",
+  "effects": {
+    "curtains": {
+      "take": "s1-curtains-1",
+      "why": "from 0.5 s, loudest moment -30 LUFS momentary, over before the first line"
+    },
+    "branch": {
+      "take": "s1-branch-2",
+      "why": "from 0.5 s before paragraph 19, one gain: 12 LU under each line it lies under, 9 through the phone stand-in"
+    },
+    "touch": {
+      "take": "s1-touch-2",
+      "why": "peak 0.25 s into the 1 s gap at the touch, -26 LUFS momentary, faded where Tom resumes"
+    }
+  },
+  "pond": {
+    "take": "s1-pond-1",
+    "in": {
+      "at": 31.3,
+      "fadeS": 0.1,
+      "why": "cut in with the picture's cut to the pond, in the silence before paragraph 6 (hard cuts between places; the image leads the words). A placeholder until the exposure sheet gives the frame."
+    },
+    "lufs": -47.0,
+    "level": "One level: under words it only masks Tom's consonants (it is the only sound above 2 kHz); in the silences it stays the only water up there.",
+    "splice": {
+      "at": 67.5,
+      "jumpS": 10.0,
+      "crossfadeS": 0.1,
+      "why": "the ease and the rest are 59.9 s apart, three loops, so without a jump they replay the same lapping; the read jumps 10 s under paragraph 11"
+    }
+  },
+  "ripples": {
+    "stirDb": 7.0,
+    "lapAfterTouchS": 0.35,
+    "tauS": 2.5,
+    "shelfHz": 2000,
+    "shelfDb": 4.0,
+    "stillAt": 139.47,
+    "fadeToZeroS": 1.0,
+    "why": "A second read of the pond take, brighter and 7 dB over the bed, placed so a lap starts 0.35 s after the touch's peak, inside the silence. From the touch, bed and stir decay together on one envelope (tau 2.5 s in amplitude, about -3.5 dB/s), reach the night's level in the silence after 'breaking her reflection into pieces.', and are digital silence by the end of 'still,' (139.47 s, Scribe).",
+    "underWordsLU": 12.0,
+    "underWordsPhoneLU": 9.0,
+    "underWords": "Under 'His paw struck the water...' the ripples keep the branch's rule (12 LU under the line, 9 through the phone stand-in): placed as above they came within 4.2 LU of Tom on the phone, the closest sound to him in the film. The rule only ever lowers them."
+  },
+  "score": {
+    "dipMaxDb": 2.0,
+    "why": "The score is the one the artist chose; it is eased only where the effects and night under a line would bring the bed within the floors below, held 1.5 s before to 2.5 s after the line and smoothed over 2 s, as its own ride."
+  },
+  "night": {
+    "lufs": -45,
+    "why": "As locked in the radio cut. The music review offered the artist the night from -42 again; -45 stands unless the artist asks (through the phone stand-in it is -47.6 to -51.4 short-term in the long silences)."
+  },
+  "gates": {
+    "underWordsLU": 6.0,
+    "underWordsPhoneLU": 3.0,
+    "silenceMomentaryMax": -26.0,
+    "touchGapAllowanceLU": 0.5,
+    "truePeakMax": -3.0,
+    "dialogueLraMax": 8.0,
+    "dialogueAndEffectsLraMax": 8.0,
+    "rippleInGapOverBedDb": 6.0
+  }
+}

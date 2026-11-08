@@ -104,23 +104,11 @@
     <div class="where" id="where" aria-live="off"></div>
   </section>
 
-  <section class="ask">
-    <h2>Do these instruments belong with Tom's voice?</h2>
-    <div class="marks" role="group" aria-label="Do the instruments belong with Tom's voice">
-      <button type="button" data-q="belongs" data-a="yes" class="keep" aria-pressed="false">Yes</button>
-      <button type="button" data-q="belongs" data-a="not quite" aria-pressed="false">Not quite</button>
-      <button type="button" data-q="belongs" data-a="no" aria-pressed="false">No</button>
-    </div>
-  </section>
-
-  <section class="ask">
-    <h2 id="choose-title"></h2>
-    <div class="marks" role="group" id="choose"></div>
-  </section>
+  <div id="asks" style="display:grid;gap:28px"></div>
 
   <section>
     <h2>Anything else</h2>
-    <p class="small" style="margin:0 0 6px">A place that wants more or less, the level, the instruments, anything that pulls you out.</p>
+    <p class="small" style="margin:0 0 6px" id="notes-hint"></p>
     <textarea id="notes" aria-label="Notes on the music in the film"></textarea>
   </section>
 
@@ -152,19 +140,28 @@ for (const v of DATA.versions) {
   b.innerHTML = `<b>${v.key}</b>${v.label}`;
   versionsEl.append(b);
 }
-document.getElementById('choose-title').textContent = DATA.choose.title;
-const chooseEl = document.getElementById('choose');
-chooseEl.setAttribute('aria-label', DATA.choose.title);
-for (const o of DATA.choose.options) {
-  const b = document.createElement('button');
-  b.type = 'button';
-  b.dataset.q = 'choice';
-  b.dataset.a = o.value;
-  if (o.keep) b.className = 'keep';
-  b.setAttribute('aria-pressed', 'false');
-  b.textContent = o.label;
-  chooseEl.append(b);
+// The questions, from the page's data: each a row of answers.
+const asksEl = document.getElementById('asks');
+for (const q of DATA.asks) {
+  const sec = document.createElement('section');
+  sec.className = 'ask';
+  sec.innerHTML = '<h2></h2><div class="marks" role="group"></div>';
+  sec.querySelector('h2').textContent = q.title;
+  const row = sec.querySelector('.marks');
+  row.setAttribute('aria-label', q.title);
+  for (const o of q.options) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.dataset.q = q.key;
+    b.dataset.a = o.value;
+    if (o.keep) b.className = 'keep';
+    b.setAttribute('aria-pressed', 'false');
+    b.textContent = o.label;
+    row.append(b);
+  }
+  asksEl.append(sec);
 }
+document.getElementById('notes-hint').textContent = DATA.notesHint;
 
 // One audio element per version; only the chosen one plays, and switching carries the place over.
 const players = {};
@@ -244,7 +241,7 @@ function paint() {
 
 const summary = document.getElementById('summary');
 document.getElementById('copy').addEventListener('click', () => {
-  const lines = [DATA.copyTitle, `Instruments belong with Tom: ${state.belongs ?? '-'}`, `${DATA.choose.short}: ${state.choice ?? '-'}`];
+  const lines = [DATA.copyTitle, ...DATA.asks.map((q) => `${q.short}: ${state[q.key] ?? '-'}`)];
   if (state.notes?.trim()) lines.push(`Notes: ${state.notes.trim()}`);
   const text = lines.join('\n');
   summary.value = text;
