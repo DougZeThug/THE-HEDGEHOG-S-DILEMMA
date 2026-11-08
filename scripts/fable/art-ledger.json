@@ -11,7 +11,8 @@
     "source": "references/fable/Fox_and_Moon_Orange_Reference_v2.png via the repository's public raw URL"
   },
   "spent": {
-    "k1": 9788.44
+    "k1": 9788.44,
+    "k2": 9830.86
   },
   "rounds": {
     "k1": {
@@ -165,7 +166,190 @@
         "url": "https://claude.ai/artifact/4xTzcBbGtqbYQF1ywPjr7P",
         "built": "node scripts/fable/build_kit_sheet.mjs k1 IMAGES_DIR scripts/fable/kit-sheet.html OUT (IMAGES_DIR: <take>-view.jpg at 1600 px and the detail crops)"
       },
-      "reviews": "Creative director: A1 is him (face, muzzle, dark almond eye, charcoal-backed ears); B's amber eye, smile and eyelets and C's feather fur and 7-10 pins drift. Technical artist: no take can be cut into a rig (pieces painted over each other, mixed pin hardware, flat-topped joints, baked light, half the pixels are real detail). Skeptic: so the pieces are made as pose families, each an edit of the picked sheet, cut into about six layers. See docs/reviews/2026-10-fable.md."
+      "reviews": "Creative director: A1 is him (face, muzzle, dark almond eye, charcoal-backed ears); B's amber eye, smile and eyelets and C's feather fur and 7-10 pins drift. Technical artist: no take can be cut into a rig (pieces painted over each other, mixed pin hardware, flat-topped joints, baked light, half the pixels are real detail). Skeptic: so the pieces are made as pose families, each an edit of the picked sheet, cut into about six layers. See docs/reviews/2026-10-fable.md.",
+      "choices": {
+        "at": "2026-11-08",
+        "by": "artist",
+        "said": "Yes, A1 (chat); on the page: A1: yes, others unmarked; Him: A1; Eye: dark almond, as in A and your reference; Pins: a few, at shoulder, elbow, hip, knee and hock",
+        "pick": "k1-sheet-nb-1",
+        "eye": "dark almond, as in A1 and the reference (the artist, on the page)",
+        "pins": "a few, at shoulder, elbow, hip, knee and hock (the artist, on the page)"
+      }
+    },
+    "k2": {
+      "at": "2026-11-08",
+      "purpose": "The pieces for one composited still of the touch (decided after the skeptic: shown to the artist beside panel 5 before any rig): the touch pose family as an edit of A1, the pond-close set as one empty plate, the tissue moon.",
+      "flow": "O48uIu8RgtheF1BbIS5r",
+      "nodes": {
+        "touch": {
+          "node": "mwqt9y2zvN1gKWjkobO8",
+          "model": "gemini-3-pro-image",
+          "from": "A1 (asset node BtzWPbqYtnkUXhCjricz)",
+          "settings": {
+            "aspect_ratio": "16:9",
+            "resolution": "4K"
+          }
+        },
+        "set": {
+          "node": "2UpaQJho5bijSMLnSdc8",
+          "model": "gemini-3-pro-image",
+          "from": "the reference sheet",
+          "settings": {
+            "aspect_ratio": "4:3",
+            "resolution": "4K"
+          }
+        },
+        "moon": {
+          "node": "8zOIAWn0hlDL0wtnCxKK",
+          "model": "gpt-image-2.6-sunburst",
+          "from": "the reference sheet",
+          "settings": {
+            "aspect_ratio": "1:1",
+            "resolution": "2K",
+            "quality": "high"
+          }
+        }
+      },
+      "estimate": 9830.87,
+      "status": "run once 2026-11-08 after pricing (no-cap budget); billed as estimated",
+      "looked": "touch-1: hips planted, leaning out, near foreleg fully reached with the paw flat; no pins; A1's design; head level, not lowered as in panel 5; a faint smile line. touch-2: a stalking crouch on four legs (rejected: reads as hunting). set-1: dark bank ledge, crumpled tissue water, deciduous card trees; brighter and craftier than the reference. set-2: light kraft bank, pines; further from the reference. moon-1: a backlit tissue disc, close to the reference's moon, a little orange.",
+      "sheet": {
+        "title": "Fox and Moon Touch Still",
+        "heading": "The touch, as a still",
+        "lede": "Him at the touch, put together from the new pieces: the A1 puppet in a reaching pose, the pond set, the tissue moon, her reflection breaking and the first rings, lit by the moon. Nothing is animated yet; this is the cheapest place to see whether the pieces can reach your panel 5.",
+        "detail": [
+          {
+            "file": "still-beside-view.jpg",
+            "caption": "Your panel 5 (left) beside the still in the phone framing (right)."
+          },
+          {
+            "file": "still-fox-view.jpg",
+            "caption": "The fox at the size he is in the film, with his four brass pins and the moon on his edges."
+          }
+        ],
+        "notes": [
+          "The fox is the A1 puppet, cut off its card, flipped to face right, graded to your reference's orange, cream and charcoal, and lit in the compositor: the moon's light on his edges, her warm light rising from the water under his chin, four brass pins.",
+          "Her reflection is a path of broken strips down the water, as your panel paints it, breaking where his paw comes down; the first rings spread from the paw.",
+          "What I can see is still short of your panel: his head is level and alert where yours is lowered and sad; the generated set is craft-paper bright, with cartoon trees and a flat slab of bank, where yours is misty and painterly; the path's strips are too regular.",
+          "The pose and the set are the next round of generation, made to your answers here; the compositing is free to change."
+        ],
+        "images": [
+          {
+            "id": "still-column",
+            "label": "The still",
+            "model": "composited",
+            "size": "1152 by 1440 (the phone column)",
+            "note": "The touch in the phone framing."
+          },
+          {
+            "id": "still-matte",
+            "label": "Wide",
+            "model": "composited",
+            "size": "1920 by 1440 (the open matte)",
+            "note": "The whole frame; desktops see a 16:9 band of it.",
+            "mark": false
+          },
+          {
+            "id": "k2-touch-1",
+            "label": "The pose",
+            "model": "Nano Banana Pro, an edit of A1",
+            "size": "5504 by 3072",
+            "note": "The reaching pose as generated, before cutting, grading and light.",
+            "mark": false
+          },
+          {
+            "id": "k2-set-1",
+            "label": "The set",
+            "model": "Nano Banana Pro",
+            "size": "4800 by 3584",
+            "note": "The pond set as generated, before grading, haze and the moon.",
+            "mark": false
+          },
+          {
+            "id": "k2-moon-1",
+            "label": "The moon",
+            "model": "GPT Image 2.6",
+            "size": "2048 by 2048",
+            "note": "The tissue moon as generated.",
+            "mark": false
+          }
+        ],
+        "mark": {
+          "label": "Right for the film?",
+          "options": [
+            {
+              "value": "yes",
+              "label": "Yes",
+              "keep": true
+            },
+            {
+              "value": "nearly",
+              "label": "Nearly"
+            },
+            {
+              "value": "no",
+              "label": "No"
+            }
+          ]
+        },
+        "asks": [
+          {
+            "key": "head",
+            "title": "His head at the touch?",
+            "short": "Head",
+            "options": [
+              {
+                "value": "lowered and sad, as in panel 5",
+                "label": "Lowered, as panel 5",
+                "keep": true
+              },
+              {
+                "value": "as it is",
+                "label": "As it is",
+                "keep": true
+              }
+            ]
+          },
+          {
+            "key": "set",
+            "title": "The set?",
+            "short": "Set",
+            "options": [
+              {
+                "value": "closer to my panels: misty, painterly, darker bank, pines",
+                "label": "Closer to my panels",
+                "keep": true
+              },
+              {
+                "value": "this cut-paper set works",
+                "label": "This works",
+                "keep": true
+              }
+            ]
+          },
+          {
+            "key": "path",
+            "title": "Her reflection?",
+            "short": "Reflection",
+            "options": [
+              {
+                "value": "more like panel 5: broader, brighter, more broken",
+                "label": "More like panel 5",
+                "keep": true
+              },
+              {
+                "value": "as it is",
+                "label": "As it is",
+                "keep": true
+              }
+            ]
+          }
+        ],
+        "copyTitle": "The touch, as a still (k2)",
+        "published": true,
+        "url": "https://claude.ai/artifact/5JWpTRQDrkvmRFiFWoR3yU",
+        "built": "python -I scripts/fable/still.py OUT; then node scripts/fable/build_kit_sheet.mjs k2 OUT scripts/fable/kit-sheet.html PAGE (the <id>-view.jpg images made from still.py's output and the takes)"
+      }
     }
   },
   "entries": {
@@ -176,14 +360,15 @@
       "session": "xNPmVPEfWs6XEyN3gCZM",
       "file": "fable/kit/k1-sheet-nb-1.png",
       "status": "saved",
-      "review": "pending",
+      "review": "approved",
       "size": [
         5504,
         3072
       ],
       "duration": null,
       "bytes": 18231067,
-      "cost": 2272.27
+      "cost": 2272.27,
+      "mark": "yes"
     },
     "k1-sheet-nb-2": {
       "round": "k1",
@@ -192,7 +377,7 @@
       "session": "FUwmloal4CgAU46mjLvL",
       "file": "fable/kit/k1-sheet-nb-2.png",
       "status": "saved",
-      "review": "pending",
+      "review": "reference only",
       "size": [
         5504,
         3072
@@ -208,7 +393,7 @@
       "session": "kSmN40h2xCkcTcOvfvpC",
       "file": "fable/kit/k1-parts-nb-1.png",
       "status": "saved",
-      "review": "pending",
+      "review": "reference only",
       "size": [
         5504,
         3072
@@ -224,7 +409,7 @@
       "session": "B46lRcD2d4GJuQpyrAlN",
       "file": "fable/kit/k1-parts-nb-2.png",
       "status": "saved",
-      "review": "pending",
+      "review": "reference only",
       "size": [
         5504,
         3072
@@ -240,7 +425,7 @@
       "session": "GmJhZ0cMt0nl4TaeVwXW",
       "file": "fable/kit/k1-sheet-gpt-1.png",
       "status": "saved",
-      "review": "pending",
+      "review": "reference only",
       "size": [
         2048,
         1152
@@ -256,7 +441,7 @@
       "session": "flfZNvJIQIOYnGzp8sxX",
       "file": "fable/kit/k1-sheet-gpt-2.png",
       "status": "saved",
-      "review": "pending",
+      "review": "reference only",
       "size": [
         2048,
         1152
@@ -264,6 +449,72 @@
       "duration": null,
       "bytes": 3806188,
       "cost": 349.68
+    },
+    "k2-touch-1": {
+      "round": "k2",
+      "node": "touch",
+      "generation": "vqg3PP6PkEmPHOmbRt4r",
+      "session": "WeoGvuXO40gZbchnZCfN",
+      "file": "fable/kit/k2-touch-1.png",
+      "status": "saved",
+      "review": "pending",
+      "cost": 2272.27,
+      "duration": null,
+      "bytes": 17913542
+    },
+    "k2-touch-2": {
+      "round": "k2",
+      "node": "touch",
+      "generation": "2FnWLafTwrH7ShRcjkS7",
+      "session": "juSNJZFKchZNQbjDw6Qt",
+      "file": "fable/kit/k2-touch-2.png",
+      "status": "saved",
+      "review": "pending",
+      "cost": 2272.27,
+      "duration": null,
+      "bytes": 18169835
+    },
+    "k2-set-1": {
+      "round": "k2",
+      "node": "set",
+      "generation": "yO2x8oEXd1Y2r15eDzfh",
+      "session": "PICsNegPOfdh3VuTLIG5",
+      "file": "fable/kit/k2-set-1.png",
+      "status": "saved",
+      "review": "pending",
+      "cost": 2272.27,
+      "duration": null,
+      "bytes": 20549941
+    },
+    "k2-set-2": {
+      "round": "k2",
+      "node": "set",
+      "generation": "iPXCp4cf0f5s3lZqLHBc",
+      "session": "vI2kejQLSijfM7muLbul",
+      "file": "fable/kit/k2-set-2.png",
+      "status": "saved",
+      "review": "pending",
+      "cost": 2272.27,
+      "duration": null,
+      "bytes": 21111131
+    },
+    "k2-moon-1": {
+      "round": "k2",
+      "node": "moon",
+      "generation": "BwTFFUSJU89NFSrkNcm0",
+      "session": "KivgutGpEq3Tm5JkzES3",
+      "file": "fable/kit/k2-moon-1.png",
+      "status": "saved",
+      "review": "pending",
+      "cost": 741.78,
+      "duration": null,
+      "bytes": 7408476
     }
+  },
+  "model": {
+    "sheet": "k1-sheet-nb-1",
+    "file": "fable/kit/k1-sheet-nb-1.png",
+    "generation": "aTpu55zOnUHoQUgEA1By",
+    "note": "The approved model sheet (A1). Every pose family is generated as an edit of it, facing left as it does, and flipped in compositing to face right as the reference does."
   }
 }

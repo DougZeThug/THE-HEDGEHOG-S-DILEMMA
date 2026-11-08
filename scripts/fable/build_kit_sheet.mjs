@@ -13,7 +13,9 @@ const round = ledger.rounds[roundId];
 const s = round.sheet;
 const uri = (file) => `data:image/jpeg;base64,${readFileSync(join(dir, file)).toString('base64')}`;
 
-const takes = Object.entries(ledger.entries).filter(([, e]) => e.round === roundId).map(([id, e]) => {
+// A round's page shows either its own takes or, when its sheet lists `images`, those (a composite
+// and what it was made from), each <id>-view.jpg in IMAGES_DIR.
+const takes = s.images ? s.images.map((im) => ({ ...im, src: uri(`${im.id}-view.jpg`) })) : Object.entries(ledger.entries).filter(([, e]) => e.round === roundId).map(([id, e]) => {
   const node = round.nodes[e.node];
   return {
     id,
@@ -29,6 +31,7 @@ const data = {
   copyTitle: s.copyTitle,
   detail: s.detail.map((d) => ({ caption: d.caption, src: uri(d.file) })),
   takes,
+  mark: s.mark ?? { label: 'Him?', options: [{ value: 'yes', label: 'Yes', keep: true }, { value: 'close', label: 'Close' }, { value: 'no', label: 'No' }] },
   asks: s.asks,
 };
 const html = readFileSync(template, 'utf8')

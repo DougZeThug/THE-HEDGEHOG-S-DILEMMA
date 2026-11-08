@@ -136,14 +136,24 @@ for (const t of DATA.takes) {
   sec.dataset.id = t.id;
   sec.innerHTML = `<div class="take-name">${t.label} <span>${DOT} ${t.model}, ${t.size}</span></div>`;
   sec.append(figure(t.src, t.note, t.label));
-  const ask = document.createElement('div');
-  ask.className = 'ask';
-  ask.innerHTML = `<span>Him?</span><div class="marks" role="group" aria-label="Is ${t.label} him">
-      <button type="button" data-mark="yes" class="keep" aria-pressed="false">Yes</button>
-      <button type="button" data-mark="close" aria-pressed="false">Close</button>
-      <button type="button" data-mark="no" aria-pressed="false">No</button></div>`;
-  ask.querySelectorAll('[data-mark]').forEach((b) => b.addEventListener('click', () => { state.marks[t.id] = b.dataset.mark; save(); paint(); }));
-  sec.append(ask);
+  if (t.mark !== false) {
+    const ask = document.createElement('div');
+    ask.className = 'ask';
+    ask.innerHTML = '<span></span><div class="marks" role="group"></div>';
+    ask.querySelector('span').textContent = DATA.mark.label;
+    const row = ask.querySelector('.marks');
+    row.setAttribute('aria-label', `${t.label}: ${DATA.mark.label}`);
+    for (const o of DATA.mark.options) {
+      const b = document.createElement('button');
+      b.type = 'button'; b.dataset.mark = o.value;
+      if (o.keep) b.className = 'keep';
+      b.setAttribute('aria-pressed', 'false');
+      b.textContent = o.label;
+      b.addEventListener('click', () => { state.marks[t.id] = o.value; save(); paint(); });
+      row.append(b);
+    }
+    sec.append(ask);
+  }
   takesEl.append(sec);
 }
 
@@ -177,13 +187,13 @@ function paint() {
     s.classList.toggle('chosen', state.anchor === s.dataset.id);
   });
   document.querySelectorAll('[data-q]').forEach((b) => b.setAttribute('aria-pressed', String(state[b.dataset.q] === b.dataset.a)));
-  const left = DATA.takes.filter((t) => !state.marks[t.id]).length;
+  const left = DATA.takes.filter((t) => t.mark !== false && !state.marks[t.id]).length;
   status.textContent = left ? `${left} take${left === 1 ? '' : 's'} still to mark` : 'All marked';
 }
 
 const summary = document.getElementById('summary');
 document.getElementById('copy').addEventListener('click', () => {
-  const lines = [DATA.copyTitle, ...DATA.takes.map((t) => `${t.label}: ${state.marks[t.id] ?? '-'}`),
+  const lines = [DATA.copyTitle, ...DATA.takes.filter((t) => t.mark !== false).map((t) => `${t.label}: ${state.marks[t.id] ?? '-'}`),
     ...DATA.asks.map((q) => {
       const a = state[q.key];
       const take = q.key === 'anchor' && DATA.takes.find((t) => t.id === a);
