@@ -129,6 +129,14 @@
       "sheet": {
         "published": true,
         "config": "scripts/fable/score-sheet-through.json"
+      },
+      "choices": {
+        "at": "2026-11-08",
+        "by": "artist, on the full-score page",
+        "pick": "m3-f-1",
+        "belongs": "yes",
+        "level": 9,
+        "said": "The whole fable scored, m3-f-1 / Instruments belong with Tom: yes / Level: 3, closer (9 LU under)"
       }
     }
   },
@@ -456,12 +464,25 @@
       "session": "wU0lu28WLQOcZOCR9k5T",
       "file": "fable/music/m3-f-1.mp3",
       "status": "saved",
-      "review": "pending",
+      "review": "approved",
       "duration": 180,
       "bytes": 4338322,
       "cost": 2699.4,
-      "reference": "m2-d-2 (confirmed in the run result)"
+      "reference": "m2-d-2 (confirmed in the run result)",
+      "mark": "yes"
     }
+  },
+  "score": {
+    "take": "m3-f-1",
+    "typicalMarginLU": 9,
+    "radioCut": 1,
+    "chosen": {
+      "at": "2026-11-08",
+      "by": "artist"
+    },
+    "render": "scripts/fable/score_through.py m3-f-1 STEMS_DIR OUT_DIR 15 12 9 --stem 9; the figures are versions['9'] in scripts/fable/score-through-render.json",
+    "stem": "fable/music/score-m3-f-1-9lu.wav",
+    "stemNote": "Music alone with the gain (-14.4 dB) and the slow ride applied, mono as heard, 44.1 kHz, sample-aligned with radio-cut.wav including the black (180.72 s; the last music sample is at the cut, 177.72 s). Stem plus the locked cut equals the mix the artist chose to within one 16-bit step. Kept locally, like the takes."
   },
   "audio": "The takes are kept locally in audition/fable/music/ and not committed: the Music Terms bar making output available as a downloadable music library, and the repository may be public. The generation ids above reach them in the ElevenLabs workspace."
 }

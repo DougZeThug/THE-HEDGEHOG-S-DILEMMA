@@ -13,8 +13,11 @@ phone stand-in keeps at least max(3, typical - 6) LU. Each level is a version fo
 choose by ear; the report gives, for each, the ride and how close the music comes to Tom under
 every line, so masking is visible before anyone listens.
 
-Usage: python scripts/fable/score_through.py TAKE_ID STEMS_DIR OUT_DIR LU [LU ...]
-Writes OUT_DIR/{A,<LU>}.mp3 and scripts/fable/score-through-render.json.
+Usage: python scripts/fable/score_through.py TAKE_ID STEMS_DIR OUT_DIR LU [LU ...] [--stem LU]
+Writes OUT_DIR/{A,<LU>}.mp3 and scripts/fable/score-through-render.json. With --stem, it also writes
+that level's music alone (gain and ride applied, mono as heard, sample-aligned with radio-cut.wav
+including the black) to audition/fable/music/score-TAKE_ID-<LU>lu.wav, the film's score stem. It is
+Eleven Music output, so it stays in the gitignored folder with the takes.
 """
 import json
 import sys
@@ -33,8 +36,16 @@ CUT_AT = CUT['length']['toCut']
 
 
 def main():
-    take_id, stems, out = sys.argv[1], Path(sys.argv[2]), Path(sys.argv[3])
-    levels = [float(x) for x in sys.argv[4:]]
+    args = sys.argv[1:]
+    stem_lu = None
+    if '--stem' in args:
+        i = args.index('--stem')
+        stem_lu = float(args[i + 1])
+        del args[i:i + 2]
+    take_id, stems, out = args[0], Path(args[1]), Path(args[2])
+    levels = [float(x) for x in args[3:]]
+    if stem_lu is not None and stem_lu not in levels:
+        sys.exit(f'--stem {stem_lu:g} is not one of the levels rendered')
     out.mkdir(parents=True, exist_ok=True)
     entry = MUSIC['entries'][take_id]
     take = decode(ROOT / 'audition' / entry['file'])
@@ -95,6 +106,10 @@ def main():
                           'phoneMargin': round(float(median_voice(pt, pl, u) - peak_in(mt, mlp, u['at'], u['end'], 0.4)), 1)})
         mix = out / f'{lu:g}.wav'
         write_wav(cut + m, mix)
+        if lu == stem_lu:
+            stem = ROOT / 'audition' / 'fable' / 'music' / f'score-{take_id}-{lu:g}lu.wav'
+            write_wav(m, stem)
+            print(f'score stem: {stem.relative_to(ROOT)} ({len(m) / RATE:.2f} s)')
         loud = ffmpeg_loudness(mix)
         mp3(mix, out / f'{lu:g}.mp3')
         worst = sorted(lines, key=lambda x: x['margin'])[:3]
