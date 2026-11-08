@@ -20,3 +20,6 @@ references/The Fox the Moon/
 # Eleven Music takes stay local: the Music Terms bar offering output as a downloadable library
 # (scripts/fable/music-ledger.json has their generation ids)
 audition/fable/music/
+# Sound-effect takes too: the Sound Effects terms bar isolated audio files and effects libraries
+# (scripts/fable/sfx-ledger.json has their generation ids)
+audition/fable/sfx/

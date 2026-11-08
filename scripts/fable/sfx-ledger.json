@@ -1,0 +1,92 @@
+{
+  "note": "Sound effects for the fable, made with ElevenLabs Sound Effects v2 through the full ElevenLabs connector. What is generated follows decision 17 in docs/reviews/2026-10-fable.md: curtain cloth on wooden rings, one 8-10 s rustle, a small wet touch and water lapping, 2-4 takes each, chosen by ear. Night air and the ripples' decay are made in code. No crickets, no paw steps.",
+  "terms": {
+    "checked": "2026-11-08",
+    "source": "https://elevenlabs.io/sound-effects-terms (ElevenCreative Terms, Exhibit 4, last updated 9 October 2026)",
+    "film": "Permitted: Exhibit 4, section 2 names incorporating Output into films and other productions, and publicly performing it. Unlike the Music Terms, there is no film exclusion.",
+    "conditions": "Commercial use only where the plan permits it; Output used only combined with other material; never offered on a standalone basis, as isolated audio files or samples, or in a sound or effects library. Community Sharing stays off.",
+    "consequence": "The takes stay local in audition/fable/sfx/ (gitignored) and reach visitors only mixed into the film's soundtrack."
+  },
+  "spent": {},
+  "rounds": {
+    "s1": {
+      "at": "2026-11-08",
+      "purpose": "The four generated effects of decision 17, placed on radio cut v1.",
+      "flow": "O48uIu8RgtheF1BbIS5r",
+      "model": "eleven_text_to_sound_v2",
+      "rate": "11 credits per second of audio, per take (from the estimates)",
+      "nodes": {
+        "curtains": {
+          "node": "aEBROhlQdmsHRGI2o36a",
+          "label": "curtains (cloth on wooden rings)",
+          "prompt": "Heavy cotton curtain drawn slowly open by hand, wooden rings sliding along a wooden pole, soft cloth swish, close-mic in a small quiet room",
+          "settings": {
+            "duration_seconds": 5,
+            "prompt_influence": 0.3,
+            "loop": false
+          },
+          "place": "the 6 s lead-in before the first line (0-6 s); the curtains only open",
+          "perTake": 55
+        },
+        "branch": {
+          "node": "LbjefBaFMqULilFzTHZx",
+          "label": "the branch (one leaf-and-wood rustle)",
+          "prompt": "Leafy green branch slowly pulled down and bent low, one continuous soft rustle of leaves with faint creaks of springy wood, close-mic, still night, quiet background",
+          "settings": {
+            "duration_seconds": 10,
+            "prompt_influence": 0.3,
+            "loop": false
+          },
+          "place": "from 'The fox pulled a branch over the water.' (113.4 s), one rustle carried unbroken across the cut from his side to hers (decision 8)",
+          "perTake": 110
+        },
+        "touch": {
+          "node": "y1IIy4RJwuzDLnLc0FSR",
+          "label": "the touch (small wet touch)",
+          "prompt": "A small paw dipping once into still pond water, soft wet touch with a tiny splash, close-mic, quiet",
+          "settings": {
+            "duration_seconds": 2,
+            "prompt_influence": 0.3,
+            "loop": false
+          },
+          "place": "the 1.0 s gap inside paragraph 23 (131.85-132.85 s), the film's only hard sync (decision 9); the ripples' decay follows in code. Never glass, never an impact.",
+          "perTake": 22
+        },
+        "pond": {
+          "node": "gGbcuAVFYymkp6kvFQkz",
+          "label": "the pond (water lapping, loop)",
+          "prompt": "Very gentle water lapping against a muddy pond bank, slow soft small laps, calm still night, close-mic",
+          "settings": {
+            "duration_seconds": 20,
+            "prompt_influence": 0.3,
+            "loop": true
+          },
+          "place": "a quiet bed under the pond scenes, from the meeting at the pond on; its in and out and level are set in the mix, under the night air's role",
+          "perTake": 220
+        }
+      },
+      "estimates": {
+        "oneTakeEach": 407,
+        "twoTakesEach": 814,
+        "fourTakesEach": 1628,
+        "recommended": {
+          "takes": {
+            "curtains": 4,
+            "branch": 4,
+            "touch": 4,
+            "pond": 2
+          },
+          "credits": 1188,
+          "why": "Four takes of the three short, placed sounds (the touch is the hard sync and costs 22 a take); two of the 20 s loop, which is most of the cost and the least exposed."
+        }
+      },
+      "budget": {
+        "cap": 20000,
+        "spentBefore": 16601.31,
+        "remainingBefore": 3398.69
+      },
+      "status": "priced 2026-11-08 (estimate_only, nothing generated); waiting for the artist"
+    }
+  },
+  "entries": {}
+}
