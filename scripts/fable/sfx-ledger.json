@@ -7,7 +7,9 @@
     "conditions": "Commercial use only where the plan permits it; Output used only combined with other material; never offered on a standalone basis, as isolated audio files or samples, or in a sound or effects library. Community Sharing stays off.",
     "consequence": "The takes stay local in audition/fable/sfx/ (gitignored) and reach visitors only mixed into the film's soundtrack."
   },
-  "spent": {},
+  "spent": {
+    "s1": 359.96
+  },
   "rounds": {
     "s1": {
       "at": "2026-11-08",
@@ -85,8 +87,551 @@
         "spentBefore": 16601.31,
         "remainingBefore": 3398.69
       },
-      "status": "priced 2026-11-08 (estimate_only, nothing generated); waiting for the artist"
+      "status": "run once, 2026-11-08, after the artist approved the recommended set (4, 4, 4 and 2 takes)",
+      "billed": {
+        "curtains": 16.665,
+        "branch": 33.33,
+        "touch": 6.666,
+        "pond": 66.66,
+        "perSecond": 3.333,
+        "note": "Per take, from the run: about 30% of the estimate (11 per second)."
+      },
+      "sheet": {
+        "title": "Fox and Moon Sound Effects",
+        "heading": "The sound effects: fourteen takes",
+        "lede": "Four sounds from ElevenLabs Sound Effects, each heard alone and at its place in the film, with Tom, the night and the score you chose. Pick one take of each.",
+        "notes": [
+          "On the phone's own speaker. Hear each take alone, then in the film.",
+          "The levels in the film are a first setting, so you can choose between takes; the final balance comes in the mix.",
+          "The ripples after the touch will be made in code, so the touch stops where Tom resumes.",
+          "Listen for anything ruled out: crickets or other insects, birds, footsteps, glass, an impact.",
+          "The pond loops every 20 seconds. Its film copy wraps once, at 0:51: listen for the seam."
+        ],
+        "places": {
+          "curtains": "The opening: the curtains part before the first line.",
+          "branch": "From &ldquo;The fox pulled a branch over the water.&rdquo; One rustle, unbroken across the cut from his side to hers, under three lines.",
+          "touch": "The silence before &ldquo;His paw struck the water&rdquo;: the one sound exactly on the picture.",
+          "pond": "Very quietly under the pond scenes, from &ldquo;There, she could lay her reflection&hellip;&rdquo;"
+        },
+        "published": true,
+        "url": "https://claude.ai/artifact/VwMhJ1rXDAyWamDPKyqyXa",
+        "built": "node scripts/fable/build_sfx_sheet.mjs s1 COPIES_DIR scripts/fable/sfx-sheet.html OUT, from python scripts/fable/sfx_takes.py s1 STEMS_DIR COPIES_DIR"
+      },
+      "measured": "Curtains: two events each, over by 3.9-4.4 s, so all end before the first line; take 1 peaks late (3.4 s), the others at 0.4-1.1 s. Branch: 25-78% of energy above 4 kHz is leaf texture; longest dip 0.4-0.9 s, so each reads as one rustle; on the phone stand-in a rustle sits closer to Tom than on headphones, so its level carries a 9 LU phone floor. With the score at level 9 the closest line under it is 6.2-6.5 LU (phone 2.4-2.8, the score alone 3.2): the mix may ease the score a little under the rustle. Touch: takes 1 and 4 are one event, 2 and 3 two; 3 and 4 have sharp attacks (true peak -2.3 and -1.3 dBTP at -26 LUFS momentary, over the film's -3 limit), 1 and 2 stay at -3.7. Pond: both wrap without a click (the wrap step is 0.18 and 0.03 of the largest step inside the take); the level steps 4.2 and 2.8 dB at the seam; take 1 is brighter (9.7% above 4 kHz against 1.0%). No take was checked by ear here: the page is where the artist decides."
     }
   },
-  "entries": {}
+  "entries": {
+    "s1-curtains-1": {
+      "round": "s1",
+      "cue": "curtains",
+      "generation": "7Nj5e8t28p8wGMd2FSGq",
+      "session": "GIrtPH5gkxzeTJJ341Yj",
+      "file": "fable/sfx/s1-curtains-1.mp3",
+      "status": "saved",
+      "review": "pending",
+      "duration": 5,
+      "bytes": 98253,
+      "cost": 16.67,
+      "facts": {
+        "onset": 0.01,
+        "peakAt": 3.44,
+        "tail": 4.36,
+        "events": 2,
+        "longestDrop": 1.67,
+        "above4kHz": 0.311,
+        "floorBelowPeak": 67.6,
+        "channelCorrelation": 0.63
+      },
+      "inFilm": {
+        "window": [
+          0.0,
+          12.0
+        ],
+        "rule": "momentary max -30 LUFS",
+        "gainDb": -9.2,
+        "effectMomentaryMax": -30.0,
+        "windowTruePeak": -3.4,
+        "effectUnderWordsLU": null,
+        "effectUnderWordsPhoneLU": null,
+        "withScoreLU": 12.4,
+        "withScorePhoneLU": 16.8
+      }
+    },
+    "s1-curtains-2": {
+      "round": "s1",
+      "cue": "curtains",
+      "generation": "GHpUVDB0pfm9oUIFBjhs",
+      "session": "rx3RonyNMQqHA0qLrSVy",
+      "file": "fable/sfx/s1-curtains-2.mp3",
+      "status": "saved",
+      "review": "pending",
+      "duration": 5,
+      "bytes": 98253,
+      "cost": 16.67,
+      "facts": {
+        "onset": 0.0,
+        "peakAt": 0.43,
+        "tail": 3.88,
+        "events": 2,
+        "longestDrop": 1.48,
+        "above4kHz": 0.253,
+        "floorBelowPeak": 55.3,
+        "channelCorrelation": 0.53
+      },
+      "inFilm": {
+        "window": [
+          0.0,
+          12.0
+        ],
+        "rule": "momentary max -30 LUFS",
+        "gainDb": 2.4,
+        "effectMomentaryMax": -30.0,
+        "windowTruePeak": -3.4,
+        "effectUnderWordsLU": null,
+        "effectUnderWordsPhoneLU": null,
+        "withScoreLU": 12.4,
+        "withScorePhoneLU": 16.8
+      }
+    },
+    "s1-curtains-3": {
+      "round": "s1",
+      "cue": "curtains",
+      "generation": "2ynFFPETTaAMwWywPQsg",
+      "session": "RwtCHaiyPzNy82ZYoDmp",
+      "file": "fable/sfx/s1-curtains-3.mp3",
+      "status": "saved",
+      "review": "pending",
+      "duration": 5,
+      "bytes": 98253,
+      "cost": 16.67,
+      "facts": {
+        "onset": 0.1,
+        "peakAt": 0.53,
+        "tail": 4.21,
+        "events": 2,
+        "longestDrop": 1.42,
+        "above4kHz": 0.519,
+        "floorBelowPeak": 61.6,
+        "channelCorrelation": 0.46
+      },
+      "inFilm": {
+        "window": [
+          0.0,
+          12.0
+        ],
+        "rule": "momentary max -30 LUFS",
+        "gainDb": -3.5,
+        "effectMomentaryMax": -30.0,
+        "windowTruePeak": -3.4,
+        "effectUnderWordsLU": null,
+        "effectUnderWordsPhoneLU": null,
+        "withScoreLU": 12.4,
+        "withScorePhoneLU": 16.8
+      }
+    },
+    "s1-curtains-4": {
+      "round": "s1",
+      "cue": "curtains",
+      "generation": "FvkMtiXRWXg78KZCVmmX",
+      "session": "jxWpO6S4UEcLU25qjZUt",
+      "file": "fable/sfx/s1-curtains-4.mp3",
+      "status": "saved",
+      "review": "pending",
+      "duration": 5,
+      "bytes": 98253,
+      "cost": 16.67,
+      "facts": {
+        "onset": 0.21,
+        "peakAt": 1.08,
+        "tail": 4.41,
+        "events": 2,
+        "longestDrop": 1.55,
+        "above4kHz": 0.494,
+        "floorBelowPeak": 63.4,
+        "channelCorrelation": 0.52
+      },
+      "inFilm": {
+        "window": [
+          0.0,
+          12.0
+        ],
+        "rule": "momentary max -30 LUFS",
+        "gainDb": -8.0,
+        "effectMomentaryMax": -30.0,
+        "windowTruePeak": -3.4,
+        "effectUnderWordsLU": null,
+        "effectUnderWordsPhoneLU": null,
+        "withScoreLU": 12.4,
+        "withScorePhoneLU": 16.8
+      }
+    },
+    "s1-branch-1": {
+      "round": "s1",
+      "cue": "branch",
+      "generation": "zMxbKVTEyUdtkFlTJ3cO",
+      "session": "pcKOGDPO5Wr611d8OGFq",
+      "file": "fable/sfx/s1-branch-1.mp3",
+      "status": "saved",
+      "review": "pending",
+      "duration": 10,
+      "bytes": 178083,
+      "cost": 33.33,
+      "facts": {
+        "onset": 0.55,
+        "peakAt": 4.39,
+        "tail": 8.49,
+        "events": 9,
+        "longestDrop": 0.87,
+        "above4kHz": 0.726,
+        "floorBelowPeak": 49.9,
+        "channelCorrelation": 0.98
+      },
+      "inFilm": {
+        "window": [
+          108.0,
+          127.0
+        ],
+        "rule": "momentary max 12 LU under each line it lies under (9 through the phone stand-in)",
+        "gainDb": 0.7,
+        "effectMomentaryMax": -42.4,
+        "windowTruePeak": -3.6,
+        "effectUnderWordsLU": 15.1,
+        "effectUnderWordsPhoneLU": 9.0,
+        "withScoreLU": 6.2,
+        "withScorePhoneLU": 2.7
+      }
+    },
+    "s1-branch-2": {
+      "round": "s1",
+      "cue": "branch",
+      "generation": "KHmXKnMBmScb3BsjcBID",
+      "session": "zTIt4ix7CS70CjMoHwI1",
+      "file": "fable/sfx/s1-branch-2.mp3",
+      "status": "saved",
+      "review": "pending",
+      "duration": 10,
+      "bytes": 178083,
+      "cost": 33.33,
+      "facts": {
+        "onset": 0.13,
+        "peakAt": 0.87,
+        "tail": 9.68,
+        "events": 4,
+        "longestDrop": 0.39,
+        "above4kHz": 0.776,
+        "floorBelowPeak": 34.4,
+        "channelCorrelation": 0.99
+      },
+      "inFilm": {
+        "window": [
+          108.0,
+          127.0
+        ],
+        "rule": "momentary max 12 LU under each line it lies under (9 through the phone stand-in)",
+        "gainDb": 10.7,
+        "effectMomentaryMax": -39.5,
+        "windowTruePeak": -3.6,
+        "effectUnderWordsLU": 13.9,
+        "effectUnderWordsPhoneLU": 9.0,
+        "withScoreLU": 6.5,
+        "withScorePhoneLU": 2.8
+      }
+    },
+    "s1-branch-3": {
+      "round": "s1",
+      "cue": "branch",
+      "generation": "KC5pNUsEbKG02jpt8Y2r",
+      "session": "Jcym4HXZ0n2Lzkfgkfr8",
+      "file": "fable/sfx/s1-branch-3.mp3",
+      "status": "saved",
+      "review": "pending",
+      "duration": 10,
+      "bytes": 178083,
+      "cost": 33.33,
+      "facts": {
+        "onset": 0.26,
+        "peakAt": 3.32,
+        "tail": 9.05,
+        "events": 15,
+        "longestDrop": 0.46,
+        "above4kHz": 0.694,
+        "floorBelowPeak": 41.2,
+        "channelCorrelation": 0.99
+      },
+      "inFilm": {
+        "window": [
+          108.0,
+          127.0
+        ],
+        "rule": "momentary max 12 LU under each line it lies under (9 through the phone stand-in)",
+        "gainDb": 5.1,
+        "effectMomentaryMax": -38.8,
+        "windowTruePeak": -3.6,
+        "effectUnderWordsLU": 14.1,
+        "effectUnderWordsPhoneLU": 9.0,
+        "withScoreLU": 6.5,
+        "withScorePhoneLU": 2.8
+      }
+    },
+    "s1-branch-4": {
+      "round": "s1",
+      "cue": "branch",
+      "generation": "XTSGShFI6qV54JAzzFsC",
+      "session": "wOpjM6d2VH4S4Q1XwMo4",
+      "file": "fable/sfx/s1-branch-4.mp3",
+      "status": "saved",
+      "review": "pending",
+      "duration": 10,
+      "bytes": 178083,
+      "cost": 33.33,
+      "facts": {
+        "onset": 0.44,
+        "peakAt": 2.67,
+        "tail": 9.58,
+        "events": 11,
+        "longestDrop": 0.85,
+        "above4kHz": 0.719,
+        "floorBelowPeak": 39.0,
+        "channelCorrelation": 0.99
+      },
+      "inFilm": {
+        "window": [
+          108.0,
+          127.0
+        ],
+        "rule": "momentary max 12 LU under each line it lies under (9 through the phone stand-in)",
+        "gainDb": 11.7,
+        "effectMomentaryMax": -42.4,
+        "windowTruePeak": -3.6,
+        "effectUnderWordsLU": 15.1,
+        "effectUnderWordsPhoneLU": 9.0,
+        "withScoreLU": 6.3,
+        "withScorePhoneLU": 2.4
+      }
+    },
+    "s1-touch-1": {
+      "round": "s1",
+      "cue": "touch",
+      "generation": "SCLYyMhmIH1kxJ61nHCe",
+      "session": "1NmgGUquuXQM8vHdibZZ",
+      "file": "fable/sfx/s1-touch-1.mp3",
+      "status": "saved",
+      "review": "pending",
+      "duration": 2,
+      "bytes": 50187,
+      "cost": 6.67,
+      "facts": {
+        "onset": 0.0,
+        "peakAt": 0.13,
+        "tail": 0.9,
+        "events": 1,
+        "longestDrop": 0.06,
+        "above4kHz": 0.186,
+        "floorBelowPeak": 52.2,
+        "channelCorrelation": 0.61
+      },
+      "inFilm": {
+        "window": [
+          126.0,
+          138.0
+        ],
+        "rule": "momentary max -26 LUFS, peak 0.25 s into the gap",
+        "gainDb": 12.0,
+        "effectMomentaryMax": -26.0,
+        "windowTruePeak": -3.7,
+        "effectUnderWordsLU": 20.9,
+        "effectUnderWordsPhoneLU": 16.6,
+        "withScoreLU": 7.5,
+        "withScorePhoneLU": 3.5
+      }
+    },
+    "s1-touch-2": {
+      "round": "s1",
+      "cue": "touch",
+      "generation": "27RtSiO9ZUvFY9yOQmxO",
+      "session": "GTDdrMYk5vJCEuoYo5kf",
+      "file": "fable/sfx/s1-touch-2.mp3",
+      "status": "saved",
+      "review": "pending",
+      "duration": 2,
+      "bytes": 50187,
+      "cost": 6.67,
+      "facts": {
+        "onset": 0.01,
+        "peakAt": 0.06,
+        "tail": 0.99,
+        "events": 2,
+        "longestDrop": 0.14,
+        "above4kHz": 0.214,
+        "floorBelowPeak": 51.8,
+        "channelCorrelation": 0.85
+      },
+      "inFilm": {
+        "window": [
+          126.0,
+          138.0
+        ],
+        "rule": "momentary max -26 LUFS, peak 0.25 s into the gap",
+        "gainDb": 9.4,
+        "effectMomentaryMax": -26.0,
+        "windowTruePeak": -3.7,
+        "effectUnderWordsLU": 10.4,
+        "effectUnderWordsPhoneLU": 6.2,
+        "withScoreLU": 7.5,
+        "withScorePhoneLU": 3.5
+      }
+    },
+    "s1-touch-3": {
+      "round": "s1",
+      "cue": "touch",
+      "generation": "65V6B9eo4DFxIoxQk8ss",
+      "session": "pxhSYvvBFsZQkcpG1SsB",
+      "file": "fable/sfx/s1-touch-3.mp3",
+      "status": "saved",
+      "review": "pending",
+      "duration": 2,
+      "bytes": 50187,
+      "cost": 6.67,
+      "facts": {
+        "onset": 0.0,
+        "peakAt": 0.0,
+        "tail": 0.84,
+        "events": 2,
+        "longestDrop": 0.45,
+        "above4kHz": 0.19,
+        "floorBelowPeak": 66.4,
+        "channelCorrelation": 0.89
+      },
+      "inFilm": {
+        "window": [
+          126.0,
+          138.0
+        ],
+        "rule": "momentary max -26 LUFS, peak 0.25 s into the gap",
+        "gainDb": 6.7,
+        "effectMomentaryMax": -26.0,
+        "windowTruePeak": -2.3,
+        "effectUnderWordsLU": 20.1,
+        "effectUnderWordsPhoneLU": 15.5,
+        "withScoreLU": 7.5,
+        "withScorePhoneLU": 3.5
+      }
+    },
+    "s1-touch-4": {
+      "round": "s1",
+      "cue": "touch",
+      "generation": "iREk9YBcaclcSsVEe0jN",
+      "session": "O0gqpOXz12XMgt2vEs2l",
+      "file": "fable/sfx/s1-touch-4.mp3",
+      "status": "saved",
+      "review": "pending",
+      "duration": 2,
+      "bytes": 50187,
+      "cost": 6.67,
+      "facts": {
+        "onset": 0.0,
+        "peakAt": 0.01,
+        "tail": 0.39,
+        "events": 1,
+        "longestDrop": 0.05,
+        "above4kHz": 0.274,
+        "floorBelowPeak": 61.7,
+        "channelCorrelation": 1.0
+      },
+      "inFilm": {
+        "window": [
+          126.0,
+          138.0
+        ],
+        "rule": "momentary max -26 LUFS, peak 0.25 s into the gap",
+        "gainDb": 9.3,
+        "effectMomentaryMax": -26.0,
+        "windowTruePeak": -1.3,
+        "effectUnderWordsLU": 32.2,
+        "effectUnderWordsPhoneLU": 27.6,
+        "withScoreLU": 7.5,
+        "withScorePhoneLU": 3.5
+      }
+    },
+    "s1-pond-1": {
+      "round": "s1",
+      "cue": "pond",
+      "generation": "sQNWPallLOyT0RHGEb9I",
+      "session": "5NvTRcCXOgaUHmnhm9Xf",
+      "file": "fable/sfx/s1-pond-1.mp3",
+      "status": "saved",
+      "review": "pending",
+      "duration": 20,
+      "bytes": 338161,
+      "cost": 66.66,
+      "facts": {
+        "onset": 0.0,
+        "peakAt": 16.17,
+        "tail": 20.0,
+        "events": 17,
+        "longestDrop": 0.94,
+        "above4kHz": 0.097,
+        "floorBelowPeak": 42.3,
+        "channelCorrelation": 0.9,
+        "seam": {
+          "levelStepDb": 4.2,
+          "wrapStepVsInside": 0.18
+        }
+      },
+      "inFilm": {
+        "window": [
+          26.0,
+          61.0
+        ],
+        "rule": "-42 LUFS over the take, looped without a crossfade",
+        "gainDb": -9.0,
+        "effectMomentaryMax": -36.5,
+        "windowTruePeak": -3.2,
+        "effectUnderWordsLU": 11.5,
+        "effectUnderWordsPhoneLU": 6.4,
+        "withScoreLU": 5.6,
+        "withScorePhoneLU": 3.0
+      }
+    },
+    "s1-pond-2": {
+      "round": "s1",
+      "cue": "pond",
+      "generation": "9J2oRlVAzTiIAwbGzk3g",
+      "session": "kKcvBB56CNHxkzNBhGax",
+      "file": "fable/sfx/s1-pond-2.mp3",
+      "status": "saved",
+      "review": "pending",
+      "duration": 20,
+      "bytes": 338161,
+      "cost": 66.66,
+      "facts": {
+        "onset": 0.0,
+        "peakAt": 1.89,
+        "tail": 20.0,
+        "events": 13,
+        "longestDrop": 0.18,
+        "above4kHz": 0.01,
+        "floorBelowPeak": 32.6,
+        "channelCorrelation": 0.67,
+        "seam": {
+          "levelStepDb": -2.8,
+          "wrapStepVsInside": 0.03
+        }
+      },
+      "inFilm": {
+        "window": [
+          26.0,
+          61.0
+        ],
+        "rule": "-42 LUFS over the take, looped without a crossfade",
+        "gainDb": -2.7,
+        "effectMomentaryMax": -34.5,
+        "windowTruePeak": -3.2,
+        "effectUnderWordsLU": 9.2,
+        "effectUnderWordsPhoneLU": 5.9,
+        "withScoreLU": 6.2,
+        "withScorePhoneLU": 3.1
+      }
+    }
+  }
 }
