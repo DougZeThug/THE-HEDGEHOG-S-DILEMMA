@@ -13,7 +13,8 @@
   "spent": {
     "k1": 9788.44,
     "k2": 9830.86,
-    "k3": 33179.51
+    "k3": 33179.51,
+    "k4": 5453.45
   },
   "rounds": {
     "k1": {
@@ -615,6 +616,121 @@
         "published": true,
         "url": "https://claude.ai/artifact/5JWpTRQDrkvmRFiFWoR3yU (version 2 of the still page)"
       }
+    },
+    "k4": {
+      "at": "2026-11-08",
+      "purpose": "The reach, regenerated: both k3 reach takes failed (a stalk and a play-bow), so the reach is now an edit of the approved touch pose (k3-touch-1), the moment just before it: leaning further, the near foreleg fully out, its paw lifted a little, not yet touching.",
+      "flow": "O48uIu8RgtheF1BbIS5r",
+      "nodes": {
+        "reach": {
+          "node": "Zykr8iI98ZDSh4SR9q1u",
+          "model": "gemini-3-pro-image",
+          "from": "k3-touch-1 (asset node srxUHwcZh4cAAUNIZUWa) and the model sheet A1 (asset node BtzWPbqYtnkUXhCjricz)"
+        }
+      },
+      "estimate": 5453.45,
+      "status": "run once 2026-11-08 after pricing (no-cap budget); billed as estimated",
+      "looked": {
+        "k4-reach-1": "standing and stalking forward on all fours: a hunt again, not a reach (rejected)",
+        "k4-reach-2": "sitting back as in the touch, leaning further, the near foreleg stretched out with its paw lifted, the other braced under his chest, eyes on the paw: the reach; used for the blocking"
+      },
+      "artist": {
+        "on still v2": "in the still the fox is standing in the water, he should not be floating in the air"
+      },
+      "still": "Version 3 of the still: the bank rebuilt as two torn-paper planes, the far one behind his legs (rising to a low mound at the left, as in panel 5) and the near one over his feet with its face dropping to the water; he is placed by his hind feet and leans 2 degrees with the bank; his paw dips below the waterline past the end of the bank; his reflection, the bank's, the rings and the lap line are on the water.",
+      "sheet": {
+        "title": "Fox and Moon Touch Still",
+        "heading": "The touch, standing on the bank",
+        "lede": "You were right: he floated. The bank sat in front of him like a slab, with water showing behind his legs, and his paw hung level with his feet. The bank is rebuilt under him, the way panel 5 has it, and his paw now goes into the water.",
+        "detail": [
+          {
+            "file": "still3-beside-view.jpg",
+            "caption": "Your panel 5 (left) beside the new still (right)."
+          },
+          {
+            "file": "still3-ground-view.jpg",
+            "caption": "Where he meets the ground: earth and grass behind his legs, his feet in the grass, his paw in the water."
+          }
+        ],
+        "notes": [
+          "The bank is two torn-paper planes, the way a paper theatre would build it. One stands behind him, so there is earth and grass behind his legs instead of water, rising to a low mound at the left as in your panel 5. The other stands in front, its edge and grass just over his feet, so they stand in the grass. Its face drops to the water, with a thin line of light where they meet.",
+          "His paw goes into the water past the end of the bank. The part under the surface is murky and darker, the ripples ring it, and his reflection is a faint dark shape below him, as in panel 5.",
+          "He leans 2 degrees toward the water, with the bank's slope. Nothing else in the pose has changed.",
+          "The reach came back right this time (Reach 2): sitting back, his near paw stretched out and lifted, just before the touch. Reach 1 is a stalk again. The blocking uses Reach 2.",
+          "One difference from panel 5: there his paw reaches down over a higher bank, and here it dips from a low shore, because both poses have the paw level with his feet. Reaching down means turning his foreleg at the elbow pin, which the rig can do."
+        ],
+        "images": [
+          {
+            "id": "still3-column",
+            "label": "The still",
+            "model": "composited",
+            "size": "1152 by 1440 (the phone column)",
+            "note": "The touch, on the bank."
+          },
+          {
+            "id": "still3-matte",
+            "label": "Wide",
+            "model": "composited",
+            "size": "1920 by 1440",
+            "note": "The whole frame.",
+            "mark": false
+          },
+          {
+            "id": "k4-reach-2",
+            "label": "Reach 2",
+            "model": "pose, edit of the touch",
+            "size": "5504 by 3072",
+            "note": "The reach, just before the touch: used for the blocking."
+          },
+          {
+            "id": "k4-reach-1",
+            "label": "Reach 1",
+            "model": "pose, edit of the touch",
+            "size": "5504 by 3072",
+            "note": "Came back as a stalk: not a reach.",
+            "mark": false
+          }
+        ],
+        "mark": {
+          "label": "Right for the film?",
+          "options": [
+            {
+              "value": "yes",
+              "label": "Yes",
+              "keep": true
+            },
+            {
+              "value": "nearly",
+              "label": "Nearly"
+            },
+            {
+              "value": "no",
+              "label": "No"
+            }
+          ]
+        },
+        "asks": [
+          {
+            "key": "paw",
+            "title": "His paw in the water?",
+            "short": "Paw",
+            "options": [
+              {
+                "value": "a dip from the low shore, as here",
+                "label": "A dip, as here",
+                "keep": true
+              },
+              {
+                "value": "reaching down over a higher bank, as in panel 5",
+                "label": "Reaching down, as in panel 5",
+                "keep": true
+              }
+            ]
+          }
+        ],
+        "copyTitle": "The touch, on the bank (k4)",
+        "published": "https://claude.ai/artifact/5JWpTRQDrkvmRFiFWoR3yU (version 3)"
+      }
     }
   },
   "entries": {
@@ -930,6 +1046,28 @@
       "cost": 2272.27,
       "duration": null,
       "bytes": 17181168
+    },
+    "k4-reach-1": {
+      "round": "k4",
+      "node": "reach",
+      "generation": "kaBOL7Zd4FblnVDlQX0E",
+      "session": "NtVjyQmQ37Fwc2D8LdZq",
+      "file": "fable/kit/k4-reach-1.png",
+      "status": "saved",
+      "review": "rejected by me: a stalk",
+      "cost": 2726.73,
+      "bytes": 17849386
+    },
+    "k4-reach-2": {
+      "round": "k4",
+      "node": "reach",
+      "generation": "u8kExYoIWAbYYafaM48Q",
+      "session": "j7sZ443vboFP6vHYEQzz",
+      "file": "fable/kit/k4-reach-2.png",
+      "status": "saved",
+      "review": "pending",
+      "cost": 2726.73,
+      "bytes": 17859211
     }
   },
   "model": {

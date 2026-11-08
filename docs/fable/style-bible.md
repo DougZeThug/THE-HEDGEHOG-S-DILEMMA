@@ -140,12 +140,27 @@ generated at 4K, flat-lit, and graded to the palette.
 |---|---|
 | The hill (panels 1, 6) | sky and moon · far hills · treeline · the hill's ground row · grass · proscenium |
 | The pond, wide (panel 2) | sky · far trees · far water · bank · near water · near reeds |
-| **The pond, close (panels 3, 5; the pilot)** | sky and moon · the hill's silhouette under her final height · far trees · far water · bank · the branch (on the fox's plane, sharp) · water strips · near reeds (soft) |
+| **The pond, close (panels 3, 5; the pilot)** | sky and moon · the hill's silhouette under her final height · far trees · far water and the strips · his reflection · the far bank · **the fox** · the near bank · the branch (sharp) · near reeds (soft) |
 | The branch from above (panel 4) | water and her disc · lily pads · leaf shadows · branch · bank and paw |
 | The empty pond | the wide pond, without him, the reeds still pressed |
 
 **Before any rig is built, one still is shown to the artist:** the touch pose composited into the
 pond-close set, lit by the moon, beside panel 5. It is the cheapest place to fail [the skeptic].
+
+**He stands on the ground, never on an edge** [the artist, 2026-11-08: "he should not be floating
+in the air"]. A figure whose feet sit on a plane's top silhouette, with water showing behind his
+legs, floats. So the ground under him is two planes, as in panel 5:
+- **the far bank,** behind him: earth and grass behind his legs, rising to a low mound away from the
+  water, falling into the water at the shore;
+- **the near bank,** in front: its torn top edge and grass a few pixels over his feet, its moonlit
+  lip, its face dropping to the water, a lap line of sky where they meet, its reflection below;
+- the ground darkened right at his feet, and his shadow cast toward us across the near bank (the
+  moon is behind him);
+- every pose is placed by where it meets the ground (its hind feet, or its tail when lying), and
+  leans with the bank's slope;
+- where he touches the water, the part below the waterline is seen through it (raised a little,
+  murky, cooler), a bright collar hugs the paw, the rings start from it and his dark reflection
+  meets it.
 
 ## 5. Camera and frame
 
@@ -229,7 +244,7 @@ head was only about 100 px and his paw landed on the bank.
 |---|---|
 | Horizon | y 0.42 |
 | Fox | x 0.0–0.66, about 0.66 of the column wide; his head about 155 px at 1920×1440 |
-| Paw contact | (0.66, 0.66), past the bank's lip, on the water |
+| Paw contact | (0.66, 0.66), past the end of the bank, dipping below the waterline |
 | Her reflection | a path of torn strips down the water under her, its near edge at the paw; broader, brighter and more broken than the first still (the artist) |
 | Sky moon | x 0.62, diameter about 0.11, near y 0.17 at the touch |
 | Hill silhouette | under the moon's final position |
@@ -247,7 +262,7 @@ head was only about 100 px and his paw landed on the bank.
 | 3166–3168 | **The paw's fall**, on ones: his weight tips, the paw drops short. | |
 | 3169 | **Contact.** The body overshoots 3° and settles by 3175. | The first ring. Her light under his chin breaks. |
 | 3170–3264 | **He holds his breath.** The body is still; the near ear turns back at about 3215, late, and the far ear stays toward her. | Strips break one per drawing from 3171. The rings spread, the strips are widest at about 3193 (the score's rise), and the warm light dies on τ 2.5 s. |
-| 3264–3290 | **The exhale: the "sunk" family.** Shoulders and head drop 25–40 px, the ears 1–2 drawings late, the paw left in the water. | Only the cold key is left. |
+| 3264–3290 | **The exhale: the "sunk" family.** Shoulders and head drop 25–40 px, the ears 1–2 drawings late, the paw drawn back from the water (the artist's choice, from the sunk takes, 2026-11-08). | Only the cold key is left. |
 | 3290–3406 | Slow breaths every 3.5–4 s. Head lowers 4° (3310–3358). A slow blink (3349–3360) reopens to half. | The water stills on "still," (f3347), the last glint goes out, the moon stops on "hill" (f3376). |
 
 **Pose families the pilot needs:** under the branch, the full lean and reach, paw in the water,
@@ -255,6 +270,18 @@ sunk. Plus the branch (pushed and sprung), the strips, the rings, and the moon a
 
 **Sound:** mix 1 has no branch sound for this push (its rustle is the shelter's). The push is silent
 unless the artist asks; mix 1 is the artist's choice.
+
+**Blocking reel 1** (2026-11-08, `scripts/fable/pilot.py`; its exposure sheet is
+`scripts/fable/pilot-xsheet.json`): the key poses held and stepped on mix 1, every one standing on
+the two-plane bank. Hiding is k3-branchpose-1, the reach k4-reach-2, the touch k3-touch-1, sunk
+k3-sunk-2. Within a pose the puppet turns as one piece about where it meets the ground: afraid
+breaths, the press on the branch, the stretch of the reach, the fall on ones (3164–3168), 3° over at
+contact settling by 3175, one settle in the held breath (3198–3240, around where the near ear will turn),
+the exhale, slow breaths with the head lowering. The branch springs on a damped spring from 3099; the
+moon rises and stops on "hill"; nine strips break from 3171, slide apart and die on τ 2.5 s, out by
+"still,"; four rings; her warm light leaves his face on τ 2.5 s. What blocking cannot show waits for
+the rig: the ears, the head, the eyes, the foreleg's travel between the reach and the touch (the paw
+jumps back about 70 px at contact), the leaves trailing the branch.
 
 ## 9. Quality gates
 
