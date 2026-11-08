@@ -25,3 +25,5 @@ audition/fable/music/
 audition/fable/sfx/
 # The soundtrack mix and its stems hold that music and those effects (scripts/fable/mix.py)
 audition/fable/mix/
+# The puppet kit's generated art stays local; scripts/fable/art-ledger.json has the generation ids
+audition/fable/kit/

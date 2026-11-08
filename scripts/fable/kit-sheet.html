@@ -1,0 +1,202 @@
+<title>__TITLE__</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+  /* One column at night: the reference against the new detail, then each take with a mark and a
+     pick, then the open questions. Images open full size when tapped. */
+  :root {
+    --night: #12141a;
+    --panel: #1b1e26;
+    --line: #2c303b;
+    --moon: #ebe5d3;
+    --dim: #a19d92;
+    --fox: #e07b36;
+    --keep: #9cc39a;
+    --display: "Newsreader", Georgia, "Times New Roman", serif;
+    --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { background: var(--night); color: var(--moon); font: 16px/1.55 var(--body); margin: 0; }
+  main {
+    max-width: 980px; margin: 0 auto;
+    padding-block: 36px 72px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    display: grid; gap: 32px;
+  }
+  h1 { font: 500 2rem/1.15 var(--display); margin: 0; text-wrap: balance; }
+  h2 { font: 500 1.25rem/1.3 var(--display); margin: 0 0 8px; }
+  p { margin: 0; }
+  .lede { color: var(--dim); margin-top: 8px; max-width: 68ch; }
+  ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; max-width: 70ch; }
+  .small { color: var(--dim); font-size: 0.85rem; }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 560px) { .pair { grid-template-columns: 1fr; } }
+  figure { margin: 0; display: grid; gap: 6px; min-width: 0; }
+  figure img { width: 100%; height: auto; display: block; border-radius: 8px; cursor: zoom-in; background: #000; }
+  figcaption { color: var(--dim); font-size: 0.85rem; }
+  .take { display: grid; gap: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+  .take.chosen { border-color: var(--keep); }
+  .take-name { font: 500 1rem var(--mono); color: var(--fox); }
+  .take-name span { color: var(--dim); font: 400 0.85rem var(--body); }
+  .ask { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+  .ask > span { color: var(--dim); font-size: 0.9rem; }
+  .marks { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+  .marks button { font: 500 0.9rem var(--body); color: var(--dim); background: transparent; border: 0; padding: 7px 14px; min-height: 36px; cursor: pointer; }
+  .marks button + button { border-left: 1px solid var(--line); }
+  .marks button[aria-pressed="true"] { color: var(--night); background: var(--moon); }
+  .marks button.keep[aria-pressed="true"] { background: var(--keep); }
+  button:focus-visible { outline: 2px solid var(--fox); outline-offset: 2px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .actions button { font: 500 1rem var(--body); border-radius: 8px; padding: 10px 16px; min-height: 44px; cursor: pointer; border: 1px solid var(--fox); background: var(--fox); color: var(--night); }
+  .status { color: var(--dim); font-size: 0.9rem; }
+  textarea { width: 100%; min-height: 6rem; font: 0.9rem/1.5 var(--body); color: var(--moon); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px; }
+  textarea.out { font: 0.85rem/1.5 var(--mono); }
+  .full { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.92); display: grid; place-items: center; overflow: auto; z-index: 20;
+          padding: max(12px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px)); cursor: zoom-out; }
+  .full img { max-width: none; width: min(1600px, 200vw); height: auto; }
+</style>
+
+<main>
+  <header>
+    <h1>__HEADING__</h1>
+    <p class="lede">__LEDE__</p>
+  </header>
+
+  <section>
+    <h2>The jump in detail</h2>
+    <div class="pair" id="detail"></div>
+    <p class="small" style="margin-top:8px">Tap any picture to see it full size.</p>
+  </section>
+
+  <section>
+    <h2>What to look for</h2>
+    <ul>
+<!--NOTES-->
+    </ul>
+  </section>
+
+  <div id="takes" style="display:grid;gap:20px"></div>
+
+  <div id="asks" style="display:grid;gap:20px"></div>
+
+  <section>
+    <h2>Anything else</h2>
+    <p class="small" style="margin:0 0 6px">What feels like him, what doesn't: the face, the eye, the pins, the paper, the colour.</p>
+    <textarea id="notes" aria-label="Notes on the puppet"></textarea>
+  </section>
+
+  <section>
+    <div class="actions">
+      <button type="button" id="copy">Copy my choices</button>
+      <span class="status" id="status" aria-live="polite"></span>
+    </div>
+    <textarea id="summary" class="out" aria-label="Your choices, to paste back to Claude" readonly hidden></textarea>
+  </section>
+</main>
+
+<script>
+const DATA = /*DATA*/{};
+const KEY = `fox-moon-kit-${DATA.key}`;
+const DOT = String.fromCharCode(0xb7);
+const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } };
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* choices just won't persist */ } };
+const state = load();
+state.marks ??= {};
+
+function figure(src, caption, alt) {
+  const f = document.createElement('figure');
+  const img = document.createElement('img');
+  img.src = src; img.alt = alt; img.loading = 'lazy';
+  img.addEventListener('click', () => {
+    const d = document.createElement('div');
+    d.className = 'full';
+    const big = document.createElement('img');
+    big.src = src; big.alt = alt;
+    d.append(big);
+    d.addEventListener('click', () => d.remove());
+    document.body.append(d);
+  });
+  const c = document.createElement('figcaption');
+  c.textContent = caption;
+  f.append(img, c);
+  return f;
+}
+
+const detail = document.getElementById('detail');
+for (const d of DATA.detail) detail.append(figure(d.src, d.caption, d.caption));
+
+const takesEl = document.getElementById('takes');
+for (const t of DATA.takes) {
+  const sec = document.createElement('section');
+  sec.className = 'take';
+  sec.dataset.id = t.id;
+  sec.innerHTML = `<div class="take-name">${t.label} <span>${DOT} ${t.model}, ${t.size}</span></div>`;
+  sec.append(figure(t.src, t.note, t.label));
+  const ask = document.createElement('div');
+  ask.className = 'ask';
+  ask.innerHTML = `<span>Him?</span><div class="marks" role="group" aria-label="Is ${t.label} him">
+      <button type="button" data-mark="yes" class="keep" aria-pressed="false">Yes</button>
+      <button type="button" data-mark="close" aria-pressed="false">Close</button>
+      <button type="button" data-mark="no" aria-pressed="false">No</button></div>`;
+  ask.querySelectorAll('[data-mark]').forEach((b) => b.addEventListener('click', () => { state.marks[t.id] = b.dataset.mark; save(); paint(); }));
+  sec.append(ask);
+  takesEl.append(sec);
+}
+
+const asksEl = document.getElementById('asks');
+for (const q of DATA.asks) {
+  const sec = document.createElement('section');
+  sec.innerHTML = '<h2></h2><div class="marks" role="group"></div>';
+  sec.querySelector('h2').textContent = q.title;
+  const row = sec.querySelector('.marks');
+  row.setAttribute('aria-label', q.title);
+  for (const o of q.options) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.dataset.q = q.key; b.dataset.a = o.value;
+    if (o.keep) b.className = 'keep';
+    b.setAttribute('aria-pressed', 'false');
+    b.textContent = o.label;
+    b.addEventListener('click', () => { state[q.key] = o.value; save(); paint(); });
+    row.append(b);
+  }
+  asksEl.append(sec);
+}
+
+const notes = document.getElementById('notes');
+notes.value = state.notes ?? '';
+notes.addEventListener('input', () => { state.notes = notes.value; save(); });
+
+const status = document.getElementById('status');
+function paint() {
+  document.querySelectorAll('.take').forEach((s) => {
+    s.querySelectorAll('[data-mark]').forEach((b) => b.setAttribute('aria-pressed', String(state.marks[s.dataset.id] === b.dataset.mark)));
+    s.classList.toggle('chosen', state.anchor === s.dataset.id);
+  });
+  document.querySelectorAll('[data-q]').forEach((b) => b.setAttribute('aria-pressed', String(state[b.dataset.q] === b.dataset.a)));
+  const left = DATA.takes.filter((t) => !state.marks[t.id]).length;
+  status.textContent = left ? `${left} take${left === 1 ? '' : 's'} still to mark` : 'All marked';
+}
+
+const summary = document.getElementById('summary');
+document.getElementById('copy').addEventListener('click', () => {
+  const lines = [DATA.copyTitle, ...DATA.takes.map((t) => `${t.label}: ${state.marks[t.id] ?? '-'}`),
+    ...DATA.asks.map((q) => {
+      const a = state[q.key];
+      const take = q.key === 'anchor' && DATA.takes.find((t) => t.id === a);
+      return `${q.short}: ${take ? take.label : a ?? '-'}`;
+    })];
+  if (state.notes?.trim()) lines.push(`Notes: ${state.notes.trim()}`);
+  const text = lines.join('\n');
+  summary.value = text;
+  summary.hidden = false;
+  const fallback = () => { summary.focus(); summary.select(); status.textContent = 'Copy the selected text'; };
+  if (navigator.clipboard?.writeText) navigator.clipboard.writeText(text).then(() => { status.textContent = 'Copied. Paste it into the chat.'; }, fallback);
+  else fallback();
+});
+
+paint();
+</script>
