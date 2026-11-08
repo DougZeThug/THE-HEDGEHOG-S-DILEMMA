@@ -1,13 +1,15 @@
 {
-  "key": "mix-2",
+  "key": "mix-1",
   "title": "Fox and Moon Soundtrack",
-  "heading": "The whole soundtrack, mix 2",
-  "lede": "Mix 1 as you approved it, with the two changes your answers asked for at the touch: the touch is 3 dB quieter, and the score dips around it so it no longer seems to answer. Everything else is identical.",
+  "heading": "The whole soundtrack",
+  "lede": "Everything you chose, mixed: Tom, the night, the score at level 3, the curtains, the pond, the branch and the touch, with the ripples made from the pond itself. Three minutes, from the curtains to the black.",
   "notes": [
-    "Jump to the touch and switch between C and D as it plays; the place is kept.",
-    "C is mix 1, as you heard it. D is mix 2: the touch 3 dB down, and the score eased by about 4 dB from just before the touch to after &ldquo;His paw struck the water&rdquo;, slowly, as its own ride moves, so it is never an edit.",
-    "A is Tom and the night, the locked cut; B adds the score as you chose it.",
-    "Still to come: one listen on a phone's own speaker, where the touch and the pond sit closest to Tom."
+    "At the volume you'd watch at. Straight through as C first, then use the jumps and switch; the place is kept.",
+    "A is Tom and the night, the locked cut. B adds the score as you chose it. C is the whole mix.",
+    "The pond cuts in with the cut to the pond and stays at one quiet level: under Tom it would only blur his consonants, so you'll hear it most in the long silences.",
+    "At the touch the pond is stirred: a lap comes in the silence after the paw, then the water settles, and it is still (silent) by &ldquo;By the time the pond was still&rdquo;. It doesn't come back: not over the empty pond, not at the last glance.",
+    "The score is as you chose it, eased by at most 0.7 dB in places. Tom is the locked cut, untouched.",
+    "It stops with the image at the cut; the 3 seconds of black stay silent. The picture isn't in it yet."
   ],
   "versions": [
     {
@@ -22,21 +24,56 @@
     },
     {
       "key": "C",
-      "label": "Mix 1",
-      "file": "mix-1.mp3"
-    },
-    {
-      "key": "D",
-      "label": "Mix 2",
+      "label": "Mix",
       "file": "mix.mp3"
     }
   ],
-  "start": "D",
+  "start": "C",
   "asks": [
     {
+      "key": "mix",
+      "title": "Is this the film's sound?",
+      "short": "The mix",
+      "options": [
+        {
+          "value": "yes",
+          "label": "Yes",
+          "keep": true
+        },
+        {
+          "value": "nearly",
+          "label": "Nearly"
+        },
+        {
+          "value": "no",
+          "label": "No"
+        }
+      ]
+    },
+    {
+      "key": "effects",
+      "title": "The effects, against Tom and the score?",
+      "short": "Effects",
+      "options": [
+        {
+          "value": "as they are",
+          "label": "As they are",
+          "keep": true
+        },
+        {
+          "value": "louder",
+          "label": "Louder"
+        },
+        {
+          "value": "quieter",
+          "label": "Quieter"
+        }
+      ]
+    },
+    {
       "key": "touch",
-      "title": "The touch in mix 2?",
-      "short": "The touch in mix 2",
+      "title": "The touch, on the phone: small, or an impact?",
+      "short": "The touch",
       "options": [
         {
           "value": "small",
@@ -44,18 +81,14 @@
           "keep": true
         },
         {
-          "value": "still an impact",
-          "label": "Still an impact"
-        },
-        {
-          "value": "too quiet now",
-          "label": "Too quiet"
+          "value": "an impact",
+          "label": "An impact"
         }
       ]
     },
     {
       "key": "answer",
-      "title": "Does the music still answer the touch in mix 2?",
+      "title": "Does the music seem to answer the touch?",
       "short": "Music answers the touch",
       "options": [
         {
@@ -70,31 +103,25 @@
       ]
     },
     {
-      "key": "pick",
-      "title": "Which mix?",
-      "short": "Mix",
+      "key": "pond",
+      "title": "The pond falling still after the touch, and staying silent?",
+      "short": "Pond falls still",
       "options": [
         {
-          "value": "mix 2",
-          "label": "Mix 2",
+          "value": "yes",
+          "label": "Yes",
           "keep": true
         },
         {
-          "value": "mix 1",
-          "label": "Mix 1",
-          "keep": true
+          "value": "no",
+          "label": "No"
         }
       ]
     }
   ],
   "notesHint": "A sound that should go or come in, a place that wants more or less, anything that pulls you out.",
-  "copyTitle": "The whole soundtrack, mix 2",
+  "copyTitle": "The whole soundtrack, mix 1",
   "jumps": [
-    {
-      "label": "The touch",
-      "p": 23,
-      "offset": 1.5
-    },
     {
       "label": "The curtains",
       "at": 0
@@ -118,6 +145,11 @@
       "label": "The branch",
       "p": 19,
       "offset": -1.5
+    },
+    {
+      "label": "The touch",
+      "p": 23,
+      "offset": 1.5
     },
     {
       "label": "Falls still",
@@ -146,8 +178,7 @@
         6,
         0
       ],
-      "C": "the curtains part",
-      "D": "the curtains part"
+      "C": "the curtains part"
     },
     {
       "label": "The company",
@@ -159,8 +190,7 @@
         9,
         0
       ],
-      "C": "the pond comes in",
-      "D": "the pond comes in"
+      "C": "the pond comes in"
     },
     {
       "label": "He hides",
@@ -194,8 +224,7 @@
         22,
         0
       ],
-      "C": "the branch",
-      "D": "the branch"
+      "C": "the branch"
     },
     {
       "label": "The reach and the broken reflection",
@@ -207,8 +236,7 @@
         25,
         0
       ],
-      "C": "the touch, the ripples, the pond falls still",
-      "D": "the touch, the ripples, the pond falls still"
+      "C": "the touch, the ripples, the pond falls still"
     },
     {
       "label": "Separate nights",
@@ -220,8 +248,7 @@
         29,
         0
       ],
-      "C": "the night air only",
-      "D": "the night air only"
+      "C": "the night air only"
     },
     {
       "label": "The return",

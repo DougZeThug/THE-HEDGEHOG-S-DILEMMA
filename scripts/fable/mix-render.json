@@ -1,5 +1,5 @@
 {
- "mix": 2,
+ "mix": 1,
  "radioCut": 1,
  "score": "m3-f-1",
  "effects": {
@@ -15,8 +15,8 @@
   },
   "touch": {
    "take": "s1-touch-2",
-   "gainDb": 6.4,
-   "trimDb": -3.0
+   "gainDb": 9.4,
+   "trimDb": 0.0
   }
  },
  "pond": {
@@ -62,15 +62,7 @@
    125.6
   ]
  },
- "scoreHolds": [
-  {
-   "from": 132.6,
-   "to": 134.5,
-   "db": -4.0,
-   "why": "Mix 2: the artist heard the score answer the touch on mix 1 (it rises at 133.0 s, 0.9 s after it); one held dip, smoothed like the ride, not an edit (the sound designer's contingency).",
-   "deepestDb": -3.8
-  }
- ],
+ "scoreHolds": [],
  "loudness": {
   "soundtrack": {
    "lufs": -23.9,
@@ -83,14 +75,14 @@
    "truePeak": -3.5
   },
   "music": {
-   "lufs": -37.4,
-   "lra": 16.6,
+   "lufs": -37.3,
+   "lra": 16.5,
    "truePeak": -18.1
   },
   "effects": {
-   "lufs": -42.3,
-   "lra": 14.3,
-   "truePeak": -7.0
+   "lufs": -41.5,
+   "lra": 14.2,
+   "truePeak": -4.0
   },
   "dialogue-effects": {
    "lufs": -23.6,
@@ -271,10 +263,10 @@
   },
   {
    "p": "23b",
-   "margin": 13.0,
-   "phoneMargin": 11.1,
-   "effectsCost": 1.2,
-   "effectsCostPhone": 7.2
+   "margin": 10.4,
+   "phoneMargin": 10.8,
+   "effectsCost": 0.5,
+   "effectsCostPhone": 4.9
   },
   {
    "p": "24",
@@ -358,7 +350,7 @@
   "16 3.2"
  ],
  "effectsCostPhoneMost": [
-  "23b 7.2",
+  "23b 4.9",
   "18 4.3",
   "15 1.7"
  ],
@@ -499,7 +491,7 @@
    "from": 131.85,
    "to": 132.85,
    "why": "the touch",
-   "momentaryMax": -28.8
+   "momentaryMax": -25.9
   },
   {
    "from": 136.58,

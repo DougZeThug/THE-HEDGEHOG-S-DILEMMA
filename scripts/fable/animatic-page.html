@@ -1,0 +1,98 @@
+<title>Fox and Moon Animatic</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+  /* One column, the night's palette: the animatic on the film's clock, with jumps. */
+  :root {
+    --night: #12141a;
+    --panel: #1b1e26;
+    --line: #2c303b;
+    --moon: #ebe5d3;
+    --dim: #a19d92;
+    --fox: #e07b36;
+    --display: "Newsreader", Georgia, "Times New Roman", serif;
+    --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { background: var(--night); color: var(--moon); font: 16px/1.55 var(--body); margin: 0; }
+  main {
+    max-width: 960px; margin: 0 auto;
+    padding-block: 32px 64px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    display: grid; gap: 24px;
+  }
+  h1 { font: 500 2rem/1.15 var(--display); margin: 0; text-wrap: balance; }
+  h2 { font: 500 1.2rem/1.3 var(--display); margin: 0 0 6px; }
+  p { margin: 0; }
+  .lede { color: var(--dim); margin-top: 8px; max-width: 65ch; }
+  video { width: 100%; max-width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: 8px; display: block; }
+  .jumps { display: flex; flex-wrap: wrap; gap: 8px; }
+  .jumps button {
+    font: 500 0.85rem var(--body); color: var(--moon); background: var(--panel); border: 1px solid var(--line);
+    border-radius: 999px; padding: 7px 12px; min-height: 36px; cursor: pointer;
+  }
+  .jumps button span { font-family: var(--mono); color: var(--fox); margin-left: 6px; }
+  button:focus-visible { outline: 2px solid var(--fox); outline-offset: 2px; }
+  ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; max-width: 70ch; }
+  .where { color: var(--dim); font-size: 0.9rem; min-height: 1.4em; }
+</style>
+
+<main>
+  <header>
+    <h1>The animatic, on the film's clock</h1>
+    <p class="lede">__LEDE__</p>
+  </header>
+
+  <section>
+    <video id="film" controls playsinline preload="metadata"></video>
+    <p class="where" id="where" aria-live="off"></p>
+  </section>
+
+  <section>
+    <h2>Jump to</h2>
+    <div class="jumps" id="jumps"></div>
+  </section>
+
+  <section>
+    <h2>What it is</h2>
+    <ul>
+<!--NOTES-->
+    </ul>
+  </section>
+</main>
+
+<script>
+const DATA = /*DATA*/{};
+const mmss = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+const film = document.getElementById('film');
+
+// Each source as a data URI; a browser that refuses one gets it as a blob URL. The first format
+// the browser can play is used (MP4/H.264, else WebM/VP9).
+function blobUrl(uri) {
+  const [head, b64] = uri.split(',');
+  const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+  return URL.createObjectURL(new Blob([bytes], { type: head.slice(5, head.indexOf(';')) }));
+}
+const playable = DATA.sources.filter((s) => film.canPlayType(s.type));
+const pick = playable[0] || DATA.sources[0];
+film.src = pick.uri;
+film.addEventListener('error', () => { film.src = blobUrl(pick.uri); }, { once: true });
+
+const jumps = document.getElementById('jumps');
+for (const j of DATA.jumps) {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.innerHTML = `${j.label}<span>${mmss(j.at)}</span>`;
+  b.addEventListener('click', () => { film.currentTime = j.at; film.play(); });
+  jumps.append(b);
+}
+const where = document.getElementById('where');
+film.addEventListener('timeupdate', () => {
+  const s = DATA.shots.find((x) => film.currentTime >= x.from && film.currentTime < x.to);
+  where.textContent = s ? `${mmss(film.currentTime)} ${String.fromCharCode(0xb7)} ${s.name}` : '';
+});
+</script>
