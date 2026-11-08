@@ -12,7 +12,8 @@
   },
   "spent": {
     "k1": 9788.44,
-    "k2": 9830.86
+    "k2": 9830.86,
+    "k3": 33179.51
   },
   "rounds": {
     "k1": {
@@ -349,6 +350,270 @@
         "published": true,
         "url": "https://claude.ai/artifact/5JWpTRQDrkvmRFiFWoR3yU",
         "built": "python -I scripts/fable/still.py OUT; then node scripts/fable/build_kit_sheet.mjs k2 OUT scripts/fable/kit-sheet.html PAGE (the <id>-view.jpg images made from still.py's output and the takes)"
+      },
+      "choices": {
+        "at": "2026-11-08",
+        "by": "artist, on the still page",
+        "said": "The still: yes / Head: lowered and sad, as in panel 5 / Set: closer to my panels: misty, painterly, darker bank, pines / Reflection: more like panel 5: broader, brighter, more broken",
+        "still": "right for the film",
+        "head": "lowered and sad, as in panel 5",
+        "set": "closer to the panels: misty, painterly, darker bank, pines",
+        "reflection": "broader, brighter, more broken, as in panel 5",
+        "framing": "The still's framing is approved: composed toward panel 5, the fox about twice the cinematic director's first size (head about 155 px at 1920x1440), the paw past the bank's lip on the water. It replaces the bible's first framing table."
+      }
+    },
+    "k3": {
+      "at": "2026-11-08",
+      "purpose": "The pilot's four pose families as edits of A1 with the head lowered and sad (the artist, on the still), and the set rebuilt closer to the panels (misty, painterly, darker bank, pines) as separate planes: the back plate (shore, mist, water), the bank, the near reeds, and the branch.",
+      "flow": "O48uIu8RgtheF1BbIS5r",
+      "nodes": {
+        "branchPose": {
+          "node": "RLvc8rgm9pH24aFnfHw1",
+          "model": "gemini-3-pro-image",
+          "from": "A1 and the reference sheet"
+        },
+        "reach": {
+          "node": "alRToG2PD6WKCsr1XGm0",
+          "model": "gemini-3-pro-image",
+          "from": "A1 and the reference sheet"
+        },
+        "touch": {
+          "node": "N0jPJ8YTfaEKGuz6DANk",
+          "model": "gemini-3-pro-image",
+          "from": "A1 and the reference sheet"
+        },
+        "sunk": {
+          "node": "HjerIBhhxX7tN6ifRHaH",
+          "model": "gemini-3-pro-image",
+          "from": "A1 and the reference sheet"
+        },
+        "back": {
+          "node": "PsSAIWK7SeSlEAcQesAH",
+          "model": "gemini-3-pro-image",
+          "from": "the reference sheet"
+        },
+        "bank": {
+          "node": "gMoq6HhIHbEydlwp3cIw",
+          "model": "gemini-3-pro-image",
+          "from": "the reference sheet"
+        },
+        "reeds": {
+          "node": "M6zcwrga8S2LZM0s57vb",
+          "model": "gemini-3-pro-image",
+          "from": "the reference sheet"
+        },
+        "branch": {
+          "node": "mhthu8l3HnVhws3MfjYg",
+          "model": "gemini-3-pro-image",
+          "from": "the reference sheet"
+        }
+      },
+      "estimate": 33175.18,
+      "status": "run once 2026-11-08 after pricing (no-cap budget); billed as estimated",
+      "looked": {
+        "k3-branchpose-1": "lying low and curled, his near paw raised over his head as if holding the branch: the hiding pose",
+        "k3-branchpose-2": "lying low, his paw over his eyes: more ashamed",
+        "k3-touch-1": "sitting back, leaning down, head lowered and sad, the front paw reaching ahead: used in the still",
+        "k3-touch-2": "sitting, head lowered, forelegs straight down: sad, but the reach is less clear",
+        "k3-reach-1": "a stalking crouch: reads as hunting (rejected)",
+        "k3-reach-2": "a play-bow stretch: reads as play (rejected)",
+        "k3-sunk-1": "sitting upright, head low, eyes half closed; the paw back on the ground, not left in the water",
+        "k3-sunk-2": "as sunk-1, head lower, eyes closed: the more defeated",
+        "k3-back-1": "misty layered pines, a hill, dark water: close to the panels; used in the still",
+        "k3-back-2": "the same, darker and less misty",
+        "k3-bank-1": "a dark torn earth strip with grass tufts on its top: used in the still",
+        "k3-reeds-1": "reed clusters, but over a misty scene rather than plain card; keyed by luminance from the middle band",
+        "k3-branch-1": "a dark twig with separate leaves on light card: clean to cut"
+      },
+      "sheet": {
+        "title": "Fox and Moon Touch Still",
+        "heading": "The touch, as a still (with your changes)",
+        "lede": "The still again, rebuilt from round 3: his head lowered and sad as in your panel 5, the set remade as misty painterly planes with pines, and her reflection broader, brighter and more broken. Below it, every pose and piece from the round, for the shot's other moments.",
+        "detail": [
+          {
+            "file": "still2-beside-view.jpg",
+            "caption": "Your panel 5 (left) beside the new still in the phone framing (right)."
+          },
+          {
+            "file": "still2-fox-view.jpg",
+            "caption": "The fox at his size in the film: head lowered, his paw on the water at the near edge of her light."
+          }
+        ],
+        "notes": [
+          "Built as depth planes, the way every frame of the film will be: the misty back plate with the moon and her reflection, the bank cut out and set under him, the fox with his pins, the branch sprung up and away at the top left (he has just pushed it aside), and the near reeds soft in front.",
+          "The poses below are the shot's other moments: hiding under the branch before it, and the sunk exhale after the held breath. Two reach takes came back as a stalk and a play-bow; neither is a reach, so that one needs another try.",
+          "The sunk takes sit sad but have drawn the paw back from the water, where the plan has it stay. Say whether that is right for him, or whether the paw should stay in.",
+          "Nothing is animated yet. Once these are settled, the next step is the rig: the poses cut into moving layers, and a first blocking of the shot on the soundtrack."
+        ],
+        "images": [
+          {
+            "id": "still2-column",
+            "label": "The still",
+            "model": "composited",
+            "size": "1152 by 1440 (the phone column)",
+            "note": "The touch, rebuilt."
+          },
+          {
+            "id": "still2-matte",
+            "label": "Wide",
+            "model": "composited",
+            "size": "1920 by 1440",
+            "note": "The whole frame.",
+            "mark": false
+          },
+          {
+            "id": "k3-branchpose-1",
+            "label": "Hiding 1",
+            "model": "pose, edit of A1",
+            "size": "5504 by 3072",
+            "note": "Under the branch: curled low, his paw holding it over himself."
+          },
+          {
+            "id": "k3-branchpose-2",
+            "label": "Hiding 2",
+            "model": "pose, edit of A1",
+            "size": "5504 by 3072",
+            "note": "Under the branch: his paw over his eyes."
+          },
+          {
+            "id": "k3-touch-1",
+            "label": "Touch 1",
+            "model": "pose, edit of A1",
+            "size": "5504 by 3072",
+            "note": "The touch, as in the still."
+          },
+          {
+            "id": "k3-touch-2",
+            "label": "Touch 2",
+            "model": "pose, edit of A1",
+            "size": "5504 by 3072",
+            "note": "The touch, forelegs straight down."
+          },
+          {
+            "id": "k3-sunk-1",
+            "label": "Sunk 1",
+            "model": "pose, edit of A1",
+            "size": "5504 by 3072",
+            "note": "After the held breath: head low, eyes half closed."
+          },
+          {
+            "id": "k3-sunk-2",
+            "label": "Sunk 2",
+            "model": "pose, edit of A1",
+            "size": "5504 by 3072",
+            "note": "After the held breath: head lower, eyes closed."
+          },
+          {
+            "id": "k3-reach-1",
+            "label": "Reach 1",
+            "model": "pose, edit of A1",
+            "size": "5504 by 3072",
+            "note": "Came back as a stalking crouch: not a reach.",
+            "mark": false
+          },
+          {
+            "id": "k3-reach-2",
+            "label": "Reach 2",
+            "model": "pose, edit of A1",
+            "size": "5504 by 3072",
+            "note": "Came back as a play-bow: not a reach.",
+            "mark": false
+          },
+          {
+            "id": "k3-back-1",
+            "label": "Back plate 1",
+            "model": "set",
+            "size": "4800 by 3584",
+            "note": "The misty pine shore and water, as used."
+          },
+          {
+            "id": "k3-back-2",
+            "label": "Back plate 2",
+            "model": "set",
+            "size": "4800 by 3584",
+            "note": "Darker, less mist."
+          },
+          {
+            "id": "k3-bank-1",
+            "label": "The bank",
+            "model": "set piece",
+            "size": "5504 by 3072",
+            "note": "Cut out and set under him.",
+            "mark": false
+          },
+          {
+            "id": "k3-reeds-1",
+            "label": "The reeds",
+            "model": "set piece",
+            "size": "5504 by 3072",
+            "note": "Cut from the misty middle band, set in the near corners.",
+            "mark": false
+          },
+          {
+            "id": "k3-branch-1",
+            "label": "The branch",
+            "model": "prop",
+            "size": "5504 by 3072",
+            "note": "The branch he pushes aside.",
+            "mark": false
+          }
+        ],
+        "mark": {
+          "label": "Right for the film?",
+          "options": [
+            {
+              "value": "yes",
+              "label": "Yes",
+              "keep": true
+            },
+            {
+              "value": "nearly",
+              "label": "Nearly"
+            },
+            {
+              "value": "no",
+              "label": "No"
+            }
+          ]
+        },
+        "asks": [
+          {
+            "key": "sunk",
+            "title": "After the held breath, his paw?",
+            "short": "Sunk paw",
+            "options": [
+              {
+                "value": "drawn back, as in the sunk takes",
+                "label": "Drawn back",
+                "keep": true
+              },
+              {
+                "value": "left in the water",
+                "label": "Left in the water",
+                "keep": true
+              }
+            ]
+          },
+          {
+            "key": "next",
+            "title": "Next?",
+            "short": "Next",
+            "options": [
+              {
+                "value": "build the rig and block the shot",
+                "label": "Rig and block the shot",
+                "keep": true
+              },
+              {
+                "value": "more stills first",
+                "label": "More stills first"
+              }
+            ]
+          }
+        ],
+        "copyTitle": "The touch, as a still (k3)",
+        "published": true,
+        "url": "https://claude.ai/artifact/5JWpTRQDrkvmRFiFWoR3yU (version 2 of the still page)"
       }
     }
   },
@@ -457,7 +722,7 @@
       "session": "WeoGvuXO40gZbchnZCfN",
       "file": "fable/kit/k2-touch-1.png",
       "status": "saved",
-      "review": "pending",
+      "review": "approved as the pose of the approved still; superseded by k3 for the head",
       "cost": 2272.27,
       "duration": null,
       "bytes": 17913542
@@ -481,7 +746,7 @@
       "session": "PICsNegPOfdh3VuTLIG5",
       "file": "fable/kit/k2-set-1.png",
       "status": "saved",
-      "review": "pending",
+      "review": "used in the still; to be replaced by a set closer to the panels",
       "cost": 2272.27,
       "duration": null,
       "bytes": 20549941
@@ -505,10 +770,166 @@
       "session": "KivgutGpEq3Tm5JkzES3",
       "file": "fable/kit/k2-moon-1.png",
       "status": "saved",
-      "review": "pending",
+      "review": "approved (the moon in the approved still)",
       "cost": 741.78,
       "duration": null,
       "bytes": 7408476
+    },
+    "k3-branchpose-1": {
+      "round": "k3",
+      "node": "branchPose",
+      "generation": "PhkscKrpankxOnw9fP68",
+      "session": "U75xdTvaHnEKPURzhoJw",
+      "file": "fable/kit/k3-branchpose-1.png",
+      "status": "saved",
+      "review": "pending",
+      "cost": 2726.73,
+      "duration": null,
+      "bytes": 18389738
+    },
+    "k3-branchpose-2": {
+      "round": "k3",
+      "node": "branchPose",
+      "generation": "LQjRmkJrilJeBxO3WBwy",
+      "session": "oY60y0TpHxgH78AEpe2M",
+      "file": "fable/kit/k3-branchpose-2.png",
+      "status": "saved",
+      "review": "pending",
+      "cost": 2726.73,
+      "duration": null,
+      "bytes": 17364740
+    },
+    "k3-reach-1": {
+      "round": "k3",
+      "node": "reach",
+      "generation": "OnHaWDtHpJOjSrG6ooX1",
+      "session": "WQ3AJ8aVv6otq9k4Aq4g",
+      "file": "fable/kit/k3-reach-1.png",
+      "status": "saved",
+      "review": "pending",
+      "cost": 2726.73,
+      "duration": null,
+      "bytes": 17537016
+    },
+    "k3-reach-2": {
+      "round": "k3",
+      "node": "reach",
+      "generation": "42lXGuFoQbIt2oRrBtUc",
+      "session": "4CdUer1TLRS0vAa7R2T7",
+      "file": "fable/kit/k3-reach-2.png",
+      "status": "saved",
+      "review": "pending",
+      "cost": 2726.73,
+      "duration": null,
+      "bytes": 18132610
+    },
+    "k3-touch-1": {
+      "round": "k3",
+      "node": "touch",
+      "generation": "t4uwAYFT8AeXKtM0fwdG",
+      "session": "VMpB3VdRaeec0ljyK6Fb",
+      "file": "fable/kit/k3-touch-1.png",
+      "status": "saved",
+      "review": "pending",
+      "cost": 2726.73,
+      "duration": null,
+      "bytes": 18793251
+    },
+    "k3-touch-2": {
+      "round": "k3",
+      "node": "touch",
+      "generation": "Ppq8FRpGRFZRMYHOHqm2",
+      "session": "WHhaz7PWP6cBM5yDj7Za",
+      "file": "fable/kit/k3-touch-2.png",
+      "status": "saved",
+      "review": "pending",
+      "cost": 2726.73,
+      "duration": null,
+      "bytes": 18005139
+    },
+    "k3-sunk-1": {
+      "round": "k3",
+      "node": "sunk",
+      "generation": "tV71xzP1Cr0F0DKJHK7F",
+      "session": "FlcEJvgbNKTzXt3JvCQ9",
+      "file": "fable/kit/k3-sunk-1.png",
+      "status": "saved",
+      "review": "pending",
+      "cost": 2726.73,
+      "duration": null,
+      "bytes": 18043856
+    },
+    "k3-sunk-2": {
+      "round": "k3",
+      "node": "sunk",
+      "generation": "vGryRwtTyyaVElUJ1Sf1",
+      "session": "NFwzZOSpFqPFGN1A2kPM",
+      "file": "fable/kit/k3-sunk-2.png",
+      "status": "saved",
+      "review": "pending",
+      "cost": 2726.73,
+      "duration": null,
+      "bytes": 18239009
+    },
+    "k3-back-1": {
+      "round": "k3",
+      "node": "back",
+      "generation": "qdHRZjujYAKSSpUhR9xt",
+      "session": "FfMP1wU64MnBHVKRlBeo",
+      "file": "fable/kit/k3-back-1.png",
+      "status": "saved",
+      "review": "pending",
+      "cost": 2272.27,
+      "duration": null,
+      "bytes": 17158819
+    },
+    "k3-back-2": {
+      "round": "k3",
+      "node": "back",
+      "generation": "HPCMZhl7KxNEjr6Srirc",
+      "session": "iMF8fmWf4vMc7ZNKfuH1",
+      "file": "fable/kit/k3-back-2.png",
+      "status": "saved",
+      "review": "pending",
+      "cost": 2272.27,
+      "duration": null,
+      "bytes": 17313185
+    },
+    "k3-bank-1": {
+      "round": "k3",
+      "node": "bank",
+      "generation": "B7ykU7yfytdLg8Mpiyzw",
+      "session": "qwk8IA8g8gcSOwxeu3I3",
+      "file": "fable/kit/k3-bank-1.png",
+      "status": "saved",
+      "review": "pending",
+      "cost": 2272.27,
+      "duration": null,
+      "bytes": 18491776
+    },
+    "k3-reeds-1": {
+      "round": "k3",
+      "node": "reeds",
+      "generation": "F5LA6kKOh7Dvf6DPygNS",
+      "session": "OZ4zkFG30pXrC06LjNbC",
+      "file": "fable/kit/k3-reeds-1.png",
+      "status": "saved",
+      "review": "pending",
+      "cost": 2272.27,
+      "duration": null,
+      "bytes": 17864110
+    },
+    "k3-branch-1": {
+      "round": "k3",
+      "node": "branch",
+      "generation": "cFrv9RryRqRUuCBrpQ2m",
+      "session": "dFOF9E3wQLj2LO2kMNdw",
+      "file": "fable/kit/k3-branch-1.png",
+      "status": "saved",
+      "review": "pending",
+      "cost": 2272.27,
+      "duration": null,
+      "bytes": 17181168
     }
   },
   "model": {

@@ -1,26 +1,22 @@
-"""One composited still of the pilot, the touch (style bible §4: shown to the artist beside panel 5
-before any rig is built). Every step is one the renderer will do on every drawing:
+"""One composited still of the pilot, the touch (style bible §4), built as depth planes the way the
+renderer will build every drawing, back to front:
 
-  - the set plate, framed closer (a window into the 4K plate), graded per region to the
-    reference's sampled night (sky, water, bank; black card darkened with them);
-  - a tracing-paper haze over the far shore (Norstein: haze is a paper plane, never a blur);
-  - the fox, keyed off the flat card it was generated on: the card is fitted as a smooth surface
-    from the frame's border, the matte comes from colour distance to it, the largest piece is kept,
-    holes are filled, the edge is eroded and the card colour taken back out of the edge pixels
-    (F = (I - (1 - a) B) / a), so no pale halo;
-  - flipped to face right as the reference does, shrunk with area filtering to its screen size,
-    graded per material (burnt orange, cream, charcoal) to the reference's palette;
-  - lit: the moon as key, modelled from the matte's broad normals, a rim on the edges facing her,
-    her warm light from the water under his chin and chest, and the night's cool fill;
-  - matte domed brass pins at the agreed joints, lit from the moon's side;
-  - a soft contact shadow on the bank;
-  - the tissue moon, graded to ivory, with its halo; her reflection as a path of broken strips down
-    the water, as panel 5 paints it, the strips nearest the paw pushed outward as they break; the
-    first two ripple rings;
-  - near reeds of black card, soft with depth, in front of everything.
+  1. the back plate (sky, misty pine shore, water), graded per region to the reference's sampled
+     night, a thin extra gauze of haze;
+  2. the tissue moon with its halo, and her reflection as a broad path of torn strips down the
+     water, warm and broken, the strips nearest the paw pushed outward as they break; the rings;
+  3. the bank, a cut-out piece of dark earth, its lip falling between his hind feet and his
+     reaching paw, so the paw lands on the water; its contact shadow;
+  4. the fox, keyed off the card he was generated on (a fitted card surface, colour distance, the
+     largest piece, holes filled, eroded, opaque inside, the card taken out of the edges), flipped
+     to face right, shrunk with area filtering, graded per material, lit by the moon (key from
+     broad matte normals, a rim where his edges face her), her warm light under his chin, the
+     night's cool fill; brass pins;
+  5. the branch, pushed aside and sprung up at the upper left, a dark silhouette on the sky;
+  6. the near reeds, soft with depth, in front of everything.
 
-Writes OUT/touch-still.png (the 1920x1440 matte), touch-column.png (the 4:5 column) and
-beside-panel-5.jpg (the column beside the reference's panel 5), and still.json.
+Every piece comes from audition/fable/kit (art-ledger.json). Writes OUT/touch-still.png (the
+1920x1440 matte), touch-column.png (the 4:5 column), beside-panel-5.jpg and still.json.
 
 Usage: python -I scripts/fable/still.py OUT_DIR
 """
@@ -38,19 +34,18 @@ W, H = 1920, 1440
 COL_X, COL_W = (W - 1152) // 2, 1152  # the 4:5 column
 
 SPEC = {
-    'plate': 'k2-set-1', 'fox': 'k2-touch-1', 'moon_file': 'k2-moon-1',
-    # the plate's window (plate px, 4:3): about 1.45x closer than the whole plate
-    'window': (914, 513, 3300),
-    # the paw's point on the water and the fox's width, in matte px
-    'paw_at': (1144, 950), 'fox_w': 760,
-    'moon_at': (1100, 250), 'moon_d': 130,
-    'horizon': 609,
-    # in the generated fox (flipped, source px): where the reaching paw meets the water, and the pins
-    'paw_src': (4900, 2635),
-    'pins_src': [(2760, 1720), (3840, 2000), (2160, 2000), (2080, 2500)],
+    'plate': 'k3-back-1', 'bank': 'k3-bank-1', 'reeds': 'k3-reeds-1', 'branch': 'k3-branch-1',
+    'fox': 'k3-touch-1', 'moon_file': 'k2-moon-1',
+    'paw_at': (1144, 950), 'fox_w': 780,          # where his front paw meets the water; his width
+    'lip_x': 1040,                                 # the bank's right end, between his hind feet and his paw
+    'moon_at': (1100, 240), 'moon_d': 130,
+    'horizon': 588,
+    # in the generated fox (flipped, source px): the front paw's tip, and the pins
+    'paw_src': (4520, 2620),
+    'pins_src': [(3440, 1200), (3560, 1880), (2560, 1800), (2240, 2440)],
     'pin_d_src': 80,
     # the reference's night, sampled (bible §2; panel 5 for the bank)
-    'targets': {'sky': '#2a3649', 'water': '#29303d', 'bank': '#161211'},
+    'targets': {'sky': '#2a3649', 'water': '#262d3a', 'bank': '#161211'},
     'fox_targets': {'orange': '#9a4214', 'cream': '#d8cfb6', 'charcoal': '#1d1613'},
     'moon_light': (1.0, 0.86, 0.62),
 }
@@ -79,51 +74,33 @@ def noise(shape, scale, seed):
     rng = np.random.default_rng(seed)
     acc = np.zeros(shape, np.float32)
     for k, wgt in ((scale, 0.6), (scale / 3, 0.3), (scale / 9, 0.1)):
-        n = rng.random(shape).astype(np.float32)
-        acc += cv2.GaussianBlur(n, (0, 0), max(0.6, k)) * wgt
+        acc += cv2.GaussianBlur(rng.random(shape).astype(np.float32), (0, 0), max(0.6, k)) * wgt
     acc -= acc.min()
     return acc / max(acc.max(), 1e-6)
 
 
-def plate():
-    p = load(SPEC['plate'])
-    x0, y0, cw = SPEC['window']
-    ch = cw * 3 // 4
-    p = cv2.resize(p[y0:y0 + ch, x0:x0 + cw], (W, H), interpolation=cv2.INTER_AREA)
-    pl = lin(p)
-    hsv = cv2.cvtColor(p, cv2.COLOR_RGB2HSV)
-    hue, sat, val = hsv[..., 0], hsv[..., 1], hsv[..., 2]
-    yy = np.arange(H)[:, None]
-    blue = (hue > 190) & (hue < 280) & (val > 0.12)
-    regions = {'sky': blue & (yy < SPEC['horizon']), 'water': blue & (yy >= SPEC['horizon']),
-               'bank': (hue < 50) & (sat > 0.15) & (val > 0.1)}
-    acc = np.zeros_like(pl)
-    weight = np.zeros(pl.shape[:2], np.float32)
-    for name, m in regions.items():
-        g = lin(hexrgb(SPEC['targets'][name])) / np.maximum(np.median(pl[m], axis=0), 1e-4)
-        acc[m] += g
-        weight[m] += 1
-    other = weight == 0
-    acc[other] = np.median(acc[~other], axis=0) * 0.8
-    weight[other] = 1
-    gain = cv2.GaussianBlur(acc / weight[..., None], (0, 0), 6)
-    return pl * gain
+def place(img, a, ox, oy):
+    """Put an RGB(A) piece onto the matte at (ox, oy), clipped."""
+    big = np.zeros((H, W, img.shape[2]), np.float32)
+    alpha = np.zeros((H, W), np.float32)
+    x0, y0 = int(round(ox)), int(round(oy))
+    hh, ww = a.shape
+    sx0, sy0, dx0, dy0 = max(0, -x0), max(0, -y0), max(0, x0), max(0, y0)
+    cw, ch = min(ww - sx0, W - dx0), min(hh - sy0, H - dy0)
+    if cw > 0 and ch > 0:
+        big[dy0:dy0 + ch, dx0:dx0 + cw] = img[sy0:sy0 + ch, sx0:sx0 + cw]
+        alpha[dy0:dy0 + ch, dx0:dx0 + cw] = a[sy0:sy0 + ch, sx0:sx0 + cw]
+    return big, alpha
 
 
-def haze(scene):
-    """A tracing-paper gauze over the far shore: densest just above the waterline, thinning upward
-    and onto the near water, with the paper's own fibre."""
-    yy = np.arange(H, dtype=np.float32)[:, None]
-    hz = SPEC['horizon']
-    band = np.exp(-((yy - (hz - 30)) / 95) ** 2) * 0.55 + np.exp(-((yy - hz) / 40) ** 2) * 0.25
-    fib = 0.75 + 0.5 * noise((H, W), 18, 7)
-    a = np.clip(band * fib, 0, 0.75)[..., None] * np.ones((1, W, 1), np.float32)
-    colour = lin(np.array([0.36, 0.41, 0.52], np.float32))
-    return scene * (1 - a) + colour * a
-
-
-def fox():
-    f = load(SPEC['fox'])
+def cutout(name, key='card', band=None, flip=False):
+    """A piece keyed off the ground it was generated on, opaque inside with a crisp paper edge, the
+    ground taken back out of its edge pixels. key='card' fits the card as a smooth surface from the
+    frame's border and keys by colour distance; key='dark' keys a dark piece off a light ground by
+    luminance. band=(y0, y1) keeps only those rows (fractions of the height)."""
+    f = load(name)
+    if band:
+        f = f[int(band[0] * f.shape[0]):int(band[1] * f.shape[0])]
     h, w = f.shape[:2]
     yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
     b = np.zeros((h, w), bool)
@@ -133,21 +110,35 @@ def fox():
     for c in range(3):
         coef, *_ = np.linalg.lstsq(A[b], f[..., c][b], rcond=None)
         card[..., c] = A @ coef
-    d = np.linalg.norm(cv2.cvtColor(f, cv2.COLOR_RGB2LAB) - cv2.cvtColor(card.astype(np.float32), cv2.COLOR_RGB2LAB), axis=-1)
-    a = np.clip((d - 5) / 9, 0, 1)
+    if key == 'card':
+        d = np.linalg.norm(cv2.cvtColor(f, cv2.COLOR_RGB2LAB) - cv2.cvtColor(card.astype(np.float32), cv2.COLOR_RGB2LAB), axis=-1)
+        a = np.clip((d - 5) / 9, 0, 1)
+    else:
+        a = np.clip((cv2.GaussianBlur(card.mean(-1), (0, 0), 50) - f.mean(-1) - 0.12) / 0.2, 0, 1)
     core = (a > 0.5).astype(np.uint8)
-    n, lab_, stats, _ = cv2.connectedComponentsWithStats(core, 8)
-    keep = (lab_ == 1 + np.argmax(stats[1:, cv2.CC_STAT_AREA])).astype(np.uint8)
-    fill = keep.copy()
-    cv2.floodFill(fill, np.zeros((h + 2, w + 2), np.uint8), (0, 0), 1)
-    keep = keep | (1 - fill)
-    keep = cv2.erode(keep, np.ones((5, 5), np.uint8))
-    # Cut paper has a crisp edge and is opaque inside: the matte is the filled core, softened only
-    # at its boundary (a partial matte inside the cream let the card show through as grey speck).
-    a = cv2.GaussianBlur(keep.astype(np.float32), (0, 0), 1.2)
+    if key == 'card':  # one piece: the largest, holes filled
+        n, lab_, stats, _ = cv2.connectedComponentsWithStats(core, 8)
+        core = (lab_ == 1 + np.argmax(stats[1:, cv2.CC_STAT_AREA])).astype(np.uint8)
+        fill = core.copy()
+        cv2.floodFill(fill, np.zeros((h + 2, w + 2), np.uint8), (0, 0), 1)
+        core = core | (1 - fill)
+        core = cv2.erode(core, np.ones((5, 5), np.uint8))
+        a = cv2.GaussianBlur(core.astype(np.float32), (0, 0), 1.2)
+    else:  # many thin blades: keep the soft luminance matte, without specks
+        n, lab_, stats, _ = cv2.connectedComponentsWithStats(core, 8)
+        big_ = np.isin(lab_, 1 + np.nonzero(stats[1:, cv2.CC_STAT_AREA] > 400)[0])
+        a = a * cv2.dilate(big_.astype(np.uint8), np.ones((5, 5), np.uint8))
     fg = (f - (1 - a[..., None]) * card) / np.maximum(a[..., None], 1e-3)
     fg = np.clip(np.where(a[..., None] > 0.02, fg, 0), 0, 1)
-    return np.ascontiguousarray(fg[:, ::-1]), np.ascontiguousarray(a[:, ::-1])  # face right
+    if flip:
+        fg, a = fg[:, ::-1], a[:, ::-1]
+    return np.ascontiguousarray(fg), np.ascontiguousarray(a)
+
+
+def grade_to(L, a, target):
+    """One material, linear light: its median goes to the target."""
+    sel = a > 0.9
+    return L * (lin(hexrgb(target)) / np.maximum(np.median(L[sel], axis=0), 1e-4))
 
 
 def grade_fox(fg, a):
@@ -174,49 +165,48 @@ def grade_fox(fg, a):
     return L * gain / tot[..., None]
 
 
-def place(img, a, ox, oy):
-    big = np.zeros((H, W, img.shape[2]), np.float32)
-    alpha = np.zeros((H, W), np.float32)
-    x0, y0 = int(round(ox)), int(round(oy))
-    hh, ww = a.shape
-    sx0, sy0, dx0, dy0 = max(0, -x0), max(0, -y0), max(0, x0), max(0, y0)
-    cw, ch = min(ww - sx0, W - dx0), min(hh - sy0, H - dy0)
-    big[dy0:dy0 + ch, dx0:dx0 + cw] = img[sy0:sy0 + ch, sx0:sx0 + cw]
-    alpha[dy0:dy0 + ch, dx0:dx0 + cw] = a[sy0:sy0 + ch, sx0:sx0 + cw]
-    return big, alpha
+def plate():
+    p = load(SPEC['plate'])
+    p = cv2.resize(p, (W, H), interpolation=cv2.INTER_AREA)
+    pl = lin(p)
+    hsv = cv2.cvtColor(p, cv2.COLOR_RGB2HSV)
+    yy = np.arange(H)[:, None] * np.ones((1, W))
+    regions = {'sky': yy < SPEC['horizon'] - 60, 'water': yy >= SPEC['horizon'] + 10}
+    acc = np.zeros_like(pl)
+    weight = np.zeros(pl.shape[:2], np.float32)
+    for name, m in regions.items():
+        g = lin(hexrgb(SPEC['targets'][name])) / np.maximum(np.median(pl[m], axis=0), 1e-4)
+        acc[m] += g
+        weight[m] += 1
+    other = weight == 0
+    acc[other] = (lin(hexrgb(SPEC['targets']['sky'])) / np.maximum(np.median(pl[regions['sky']], axis=0), 1e-4)) * 0.85  # the mist band, kept grey-blue and low
+    weight[other] = 1
+    gain = cv2.GaussianBlur(acc / weight[..., None], (0, 0), 40)
+    out = pl * gain
+    grey = out.mean(-1, keepdims=True)
+    return grey + (out - grey) * 0.7  # the plate's teal pulled toward the reference's grey-blue
 
 
-def reeds(seed=3):
-    """Near reeds of black card at the bottom left and the right edge, soft with depth."""
-    rng = np.random.default_rng(seed)
-    m = np.zeros((H, W), np.float32)
-    for x0, n, lean in ((470, 8, 0.10), (1500, 6, -0.12)):
-        for _ in range(n):
-            bx = x0 + rng.normal(0, 70)
-            top = H * rng.uniform(0.58 if x0 < 1000 else 0.66, 0.86)
-            w0 = rng.uniform(9, 16)
-            bend = rng.uniform(-60, 60) + lean * (H - top)
-            pts_l, pts_r = [], []
-            for t in np.linspace(0, 1, 24):
-                y = H + 10 - t * (H + 10 - top)
-                x = bx + bend * t ** 2
-                hw = w0 * (1 - t) ** 0.8 + 0.6
-                pts_l.append((x - hw, y))
-                pts_r.append((x + hw, y))
-            poly = np.array(pts_l + pts_r[::-1], np.int32)
-            cv2.fillPoly(m, [poly], 1.0, cv2.LINE_AA)
-    return cv2.GaussianBlur(m, (0, 0), 3.5)
+def haze(scene):
+    """A thin tracing-paper gauze over the far shore (the plate has its own mist)."""
+    yy = np.arange(H, dtype=np.float32)[:, None]
+    hz = SPEC['horizon']
+    band = np.exp(-((yy - (hz - 20)) / 80) ** 2) * 0.22
+    a = np.clip(band * (0.75 + 0.5 * noise((H, W), 18, 7)), 0, 0.4)[..., None]
+    return scene * (1 - a) + lin(np.array([0.36, 0.41, 0.52], np.float32)) * a
 
 
 def main():
     out = Path(sys.argv[1])
     out.mkdir(parents=True, exist_ok=True)
-    scene = haze(plate())
     yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
     mx, my = SPEC['moon_at']
     px, py = SPEC['paw_at']
 
-    # The moon and its halo.
+    # 1. the back plate
+    scene = haze(plate())
+
+    # 2. the moon, her reflection, the rings
     moon = load(SPEC['moon_file'])
     md = SPEC['moon_d']
     k = md / (moon.shape[0] * 0.65)
@@ -226,26 +216,22 @@ def main():
     halo = cv2.GaussianBlur(sky * skya[..., None], (0, 0), md * 0.6) * np.array([1.0, 0.85, 0.6], np.float32)
     scene = scene * (1 - skya[..., None]) + sky * skya[..., None] + halo * 0.8
 
-    # Her reflection: a path of broken strips down the water under her, the nearest to the paw
-    # pushed outward as they begin to break (panel 5 paints it so).
     rng = np.random.default_rng(11)
     tex = cv2.resize(mm, (400, 60), interpolation=cv2.INTER_AREA)
     path = np.zeros_like(scene)
-    pcx = px + 60  # the paw falls on the path's near edge
-    y = SPEC['horizon'] + 14
-    row = 0
+    pcx = px + 70  # the paw falls on the path's near edge
+    y = SPEC['horizon'] + 12
     while y < H:
         t = (y - SPEC['horizon']) / (H - SPEC['horizon'])
-        hgt = 7 + 24 * t
-        for _ in range(rng.integers(1, 3)):
-            wid = (70 + 420 * t) * rng.uniform(0.3, 1.0)
-            cx = pcx + rng.normal(0, 20 + 70 * t)
+        hgt = 8 + 26 * t
+        for _ in range(rng.integers(1, 4)):
+            wid = (90 + 520 * t) * rng.uniform(0.3, 1.0)
+            cx = pcx + rng.normal(0, 26 + 80 * t)
             d = np.hypot(cx - px, y - py)
-            push = 46 * np.exp(-d / 110)
+            push = 60 * np.exp(-d / 120)
             cx += (cx - px) / (abs(cx - px) + 1e-6) * push
             yb = y + (y - py) / (abs(y - py) + 1e-6) * push * 0.25
             strip = cv2.resize(tex, (max(4, int(wid)), max(2, int(hgt))), interpolation=cv2.INTER_AREA)
-            # each strip a torn sliver: rounded ends, a ragged top and bottom
             sh_, sw_ = strip.shape[:2]
             u = np.linspace(-1, 1, sw_)[None, :]
             v = np.linspace(-1, 1, sh_)[:, None]
@@ -254,29 +240,32 @@ def main():
             taper = np.clip(1 - np.abs(u) ** 2.2, 0, 1) ** 0.6
             lo, hi_ = -0.2 - 0.8 * bot_ * taper, 0.2 + 0.8 * top_ * taper
             sa = np.clip((v - lo) * sh_ * 0.5, 0, 1) * np.clip((hi_ - v) * sh_ * 0.5, 0, 1) * (taper > 0.05)
-            bright = 1.25 * (1 - 0.55 * t) * rng.uniform(0.7, 1.0)
-            s_img, s_a = place(strip * bright, sa, cx - strip.shape[1] / 2, yb - strip.shape[0] / 2)
+            bright = 1.7 * (1 - 0.45 * t) * rng.uniform(0.65, 1.0)
+            s_img, s_a = place(strip * bright, sa.astype(np.float32), cx - sw_ / 2, yb - sh_ / 2)
             path += s_img * s_a[..., None]
-        y += hgt * 0.7 + 5 + 18 * t * rng.uniform(0.4, 1.6)
-        row += 1
+        y += hgt * 0.65 + 4 + 16 * t * rng.uniform(0.4, 1.6)
     path = cv2.GaussianBlur(path, (0, 0), 0.7)
-    scene += path * np.array([1.0, 0.92, 0.75], np.float32)
+    glow = cv2.GaussianBlur(path, (0, 0), 30) * 0.5  # the water around the path lit warm
+    scene += (path + glow) * np.array([1.0, 0.9, 0.72], np.float32)
+    rings = np.zeros((H, W), np.float32)
+    for (r, aa) in ((30, 0.6), (56, 0.38), (86, 0.2)):
+        cv2.ellipse(rings, (int(px), int(py + 6)), (r, int(r * 0.30)), 0, 0, 360, aa, 2, cv2.LINE_AA)
+    scene += cv2.GaussianBlur(rings, (0, 0), 0.7)[..., None] * lin(np.array([0.9, 0.86, 0.78], np.float32))
 
-    # Grass along the bank's lip and a stand of reeds just past him, black card on his plane.
-    grass = np.zeros((H, W), np.float32)
-    g_rng = np.random.default_rng(5)
-    for gx in np.r_[g_rng.uniform(420, 980, 26), g_rng.uniform(1250, 1420, 9)]:
-        base = (py + 8) if gx < 1100 else (py - 40)
-        tall = g_rng.uniform(25, 70) if gx < 1100 else g_rng.uniform(140, 330)
-        lean_ = g_rng.normal(0, 0.25) * tall
-        wd = g_rng.uniform(2.5, 4.5) if gx < 1100 else g_rng.uniform(4, 7)
-        pts = [(gx - wd, base), (gx + lean_ * 0.4, base - tall * 0.6), (gx + lean_, base - tall), (gx + wd, base)]
-        cv2.fillPoly(grass, [np.array(pts, np.int32)], 1.0, cv2.LINE_AA)
-    grass = cv2.GaussianBlur(grass, (0, 0), 0.8)
-    scene = scene * (1 - grass[..., None]) + lin(np.array([0.05, 0.045, 0.05], np.float32)) * grass[..., None]
+    # 3. the bank, its lip between his hind feet and his paw
+    bfg, ba = cutout(SPEC['bank'])
+    ys, xs = np.nonzero(ba > 0.5)
+    bfg, ba = bfg[ys.min():ys.max() + 1, xs.min():xs.max() + 1], ba[ys.min():ys.max() + 1, xs.min():xs.max() + 1]
+    bs = (SPEC['lip_x'] + 120) / bfg.shape[1]
+    bfg = cv2.resize(bfg, None, fx=bs, fy=bs, interpolation=cv2.INTER_AREA)
+    ba = cv2.resize(ba, None, fx=bs, fy=bs, interpolation=cv2.INTER_AREA)
+    # its earth's top edge (below the grass) sits under his feet
+    rows = np.nonzero((ba > 0.5).mean(axis=1) > 0.6)[0]
+    top = rows[0] if len(rows) else 0
+    bank_img, bank_a = place(grade_to(lin(bfg), ba, SPEC['targets']['bank']), ba, SPEC['lip_x'] - bfg.shape[1], py + 12 - top)
 
-    # The fox at his size and place.
-    fg, a = fox()
+    # 4. the fox
+    fg, a = cutout(SPEC['fox'], flip=True)
     ys, xs = np.nonzero(a > 0.5)
     s = SPEC['fox_w'] / (xs.max() - xs.min())
     fgs = cv2.resize(fg, None, fx=s, fy=s, interpolation=cv2.INTER_AREA)
@@ -285,8 +274,6 @@ def main():
     ox, oy = px - SPEC['paw_src'][0] * s, py - SPEC['paw_src'][1] * s
     big, alpha = place(L, As, ox, oy)
 
-    # Light on the fox: the moon as key, modelled from broad normals of his matte; a rim where his
-    # edges face her; her warm light from the water under his chin and chest; the cool night fill.
     def normals(sigma):
         g = cv2.GaussianBlur(alpha, (0, 0), sigma)
         gy, gx = np.gradient(g)
@@ -296,30 +283,23 @@ def main():
     ln = np.hypot(Lx, Ly) + 1e-6
     ldir = np.stack([Lx / ln, Ly / ln], -1)
     nb, gb = normals(28)
-    key = np.clip((nb * ldir).sum(-1), 0, 1) * np.clip(1 - gb, 0, 1) * 2  # brighter toward the lit side
+    key = np.clip((nb * ldir).sum(-1), 0, 1) * np.clip(1 - gb, 0, 1) * 2
     nr, gr = normals(2.5)
     rim = np.clip((nr * ldir).sum(-1), 0, 1) * np.clip(gr * (1 - gr) * 4, 0, 1)
     moonlight = np.array(SPEC['moon_light'], np.float32)
     lit = big * np.array([0.74, 0.78, 0.90], np.float32)
     lit += big * (np.clip(key, 0, 1)[..., None] * 0.8) * moonlight
     lit += rim[..., None] * moonlight * 1.2 * alpha[..., None]
-    under = np.clip(1 - np.hypot((xx - pcx) / 420, (yy - (py + 40)) / 300), 0, 1) ** 1.4
-    under *= np.clip((yy - (py - 330)) / 330, 0, 1)
-    lit *= 1 + under[..., None] * np.array([0.55, 0.36, 0.12], np.float32)
+    under = np.clip(1 - np.hypot((xx - pcx) / 440, (yy - (py + 40)) / 320), 0, 1) ** 1.4
+    under *= np.clip((yy - (py - 360)) / 360, 0, 1)
+    lit *= 1 + under[..., None] * np.array([0.6, 0.4, 0.14], np.float32)
 
-    # The contact shadow, away from the moon, soft, on the bank.
+    # the bank goes down, then his contact shadow on it, then him
+    comp = scene * (1 - bank_a[..., None]) + bank_img * bank_a[..., None]
     sh = cv2.GaussianBlur(np.roll(np.roll(alpha, 12, 0), -18, 1), (0, 0), 10)
-    scene *= 1 - 0.5 * sh[..., None] * (yy[..., None] > py - 160)
+    comp *= 1 - 0.5 * sh[..., None] * bank_a[..., None]
+    comp = comp * (1 - alpha[..., None]) + lit * alpha[..., None]
 
-    # The rings: thin glassine ellipses round the paw, light caught on their crests.
-    rings = np.zeros((H, W), np.float32)
-    for (r, aa) in ((30, 0.6), (56, 0.38), (86, 0.2)):
-        cv2.ellipse(rings, (int(px), int(py + 6)), (r, int(r * 0.30)), 0, 0, 360, aa, 2, cv2.LINE_AA)
-    scene += cv2.GaussianBlur(rings, (0, 0), 0.7)[..., None] * lin(np.array([0.9, 0.86, 0.78], np.float32))
-
-    comp = scene * (1 - alpha[..., None]) + lit * alpha[..., None]
-
-    # Brass pins: matte domes about 1/12 of his head, lit from the moon's side.
     pd = SPEC['pin_d_src'] * s
     for (sx, sy) in SPEC['pins_src']:
         cx, cy = ox + sx * s, oy + sy * s
@@ -330,13 +310,37 @@ def main():
         l_ = np.hypot(lx, ly)
         hi = np.clip(1 - np.hypot(xx - (cx + lx / l_ * r * 0.4), yy - (cy + ly / l_ * r * 0.4)) / (r * 1.2), 0, 1)
         brass = lin(np.array([0.50, 0.40, 0.20], np.float32)) * (0.35 + 1.4 * hi[..., None] ** 1.5)
-        ring = np.clip(r + 1.5 - dd, 0, 1) - disk  # a dark lip where the dome meets the paper
+        ring = np.clip(r + 1.5 - dd, 0, 1) - disk
         comp = comp * (1 - disk[..., None]) + brass * disk[..., None]
         comp *= 1 - 0.5 * ring[..., None]
 
-    # Near reeds in front of everything, black card, soft with depth.
-    rd = reeds()
-    comp = comp * (1 - rd[..., None]) + lin(np.array([0.035, 0.035, 0.045], np.float32)) * rd[..., None]
+    # 5. the branch, sprung up and away at the upper left
+    brg, bra = cutout(SPEC['branch'], key='dark', flip=True)
+    ys, xs = np.nonzero(bra > 0.5)
+    brg, bra = brg[ys.min():ys.max() + 1, xs.min():xs.max() + 1], bra[ys.min():ys.max() + 1, xs.min():xs.max() + 1]
+    k2 = 620 / brg.shape[1]
+    brg = cv2.resize(brg, None, fx=k2, fy=k2, interpolation=cv2.INTER_AREA)
+    bra = cv2.resize(bra, None, fx=k2, fy=k2, interpolation=cv2.INTER_AREA)
+    M = cv2.getRotationMatrix2D((brg.shape[1] / 2, brg.shape[0] / 2), -24, 1.0)
+    pad = (int(brg.shape[1] * 1.2), int(brg.shape[1] * 1.2))
+    M[:, 2] += [(pad[0] - brg.shape[1]) / 2, (pad[1] - brg.shape[0]) / 2]
+    brg = cv2.warpAffine(brg, M, pad, flags=cv2.INTER_CUBIC)
+    bra = cv2.warpAffine(bra, M, pad, flags=cv2.INTER_CUBIC)
+    br_img, br_a = place(lin(brg) * 0.25, bra, COL_X - 260, -260)
+    comp = comp * (1 - br_a[..., None]) + br_img * br_a[..., None]
+
+    # 6. the near reeds, soft with depth
+    rfg, ra = cutout(SPEC['reeds'], key='dark', band=(0.22, 0.86))
+    k3 = 560 / ra.shape[0]
+    ra = cv2.resize(ra, None, fx=k3, fy=k3, interpolation=cv2.INTER_AREA)
+    rw = ra.shape[1]
+    left, right = ra[:, : rw // 2], ra[:, rw // 2:]
+    near = np.zeros((H, W), np.float32)
+    _, la = place(np.zeros((*left.shape, 3), np.float32), left, COL_X - left.shape[1] * 0.55, H - left.shape[0] + 40)
+    _, rra = place(np.zeros((*right.shape, 3), np.float32), right, COL_X + COL_W - right.shape[1] * 0.45, H - right.shape[0] + 30)
+    near = np.maximum(la, rra)
+    near = cv2.GaussianBlur(near, (0, 0), 3.5)
+    comp = comp * (1 - near[..., None]) + lin(np.array([0.035, 0.03, 0.035], np.float32)) * near[..., None]
 
     img = srgb(comp)
     Image.fromarray((img * 255 + 0.5).astype(np.uint8)).save(out / 'touch-still.png')
@@ -348,7 +352,8 @@ def main():
     pair.paste(ref, (0, 0))
     pair.paste(Image.fromarray((column * 255 + 0.5).astype(np.uint8)), (ref.width + 24, 0))
     pair.save(out / 'beside-panel-5.jpg', quality=92)
-    report = {'foxScale': round(float(s), 4), 'headPx': round(float(980 * s), 1), 'moonPx': md, 'paw': [px, py]}
+    report = {'pieces': {k_: SPEC[k_] for k_ in ('plate', 'bank', 'reeds', 'branch', 'fox', 'moon_file')},
+              'foxScale': round(float(s), 4), 'moonPx': md, 'paw': [px, py]}
     (out / 'still.json').write_text(json.dumps(report, indent=1))
     print(report)
 

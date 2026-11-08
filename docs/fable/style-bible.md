@@ -221,18 +221,20 @@ pond-close set, lit by the moon, beside panel 5. It is the cheapest place to fai
 **One locked shot, frames 3080–3406** (128.33–141.92 s). It cuts in 0.3 s after "pond." and cuts
 out 0.3 s before "For". The animatic's boundaries were 3097 and 3414.
 
-**Framing, as fractions of the 4:5 column:**
+**Framing,** as fractions of the 4:5 column. These are approved by the artist from the touch still
+(2026-11-08), which was composed toward panel 5. They replace draft 2's first table, at which his
+head was only about 100 px and his paw landed on the bank.
 
 | Element | Position |
 |---|---|
-| Horizon | y 0.40 |
-| Fox | x 0.08–0.52, back line at y 0.45 |
-| Paw contact | (0.50, 0.62) |
-| Her disc at the contact | its upper edge at least 0.06 beyond the paw, so "short" reads |
-| Sky moon | x 0.62, diameter 0.11, rising from y 0.30 to 0.18 |
+| Horizon | y 0.42 |
+| Fox | x 0.0–0.66, about 0.66 of the column wide; his head about 155 px at 1920×1440 |
+| Paw contact | (0.66, 0.66), past the bank's lip, on the water |
+| Her reflection | a path of torn strips down the water under her, its near edge at the paw; broader, brighter and more broken than the first still (the artist) |
+| Sky moon | x 0.62, diameter about 0.11, near y 0.17 at the touch |
 | Hill silhouette | under the moon's final position |
 | Branch | upper left |
-| Near reeds | right edge, soft |
+| Near reeds | bottom left and right edge, soft |
 
 **The acting, timed to Tom's word onsets:** "pushed" 129.54 s (f3109), "reached" 130.94 s (f3142),
 "her." ends 131.85 s, contact f3169.
