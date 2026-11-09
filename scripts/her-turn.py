@@ -1039,7 +1039,7 @@ def main_old():
     test-output/review/woodland/turn-old/."""
     top2, k = ts.source('02-characters', os.path.join(cut.REF, '02-characters.webp'))
     panel = top2[0:N, CX:CX + N].astype(np.float64)
-    eyes = json.load(open(ts.MANIFEST))['living']['afternoon']['near']['eyes']['b']
+    eyes = json.load(open(ts.MANIFEST))['rig']['afternoon']['near']['eyes']['b']
     gaze = woodland_gaze()
     head = Head(panel)
     out = os.path.join(ROOT, 'test-output', 'review', 'woodland', 'turn-old')
@@ -1083,7 +1083,7 @@ def main():
     top2, k = ts.source('02-characters', os.path.join(cut.REF, '02-characters.webp'))
     assert k == 2, 'needs references/woodland/upscaled/ (scripts/upscale.py)'
     panel = top2[0:N, CX:CX + N].astype(np.float64)
-    eyes = json.load(open(ts.MANIFEST))['living']['afternoon']['near']['eyes']['b']
+    eyes = json.load(open(ts.MANIFEST))['rig']['afternoon']['near']['eyes']['b']
     gaze = woodland_gaze()
     rig = Turned(panel)
     # (Checks: not turned, the rig is the panel; turned, her lines keep their weight.)

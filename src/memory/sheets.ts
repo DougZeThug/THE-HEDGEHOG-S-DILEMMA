@@ -23,6 +23,11 @@ export const WINDOW: Schema[string] = {
   parallax: [1, 0, 1],
   // The room's writing under the painting held washed (with the pencil: src/world/living/wash.ts).
   wash: [0, 0, 1],
+  // What passing light has left found of a living painting drawn in order (its order map's B: The
+  // Drive Home's faces first), and the flat dark of what isn't found yet, as a share of the
+  // plaster (1: none: as painted).
+  found: [0, 0, 1],
+  dark: [1, 0, 1],
 };
 
 export const LIGHT: Schema[string] = {
@@ -80,10 +85,18 @@ export const SCENE: Schema[string] = {
  *   shadow  the chair's shadow: 0 as the room's light throws it, 1 thrown onto the memory's wall
  *           by a low light behind the chair (the room's key, brought down there)
  *   lamp    how strong that low light is (0..1): it gives way while the memory's own light plays
+ *   street  passing streetlights across the memory's wall (The Drive Home, src/world/StreetLight.ts):
+ *           each whole number one gone by, right to left; between two, one crossing
+ *   night   the room's light a cool night (0..1)
+ *   lean    the room's light comes to the visitor first as it returns (crossing 1/2 starts it:
+ *           Lighting.leanTo keeps its own time from there)
  */
 export const ROOM: Schema[string] = {
   shadow: [0, 0, 1],
   lamp: [1, 0, 1],
+  street: [0, 0, 3],
+  night: [0, 0, 1],
+  lean: [0, 0, 1],
 };
 
 /**

@@ -34,6 +34,13 @@ const LAMP = { out: 1.15, y: 0.42, cone: 0.36, gain: 1.4 };
 
 const COOL = new THREE.Color('#dbe6f0');
 const WARM = new THREE.Color('#ffdcb4');
+/** Night in the room (The Drive Home): its light a cool moon-blue, against the streetlights' sodium. */
+const NIGHT = new THREE.Color('#8fa6c8');
+/**
+ * The room's light coming to the visitor first as it returns (The Drive Home, docs/drive-home.md):
+ * seconds to come, to stay, to go back to the chair; how far its cone narrows onto them.
+ */
+const LEAN = { attack: 6, hold: 4, release: 30, narrow: 0.3 };
 
 /**
  * One visible source (the ceiling panel) lights the room. A soft area light gives the
@@ -94,6 +101,17 @@ export class Lighting {
    */
   readonly memoryShadow = { amount: 0, lamp: 1, at: new THREE.Vector3(0, 1.2, -ROOM.halfD) };
   private heldShadow = { amount: 0, lamp: 1 };
+  /** How much the room's light is night now (0..1): set every frame a memory holds it, eased. */
+  night = 0;
+  private nightHeld = 0;
+  /**
+   * The room's light come to the visitor (`leanTo`): the key's aim taken off the chair onto a point
+   * (world) by them, its cone narrowed a little, and given back to the chair by itself. Its own
+   * clock: it outlives the memory that began it.
+   */
+  private lean: { at: THREE.Vector3; start: number; back?: { from: number; at: number; over: number } } | null = null;
+  /** How far the light has come to the visitor now (0..1). */
+  leanNow = 0;
 
   constructor(quality: 'low' | 'medium' | 'high') {
     RectAreaLightUniformsLib.init();
@@ -160,6 +178,29 @@ export class Lighting {
   cancelDim() {
     this.dimming = null;
     this.mood = 1;
+    this.night = this.nightHeld = 0;
+    this.cancelLean();
+  }
+
+  /** The room's light comes to `at` (world: by the visitor) first, then back to the chair by itself. */
+  leanTo(at: THREE.Vector3, now: number) {
+    this.lean = { at: at.clone(), start: now };
+  }
+
+  /**
+   * The light goes back to the chair from wherever it is, over `over` s (another memory begins
+   * while it is still on its way back: no jump of the key, QA 2026-11-09).
+   */
+  leanHome(now: number, over = 2.5) {
+    const l = this.lean;
+    if (!l || this.leanNow <= 0) return this.cancelLean();
+    l.back = { from: this.leanNow, at: now, over };
+  }
+
+  /** At once, the light is the chair's again (reduced motion turned on, leaving). */
+  cancelLean() {
+    this.lean = null;
+    this.leanNow = 0;
   }
 
   /** The room's light, apart from the key, as a fraction of itself (for tests and the inspector). */
@@ -224,6 +265,8 @@ export class Lighting {
     c.extraCold = approach(c.extraCold, fc, dt, 1.5);
 
     const w = THREE.MathUtils.clamp(c.warmth + c.extraWarm - c.extraCold, -1, 1);
+    // (Night comes as dusk does and lifts as morning does; the memory sets where it goes.)
+    this.nightHeld = approach(this.nightHeld, THREE.MathUtils.clamp(this.night, 0, 1), dt, 0.8);
     const sc = this.score;
     const L = this.look;
     // How much of the room's own light there is: none while the opening holds only the chair lit,
@@ -238,6 +281,7 @@ export class Lighting {
     const col = this.col.copy(neutralFor(this.warmthNow, this.neutral));
     if (w > 0) col.lerp(WARM, w * 0.75);
     else col.lerp(COOL, -w * 0.85);
+    if (this.nightHeld > 1e-3) col.lerp(NIGHT, 0.6 * this.nightHeld);
 
     const k = this.intensityScale * this.fade;
     const I = c.intensity * (1 + c.extraCold * 0.15);
@@ -269,6 +313,7 @@ export class Lighting {
     // The cone is aimed past the chair (`aim`), so the shadow's camera must see that much further
     // forward, or the chair's shadow ends in a straight edge just in front of its front legs.
     this.key.shadow.focus = 0.4 * (1 + Math.max(0, this.look.aim));
+    this.leanToward(now);
     this.holdShadow(dt, chairPos);
     this.glow.position.set(chairPos.x, 0.7, chairPos.z + 0.25);
     // The shadow map is redrawn only when what it shows changes: the light moved or widened, or
@@ -320,6 +365,33 @@ export class Lighting {
     this.key.shadow.focus += (1 - this.key.shadow.focus) * e;
     this.lampLevel = 1 + (LAMP.gain * h.lamp - 1) * e;
     this.key.intensity *= this.lampLevel;
+  }
+
+  /**
+   * The room's light come to the visitor (`leanTo`): its aim eased off the chair onto their point,
+   * held, then back; the cone a little narrower while it is there, so what it falls on is seen to
+   * be lit, and the shadow's camera fitted to it as it moves (a cut-off edge otherwise: the
+   * technical artist's review, 2026-11-09).
+   */
+  private leanToward(now: number) {
+    const l = this.lean;
+    if (!l) return;
+    const t = now - l.start;
+    const s = (x: number) => x * x * (3 - 2 * x);
+    const b = l.back;
+    if (b && now - b.at >= b.over) {
+      this.cancelLean();
+      return;
+    }
+    const e = b ? b.from * s(1 - (now - b.at) / b.over) : t < 0 ? 0 : t < LEAN.attack ? s(t / LEAN.attack) : t < LEAN.attack + LEAN.hold ? 1 : s(Math.max(0, 1 - (t - LEAN.attack - LEAN.hold) / LEAN.release));
+    if (t >= LEAN.attack + LEAN.hold + LEAN.release) {
+      this.cancelLean();
+      return;
+    }
+    this.leanNow = e;
+    this.key.target.position.lerp(l.at, e);
+    this.key.angle *= 1 - LEAN.narrow * e;
+    this.key.shadow.focus += (1 - this.key.shadow.focus) * e;
   }
 
   /** How much of the room's usual key light falls on the chair now (1 = as the room has it). */

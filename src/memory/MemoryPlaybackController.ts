@@ -32,8 +32,9 @@ export interface AudioSink {
   /** Returns events it was handed but hadn't sounded yet, so they are handed out again on resume.
    *  `now`: the frame the picture stopped on. */
   pause(now?: number): Marker[] | void;
-  /** `now`: the frame the picture moves on from, where it stopped. */
-  resume(now?: number): void;
+  /** `now`: the frame the picture moves on from, where it stopped; `back`: seconds the picture
+   *  stepped back as it did (music keeps its place in the timeline with it). */
+  resume(now?: number, back?: number): void;
   /** The sequence was moved by hand: silent while held. */
   seek(position: number): void;
   /** Playing on from `position` (at `now`) after a seek: what should be sounding there comes back. */
@@ -183,23 +184,22 @@ export class MemoryPlaybackController {
     this.paused = false;
     this.still = true;
     this.lastNow = now;
-    this.o.audio?.resume(now);
     // A sentence the pause cut is said again from its start, as a vignette's is: the scene steps
     // back to just before it (a breath of its living section, never its forming), so what follows
-    // keeps its place and nothing is said over it. What had already sounded stays heard.
+    // keeps its place and nothing is said over it. What had already sounded stays heard; the music
+    // steps back with the picture.
     const again = this.again;
     this.again = [];
-    if (again.length && this._state === 'active') {
-      const from = Math.max(this.s.active, Math.min(...again.map((m) => m.position)) - 0.05);
-      const was = this.pos;
-      if (from < was) {
-        this._t -= was - from;
-        this.pos = from;
-        this.dispatch.seek(from);
-        // (By label and place: the audio's markers are its own copies of the timeline's.)
-        const back = new Set(this.takenBack.map((m) => `${m.label}@${m.position}`));
-        for (const m of this.o.timeline.markers) if (m.position >= from && m.position < was && !back.has(`${m.label}@${m.position}`)) this.dispatch.markHeard(m);
-      }
+    const was = this.pos;
+    const from = again.length && this._state === 'active' ? Math.max(this.s.active, Math.min(...again.map((m) => m.position)) - 0.05) : was;
+    this.o.audio?.resume(now, Math.max(0, was - from));
+    if (from < was) {
+      this._t -= was - from;
+      this.pos = from;
+      this.dispatch.seek(from);
+      // (By label and place: the audio's markers are its own copies of the timeline's.)
+      const back = new Set(this.takenBack.map((m) => `${m.label}@${m.position}`));
+      for (const m of this.o.timeline.markers) if (m.position >= from && m.position < was && !back.has(`${m.label}@${m.position}`)) this.dispatch.markHeard(m);
     }
   }
 

@@ -6,6 +6,7 @@ import { Chair } from './world/Chair';
 import { Lighting, shadowMapSize } from './world/Lighting';
 import { lookFor, parseLook, LOOK_NAMES, LOOKS, type Look, type LookName } from './world/Style';
 import { MemoryLight } from './world/MemoryLight';
+import { StreetLight, STREET_GENTLE } from './world/StreetLight';
 import { MemoryWindow } from './world/MemoryWindow';
 import { Immersion, UPRIGHT } from './world/living/Immersion';
 import { Inside } from './world/living/Inside';
@@ -100,14 +101,20 @@ export class App {
   private leaving: number | null = null;
   /** A memory's light on a wall, and the writing it falls across. */
   readonly memoryLight = new MemoryLight();
+  /** Streetlights passing across a living memory's wall (The Drive Home, docs/drive-home.md). */
+  readonly street = new StreetLight();
   /** A living memory in the plaster (src/memory): neutral and on the wall from boot, so it is compiled with the room. */
   readonly memoryWindow = new MemoryWindow();
   /** The living memory playing now (at most one), and the writing it formed round. */
   private living: { memory: LivingMemory; id: string; key: string; anchor: NonNullable<ReturnType<WallText['anchorOf']>>; bled: boolean; hiddenSince: number | null; held: boolean;
     /** A `?memory=` preview: never counted, nothing persisted. */
     preview?: boolean;
+    /** The room's light has come to the visitor at its end (The Drive Home: `room.lean`). */
+    leaned?: boolean;
     /** Seconds looking away from it, and watching it; why it was let go. */
     awayFor: number; watched: number; minHold: number; seenAt?: number; reached: number; deep: boolean; why: string | null;
+    /** Let go early (a film's `leave`): the film held on the frame it cut to, to the end. */
+    leftEarly?: boolean;
     /** Looking away from it now (last attention check); how many of its later descriptions are told. */
     away: boolean; told: number;
     /** The room's writing its painting has washed out (given back when it goes). */
@@ -297,6 +304,9 @@ export class App {
     // is in the scene, unseen, so it is compiled here too.
     this.room.frames.north.writing.add(this.memoryLight.mesh);
     this.room.frames.north.writing.add(this.memoryWindow.mesh);
+    // (The streetlights' quad too, lit by nothing, so its program is compiled now.)
+    this.street.place(this.text.anchorOf('stay') ?? { group: this.room.frames.north.writing, minX: -3, maxX: 3, minY: -1.7, maxY: 1.7 });
+    this.street.mesh.visible = true;
     this.renderer.setRenderTarget(this.post.composer.readBuffer);
     this.renderer.compile(this.scene, this.rig.camera);
     this.renderer.setRenderTarget(null);
@@ -305,6 +315,7 @@ export class App {
     immersion.pass.enabled = true;
     this.post.render();
     immersion.off();
+    this.street.release();
     const enter = $<HTMLButtonElement>('enter');
     enter.disabled = false;
     enter.textContent = this.visits > 0 ? 'go in again' : 'go in';
@@ -569,6 +580,8 @@ export class App {
     if (drawn && (!a || a.group !== drawn.group)) a = drawn;
     if (!a) return false;
     this.endLivingMemory('switch');
+    // (The Drive Home's light, if it is still on its way back to the chair, goes back now.)
+    this.lighting.leanHome(this.time);
     // Only the latest request plays (two overlapping ones would otherwise both load).
     const gen = ++this.memoryGen;
     let rt: typeof import('./memory/runtime');
@@ -602,6 +615,7 @@ export class App {
       // words back (memoryState). Read after that, `this.living` was null: QA, 2026-10-18.)
       if (this.living === before) {
         this.memoryWindow.release();
+        this.street.release();
         for (const k of before.washed) this.text.wash(k, 0);
         this.living = null;
       }
@@ -618,6 +632,10 @@ export class App {
     this.memoryWindow.avoid = fixed ? [] : this.drawingsOn(a.group);
     this.memoryWindow.setLayers(prepared.layers, prepared.size, prepared.band);
     this.memoryWindow.setLiving(prepared.living ? { crop: prepared.living.crop, size: prepared.size, order: prepared.living.order, feather: prepared.living.feather } : null, !prepared.living && !!prepared.def.living);
+    // (Over the whole of its wall: it shows only while a streetlight crosses it.)
+    this.street.place(a);
+    this.street.reducedMotion = this.prefs.reducedMotion;
+    this.street.strength = this.prefs.intensity === 'gentle' ? STREET_GENTLE : 1;
     this.inside.begin(hashString(a.key), this.prefs.reducedMotion);
     const memory = new rt.LivingMemory(prepared, {
       reduced: this.prefs.reducedMotion,
@@ -672,6 +690,7 @@ export class App {
       this.inside.end();
       this.captions.dim = false;
       this.memoryWindow.release();
+      this.street.release();
       for (const k of l.washed) this.text.wash(k, 0);
       // Its recordings are let go too (a phone keeps little decoded audio; they load again if it returns).
       const p = l.memory.prepared;
@@ -731,12 +750,44 @@ export class App {
     const m = this.lighting.memoryShadow;
     const l = this.living;
     const f = l?.memory.controller.frame?.final;
+    // (And its night, The Drive Home's: nothing playing, the room's light comes back by itself.)
+    this.lighting.night = f?.['room.night'] ?? 0;
     m.amount = f?.['room.shadow'] ?? 0;
     m.lamp = f?.['room.lamp'] ?? 1;
     if (!l || m.amount <= 0 || !this.memoryWindow.isPlaced) return;
     const p = this.memoryWindow.painting;
     l.anchor.group.updateWorldMatrix(true, false);
     l.anchor.group.localToWorld(m.at.set(p.cx, p.cy - 0.15 * p.h, 0));
+  }
+
+  /**
+   * The Drive Home's end (docs/drive-home.md): as the indicator stops, the room's light comes to
+   * the visitor first, before the chair: onto where they are looking, a little over a metre up, on
+   * the wall they face or the floor before them, taken once and never following them; then back to
+   * the chair by itself over half a minute (Lighting.leanTo). Not if they are already by the chair
+   * (the light is there), never after a let go (compose: `lean`).
+   */
+  private leanToVisitor(l: NonNullable<App['living']>, lean: number) {
+    if (l.leaned || lean < 0.5) return;
+    l.leaned = true;
+    const eye = this.rig.restingEye;
+    const chair = this.chair.group.position;
+    if (Math.hypot(eye.x - chair.x, eye.z - chair.z) < 1.5) return;
+    // Under reduced motion the room's light does not travel (as the kitchen's: light, not movement).
+    if (this.prefs.reducedMotion) return;
+    const dir = this.rig.camera.getWorldDirection(new THREE.Vector3()).setY(0);
+    if (dir.lengthSq() < 1e-6) return;
+    dir.normalize();
+    // Where the look meets a wall (the room's box), at most 3 m ahead: the floor short of it.
+    const hx = ROOM.halfW - 0.05, hz = ROOM.halfD - 0.05;
+    let t = 3;
+    if (dir.x > 1e-6) t = Math.min(t, (hx - eye.x) / dir.x);
+    if (dir.x < -1e-6) t = Math.min(t, (-hx - eye.x) / dir.x);
+    if (dir.z > 1e-6) t = Math.min(t, (hz - eye.z) / dir.z);
+    if (dir.z < -1e-6) t = Math.min(t, (-hz - eye.z) / dir.z);
+    const at = new THREE.Vector3(eye.x + dir.x * t, t < 2.95 ? 1.2 : 0, eye.z + dir.z * t);
+    this.lighting.leanTo(at, this.time);
+    this.srRegion().textContent = 'The light moves a little toward you.';
   }
 
   /** Let the playing memory go: gracefully, or (switch, depart, hidden) at once. */
@@ -1067,6 +1118,10 @@ export class App {
     }
     const f = l.memory.controller.scrub(position);
     this.memoryWindow.update(f.final, this.rig.restingEye, 1);
+    // (The streetlights too, so a capture or the editor shows where a pass is; and the light that
+    // comes to the visitor at the end, on its own clock, as it would played.)
+    this.memoryWindow.setBand(this.street.update(f.final['room.street'] ?? 0));
+    this.leanToVisitor(l, f.final['room.lean'] ?? 0);
     this.drawLiving(l, f, 0);
     return { state: f.state, position: f.position, final: f.final };
   }
@@ -1145,6 +1200,8 @@ export class App {
       const f = this.studioTick ? l.memory.controller.refresh() : l.memory.controller.frame;
       if (f) {
         this.memoryWindow.update(f.final, this.rig.restingEye, 1 / 60);
+        this.memoryWindow.setBand(this.street.update(f.final['room.street'] ?? 0));
+        this.leanToVisitor(l, f.final['room.lean'] ?? 0);
         this.drawLiving(l, f, 0);
         this.bleedMemory(l, f);
       }
@@ -1174,6 +1231,8 @@ export class App {
     const frame = l.memory.step(dt, now);
     if (frame) {
       this.memoryWindow.update(frame.final, this.rig.restingEye, dt);
+      this.memoryWindow.setBand(this.street.update(frame.final['room.street'] ?? 0));
+      this.leanToVisitor(l, frame.final['room.lean'] ?? 0);
       this.drawLiving(l, frame, dt);
       this.bleedMemory(l, frame);
     }
@@ -1204,15 +1263,19 @@ export class App {
     }
     const aspect = innerWidth / innerHeight;
     const upright = aspect < UPRIGHT;
-    // The shot on now, chosen first so the view frames it from its first frame. The two-shot only
-    // for someone taken all the way in; turned 14° from it, the wide until they settle facing it
-    // again (interaction and QA reviews, 2026-10-17 and 18). Only on a screen that can frame it
-    // (the spec's aspects: never upright, where a 16:9 two-shot holds one face and the wide holds
-    // both, with her look and his drawn in it; the reviews of 2026-10-18): elsewhere the dusk cut
-    // is its only cut.
+    // The shot on now, chosen first so the view frames it from its first frame. A painted scene
+    // (the rig) chooses its two-shot: only for someone taken all the way in, the wide while they are
+    // turned from it, never upright (the reviews of 2026-10-17 and 18). A film cuts itself: it says
+    // which shot is on the screen, by the frame being shown, and is framed for it.
     const shot = pl.scene.choose(f.final, { inside: this.inside.taken, turn: this.inside.turned, t: f.t, now: this.time, aspect });
     this.post.close = shot > 0 ? 1 : 0;
-    const focus = upright ? pl.spec.uprightAt?.(f.final['scene.film'] ?? 0) ?? pl.spec.cover.upright : pl.spec.coverAt?.(aspect) ?? (aspect > 2.0 ? pl.spec.cover.ultra : pl.spec.cover.wide);
+    // (A film's close shot is framed by its own focus, from its first frame to its last: a reframe on
+    // its cut, never a move; upright, the face whose shot it is: src/memory/living/woodlandFilm.ts.
+    // Upright, a film that moves its focus by its own clock says where: src/memory/living/drive.ts.)
+    const close = shot > 0 ? pl.spec.close : undefined;
+    const focus = close
+      ? (upright ? close.upright : close.coverAt(aspect))
+      : upright ? pl.spec.uprightAt?.(f.final['scene.film'] ?? 0, this.prefs.reducedMotion) ?? pl.spec.cover.upright : pl.spec.coverAt?.(aspect) ?? (aspect > 2.0 ? pl.spec.cover.ultra : pl.spec.cover.wide);
     const go = this.inside.step(dt, {
       immerse: f.final['scene.immerse'] ?? 0,
       focus,
@@ -1240,7 +1303,12 @@ export class App {
     this.captions.dim = this.inside.entered && (f.final['scene.immerse'] ?? 0) >= 0.6 && (f.final['scene.after'] ?? 0) >= 0.5;
     pl.scene.reduced = this.prefs.reducedMotion;
     // (The two-shot's frame is the screen's: a narrower one sees less of its width, a wider one less of its height.)
-    pl.scene.update(this.renderer, f.t, f.final, { view: this.inside.view, parallax: new THREE.Vector2(), aspect });
+    // (A film let go early cuts to the frame its wall's pencil draws and holds it as it goes back:
+    // src/memory/living/woodlandFilm.ts `leave`.)
+    const leave = pl.spec.leave;
+    if (leave && (f.state === 'withdrawing' || f.state === 'residue') && f.position < leave.before) l.leftEarly = true;
+    const values = l.leftEarly && leave ? { ...f.final, 'scene.film': leave.to } : f.final;
+    pl.scene.update(this.renderer, f.t, values, { view: this.inside.view, parallax: new THREE.Vector2(), aspect });
     // What changes later, told to a screen reader when it happens (not before: the cut is not given away).
     const later = l.memory.prepared.def.announce?.(l.memory.prepared.variant) ?? [];
     while (l.told < later.length && f.position >= later[l.told].at && f.state !== 'emerging') {
@@ -2475,6 +2543,10 @@ export class App {
       this.rig.reducedMotion = p.reducedMotion;
     }
     document.documentElement.classList.toggle('reduce-motion', p.reducedMotion);
+    // (Changed while The Drive Home plays: its streetlights stop crossing, its light stays put.)
+    this.street.reducedMotion = p.reducedMotion;
+    this.street.strength = p.intensity === 'gentle' ? STREET_GENTLE : 1;
+    if (p.reducedMotion) this.lighting?.cancelLean();
     if (p.muted || !p.speech) this.voices?.stopSpeech();
     if (this.post) {
       this.post.reducedMotion = p.reducedMotion;

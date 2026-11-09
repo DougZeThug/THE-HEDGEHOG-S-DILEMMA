@@ -23,7 +23,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { EVENING_AT, EVENING_OFFSET } from '../src/memory/defs';
+import { CUT, EVENING_AT, EVENING_OFFSET } from '../src/memory/defs';
 
 const RATE = 48000;
 const TAKES = 'audition/woodland';
@@ -187,7 +187,7 @@ mkdirSync(OUT, { recursive: true });
  * one pitch, the same in both ears): two different slices in each ear, each swelling slowly on its
  * own (±3 dB over 4–8 s, out of step), so that it is wide and moves, never one band standing still;
  * a fuller forest round it (its tail 8 dB under), its top softened. `from` is the memory time of
- * the stem's first sample; it goes back into the wall with the painting (43–46.5 memory s).
+ * the stem's first sample; it goes back into the wall with the painting (8.5–12 s after the cut: 39–42.5 memory s).
  */
 function evening(len: number, from: number, recede: boolean): Stereo {
   const takes = { a: decode(`${TAKES}/woodland-dusk-3.mp3`), b: decode(`${TAKES}/woodland-evening-1.mp3`), c: decode(`${TAKES}/woodland-dusk-2.mp3`) };
@@ -209,7 +209,7 @@ function evening(len: number, from: number, recede: boolean): Stereo {
   }
   const eve = forest(out, 1.8, -8);
   for (const c of eve) {
-    if (recede) sweep(c, (t) => 7000 * Math.pow(2500 / 7000, smooth(43, 46.5, t)), from);
+    if (recede) sweep(c, (t) => 7000 * Math.pow(2500 / 7000, smooth(CUT + 8.5, CUT + 12, t)), from);
     else biquad(c, 'lowpass', 7000, 0.707);
   }
   level(eve, -23, 0, 6);
@@ -220,9 +220,12 @@ function evening(len: number, from: number, recede: boolean): Stereo {
 {
   // (The cue begins 40 ms before the cut and is full on it, `EVENING_OFFSET` into its file.)
   const from = EVENING_AT - EVENING_OFFSET;
-  const eve = evening(47 - from, from, true);
+  // (Its way back is laid from the cut, as the memory's is: 8.5 s after it the evening recedes as
+  // the painting is carried back, gone 12 s after it; first made with the cut at 34.5, the file
+  // is the same for any cut.)
+  const eve = evening(CUT + 12.5 - from, from, true);
   for (let i = 0; i < eve[0].length; i++) {
-    const g = 1 - smooth(43, 46.5, from + i / RATE);
+    const g = 1 - smooth(CUT + 8.5, CUT + 12, from + i / RATE);
     eve[0][i] *= g;
     eve[1][i] *= g;
   }

@@ -49,7 +49,7 @@ export interface LivingSpec {
   /** In place of `wide` and `ultra`: the focus for any screen this wide (width over height, not upright). */
   coverAt?: (aspect: number) => [number, number];
   /** On an upright screen, where it covers by the film's own second (`scene.film`), if it moves. */
-  uprightAt?: (film: number) => [number, number];
+  uprightAt?: (film: number, reduced?: boolean) => [number, number];
   /**
    * The two-shot (scripts/two-shot.py): its frame (stage px: x0, y0 and width; the height is the
    * painting's proportion), locked, by the screen's aspect (width over height: each frame for

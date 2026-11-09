@@ -12,6 +12,8 @@ import { WOODLAND as WOODLAND_SPEC, type LivingSpec } from './living/woodland';
 import { ALMOST } from './living/almost';
 import { THINGS } from './living/things';
 import { SHADOWS } from './living/shadows';
+import { DRIVE } from './living/drive';
+import { WOODLAND_FILM_SPEC, type FilmSpec } from './living/woodlandFilm';
 import { FilmScene, filmType, loadFilm, releaseFilm } from './living/FilmScene';
 import { fetchBlob } from './fetched';
 import { withVoices } from '../content/memory-voices';
@@ -66,7 +68,7 @@ interface FilmManifest {
 }
 
 /** Where each film sits when it covers the screen (src/memory/living/), by memory. */
-const FILM_SPECS: Record<string, Pick<LivingSpec, 'cover' | 'coverAt' | 'uprightAt'>> = { almost: ALMOST, things: THINGS, shadows: SHADOWS };
+const FILM_SPECS: Record<string, FilmSpec> = { almost: ALMOST, things: THINGS, shadows: SHADOWS, drive: DRIVE, woodland: WOODLAND_FILM_SPEC };
 
 const isFilm = (m: LivingManifest | FilmManifest | null | undefined): m is FilmManifest => !!m && (m as FilmManifest).kind === 'film';
 /** How long the film's bytes may take to come (ms; most are fetched ahead, when its line is armed). */
@@ -133,8 +135,8 @@ export interface RuntimeHost {
 /** A living memory's scene, prepared (src/memory/living/): a painting that lives, or a film. */
 export interface PreparedLiving {
   scene: LivingScene | FilmScene;
-  /** Where its picture sits when it covers the screen. */
-  spec: Pick<LivingSpec, 'cover' | 'coverAt' | 'uprightAt'>;
+  /** Where its picture sits when it covers the screen (and, for a film, how its close shots are framed). */
+  spec: FilmSpec;
   /** It may be entered (or only seen on the wall). */
   immerse: boolean;
   /** Carried out of the wall, its edge is torn (hard and ragged) rather than a soft brush. */
@@ -256,7 +258,14 @@ export async function prefetch(id: string, variant: string, host: Pick<RuntimeHo
     const wall = manifest.variants[v].filter((l) => !(lm && l.name === 'scene')).map((l) => ({ file: l.file, suffix }));
     const sounds = Object.values(def.cues(v).cues).map((c) => c.asset).filter((a) => a.startsWith('music/'));
     if (isFilm(lm)) {
-      const type = filmType();
+      // (Where no video can be asked what it plays, the film waits to be fetched as it begins; its
+      // wall and its sounds are fetched all the same.)
+      let type: ReturnType<typeof filmType> = null;
+      try {
+        type = filmType();
+      } catch {
+        type = null;
+      }
       const files = [...wall, ...(lm.order ? [{ file: lm.order, suffix: '' }] : [])];
       await Promise.all([
         ...files.map((f) => fetchBlob(`${base}${def.art}/${f.file}${f.suffix}.webp`)),
@@ -359,8 +368,9 @@ export async function prepare(id: string, variant: string, host: RuntimeHost): P
       const orderR = lm.order ? await loadLayer(url(lm.order, ''), { data: true }) : null;
       if (orderR) extra.push(orderR);
       const size = targetSize(host);
-      scene = new FilmScene({ video, fps: lm.fps, frames: lm.frames }, { ...size, reduced: !!host.reduced });
-      living = { scene, spec: FILM_SPECS[def.id] ?? ALMOST, immerse: lm.immerse, torn: (lm.edge ?? 'torn') === 'torn', shade: lm.edge === 'shade', crop: manifest.crop ?? [0, 0, 1, 1], aspect: manifest.size[0] / manifest.size[1], order: orderR?.texture ?? null, colourAt: orderR ? colourTimes(orderR.bitmap) : null, feather: lm.feather };
+      const spec = FILM_SPECS[def.id] ?? ALMOST;
+      scene = new FilmScene({ video, fps: lm.fps, frames: lm.frames }, { ...size, reduced: !!host.reduced, close: spec.close?.frames });
+      living = { scene, spec, immerse: lm.immerse, torn: (lm.edge ?? 'torn') === 'torn', shade: lm.edge === 'shade', crop: manifest.crop ?? [0, 0, 1, 1], aspect: manifest.size[0] / manifest.size[1], order: orderR?.texture ?? null, colourAt: orderR ? colourTimes(orderR.bitmap) : null, feather: lm.feather };
       loaded.unshift({ texture: scene.target.texture, bitmap: null as unknown as ImageBitmap, name: 'scene', kind: 'pigment' });
     } catch (e) {
       // The film couldn't be had: the wall's poster instead, still (as any memory).

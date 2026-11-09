@@ -122,6 +122,34 @@ describe('memory audio: scheduled on the audio clock, never twice, nothing left 
     expect(bedAgain.startAt![1]).toBeCloseTo(0.05 + ((6.3 + 1 / 30 - 2) % 7.9), 1);
   });
 
+  it('resumed with the picture stepped back (a sentence said again), the music steps back with it; the bed carries on', async () => {
+    const { ctx, audio } = setup();
+    await audio.prepare();
+    const d = new CueDispatch(MARKERS);
+    playThrough(ctx, audio, d, 0, 14);
+    audio.pause();
+    ctx.advance(3);
+    audio.resume(undefined, 2);
+    const again = ctx.sources.slice(-2);
+    const musicAgain = again.find((s) => !s.loop)!;
+    expect(again.find((s) => s.loop)).toBeTruthy();
+    // About 5 s into the music when it paused (from 9 s): 3 s in, 2 s earlier, as the picture is.
+    expect(musicAgain.startAt![1]).toBeCloseTo(5 - 2, 1);
+  });
+
+  it('stepped back to before the music began, the music waits for its place again', async () => {
+    const { ctx, audio } = setup();
+    await audio.prepare();
+    playThrough(ctx, audio, new CueDispatch(MARKERS), 0, 10); // the music (9 s) about 1 s in
+    audio.pause();
+    ctx.advance(1);
+    const t = ctx.currentTime;
+    audio.resume(undefined, 4);
+    const m = ctx.sources.slice(-2).find((s) => !s.loop)!;
+    expect(m.startAt![1]).toBeCloseTo(0, 6);
+    expect(m.startAt![0]).toBeGreaterThan(t + 2.5);
+  });
+
   it('a suspended context misses events instead of bursting them later', async () => {
     const { ctx, audio } = setup();
     await audio.prepare();

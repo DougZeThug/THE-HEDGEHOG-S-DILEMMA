@@ -132,7 +132,7 @@ for (const [name, rows] of Object.entries(out)) {
 
 // ── Reach ──
 console.log('\n## What a visit reaches (first visits)\n');
-const MEMS = ['cereal', 'woodland', 'almost', 'things', 'shadows', 'bedroom', 'door'];
+const MEMS = ['cereal', 'woodland', 'almost', 'things', 'shadows', 'drive', 'bedroom', 'door'];
 console.log(`| arm | class | n | any painted | kitchen light | ${MEMS.join(' | ')} | vignettes / visit | "stay" finished (median s) | air | held silence | table | first memory (median s) | offers / visit |`);
 console.log(`|---|---|---|---|---|${MEMS.map(() => '---').join('|')}|---|---|---|---|---|---|---|`);
 for (const [name, rows] of Object.entries(out)) {

@@ -1,0 +1,79 @@
+{
+  "version": 1,
+  "fps": 24,
+  "total_frames": 1158,
+  "duration_seconds": 48.25,
+  "interval_convention": "end-exclusive",
+  "clips": [
+    {
+      "file": "clips/01_Opening_Wide_5p50s.mp4",
+      "start_frame": 246,
+      "end_frame_exclusive": 378,
+      "start_seconds": 10.25,
+      "end_seconds": 15.75,
+      "frames": 132,
+      "duration_seconds": 5.5,
+      "width": 1280,
+      "height": 720,
+      "fps": 24,
+      "audio": false,
+      "sha256": "4d87b99233f9b01e"
+    },
+    {
+      "file": "clips/02_Private_Glance_10p25s.mp4",
+      "start_frame": 378,
+      "end_frame_exclusive": 624,
+      "start_seconds": 15.75,
+      "end_seconds": 26.0,
+      "frames": 246,
+      "duration_seconds": 10.25,
+      "width": 1280,
+      "height": 720,
+      "fps": 24,
+      "audio": false,
+      "sha256": "2b2eb8916f79d626"
+    },
+    {
+      "file": "clips/03_Return_Wide_5p25s.mp4",
+      "start_frame": 624,
+      "end_frame_exclusive": 750,
+      "start_seconds": 26.0,
+      "end_seconds": 31.25,
+      "frames": 126,
+      "duration_seconds": 5.25,
+      "width": 1280,
+      "height": 720,
+      "fps": 24,
+      "audio": false,
+      "sha256": "d7fb87864f38ee6c"
+    },
+    {
+      "file": "clips/04_Empty_Dusk_8p50s.mp4",
+      "start_frame": 750,
+      "end_frame_exclusive": 954,
+      "start_seconds": 31.25,
+      "end_seconds": 39.75,
+      "frames": 204,
+      "duration_seconds": 8.5,
+      "width": 1280,
+      "height": 720,
+      "fps": 24,
+      "audio": false,
+      "sha256": "7f586aa998753fa7"
+    }
+  ],
+  "preserve_existing_project_ranges": [
+    [
+      0,
+      246
+    ],
+    [
+      954,
+      1158
+    ]
+  ],
+  "hard_cut_frame": 750,
+  "baseline_reference": "not committed: the 48.25 s editorial baseline (a flattened recording of the old rig), used only as a ruler",
+  "status": "Integrated as the afternoon's film, 2026-10-24 (scripts/woodland-film/assemble.py)",
+  "hash_note": "sha256: the first 16 hex digits (the whole reads as a key to the credentials scan: tests/dialogue.test.ts)"
+}

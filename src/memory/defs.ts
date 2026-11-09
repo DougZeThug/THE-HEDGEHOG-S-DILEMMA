@@ -1,5 +1,5 @@
 import type { CueSheet } from './cueSheet';
-import type { Key, SheetSeed } from './seed';
+import type { SheetSeed } from './seed';
 import type { Sway } from './behaviours';
 import type { Marker, Sections } from './types';
 
@@ -377,59 +377,67 @@ export const DOOR: MemoryDef = {
 
 /**
  * Five More Minutes (docs/reviews/2026-10-woodland.md): two people lying in a summer clearing.
- * Nothing happens. Then they are gone. The artist's shot list (2026-10-17), about 50 s and a
- * cicada after:
+ * Nothing happens. Then they are gone. Since 2026-10-24 the afternoon is a film: four selected
+ * animated shots, precomposed into the painting's own frame (scripts/woodland-film/,
+ * references/woodland/film/), played as Almost's is (src/memory/living/FilmScene.ts), on the
+ * 48.25 s editorial timeline the artist approved (the old 53 s one less 1.75 s of the two-shot's
+ * tail, 2.25 s of the second wide's head, and 1.5 s of the ghost text's return; 0.75 s of the room
+ * before it begins is not the memory's). 47.5 s and a cicada after:
  *
  *   0–6       1 the room remembers: a cicada beyond the wall (1.2); the pencil finds the clearing
  *             from the line outward from 2.0 (light lines first, the two of them last), the room's
  *             writing with it, while the visitor drifts toward the wall (their look
  *             their own; a look away holds it, a step held lets it go; they are taken in if they
  *             are looking at it when it would take them)
- *   5.4–10.5  2 crossing in: the drawing whole, the colour comes, from between the two of them
+ *   5.4–9.5   2 crossing in: the drawing whole, the colour comes, from between the two of them
  *             outward as one light wash, the room's writing going to a trace just ahead of it;
- *             the painting begins to live (5.5–7), its light comes up (7.1–8.3), and the same move
- *             carries them on, square to it; it opens out until it is all there is (8.2–9.8); as
- *             it opens, a piano, already playing (8.5): someone at an upright, for nobody, a plain
- *             tune going round in its own time (scripts/woodland-score/)
- *   10.5–15.0 3 an ordinary afternoon: the wide, both looking up; breathing; cicadas in the trees,
- *             a far bird; a light gust crosses the clearing (11.5: seen, not heard); her crossed
- *             foot rocks a while; his blink
- *   15.0–27.0 4 cut: the two of them close, one frame, held (the artist's own panel: both faces,
- *             and their hands lying almost touching in the grass between them, as drawn, never
- *             moved). Both looking up, each breathing in their own time; he blinks (16.2). Her eyes
- *             go to him (17.5) and her head follows, a little (18.0–19.0: her own head from the
- *             panel, turned 14° toward him, on twos), and she stays looking at him; he is looking
- *             at the sky. His eyes go to her (24.0), his head a little after (24.5), and he stays
- *             too. (Where there is only the wide, on an upright screen, his look is too small to
- *             see there: her look goes unanswered.)
+ *             its light comes up (7.1–8.3), and the same move carries them on, square to it; it
+ *             opens out until it is all there is (8.2–9.8). The film holds its first frame through
+ *             all of it: what the wall resolves into is the opening shot itself. As it opens, a
+ *             piano, already playing (8.5): someone at an upright, for nobody, a plain tune going
+ *             round in its own time (scripts/woodland-score/)
+ *   9.5–15.0  3 the film begins: an ordinary afternoon, the wide, both resting, looking up;
+ *             cicadas in the trees, a far bird
+ *   15.0–25.25 4 cut: the two of them close. Both looking up. Her eyes go to him (19.3) and her
+ *             head follows (20.2–21.5), privately; he stays looking at the sky. She stays there.
  *             (The cicada over them, and the two either side, are quiet through it; the tune comes
- *             home once between her look and his, 21.2, and both looks fall in its long notes. The
- *             artist's shot list had him look first and her notice: reversed, and recorded, in the
- *             review of 2026-10-18.)
- *   27.0–34.5 5 the wide again, cut while they are looking at each other: the longest shot
- *             (nothing in its first second); the cicada over them again (28.0); a far bird; the
- *             air dying down; still from 32, both between breaths at the cut; the tune going round
- *             again, the same, toward home
- *   34.5      6 a cut, on one frame, in that stillness: the same clearing, the same view, at dusk,
- *             and nobody there. The piano stops on it, a note before home (due at 34.77), with
- *             everything of the afternoon's (its insects); the evening's cicadas are already
- *             singing, far off in the trees (the artist's brief of 2026-10-19; no wind: the breeze is
- *             light, seen and not heard, the artist, 2026-10-20)
- *   34.5–42.5 the empty clearing at dusk, held; the evening cicadas; the evening's breeze dying
- *             down in the grass; no music
- *   42.5–46.5 out: carried back, the painting gathers itself to the wall
- *   46–49.5   the colour goes, the empty clearing's pencil alone a while; the graphite sinks and
- *             the room's writing comes back with it (49.8–51.3)
- *   48.5–52.5 one evening cicada, far off, heard in the white room
+ *             home once before her look, and her look falls inside its long high note.)
+ *   25.25–30.5 5 the wide again, cut while she is already looking at him and he at the sky (no
+ *             second turn); the cicada over them again; a far bird; the tune going round again,
+ *             toward home
+ *   30.5      6 a hard cut, on one frame: the same clearing, the same view, at dusk, and nobody
+ *             there. The piano stops on it, a note before home, with everything of the afternoon's
+ *             (its insects); the evening's cicadas are already singing, far off in the trees (the
+ *             artist's brief of 2026-10-19; no wind)
+ *   30.5–39.0 the empty clearing at dusk, its own small movement; the evening cicadas; no music
+ *   38.5–43.5 out (the film's last half second under it): carried back, its last frame gathering
+ *             itself to the wall
+ *   41.8–43.8 the colour goes, the empty clearing's pencil alone a while; the graphite sinks and
+ *             the room's writing comes back with it (44.7–45.8)
+ *   44.2      one evening cicada, far off, heard in the white room
  *
  * What they might have said, never said (no line is spoken, written or captioned):
  *   "We should probably go." / "Yeah." / … / "Five more minutes?" (not answered)
  *
  * The revisit (empty): the same clearing at dusk, nobody in it, and it stays in the wall.
  */
-const WOODLAND_SECTIONS: Sections = { active: 6, exit: 42.5, residue: 49.5, end: 53 };
-/** The cut: the people gone and the evening come, on the same frame. */
-export const CUT = 34.5;
+const WOODLAND_SECTIONS: Sections = { active: 6, exit: 38.5, residue: 44.6, end: 47.5 };
+/**
+ * The afternoon's film (scripts/woodland-film/assemble.py; references/woodland/film/film.json): when
+ * it begins on the timeline (the opening wide, as the way in settles), its frames, and its shots
+ * (memory s). Each shot runs at its own 24 fps, its whole selected length; nothing is looped,
+ * reversed or retimed. Her glance is the close-up's own (measured on its frames: her eyes 4.3 s
+ * in, her head 5.2–6.5 s, settled by 6.8 s).
+ */
+export const WOODLAND_FILM = {
+  at: 9.5,
+  fps: 24,
+  frames: 708,
+  shots: { opening: 9.5, close: 15.0, wideAgain: 25.25, dusk: 30.5, end: 39.0 },
+  glance: { eyes: 19.3, head: 20.2, turned: 21.5, settled: 21.8 },
+};
+/** The cut: the people gone and the evening come, on the same frame (the film's frame 504). */
+export const CUT = WOODLAND_FILM.shots.dusk;
 /** The evening comes up over the afternoon's 40 ms cut, full on it (the two cross over the same
  *  40 ms, so nothing dips: a hole of 9.5 dB had opened with the wind gone), this far into its file
  *  (past an MP3's first moments). */
@@ -439,12 +447,13 @@ export const EVENING_OFFSET = 0.03;
  *  falls at 8.5, as the painting opens out: scripts/woodland-score/score.py). */
 export const SCORE_FROM = 8.2;
 /**
- * The two-shot (scripts/two-shot.py; the artist's brief of 2026-10-18 and its reviews): the two
- * of them close, one locked frame, in the old close-ups' slot (the memory stays 53 s: nothing after
- * the second wide's cut moved). Nothing in its first second; every head is a cut, on twos; her
- * eyes lead her head toward him, and she stays there, and so does he once his eyes find her: no
- * gesture undoes the moment before the cut to the empty clearing (the artist: "She should glance
- * toward him, settle into that gaze, and simply remain there"). `scene.shot` 1 is this shot.
+ * The painted rig's two-shot (scripts/two-shot.py; the artist's brief of 2026-10-18 and its
+ * reviews), on the rig's own 53 s timeline. Dormant since 2026-10-24: the afternoon plays its film
+ * (WOODLAND_FILM), and nothing the room plays reads these. They are kept with the rig (its spec,
+ * src/memory/living/woodland.ts; its art, the manifest's `rig`; scripts/two-shot.py and
+ * her-turn.py, which read them) so it can be restored or reused, and its tests still hold it to
+ * them. The two of them close, one locked frame; her eyes lead her head toward him, and she
+ * stays there, and so does he once his eyes find her. `scene.shot` 1 was this shot.
  */
 export const TWO_SHOT = { from: 15.0, hisBlink: 16.2, herEyes: 17.5, herTurn: 18.0, hisEyes: 24.0, hisRoll: 24.5, to: 27.0 };
 /**
@@ -493,18 +502,10 @@ export function turnDrawings(): TurnDrawing[] {
   return out.map((d, k) => ({ at: d.at, eyes: d.eyes, head: r(d.head, 1e6), turn: r((k + 1) / out.length, 1e4) }));
 }
 /**
- * The artist's shot list (2026-10-17): 1 the room remembers (the pencil, the lean), 2 crossing
- * in, 3 the wide afternoon, 4 he looks toward her, 5 she notices, 6 their hands, 7 the wide
- * again, 8 the cut to the same place empty at dusk. Since 2026-10-18 shots 4–6 are one two-shot
- * (her look, then his; their hands as drawn); everything else is the living painting.
+ * The afternoon's shots as the room plays them (its film's): the cut to the two of them close, and
+ * back to the wide. The sound reads its times from here (synthWoods.ts `TIMES`).
  */
-// (The second wide the longest shot after the two-shot, paid for from the first: the cut lands
-// once the visitor has stopped expecting one, and lingering is what the title promises: the
-// skeptic's second review, 2026-10-17.)
-export const SHOTS = { two: TWO_SHOT.from, wideAgain: TWO_SHOT.to };
-/** The air (`scene.breeze`): never still; steady and gustless into the cut and across it; the
- *  evening's calm. Seen, not heard (the artist: "the breeze is supposed to be super light"). */
-export const BREEZE_KEYS: [number, number][] = [[0, 0.6], [5.5, 0.6], [10.5, 1], [SHOTS.wideAgain, 1], [32.0, 0.5], [37, 0.5], [39, 0.3]];
+export const SHOTS = { two: WOODLAND_FILM.shots.close, wideAgain: WOODLAND_FILM.shots.wideAgain };
 /** The woodland's recorded sound against its insects (dB on the files as baked), set by measure:
  *  the piano about 4.5 LU under the place round it. (There is no wind: it read as a noise louder
  *  than anything in the clearing, and the breeze is light: the artist, 2026-10-20.) */
@@ -517,16 +518,18 @@ export const WOODLAND: MemoryDef = {
   id: 'woodland',
   art: 'woodland',
   variants: ['afternoon', 'empty'],
-  layers: ['scene', 'sketch', 'sketch-after', 'light'],
+  layers: ['scene', 'sketch', 'sketch-after', 'light', 'light-after'],
   sections: WOODLAND_SECTIONS,
   markers: [
     { label: 'music:cicadas', position: 0.05 },
     { label: 'music:woods', position: 0.05 },
     { label: 'music:score', position: SCORE_FROM },
     { label: 'sfx:bird-1', position: 10.9 },
-    { label: 'sfx:bird-2', position: 29.0 },
+    // (One far bird, in the first wide. The second, in the second wide, is gone with its length: in
+    // the film's 5.25 s it sang over the piano's last phrase and its call's end emptied the clearing
+    // before the cut did: the sound designer, 2026-10-24.)
     { label: 'music:evening', position: EVENING_AT },
-    { label: 'sfx:cicada-last', position: 48.5 },
+    { label: 'sfx:cicada-last', position: 44.2 },
   ],
   seed: (variant): SheetSeed => {
     if (variant === 'empty') {
@@ -552,6 +555,8 @@ export const WOODLAND: MemoryDef = {
           'layer:sketch.opacity': [[0, 0.9]],
           'layer:sketch-after.opacity': [[0, 0]],
           'layer:light.opacity': [[0, 1]],
+          // (Its own light is the dusk's already.)
+          'layer:light-after.opacity': [[0, 0]],
         },
         markers: [
           { label: 'active', position: S.active },
@@ -563,8 +568,8 @@ export const WOODLAND: MemoryDef = {
       };
     }
     const S = WOODLAND_SECTIONS;
-    const C = SHOTS;
-    const T = TWO_SHOT;
+    const F = WOODLAND_FILM;
+    const filmSeconds = F.frames / F.fps;
     return {
       tracks: {
         // Shot 1, the room remembers: the pencil finds the clearing on the plaster stroke by
@@ -573,16 +578,13 @@ export const WOODLAND: MemoryDef = {
         // two of them (the words lie over them) as a wash, the painting spreads, they are carried
         // in, and it opens out until it is all there is.
         // (The cicada first, beyond the wall (1.2 s); then the first stroke (2.0); the two of them
-        // are found last, ~4.2–5.0: cinematic review. The colour waits for
-        // them: begun while they were still to be drawn, it went round them, a figure-shaped gap
-        // of bare plaster in the painting (the crossing's frames, 2026-10-17). The two clocks are
+        // are found last, ~4.2–5.0: cinematic review. The colour waits for them. The two clocks are
         // scripts/stroke-order.py's too: tests/memory-defs.test.ts.)
-        // (The colour washes in by 7.6, as the painting's own light begins to come up over it; on the
-        // way back it washes out by 47.8, and the empty clearing in pencil is alone a while, then
-        // sinks: cinematic and creative reviews, 2026-10-17.)
-        'window.sketch': [[2.0, 0], [6.0, 1], [49.8, 1], [51.3, 0]],
+        // (The way back is the 53 s timeline's, retimed as the artist's 48.25 s edit retimed it: the
+        // colour gone by 43.8, the pencil alone a while, then sinking 44.7–45.8.)
+        'window.sketch': [[2.0, 0], [6.0, 1], [44.73, 1], [45.8, 0]],
         // (The colour straight: as much of the painting takes it in each moment as in any other.)
-        'window.reveal': [[5.4, 0, 'linear'], [7.6, 1], [45.8, 1], [47.8, 0]],
+        'window.reveal': [[5.4, 0, 'linear'], [7.6, 1], [41.8, 1], [43.78, 0]],
         'window.presence': [[0, 1]],
         'window.parallax': [[0, 0]],
         // The room's writing under the painting: going as the colour reaches it, then held a trace
@@ -590,23 +592,29 @@ export const WOODLAND: MemoryDef = {
         // alone a while on the way back and the words come back to a white wall: the creative
         // director's and the skeptic's reviews, 2026-10-18.
         'window.wash': [[0, 0, 'hold'], [7.6, 1]],
-        // The light finds the people first (painting metres from its centre).
+        // The light finds the people first (painting metres from its centre). (Drawn in order, as the
+        // film is, the pool reveals nothing: the order map does. If the film can't be had, the
+        // memory is the wall's still, revealed by this pool: it opens over the whole painting as the
+        // colour comes; held at 0.55 m it left a lit blot under the line for the whole memory: QA,
+        // 2026-10-24.)
         'light.x': [[0, -0.05]],
         'light.y': [[0, -0.24]],
-        'light.radius': [[1, 0.15], [6, 0.55]],
+        'light.radius': [[1, 0.15], [6, 0.55], [7.6, 2.2]],
         'light.soft': [[0, 0.14]],
         // The afternoon's warmth, then (at the cut) the evening's.
         'light.warmth': [[0, 4300, 'hold'], [CUT, 2900]],
         // The painting's light (with its colour: before it, on bare plaster, it read as two pale
         // smears); low while inside; it goes last.
-        'light.intensity': [[0, 0], [1.4, 0], [2.6, 0.5], [6, 0.45], [10.5, 0.3], [42.5, 0.2], [46.5, 0.3], [49.5, 0]],
+        'light.intensity': [[0, 0], [1.4, 0], [2.6, 0.5], [6, 0.45], [10.5, 0.3], [S.exit, 0.2], [S.exit + 4, 0.3], [S.residue, 0]],
         'light.roomSpill': [[0, 0]],
         'layer:scene.opacity': [[0, 1]],
         'layer:sketch.opacity': [[0, 0.9, 'hold'], [CUT, 0]],
         'layer:sketch-after.opacity': [[0, 0, 'hold'], [CUT, 1]],
-        'layer:light.opacity': [[0, 1]],
-        // The scene.
-        'scene.life': [[0, 0], [5.5, 0], [7, 1]],
+        // The painting's light: the afternoon's dapple until the cut, then the dusk's own (the
+        // afternoon's sun came back over the empty clearing as it went into the wall: the cinematic
+        // director, 2026-10-24).
+        'layer:light.opacity': [[0, 1, 'hold'], [CUT, 0]],
+        'layer:light-after.opacity': [[0, 0, 'hold'], [CUT, 1]],
         // The way in, one move (shaped in Inside.ts): from the cicada, slowly; the body only until
         // they are taken in (~6.2 s); the painting's own light up over it 7.1–8.3, then opening out
         // to all there is over its own straight 1.6 s, 8.2–9.8 (cinematic review, 2026-10-18: it
@@ -614,32 +622,13 @@ export const WOODLAND: MemoryDef = {
         // plaster re-forming as they are carried back.
         'scene.approach': [[1.2, 0, 'linear'], [10.5, 1], [S.exit + 1, 1, 'linear'], [S.exit + 5, 0]],
         'scene.immerse': [[0, 0, 'hold'], [6.2, 0, 'linear'], [8.2, 0.68, 'linear'], [9.8, 1, 'hold'], [S.exit, 1, 'linear'], [S.exit + 2, 0.72, 'linear'], [S.exit + 5, 0]],
-        // The air.
-        'scene.breeze': BREEZE_KEYS,
-        // The cut: the afternoon and the two of them until it, then the same place later, empty.
+        // The film's own time: its first frame (the opening wide) through the way in, then as a
+        // clock does, its four shots at their own speed, then its last frame (the empty clearing at
+        // dusk) held as it goes back to the wall. One clock: never looped, never restarted.
+        'scene.film': [[0, 0, 'hold'], [F.at, 0, 'linear'], [F.at + filmSeconds, filmSeconds, 'hold']],
+        // The cut, for what reads it (the captions go light over the dusk): the afternoon until
+        // it, the same place later from it. (The film cuts there itself, on its frame 504.)
         'scene.after': [[0, 0, 'hold'], [CUT, 1]],
-        'scene.people': [[0, 1, 'hold'], [CUT, 0]],
-        // The two of them close (a cut), then the wide again (a cut, while he is still looking).
-        'scene.shot': [[0, 0, 'hold'], [C.two, 1, 'hold'], [C.wideAgain, 0]],
-        // Him and her: looking up, breathing, unhurried. Her crossed foot rocks a while in the
-        // first wide, as the gust settles (still before the cut to them); still after.
-        'figure:a.breath': [[0, 1]],
-        'figure:b.breath': [[0, 1]],
-        'figure:b.foot': [[0, 0], [12.4, 0], [12.9, 0.8], [13.8, 0.8], [14.3, 0]],
-        // Her look: her eyes go to him (drawings of her eyes on him), her head follows (her own
-        // head turned a little toward him, a drawing a twelfth of a second: held, never mixed), and
-        // stays, in both shots, to the cut. (The eyes are forced still while a drawing is shown:
-        // its eyes are drawn on him. `figure:b.eyes` moves them only without the drawings.)
-        'figure:b.eyes': [[0, 0, 'hold'], [T.herEyes, 1, 'hold']],
-        'figure:b.turn': [[0, 0, 'hold'], ...turnDrawings().map((d): Key => [d.at, d.turn, 'hold'])],
-        // His look: his eyes go to her (a drawing), his head rolls a little toward her after them
-        // (about 2°: the rig was made for the wide), and he stays looking at her, across the cut
-        // back to the wide, to the cut to dusk.
-        'figure:a.eyes': [[0, 0, 'hold'], [T.hisEyes, 1, 'hold']],
-        'figure:a.look': [[0, 0, 'hold'], [T.hisRoll, 0], [T.hisRoll + 0.5, 0.3]],
-        // Her hand lies by his as the artist drew it, almost touching, never moved (its default,
-        // 0, is drawn back along her forearm: reviews of 2026-10-18).
-        'figure:b.hand': [[0, 1]],
       },
       markers: [
         { label: 'active', position: S.active },
@@ -666,22 +655,22 @@ export const WOODLAND: MemoryDef = {
     // Levels measured against each other, not normalised (the files' own levels:
     // scripts/woodland-stems.ts, scripts/woodland-score/): stand-ins until the artist has listened
     // (`review: pending`). The afternoon ends on the cut, every sound of it (`until`), on the same
-    // instant of the audio clock as the evening begins (its marker).
+    // instant of the audio clock as the evening begins (its marker). The film is silent.
     return {
       room,
       cues: {
         // The cicada nearest them, in the tree over them, first heard from beyond the wall; a lull
-        // while the two of them are close (her look, his); cut off by the cut, mid-phrase.
+        // while the two of them are close (her look); cut off by the cut, mid-phrase.
         'music:cicadas': { asset: 'synth:cicadas', gainDb: -20, place: { u: -0.3, v: 0.25, d: 1.5 }, dry: true, until: CUT, fadeOut: 3, caption: '[cicadas, beyond the wall]' },
         // The rest of the day's insects: two more cicadas, the chorus in the trees. Named once, as
         // the place (the piano a part of it), when the painting has come to rest and gone again
         // before the cut to the two of them; never with a note.
         'music:woods': { asset: 'synth:woods', gainDb: -14, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, until: CUT, fadeOut: 3, caption: '[cicadas in the trees; a piano]', captionAt: 9.85 },
-        // Two far birds in the trees at the clearing's edge, in the wides (none while they are close).
+        // A far bird in the trees at the clearing's edge, in the first wide (none while they are close).
         'sfx:bird-1': { asset: 'music/woodland-bird-1.mp3', gainDb: -12, place: { u: -0.4, v: 0.35, d: 14 }, lowpass: 5500, until: CUT },
-        'sfx:bird-2': { asset: 'music/woodland-bird-2.mp3', gainDb: -12, place: { u: 0.45, v: 0.3, d: 18 }, lowpass: 7500, until: CUT },
         // The piano: centred, dry, coming into hearing with the clearing as the painting opens out,
-        // keeping its distance from the place to the cut (its file: scripts/woodland-score/).
+        // keeping its distance from the place to the cut (its file: scripts/woodland-score/, made
+        // for the 53 s timeline and joined for this one by scripts/woodland-score/retime.py).
         'music:score': { asset: 'music/woodland-score.mp3', gainDb: SCORE_DB, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, until: CUT, fadeOut: 3 },
         // The evening: already singing, far off in the trees, nothing of it in front; full on the
         // cut (crossed with the afternoon's last 40 ms). Named a second and a half after the cut,
@@ -702,23 +691,20 @@ export const WOODLAND: MemoryDef = {
   living: true,
   lastMusic: 'afternoon',
   // (The artist's idea, the words ours as they asked: in the afternoon's voice, saying only what
-  // they had; under "five more minutes". Written as the far cicada ends and the room's writing is
-  // back, done as the aftermath begins: the skeptic, 2026-10-20.)
-  coda: { variant: 'afternoon', at: 52.5, text: 'we had all afternoon' },
+  // they had; under "five more minutes". Written as the room's writing is back, done as the
+  // aftermath begins: the skeptic, 2026-10-20; at the 53 s timeline's 52.5, retimed.)
+  coda: { variant: 'afternoon', at: 47.0, text: 'we had all afternoon' },
   describe: (v) => v === 'empty'
     ? 'A painting forms in the wall by the words: a clearing in a wood at dusk, a fallen log, a tree, the grass. Nobody is there.'
     : 'A pencil drawing forms in the wall by the words: a clearing in a wood, two young people lying in the grass.',
   // (Short, at least 3.5 s apart; only what is seen, in order, never what it means: interaction,
-  // QA and creative reviews. The close shot's own line only while it is shown; what she does is
-  // told to anyone inside, whichever shot shows it: upright screens and a turned visitor see it in
-  // the wide. His look can be seen only close (in the wide it is too small), so it is told only
-  // there: the creative director, 2026-10-19.)
+  // QA and creative reviews. The film shows the same shots inside and on the wall, so what they do
+  // is told to everyone; how it opens is told as it is seen.)
   announce: (v) => v === 'empty' ? [] : [
-    { at: 10.5, text: 'It opens until it is all there is: a summer afternoon, a light breeze in the trees.', inside: true },
-    { at: 10.5, text: 'The painting comes alive on the wall: a summer afternoon, a light breeze in the trees.', wall: true },
-    { at: TWO_SHOT.from, text: 'Closer: the two of them side by side in the grass, looking up.', shot: 1 },
-    { at: TWO_SHOT.herTurn + 0.5, text: 'Her eyes go to him, then her head, a little.', inside: true },
-    { at: TWO_SHOT.hisEyes + 1.5, text: 'He turns his eyes to her.', shot: 1 },
+    { at: 10.0, text: 'It opens until it is all there is: a summer afternoon.', inside: true },
+    { at: 10.0, text: 'The painting comes alive on the wall: a summer afternoon.', wall: true },
+    { at: WOODLAND_FILM.shots.close, text: 'Closer: the two of them side by side in the grass, looking up.' },
+    { at: WOODLAND_FILM.glance.head + 0.5, text: 'Her eyes go to him, then her head. He keeps looking up.' },
     { at: CUT, text: 'The same clearing, at dusk. Nobody is there.' },
     { at: WOODLAND_SECTIONS.exit, text: 'The painting goes back into the wall.' },
   ],
@@ -1121,4 +1107,130 @@ export const SHADOWS: MemoryDef = {
     { at: SHADOWS_SECTIONS.exit + 9, text: "The shade goes back into the wall, and the chair's shadow slides home." },
   ],
 };
-export const MEMORIES: Record<string, MemoryDef> = { cereal: CEREAL, bedroom: BEDROOM, door: DOOR, woodland: WOODLAND, almost: ALMOST, things: THINGS, shadows: SHADOWS };
+/**
+ * The Drive Home (docs/drive-home.md): two grown brothers drive home at night after a difficult
+ * gathering; the passenger looks out of his window and rubs his hands, the driver, without looking,
+ * turns the heater vent toward him, and later the passenger turns it partway back. Neither says
+ * anything. Traced from public-domain film (scripts/the-drive-home/), the room's cut from its second
+ * shot (film.py room: its own second 0 is the film's 6.0, here at 6.0, so from there the memory's
+ * seconds are the film's). It opens from "Are you angry with me?" (the room's own recording of that
+ * line is "a small, afraid voice from the back seat": the line was already a car).
+ *
+ * Everything is on the wall the visitor faces (looking away while it forms ends it: App.ts):
+ *   0-3       the room goes down to dusk, a cool night in its light (`room.night`); the patch of
+ *             wall round the line darkens all together (`layer:scene.opacity`, the order map's G)
+ *   2.4-9     three streetlights pass across the whole wall, right to left, slow at its edges and
+ *             quick in its middle (`room.street`, src/world/StreetLight.ts): where each crosses the
+ *             patch it finds faces in the dark, and leaves a little more of them found
+ *             (`window.found`, the order map's B: the faces first); the first passes in silence
+ *   6.0       the film begins in what they have found: the two of them side by side
+ *   7.4-9     the third streetlight crosses the plaster and goes on inside the picture as the film's
+ *             own (its lamp at 7.8)
+ *   10.9-13.6 carried in as the passenger looks out of his window, there on the film's next lamp
+ *   44-48.5   carried out as the car goes on into the dark
+ *   48.5-52.5 the tail lamps fade into the plaster
+ *   47.9-57.5 the indicator's relay goes on after the picture, heard, never drawn, while the night
+ *             lifts; then it stops, as when a turn is made
+ *   57.5      the room's light comes back to the visitor first, before the chair (`room.lean`,
+ *             Lighting.leanTo: its own release, the half minute after the memory has ended)
+ */
+export const DRIVE_SECTIONS: Sections = { active: 6.0, exit: 44.0, residue: 52.5, end: 58.5 };
+/** The film: where it begins on the timeline (in the found faces), and its length (s: the room cut). */
+export const DRIVE_AT = 6.0;
+export const DRIVE_SECONDS = 1094 / 24;
+/** Its moments (the film's own seconds: scripts/the-drive-home/film.py, mix.sh). */
+export const DRIVE_BEATS = { lamp: 7.8, window: 10.9, lamp2: 13.6, hands: 17.0, vent: 28.1, ventBack: 36.25, indicator: 38.9, town: 40.8, away: 44.0 };
+/** The three streetlights across the wall (memory s): each [start, end]. */
+export const DRIVE_PASSES: [number, number][] = [[2.4, 3.9], [4.6, 6.1], [7.4, 9.0]];
+/** Its sound's level (the film's mix as the artist heard it). */
+const DRIVE_DB = -17;
+
+export const DRIVE: MemoryDef = {
+  id: 'drive',
+  art: 'drive',
+  variants: ['film'],
+  layers: ['scene'],
+  sections: DRIVE_SECTIONS,
+  markers: [{ label: 'music:wall', position: 4.4 }, { label: 'music:film', position: DRIVE_AT }, { label: 'music:relay', position: 47.9 }],
+  seed: (): SheetSeed => {
+    const S = DRIVE_SECTIONS;
+    const P = DRIVE_PASSES;
+    return {
+      tracks: {
+        // The dusk's reach, on order.py's clocks (tests/memory-defs.test.ts): no pencil, so the two are one.
+        'window.sketch': [[0.6, 0, 'linear'], [3.0, 1]],
+        'window.reveal': [[0.6, 0, 'linear'], [3.0, 1]],
+        // What the passing light leaves found (the order map's B): a little more as each crosses.
+        'window.found': [[0, 0, 'hold'], [P[0][0] + 0.6, 0, 'linear'], [P[0][1], 0.3, 'hold'], [P[1][0] + 0.6, 0.3, 'linear'], [P[1][1], 0.62, 'hold'], [P[2][0] + 0.6, 0.62, 'linear'], [P[2][1], 1]],
+        // Not yet found, the picture is the dark of a car at night.
+        'window.dark': [[0, 0.25]],
+        'window.presence': [[0, 1]],
+        'window.parallax': [[0, 0]],
+        'window.wash': [[0, 0, 'hold'], [3.0, 0.35]],
+        'light.x': [[0, 0]],
+        'light.y': [[0, 0]],
+        'light.radius': [[0, 0.6]],
+        'light.soft': [[0, 0.14]],
+        'light.warmth': [[0, 2700]],
+        'light.intensity': [[0, 0]],
+        'light.roomSpill': [[0, 0]],
+        // Dark all together, as dusk is; going, the tail lamps go into the plaster with it.
+        'layer:scene.opacity': [[0.6, 0], [3.0, 1], [S.exit + 4.5, 1], [S.residue, 0]],
+        // The streetlights: each whole number is one gone by (src/world/StreetLight.ts).
+        'room.street': [[0, 0, 'hold'], [P[0][0], 0, 'linear'], [P[0][1], 1, 'hold'], [P[1][0], 1, 'linear'], [P[1][1], 2, 'hold'], [P[2][0], 2, 'linear'], [P[2][1], 3, 'hold']],
+        // The room's night (its light a cool moon-blue), lifting under the relay.
+        'room.night': [[0, 0], [3.0, 1], [S.residue - 0.5, 1], [57.5, 0]],
+        // As the relay stops, the room's light comes to the visitor first (App takes it from here).
+        'room.lean': [[0, 0, 'hold'], [57.4, 0, 'linear'], [57.6, 1]],
+        'scene.approach': [[1.0, 0, 'linear'], [13.0, 1], [S.exit + 1, 1, 'linear'], [S.exit + 5, 0]],
+        'scene.immerse': [[0, 0, 'hold'], [10.9, 0, 'linear'], [12.4, 0.68, 'linear'], [13.6, 1, 'hold'], [S.exit, 1, 'linear'], [S.exit + 2, 0.72, 'linear'], [S.exit + 4.5, 0]],
+        // Its first frame (the two of them, in the dark) while the faces are found, then as a clock does.
+        'scene.film': [[0, 0, 'hold'], [DRIVE_AT, 0, 'linear'], [DRIVE_AT + DRIVE_SECONDS, DRIVE_SECONDS, 'hold']],
+      },
+      markers: [
+        { label: 'active', position: S.active },
+        { label: 'exit', position: S.exit },
+        { label: 'residue', position: S.residue },
+        { label: 'end', position: S.end },
+        ...DRIVE.markers,
+      ],
+    };
+  },
+  cues: (): CueSheet => ({
+    room: [0.3, 2, 0.04],
+    cues: {
+      'music:wall': { asset: 'music/drive-wall.mp3', gainDb: DRIVE_DB, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, fadeOut: 1, caption: '[tyres on a wet road]', captionAt: 0.3 },
+      'music:film': { asset: 'music/drive-film.mp3', gainDb: DRIVE_DB, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, fadeOut: 2, caption: '[an engine, low; the hiss of tyres]', captionAt: 0.5,
+        captions: [
+          { at: DRIVE_BEATS.hands - DRIVE_AT, text: '[hands rubbed together]' },
+          { at: DRIVE_BEATS.vent - DRIVE_AT, text: '[the vent clicks round; warm air]' },
+          { at: DRIVE_BEATS.ventBack - DRIVE_AT, text: '[the vent clicks]' },
+          { at: DRIVE_BEATS.indicator - DRIVE_AT, text: '[the indicator ticking]' },
+        ] },
+      'music:relay': { asset: 'music/drive-relay.mp3', gainDb: DRIVE_DB, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, fadeOut: 0.3, caption: '[the indicator ticking, then stopping]', captionAt: 4 },
+    },
+  }),
+  sways: [],
+  exit: 3,
+  maxHold: 44,
+  tail: 2,
+  hush: 0.7,
+  drone: false,
+  roomDim: 0.5,
+  roomDimOut: 13.5,
+  living: true,
+  // (Said as the film begins, so it holds what was found and what is there, true under reduced
+  // motion too, where no streetlight crosses; the first announce is 5 s after it: QA, 2026-11-09.)
+  describe: () => 'Night falls in the room, and two faces are found in the dark: two men side by side in a car at night. Neither looks at the other.',
+  // (Only what is seen, in order, at least 3.5 s apart, never what it means.)
+  announce: () => [
+    { at: DRIVE_BEATS.window + 0.6, text: 'The passenger looks out of his window.', inside: true },
+    { at: DRIVE_BEATS.hands, text: 'He rubs his hands together for warmth.' },
+    { at: DRIVE_BEATS.vent, text: 'Without looking over, the driver turns the heater vent toward him.' },
+    { at: DRIVE_BEATS.ventBack, text: 'Later the passenger turns it partway back, toward the driver.' },
+    { at: DRIVE_BEATS.indicator + 1.0, text: 'The indicator ticks. Town lights pass over them.' },
+    { at: DRIVE_BEATS.away + 0.6, text: 'The car goes on into the dark.' },
+    { at: DRIVE_SECTIONS.residue - 2, text: 'Its red tail lamps fade into the wall.' },
+  ],
+};
+export const MEMORIES: Record<string, MemoryDef> = { cereal: CEREAL, bedroom: BEDROOM, door: DOOR, woodland: WOODLAND, almost: ALMOST, things: THINGS, shadows: SHADOWS, drive: DRIVE };
