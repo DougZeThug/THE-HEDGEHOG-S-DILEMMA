@@ -283,6 +283,64 @@ moon rises and stops on "hill"; nine strips break from 3171, slide apart and die
 the rig: the ears, the head, the eyes, the foreleg's travel between the reach and the touch (the paw
 jumps back about 70 px at contact), the leaves trailing the branch.
 
+**Animation reel 2: the rig** (2026-11-08, `scripts/fable/rig.py`, `scripts/fable/pilot.py`). The
+artist kept reel 1's timing and asked for movement in place of cuts. It also had to fix the branch,
+which "doesn't appear to be connected to anything".
+- **The puppet.** Each key drawing is cut into the paper pieces it is already drawn from, each on
+  its pin. The touch: head (pin behind the ear), the foreleg's upper card (shoulder pin), its lower
+  leg (elbow pin), the tail (its root, behind the body), the body. Hiding: head, upper card, the
+  raised forearm, body. Sunk: head, body.
+- **Paper under the joints.** Each piece's paper runs on under the pieces pinned to it, about their
+  pins, and a lower leg has a round end under the card it hangs from. These are painted in from the
+  piece's own colours, so a turn shows paper, never a hole. Every piece casts a small shadow on what
+  is under it.
+- **The reach** is the touch drawing with its foreleg raised on its two pins, so the reach, the fall
+  and the contact are one continuous move. The reach drawing (k4-reach-2) is retired.
+- **Every piece has its own curve:** cubic through keys, easing into holds and turns, overshoots
+  keyed. Breaths are the body's height about his feet. The held breath has no breath, but his head
+  stays alive by a hair.
+- **Exposure:** ones for the moves (3094–3176, 3262–3292) and twos for the holds. Each drawing
+  re-seats the pieces by a hair (0.12°, 0.25 px), as hands do.
+- **The shutter.** Fast moves get a 180° shutter, as many sub-frames as the fastest corner needs, up
+  to 8, or 18 through the lunge so a fast edge smears instead of stacking. It widens to 360° about
+  the hop.
+- **The hop (3117):** a change of drawing inside the lunge.
+  - The lying drawing carries the lunge's travel itself, still moving as it reaches 3117.
+  - That frame's sub-frames straddle the change, the lying drawing before it and the touch drawing
+    after, so the cut frame is the heaviest smear.
+  - The touch drawing comes in 35 px up, still carrying the lunge forward, falls three frames and
+    lands on its hind feet at 3120 (two frames of squash). From there the feet never move: everything
+    after turns about them.
+- **Into sunk (3280):** a clean cut as he sits back after the exhale.
+  - The touch drawing sits back 12°, its forelegs and tail kept toward the ground, its head coming up
+    out of the water. Breathing out, he draws in on himself (5% narrower, 6% lower), toward sunk's
+    smaller shape.
+  - Sunk stands on the same feet, posed so its muzzle and neck meet the touch drawing's within a few
+    px. Its head then goes on down from there.
+  - A melt was tried first and showed the paper see-through, so the reel uses the clean cut, the
+    medium's own grammar.
+- **Contact** is the first frame with the paw in the water (3169), clear of it on 3168. His weight
+  peaks on 3169–3170 and recoils from 3171, after the strike, not before it.
+- **Dry until contact.** The touch drawing's foreleg is long enough to reach the water, so sitting
+  it puts his paws past the shore. After landing he sits up and back (to −8°), and his forepaws come
+  down on the bank left of the shore, with the elbow tucked. The foreleg's keys are solved for where
+  the paw must be: from the landing to the reach, and lifted clear of the water as it is drawn back.
+  Checked every quarter frame, the paw is in the water only from 3169 to 3268.
+- **The reach** lifts his head toward her (3140–3156), and his eyes drop just before his paw falls.
+  The near foreleg is in front of his head, as the near leg is.
+- **The bough** has its root off the column's left edge, at (330, 560), and is 740 px long. It hangs
+  free at −30°, where the still's branch sat.
+  - Held, his paw is on its stem near the tip, in front of it, holding it down. The bough strains up
+    against him, bowed, its base 13° above where the paw holds it.
+  - He eases it up; at 3107 his paw slips off. Its base swings on a damped spring (ω 5.2, ζ 0.32)
+    from where it was and how fast it was rising, and the bow comes out of it with the tip 2.5 frames
+    behind its base, so it whips.
+  - Each point turns about the root by an angle that grows from the base's to the tip's along it,
+    so the bough bends and never leaves its root.
+- **Her reflection breaks** as a front runs out from his paw at 9 px a frame, with the rings'
+  flattening. 22 strips go, nearest first, each torn into two or three pieces with ragged edges,
+  pushed apart and away from him, dimming on τ 2.5 s and out by "still,".
+
 ## 9. Quality gates
 
 1. **Detail:**

@@ -1,4 +1,4 @@
-// Build the pilot's blocking page: the reel (pilot.py's MP4 and WebM) inline with a film-frame counter
+// Build the pilot's review page: the reel (pilot.py's MP4 and WebM) inline with a film-frame counter
 // and steps, jumps to its key moments, the key drawings, the exposure sheet and the questions.
 // Usage: node scripts/fable/build_pilot_page.mjs DIR TEMPLATE OUT
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -9,9 +9,10 @@ const xs = JSON.parse(readFileSync(join(dir, 'xsheet.json'), 'utf8'));
 const uri = (file, type) => `data:${type};base64,${readFileSync(join(dir, file)).toString('base64')}`;
 const [first, last] = xs.frames;
 const fails = xs.motionBudget.fails;
+const [hop, cut] = [xs.swaps['hide->touch'], xs.swaps['touch->sunk']];
 
 const data = {
-  key: 'reel-1',
+  key: 'reel-2',
   first,
   count: last - first + 1,
   fps: xs.fps,
@@ -23,16 +24,20 @@ const data = {
   jumps: [
     { label: 'Hiding', frame: 3080 },
     { label: 'The push', frame: 3099 },
-    { label: 'The reach', frame: 3123 },
+    { label: 'Out from under', frame: 3110 },
+    { label: 'The reach', frame: 3136 },
     { label: 'The fall', frame: 3164 },
     { label: 'Contact', frame: xs.contact },
     { label: 'The exhale', frame: 3266 },
-    { label: 'Sunk', frame: 3310 },
+    { label: 'Sunk', frame: 3300 },
   ],
   labels: [
-    { from: 3080, to: 3098, name: 'hiding' },
-    { from: 3099, to: 3122, name: 'the push' },
-    { from: 3123, to: 3163, name: 'the reach' },
+    { from: 3080, to: 3098, name: 'hiding under the bough' },
+    { from: 3099, to: 3109, name: 'the push' },
+    { from: 3110, to: 3116, name: 'out from under it' },
+    { from: 3117, to: 3119, name: 'the hop, in the air' },
+    { from: 3120, to: 3124, name: 'he lands and sits up' },
+    { from: 3125, to: 3163, name: 'the reach' },
     { from: 3164, to: 3168, name: 'the fall, on ones' },
     { from: 3169, to: 3169, name: 'contact' },
     { from: 3170, to: 3175, name: 'the overshoot settles' },
@@ -41,43 +46,45 @@ const data = {
     { from: 3291, to: 3406, name: 'sunk' },
   ],
   sheet: [
-    ['3080–3098', 'Hiding under the branch, lying on the bank, the paw that drew it over still on it. Quick shallow breaths.', 'Her disc low on the water; the leaves\' shadows on him.'],
-    ['3099–3122', 'He presses against the branch; it springs up and away, overshoots and settles.', 'Her light finds him as it goes.'],
-    ['3123–3163', 'The reach: he sits up leaning back, then stretches out to his limit, his paw on an arc after her.', 'The moon rises; her disc moves down the water.'],
+    ['3080–3098', 'Lying under the bough, quick shallow breaths, his raised paw on its stem holding it down over him, trembling a little.', 'The bough strains up against his paw, bowed; her disc low on the water; the leaves\' shadows on him.'],
+    ['3099–3109', 'The push: he eases the bough up off him; at 3107 his paw slips off it.', 'The bough whips back up to where it grows, overshoots and settles, its tip a beat behind.'],
+    ['3110–3124', `Out from under it: his paw comes down, he gathers and lunges forward, changes drawing inside the lunge (${hop}), is in the air for three frames, lands on his feet at 3120 (they stay put from there), and sits up leaning back, looking out.`, 'Her light finds him.'],
+    ['3125–3163', 'The reach: he leans out, his head lifting toward her and his paw going out after her on an arc, to his limit, trembling there; his eyes drop just before his paw does.', 'The moon rises; her disc moves down the water.'],
     ['3164–3168', 'The fall, on ones: he tips and his paw drops.', ''],
-    ['3169–3175', 'Contact: the touch, 3° over, settled by 3175.', 'The first ring; her warm light on him breaks.'],
-    ['3176–3265', 'He holds his breath. His weight settles once (3200–3226).', 'Strips break outward one per drawing from 3171; rings at 3178, 3190, 3204; her light dies on the sound\'s decay.'],
-    ['3266–3290', 'The exhale: sunk, sitting back, his paw drawn back from the water.', 'Only the cold light is left.'],
-    ['3291–3406', 'Slow breaths; his head lowers (3310–3358).', 'The last glints go out by "still," (3347); the moon stops on "hill" (3376).'],
+    ['3169–3175', 'Contact: the paw in the water (the approved still); his weight drives on a frame after the strike, then settles by 3175.', 'The first ring; her warm light on him breaks.'],
+    ['3176–3265', 'He holds his breath: no breathing, his head alive by a hair, his weight settling once.', 'Her reflection breaks as a front runs out from his paw: 22 strips, nearest first, each torn into two or three pieces pushed apart; rings at 3178, 3190, 3204; her light dies on the sound\'s decay.'],
+    ['3266–3290', `The exhale: he draws his paw back out of the water, sits back and draws in on himself; at ${cut} the sunk drawing takes over, its head where the touch drawing left his, going on down.`, 'Only the cold light is left.'],
+    ['3291–3406', 'Sunk: slow breaths; his head keeps lowering (3310–3358).', 'The last glints go out by "still," (3347); the moon stops on "hill" (3376).'],
   ],
   asks: [
-    { key: 'ground', title: 'Is he on the ground now, through the whole shot?', short: 'On the ground',
-      options: [{ value: 'yes', label: 'Yes', keep: true }, { value: 'nearly', label: 'Nearly' }, { value: 'no', label: 'No' }] },
-    { key: 'timing', title: 'The poses on the soundtrack?', short: 'Timing',
-      options: [{ value: 'right', label: 'Right', keep: true }, { value: 'some early or late (see notes)', label: 'Some early or late' }] },
-    { key: 'touch', title: 'The touch against its sound?', short: 'The touch',
-      options: [{ value: 'in sync', label: 'In sync', keep: true }, { value: 'picture early', label: 'Picture early' }, { value: 'picture late', label: 'Picture late' }] },
+    { key: 'flow', title: 'Does he move now, instead of cutting?', short: 'Moves',
+      options: [{ value: 'yes', label: 'Yes', keep: true }, { value: 'mostly (see notes)', label: 'Mostly' }, { value: 'no', label: 'No' }] },
+    { key: 'bough', title: 'Does the bough read as growing from something?', short: 'The bough',
+      options: [{ value: 'yes', label: 'Yes', keep: true }, { value: 'not yet', label: 'Not yet' }] },
+    { key: 'changes', title: `The two changes of drawing (${hop}, ${cut})?`, short: 'Changes of drawing',
+      options: [{ value: 'both fine', label: 'Fine', keep: true }, { value: 'the hop jars', label: 'Hop jars' },
+        { value: 'the sit-back jars', label: 'Sit-back jars' }, { value: 'both jar', label: 'Both jar' }] },
     { key: 'next', title: 'Next?', short: 'Next',
-      options: [{ value: 'in-betweens and the rig', label: 'In-betweens and the rig', keep: true }, { value: 'change the blocking first', label: 'Change the blocking first' }] },
+      options: [{ value: 'ears, blinks and polish', label: 'Ears, blinks, polish', keep: true }, { value: 'change the acting first (see notes)', label: 'Change the acting first' }] },
   ],
-  copyTitle: 'The touch, blocked (reel 1)',
+  copyTitle: 'The touch, animated (reel 2)',
 };
 
-const lede = 'The pilot shot\'s first pass on the soundtrack (mix 1): 13.6 seconds, from his hiding place under the branch to sitting back after the touch, every pose standing on the new bank.';
+const lede = 'Reel 2: the same shot, on mix 1 and on the timing you kept from reel 1, now moving through every frame. He is a puppet cut from the drawings into pinned paper pieces, and the bough grows from off the left edge.';
 const budget = fails.length
   ? `The motion budget (no 2 s without him moving 3 px) fails at ${fails.map(([a, b, m]) => `${a}–${b} (${m} px)`).join(', ')}.`
   : 'The motion budget holds: no 2 s anywhere without him moving at least 3 px.';
 const notes = [
-  'This is blocking, the first pass of stop-motion: the key poses held and stepped on the soundtrack, to set the timing before anything moves in between. He jumps from pose to pose on purpose. The in-betweens come next, timed from this.',
-  'Every drawing stands on the new bank: lying under the branch, sitting up into the reach, his paw in the water at the touch, and sitting back sunk with his paw drawn back, as you chose.',
-  'Inside each pose he moves as one piece about his hind feet: quick shallow breaths under the branch, the stretch of the reach, the tip of the fall, an overshoot at contact, the held breath, the exhale, slow breaths. ' + budget,
-  `His paw meets the water on film frame ${xs.contact}. The touch sound in mix 1 starts 1.2 frames later (50 ms), so the picture leads the sound very slightly, as in life. Step to ${xs.contact} with the frame buttons to see it.`,
-  'Around him: the branch springs away, the moon rises and stops on "hill", her path breaks strip by strip from 3171 and dies with the sound, four rings spread from his paw, and her warm light leaves his face.',
-  'Not in it yet: his ears, head and eyes move only with his whole body until the rig cuts them free; his paw jumps back between the reach and the touch, which the foreleg\'s in-betweens will carry; the branch\'s leaves don\'t trail behind it yet.',
+  'He is now a paper puppet cut from the drawings themselves: his head on a pin behind the ear, the foreleg\'s upper card on the shoulder pin and its lower leg on the elbow pin, his tail on its root. Each piece moves on its own curve, so he goes from pose to pose through every frame. Moves are on ones, holds on twos, and each frame re-seats the pieces by a hair, as hands do in stop-motion.',
+  'The bough grows from off the left edge of the frame and never leaves that root. His raised paw is on its stem, holding it down over him, and you can see it strain up against him, bowed. He eases it up, his paw slips off, and it whips back up to where it hangs, overshooting and settling, its tip a beat behind its base.',
+  `He changes drawing twice, each time inside a move. Out from under the bough he goes from the lying drawing to the sitting one in the middle of the lunge (${hop}): that frame is the heaviest smear, he is in the air for three frames, and he lands on his feet at 3120. As he sits back after the touch, the sunk drawing takes over on a clean cut (${cut}), its head where the touch drawing left his, on the same feet. Step through both with the frame buttons.`,
+  `Contact is still film frame ${xs.contact}, on the touch sound: his paw is clear of the water on 3168. Every pose sits where reel 1 put it. ` + budget,
+  'An independent cinematic review of the first render of this reel shaped it: the landing, the bough held down from above, the clean cut into sunk in place of a dissolve, the weight driving on after the strike, his head lifting toward her in the reach, and the bigger break of her reflection.',
+  'Not in it yet: his ears move only with his head (they are part of the head piece), he does not blink, and his far foreleg moves with the near one.',
 ];
 const html = readFileSync(template, 'utf8')
-  .replace('__TITLE__', () => 'Touch Blocking Reel')
-  .replace('__HEADING__', () => 'The reach and the touch, blocked')
+  .replace('__TITLE__', () => 'Touch Animation Reel')
+  .replace('__HEADING__', () => 'The reach and the touch, animated')
   .replace('__LEDE__', () => lede)
   .replace('<!--NOTES-->', () => notes.map((n) => `      <li>${n}</li>`).join('\n'))
   .replace('/*DATA*/{}', () => JSON.stringify(data));
