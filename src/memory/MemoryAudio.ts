@@ -491,14 +491,27 @@ export class MemoryAudio implements AudioSink {
     return Math.max(0, t - l.at) + l.from - (l.kind === 'music' ? l.cue.offset ?? 0 : l.src.loopStart);
   }
 
-  /** Back where the picture is, on the frame it moves on from (`now`, the clock's time then). */
-  resume(now = this.now): void {
+  /**
+   * Back where the picture is, on the frame it moves on from (`now`, the clock's time then).
+   * `back`: seconds the picture stepped back on resuming (a sentence the pause cut, said again from
+   * its start): the music steps back with it, so it keeps its place in the timeline; a bed is state,
+   * not timeline, and carries on (Codex review, 2026-11-09).
+   */
+  resume(now = this.now, back = 0): void {
     if (this.disposed) return;
     // What faded for the pause and never finished (the context was suspended with it, a hidden
     // tab) goes now, so it doesn't fade on over its own restart.
     for (const l of this.fading) if (this.live.has(l)) this.fadeOut(l, 0.02);
     this.fading.clear();
-    for (const p of this.paused) this.start(p.marker, now - this.lead + p.wait, p.at, p.wait > 0 ? undefined : 1);
+    for (const p of this.paused) {
+      let { at, wait } = p;
+      if (back > 0 && cueKind(p.marker.label) === 'music') {
+        // (Stepped back to before it began: it waits for its place again.)
+        wait += Math.max(0, back - at);
+        at = Math.max(0, at - back);
+      }
+      this.start(p.marker, now - this.lead + wait, at, wait > 0 ? undefined : 1);
+    }
     this.paused = [];
     // A sentence that played on through the pause: its words again, for what is left of it.
     for (const w of this.spoken) if (w.end - this.now > 0.3) this.host.caption?.(w.text, w.end - this.now, true, w.side);
