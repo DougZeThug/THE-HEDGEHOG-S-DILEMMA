@@ -14,8 +14,10 @@ const MIDDLE = 730;
  *  of v2, scripts/things/: she stands nearer us, so her feet are lower than they were). */
 const LINTEL = 412;
 const FEET = 1047;
-/** The top of his head when he turns back toward her, his face first drawn (sheet row). */
-const HEAD = 499;
+/** The top of his head at its highest (sheet row): in the goodbye, the waves and the turn he stands
+ *  nearer us than when he turns back to her (there, row 499), his crown at about 473 (measured on
+ *  the film's frames, 1.5 s in). The band is fixed for the whole film, so it keeps this one. */
+const HEAD = 473;
 /** Rows kept clear above the lintel and below their feet while the screen has them; the feet's least. */
 const ABOVE = 16;
 const BELOW = 20;
@@ -29,8 +31,8 @@ const ACROSS = 632;
  * The film v kept at the screen's centre on a screen this wide (width over height, not upright).
  * The drawing's middle while the lintel and her feet both fit with room; on a wider screen the
  * shortfall is taken mostly from above the lintel, and from about 1.9:1 the lintel itself goes (a
- * landscape phone, 21:9), then their feet, never his head as he turns back to her (cut at 2.2:1,
- * the moment his face is first drawn: QA, 2026-10-22).
+ * landscape phone, 21:9), then their feet, never his head, at its highest in the film's opening beats (cut at 2.2:1 as he
+ * turns back to her, QA, 2026-10-22; the opening's crown stands higher still).
  */
 export function thingsCover(aspect: number): [number, number] {
   const half = W / (aspect * OVER) / 2;

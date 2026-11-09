@@ -32,6 +32,9 @@ const ImmersionShader = {
     uSeed: { value: 0 },
     /** 1: the edge torn, its ragged line hard (a film carried out of the wall); 0: a soft brush. */
     uTorn: { value: 0 },
+    /** 1: a shadow's edge (Memory VII): no raggedness, a fall twice as wide (a ragged dark slab
+     *  read as burnt paper: the reviews of 2026-11-09). */
+    uShade: { value: 0 },
     /** The push in: centre (painting uv) and how far (1 = none). */
     uZoom: { value: new THREE.Vector3(0.5, 0.5, 1) },
     /** The part of the painting the render target holds (x0, y0, w, h). */
@@ -44,7 +47,7 @@ const ImmersionShader = {
   fragmentShader: /* glsl */ `
     uniform sampler2D tDiffuse, uScene, uNoise;
     uniform mat3 uH;
-    uniform float uShow, uAspect, uEdge, uSeed, uTorn;
+    uniform float uShow, uAspect, uEdge, uSeed, uTorn, uShade;
     uniform vec3 uZoom;
     uniform vec4 uView;
     varying vec2 vUv;
@@ -61,11 +64,12 @@ const ImmersionShader = {
       float e = (dx < rr && dy < rr) ? rr - length(vec2(rr - dx, rr - dy)) : min(dx, dy);
       float n = texture2D(uNoise, q * vec2(uAspect, 1.0) * 1.7 + uSeed).r;
       float n2 = texture2D(uNoise, q * vec2(uAspect, 1.0) * 6.3 - uSeed).r;
-      e += (n - 0.5) * uEdge * 1.1 + (n2 - 0.5) * uEdge * 0.35;
+      e += ((n - 0.5) * uEdge * 1.1 + (n2 - 0.5) * uEdge * 0.35) * (1.0 - 0.85 * uShade);
       // (Torn: the same ragged line, its fall a fifth as wide. The film's plate is dark at its
       // edges; mixed into white plaster over the soft brush, its grey billows read as smoke, and
       // going back as burnt paper: the cinematic director's review of "Almost", 2026-10-21.)
       float colour = mix(smoothstep(uEdge * 0.35, uEdge * 1.2, e), smoothstep(uEdge * 0.62, uEdge * 0.78, e), uTorn);
+      colour = mix(colour, smoothstep(0.0, uEdge * 2.0, e), uShade);
       vec2 qc = clamp(uZoom.xy + (q - uZoom.xy) / uZoom.z, 0.0, 1.0);
       vec3 p = texture2D(uScene, (qc - uView.xy) / uView.zw).rgb;
       // The painting's own light over the room (the wall's painting under it, at its place, until
@@ -102,7 +106,7 @@ export class Immersion {
    * One frame. `wall`: the painting's corners on the screen (screen uv; 00, 10, 11, 01), or null
    * if the wall's quad is behind the eye. `immerse` 0..1. `aspect`: the screen's (w / h).
    */
-  set(o: { scene: THREE.Texture; wall: THREE.Vector2[] | null; immerse: number; show: number; aspect: number; paint: number; focus: [number, number]; scale?: number; zoom: THREE.Vector3; view: THREE.Vector4; seed: number; torn?: boolean }): void {
+  set(o: { scene: THREE.Texture; wall: THREE.Vector2[] | null; immerse: number; show: number; aspect: number; paint: number; focus: [number, number]; scale?: number; zoom: THREE.Vector3; view: THREE.Vector4; seed: number; torn?: boolean; shade?: boolean }): void {
     const u = this.u;
     if (o.show <= 0 || (!o.wall && o.immerse <= 0)) {
       this.off();
@@ -113,6 +117,7 @@ export class Immersion {
     u.uShow.value = o.show;
     u.uSeed.value = o.seed;
     u.uTorn.value = o.torn ? 1 : 0;
+    u.uShade.value = o.shade ? 1 : 0;
     u.uAspect.value = o.paint;
     (u.uZoom.value as THREE.Vector3).copy(o.zoom);
     (u.uView.value as THREE.Vector4).copy(o.view);

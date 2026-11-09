@@ -187,3 +187,24 @@ describe('a line under another, inside a place on its wall (the line where the p
     expect(layout.findUnder(anchor, W, H, { u: 3, v: 1.4, w: 3.2, h: 1.8 }, () => false)).toBeNull();
   });
 });
+
+describe('scanning a band cell by cell', () => {
+  it('finds the one narrow place random tries are likely to miss, nearest the point given', () => {
+    const l = new SurfaceLayout(new Rng(7));
+    const W = surfaceSize('east').w;
+    // The eye band filled with writing, but for one gap 0.4 m wide at 2.0–2.4 m.
+    l.add({ surface: 'east', u: 1.0, v: 1.375, w: 2.0, h: 0.95, rot: 0 });
+    l.add({ surface: 'east', u: (2.4 + W) / 2, v: 1.375, w: W - 2.4, h: 0.95, rot: 0 });
+    const r = l.scanIn('east', 0.3, 0.15, [0, 1], [0.9, 1.85], 0.02, { u: 0.5, v: 1.4 });
+    expect(r).toBeTruthy();
+    expect(r!.u - r!.w / 2).toBeGreaterThanOrEqual(2.0);
+    expect(r!.u + r!.w / 2).toBeLessThanOrEqual(2.4);
+    for (const q of l.placed.get('east')!) expect(overlaps(r!, q, 0.02)).toBe(false);
+    // The nearest of the free cells (on the 5 cm grid): the gap's first that fits, at the height
+    // nearest the point (two cells are 2.5 cm from it), not merely one that fits.
+    expect(r!.u).toBeCloseTo(2.2, 6);
+    expect(Math.abs(r!.v - 1.4)).toBeCloseTo(0.025, 6);
+    // And nothing where there is no room.
+    expect(l.scanIn('east', 0.6, 0.15, [0, 1], [0.9, 1.85], 0.02, { u: 0.5, v: 1.4 })).toBeNull();
+  });
+});

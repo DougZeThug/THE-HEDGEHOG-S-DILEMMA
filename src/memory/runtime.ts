@@ -11,6 +11,7 @@ import { LivingScene, type FigureArt, type HeadCels, type LivingArt, type NearAr
 import { WOODLAND as WOODLAND_SPEC, type LivingSpec } from './living/woodland';
 import { ALMOST } from './living/almost';
 import { THINGS } from './living/things';
+import { SHADOWS } from './living/shadows';
 import { FilmScene, filmType, loadFilm, releaseFilm } from './living/FilmScene';
 import { fetchBlob } from './fetched';
 import { withVoices } from '../content/memory-voices';
@@ -55,12 +56,17 @@ interface FilmManifest {
   frames: number;
   order?: string | null;
   immerse: boolean;
-  /** Its edge when carried out of the wall: torn (felt, "Almost": the default) or soft (a sheet rubbed). */
-  edge?: 'torn' | 'soft';
+  /**
+   * Its edge when carried out of the wall: torn (felt, "Almost": the default), soft (a sheet
+   * rubbed) or shade (Memory VII: no raggedness at all, a wide fall, as a shadow's edge).
+   */
+  edge?: 'torn' | 'soft' | 'shade';
+  /** Its soft edge on the wall (m), if wider than the usual brush (Memory VII's shade: 0.5). */
+  feather?: number;
 }
 
 /** Where each film sits when it covers the screen (src/memory/living/), by memory. */
-const FILM_SPECS: Record<string, Pick<LivingSpec, 'cover' | 'coverAt'>> = { almost: ALMOST, things: THINGS };
+const FILM_SPECS: Record<string, Pick<LivingSpec, 'cover' | 'coverAt' | 'uprightAt'>> = { almost: ALMOST, things: THINGS, shadows: SHADOWS };
 
 const isFilm = (m: LivingManifest | FilmManifest | null | undefined): m is FilmManifest => !!m && (m as FilmManifest).kind === 'film';
 /** How long the film's bytes may take to come (ms; most are fetched ahead, when its line is armed). */
@@ -128,11 +134,13 @@ export interface RuntimeHost {
 export interface PreparedLiving {
   scene: LivingScene | FilmScene;
   /** Where its picture sits when it covers the screen. */
-  spec: Pick<LivingSpec, 'cover' | 'coverAt'>;
+  spec: Pick<LivingSpec, 'cover' | 'coverAt' | 'uprightAt'>;
   /** It may be entered (or only seen on the wall). */
   immerse: boolean;
   /** Carried out of the wall, its edge is torn (hard and ragged) rather than a soft brush. */
   torn?: boolean;
+  /** ... or a shadow's: no raggedness, a wide fall. */
+  shade?: boolean;
   /** What the wall shows first (painting uv: x0, y0, w, h). */
   crop: [number, number, number, number];
   /** The painting's aspect (w / h). */
@@ -141,6 +149,8 @@ export interface PreparedLiving {
   order: THREE.Texture | null;
   /** When the colour reaches a point of the painting (uv, y up; the order map's g), or null. */
   colourAt: ((u: number, v: number) => number) | null;
+  /** Its soft edge on the wall (m), if wider than the usual brush. */
+  feather?: number;
 }
 
 export interface Prepared {
@@ -350,7 +360,7 @@ export async function prepare(id: string, variant: string, host: RuntimeHost): P
       if (orderR) extra.push(orderR);
       const size = targetSize(host);
       scene = new FilmScene({ video, fps: lm.fps, frames: lm.frames }, { ...size, reduced: !!host.reduced });
-      living = { scene, spec: FILM_SPECS[def.id] ?? ALMOST, immerse: lm.immerse, torn: (lm.edge ?? 'torn') === 'torn', crop: manifest.crop ?? [0, 0, 1, 1], aspect: manifest.size[0] / manifest.size[1], order: orderR?.texture ?? null, colourAt: orderR ? colourTimes(orderR.bitmap) : null };
+      living = { scene, spec: FILM_SPECS[def.id] ?? ALMOST, immerse: lm.immerse, torn: (lm.edge ?? 'torn') === 'torn', shade: lm.edge === 'shade', crop: manifest.crop ?? [0, 0, 1, 1], aspect: manifest.size[0] / manifest.size[1], order: orderR?.texture ?? null, colourAt: orderR ? colourTimes(orderR.bitmap) : null, feather: lm.feather };
       loaded.unshift({ texture: scene.target.texture, bitmap: null as unknown as ImageBitmap, name: 'scene', kind: 'pigment' });
     } catch (e) {
       // The film couldn't be had: the wall's poster instead, still (as any memory).

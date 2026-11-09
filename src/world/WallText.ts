@@ -162,6 +162,11 @@ export interface TextItem {
   rate: number;
   shy: number;
   emphasis: number;
+  /** A touch on the words, felt in the ink: darker at once, settling back over about a second. */
+  pressed?: number;
+  /** Touched, and it shows a little afterwards, like handled paper (fades over minutes). */
+  handled?: number;
+  presses?: number;
   expires: number;
   centre: THREE.Vector3;
   normal: THREE.Vector3;
@@ -272,6 +277,9 @@ interface LineItem {
   to?: Placement;
   strikeOf?: Placement;
 }
+
+/** How much of a touch the words keep (of the emphasis, 0–1; a long look reaches 0.7). */
+const HANDLED = 0.25;
 
 export class WallText {
   readonly items = new Map<string, TextItem>();
@@ -693,6 +701,31 @@ export class WallText {
     if (target) {
       surface = target.surface;
       rect = this.layout.findBeside(target, m.w, m.h);
+      // The heart's answer is beside the first line or not yet written: anywhere else on that wall it
+      // reads as a line of its own, not an answer. (The room tries again as lines there fade.)
+      if (!rect && o.key.startsWith('heart:')) return false;
+    }
+    const wall = !!surface && surface !== 'floor' && surface !== 'ceiling';
+    if (!rect && surface && o.near && o.purpose === 'recall' && wall && o.key.startsWith('memory:')) {
+      // A memory's line, offered where the visitor looks: at a height it can be read at, as near
+      // their line of sight as the wall allows, or not at all (it is offered again elsewhere). The
+      // whole-wall scan put it by the skirting, out of frame on a phone (QA, 2026-11-06). Close to
+      // where they look it may go into the space kept behind the chair, as an answer may: from the
+      // chair, facing the wall behind it, that is where they look, and the rest of the band is full.
+      // Only that space: the band kept on the south wall is the visitors' own.
+      const behindChair = surface === 'north';
+      const size = surfaceSize(surface!);
+      const near = o.near;
+      const across = (spread: number): [number, number] => [Math.max(0, near.u - spread - m.w / 2) / size.w, Math.min(size.w, near.u + spread + m.w / 2) / size.w];
+      const band = (spread: number, open: boolean) => this.layout.findIn(surface!, m.w, m.h, across(spread), [0.9, 1.85], 0.02, 160, open);
+      for (const spread of [0.4, 0.9, 1.6, size.w]) {
+        rect = band(spread, false) ?? (behindChair && spread <= 0.9 ? band(spread, true) : null);
+        if (rect) break;
+      }
+      // (The tries are random: before it is given up, the band is gone over cell by cell, so a
+      // narrow place they missed is still found.)
+      rect ??= (behindChair ? this.layout.scanIn(surface!, m.w, m.h, across(0.9), [0.9, 1.85], 0.02, near, true) : null) ?? this.layout.scanIn(surface!, m.w, m.h, [0, 1], [0.9, 1.85], 0.02, near, false);
+      if (!rect) return false;
     }
     if (!rect && surface && o.near) {
       const size = surfaceSize(surface);
@@ -955,6 +988,19 @@ export class WallText {
     }
   }
 
+  /**
+   * The visitor touched these words: the ink takes the touch, and keeps a little of it for some
+   * minutes, like handled paper. Touching again never deepens it: each further touch can leave less
+   * than the last, never more (docs/reviews/2026-11-core-loop.md).
+   */
+  press(key: string): void {
+    const it = this.items.get(key);
+    if (!it) return;
+    it.pressed = 1;
+    it.presses = (it.presses ?? 0) + 1;
+    it.handled = Math.max(it.handled ?? 0, HANDLED * 0.6 ** (it.presses - 1));
+  }
+
   /** Which phrase holds the visitor's attention: nearest to the centre of view, within its own angular size. */
   attention(cam: THREE.Camera): string | null {
     const pos = cam.getWorldPosition(new THREE.Vector3());
@@ -1025,6 +1071,9 @@ export class WallText {
       }
       const gazed = gazeId === it.key;
       it.emphasis = approach(it.emphasis, gazed ? clamp((gazeFor - 0.8) / 3) * 0.7 : 0, dt, gazed ? 1.2 : 3);
+      if (it.pressed) it.pressed = it.pressed < 0.01 ? 0 : approach(it.pressed, 0, dt, 0.8);
+      // A touch leaves a little of itself on the words, fading over minutes (the hand's, not the eye's).
+      if (it.handled) it.handled = it.handled < 0.005 ? 0 : approach(it.handled, 0, dt, 240);
       // Receding: the closer, the less of it (and a look doesn't bring it back); stepping back
       // returns it, more slowly than it went.
       let recede = 0;
@@ -1058,7 +1107,7 @@ export class WallText {
       }
       it.uniforms.uReveal.value = it.vis * (1 - 0.55 * recede);
       it.uniforms.uOpacity.value = clamp(base * legible * Math.min(it.shy, 1 - 0.5 * recede) * env.textContrast * (1 + it.emphasis * 0.3), 0, 1);
-      it.uniforms.uEmphasis.value = it.emphasis;
+      it.uniforms.uEmphasis.value = Math.min(1, Math.max(it.emphasis, it.handled ?? 0) + (it.pressed ?? 0) * 0.35);
     }
     for (const ln of [...this.lines.values()]) {
       if (ln.expires && now > ln.expires) ln.target = 0;

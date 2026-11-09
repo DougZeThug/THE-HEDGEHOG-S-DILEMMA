@@ -163,6 +163,24 @@ export class SurfaceLayout {
     return null;
   }
 
+  /**
+   * Every spot in a region on a 5 cm grid, nearest a point first: what `findIn` samples at random,
+   * made sure of (a narrow slot its tries missed is still found).
+   */
+  scanIn(surface: Surface, w: number, h: number, uRange: [number, number], vRange: [number, number], pad: number, near: { u: number; v: number }, ignoreReserved = false): Rect | null {
+    const size = surfaceSize(surface);
+    const u0 = uRange[0] * size.w + w / 2;
+    const u1 = uRange[1] * size.w - w / 2;
+    const v0 = vRange[0] + h / 2;
+    const v1 = vRange[1] - h / 2;
+    const cands: Rect[] = [];
+    for (let v = v0; v <= v1 + 1e-9; v += 0.05) for (let u = u0; u <= u1 + 1e-9; u += 0.05) cands.push({ u, v, w, h });
+    const d = (r: Rect) => Math.hypot(r.u - near.u, r.v - near.v);
+    cands.sort((a, b) => d(a) - d(b));
+    for (const r of cands) if (this.free(surface, r, pad, ignoreReserved)) return r;
+    return null;
+  }
+
   /** Exhaustive scan for any free spot, nearest the middle band of the surface first. */
   scan(surface: Surface, w: number, h: number, pad: number, ignoreReserved = false): Rect | null {
     const size = surfaceSize(surface);

@@ -104,6 +104,25 @@ describe('situation: the next room', () => {
   });
 });
 
+describe('situation: the next room, called again', () => {
+  it('the second laugh always comes from a wall that has something happy on it, so following it pays off', () => {
+    for (const facing of ['east', 'west', 'north'] as Surface[]) {
+      for (let seed = 1; seed <= 6; seed++) {
+        const v = new Visit(['next-room'], seed);
+        v.d.scenes.setAvailable(new Set());
+        const voices = () => v.cues.filter((c) => isVoice(c.cue) && c.cue.tag === 'next-room');
+        v.run(500, { x: 0, z: 2.4, facing }, () => voices().length >= 2);
+        const second = voices()[1];
+        if (!second) throw new Error(`${facing}, seed ${seed}: no second laugh`);
+        const wall = ((second.cue as Extract<Cue, { type: 'voice' }>).position as { surface: Surface }).surface;
+        v.run(12, before(wall));
+        const found = v.of('sit:next-room').some((c) => c.cue.type === 'reveal') || !!v.d.situations.active[0]?.st.data.memory;
+        expect(found, `${facing}, seed ${seed}: laughed from ${wall}`).toBe(true);
+      }
+    }
+  });
+});
+
 describe('situation: someone humming', () => {
   it('stops mid-phrase when approached; the piano later stops on the same note', () => {
     const v = new Visit(['humming']);

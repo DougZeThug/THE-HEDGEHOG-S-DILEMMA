@@ -1,12 +1,12 @@
 import { DRAWINGS, DRAWING_BY_ID } from '../content/drawings';
 import { MemoryDirector, type PendingEcho } from './MemoryDirector';
 import { VIGNETTE_BY_ID, lineKey } from '../content/vignettes';
-import { SCENE_MEMORIES } from '../content/memories';
+import { HEART_AFTER_RECOIL, HEART_ANSWER, HEART_DECIDE, heartOf, SCENE_MEMORIES, type HeartShape } from '../content/memories';
 import { Rng } from '../core/rng';
 import { EventScheduler } from '../core/scheduler';
 import { clamp, smoothstep } from '../core/math';
 import { PHRASES, PHRASE_BY_ID } from '../content/phrases';
-import { DEPARTURE_LINES, RECONTEXTS, VOICE_FRAGMENTS, type VoiceFragment } from '../content/relations';
+import { DEPARTURE_BY_VISIT, DEPARTURE_STILL, RECONTEXTS, VOICE_FRAGMENTS, type VoiceFragment } from '../content/relations';
 import type { Phase, Phrase, Surface, Tier } from '../content/types';
 import { VisitorModel, type VisitorInput } from './VisitorModel';
 import { Memory, warmthOf, type Motif } from './Memory';
@@ -75,6 +75,21 @@ export interface DirectorOptions {
    * now begins nearly empty and an authored opening (src/state/OpeningScore.ts) comes first.
    */
   legacyOpening?: boolean;
+  /**
+   * Design experiments, off unless named (docs/reviews/2026-11-core-loop.md): each changes one
+   * part of how the room answers, so a visit with and without it can be compared on the same seed.
+   */
+  experiments?: readonly string[];
+  /**
+   * What the last visit's heart left beside "I wanted you to stay." (a phrase id, `hh.heart.v1`):
+   * found there again on the next visit (docs/reviews/2026-11-emotional-arc.md).
+   */
+  answer?: string | null;
+  /**
+   * Whether a piece of writing is in the visitor's view now (the App knows the camera). Without it,
+   * the wall faced stands in (the battery, tests).
+   */
+  inView?: (phraseId: string) => boolean;
 }
 
 const SURFACES: Surface[] = ['north', 'east', 'south', 'west'];
@@ -145,6 +160,7 @@ export class Director {
   private readonly owned: Set<string>;
   private lastContrib: ContributionTrace | null = null;
   private geometry: (id: string) => PhraseGeometry | undefined;
+  private inView: (phraseId: string) => boolean;
   private annotationsUsed = new Set<string>();
   private recontextsUsed = new Set<string>();
   /** How many beats of each phrase's arc have been played. */
@@ -229,6 +245,8 @@ export class Director {
   /** When the held silence could first have come (it may wait a little for the chair). */
   private heldDueAt: number | null = null;
   private pendingPhase: Phase | null = null;
+  /** When the pending turn first could have come (it waits for a return at most 30 s). */
+  private pendingPhaseAt = -Infinity;
   /** A few seconds after a living memory ends, before the room turns a phase. */
   private scenesQuietAt = -Infinity;
   private attentionVoices = 0;
@@ -254,6 +272,9 @@ export class Director {
   private openingDone = false;
   private readonly legacy: boolean;
   private readonly seed: number;
+  /** Memories seen on earlier visits, and this visit's coin for a shared heart (content/memories.ts heartOf). */
+  private memoryCounts: Record<string, number>;
+  private readonly heartCoin: number;
   /** While the authored opening plays, the room's own rules wait and its clock doesn't run. */
   held = false;
   private nextAccumulate = 4;
@@ -266,11 +287,27 @@ export class Director {
   private stillVoice: boolean;
   private stillMusic: boolean;
 
+  /**
+   * The design experiments this build defines (docs/reviews/2026-11-core-loop.md, 2026-11-emotional-arc.md).
+   * The November 2026 rounds' winners are how the room behaves now; `noHeart` turns the visit's heart
+   * off, so the arc battery (scripts/arc.ts) can compare with the room before it. A name not listed here is
+   * ignored by the room (the App warns) and refused by the battery (scripts/experiment.ts), so two
+   * arms can never be compared while running the same code.
+   */
+  static readonly EXPERIMENTS: readonly string[] = ['noHeart'];
+  /** The design experiments this visit runs (empty in the room unless `?exp=` names some). */
+  readonly exp: ReadonlySet<string>;
+
   constructor(opts: DirectorOptions) {
+    this.exp = new Set((opts.experiments ?? []).filter((e) => Director.EXPERIMENTS.includes(e)));
+    this.pastAnswer = opts.answer && Object.values(HEART_ANSWER).includes(opts.answer) ? opts.answer : null;
     this.rng = new Rng(opts.seed);
     this.gapRng = new Rng(opts.seed * 7919 + 101);
     this.seed = opts.seed;
     this.scenes = new MemoryDirector(opts.memoryCounts ?? {});
+    this.memoryCounts = { ...(opts.memoryCounts ?? {}) };
+    // (Its own draw from the visit's seed, so nothing else the room draws moves with it.)
+    this.heartCoin = new Rng(opts.seed * 104729 + 7).next();
     this.visits = opts.visits ?? 1;
     // Stillness is one way in among many: it is answered soon, but not always the same way.
     const t1 = this.rng.range(5, 9);
@@ -284,7 +321,8 @@ export class Director {
     this.legacy = !!opts.legacyOpening;
     for (const p of PHRASES) if (this.legacy ? p.tier === 'arrival' || p.tier === 'near' : p.tier === 'near' && p.surface === 'floor') this.visible.set(p.id, { mode: 'shown', since: 0, base: true });
     this.geometry = opts.geometry ?? (() => undefined);
-    this.situations = new SituationRunner(Director.repertoire(this.visits, opts.situations));
+    this.inView = opts.inView ?? ((id) => PHRASE_BY_ID.get(id.replace(/^heart:/, ''))?.surface === this.facing);
+    this.situations = new SituationRunner(Director.repertoire(this.visits, opts.situations, opts.seed));
     this.owned = this.situations.owned();
     this.host = this.makeHost();
     this.env = this.computeEnv();
@@ -294,9 +332,11 @@ export class Director {
   }
 
   /** Seeded choice of which situations this visit can hold: three of the four, plus erosion if the visitor writes. */
-  static repertoire(visits: number, forced?: string[]) {
+  static repertoire(visits: number, forced?: string[], seed?: number) {
     if (forced?.length) return forced.map((id) => SITUATION_BY_ID.get(id)).filter((d): d is NonNullable<typeof d> => !!d);
-    const r = new Rng(hashString(`situations:${visits}`));
+    // (With a visit's own seed every visit can hold any three; by visit count alone, every visitor's
+    // first visit held the same three, and one of them never came on a first or second visit.)
+    const r = new Rng(hashString(seed === undefined ? `situations:${visits}` : `situations:${visits}:${seed}`));
     const main = SITUATIONS.filter((d) => d.id !== 'erosion');
     for (let i = main.length - 1; i > 0; i--) {
       const j = r.int(0, i);
@@ -407,6 +447,8 @@ export class Director {
    * counted for it: callers that commit state around a voice ask first, or use what `voice` returns.
    */
   private voiceRefused(rule: string, phraseId?: string, finish = false): boolean {
+    // Never "stay" near the way out: not as it appears, nor while they touch it (it would be a plea).
+    if (phraseId && Director.STAY_WORDS.has(phraseId) && (this.letGo || this.now - this.letGoAsked <= Director.LET_GO.window || Math.abs(this.now - this.exitShownAt) < 20)) return true;
     if (phraseId && !finish && this.withheld().includes(phraseId)) return true;
     // The memory's line has just been written for the visitor to stay with: the room doesn't
     // talk over it (authored situations and a finished line aside).
@@ -449,7 +491,8 @@ export class Director {
     if (ranked.length && extra.phraseId) this.heard.set(extra.phraseId, ranked[0].id);
     // Sometimes what is said writes itself where it belongs, as it is heard — not always: some
     // voices leave a mark, most leave nothing at all.
-    const writes = !extra.finish && !!extra.phraseId && ranked.length > 0 && !this.visible.has(extra.phraseId) && !this.legacy && this.rng.chance(0.35);
+    // (Never onto the north wall while the heart holds it: the voice is heard, nothing is written.)
+    const writes = !extra.finish && !!extra.phraseId && ranked.length > 0 && !this.visible.has(extra.phraseId) && !this.legacy && !(this.northKept() && PHRASE_BY_ID.get(extra.phraseId)?.surface === 'north') && this.rng.chance(0.35);
     if (writes) {
       this.accumulating.add(extra.phraseId!);
       this.visible.set(extra.phraseId!, { mode: 'shown', since: this.now + delay, base: true });
@@ -493,6 +536,9 @@ export class Director {
     // During the opening the room's own life hasn't begun: no rule runs and no time passes
     // for it (its clock is the visitor model's), so nothing is owed at the hand-off.
     if (this.held) return [];
+    // Kneeling is kneeling by the chair (the App's own reach for it, 1.5 m): K pressed across the
+    // room lowers the eye, but the room doesn't take it for kneeling there.
+    if (input.kneeling && Math.hypot(input.x, input.z) > 1.5) input = { ...input, kneeling: false };
     this._facing = facing;
     const v = this.visitor;
     v.update(dt, input);
@@ -509,17 +555,28 @@ export class Director {
       for (const m of formed) this.onMotif(m);
       // The turn into a new phase waits for a living memory to end (it would black out the room
       // in the middle of it), and a few seconds more.
-      if (phaseChanged) this.pendingPhase = phaseChanged;
+      if (phaseChanged) {
+        if (!this.pendingPhase) this.pendingPhaseAt = this.now;
+        this.pendingPhase = phaseChanged;
+      }
       // (A phase turns after a memory's aftermath, never inside it, nor while the visitor stays
-      // with the kitchen-light line: the room waits with them.)
-      if (this.pendingPhase && !this.scenes.active && this.now >= this.scenesQuietAt && !this.aftermath() && !this.memoryAwaited()) {
+      // with the kitchen-light line: the room waits with them. Nor while they may be coming back
+      // to the chair: the recoil is theirs, and the turn's line comes after it, not over it.)
+      const returnWaits = this.returnInReach() && this.now - this.pendingPhaseAt < 30;
+      if (this.pendingPhase && !returnWaits && !this.scenes.active && this.now >= this.scenesQuietAt && !this.aftermath() && !this.memoryAwaited() && !this.letGo && this.now - this.letGoAsked > Director.LET_GO.window) {
         this.onPhase(this.pendingPhase);
         this.pendingPhase = null;
       }
       if (phaseChanged === 'transform') this.transformAt = this.now;
       if (this.legacy) this.ruleOpening();
+      // (The heart is decided before the kitchen light may be offered: it waits for the heart.)
+      this.ruleHeart();
       this.ruleMemory();
       this.ruleScenes();
+      this.ruleHeartAnswer();
+      this.ruleKeptAnswer();
+      // (The answer has been read: the card may end on it.)
+      if (this.heartAnswer && this.inView(`heart:${this.heartAnswer}`)) this.answerInView += dt;
       this.ruleEchoes();
       this.ruleAccumulate();
       this.ruleDrawings();
@@ -561,6 +618,7 @@ export class Director {
       this.ruleAir();
       if (!quiet) this.ruleRespond();
       this.ruleTableLift();
+      this.ruleLeaving(input);
     }
     this.pacing.tick(dt, this.now, this.phase, this.engagement.activity(this.now));
 
@@ -578,6 +636,8 @@ export class Director {
         continue;
       }
       const tc = { t: +this.now.toFixed(2), cue, rule };
+      if (cue.type === 'air') this.pacing.holdFor(this.now, 12);
+      if (cue.type === 'voice' && cue.phraseId && Director.STAY_WORDS.has(cue.phraseId)) this.lastStayVoiceAt = this.now;
       if (rule === 'resonance:table' && cue.type === 'silence') {
         this.tableFrom = this.now;
         this.tableUntil = this.now + cue.seconds;
@@ -596,6 +656,8 @@ export class Director {
     // A memory that never found room isn't spent: it waits for the next look.
     if (cue.type === 'memory-scene' || cue.type === 'vignette') this.scenes.cancel(cue.id, this.now);
     if (cue.type === 'memory') this.memoryPlayed = false;
+    // A memory's line, or the heart's, decided on and never written: as if it found no room (not spent).
+    if (cue.type === 'write' && /^(memory|heart):/.test(cue.key)) this.writeFailed(cue.key);
     // The held silence that never sounded: the visit still has it.
     if (cue.type === 'silence' && (rule === 'held-silence' || rule === 'resonance:table')) {
       this.heldSilenceDone = false;
@@ -606,18 +668,21 @@ export class Director {
     if (cue.finish) this.unfinished.add(cue.phraseId);
     // A voice that was to write its line as it was heard: the line was marked as there when the
     // voice was queued. Unheard, it was never written, so it isn't there.
-    if (cue.write) {
-      const st = this.visible.get(cue.phraseId);
-      if (st?.base && this.accumulating.has(cue.phraseId)) {
-        this.visible.delete(cue.phraseId);
-        this.accumulating.delete(cue.phraseId);
-        this.memory.surfaced.delete(cue.phraseId);
-      }
-    }
+    if (cue.write) this.unwrite(cue.phraseId);
     if (this.memory.spoken.get(cue.phraseId) !== undefined) this.memory.spoken.delete(cue.phraseId);
     this.heard.delete(cue.phraseId);
     const m = /^encounter:([^:]+):(\d+)$/.exec(rule);
     if (m) this.played.set(m[1], Math.max(0, Number(m[2]) - 1));
+  }
+
+  /** A line marked as there when its voice was queued, to be written as it was heard, that won't be. */
+  private unwrite(id: string) {
+    const st = this.visible.get(id);
+    if (st?.base && this.accumulating.has(id)) {
+      this.visible.delete(id);
+      this.accumulating.delete(id);
+      this.memory.surfaced.delete(id);
+    }
   }
 
   /** How the cue now being accepted was scheduled (put back the same when it must wait). */
@@ -643,6 +708,15 @@ export class Director {
     }
     if (this.scenes.active && ((cue.type === 'voice' && (!cue.finish || this.vignettePlaying)) || cue.type === 'sound' || cue.type === 'music')) return false;
     if (cue.type === 'reveal' && this.withheld().includes(cue.phraseId)) return false;
+    // Once the heart's answer is written, the north wall is left as the heart left it: nothing new
+    // is written, revealed or re-inked there for the rest of the visit (the visitor's own words
+    // aside). One peak, and its last word (creative director, 2026-11-06).
+    if (this.northKept() && this.onNorth(cue) && rule !== 'contribution') return false;
+    // (A voice queued to write its line there before the wall was held is heard, and writes nothing.)
+    if (cue.type === 'voice' && cue.write && cue.phraseId && this.northKept() && PHRASE_BY_ID.get(cue.phraseId)?.surface === 'north') {
+      this.unwrite(cue.phraseId);
+      delete cue.write;
+    }
     // (Nor is a line kept back written again in its own place: decision 137, QA 2026-10-20.)
     if (cue.type === 'redraw' && this.keptBack.has(cue.phraseId)) return false;
     // A situation's own sounds wait out a memory's aftermath (those answering the visitor don't).
@@ -712,7 +786,8 @@ export class Director {
   }
 
   private cull() {
-    const revealed = [...this.visible.entries()].filter(([, s]) => !s.base && s.mode === 'shown');
+    // (Never the way out, once it is the way out: Codex review, PR #56.)
+    const revealed = [...this.visible.entries()].filter(([id, s]) => !s.base && s.mode === 'shown' && !(id === Director.EXIT && this.exitShown));
     const over = revealed.length - this.budget();
     if (over <= 0) return;
     revealed.sort((a, b) => a[1].since - b[1].since);
@@ -736,6 +811,8 @@ export class Director {
 
   private hiddenExcluding(): Set<string> {
     const out = new Set([...this.visible.keys(), ...Director.RESERVED, ...this.withheld()]);
+    // (Nothing new on the north wall after the heart's answer: the room chooses from the others.)
+    if (this.northKept()) for (const id of Director.NORTH) out.add(id);
     if (!this.memoryOffered) out.add(Director.MEMORY.phraseId);
     for (const m of SCENE_MEMORIES) if (this.heldForOffer(m.phraseId)) out.add(m.phraseId);
     return out;
@@ -865,8 +942,10 @@ export class Director {
    */
   private ruleApproach() {
     const v = this.visitor;
+    this.answerReturn();
     if (!v.near) return;
-    if (!this.spokenFirstApproach && v.nearFor > 1.2) {
+    // (Once they have come to it: walking past it is not coming to it.)
+    if (!this.spokenFirstApproach && v.nearFor > 1.2 && v.lastApproach?.confirmed) {
       this.spokenFirstApproach = true;
       // Coming close is answered at once, quietly: the room goes still, and the chair is
       // either heard (a creak, as if someone just got up), breathed beside, or simply left alone.
@@ -912,6 +991,67 @@ export class Director {
   }
 
   /**
+   * Coming back to the chair (docs/reviews/2026-11-core-loop.md). The first time someone comes to
+   * it, it is met as it always was. Spines go up after being left: when they come back to it after
+   * going away, the room recoils (its sound taken away at once and given back soon, its own light
+   * pulled back toward the chair for a moment). Less the second time; then never again: the room
+   * gets used to them. Walking past the chair is not coming to it (VisitorModel), and the words in
+   * the air, rubbed out as they come back through them, are that return's answer.
+   */
+  private answerReturn() {
+    const v = this.visitor;
+    const a = v.lastApproach;
+    if (!a?.confirmed || a.arrivedAt === null || a.arrivedAt <= this.returnSeenAt) return;
+    this.returnSeenAt = a.arrivedAt;
+    const comings = v.comings;
+    const prev = comings[comings.length - 2];
+    // A return: after a coming they left, and were away a while (not a step back and in again).
+    if (!prev || prev.leftAt === null || a.enteredAt - prev.leftAt < 4 || prev.dwell < 6) return;
+    if (this.recoils >= Director.RECOIL.length) return;
+    // Not inside a memory, a held silence or a memory's aftermath; not through words just rubbed out.
+    if (this.scenes.active || this.aftermath() || this.now < this.heldSilenceUntil || this.now - this.airAt < 60) return;
+    // (Nor on a turn of the visit that writes or dims, which it would cut short. A turn that does
+    // neither is not one a visitor can see: QA, 2026-11-06, found the first return lost to it.)
+    if (this.now - this.markedTurnAt < 16 || this.scheduler.pending().some((e) => e.payload.rule.startsWith('phase-'))) return;
+    const r = Director.RECOIL[this.recoils++];
+    this.queue(0, { type: 'flinch', amount: r.amount, chair: r.chair }, 'return-recoil', { ttl: 0.5 });
+    if (this.recoiledAt === null) this.recoiledAt = this.now;
+    this.lastRecoilAt = this.now;
+    this.field.nudge({ exposure: 0.2 * r.amount, tension: 0.1 * r.amount });
+    // Then nothing written or said over it for a moment: a subtraction, left alone.
+    this.pacing.holdFor(this.now, 7);
+  }
+  /** Each recoil, in order: the room pulls back; then only the chair's glow does, the hurt in the chair; then no more. */
+  static readonly RECOIL: { amount: number; chair?: boolean }[] = [{ amount: 1 }, { amount: 0.6, chair: true }];
+  private returnSeenAt = -Infinity;
+  private recoils = 0;
+  /** When the room first recoiled at them (the visit's heart may answer it). */
+  private recoiledAt: number | null = null;
+  private lastRecoilAt = -Infinity;
+
+  /**
+   * A return to the chair that may be under way: they stayed with it and left it a moment ago, they
+   * are coming back to it now, or the room has just recoiled at them. The visit's turn waits for it
+   * (a few seconds of the room's own clock), so the return isn't lost to the turn: QA, 2026-11-06,
+   * found the first return lost to it in 4 of 4 real-input runs, and the recoil now decides whether
+   * the visit's heart is Almost. ("I was afraid you'd leave." then comes after the flinch.)
+   */
+  private returnInReach(): boolean {
+    if (this.now - this.lastRecoilAt < 9) return true;
+    if (this.recoils >= Director.RECOIL.length) return false;
+    const v = this.visitor;
+    const a = v.lastApproach;
+    if (!a) return false;
+    const c = v.comings;
+    // Coming in now (in reach of the chair, not yet answered): the coming before it is what they left.
+    const coming = a.leftAt === null && (a.confirmed ? a.arrivedAt! > this.returnSeenAt : this.now - a.enteredAt < 6);
+    const left = coming ? c.filter((x) => x !== a).pop() : c[c.length - 1];
+    if (!left || left.leftAt === null || left.dwell < 6) return false;
+    return coming ? a.enteredAt - left.leftAt >= 4 : this.now - left.leftAt < 12;
+  }
+  private airAt = -Infinity;
+
+  /**
    * The first seconds. The room must not feel as if it is loading: the line in front of the
    * visitor writes itself as the light comes up, and — differently from visit to visit — the
    * room has only just been left: a door closing behind them, or the chair settling with a
@@ -955,7 +1095,7 @@ export class Director {
     const v = this.visitor;
     // (Not the memory's line before its memory: that look is the memory's to answer.)
     const memoryLine = (v.gazeId === Director.MEMORY.phraseId && !this.memoryPlayed) || this.scenes.claims(v.gazeId);
-    const reading = v.gazeId && v.gazeFor > 2.5 && !memoryLine ? PHRASE_BY_ID.get(v.gazeId) : undefined;
+    const reading = v.gazeId && v.gazeFor > 2.5 && !memoryLine && !(v.gazeId === Director.EXIT && this.exitShown) ? PHRASE_BY_ID.get(v.gazeId) : undefined;
     const answerRead = !!reading && this.now - this.lastAccumulateAt > 5 && this.accumulated < 14;
     if (this.now < this.nextAccumulate && !answerRead) return;
     if (this.aftermath() && !answerRead) return;
@@ -1097,6 +1237,14 @@ export class Director {
       return true;
     }
     if (!t.phraseId || !PHRASE_BY_ID.has(t.phraseId)) return false;
+    // Touching anything else while the room is letting them go keeps them (ruleLeaving).
+    if ((this.letGo || this.now - this.letGoAsked <= Director.LET_GO.window) && t.phraseId !== Director.EXIT) {
+      this.letGoAsked = -Infinity;
+      if (this.letGo) this.keep();
+    }
+    // (A touch walks them to the words: the room starts letting them go once they are standing
+    // there, still. Touched again while it does, nothing: leaving is not the act that found it.)
+    else if (t.phraseId === Director.EXIT && !this.letGo && this.exitOpen()) this.letGoAsked = this.now;
     this.visitor.touch(t.phraseId);
     // Touching the memory's line asks for its memory, however recently it was touched.
     if (t.phraseId === Director.MEMORY.phraseId && !this.memoryPlayed && this.visible.has(t.phraseId)) this.memoryTouched = true;
@@ -1107,9 +1255,8 @@ export class Director {
     this.lastTapAt = this.now;
     this.engagement.raise('tap', this.now, t.phraseId);
     this.taps++;
-    if (this.taps <= 2 && this.rng.chance(0.5)) {
-      this.queue(0.2, { type: 'silence', depth: 0.22, seconds: 3 }, 'tap');
-    }
+    // (The touch is felt in the ink, by the world: WallText.press. The dip in the hum it used to
+    // get, half the time, can't be heard on a phone's speaker, where most touches are.)
     return true;
   }
 
@@ -1318,6 +1465,8 @@ export class Director {
       && !this.scenes.claimsChair(this.now, (id) => !this.unfinished.has(id), v.distance);
     if (this.pacing.sinceDev(this.now) < 8 || !this.scheduler.majorFree(this.now) || this.attending() || v.speed > 0.5) return;
     if (this.aftermath()) return;
+    // (Nor on the way out, nor just after it: the room coming back must come back.)
+    if (this.letGo || this.now - this.letGoAsked <= Director.LET_GO.window || this.now - this.keptAt < 20) return;
     this.heldDueAt ??= this.now;
     // (While they are there with the chair, it keeps waiting for its moment, up to two minutes.)
     const withChair = v.distance <= 2.5 && v.gazeChairFor >= 3;
@@ -1363,9 +1512,13 @@ export class Director {
     return this.memoryTouched || this.visitor.gazeId === Director.MEMORY.phraseId;
   }
 
+  private memoryNoRoom: { surface: Surface; at: number } | null = null;
   private ruleMemory() {
     // Cereal is the same kitchen: if it has opened this visit, the late light isn't offered.
     if (this.memoryPlayed || this.departing || this.scenes.paintedPlayed || this.scenes.kitchenTaken) return;
+    // (Nor while the visit's heart is chosen and waiting: it is the memory this visit is for. If it
+    // was pointed at and let be, the light may still come.)
+    if (this.scenes.heart && !this.scenes.heartPlayed && !this.memoryOffered && !this.scenes.heartLapsed(this.now)) return;
     if (this.now < 150 || (this.phase !== 'contradiction' && this.phase !== 'transform')) return;
     const m = Director.MEMORY;
     // Its own hold (below) doesn't keep it waiting.
@@ -1373,7 +1526,9 @@ export class Director {
     const free = this.scheduler.majorFree(this.now) && !this.aftermath() && (!this.pacing.holding(this.now) || this.pacing.heldUntil <= this.memoryHoldTo);
     if (!this.visible.has(m.phraseId)) {
       // Not in the quiet a vignette leaves behind (the light offered there would answer it).
-      if (this.memoryOffered || !free || this.now < this.memoryQuietUntil || this.pacing.repeats('text', this.now, 8) || this.withheld().includes(m.phraseId)) return;
+      if (this.memoryOffered || !free || this.northHeld() || this.now < this.memoryQuietUntil || this.pacing.repeats('text', this.now, 8) || this.withheld().includes(m.phraseId)) return;
+      // (A wall it found no room on is not tried again for a minute: it was written there eight times.)
+      if (this.memoryNoRoom && this.memoryNoRoom.surface === this.facing && this.now - this.memoryNoRoom.at < 60) return;
       const p = PHRASE_BY_ID.get(m.phraseId)!;
       this.memoryOffered = true;
       this.memoryOfferedAt = this.now;
@@ -1448,12 +1603,15 @@ export class Director {
     // A later memory's line is offered as the kitchen-light memory's is: written alone, where
     // the visitor is looking, and the room holds still a moment so a visitor who stays with it
     // gets the memory, not whatever else happened at the same time.
+    // (Nor, facing the north wall while it is held, onto it: it waits until they face another wall.)
+    const northHeld = this.northHeld();
     const offer = this.scenes.offer({
       now: this.now,
       phase: this.phase,
       // (Never into a busy room: the line arrives into quiet, or waits. Nor into a memory's aftermath.)
-      free: free && !this.aftermath() && !this.pacing.repeats('text', this.now, 8) && !this.pacing.crowded(this.now),
+      free: free && !northHeld && !this.aftermath() && !this.pacing.repeats('text', this.now, 8) && !this.pacing.crowded(this.now),
       visibleFacing: (id) => this.visible.has(id) && !this.keptBack.has(id) && PHRASE_BY_ID.get(id)?.surface === this.facing,
+      visible: (id) => this.visible.has(id),
       departing: this.departing,
       otherMemory: this.memoryAwaited(),
       facing: this.facing,
@@ -1461,12 +1619,17 @@ export class Director {
       kitchenPlayed: this.memoryPlayed,
       kitchenOffered: this.memoryOffered,
       kitchenOfferedAt: this.memoryOffered ? this.memoryOfferedAt : undefined,
+      prefer: this.earned(),
+      // (And only while they look at a wall, level: at the chair, looking down at it, a line written
+      // "where they look" lands out of view. Interaction designer, 2026-11-06.)
+      // (Nor looking steeply up: the band it is written in, at eye height, is then below the frame.)
+      heartFree: this.scheduler.majorFree(this.now) && !held && !northHeld && !this.aftermath() && this.pacing.sinceDev(this.now) >= 4 && !this.pacing.repeats('voice', this.now, 4) && this.facing !== 'floor' && this.facing !== 'ceiling' && v.pitch > -0.3 && v.pitch < 0.25 && !(this.sceneNoRoom?.surface === this.facing && this.now - this.sceneNoRoom.at < 60),
     });
     if (offer?.reink) {
       // Already on the wall they face: written again there, in front of them (no new line).
       this.pacing.holdFor(this.now, 2.4);
       this.offerHoldTo = this.now + 2.4;
-      this.queue(0, { type: 'redraw', phraseId: offer.phraseId, seconds: 3 }, 'memory-offer');
+      this.queue(0, { type: 'redraw', phraseId: offer.phraseId, ...(offer.key ? { key: offer.key } : {}), seconds: 3 }, 'memory-offer');
     } else if (offer) {
       const p = PHRASE_BY_ID.get(offer.phraseId);
       if (!p) return;
@@ -1482,6 +1645,156 @@ export class Director {
         ...(under ? { under: under.id } : {}),
       }, 'memory-offer');
     }
+  }
+
+  /**
+   * The painted memory this visit has earned, if any (docs/reviews/2026-11-core-loop.md): Almost (a
+   * hand reaches, starts, is taken back, comes nearer too late) for someone who came to the chair,
+   * went away, and came back, at least two minutes before: the room choosing, not a mirror. The
+   * rest come in their own order, the ones this browser has not seen first.
+   */
+  private earned(): string[] {
+    return this.cameBack(this.now - 120) ? ['almost'] : [];
+  }
+
+  // ─────────────────────────── the visit's heart ───────────────────────────
+  // (docs/reviews/2026-11-emotional-arc.md)
+
+  /** A wall a memory's line found no room on just now (not tried again there for a minute). */
+  private sceneNoRoom: { surface: Surface; at: number } | null = null;
+  /** The last visit's heart answer, if this visit should find it. */
+  private readonly pastAnswer: string | null;
+  /** This visit's heart has been seen (its id), and its answer when written. */
+  private heartSeen: string | null = null;
+  private heartAnswerAt = Infinity;
+  /** The answer written beside "I wanted you to stay." (a phrase id), once. */
+  heartAnswer: string | null = null;
+
+  /**
+   * What this visit's heart has written on the wall (a phrase id), once it has found room there.
+   * The card ends on it once it has been read (`answerRead`); the next visit finds `heartLeft`.
+   */
+  answerKept(): string | null {
+    return this.heartAnswer;
+  }
+
+  /**
+   * The answer, once the visitor has had it in view (1.5 s): only then does the card end on it. A
+   * line they never saw is not explained to them on the way out; the next visit finds it instead.
+   * (Creative director, 2026-11-06.)
+   */
+  answerRead(): string | null {
+    return this.heartAnswer && this.answerInView >= 1.5 ? this.heartAnswer : null;
+  }
+  private answerInView = 0;
+
+  /**
+   * What this visit leaves for the next: the heart's answer once its memory has been seen, written
+   * on the wall yet or not (a short visit often ends in the memory's quiet). The room writes it
+   * while they are away, and the next visit finds it beside the first line.
+   */
+  heartLeft(watched?: string): string | null {
+    // (`watched`: a memory still playing, already past its heart, when the visit is cut off.)
+    const seen = this.heartSeen ?? (watched !== undefined && watched === this.scenes.heart ? watched : null);
+    if (!this.hearts() || !seen) return null;
+    return HEART_ANSWER[seen] ?? null;
+  }
+
+  /**
+   * The north wall is left as the visit's heart left it: from its answer, and while the answer
+   * waits for room there (lines that fade make room for it; nothing new takes that room). The last
+   * visit's answer, waiting for room the same way, holds it too, until it is tried again.
+   */
+  private northKept(): boolean {
+    return (this.heartAnswer !== null || this.answerWaits || this.keptWaits) && this.hearts();
+  }
+  /** Facing the north wall while it is held: nothing is offered there (it would be refused, and spent). */
+  private northHeld(): boolean {
+    return this.facing === 'north' && this.northKept();
+  }
+  /** The answer found no room beside the first line: it is tried again (`heartAnswerAt`). */
+  private answerWaits = false;
+  private onNorth(cue: Cue): boolean {
+    const north = (id?: string) => !!id && PHRASE_BY_ID.get(id)?.surface === 'north';
+    // (A line written alone for a memory is written again on the wall it is on: the one faced.)
+    if (cue.type === 'redraw' && cue.key) return this.facing === 'north';
+    if (cue.type === 'reveal' || cue.type === 'redraw') return north(cue.phraseId);
+    if (cue.type !== 'write' || cue.key.startsWith('heart:')) return false;
+    return cue.surface === 'north' || north(cue.beside);
+  }
+  /** Seconds before the heart's line, finding no room, is tried again. */
+  private static readonly HEART_RETRY = 20;
+  private static readonly NORTH = PHRASES.filter((p) => p.surface === 'north').map((p) => p.id);
+
+  /** Whether this visit has a heart at all (`noHeart`: the room before it, for comparison). */
+  private hearts(): boolean {
+    return !this.exp.has('noHeart');
+  }
+
+  /**
+   * What has happened between the visitor and the chair, as far as the heart is concerned (null:
+   * nothing yet). The recoil is an event they saw; the others are only offered from two minutes.
+   */
+  heartShape(): HeartShape | null {
+    const v = this.visitor;
+    const c = v.comings;
+    if (this.recoiledAt !== null) return 'recoiled';
+    if (this.now < HEART_DECIDE) return null;
+    if (this.leaving() === 'close') return 'close';
+    const last = c[c.length - 1];
+    if (last && last.leftAt !== null && v.t - last.leftAt >= 50) return 'refused';
+    return null;
+  }
+
+  private ruleHeart() {
+    if (this.departing || !this.hearts() || this.scenes.heartPlayed) return;
+    const shape = this.heartShape();
+    if (!shape) return;
+    // (Until its line is pointed at, the heart may change: a recoil makes it Almost.)
+    this.scenes.setHeart(heartOf(shape, this.memoryCounts, this.heartCoin), shape === 'recoiled' ? this.recoiledAt! + HEART_AFTER_RECOIL : 0);
+  }
+
+  /**
+   * The last visit's answer, found: beside the first line, as if it had always been there, the
+   * first time they are turned away from that wall (never appearing in front of them).
+   */
+  private ruleKeptAnswer() {
+    // (With the first line gone there is nothing to write it beside: the wall is not held for it.)
+    if (this.keptWaits && !this.visible.has('stay')) this.keptWaits = false;
+    // (Not while a memory plays: nothing is written then, and it would be lost. After it, it is found.)
+    if (!this.pastAnswer || this.pastForgotten || !this.hearts() || this.keptFound || this.now < this.keptAgainAt || this.departing || this.scenes.active || !this.visible.has('stay')) return;
+    if (this.inView('stay') || PHRASE_BY_ID.get('stay')!.surface === this.facing) return;
+    this.keptFound = true;
+    this.keptWaits = false;
+    // (This visit's own heart has already written the same line there.)
+    if (this.heartAnswer === this.pastAnswer) return;
+    const a = PHRASE_BY_ID.get(this.pastAnswer)!;
+    this.queue(0, { type: 'write', key: `heart:${a.id}`, text: a.text, hand: a.hand, size: 's', beside: 'stay', purpose: 'annotation', ttl: 0, source: a.id, found: true }, 'heart-kept');
+  }
+  private keptFound = false;
+  private keptAgainAt = 0;
+  /** The last visit's answer found no room beside the first line: the wall is held until it is tried again. */
+  private keptWaits = false;
+  /** The visitor asked to be forgotten: the last visit's answer is not written from then on. */
+  private pastForgotten = false;
+
+  /**
+   * What the heart leaves: one line in the answering pencil, beside the room's first line, found
+   * rather than watched (on that wall only after a while), and kept for the next visit.
+   */
+  private ruleHeartAnswer() {
+    if (!this.heartSeen || this.heartAnswer || this.now < this.heartAnswerAt || this.departing || this.scenes.active) return;
+    if (this.pacing.holding(this.now) || this.pacing.repeats('text', this.now, 6) || !this.visible.has('stay')) return;
+    // (Not while the first line is in view: found, not watched. QA: the wall faced was not enough,
+    // the line was in the middle of the frame at a diagonal.)
+    if (this.inView('stay') && this.now < this.heartAnswerAt + 40) return;
+    const a = PHRASE_BY_ID.get(HEART_ANSWER[this.heartSeen] ?? '');
+    if (!a) return;
+    this.heartAnswer = a.id;
+    this.answerWaits = false;
+    // (The last visit left the same line, and it has been found there: it is already written.)
+    if (this.keptFound && this.pastAnswer === a.id) return;
+    this.queue(0, { type: 'write', key: `heart:${a.id}`, text: a.text, hand: a.hand, size: 's', beside: 'stay', purpose: 'annotation', ttl: 0, source: a.id }, 'heart-answer');
   }
 
   /**
@@ -1513,6 +1826,13 @@ export class Director {
       this.memoryQuietUntil = Math.max(this.memoryQuietUntil, this.now + 20);
       this.vignetteQuietUntil = this.now + 20;
       this.vignetteEnded = { id, at: this.now, dimmed: VIGNETTE_BY_ID.get(id)!.variants.first.events.some((e) => 'fx' in e && e.fx.kind === 'dim') };
+    }
+    // (Seen, not only spent: a painting let go unseen twice counts as played, but its answer is
+    // about what happens in it, and they didn't see it happen. CodeRabbit, PR #57.)
+    if (counted && seen && id === this.scenes.heart && !this.heartSeen) {
+      // The visit's heart has been seen: what it leaves comes once its aftermath is over.
+      this.heartSeen = id;
+      this.heartAnswerAt = this.now + (ranToEnd ? 25 : 12) + 4;
     }
     if (counted) {
       // Its aftermath (shorter if it was let go early).
@@ -1557,9 +1877,14 @@ export class Director {
     const v = this.visitor;
     // An answer to stepping back (well clear of the chair, so there is room to come closer), not
     // to standing by the door; only after a long time apart for someone who never came near.
-    const back = v.approaches.length > 0;
-    if (v.distance < 2.1 || v.gazeChairFor < 1.5 || v.speed > 0.3) return;
-    if (!back && this.now < 150) return;
+    // After stepping back from having stayed by it a little (6 s), while they stay back, the chair in
+    // view (not only stared at): spines go up after being left, not after being met
+    // (docs/reviews/2026-11-core-loop.md). Or, for someone who never came to it, after a long time
+    // apart, looking at it.
+    const last = v.comings[v.comings.length - 1];
+    const left = !!last && last.leftAt !== null && last.dwell >= 6 && !v.near && v.sinceWithdraw < Infinity && v.lastWithdrawAt >= last.leftAt && v.chairOutOfViewFor === 0;
+    const apart = !v.comings.length && this.now >= 150 && v.gazeChairFor >= 1.5;
+    if ((!left && !apart) || v.distance < 2.1 || v.speed > 0.3) return;
     // Words that are not already on a wall: a repeat would read as a copy, not as something said.
     const withheld = this.withheld();
     const phraseId = Director.AIR_LINES.find((id) => !this.visible.has(id) && !withheld.includes(id));
@@ -1569,9 +1894,10 @@ export class Director {
     if (!this.scheduler.majorFree(this.now) || this.pacing.holding(this.now) || this.pacing.sinceDev(this.now) < 6) return;
     if (this.scheduler.pending().some((e) => e.at - this.now < 6 && devKind(e.payload.cue) && devKind(e.payload.cue) !== 'silence')) return;
     this.airDone = true;
-    this.queue(0, { type: 'air', phraseId, toward: 0.6, aside: 0.55, height: 0.8 }, 'air', { major: true, ttl: 4 });
-    // Then let it be read, and let them decide whether to come closer.
-    this.pacing.holdFor(this.now, 12);
+    this.airAt = this.now;
+    // (Then it is let be read, and they decide whether to come closer: the room holds when the words
+    // appear, not when they are decided — a hold set here kept the words themselves waiting.)
+    this.queue(0, { type: 'air', phraseId, toward: 0.6, aside: 0.55, height: 0.8 }, left ? 'withdraw-air' : 'air', { major: true, ttl: 4 });
   }
 
   /** Stepping back. */
@@ -1616,6 +1942,8 @@ export class Director {
     for (const id of tries) {
       const p = PHRASE_BY_ID.get(id);
       if (!p) continue;
+      // The way out says nothing about leaving: no answer beside it, no reassurance (creative director, 2026-11-06).
+      if (id === Director.EXIT && this.exitShown) continue;
       const n = this.played.get(id) ?? 0;
       const beat = this.beatFor(p, n);
       if (beat === null) continue;
@@ -1815,7 +2143,9 @@ export class Director {
     }
 
     // A wall the visitor isn't looking at, so the change is found rather than watched.
-    const walls = CHARACTER_WALLS.filter((w) => w !== this.facing && w !== 'south');
+    // (Not onto the north wall once the heart's answer is there: it is left as the heart left it.)
+    const walls = CHARACTER_WALLS.filter((w) => w !== this.facing && w !== 'south' && !(w === 'north' && this.northKept()));
+    if (!walls.length) return;
     const wall = this.rng.pick(walls);
     const anchor = PHRASES.filter((p) => p.surface === wall && this.visible.get(p.id)?.mode === 'shown' && p.tier !== 'near' && !this.strayAnchors.has(p.id))
       .map((p) => ({ p, b: belonging(p, wall) }))
@@ -1934,6 +2264,8 @@ export class Director {
   }
 
   private onPhase(p: Phase) {
+    this.lastTurnAt = this.now;
+    if (p === 'contradiction' || p === 'transform') this.markedTurnAt = this.now;
     if (p === 'contradiction') {
       // The contradiction phase brings the fear of being left onto the wall; what it means is left to later meetings.
       if (!this.visible.has('afraid-leave')) this.reveal('afraid-leave', 0, 'phase-contradiction', 'emerge', 6);
@@ -1987,6 +2319,7 @@ export class Director {
    */
   contribute(text: string, it: Interpretation): void {
     this.contributionCount++;
+    this.engagement.raise('contribute', this.now);
     this.memory.contributions.push({ dims: it.dims, at: this.now });
     const key = `contrib:${this.contributionCount}`;
     this.lastContrib = { key, keep: keptWord(text), surface: this.facing, at: this.now };
@@ -2059,10 +2392,34 @@ export class Director {
     // The memory's line found no room where the visitor was looking: offer it again later.
     if (key === `memory:${Director.MEMORY.phraseId}`) {
       const id = Director.MEMORY.phraseId;
+      this.memoryNoRoom = { surface: this.facing, at: this.now };
       this.visible.delete(id);
       this.memory.surfaced.delete(id);
       this.memoryOffered = false;
       this.memoryQuietUntil = -Infinity;
+    }
+    // A memory's line written alone found no room on the wall faced: offered again, on another wall.
+    const scene = /^memory:(.+)$/.exec(key);
+    if (scene && scene[1] !== Director.MEMORY.phraseId) {
+      this.scenes.offerFailed(scene[1]);
+      this.visible.delete(scene[1]);
+      this.memory.surfaced.delete(scene[1]);
+      this.sceneNoRoom = { surface: this.facing, at: this.now };
+    }
+    // The heart's line found no room beside the first line (the wall full): it is not spent. The
+    // wall is held for it and it is tried again in a while, as lines there fade (Codex, PR #57).
+    const heart = /^heart:(.+)$/.exec(key);
+    if (heart) {
+      if (heart[1] === this.heartAnswer) {
+        this.heartAnswer = null;
+        this.answerWaits = true;
+        this.heartAnswerAt = this.now + Director.HEART_RETRY;
+      }
+      if (heart[1] === this.pastAnswer && this.keptFound && !this.pastForgotten) {
+        this.keptFound = false;
+        this.keptWaits = true;
+        this.keptAgainAt = this.now + Director.HEART_RETRY;
+      }
     }
     if (key.startsWith('stray:')) {
       if (this.strays.get(key.slice(6)) === 'south') this.heldMoved = false;
@@ -2080,7 +2437,12 @@ export class Director {
    */
   forgetVisits(): void {
     this.scenes.forgetCounts();
+    // (And the earlier visits' counts the shared heart weighs, so they stop choosing it: Codex, PR #58.)
+    this.memoryCounts = {};
     this.visits = 1;
+    // (Nor is the last visit's answer written now, if it hasn't been, or tried again: cubic, PR #57.)
+    this.pastForgotten = true;
+    this.keptWaits = false;
   }
 
   forgetContributions(): void {
@@ -2093,19 +2455,182 @@ export class Director {
   // ───────────────────────────── leaving ─────────────────────────────
 
   /**
+   * The way out (docs/reviews/2026-11-core-loop.md). Nothing is detected: from the middle of a visit,
+   * touching one line on the wall they came in by (it is about leaving early, and it being lovely)
+   * starts the room letting them go: its sound thins, its own light ebbs from the walls, the
+   * chair, behind them, stays lit, and creaks once. Walking on, toward the wall, they go. A turn, a
+   * step any other way, touching anything else, or nothing at all for a while keeps them: the room
+   * comes back, and if they turned round, they find the chair lit alone as they first saw it.
+   * Touching the words again does nothing: leaving is not the act that found it (interaction
+   * designer, 2026-11-06: a second touch is the explorer's reflex).
+   */
+  static readonly EXIT = 'party-early';
+  /** "I wanted you to stay." and what answers it: never said near the way out. */
+  static readonly STAY_WORDS = new Set(['stay', ...Director.ANSWERS_TO_STAY]);
+  private exitShownAt = -Infinity;
+  private lastStayVoiceAt = -Infinity;
+  private letGoCreaked = false;
+  private lastTurnAt = -Infinity;
+  /** The last turn the visitor can see (it writes, or holds a silence and dims). */
+  private markedTurnAt = -Infinity;
+  /**
+   * The way out's numbers: how long the room waits for them to go (s); how far on toward the wall
+   * is going (m) and how near the wall that ends; a turn (rad) or a step any other way (m) that
+   * keeps them; how long after a touch they may take to arrive and stand there; how soon after
+   * being kept it may begin again.
+   */
+  static readonly LET_GO = { wait: 12, on: 0.25, wall: 2.55, turn: 0.35, step: 0.25, window: 20, again: 30 };
+  private letGo: { at: number; x: number; z: number; yaw: number } | null = null;
+  /** The room is letting them go (the way out touched, then stood still): the App doesn't walk them on for a touch. */
+  get lettingGo(): boolean {
+    return this.letGo !== null;
+  }
+  private letGoAsked = -Infinity;
+  private keptAt = -Infinity;
+  private exitShown = false;
+
+  /** The way out may be taken: the visit has turned (contradiction or later), nothing else holds the room. */
+  private exitOpen(): boolean {
+    return !this.departing && !this.letGo && !this.pendingPhase && this.now - this.lastTurnAt >= 20 && !this.scheduler.pending().some((e) => e.payload.rule.startsWith('phase-')) && (this.phase === 'contradiction' || this.phase === 'transform') && this.now >= 120 &&
+      this.now - this.keptAt >= Director.LET_GO.again && !this.scenes.active && !this.aftermath() && this.now >= this.heldSilenceUntil && this.visible.has(Director.EXIT);
+  }
+
+  private beginLetGo(): void {
+    const v = this.visitor;
+    this.letGo = { at: this.now, x: v.x, z: v.z, yaw: this.lastYaw };
+    // Sound first; the walls' light goes over the next seconds, the chair's stays.
+    this.queue(0, { type: 'silence', depth: 0.5, seconds: Director.LET_GO.wait + 4, dim: 0.25, dimSeconds: Director.LET_GO.wait + 4, fall: 2.5 }, 'leaving', { ttl: 1 });
+    // Nothing of the room's own while it lets them go.
+    this.pacing.holdFor(this.now, Director.LET_GO.wait + 1);
+  }
+
+  /** Touched again as the room let them go: they have gone. */
+  private goNow(): void {
+    this.letGo = null;
+    this.left = true;
+    this.queue(0, { type: 'leave' }, 'leaving', { ttl: 2 });
+  }
+
+  /** The visitor paused the room (settings): a leaving under way is not taken. */
+  stayed(): void {
+    this.letGoAsked = -Infinity;
+    if (this.letGo) this.keep();
+  }
+
+  /** They stayed: the room comes back (heard first, then seen, a moment after they turn). */
+  private keep(): void {
+    this.letGo = null;
+    this.keptAt = this.now;
+    this.pacing.release(this.now);
+    this.queue(1.5, { type: 'lift', seconds: 4 }, 'leaving-kept', { ttl: 2 });
+  }
+
+  private ruleLeaving(input: VisitorInput) {
+    this.lastYaw = input.yaw;
+    // The line is on its wall by the time the visit turns: found, not watched (written while they face elsewhere).
+    if (!this.exitShown && (this.phase === 'contradiction' || this.phase === 'transform') && this.now >= 120 && this.facing !== 'south' && !this.visible.has(Director.EXIT) && !this.scheduler.hasPending(`reveal:${Director.EXIT}`) && this.now - this.lastStayVoiceAt >= 20) {
+      this.exitShown = true;
+      this.exitShownAt = this.now;
+      this.reveal(Director.EXIT, 0, 'exit-line', 'emerge', 8);
+    }
+    // (Standing there after the touch: the touch's own short walk to the words is not them going.)
+    const since = this.now - this.letGoAsked;
+    if (since <= Director.LET_GO.window && since >= 1 && !this.letGo && this.visitor.deepStillFor >= Math.min(0.8, since) && this.exitOpen()) {
+      this.letGoAsked = -Infinity;
+      this.beginLetGo();
+    }
+    if (!this.exitShown && this.visible.has(Director.EXIT) && (this.phase === 'contradiction' || this.phase === 'transform') && this.now >= 120) {
+      this.exitShown = true;
+      this.exitShownAt = this.now;
+    }
+    // Taken off the wall by something else: written back, while they face elsewhere.
+    if (this.exitShown && !this.visible.has(Director.EXIT) && this.facing !== 'south' && !this.scheduler.hasPending(`reveal:${Director.EXIT}`)) this.reveal(Director.EXIT, 0, 'exit-line', 'emerge', 8);
+    const g = this.letGo;
+    if (!g) return;
+    // A moment in, the chair behind them, once: what they would be leaving (creative director).
+    if (!this.letGoCreaked && this.now - g.at >= 4.5) {
+      this.letGoCreaked = true;
+      this.queue(0, { type: 'sound', kind: 'chair-creak', position: { kind: 'chair' }, gain: 0.2 }, 'leaving-creak', { ttl: 2 });
+    }
+    let turn = Math.abs(input.yaw - g.yaw) % (Math.PI * 2);
+    if (turn > Math.PI) turn = Math.PI * 2 - turn;
+    // Walking on, toward the wall they came in by (the way they face), is going.
+    const fx = -Math.sin(g.yaw), fz = -Math.cos(g.yaw);
+    const dx = input.x - g.x, dz = input.z - g.z;
+    const on = dx * fx + dz * fz, aside = Math.abs(dx * fz - dz * fx);
+    // (At once if they like: the room only begins once they have stood still after the touch, so
+    // its own walk to the words is over. Codex review, PR #56.)
+    if (turn <= Director.LET_GO.turn && aside < Director.LET_GO.step && (on >= Director.LET_GO.on || (on > 0.05 && input.z >= Director.LET_GO.wall))) {
+      this.goNow();
+      return;
+    }
+    // A step back or aside, a turn: they stay. (A step on that isn't yet going is still waiting; a
+    // step that goes more aside or back than on, of a step's length, diagonals included, is staying.
+    // Not the plain distance: walking on a little off straight would stay before it could go. PR #56.)
+    const moved = Math.hypot(dx, dz);
+    if (turn > Director.LET_GO.turn || aside >= Director.LET_GO.step || on <= -Director.LET_GO.step || (moved > Director.LET_GO.step && on < moved * Math.SQRT1_2) || input.kneeling || this.scenes.active) {
+      this.keep();
+      return;
+    }
+    // Not taken: the room waited, and they stayed.
+    if (this.now - g.at >= Director.LET_GO.wait) this.keep();
+  }
+  private lastYaw = 0;
+  /** They left by the way out (the departure line knows). */
+  left = false;
+
+  /**
    * Whether this visit stayed close to the chair (knelt there, or stayed by it a while): the one
    * word kept for the next visit (docs/reviews/2026-10-emotional-depth.md).
    */
   leaving(): 'close' | null {
     const v = this.visitor;
-    return v.kneelTime >= 8 || v.approaches.some((a) => a.dwell >= 25 || (a.leftAt === null && v.t - a.enteredAt >= 25)) ? 'close' : null;
+    // (Walking past the chair is not staying with it, and staying means a long while: the chair
+    // turned away on the next visit, and its line, belong to a visit that stayed, not to most visits
+    // — they had come to be for nearly four in five, docs/reviews/2026-11-core-loop.md.)
+    return v.kneelTime >= 8 || v.comings.some((a) => a.dwell >= 45 || (a.leftAt === null && v.t - a.enteredAt >= 45)) ? 'close' : null;
   }
 
-  departureLine(): string {
-    const m = this.memory.dominant() ?? 'default';
-    const key = m === 'reading' ? 'wandering' : m;
-    const lines = DEPARTURE_LINES[key] ?? DEPARTURE_LINES.default;
-    return lines[this.rng.int(0, lines.length - 1)];
+  /** How the visit went with the chair, in one word (see DEPARTURE_BY_VISIT). */
+  visitShape(how: 'door' | 'menu' = 'menu'): keyof typeof DEPARTURE_BY_VISIT {
+    const v = this.visitor;
+    const comings = v.comings;
+    if (how === 'door') return 'door';
+    // How it ended first: leaving from a long stay by it is "still warm where you were"; then coming
+    // back, the dilemma itself; then having stayed close earlier.
+    const last = comings[comings.length - 1];
+    if (last && (last.leftAt === null ? v.t - last.enteredAt : last.dwell) >= 25 && (last.leftAt === null || v.t - last.leftAt < 30)) return 'close';
+    if (this.cameBack()) return 'cameBack';
+    if (this.leaving() === 'close') return 'close';
+    if (comings.length && comings[comings.length - 1].leftAt !== null) return 'refused';
+    if (!comings.length) return 'apart';
+    return 'otherwise';
+  }
+
+  /** They came near, went away past the withdraw distance, and came near again and stayed a little (≥ 8 s). */
+  private cameBack(before = Infinity): boolean {
+    const c = this.visitor.comings;
+    for (let i = 1; i < c.length; i++) {
+      if (c[i].enteredAt > before) break;
+      // Away a while (gone, not a step back and in again: 20 s), then near again for a moment.
+      const away = c.slice(0, i).some((a) => a.leftAt !== null && c[i].enteredAt - a.leftAt >= 20);
+      const stayed = c[i].dwell >= 8 || (c[i].leftAt === null && this.visitor.t - c[i].enteredAt >= 8);
+      if (away && stayed) return true;
+    }
+    return false;
+  }
+
+  departureLine(how: 'door' | 'menu' = 'menu'): string {
+    // The visit's sentence: the room's first line as the visit left it, and what its heart answered.
+    const answer = this.answerRead();
+    if (answer && this.hearts()) {
+      const stay = this.unfinished.has('stay') ? 'I wanted you to' : PHRASE_BY_ID.get('stay')!.text;
+      return `${stay}\n${PHRASE_BY_ID.get(answer)!.text}`;
+    }
+    const shape = this.visitShape(this.left ? 'door' : how);
+    // (Someone who stood still and never came to it: the stillness is what happened.)
+    if (shape === 'apart' && this.memory.dominant() === 'stillness') return DEPARTURE_STILL;
+    return DEPARTURE_BY_VISIT[shape];
   }
 
   depart(): void {
@@ -2189,6 +2714,11 @@ export class Director {
   returnAfterDeparture(): void {
     this.departing = false;
     this.visits++;
+    // Back in: they have not left by the way out (it may be taken again, in a while).
+    this.left = false;
+    this.letGo = null;
+    this.letGoAsked = -Infinity;
+    this.keptAt = this.now;
     const p = this.selector.select(this.ctx(), {
       exclude: this.hiddenExcluding(),
       tiers: ['familiar', 'contradiction', 'transform', 'arrival'],
