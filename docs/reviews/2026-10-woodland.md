@@ -2827,3 +2827,167 @@ as her and whether it is emotionally right. Nothing below claims either.
 - **Not claimed:** professional quality. It meets the brief's measurable terms and avoids every
   rejection criterion that could be measured. Whether it is "smooth but emotionally artificial" can
   only be judged by watching it, and that is the artist's to judge.
+
+## The afternoon as a film (the artist's integration brief, 2026-10-24)
+
+The artist supplied four selected generated shots and a brief (`references/woodland/film/`:
+`BRIEF.txt`, `IMPLEMENTATION_STRATEGIES.txt`, `timeline.json`, the clips): the room's painting opens
+into a quiet afternoon; the two of them rest together; she privately turns toward him while he
+keeps looking up; the wide again with her already looking at him; a hard cut to the same clearing
+empty at dusk; the room and its unfinished sentence. On the 48.25 s editorial timeline the artist
+had approved as a flattened recording of the rig (the 53 s timeline less 1.75 s of the two-shot's
+tail, 2.25 s of the second wide's head, and 1.5 s of the ghost text's return; its first 0.75 s is
+the room before the memory begins).
+
+### What the project was
+
+The live project was still the rig's 53 s timeline: the 48.25 s edit had only ever been applied to
+a recording. Every woodland timeline in `theatre-state.json` equalled its seed in `defs.ts`
+(compared key by key): nothing authored in Studio could be lost by seeding again.
+
+### Decisions (main session)
+
+171. **One film, played as Almost's is** (`FilmScene`): the four shots precomposed into one 29.5 s
+     film (708 frames), not four players and not the rig re-driven. One clock (`scene.film`), the
+     seeking, the mobile decoding, the fallback to a still and the release on leaving are the ones
+     Almost and Things already have. Each shot at its own 24 fps and whole: nothing looped,
+     reversed, retimed, interpolated, sharpened or upscaled.
+172. **The film's frame is the painting's.** Measured by ECC on edges, each wide is the painting as
+     the room showed it immersed: a uniform 1.06 zoom about its middle (coverQuad's overscan; no
+     rotation, no warp). So each shot sits at its own pixels, 1:1, inside a 1354×764 frame that is
+     the painting's rectangle (to under a pixel), the 3% round it the registered painting with its
+     colour fitted to the shot's (`film.json`). The wall's pencil, order map, colour and light
+     register on the film unchanged; the wall resolves into the opening shot's own first frame;
+     the way back gathers the dusk shot's own last frame (no snap to the older foliage). Immersed,
+     no screen shape shows the border; the shot is opaque to its own edge (a feather inside it
+     would have blended moving footage with a still in the top and bottom rows at 16:9).
+173. **No transform on the dusk shot.** Across the cut the trunk, the log and the horizon move
+     different ways (+0.9, +0.5, −2.2 px at 1280): a drawing's variation, not a framing; any shift
+     would make some landmark worse. Not claimed as a pixel match.
+174. **Colour as made.** The clips are untagged H.264 encoded with BT.601 (closest to the room's own
+     recording when decoded so); a browser would take untagged HD as BT.709. Decoded as BT.601,
+     written tagged BT.709, as Almost's films are (PSNR 37–38 dB against the source; no shift).
+175. **The timeline** (memory s): the film's first frame through the way in, playing from 9.5 (the
+     settle runs to 9.8, as on the approved timeline); the close-up 15.0–25.25; the wide
+     25.25–30.5; the hard cut on the film's frame 504 at 30.5; the dusk to 39.0; the way out from
+     38.5 with the film's last half second under it (as on the approved timeline), then its last
+     frame. The return's keys are the 53 s timeline's through the approved edit's own time map.
+     47.5 s; seen once her head turns (20.2); the line where the painting was at 47.0.
+176. **The rig is kept, dormant.** Its code, art (the manifest's `rig`), scripts and the tests of
+     its own data stay; nothing the room plays reads them. Tests of the rig's timeline keys moved to
+     the film's terms (its frames, its shots, its glance). Rollback is the commit.
+177. **Framing the close-up.** The room frames it as close (`FilmScene.choose`: its vignette centred
+     and further out, as for the two-shot), by its own focus from its first frame to its last (a
+     reframe on a cut, never a move): wider than 16:9, its top kept (their faces); upright, her face
+     (no portrait column holds both: his at u 0.17, hers at 0.58). He is seen still looking up in
+     the wide that follows. The wides keep the rig's focus (upright, both heads).
+178. **What a screen reader is told** goes to everyone who sees it (the film shows the same shots on
+     the wall and inside): "Her eyes go to him, then her head. He keeps looking up." His look is
+     gone with the rig.
+179. **The sound is the scene's own, retimed.** Nothing new generated or bought. The day's insects
+     follow the film's shots (`SHOTS`, `CUT`); the rig's gust swell is gone with its gust. The near
+     cicada comes back 0.8 s into the second wide (at 1 s the piano's pedal lifted 0.09 s after it).
+     (Left to sing on into the film's shorter wide, the second bird and the side cicadas made the
+     afternoon's last half second fuller and the step down at the cut 6.4 LU where the approved one
+     is 2.0: measured against the 53 s timeline's own mix, made with the same tool; decision 184.)
+     The cut stays the restrained change it was: everything of the afternoon stops, the evening's
+     cicadas are already singing; no sting, no mute.
+180. **The score, joined** (`scripts/woodland-score/retime.py`; its samples can't be had here, so it
+     is not re-rendered): one join of five whole beats in the quiet (the dampers' fall after the G♭
+     into the silence before the E♭'s chord, which lands where the removed bar would have begun),
+     and 0.245 s given back in a −46 dB decay, so everything after it is exactly 4.0 s earlier and
+     it still stops on the cut a note before home. Her glance falls inside the second time's high
+     A♭ (struck 0.24 s before her eyes go, held through her head's turn, the step down as she
+     settles); the piano above 500 Hz only falls through it; no crackle in it. The cost: the turn's
+     first note comes 0.28 s after the cut to the close-up. The 4 s taken at the picture's own join
+     would have struck the A♭ on her eyes' first movement and left a jump of 4.72 beats inside a
+     held chord. Outside the two edits the file is the approved render (residual −64 to −67 dB,
+     after making up the 0.265 dB a LAME round trip loses).
+181. **Prefetching a film never throws**: where no video element can be asked what it plays, the wall
+     and the sounds are fetched all the same (the woodland's prefetch test found it).
+
+### Measured against the approved 53 s mix (BS.1770, the same stems tool)
+
+| | Approved | Film |
+|---|---|---|
+| Step at the cut (0.5 s either side) | −2.0 LU | −2.4 LU (−3.4 after 184) |
+| Piano re place, the close shot | −1.4 | −1.2 |
+| Piano re place, the second wide | −6.9 | −6.2 |
+| Piano re place, overall | −5.0 | −5.5 |
+| Room-level peak | −33.3 dBFS | −34.0 dBFS |
+
+(After decision 184, as it stands. Step at the cut over 0.5 s and 1 s: −3.4 LU (approved −2.0,
+−2.1); the last 2 s, in quarter seconds, within about 1 dB of the approved contour, a little
+fuller, nothing emptying before the cut. On the same notes, the second time's last phrase, the
+piano measures the same (−51.0) and the place 3 dB thinner than approved (−48.5 against −45.5, the
+second bird gone): the piano a little more forward going into the cut. The close shot −1.3
+(approved −1.4).)
+
+### Reviewed (the cinematic director and the sound designer, from stills, frames, stems and data), and decisions
+
+182. **The dusk's own light after the cut** (the cinematic director's 1, P1): the afternoon's dapple
+     light layer came back over the empty clearing as it went into the wall (40–44.6). At the cut
+     the dusk painting's light (`empty/light`, the revisit's) takes its place (`light-after`).
+183. **Let go early, the painting's own frame** (their 2, P1; the skeptic's 5): the film went on
+     through the way out, and two faces went into a pencil drawing of the wide. First made to cut to
+     the wide that follows; the skeptic showed that frame has her turned (the pencil draws her
+     looking up) and gave away a glance a visitor who left before it never saw. So: let go before
+     the cut, the film goes back to its first frame, the painting's own, and holds it. The room
+     frames a shot by the frame the video is showing, not the clock (their 3: a video a frame or
+     two behind was reframed before its cut), and while a seek is landing, by the frame still on
+     the screen (the skeptic's 6). On a landscape screen narrower than 16:9 the
+     close-up keeps both faces while they fit, else hers (their 4: a 4:3 window put his face on its
+     edge).
+184. **One bird, one cicada back** (the sound designer's 1 and 2, P1; the skeptic's 2): the second
+     bird is gone from the afternoon (in the film's 5.25 s second wide it sang over the piano's last
+     phrase and its call's end emptied the clearing before the cut did). One side cicada comes back
+     after the close shot (from 26.65) and sings on until the cut takes it; the other stays quiet:
+     two coming back with the cicada over them and the piano's chord were five sounds in a second
+     and a quarter. (Made first to fall away before the cut, it emptied the clearing early just as
+     the bird had: the skeptic. The step at the cut is 3.4 LU, approved 2.0; not tuned further: the
+     ear decides.)
+185. **Not done, and why.** The dusk A/B the brief asks for (the music ending at the cut against
+     more continuity): its B, the piano ringing on under the evening, cannot be made here (the
+     score's only render ends on the old cut; its samples are unreachable). A is the artist's
+     approved design. Sound against picture at the cut under drift (the cinematic director's 5): the
+     film's sync is Almost's, measured here only under software GL at about 2 frames a second; for a
+     real device. The dusk's first half second's grass flutter (their 6) is the clip's.
+186. **For the artist's ear** (the sound designer's 4, 5, 7): the G♭ and the long F chord land as
+     she settles (21.7–22.1; the join put her glance inside the A♭, and no rigid shift avoids both);
+     the turn's first note 0.28 s after the cut to the close-up; whether the synthesised near cicada
+     (5.2 kHz, narrow, pulsing 5.4 times a second) reads as a cricket now that it is exposed at
+     26–30.5; the piano 3 LU more forward in its last phrase (above). And that 1.8 s of the score's
+     decay (24.26–26.30) is time-stretched by 14%, across the cut back to the wide.
+
+### Challenged (the skeptic) and tested (QA), and decisions
+
+187. **The skeptic** (on both reviews and the first fixes): the leave-to-wide cut showed her turned
+     (decision 183 as it stands); framing during a seek followed the clock (183); the returning
+     cicada falling away early emptied the clearing just as the bird had (184); the brief's dusk
+     A/B was read too narrowly. So an audition pack for the artist, at one level
+     (`test-output/review/woodland/audition/`, not committed): A as shipped; B, the afternoon's
+     insects carried 1.5 s under the evening (no step at the cut, +0.3 LU, then down to the same
+     dusk); C, the score spliced as the editorial baseline spliced it (4.0 s at the picture's join:
+     home falls in her head's turn). The rig is kept, not deleted (the brief asks for a rollback
+     path; git is one, the tree another, at the cost of art not loaded).
+188. **QA** (a second natural play, pause and a hidden tab, reduced motion, what a screen reader is
+     told, the revisit, the film refused, a phone): all as they should be but one.
+     - **The film refused, a blot** (P1): the memory fell back to the wall's still, revealed by its
+       light's pool, which the afternoon held at 0.55 m: a lit patch under the line for 47 s. Drawn
+       in order (the film) the pool reveals nothing, so it now opens over the whole painting as the
+       colour comes (to 2.2 m by 7.6), and the still shows whole, as any memory's (checked with the
+       film's route blocked), at the size the room gives a still: about as wide as its line, not
+       the film's. (The first fix was made in the seed and not seeded into the committed timeline,
+       so it did nothing: found in the browser, seeded; every committed timeline equals its seed.)
+     - Before its first frame is sent, a film says it is on no close shot (its load nudges it into
+       playing: the first frame read 186, a close-up's).
+     - The harnesses: `memories.mjs` follows the film's timeline (it still asked for the rig's
+       two-shot); `woodland-coda.mjs` writes on the east wall by default and fails when nothing is
+       written (on the default wall, by decision 137, nothing is: it had passed writing nothing);
+       `woodland.mjs` no longer counts `<video>` elements (the film's is never in the page).
+189. **Framed by the frame on the screen, while a seek lands** (review of PR 43, P2): `choose`
+     framed by `uploaded` during a seek, but `update` had already written the seek's target into
+     it (`currentTime` is the target the moment a seek is asked for, while the decoder still holds
+     the old frame), so a seek across a close shot's edge reframed the old shot before the cut
+     landed. Nothing is sent while a seek is landing; `uploaded` keeps naming the frame on the
+     screen until it lands (`tests/film-scene.test.ts`, on a decoder whose seeks take time).

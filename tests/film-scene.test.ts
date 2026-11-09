@@ -99,6 +99,40 @@ describe('a film as a living memory', () => {
     expect(video.currentTime).toBeCloseTo(300.5 / 24, 9);
   });
 
+  it('framed by the frame on the screen: a seek across a close shot\'s edge reframes only once it has landed', () => {
+    // (A decoder whose currentTime is the seek's target the moment it is asked for, while the
+    // picture is still the last frame decoded, as browsers' are. With the target taken as the frame
+    // sent, the room reframed the close-up as the wide before the cut landed: review of PR 43.)
+    const v = {
+      paused: true, seeking: false, readyState: 4, src: 'blob:film', playbackRate: 1, t: 0, target: 0, on: new Map<string, () => void>(),
+      get currentTime() { return this.seeking ? this.target : this.t; },
+      set currentTime(x: number) { this.target = x; this.seeking = true; },
+      land() { this.seeking = false; this.t = this.target; this.on.get('seeked')?.(); },
+      play() { this.paused = false; return Promise.resolve(); },
+      pause() { this.paused = true; },
+      addEventListener(k: string, f: () => void) { this.on.set(k, f); },
+      removeEventListener(k: string) { this.on.delete(k); },
+      removeAttribute() {}, load() {},
+    };
+    const scene = new FilmScene({ video: v as unknown as HTMLVideoElement, fps: 24, frames: 708 }, { width: 16, height: 16, reduced: false, close: [[132, 378]] });
+    const at = (frame: number) => ({ 'scene.film': (frame + 0.5) / 24 });
+    // Held on the close-up's last frame, landed.
+    scene.update(gl, 0, at(377), { view });
+    v.land();
+    scene.update(gl, 0, at(377), { view });
+    expect(scene.choose()).toBe(1);
+    // The wide's first frame asked for: while its seek lands, the close-up is what is on the screen.
+    scene.update(gl, 0, at(378), { view });
+    expect(v.seeking).toBe(true);
+    expect(scene.choose()).toBe(1);
+    scene.update(gl, 0, at(378), { view });
+    expect(scene.choose()).toBe(1);
+    // Landed: sent, and framed as the wide.
+    v.land();
+    expect(scene.update(gl, 0, at(378), { view })).toBe(true);
+    expect(scene.choose()).toBe(0);
+  });
+
   it("a held position doesn't play, however the memory's clock runs on", () => {
     const { video, scene } = make();
     for (let i = 0; i < 30; i++) scene.update(gl, 20 + i / 60, { 'scene.film': 6 }, { view });

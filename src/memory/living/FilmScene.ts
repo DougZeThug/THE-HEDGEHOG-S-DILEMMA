@@ -153,9 +153,13 @@ export class FilmScene {
   };
   readonly view = new THREE.Vector4(0, 0, 1, 1);
 
-  constructor(readonly art: FilmArt, o: { width: number; height: number; reduced: boolean }) {
+  /** Its close shots (its own frames, from–to): `choose` says 1 inside one (src/memory/living/woodlandFilm.ts). */
+  private readonly close: [number, number][];
+
+  constructor(readonly art: FilmArt, o: { width: number; height: number; reduced: boolean; close?: [number, number][] }) {
     this.target = livingTarget(o.width, o.height);
     this.reduced = o.reduced;
+    this.close = o.close ?? [];
     this.texture = new THREE.VideoTexture(art.video);
     this.texture.colorSpace = THREE.NoColorSpace;
     this.texture.generateMipmaps = false;
@@ -179,9 +183,20 @@ export class FilmScene {
     return Math.max(0, Math.min(this.art.frames - 1, Math.floor(s * this.art.fps + 1e-6)));
   }
 
-  /** A film has one shot. */
+  /**
+   * The shot on the screen: 1 if the video's frame is inside one of its close shots, else 0 (a film
+   * cuts itself: this only tells the room how to frame it, so it goes by the frame being shown, not
+   * the clock: a video a frame or two behind would be reframed before its cut). A film without
+   * close shots has one shot.
+   */
   choose(): number {
-    return 0;
+    // (Before its first frame is sent the video may be anywhere: its load nudges it into playing.)
+    if (!this.close.length || this.uploaded < 0) return 0;
+    // (While a seek is landing, `currentTime` is already its target: the frame on the screen is
+    // still the last one sent: the skeptic, 2026-10-24.)
+    const v = this.art.video;
+    const f = v.seeking && this.uploaded >= 0 ? this.uploaded : Math.floor(v.currentTime * this.art.fps + 1e-6);
+    return this.close.some(([a, b]) => f >= a && f < b) ? 1 : 0;
   }
 
   /**
@@ -249,10 +264,14 @@ export class FilmScene {
       }
     }
     // A new picture: the frame shown changed, or a seek landed. (Three's own frame callback may
-    // never come for a video that isn't in the page.)
+    // never come for a video that isn't in the page.) Not while a seek is landing: `currentTime` is
+    // already its target, but the decoder still holds the frame on the screen, so nothing new is
+    // sent and `uploaded` keeps naming that frame, which `choose` frames by. (Taken as the target,
+    // a seek across a close shot's edge reframed the old shot before the cut landed: review of
+    // PR 43.)
     const shown = Math.floor(video.currentTime * fps + 1e-6);
     let fresh = false;
-    if (shown !== this.uploaded || this.landed) {
+    if (!video.seeking && (shown !== this.uploaded || this.landed)) {
       this.texture.needsUpdate = true;
       this.uploaded = shown;
       this.landed = false;

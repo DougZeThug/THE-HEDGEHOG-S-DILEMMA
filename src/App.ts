@@ -113,6 +113,8 @@ export class App {
     leaned?: boolean;
     /** Seconds looking away from it, and watching it; why it was let go. */
     awayFor: number; watched: number; minHold: number; seenAt?: number; reached: number; deep: boolean; why: string | null;
+    /** Let go early (a film's `leave`): the film held on the frame it cut to, to the end. */
+    leftEarly?: boolean;
     /** Looking away from it now (last attention check); how many of its later descriptions are told. */
     away: boolean; told: number;
     /** The room's writing its painting has washed out (given back when it goes). */
@@ -1261,15 +1263,19 @@ export class App {
     }
     const aspect = innerWidth / innerHeight;
     const upright = aspect < UPRIGHT;
-    // The shot on now, chosen first so the view frames it from its first frame. The two-shot only
-    // for someone taken all the way in; turned 14° from it, the wide until they settle facing it
-    // again (interaction and QA reviews, 2026-10-17 and 18). Only on a screen that can frame it
-    // (the spec's aspects: never upright, where a 16:9 two-shot holds one face and the wide holds
-    // both, with her look and his drawn in it; the reviews of 2026-10-18): elsewhere the dusk cut
-    // is its only cut.
+    // The shot on now, chosen first so the view frames it from its first frame. A painted scene
+    // (the rig) chooses its two-shot: only for someone taken all the way in, the wide while they are
+    // turned from it, never upright (the reviews of 2026-10-17 and 18). A film cuts itself: it says
+    // which shot is on the screen, by the frame being shown, and is framed for it.
     const shot = pl.scene.choose(f.final, { inside: this.inside.taken, turn: this.inside.turned, t: f.t, now: this.time, aspect });
     this.post.close = shot > 0 ? 1 : 0;
-    const focus = upright ? pl.spec.uprightAt?.(f.final['scene.film'] ?? 0, this.prefs.reducedMotion) ?? pl.spec.cover.upright : pl.spec.coverAt?.(aspect) ?? (aspect > 2.0 ? pl.spec.cover.ultra : pl.spec.cover.wide);
+    // (A film's close shot is framed by its own focus, from its first frame to its last: a reframe on
+    // its cut, never a move; upright, the face whose shot it is: src/memory/living/woodlandFilm.ts.
+    // Upright, a film that moves its focus by its own clock says where: src/memory/living/drive.ts.)
+    const close = shot > 0 ? pl.spec.close : undefined;
+    const focus = close
+      ? (upright ? close.upright : close.coverAt(aspect))
+      : upright ? pl.spec.uprightAt?.(f.final['scene.film'] ?? 0, this.prefs.reducedMotion) ?? pl.spec.cover.upright : pl.spec.coverAt?.(aspect) ?? (aspect > 2.0 ? pl.spec.cover.ultra : pl.spec.cover.wide);
     const go = this.inside.step(dt, {
       immerse: f.final['scene.immerse'] ?? 0,
       focus,
@@ -1297,7 +1303,12 @@ export class App {
     this.captions.dim = this.inside.entered && (f.final['scene.immerse'] ?? 0) >= 0.6 && (f.final['scene.after'] ?? 0) >= 0.5;
     pl.scene.reduced = this.prefs.reducedMotion;
     // (The two-shot's frame is the screen's: a narrower one sees less of its width, a wider one less of its height.)
-    pl.scene.update(this.renderer, f.t, f.final, { view: this.inside.view, parallax: new THREE.Vector2(), aspect });
+    // (A film let go early cuts to the frame its wall's pencil draws and holds it as it goes back:
+    // src/memory/living/woodlandFilm.ts `leave`.)
+    const leave = pl.spec.leave;
+    if (leave && (f.state === 'withdrawing' || f.state === 'residue') && f.position < leave.before) l.leftEarly = true;
+    const values = l.leftEarly && leave ? { ...f.final, 'scene.film': leave.to } : f.final;
+    pl.scene.update(this.renderer, f.t, values, { view: this.inside.view, parallax: new THREE.Vector2(), aspect });
     // What changes later, told to a screen reader when it happens (not before: the cut is not given away).
     const later = l.memory.prepared.def.announce?.(l.memory.prepared.variant) ?? [];
     while (l.told < later.length && f.position >= later[l.told].at && f.state !== 'emerging') {

@@ -73,7 +73,7 @@ def people():
     """Where the two of them are (0..1, soft): their own cut-out (the puppet's body), where it lies
     on the painting. (The words are written over them: without this they would be drawn first.)"""
     with open(MANIFEST) as f:
-        fig = json.load(f)['living']['afternoon']['figures']
+        fig = json.load(f)['rig']['afternoon']['figures']
     atlas = Image.open(os.path.join(ROOT, 'public', 'memories', 'woodland', fig['file'] + '.webp')).convert('RGBA')
     body = atlas.crop((0, 0, fig['pixels'][0], fig['pixels'][1])).split()[3]
     x0, y0, w, h = fig['place']  # painting uv, y up
@@ -90,7 +90,7 @@ def faces():
     """Between their two faces (painting px, y down): where the colour begins. The rig's face
     deformers (sheet uv, y up) placed where the cut-out lies on the painting."""
     with open(MANIFEST) as f:
-        fig = json.load(f)['living']['afternoon']['figures']
+        fig = json.load(f)['rig']['afternoon']['figures']
     c = [d['c'] for d in fig['deformers'] if d['name'] in ('faceA', 'faceB')]
     if len(c) != 2:
         raise SystemExit('order: the figures have no faceA and faceB in the manifest (run the cutter)')
@@ -177,10 +177,13 @@ def main():
     Image.fromarray(rgb, 'RGB').save(OUT, 'WEBP', lossless=True, method=6)
     with open(MANIFEST) as f:
         manifest = json.load(f)
-    manifest['living']['afternoon']['order'] = 'afternoon/order'
     # (The clocks it was timed on: tests/memory-defs.test.ts holds them to the committed timeline,
-    # so a timeline moved without running this again is found.)
-    manifest['living']['afternoon']['orderClocks'] = {'drawn': list(DRAWN), 'coloured': list(COLOURED), 'lag': LAG}
+    # so a timeline moved without running this again is found. The afternoon's film and the painted
+    # rig kept beside it are both drawn on the wall in this order.)
+    for entry in (manifest['living']['afternoon'], manifest.get('rig', {}).get('afternoon')):
+        if entry:
+            entry['order'] = 'afternoon/order'
+            entry['orderClocks'] = {'drawn': list(DRAWN), 'coloured': list(COLOURED), 'lag': LAG}
     with open(MANIFEST, 'w') as f:
         json.dump(manifest, f, indent=2)
         f.write('\n')

@@ -1,6 +1,8 @@
-"""Render the woodland's score (scripts/woodland-score/score.py) on the sampler (piano.py): the
-memory's file, public/music/woodland-score.mp3, from 8.2 s of the memory (SCORE_FROM in
-src/memory/defs.ts) to the cut at 34.5, where it ends (25 ms), mastered to −23 LUFS on the piano
+"""Render the woodland's score (scripts/woodland-score/score.py) on the sampler (piano.py), as composed
+for the painted rig's 53 s timeline: audition/woodland/woodland-score-53s.mp3, from 8.2 s of the
+memory (SCORE_FROM in src/memory/defs.ts) to the cut at 34.5, where it ends (25 ms). The memory's
+file, public/music/woodland-score.mp3, is this one joined for the film's timeline
+(scripts/woodland-score/retime.py: run it after this). It is mastered to −23 LUFS on the piano
 (the cue sheet sets its level in the room): the piano with the recording's sparse crackle
 (decisions 113, 127, 129). Its notes, its mechanism, its crackle and how much it swells in each look,
 for the test that keeps them off the picture's moments (notes.json). And, for the artist, each at
@@ -109,7 +111,7 @@ def main(library):
         c, ticks = crackle(FROM, CUT, info['attack'] * 10 ** (CRACKLE_DB / 20), quiet=MOMENTS, never=LOOKS)
         c = c[:len(piano)]
         if form == 'A':
-            versions = {os.path.join(ROOT, 'public/music/woodland-score.mp3'): piano + c,
+            versions = {os.path.join(ROOT, 'audition/woodland/woodland-score-53s.mp3'): piano + c,
                         os.path.join(out_dir, 'woodland-score-piano-alone.mp3'): piano}
             aid = render(fresh(), notes, pedal, FROM - 1.2, CUT, quiet=MOMENTS, texture=True, texture_db=AID_TEXTURE_DB)[int(round(1.2 * SR)):]
             versions[os.path.join(out_dir, 'woodland-score-aid-bow-air.mp3')] = aid
@@ -139,7 +141,7 @@ def main(library):
                        'looks': rises(piano + c, piano - render(fresh(), notes, pedal, FROM - 1.2, CUT, quiet=MOMENTS, halo_db=None)[int(round(1.2 * SR)):], notes),
                        # The file these notes are of (its hash's first 16: the whole would read as a
                        # key to the credentials scan), and what made it (a re-render is byte for byte).
-                       'sha256': hashlib.sha256(open(os.path.join(ROOT, 'public/music/woodland-score.mp3'), 'rb').read()).hexdigest()[:16],
+                       'sha256': hashlib.sha256(open(os.path.join(ROOT, 'audition/woodland/woodland-score-53s.mp3'), 'rb').read()).hexdigest()[:16],
                        'made': {'numpy': np.__version__, 'scipy': __import__('scipy').__version__,
                                 'ffmpeg': subprocess.run(['ffmpeg', '-version'], capture_output=True, text=True).stdout.split()[2]}},
                       open(os.path.join(HERE, 'notes.json'), 'w'), indent=1)
