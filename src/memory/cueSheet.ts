@@ -60,6 +60,11 @@ export interface Cue {
   fadeOut?: number;
   /** Cut (0.3 s) when the memory is interrupted, rather than ringing on: footsteps, not a clink. */
   cutOnInterrupt?: boolean;
+  /**
+   * Music: part of the memory's authored going, so it begins even after the memory has let go
+   * naturally (The Drive Home's relay, after its picture has gone); never after an interruption.
+   */
+  inWithdrawal?: boolean;
   /** Music only: start this far into the file. */
   offset?: number;
   /** What a caption says while it sounds (for visitors who can't hear it). */

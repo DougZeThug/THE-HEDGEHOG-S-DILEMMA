@@ -1207,7 +1207,7 @@ export const DRIVE: MemoryDef = {
           { at: DRIVE_BEATS.ventBack - DRIVE_AT, text: '[the vent clicks]' },
           { at: DRIVE_BEATS.indicator - DRIVE_AT, text: '[the indicator ticking]' },
         ] },
-      'music:relay': { asset: 'music/drive-relay.mp3', gainDb: DRIVE_DB, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, fadeOut: 0.3, caption: '[the indicator ticking, then stopping]', captionAt: 4 },
+      'music:relay': { asset: 'music/drive-relay.mp3', gainDb: DRIVE_DB, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, fadeOut: 0.3, inWithdrawal: true, caption: '[the indicator ticking, then stopping]', captionAt: 4 },
     },
   }),
   sways: [],
