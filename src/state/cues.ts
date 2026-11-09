@@ -19,7 +19,8 @@ export type Cue =
   | { type: 'reveal'; phraseId: string; mode: 'emerge' | 'still'; seconds: number }
   | { type: 'hide'; phraseId: string; seconds: number }
   /** Writing already on the wall is written again in front of the visitor (it fades out at once and comes back). */
-  | { type: 'redraw'; phraseId: string; seconds: number }
+  /** `key`: the writing to write again, when it is not the phrase in its own place (a line written alone for a memory). */
+  | { type: 'redraw'; phraseId: string; key?: string; seconds: number }
   | {
       type: 'write';
       key: string;

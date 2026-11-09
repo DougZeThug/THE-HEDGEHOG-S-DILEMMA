@@ -20,6 +20,22 @@ A line on the wall can open into a memory: the light finds a pencil drawing unde
 
 The App steps the playing memory once a frame (`App.stepLivingMemory`), with one reading of the audio clock that its clock and every sound it schedules, resumes or brings back share (its position 0 is the instant it began, for its first sounds and its first frame alike). If its sound stops (or isn't running yet as it begins) it waits for it, and is let go uncounted after ten seconds visible without it. Its art and recordings are fetched when its line is armed, or as soon as it may be offered (`MemoryDirector.comingSoon`), and decoded only as it begins (`runtime.prefetch`). GSAP's timelines are paused and seeked; its ticker is put back to sleep after every seek (a test fails otherwise). Theatre's sequence position is set by the controller and read back at once; production never plays a sequence.
 
+## Which memory a visit is for: the heart (November 2026)
+
+A visit may have one painted memory reachable from early on, its *heart*, chosen from what has happened at the chair (`HEART_BY_SHAPE` in `src/content/memories.ts`; `Director.ruleHeart`; `MemoryDirector.setHeart`, `heartDue`, `offer`). The first row that applies decides; a visit where none applies has no heart and the room's memories come as before (`Director.heartShape` is null):
+
+| What happened | Heart | Leaves |
+|---|---|---|
+| the room recoiled at them (`Director.answerReturn`) | Almost, pointed at ≥17 s after the recoil | "I took my hand back." beside "I wanted you to stay." (then nothing new on the north wall that visit), the departure card if the line has been in view, and the next visit (once Almost is seen, written yet or not) |
+| no recoil; from 150 s, a stay of 45 s or kneeling 8 s at any time in the visit (`Director.leaving`) | the woodland | its own coda ("we had all afternoon") |
+| no recoil and no such stay; from 150 s, came and went and stayed away 50 s | Things I Should Have Said | nothing more |
+
+- The heart may be pointed at from 75 s (`HEART_EARLIEST`; only Almost can be that early, since the woodland and Things are chosen from 150 s, `HEART_DECIDE`), in any phase, with no memory before it, 45 s from the last pointing, into a local quiet (4 s with nothing new and no voice) while the visitor looks level at a wall; a room merely free for memories is not enough, and nothing else is pointed at while it waits. Its line is placed by a level ray at eye height (`App.viewPointOn(surface, level)`), not where the view's centre meets the wall, and only at 0.9–1.85 m, as near that point as the wall allows (into the space behind the chair if that is where they look); with no room it is not spent but offered again, not on that wall for a minute (`WallText.write`, `Director.writeFailed`).
+- A turn of the visit waits while a return to the chair may be under way (at most 30 s), and only a turn that writes or dims keeps the recoil back (`Director.returnInReach`, `markedTurnAt`): the recoil decides the heart, and QA found early returns lost to a turn that showed nothing.
+- Until its line is pointed at it may change (a recoil makes it Almost). Pointed at and let be, it is written again once, on the wall it was written on (`HEART_REINK`, 30 s), and for 20 s a shorter look begins it (`EASY_LOOK`, 1.5 s); it lapses after `HEART_LAPSE` (120 s); then the others may come. Nothing is offered on the north wall while the heart holds it: facing it, the offer waits for another wall.
+- While it waits, the other hearts and the kitchen light wait. Once it has played, no other painted memory comes that visit (`arcEnded`).
+- The decisions, the alternatives measured and discarded, and what still needs a person: `docs/reviews/2026-11-emotional-arc.md`. Battery: `npx vite-node scripts/arc.ts` (`ARMS='before=noHeart;after'`).
+
 ## Living memories (animated, and entered)
 
 The woodland ("five more minutes", `docs/reviews/2026-10-woodland.md`) is the first. It runs on the same controller, clock, timeline and sound as the others; what is new:

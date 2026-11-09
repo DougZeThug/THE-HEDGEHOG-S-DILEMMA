@@ -701,6 +701,31 @@ export class WallText {
     if (target) {
       surface = target.surface;
       rect = this.layout.findBeside(target, m.w, m.h);
+      // The heart's answer is beside the first line or not yet written: anywhere else on that wall it
+      // reads as a line of its own, not an answer. (The room tries again as lines there fade.)
+      if (!rect && o.key.startsWith('heart:')) return false;
+    }
+    const wall = !!surface && surface !== 'floor' && surface !== 'ceiling';
+    if (!rect && surface && o.near && o.purpose === 'recall' && wall && o.key.startsWith('memory:')) {
+      // A memory's line, offered where the visitor looks: at a height it can be read at, as near
+      // their line of sight as the wall allows, or not at all (it is offered again elsewhere). The
+      // whole-wall scan put it by the skirting, out of frame on a phone (QA, 2026-11-06). Close to
+      // where they look it may go into the space kept behind the chair, as an answer may: from the
+      // chair, facing the wall behind it, that is where they look, and the rest of the band is full.
+      // Only that space: the band kept on the south wall is the visitors' own.
+      const behindChair = surface === 'north';
+      const size = surfaceSize(surface!);
+      const near = o.near;
+      const across = (spread: number): [number, number] => [Math.max(0, near.u - spread - m.w / 2) / size.w, Math.min(size.w, near.u + spread + m.w / 2) / size.w];
+      const band = (spread: number, open: boolean) => this.layout.findIn(surface!, m.w, m.h, across(spread), [0.9, 1.85], 0.02, 160, open);
+      for (const spread of [0.4, 0.9, 1.6, size.w]) {
+        rect = band(spread, false) ?? (behindChair && spread <= 0.9 ? band(spread, true) : null);
+        if (rect) break;
+      }
+      // (The tries are random: before it is given up, the band is gone over cell by cell, so a
+      // narrow place they missed is still found.)
+      rect ??= (behindChair ? this.layout.scanIn(surface!, m.w, m.h, across(0.9), [0.9, 1.85], 0.02, near, true) : null) ?? this.layout.scanIn(surface!, m.w, m.h, [0, 1], [0.9, 1.85], 0.02, near, false);
+      if (!rect) return false;
     }
     if (!rect && surface && o.near) {
       const size = surfaceSize(surface);

@@ -147,3 +147,27 @@ export const MEMORY_BY_PHRASE = new Map(ALL_MEMORIES.flatMap((m) => linesOf(m).m
 export function linesOf(m: SceneMemory): string[] {
   return m.phraseIds?.length ? m.phraseIds : m.phraseId ? [m.phraseId] : [];
 }
+
+/**
+ * The visit's heart (docs/reviews/2026-11-emotional-arc.md): one painted memory a visit, reachable
+ * from early on, chosen from what has happened between the visitor and the chair:
+ * - the room has recoiled at them (they came back to the chair after going away): Almost, a hand
+ *   that reaches, starts and is taken back. They have just felt the room do it. This is the one
+ *   rhyme a visitor can see both halves of, and the only heart that leaves a line;
+ * - otherwise, from two and a half minutes, if they have stayed by it a long while (45 s, or knelt 8 s): the
+ *   woodland, company and then the clearing empty (its own coda is what it leaves);
+ * - or if they came to it and went away and have stayed away (50 s): Things I Should Have Said, a
+ *   goodbye at a door.
+ * Until its line is pointed at it may still change (a recoil makes it Almost). It needs no memory
+ * before it; once it has played, no other painted memory comes that visit.
+ */
+export const HEART_BY_SHAPE = { recoiled: 'almost', close: 'woodland', refused: 'things' } as const;
+export type HeartShape = keyof typeof HEART_BY_SHAPE;
+/** What a heart leaves beside "I wanted you to stay." (a phrase id): Almost only. */
+export const HEART_ANSWER: Record<string, string> = { almost: 'took-hand-back' };
+/** The earliest a heart may be pointed at or begin (engine seconds from the hand-off). */
+export const HEART_EARLIEST = 75;
+/** The other hearts are chosen only from here (the recoil, a median 103 s in, comes first). */
+export const HEART_DECIDE = 150;
+/** Almost is pointed at no sooner than this after the recoil (its 7 s hold, and a breath). */
+export const HEART_AFTER_RECOIL = 17;

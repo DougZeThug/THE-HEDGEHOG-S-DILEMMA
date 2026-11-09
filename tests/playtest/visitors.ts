@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { Director, ROOM_OWN } from '../../src/state/Director';
 import { OPENING_WRITTEN, OPENING_SPOKEN, OPENING_UNFINISHED } from '../../src/state/OpeningScore';
 import { PHRASE_BY_ID } from '../../src/content/phrases';
+import { SCENE_MEMORIES } from '../../src/content/memories';
 import { VIGNETTES, spokenLines, lineKey } from '../../src/content/vignettes';
 import { allVersions, versionKeys, voicesId } from '../../src/content/memory-voices';
 import { Rng } from '../../src/core/rng';
@@ -622,7 +623,7 @@ export interface VisitSummary {
   placeboBy: Record<string, { n: number; hit: number }>;
   /** The same act on the same thing again (a line, the chair): how often the room gave the identical answer (a vending machine would always). */
   vending: { pairs: number; same: number };
-  passive: { windows: number; empty: number };
+  passive: { windows: number; empty: number; inMemory: number; emptyOutside: number };
   longestSeenGap: number;
   perMinute: number;
   voices: number;
@@ -641,6 +642,27 @@ export interface VisitSummary {
     situations: string[];
     firstMemoryAt: number | null;
     offers: number;
+    /** The visit's heart (chosen, when it began), what it left, and whether they came back to it. */
+    heart: string | null;
+    heartShape: string | null;
+    heartAt: number | null;
+    answer: string | null;
+    answerAt: number | null;
+    /** The answer, once it has been in view (the card ends on it); what the next visit finds. */
+    answerRead: string | null;
+    left: string | null;
+    /** Lines written, revealed or re-inked on the north wall after the answer (the wall is kept). */
+    northAfter: number;
+    /** The same, while the last visit's answer waits for room there (from a failed write until it is tried again). */
+    northWhileKept: number;
+    /** When the last visit's answer was written and found no room (with `failOnce`). */
+    keptFailedAt: number | null;
+    kept: boolean;
+    /** When each painted memory first began (s). */
+    memoryAt: Record<string, number>;
+    /** When the room first recoiled at them; when the heart's line was pointed at. */
+    recoiledAt: number | null;
+    heartOfferedAt: number | null;
   };
   approaches: ApproachRow[];
   field: Record<string, number[]>;
@@ -661,9 +683,13 @@ export interface VisitOptions {
   seconds?: number;
   experiments?: readonly string[];
   arm?: string;
-  past?: { visits: number; memoryCounts: Record<string, number>; trace: 'close' | null };
+  past?: { visits: number; memoryCounts: Record<string, number>; trace: 'close' | null; answer?: string | null };
   interpretation?: Interpretation;
   dt?: number;
+  /** The first write whose key starts with this finds no room on the wall (reported as the App does). */
+  failOnce?: string;
+  /** At this many seconds the visitor presses "forget" (as the App does: contributions and visits). */
+  forgetAt?: number;
 }
 
 const answerOf = (x: Dev): AnswerKind =>
@@ -701,7 +727,7 @@ function local(a: Action, x: Dev): boolean {
 export function liveVisit(g: Genome, seed: number, o: VisitOptions = {}): VisitSummary {
   const seconds = o.seconds ?? 600;
   const dt = o.dt ?? 0.1;
-  const d = new Director({ seed, experiments: o.experiments, visits: o.past?.visits, memoryCounts: o.past?.memoryCounts, trace: o.past?.trace ?? null });
+  const d = new Director({ seed, experiments: o.experiments, visits: o.past?.visits, memoryCounts: o.past?.memoryCounts, trace: o.past?.trace ?? null, answer: o.past?.answer ?? null });
   d.scenes.setAvailable(AVAILABLE);
   d.release({ written: OPENING_WRITTEN, spoken: OPENING_SPOKEN, unfinished: OPENING_UNFINISHED });
   const pol = new Policy(g, new Rng(seed * 104729 + hash(g.id)));
@@ -717,6 +743,13 @@ export function liveVisit(g: Genome, seed: number, o: VisitOptions = {}): VisitS
   let lastApproaches = 0, lastWithdraw = -Infinity, wasKneeling = false, pausedAt = -Infinity, facing: Surface = 'north', facingSince = 0, turnLogged = true;
   let imposedQuiet = 0, ebbs = 0;
   let leftInRoom: number | null = null;
+  let northAfter = 0;
+  let failed = false;
+  let answerTried = false;
+  let keptWaiting = false;
+  let northWhileKept = 0;
+  let keptFailedAt: number | null = null;
+  const memorySpans: [number, number][] = [];
   let t = 0;
   for (; t < seconds; t += dt) {
     if (pol.leftAt !== null || leftInRoom !== null) break;
@@ -746,8 +779,15 @@ export function liveVisit(g: Genome, seed: number, o: VisitOptions = {}): VisitS
       actions.push({ t, kind: 'write', surface: facingOf(f.yaw) });
     }
     const fc = facingOf(f.yaw);
+    const gazed = readable(d, f.gaze, fc, writtenOn);
+    // (Whether the answer is looked at is the Director's own measure, `answerRead`: the simulated
+    // visitors choose among the room's lines, and an annotation is not one of them.)
+    if (o.forgetAt !== undefined && t - dt < o.forgetAt && t >= o.forgetAt) {
+      d.forgetContributions();
+      d.forgetVisits();
+    }
     const cues: TimedCue[] = d.tick(dt, {
-      x: f.x, z: f.z, yaw: f.yaw, pitch: f.pitch, gazePhraseId: readable(d, f.gaze, fc, writtenOn), gazeChair: f.gazeChair, nearSurface: nearWall(f.x, f.z), kneeling: f.kneeling,
+      x: f.x, z: f.z, yaw: f.yaw, pitch: f.pitch, gazePhraseId: gazed, gazeChair: f.gazeChair, nearSurface: nearWall(f.x, f.z), kneeling: f.kneeling,
     }, fc);
     traj.push({ t, yaw: f.yaw, x: f.x, z: f.z, facing: fc });
     if (Math.round(t / dt) % 20 === 0) fieldSamples.push({ ...d.field.v });
@@ -787,6 +827,29 @@ export function liveVisit(g: Genome, seed: number, o: VisitOptions = {}): VisitS
 
     for (const c of cues) {
       const cue = c.cue;
+      // (From the answer's first attempt: the wall is held for it while it waits for room.)
+      if (c.rule === 'heart-answer') answerTried = true;
+      if (c.rule === 'heart-kept') keptWaiting = false;
+      if (o.failOnce && !failed && cue.type === 'write' && cue.key.startsWith(o.failOnce)) {
+        failed = true;
+        if (c.rule === 'heart-kept') {
+          keptWaiting = true;
+          // (On the clock the visit's developments use: the end of this tick.)
+          keptFailedAt = +(t + dt).toFixed(2);
+        }
+        d.writeFailed(cue.key);
+        continue;
+      }
+      if (c.rule !== 'contribution') {
+        const north = (x?: string) => !!x && PHRASE_BY_ID.get(x)?.surface === 'north';
+        // (A line written alone for a memory, written again: on the wall it was written on.)
+        const redrawn = cue.type === 'redraw' && (cue.key ? writtenOn.get(cue.phraseId) === 'north' : north(cue.phraseId));
+        // (And a voice that writes its line there as it is heard.)
+        const voiced = cue.type === 'voice' && !!cue.write && north(cue.phraseId);
+        const onNorth = (cue.type === 'reveal' && north(cue.phraseId)) || redrawn || voiced || (cue.type === 'write' && !cue.key.startsWith('heart:') && (cue.surface === 'north' || north(cue.beside)));
+        if (onNorth && answerTried) northAfter++;
+        if (onNorth && keptWaiting) northWhileKept++;
+      }
       const id = cue.type === 'write' ? cue.source ?? cue.key : cue.type === 'reveal' || cue.type === 'redraw' ? cue.phraseId : null;
       if (id && PHRASE_BY_ID.has(id)) {
         const surface = cue.type === 'write' ? cue.surface ?? (cue.beside ? writtenOn.get(cue.beside) ?? PHRASE_BY_ID.get(cue.beside)?.surface : undefined) ?? PHRASE_BY_ID.get(id)!.surface : cue.type === 'redraw' ? writtenOn.get(id) ?? PHRASE_BY_ID.get(id)!.surface : PHRASE_BY_ID.get(id)!.surface;
@@ -794,7 +857,7 @@ export function liveVisit(g: Genome, seed: number, o: VisitOptions = {}): VisitS
       }
       if (cue.type === 'silence' && c.rule === 'leaving') ebbs++;
       if ((cue as { type: string }).type === 'leave') leftInRoom = t;
-      const k = classify(cue);
+      const k = classify(cue, (id) => writtenOn.get(id));
       if (!k) continue;
       const phrase = 'phraseId' in cue ? (cue.phraseId as string | undefined) : cue.type === 'write' ? cue.source : undefined;
       const surface = k.surface ?? (cue.type === 'write' && cue.beside ? writtenOn.get(cue.beside) : undefined) ?? (phrase ? writtenOn.get(phrase) : undefined);
@@ -822,7 +885,10 @@ export function liveVisit(g: Genome, seed: number, o: VisitOptions = {}): VisitS
         t: +(t + dt).toFixed(2), rule: c.rule, kind: k.kind, label: k.label, room: ROOM_OWN.test(c.rule), phrase, beside: cue.type === 'write' ? cue.beside : undefined,
         surface: posSurface ?? surface, at: at ?? (cue.type === 'air' ? 'chair' : undefined), seen, cue: cue.type, flashKind: cue.type === 'flash' ? cue.kind : undefined, dim,
       });
-      if (cue.type === 'memory-scene') memoryEnds = { id: cue.id, at: t + dt + memorySpan(cue.id, cue.maxHold) };
+      if (cue.type === 'memory-scene') {
+        memoryEnds = { id: cue.id, at: t + dt + memorySpan(cue.id, cue.maxHold) };
+        memorySpans.push([t, memoryEnds.at]);
+      }
       if (cue.type === 'vignette') memoryEnds = { id: cue.id, at: t + dt + vignetteSpan(cue.id, cue.variant) + 2.7 };
     }
   }
@@ -891,11 +957,14 @@ export function liveVisit(g: Genome, seed: number, o: VisitOptions = {}): VisitS
     }
   }
   // Windows of 30 s in which they did something and nothing the room did in answer was perceived.
-  const passive = { windows: 0, empty: 0 };
+  const passive = { windows: 0, empty: 0, inMemory: 0, emptyOutside: 0 };
   for (let s = 30; s + 30 <= end; s += 30) {
     if (!actions.some((a) => a.t >= s && a.t < s + 30)) continue;
     passive.windows++;
     if (!devs.some((x) => x.t >= s && x.t < s + 30 && perceived(x) && !x.room && x.kind !== 'silence')) passive.empty++;
+    // (Outside a painted memory: a memory playing is not the room failing to answer.)
+    if (memorySpans.some(([a, b]) => a < s + 30 && b > s)) passive.inMemory++;
+    else if (!devs.some((x) => x.t >= s && x.t < s + 30 && perceived(x) && !x.room && x.kind !== 'silence')) passive.emptyOutside++;
   }
   // Pacing, as the existing measures see it.
   const meaningfulDevs = devs.filter((x) => x.kind !== 'silence' || /^(withhold|held-silence|still-silence|resonance:table)$/.test(x.rule));
@@ -947,6 +1016,20 @@ export function liveVisit(g: Genome, seed: number, o: VisitOptions = {}): VisitS
       situations: [...new Set(devs.filter((x) => x.rule.startsWith('sit:')).map((x) => x.rule.split(':')[1]))],
       firstMemoryAt: firstMem?.t ?? null,
       offers: devs.filter((x) => x.rule === 'memory-offer').length,
+      heart: d.scenes.heart,
+      heartShape: d.heartShape(),
+      heartAt: d.scenes.heart ? devs.find((x) => x.label === `memory-scene ${d.scenes.heart}`)?.t ?? null : null,
+      answer: d.answerKept(),
+      answerAt: devs.find((x) => x.rule === 'heart-answer')?.t ?? null,
+      answerRead: d.answerRead(),
+      left: d.heartLeft(),
+      northAfter,
+      northWhileKept,
+      keptFailedAt,
+      kept: devs.some((x) => x.rule === 'heart-kept'),
+      recoiledAt: devs.find((x) => x.rule === 'return-recoil')?.t ?? null,
+      heartOfferedAt: d.scenes.heart ? devs.find((x) => x.rule === 'memory-offer' && x.phrase === SCENE_MEMORIES.find((m) => m.id === d.scenes.heart)?.phraseId)?.t ?? null : null,
+      memoryAt: Object.fromEntries(devs.filter((x) => x.cue === 'memory-scene').reverse().map((x) => [x.label.replace('memory-scene ', ''), x.t])),
     },
     approaches, field: thirds, phases,
     leaving: d.leaving(), departure: d.departureLine(),
