@@ -273,7 +273,7 @@ export class Director {
   private readonly legacy: boolean;
   private readonly seed: number;
   /** Memories seen on earlier visits, and this visit's coin for a shared heart (content/memories.ts heartOf). */
-  private readonly memoryCounts: Record<string, number>;
+  private memoryCounts: Record<string, number>;
   private readonly heartCoin: number;
   /** While the authored opening plays, the room's own rules wait and its clock doesn't run. */
   held = false;
@@ -2437,6 +2437,8 @@ export class Director {
    */
   forgetVisits(): void {
     this.scenes.forgetCounts();
+    // (And the earlier visits' counts the shared heart weighs, so they stop choosing it: Codex, PR #58.)
+    this.memoryCounts = {};
     this.visits = 1;
     // (Nor is the last visit's answer written now, if it hasn't been, or tried again: cubic, PR #57.)
     this.pastForgotten = true;

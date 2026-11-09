@@ -438,6 +438,8 @@ describe('return: one word kept, and forgotten on asking', () => {
     d.forgetVisits();
     expect(d.scenes.heard('cereal')).toBe(false);
     expect(d.scenes.heard('biscuit')).toBe(false);
+    // The shared heart stops weighing them too (Codex, PR #58).
+    expect((d as unknown as { memoryCounts: Record<string, number> }).memoryCounts).toEqual({});
   });
 
   it('the chair on return: turned away after closeness, as it was otherwise; and then nothing asks', () => {
