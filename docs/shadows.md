@@ -76,7 +76,7 @@ challenged by the skeptic; checked in the browser (`MEMORY=shadows node tests/pl
    seen (all four reviewers).
 7. **Upright phones follow her, then hold where they meet** (interaction designer; skeptic: never
    follow one of them after).
-8. **A shared heart** (interaction designer; recommended to the artist, whose call it is): as an offered
+8. **A shared heart** (interaction designer; the artist chose it on 2026-11-09): as an offered
    memory after another it played in 0–2% of simulated first visits. The skeptic measured the
    shared heart: woodland 16 → 12 and shadows 0 → 7 of 150 visits, painted reach 16 → 19. The reason
    is perceptual more than the line's rhyme: someone who has stayed 45 s by the chair is the visitor
