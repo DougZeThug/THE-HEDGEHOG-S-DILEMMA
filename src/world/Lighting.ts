@@ -21,6 +21,17 @@ export const shadowMapSize = (quality: 'low' | 'medium' | 'high') => (quality ==
 const SIG_TOL = [0.003, 0.003, 0.003, 0.003, 0.003, 0.003, 0.002, 0.002, 0.003, 0.01, 0.5];
 const UP = new THREE.Vector3(0, 1, 0);
 
+/**
+ * Where a memory takes the key when it holds the chair's shadow (Memory VII): a lamp low behind
+ * the chair, this far from it on the side away from the memory's wall and this high (m), so the
+ * chair's shadow is thrown up onto the wall, enlarged (the chair's back, 0.9 m, to about 2 m on a
+ * wall 3.2 m away); its cone this narrow (rad: onto the wall, never a hot spot on the floor by the
+ * lamp); its strength this much of the key's (the wall is further from it than the floor is from
+ * the ceiling). Low, it lights the wall and leaves the floor between in its own shadow, as a lamp
+ * on the floor does (the cinematic director's review, 2026-11-09).
+ */
+const LAMP = { out: 1.15, y: 0.42, cone: 0.36, gain: 1.4 };
+
 const COOL = new THREE.Color('#dbe6f0');
 const WARM = new THREE.Color('#ffdcb4');
 
@@ -72,6 +83,17 @@ export class Lighting {
   private glowKept = 1;
   private keyKept = 1;
   private mood = 1;
+  /**
+   * A memory's hold on the chair's shadow (Memory VII, docs/shadows.md): the room's one cast shadow
+   * is the first thing to move, and the shadow puppet's lamp is the room's own key. `amount` 0 is
+   * the room's light; 1 the key come down behind the chair, low, on the line from the memory's
+   * place on the wall (`at`, world) through the chair, narrowed onto that place: the chair's shadow
+   * crosses the floor, climbs the skirting and stands on the wall there, enlarged. `lamp` is how
+   * strong that low light is (0..1: it gives way to the memory's own light while the film plays).
+   * Set every frame a memory holds it; let go, it eases back on its own.
+   */
+  readonly memoryShadow = { amount: 0, lamp: 1, at: new THREE.Vector3(0, 1.2, -ROOM.halfD) };
+  private heldShadow = { amount: 0, lamp: 1 };
 
   constructor(quality: 'low' | 'medium' | 'high') {
     RectAreaLightUniformsLib.init();
@@ -247,6 +269,7 @@ export class Lighting {
     // The cone is aimed past the chair (`aim`), so the shadow's camera must see that much further
     // forward, or the chair's shadow ends in a straight edge just in front of its front legs.
     this.key.shadow.focus = 0.4 * (1 + Math.max(0, this.look.aim));
+    this.holdShadow(dt, chairPos);
     this.glow.position.set(chairPos.x, 0.7, chairPos.z + 0.25);
     // The shadow map is redrawn only when what it shows changes: the light moved or widened, or
     // the chair moved or turned (its blur reads a million texels twenty times on every redraw).
@@ -264,10 +287,48 @@ export class Lighting {
     if (dirty) sig.set(cur);
   }
 
+  /**
+   * A memory's hold on the chair's shadow, eased (quick to follow its timeline, slow to let go if
+   * it ends early): the key moved from where the room has it to the lamp's place behind the chair,
+   * its cone narrowed and aimed at the memory's place on the wall, its shadow's camera fitted to the
+   * cone. (Its own light, moved, not a new lamp: no warmth of its own; the skeptic's review.)
+   */
+  private holdShadow(dt: number, chairPos: THREE.Vector3) {
+    const m = this.memoryShadow, h = this.heldShadow;
+    const amt = THREE.MathUtils.clamp(m.amount, 0, 1);
+    h.amount = approach(h.amount, amt, dt, amt > h.amount ? 0.3 : 2.5);
+    h.lamp = approach(h.lamp, THREE.MathUtils.clamp(m.lamp, 0, 1), dt, 0.3);
+    this.lampLevel = 1;
+    if (h.amount < 1e-3) return;
+    const e = h.amount * h.amount * (3 - 2 * h.amount);
+    const away = this.flat.copy(chairPos).sub(m.at).setY(0);
+    if (away.lengthSq() < 1e-6) away.set(0, 0, 1);
+    away.normalize();
+    // Round the chair, not through it: angle, reach and height each eased (a straight line from
+    // overhead passed over the chair for a north wall, its shadow shrinking to nothing and
+    // flipping: the technical artist's review, 2026-11-09).
+    const k = this.key.position;
+    const dx = k.x - chairPos.x, dz = k.z - chairPos.z;
+    const a0 = Math.atan2(dz, dx), r0 = Math.hypot(dx, dz);
+    const a1 = Math.atan2(away.z, away.x);
+    let da = a1 - a0;
+    da -= Math.round(da / (2 * Math.PI)) * 2 * Math.PI;
+    const a = a0 + da * e, r = r0 + (LAMP.out - r0) * e;
+    k.set(chairPos.x + Math.cos(a) * r, k.y + (LAMP.y - k.y) * e, chairPos.z + Math.sin(a) * r);
+    this.key.target.position.lerp(m.at, e);
+    this.key.angle += (LAMP.cone - this.key.angle) * e;
+    this.key.shadow.focus += (1 - this.key.shadow.focus) * e;
+    this.lampLevel = 1 + (LAMP.gain * h.lamp - 1) * e;
+    this.key.intensity *= this.lampLevel;
+  }
+
   /** How much of the room's usual key light falls on the chair now (1 = as the room has it). */
   get keyLevel() {
-    return this.look.key > 0 ? this.key.intensity / (KEY * 0.85 * this.look.key) : 0;
+    return this.look.key > 0 ? this.key.intensity / this.lampLevel / (KEY * 0.85 * this.look.key) : 0;
   }
+
+  /** What a memory's hold has done to the key's strength (1: nothing). */
+  private lampLevel = 1;
 
   /** The look's warmth as it is now (0 white … 1 cream): the panel's glass and the ceiling follow it. */
   warmthNow = 0;

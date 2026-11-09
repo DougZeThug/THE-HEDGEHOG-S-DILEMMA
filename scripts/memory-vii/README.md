@@ -27,3 +27,9 @@ python3 scripts/memory-vii/render.py /tmp/picture.mp4        # ~6 min on 4 cores
 scripts/memory-vii/mix.sh /tmp/picture.mp4 audition/memory-vii/memory-vii.mp4
 python3 scripts/memory-vii/render.py /tmp/still.png --still 9.4,15.5   # stills
 ```
+
+## In the room
+
+The installation plays it as a living memory revealed by the room's own shadows (the chair's,
+thrown onto the wall; shade gathering out from it): `docs/shadows.md`. `render.py --room` renders
+that film; `web.sh` encodes it and makes its wall art (`order.py`); `room-sound.sh` its two cues.

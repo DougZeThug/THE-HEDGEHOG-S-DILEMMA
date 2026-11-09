@@ -5,7 +5,11 @@ light drifts across the plaster wall behind them, and their shadows, free of
 them, approach, hesitate, meet, embrace and come apart, a thin bridge of shade
 holding between them for a moment as they part.
 
-    python3 scripts/memory-vii/render.py OUT.mp4 [--preview] [--still SECONDS]
+    python3 scripts/memory-vii/render.py OUT.mp4 [--room] [--still SECONDS]
+
+--room renders the film the installation plays (src/memory/defs.ts SHADOWS): it opens and
+closes on the dim wall, never on black, so the wall's gathering shade (the first frame, revealed
+by order.py's map) and the film are one picture, in and out.
 
 Needs numpy, Pillow and ffmpeg. Silent: the sound is mixed by mix.py.
 """
@@ -15,6 +19,9 @@ import numpy as np
 from PIL import Image
 
 W, H, FPS, DUR = 1920, 1080, 24, 26.0
+ROOM = "--room" in sys.argv
+# The dim room before the light and after it: in the room the film opens on the plaster in shade.
+AMBIENT = (0.066, 0.068, 0.078) if ROOM else (0.020, 0.024, 0.034)
 SS = 2  # shadows and silhouettes are evaluated at 1/SS resolution (they are soft)
 
 # ---------------------------------------------------------------- timing
@@ -184,7 +191,7 @@ def frame(i):
     lit = pool * (1.0 - 0.9 * shade)
     alb = resample(PLASTER, z)
     warm = np.array([1.0, 0.80, 0.58], np.float32) * (1.0 + 0.04 * ease((t - 12) / 4))
-    amb = np.array([0.020, 0.024, 0.034], np.float32)
+    amb = np.array(AMBIENT, np.float32)
     img = alb[..., None] * (amb + lit[..., None] * warm * 1.25)
 
     # dust in the beam
@@ -220,14 +227,23 @@ def frame(i):
     blur = 80.0
     occ = up(np.clip(0.5 - fd / (2 * blur), 0.0, 1.0))
     occ = occ * occ * (3 - 2 * occ)
-    img = img * (1.0 - 0.94 * occ[..., None])
+    if ROOM:
+        # (They hide the lit wall behind them, and are lit only by the room's dim air themselves:
+        # in the dark before the light they are hardly there, as they are not on the wall.)
+        img = img * (1.0 - occ[..., None]) + occ[..., None] * (amb * 0.55 + (img - alb[..., None] * amb) * 0.06)
+    else:
+        img = img * (1.0 - 0.94 * occ[..., None])
 
-    # grade
-    img *= VIG[..., None]
-    fade = ease(t / 1.6) * (1 - ease((t - (DUR - 1.4)) / 1.4))
-    img *= fade
+    # grade (in the room, no vignette and no grain of its own: on the wall a darker rim read as a
+    # stain, and the room's post adds both when it is entered; the technical artist, 2026-11-09)
+    if not ROOM:
+        img *= VIG[..., None]
+    if not ROOM:
+        img *= ease(t / 1.6) * (1 - ease((t - (DUR - 1.4)) / 1.4))
     img = 1.0 - np.exp(-img * 1.35)
     img = np.clip(img, 0, 1) ** (1 / 2.05)
+    if ROOM:
+        return (np.clip(img, 0, 1) * 255 + 0.5).astype(np.uint8).tobytes()
     rng = np.random.default_rng(1000 + i)
     g = rng.standard_normal((H // 2, W // 2), dtype=np.float32)
     g = np.asarray(Image.fromarray(g, mode="F").resize((W, H), Image.BILINEAR), dtype=np.float32)

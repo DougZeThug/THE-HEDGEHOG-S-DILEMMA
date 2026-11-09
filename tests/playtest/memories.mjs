@@ -21,8 +21,8 @@ const BASE = process.env.BASE ?? 'http://localhost:4173/';
 const OUT = process.env.OUT ?? `test-output/review/memories/${process.env.MEMORY ?? 'cereal'}`;
 const PROFILES = (process.env.PROFILES ?? 'desktop,phone').split(',');
 const MEMORY = process.env.MEMORY ?? 'cereal';
-const VARIANT = process.env.VARIANT ?? { cereal: 'first', bedroom: 'morning', door: 'approach', woodland: 'afternoon', almost: 'film', things: 'film' }[MEMORY];
-const PHRASE = { cereal: 'cereal', bedroom: 'happiest-unneeded', door: 'door-open', woodland: 'more-minutes', almost: 'your-hand', things: 'didnt-know-say' }[MEMORY];
+const VARIANT = process.env.VARIANT ?? { cereal: 'first', bedroom: 'morning', door: 'approach', woodland: 'afternoon', almost: 'film', things: 'film', shadows: 'film' }[MEMORY];
+const PHRASE = { cereal: 'cereal', bedroom: 'happiest-unneeded', door: 'door-open', woodland: 'more-minutes', almost: 'your-hand', things: 'didnt-know-say', shadows: 'understood-minute' }[MEMORY];
 // Stages: [name, sequence position or null for the untouched wall], per memory.
 const STAGES = {
   cereal: [['0-untouched', null], ['1-first-drawing', 1.8], ['2-developing', 3.8], ['3-active', 9], ['4-active-late', 20], ['5-dissolving', 24.5], ['6-drawing-alone', 26.2], ['7-residue', 29]],
@@ -47,6 +47,12 @@ const STAGES = {
   things: [['00-untouched', null], ['01-construction', 2.2], ['02-her', 4.0], ['03-him', 6.0], ['04-tone', 7.5], ['05-carried', 9.5], ['06-inside', 11.2],
     ['07-wave', 12.4], ['08-walk', 15.0], ['09-door', 18.3], ['10-silence', 21.0], ['11-found', 25.0], ['12-turning', 27.0], ['13-his-hand', 30.0],
     ['14-taken-back', 33.0], ['15-hers', 39.0], ['16-erased', 46.0], ['17-empty', 50.0], ['18-returning', 55.5], ['19-trace', 59.5], ['20-white-room', 63.0]],
+  // Memory VII (docs/shadows.md): the chair's shadow onto the wall, the shade round it, the film's
+  // light in it, the way in, the film's beats (it begins on the wall at 5.5 s: src/memory/defs.ts
+  // SHADOWS_BEATS), the way out: the chair's shadow alone, the words first, the shade back, home.
+  shadows: [['00-untouched', null], ['01-chair-shadow', 2.0], ['02-on-the-wall', 4.2], ['03-gathering', 5.5], ['04-light-on-wall', 7.8], ['05-carried', 9.8], ['06-inside', 12.0],
+    ['07-bows', 14.3], ['08-meet', 18.4], ['09-hold', 21.0], ['10-thread', 24.3], ['11-dark', 30.2], ['12-returning', 33.0], ['13-chair-alone', 34.8],
+    ['14-words-first', 36.0], ['15-withdrawing', 38.0], ['16-sliding-home', 41.0], ['17-white-room', 44.0]],
 }[MEMORY];
 mkdirSync(OUT, { recursive: true });
 

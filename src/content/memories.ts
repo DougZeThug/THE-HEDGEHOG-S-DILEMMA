@@ -98,6 +98,15 @@ export const SCENE_MEMORIES: SceneMemory[] = [
     id: 'things', phraseId: 'didnt-know-say', earliest: 210, arc: 'afterAnother', arm: 2.5, commit: 1.0, minHold: 12, seenAt: 26, maxHold: 53.0, span: 63.0,
     variants: { first: 'film', revisit: [] }, lookBack: false, offer: { phases: ['contradiction', 'transform'], apart: 120 }, reserved: true,
   },
+  // Memory VII, The Shape of Someone (docs/shadows.md): the chair's shadow climbs the wall, shade
+  // gathers round it, and in it two people's shadows come together and hold each other while the
+  // people stay apart. It opens from "You understood me once, completely, for about a minute."
+  // Offered once another memory has been, as the room begins to contradict itself; seen once it
+  // has been entered and played to their meeting (defs.ts SHADOWS_AT + SHADOWS_BEATS.meet, 18.1 s).
+  {
+    id: 'shadows', phraseId: 'understood-minute', earliest: 190, arc: 'afterAnother', arm: 2.5, commit: 1.0, minHold: 12, seenAt: 18, maxHold: 30.5, span: 44.0,
+    variants: { first: 'film', revisit: [] }, lookBack: false, offer: { phases: ['contradiction', 'transform'], apart: 120 }, reserved: true,
+  },
   // Peace with a cost: the longest, once the room has begun to contradict itself.
   {
     id: 'bedroom', phraseId: 'happiest-unneeded', earliest: 150, arm: 2.5, commit: 1.0, minHold: 12, maxHold: 26,

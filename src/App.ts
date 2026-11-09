@@ -617,7 +617,7 @@ export class App {
     // Anything already drawn on that wall is kept clear of (a painting never lands on a drawing).
     this.memoryWindow.avoid = fixed ? [] : this.drawingsOn(a.group);
     this.memoryWindow.setLayers(prepared.layers, prepared.size, prepared.band);
-    this.memoryWindow.setLiving(prepared.living ? { crop: prepared.living.crop, size: prepared.size, order: prepared.living.order } : null, !prepared.living && !!prepared.def.living);
+    this.memoryWindow.setLiving(prepared.living ? { crop: prepared.living.crop, size: prepared.size, order: prepared.living.order, feather: prepared.living.feather } : null, !prepared.living && !!prepared.def.living);
     this.inside.begin(hashString(a.key), this.prefs.reducedMotion);
     const memory = new rt.LivingMemory(prepared, {
       reduced: this.prefs.reducedMotion,
@@ -639,7 +639,7 @@ export class App {
     // A memory whose music is the room's last: no chord of the room's under it (its reverb isn't
     // hushed, and four of its five chords are a semitone from the woodland's key).
     if (this.ambience && (prepared.def.lastMusic === prepared.variant || prepared.def.drone === false)) this.ambience.score.drone = 0;
-    if (prepared.def.roomDim) this.lighting.dimToChair(prepared.def.roomDim, prepared.def.maxHold + 4, this.time);
+    if (prepared.def.roomDim) this.lighting.dimToChair(prepared.def.roomDim, Math.max(prepared.def.maxHold, prepared.def.sections.exit) + (prepared.def.roomDimOut ?? 4), this.time);
     if (this.director.scenes.active?.id !== id) this.director.memoryExternal(id, !!prepared.voices);
     // Its position 0 is this instant on the audio clock, for its first sounds and its first frame
     // alike (the clock measures its first frame from here: QA, 2026-10-19).
@@ -654,8 +654,9 @@ export class App {
     if (!l) return;
     // What the picture is, for a screen reader (not shown: the captions are for sounds).
     if (s === 'active') this.srRegion().textContent = l.memory.prepared.def.describe(l.memory.prepared.variant);
-    // Letting go early: the room's own light comes back with it (over about 4 s).
-    if (s === 'withdrawing' && l.memory.prepared.def.roomDim) this.lighting.dimToChair(l.memory.prepared.def.roomDim, 4, this.time);
+    // Letting go early: the room's own light comes back with it (over about 4 s; Memory VII's
+    // keeps the room down while its shade goes back into the wall: `roomDimOut`).
+    if (s === 'withdrawing' && l.memory.prepared.def.roomDim) this.lighting.dimToChair(l.memory.prepared.def.roomDim, l.memory.prepared.def.roomDimOut ?? 4, this.time);
     if (s === 'residue' || s === 'complete') {
       // The room comes back as the memory lets go (issued now, never precomputed).
       this.audio?.memoryHush(0, 20);
@@ -719,6 +720,23 @@ export class App {
     this.memoryLight.strength = (this.prefs.intensity === 'gentle' ? 0.6 : 1) * spill;
     this.memoryLight.startPane(l.anchor.group, at.x, at.y, (pane.w / 2) * at.scale, (pane.h / 2) * at.scale, pane.transom * at.scale, pane.mullion * at.scale, { attack: 3, hold: 4, release: 6 }, this.time, 0);
     this.memoryKey = l.key;
+  }
+
+  /**
+   * A living memory's hold on the chair's shadow (Memory VII, docs/shadows.md: `room.shadow` and
+   * `room.lamp`), from its last frame: the lamp is aimed at its painting's place on the wall, a
+   * little under its middle. Nothing playing, or nothing held, and the shadow goes home by itself.
+   */
+  private holdChairShadow() {
+    const m = this.lighting.memoryShadow;
+    const l = this.living;
+    const f = l?.memory.controller.frame?.final;
+    m.amount = f?.['room.shadow'] ?? 0;
+    m.lamp = f?.['room.lamp'] ?? 1;
+    if (!l || m.amount <= 0 || !this.memoryWindow.isPlaced) return;
+    const p = this.memoryWindow.painting;
+    l.anchor.group.updateWorldMatrix(true, false);
+    l.anchor.group.localToWorld(m.at.set(p.cx, p.cy - 0.15 * p.h, 0));
   }
 
   /** Let the playing memory go: gracefully, or (switch, depart, hidden) at once. */
@@ -1194,7 +1212,7 @@ export class App {
     // is its only cut.
     const shot = pl.scene.choose(f.final, { inside: this.inside.taken, turn: this.inside.turned, t: f.t, now: this.time, aspect });
     this.post.close = shot > 0 ? 1 : 0;
-    const focus = upright ? pl.spec.cover.upright : pl.spec.coverAt?.(aspect) ?? (aspect > 2.0 ? pl.spec.cover.ultra : pl.spec.cover.wide);
+    const focus = upright ? pl.spec.uprightAt?.(f.final['scene.film'] ?? 0) ?? pl.spec.cover.upright : pl.spec.coverAt?.(aspect) ?? (aspect > 2.0 ? pl.spec.cover.ultra : pl.spec.cover.wide);
     const go = this.inside.step(dt, {
       immerse: f.final['scene.immerse'] ?? 0,
       focus,
@@ -1204,6 +1222,7 @@ export class App {
       leavingNaturally: f.state === 'withdrawing' || f.state === 'residue',
       approach: 'scene.approach' in f.final ? f.final['scene.approach'] : undefined,
       torn: pl.torn,
+      shade: pl.shade,
       scale: upright ? pl.spec.cover.uprightScale ?? 1 : 1,
     }, { reduced: this.prefs.reducedMotion, aspect, scene: pl.scene.target.texture, group: l.anchor.group });
     // The window was placed before the spread changed: place it again for this frame.
@@ -1611,6 +1630,7 @@ export class App {
     const v = this.director.visitor;
     const scaleTarget = this.prefs.reducedMotion ? 1 + (env.roomScale - 1) * 0.3 : env.roomScale;
     this.room.setScale(this.room.scale + (scaleTarget - this.room.scale) * (1 - Math.exp(-dt / 6)));
+    this.holdChairShadow();
     this.lighting.update(dt, env, this.time, this.chair.group.position, this.chair.group.rotation.y);
     if (this.lighting.shadowDirty) this.renderer.shadowMap.needsUpdate = true;
     // Exposure, like the look's light, comes and goes with the room's own light (the opening, a dim).

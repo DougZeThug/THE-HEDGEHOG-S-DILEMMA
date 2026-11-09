@@ -47,6 +47,7 @@ const smooth = (e0: number, e1: number, x: number) => {
  *   people   = base × s(0.55, 1, exit)
  *   shot     = the wide (0) as soon as it is let go
  *   immerse  = base × s(0.25, 0.75, exit)      (not × presence: gentle still goes all the way in)
+ *   shadow   = the same (the chair's shadow, held by Memory VII, goes home with the way in)
  *   painting = base × emerge × s(0, 0.35, exit) × presence   (opacity, presence, light)
  */
 export function compose(base: Values, env: Values, w: Weights, living = false): Values {
@@ -75,6 +76,10 @@ export function compose(base: Values, env: Values, w: Weights, living = false): 
         break;
       case 'immerse':
       case 'approach':
+        out[k] = clamp01(v * smooth(0.25, 0.75, exitRaw));
+        break;
+      case 'shadow':
+        // (The room's own shadow, held by a memory: let go early, it goes home with the way in.)
         out[k] = clamp01(v * smooth(0.25, 0.75, exitRaw));
         break;
       case 'people':
