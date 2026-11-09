@@ -1116,8 +1116,10 @@ export class App {
     }
     const f = l.memory.controller.scrub(position);
     this.memoryWindow.update(f.final, this.rig.restingEye, 1);
-    // (The streetlights too, so a capture or the editor shows where a pass is.)
+    // (The streetlights too, so a capture or the editor shows where a pass is; and the light that
+    // comes to the visitor at the end, on its own clock, as it would played.)
     this.memoryWindow.setBand(this.street.update(f.final['room.street'] ?? 0));
+    this.leanToVisitor(l, f.final['room.lean'] ?? 0);
     this.drawLiving(l, f, 0);
     return { state: f.state, position: f.position, final: f.final };
   }
@@ -1197,6 +1199,7 @@ export class App {
       if (f) {
         this.memoryWindow.update(f.final, this.rig.restingEye, 1 / 60);
         this.memoryWindow.setBand(this.street.update(f.final['room.street'] ?? 0));
+        this.leanToVisitor(l, f.final['room.lean'] ?? 0);
         this.drawLiving(l, f, 0);
         this.bleedMemory(l, f);
       }
