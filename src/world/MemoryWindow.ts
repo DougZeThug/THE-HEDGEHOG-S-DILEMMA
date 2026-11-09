@@ -70,6 +70,10 @@ const FRAG = /* glsl */ `
   // Its words lie on it, washed to a trace (a living memory's revisit, on the wall without a scene
   // of its own): no plaster kept round them.
   uniform float uUnder;
+  // A living memory's own soft edge on the wall (m; 0: the usual brush): shade has no edge
+  // (Memory VII: a 6-11 cm brush round a patch of shade read as a stain; the technical artist's
+  // and the cinematic director's reviews, 2026-11-09).
+  uniform float uFeather;
   varying vec2 vUv;
 
   vec3 toLinear(vec3 c) { return mix(c / 12.92, pow((c + 0.055) / 1.055, vec3(2.4)), step(0.04045, c)); }
@@ -118,7 +122,7 @@ const FRAG = /* glsl */ `
     // a brush, not a frame). One drawn in order has its corners rounded as wide as its band (no
     // corner is ever seen: image 3 has none; the creative director's and the skeptic's reviews).
     vec2 e = min(vUv, 1.0 - vUv) * uSize;
-    float band = (0.06 + 0.05 * n) * (1.0 + 0.6 * uOpen);
+    float band = max((0.06 + 0.05 * n) * (1.0 + 0.6 * uOpen), uFeather * (0.9 + 0.2 * n));
     float rr = band * 1.5 * uOrdered;
     float ed = (e.x < rr && e.y < rr) ? rr - length(vec2(rr) - e) : min(e.x, e.y);
     float edge = smoothstep(0.0, band, ed + (n2 - 0.5) * 0.08 * uOpen);
@@ -298,6 +302,7 @@ export class MemoryWindow {
       uSunk: { value: 1 },
       uLift: { value: 0 },
       uUnder: { value: 0 },
+      uFeather: { value: 0 },
     };
     const mat = new THREE.ShaderMaterial({
       uniforms: this.u,
@@ -348,8 +353,9 @@ export class MemoryWindow {
    * the plaster as its scene was, and lying under its words, which are washed (src/App.ts): without,
    * its words' bare plaster took the top half of it, and at full strength the dusk was a black stain.
    */
-  setLiving(o: { crop: [number, number, number, number]; size: [number, number]; order?: THREE.Texture | null } | null, under = false): void {
+  setLiving(o: { crop: [number, number, number, number]; size: [number, number]; order?: THREE.Texture | null; feather?: number } | null, under = false): void {
     this.living = o;
+    this.u.uFeather.value = o?.feather ?? 0;
     this.spread = 0;
     this.u.uSoftReserve.value = o ? 1 : 0;
     this.u.uSunk.value = o || under ? SUNK : 1;

@@ -1,4 +1,4 @@
-import { ALL_MEMORIES, HEART_BY_SHAPE, HEART_EARLIEST, MEMORY_BY_PHRASE, linesOf, type SceneMemory } from '../content/memories';
+import { ALL_MEMORIES, HEART_IDS, HEART_EARLIEST, MEMORY_BY_PHRASE, linesOf, type SceneMemory } from '../content/memories';
 import { VIGNETTE_BY_ID, chooseVariant, spokenLines, type Echo, type VariantContext } from '../content/vignettes';
 import { chooseVoices, voicesId } from '../content/memory-voices';
 
@@ -116,7 +116,7 @@ export const POINTS_PER_VISIT = 3;
 /** …and never this soon after a vignette has ended. */
 export const POINT_AFTER_VIGNETTE = 60;
 /** The memories that can be a visit's heart. */
-const HEARTS: ReadonlySet<string> = new Set(Object.values(HEART_BY_SHAPE));
+const HEARTS: ReadonlySet<string> = HEART_IDS;
 /** A heart pointed at and let be this long no longer keeps the others back. */
 export const HEART_LAPSE = 120;
 /** A heart pointed at and not taken up is written again once, no sooner than this. */

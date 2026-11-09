@@ -50,7 +50,7 @@ const mean = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.l
 // (A median of -0.4 s is 0 s, not "-0".)
 const f0 = (x: number) => (Number.isFinite(x) ? (Math.round(x) || 0).toFixed(0) : '—');
 const f1 = (x: number) => (Number.isFinite(x) ? (Math.round(x * 10) / 10 || 0).toFixed(1) : '—');
-const STRONG = ['almost', 'things', 'woodland'];
+const STRONG = ['almost', 'things', 'woodland', 'shadows'];
 
 const t0 = Date.now();
 const runs: Record<string, Record<number, VisitSummary[]>> = {};

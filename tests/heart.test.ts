@@ -145,7 +145,7 @@ describe('the heart, through whole visits', () => {
 
   it('reaches the strongest memories, where the room before it seldom did', { timeout: 120_000 }, () => {
     const before = genomes.map((g) => liveVisit(g, 1, { seconds: 420, experiments: ['noHeart'] }));
-    const strong = (r: VisitSummary) => r.reach.memories.some((m) => ['almost', 'things', 'woodland'].includes(m));
+    const strong = (r: VisitSummary) => r.reach.memories.some((m) => ['almost', 'things', 'woodland', 'shadows'].includes(m));
     expect(runs.filter(strong).length).toBeGreaterThan(before.filter(strong).length + 3);
     expect(before.every((r) => r.reach.heart === null)).toBe(true);
   });

@@ -1,7 +1,7 @@
 import { DRAWINGS, DRAWING_BY_ID } from '../content/drawings';
 import { MemoryDirector, type PendingEcho } from './MemoryDirector';
 import { VIGNETTE_BY_ID, lineKey } from '../content/vignettes';
-import { HEART_AFTER_RECOIL, HEART_ANSWER, HEART_BY_SHAPE, HEART_DECIDE, SCENE_MEMORIES, type HeartShape } from '../content/memories';
+import { HEART_AFTER_RECOIL, HEART_ANSWER, HEART_DECIDE, heartOf, SCENE_MEMORIES, type HeartShape } from '../content/memories';
 import { Rng } from '../core/rng';
 import { EventScheduler } from '../core/scheduler';
 import { clamp, smoothstep } from '../core/math';
@@ -272,6 +272,9 @@ export class Director {
   private openingDone = false;
   private readonly legacy: boolean;
   private readonly seed: number;
+  /** Memories seen on earlier visits, and this visit's coin for a shared heart (content/memories.ts heartOf). */
+  private memoryCounts: Record<string, number>;
+  private readonly heartCoin: number;
   /** While the authored opening plays, the room's own rules wait and its clock doesn't run. */
   held = false;
   private nextAccumulate = 4;
@@ -302,6 +305,9 @@ export class Director {
     this.gapRng = new Rng(opts.seed * 7919 + 101);
     this.seed = opts.seed;
     this.scenes = new MemoryDirector(opts.memoryCounts ?? {});
+    this.memoryCounts = { ...(opts.memoryCounts ?? {}) };
+    // (Its own draw from the visit's seed, so nothing else the room draws moves with it.)
+    this.heartCoin = new Rng(opts.seed * 104729 + 7).next();
     this.visits = opts.visits ?? 1;
     // Stillness is one way in among many: it is answered soon, but not always the same way.
     const t1 = this.rng.range(5, 9);
@@ -1745,7 +1751,7 @@ export class Director {
     const shape = this.heartShape();
     if (!shape) return;
     // (Until its line is pointed at, the heart may change: a recoil makes it Almost.)
-    this.scenes.setHeart(HEART_BY_SHAPE[shape], shape === 'recoiled' ? this.recoiledAt! + HEART_AFTER_RECOIL : 0);
+    this.scenes.setHeart(heartOf(shape, this.memoryCounts, this.heartCoin), shape === 'recoiled' ? this.recoiledAt! + HEART_AFTER_RECOIL : 0);
   }
 
   /**
@@ -2431,6 +2437,8 @@ export class Director {
    */
   forgetVisits(): void {
     this.scenes.forgetCounts();
+    // (And the earlier visits' counts the shared heart weighs, so they stop choosing it: Codex, PR #58.)
+    this.memoryCounts = {};
     this.visits = 1;
     // (Nor is the last visit's answer written now, if it hasn't been, or tried again: cubic, PR #57.)
     this.pastForgotten = true;

@@ -76,6 +76,17 @@ export const SCENE: Schema[string] = {
 };
 
 /**
+ * The room round a living memory (Memory VII, docs/shadows.md; src/world/Lighting.ts):
+ *   shadow  the chair's shadow: 0 as the room's light throws it, 1 thrown onto the memory's wall
+ *           by a low light behind the chair (the room's key, brought down there)
+ *   lamp    how strong that low light is (0..1): it gives way while the memory's own light plays
+ */
+export const ROOM: Schema[string] = {
+  shadow: [0, 0, 1],
+  lamp: [1, 0, 1],
+};
+
+/**
  * A person in a living memory. What they do on purpose (their involuntary life, breathing and
  * blinking, follows from time: src/memory/living/performance.ts):
  *   head      radians at the neck (a few degrees at most: a flat drawing can't turn far)
@@ -112,6 +123,7 @@ export function memorySchema(layers: string[], living = false): Schema {
   for (const l of layers) s[`layer:${l}`] = LAYER;
   if (living) {
     s.scene = SCENE;
+    s.room = ROOM;
     s['figure:a'] = FIGURE;
     s['figure:b'] = FIGURE;
   }
