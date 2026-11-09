@@ -57,6 +57,16 @@ export interface ApproachRecord {
   enteredAt: number;
   leftAt: number | null;
   dwell: number;
+  /**
+   * They came to the chair (docs/reviews/2026-11-core-loop.md): heading for it as they came within
+   * reach, then stopped by it a moment or came right up to it. Walking past it, backing in, or
+   * being carried there by a memory is not coming to it; nor is coming in and going without
+   * stopping (`pass`) — unless, however they came in, they then stand still right beside it,
+   * seeing it.
+   */
+  confirmed: boolean;
+  arrivedAt: number | null;
+  pass: boolean;
 }
 
 export class VisitorModel {
@@ -115,7 +125,14 @@ export class VisitorModel {
 
   private lastYaw = 0;
   private lastPitch = 0;
+  /** How far up (+) or down (−) they are looking, radians. */
+  get pitch(): number {
+    return this.lastPitch;
+  }
   private initialised = false;
+  /** The last second of where they were (which way they were going as they came near the chair). */
+  private trail: { t: number; jump: boolean; x: number; z: number }[] = [];
+  private stopRun = 0;
 
   update(dt: number, inp: VisitorInput): void {
     this.t += dt;
@@ -144,16 +161,18 @@ export class VisitorModel {
     this.lastPitch = inp.pitch;
     this.lookActivity = approach(this.lookActivity, dt > 0 ? look / dt : 0, dt, 0.6);
 
-    // Stillness
-    if (this.speed < 0.04) {
-      this.stillFor += dt;
-      if (this.lookActivity < 0.12) {
-        this.deepStillFor += dt;
-        this.totalStill += dt;
-      } else this.deepStillFor = Math.max(0, this.deepStillFor - dt * 3);
-    } else {
-      this.stillFor = 0;
-      this.deepStillFor = 0;
+    // Stillness. Carried: the memory's journey is not the visitor's stillness, so the accumulators hold.
+    if (!inp.carried) {
+      if (this.speed < 0.04) {
+        this.stillFor += dt;
+        if (this.lookActivity < 0.12) {
+          this.deepStillFor += dt;
+          this.totalStill += dt;
+        } else this.deepStillFor = Math.max(0, this.deepStillFor - dt * 3);
+      } else {
+        this.stillFor = 0;
+        this.deepStillFor = 0;
+      }
     }
     this.longestStill = Math.max(this.longestStill, this.deepStillFor);
 
@@ -163,13 +182,19 @@ export class VisitorModel {
     // Distance to chair and approach/withdraw cycles (hysteresis).
     this.distance = Math.hypot(inp.x, inp.z);
     this.distanceSlow = approach(this.distanceSlow, this.distance, dt, 4);
+    this.trail.push({ t: this.t, jump: step > 0.4 || !!inp.carried, x: inp.x, z: inp.z });
+    while (this.trail.length && this.t - this.trail[0].t > 1) this.trail.shift();
+
     // Carried: the memory's own move is not the visitor's approach or retreat, so the bands hold.
     if (!inp.carried) {
       if (!this.near && this.distance < BANDS.near) {
         this.near = true;
         this.nearSince = this.t;
         this.lastApproachAt = this.t;
-        this.approaches.push({ enteredAt: this.t, leftAt: null, dwell: 0 });
+        // Backing in, the chair out of view, a jump (a memory's carry), or heading somewhere else: not coming to it.
+        const pass = this.chairOutOfViewFor > 0.5 || !this.heading(inp.x, inp.z) || this.trail.slice(-5).some((p) => p.jump);
+        this.approaches.push({ enteredAt: this.t, leftAt: null, dwell: 0, confirmed: false, arrivedAt: null, pass });
+        this.stopRun = 0;
         this.armedWithdraw = false;
       } else if (this.near && this.distance > BANDS.near + 0.25) {
         this.near = false;
@@ -178,12 +203,25 @@ export class VisitorModel {
           rec.leftAt = this.t;
           rec.dwell = this.t - rec.enteredAt;
         }
-        this.armedWithdraw = true;
+        if (rec && !rec.confirmed) rec.pass = true;
+        // (Passing by is not coming near: it makes no withdrawal, and no hesitation.)
+        this.armedWithdraw = !rec?.pass;
       }
       if (this.near) {
         this.totalNear += dt;
         const rec = this.approaches[this.approaches.length - 1];
-        if (rec) rec.dwell = this.t - rec.enteredAt;
+        if (rec) {
+          rec.dwell = this.t - rec.enteredAt;
+          // Arrived: stopped by it half a second, or come right up to it, or come straight at it and
+          // straight back out again (the hesitation itself: not walking past it).
+          this.stopRun = this.speed < 0.15 ? this.stopRun + dt : 0;
+          // (However they came in: standing still right beside it, seeing it, is being with it — QA, 2026-11-06.)
+          if (!rec.confirmed && this.stopRun >= 0.5 && this.distance <= 0.9 && this.chairOutOfViewFor === 0 && !inp.carried) rec.pass = false;
+          if (!rec.confirmed && !rec.pass && (this.stopRun >= 0.5 || this.distance <= 0.6 || this.heading(inp.x, inp.z, -1, 45))) {
+            rec.confirmed = true;
+            rec.arrivedAt = this.t;
+          }
+        }
       }
       if (this.armedWithdraw && this.distance > BANDS.withdraw) {
         this.armedWithdraw = false;
@@ -256,6 +294,31 @@ export class VisitorModel {
       this.chairOutOfViewFor = inView ? 0 : this.chairOutOfViewFor + dt;
     }
     this.gazeChair = inp.gazeChair;
+  }
+
+  /**
+   * Moving toward the chair (`sign` 1) or straight away from it (−1): the last half-second's travel
+   * within `within`° of that way. Not moving: no evidence against going toward it, none for going away.
+   */
+  private heading(x: number, z: number, sign: 1 | -1 = 1, within = 25): boolean {
+    const back = this.trail.filter((p) => this.t - p.t <= 0.6);
+    const from = back[0];
+    if (!from) return sign === 1;
+    const mx = x - from.x, mz = z - from.z;
+    const m = Math.hypot(mx, mz);
+    if (m < 0.05) return sign === 1;
+    const bx = -x * sign, bz = -z * sign, b = Math.hypot(bx, bz) || 1;
+    return (mx * bx + mz * bz) / (m * b) > Math.cos((within * Math.PI) / 180);
+  }
+
+  /** The approach in progress, or the last one. */
+  get lastApproach(): ApproachRecord | undefined {
+    return this.approaches[this.approaches.length - 1];
+  }
+
+  /** Approaches that were approaches (not walking past the chair). */
+  get comings(): ApproachRecord[] {
+    return this.approaches.filter((a) => a.confirmed);
   }
 
   /** The visitor touched these words: treat it as deliberate, settled attention. */

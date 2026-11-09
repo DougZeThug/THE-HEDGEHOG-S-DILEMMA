@@ -5,15 +5,18 @@ import { weightsFor } from './compose';
 import { MEMORIES, sheetId, type MemoryDef } from './defs';
 import { memorySchema } from './sheets';
 import { sheetSource } from './theatre';
-import type { Lifecycle, MemoryFrame, ReleaseReason } from './types';
+import type { Lifecycle, MemoryFrame, ReleaseReason, TimelineSource } from './types';
 import type { WindowLayer, LayerKind } from '../world/MemoryWindow';
 import { LivingScene, type FigureArt, type HeadCels, type LivingArt, type NearArt, type Eye } from './living/LivingScene';
 import { WOODLAND as WOODLAND_SPEC, type LivingSpec } from './living/woodland';
 import { ALMOST } from './living/almost';
 import { THINGS } from './living/things';
+import { SHADOWS } from './living/shadows';
+import { DRIVE } from './living/drive';
 import { WOODLAND_FILM_SPEC, type FilmSpec } from './living/woodlandFilm';
 import { FilmScene, filmType, loadFilm, releaseFilm } from './living/FilmScene';
 import { fetchBlob } from './fetched';
+import { withVoices } from '../content/memory-voices';
 
 /**
  * The memories' runtime: a lazy chunk (GSAP, Theatre.js, the controller and the memory's audio),
@@ -55,12 +58,17 @@ interface FilmManifest {
   frames: number;
   order?: string | null;
   immerse: boolean;
-  /** Its edge when carried out of the wall: torn (felt, "Almost": the default) or soft (a sheet rubbed). */
-  edge?: 'torn' | 'soft';
+  /**
+   * Its edge when carried out of the wall: torn (felt, "Almost": the default), soft (a sheet
+   * rubbed) or shade (Memory VII: no raggedness at all, a wide fall, as a shadow's edge).
+   */
+  edge?: 'torn' | 'soft' | 'shade';
+  /** Its soft edge on the wall (m), if wider than the usual brush (Memory VII's shade: 0.5). */
+  feather?: number;
 }
 
 /** Where each film sits when it covers the screen (src/memory/living/), by memory. */
-const FILM_SPECS: Record<string, FilmSpec> = { almost: ALMOST, things: THINGS, woodland: WOODLAND_FILM_SPEC };
+const FILM_SPECS: Record<string, FilmSpec> = { almost: ALMOST, things: THINGS, shadows: SHADOWS, drive: DRIVE, woodland: WOODLAND_FILM_SPEC };
 
 const isFilm = (m: LivingManifest | FilmManifest | null | undefined): m is FilmManifest => !!m && (m as FilmManifest).kind === 'film';
 /** How long the film's bytes may take to come (ms; most are fetched ahead, when its line is armed). */
@@ -116,6 +124,12 @@ export interface RuntimeHost {
   screen?: { width: number; height: number };
   noise?: THREE.Texture;
   reduced?: boolean;
+  /**
+   * The version of its overheard voices to lay in (src/content/memory-voices.ts), already chosen by
+   * the Director and allowed by the recordings (null: wordless, as it always was), and a key's
+   * recordings (to find a line's reading by name).
+   */
+  voices?: { version: string | null; filesOf?: (key: string) => readonly string[] };
 }
 
 /** A living memory's scene, prepared (src/memory/living/): a painting that lives, or a film. */
@@ -127,6 +141,8 @@ export interface PreparedLiving {
   immerse: boolean;
   /** Carried out of the wall, its edge is torn (hard and ragged) rather than a soft brush. */
   torn?: boolean;
+  /** ... or a shadow's: no raggedness, a wide fall. */
+  shade?: boolean;
   /** What the wall shows first (painting uv: x0, y0, w, h). */
   crop: [number, number, number, number];
   /** The painting's aspect (w / h). */
@@ -135,6 +151,8 @@ export interface PreparedLiving {
   order: THREE.Texture | null;
   /** When the colour reaches a point of the painting (uv, y up; the order map's g), or null. */
   colourAt: ((u: number, v: number) => number) | null;
+  /** Its soft edge on the wall (m), if wider than the usual brush. */
+  feather?: number;
 }
 
 export interface Prepared {
@@ -149,6 +167,8 @@ export interface Prepared {
   register: { x: number; y: number; h: number } | null;
   layers: WindowLayer[];
   audio: MemoryAudio | null;
+  /** The voices laid in (memory-voices.ts), or null. */
+  voices: { version: string; filesOf?: (key: string) => readonly string[] } | null;
   /** Drawn by a living scene (its render target is the first layer), or null. */
   living: PreparedLiving | null;
   dispose(): void;
@@ -297,10 +317,13 @@ export async function prepare(id: string, variant: string, host: RuntimeHost): P
   const manifest = await manifestOf(base, def.art);
   const suffix = host.quality === 'low' ? '@low' : '';
   let audio: MemoryAudio | null = null;
+  const voices = host.voices?.version ? { version: host.voices.version, filesOf: host.voices.filesOf } : null;
   if (host.audio) {
     const sid = sheetId(def.id, v);
     const src = sheetSource(sid, memorySchema(def.layers, def.living), { sections: def.sections, markers: def.markers });
-    audio = new MemoryAudio(host.audio, def.cues(v), src.markers, id.length * 7 + v.length);
+    // Its voices, if any, are its own cues on its own markers: one clock, one dispatch.
+    const sound = withVoices(def.cues(v), src.markers, def.id, v, voices?.version, voices?.filesOf);
+    audio = new MemoryAudio(host.audio, sound.sheet, sound.markers, id.length * 7 + v.length);
   }
   // A living variant draws its painting itself: the wall's flattened poster is only its fallback.
   const lm = def.living && host.noise ? manifest.living?.[v] ?? null : null;
@@ -347,7 +370,7 @@ export async function prepare(id: string, variant: string, host: RuntimeHost): P
       const size = targetSize(host);
       const spec = FILM_SPECS[def.id] ?? ALMOST;
       scene = new FilmScene({ video, fps: lm.fps, frames: lm.frames }, { ...size, reduced: !!host.reduced, close: spec.close?.frames });
-      living = { scene, spec, immerse: lm.immerse, torn: (lm.edge ?? 'torn') === 'torn', crop: manifest.crop ?? [0, 0, 1, 1], aspect: manifest.size[0] / manifest.size[1], order: orderR?.texture ?? null, colourAt: orderR ? colourTimes(orderR.bitmap) : null };
+      living = { scene, spec, immerse: lm.immerse, torn: (lm.edge ?? 'torn') === 'torn', shade: lm.edge === 'shade', crop: manifest.crop ?? [0, 0, 1, 1], aspect: manifest.size[0] / manifest.size[1], order: orderR?.texture ?? null, colourAt: orderR ? colourTimes(orderR.bitmap) : null, feather: lm.feather };
       loaded.unshift({ texture: scene.target.texture, bitmap: null as unknown as ImageBitmap, name: 'scene', kind: 'pigment' });
     } catch (e) {
       // The film couldn't be had: the wall's poster instead, still (as any memory).
@@ -513,6 +536,7 @@ export async function prepare(id: string, variant: string, host: RuntimeHost): P
     register: manifest.register ?? null,
     layers: loaded.map((l) => ({ name: l.name, kind: l.kind, texture: l.texture })),
     audio,
+    voices,
     living,
     dispose() {
       if (gone) return;
@@ -539,7 +563,12 @@ export class LivingMemory {
 
   constructor(readonly prepared: Prepared, o: PlayOptions) {
     const { def, variant } = prepared;
-    const timeline = sheetSource(sheetId(def.id, variant), memorySchema(def.layers, def.living), { sections: def.sections, markers: def.markers });
+    const sheet = sheetSource(sheetId(def.id, variant), memorySchema(def.layers, def.living), { sections: def.sections, markers: def.markers });
+    // The voices' markers join the timeline's (the controller hands out the audio's cues from them).
+    const vo = prepared.voices;
+    const timeline: TimelineSource = vo
+      ? { sections: sheet.sections, markers: withVoices(def.cues(variant), sheet.markers, def.id, variant, vo.version, vo.filesOf).markers, at: (p) => sheet.at(p), dispose: () => sheet.dispose() }
+      : sheet;
     this.controller = new MemoryPlaybackController({
       timeline,
       audio: prepared.audio ?? undefined,

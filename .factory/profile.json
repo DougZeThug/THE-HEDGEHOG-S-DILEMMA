@@ -1,0 +1,41 @@
+{
+  "project": "The Hedgehog's Dilemma",
+  "kind": "web-installation (TypeScript, Vite, Three.js, Web Audio)",
+  "productionBranches": ["main", "master", "production"],
+  "commands": {
+    "typecheck": "npx tsc --noEmit",
+    "lint": "npm run lint",
+    "unit": "npx vitest run",
+    "factory": "node --test .claude/factory/test/factory.test.mjs",
+    "build": "npm run build",
+    "playtest": "npx vite-node scripts/playtest.ts"
+  },
+  "tiers": {
+    "quick": ["typecheck", "unit"],
+    "full": ["typecheck", "lint", "unit", "factory", "build"]
+  },
+  "preview": {
+    "build": "npm run build",
+    "serve": "npx vite preview --port 4173",
+    "url": "http://localhost:4173/",
+    "browserChecks": ["npm run smoke", "node tests/playtest/browser.mjs"],
+    "note": "Software rendering runs ~10 fps; judge behaviour and screenshots, not frame rate."
+  },
+  "protectedPaths": [
+    "public/voices/**", "public/music/**", "public/memories/**", "public/textures/**",
+    "references/**", "audition/**", "scripts/*-ledger.json"
+  ],
+  "forbiddenCommands": [
+    { "pattern": "scripts/(generate|design)-[\\w-]+\\.mjs(?!.*--dry-run)", "reason": "paid ElevenLabs generation. Run with --dry-run and ask the artist first (CLAUDE.md)." },
+    { "pattern": "scripts/(align|audition)[\\w-]*\\.mjs.*--regenerate", "reason": "--regenerate overwrites approved recordings." }
+  ],
+  "domainReviewers": {
+    "note": "Existing specialist agents; CLAUDE.md requires them for changes a visitor would notice.",
+    "agents": ["creative-director", "cinematic-director", "sound-designer", "technical-artist", "interaction-designer", "skeptic", "qa-accessibility"]
+  },
+  "testingRequirements": [
+    "Run `npx tsc --noEmit` and `npx vitest run` before every commit.",
+    "Visitor-facing changes: browser smoke or phone playtest, plus `npx vite-node scripts/playtest.ts` for pacing."
+  ],
+  "limits": { "maxConcurrentTasks": 1, "maxRepairAttempts": 3, "sameFailureEscalates": 2 }
+}

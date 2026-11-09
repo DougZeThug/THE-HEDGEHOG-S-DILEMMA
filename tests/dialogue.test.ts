@@ -258,7 +258,9 @@ describe('the whole spoken corpus is cast', () => {
 describe('the vignettes\' recording direction', () => {
   const vdir = JSON.parse(readFileSync('src/content/vignettes.dialogue.json', 'utf8'));
   const vdata = JSON.parse(readFileSync('src/content/vignettes.json', 'utf8')) as { vignettes: { id: string; lines: { id: string; text: string }[] }[] };
-  const lineText = new Map(vdata.vignettes.flatMap((v) => v.lines.map((l) => [`${v.id}/${l.id}`, l.text] as const)));
+  // (The painted memories' overheard voices are directed in the same file: memory-voices.json.)
+  const mdata = JSON.parse(readFileSync('src/content/memory-voices.json', 'utf8')) as { memories: { id: string; lines: { id: string; text: string }[] }[] };
+  const lineText = new Map([...vdata.vignettes, ...mdata.memories].flatMap((v) => v.lines.map((l) => [`${v.id}/${l.id}`, l.text] as const)));
 
   it('says exactly the words written, never brightly (the artist: sad, like the wall lines kept)', () => {
     expect(validateDirection(vdir, (_: string, p: { vignette: string; line: string }) => lineText.get(`${p.vignette}/${p.line}`), { sad: true })).toEqual([]);

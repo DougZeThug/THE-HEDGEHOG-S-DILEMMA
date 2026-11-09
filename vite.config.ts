@@ -14,7 +14,7 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       manifest: false,
-      workbox: { globPatterns: ['**/*.{js,css,html}'], navigateFallback: null },
+      workbox: { globPatterns: ['**/*.{js,css,html,woff2}'], navigateFallback: null },
     }),
     // `npm run analyze` writes test-output/bundle.html.
     process.env.ANALYZE ? visualizer({ filename: 'test-output/bundle.html', gzipSize: true }) : null,
@@ -22,6 +22,9 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['tests/**/*.test.ts'],
+    // Many tests run whole 600 s visits through the Director: 2–4 s each here, up to about twice
+    // that on a CI runner under the suite's parallel load, which the 5 s default cut off (PR #56).
+    testTimeout: 20000,
     coverage: { provider: 'v8', include: ['src/**/*.ts'], reportsDirectory: 'test-output/coverage' },
   },
 } as any);

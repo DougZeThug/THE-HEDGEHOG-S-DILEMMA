@@ -77,3 +77,22 @@ describe('EventScheduler: putting a due event back', () => {
     expect(s.optsOf(a).key).toBeUndefined();
   });
 });
+
+describe('EventScheduler: a major kept from earlier and one decided now', () => {
+  const setup = (priority?: number) => {
+    const s = new EventScheduler<string>(7);
+    s.schedule(0, 'first', { major: true });
+    s.schedule(1, 'kept', { major: true, ttl: 20 });
+    expect(s.tick(0)).toEqual(['first']);
+    expect(s.tick(1)).toEqual([]); // 'kept' waits for the gap
+    // The gap has just passed: a moment is decided now, with a ttl shorter than the gap.
+    s.schedule(7, 'decided', { major: true, ttl: 3, ...(priority === undefined ? {} : { priority }) });
+    return s.tick(7);
+  };
+  it('an equal priority lets the older one take the slot, and the moment decided now is kept', () => {
+    expect(setup()).toEqual(['kept']);
+  });
+  it('a higher priority lets the moment decided now go first (the other waits, it has time)', () => {
+    expect(setup(3)).toEqual(['decided']);
+  });
+});

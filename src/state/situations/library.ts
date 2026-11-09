@@ -61,9 +61,13 @@ export const nextRoom: SituationDef = {
         d.laughs = 2;
         // From somewhere else — never the wall the visitor is already standing at.
         const away = otherWalls([d.wall, h.facing]).filter((w) => h.distToSurface(w) > 1.6);
-        const to = away.length ? away : otherWalls([d.wall, h.facing]);
-        const withMemory = to.filter((w) => memoryOn(h, w));
-        d.wall = h.rng.pick(withMemory.length ? withMemory : to);
+        const all = otherWalls([d.wall, h.facing]);
+        // A wall with something happy on it is the requirement (following the laughter must lead
+        // to it); far away is only a preference.
+        const awayWith = away.filter((w) => memoryOn(h, w));
+        const anyWith = all.filter((w) => memoryOn(h, w));
+        const to = awayWith.length ? awayWith : anyWith.length ? anyWith : away.length ? away : all;
+        d.wall = h.rng.pick(to);
         laugh(c, d.wall, 0.3);
         c.go('listening');
       }
@@ -85,7 +89,11 @@ export const nextRoom: SituationDef = {
       }
       if (!d.keeping) {
         if (!c.claim('chair-voice')) return;
-        c.claim('beyond');
+        // (The walls too: while another situation's voice is through them, the memory waits.)
+        if (!c.claim('beyond')) {
+          c.release('chair-voice');
+          return;
+        }
         d.keeping = true;
       }
       if (!v.near || v.nearFor < 6 || v.speed > 0.15) return;

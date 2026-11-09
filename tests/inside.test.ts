@@ -113,6 +113,21 @@ describe('inside a living memory', () => {
     }
   });
 
+  it('kneeling, they see wider, and are carried to where the painting fills the view they have', () => {
+    const arrival = (kneel: boolean) => {
+      const { rig, inside, goIn } = setup();
+      rig.setKneel(kneel);
+      inside.begin(7);
+      goIn();
+      return Math.hypot(rig.pos.x - 0, rig.pos.z + 3.2);
+    };
+    const standing = arrival(false);
+    const kneeling = arrival(true);
+    expect(kneeling).toBeLessThan(standing);
+    // (62° → 70° vertical: the same painting fills it from tan(31°)/tan(35°) of the distance.)
+    expect(kneeling / standing).toBeCloseTo(Math.tan((31 * Math.PI) / 180) / Math.tan((35 * Math.PI) / 180), 1);
+  });
+
   it('one move in: the body first (their look their own), then taken in on the same curve without a jump; back to where they stood', () => {
     const { rig, inside, step } = setup();
     inside.begin(5);
@@ -353,5 +368,18 @@ describe('the way in, in the App\'s order', () => {
     const back = past.indexOf(1, first);
     expect(back).toBeGreaterThan(first + 60);
     expect(past.slice(back).every((s) => s === 1)).toBe(true);
+  });
+});
+
+describe('a tap that walks a seated visitor over', () => {
+  it('aims from the standing eye they will arrive with, so the target is centred on arrival', () => {
+    const rig = new CameraRig(16 / 9);
+    rig.frameOpening(16 / 9);
+    const target = new THREE.Vector3(0, 0.9, -3);
+    rig.attend(target, 1);
+    const goal = (rig as unknown as { goal: THREE.Vector3 }).goal;
+    const aim = (rig as unknown as { lookGoal: { pitch: number } }).lookGoal;
+    const standing = Math.atan2(target.y - 1.58, Math.hypot(target.x - goal.x, target.z - goal.z));
+    expect(aim.pitch).toBeCloseTo(standing, 6);
   });
 });

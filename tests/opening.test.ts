@@ -207,6 +207,38 @@ describe('stroke ownership at the edges of characters', () => {
   });
 });
 
+describe('stroke ownership between lines', () => {
+  // Two lines of 20px writing, 23.6px apart: their character bands overlap.
+  const W = 40, H = 64;
+  const line1 = { yTop: 4, yBottom: 36, base: 25, xHeight: 9 };
+  const line2 = { yTop: 27.6, yBottom: 59.6, base: 48.6, xHeight: 9 };
+  const timing = handTiming('a b c d', 'pencil', 'test');
+  const bake = (a: Uint8Array, boxes: CharBox[]) => bakeStrokes(a, W, H, boxes, timing, (i) => i >> 1);
+
+  it("a descender from the line above is written with its own letter, not the nearer letter below", () => {
+    const a = new Uint8Array(W * H);
+    for (let y = 15; y < 31; y++) a[y * W + 8] = a[y * W + 9] = 255; // line 1 letter with a descender
+    for (let y = 40; y < 49; y++) a[y * W + 30] = a[y * W + 31] = 255; // line 2 letter
+    const b = bake(a, [
+      { i: 0, x0: 4, x1: 16, ...line1, line: 1 },
+      { i: 2, x0: 5, x1: 11, ...line2, line: 2 }, // its middle is nearer the descender's tip
+      { i: 4, x0: 26, x1: 34, ...line2, line: 2 },
+    ]);
+    expect(b.time[30 * W + 8]).toBeLessThanOrEqual(timing.chars[0][1] + 1e-6);
+  });
+
+  it("an ascender rising into the line above is written with the line it belongs to", () => {
+    const a = new Uint8Array(W * H);
+    for (let y = 16; y < 26; y++) a[y * W + 24] = a[y * W + 25] = 255; // line 1 letter
+    for (let y = 34; y < 49; y++) a[y * W + 24] = a[y * W + 25] = 255; // line 2 ascender, top inside line 1's band
+    const b = bake(a, [
+      { i: 0, x0: 20, x1: 28, ...line1, line: 1 }, // its middle is nearer the ascender's top
+      { i: 2, x0: 22, x1: 34, ...line2, line: 2 },
+    ]);
+    expect(b.time[35 * W + 24]).toBeGreaterThanOrEqual(timing.chars[2][0] - 1e-6);
+  });
+});
+
 describe('voice timings', () => {
   it('every recording in the room has character timings that match its text and fit inside it', () => {
     const manifest = Object.entries((require('../public/voices/manifest.json') as Record<string, string[]>)).filter(([k]) => k.startsWith('phrase:')).flatMap(([, v]) => v);

@@ -114,6 +114,13 @@ export const PHRASES: Phrase[] = [
   p('didnt-know-how', "I didn't know how.", { shame: 0.5, uncertainty: 0.6, desire: 0.3, grief: 0.3 }, {
     surface: 'north', tier: 'annotation', hand: 'pencil',
   }),
+  // What Almost leaves, when the room has recoiled at the visitor and then shown them a hand taken
+  // back (docs/reviews/2026-11-emotional-arc.md): written beside "I wanted you to stay." (wherever
+  // there is room beside it; "I didn't know how." fades, this stays), and found there again on the
+  // next visit.
+  p('took-hand-back', 'I took my hand back.', { desire: 0.5, fear: 0.6, shame: 0.4, contradiction: 0.6 }, {
+    surface: 'north', tier: 'annotation', hand: 'pencil',
+  }),
   p('raining-anyway', 'It was raining anyway.', { relief: 0.4, nostalgia: 0.3, contradiction: 0.3, isolation: 0.2 }, {
     surface: 'south', tier: 'annotation', hand: 'faint',
   }),
@@ -317,8 +324,10 @@ export const PHRASES: Phrase[] = [
     surface: 'south', hand: 'pencil', size: 's', at: [0.7, 1.52], voice: 'tender',
     contradicts: ['lonely-birthday'], echoes: ['happiest-unneeded'], keywords: ['alone', 'wrong', 'lonely'],
   }),
+  // Beside the drawn door, under "hello?", small (come close to read it): the room's way out
+  // (docs/reviews/2026-11-core-loop.md).
   p('party-early', 'I left the party early and walked home and it was lovely.', { relief: 0.7, happiness: 0.5, isolation: 0.4, contradiction: 0.3 }, {
-    surface: 'south', tier: 'familiar', hand: 'pen', echoes: ['alone-ok'], keywords: ['party', 'walked', 'home', 'early'],
+    surface: 'south', tier: 'familiar', hand: 'pen', size: 'xs', at: [0.239, 0.98], echoes: ['alone-ok'], keywords: ['party', 'walked', 'home', 'early'],
   }),
   p('diagonal', 'I had the whole bed. I slept diagonally.', { relief: 0.6, isolation: 0.5, happiness: 0.4, grief: 0.2 }, {
     surface: 'west', tier: 'contradiction', hand: 'pencil', keywords: ['bed', 'slept', 'sleep'],

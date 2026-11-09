@@ -1,0 +1,39 @@
+# Opt-in: when CI fails on a factory branch, attempt a bounded repair (the factory's 3-attempt budget applies).
+# INERT until FACTORY_CI_REPAIR=true and the secrets from factory-issue.yml exist. UNTESTED.
+# In claude.ai/code cloud sessions the same job is done natively by subscribing a session to the PR.
+name: Factory (CI repair)
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+jobs:
+  repair:
+    # Same-repository branches only: a fork's code never runs in this privileged job.
+    if: vars.FACTORY_CI_REPAIR == 'true' && github.event.workflow_run.conclusion == 'failure' && github.event.workflow_run.head_repository.full_name == github.repository && (startsWith(github.event.workflow_run.head_branch, 'factory/') || startsWith(github.event.workflow_run.head_branch, 'claude/'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    concurrency: { group: factory-queue, cancel-in-progress: false }
+    permissions: { contents: write, pull-requests: write, id-token: write, actions: read }
+    steps:
+      # Check out the exact commit whose CI failed, without leaving the write token in .git/config.
+      - uses: actions/checkout@v4
+        with: { ref: "${{ github.event.workflow_run.head_sha }}", fetch-depth: 0, persist-credentials: false }
+      # Repair only if the branch still points at that commit; a newer push gets its own CI run.
+      - id: current
+        env: { BRANCH: "${{ github.event.workflow_run.head_branch }}", SHA: "${{ github.event.workflow_run.head_sha }}" }
+        run: |
+          tip=$(git ls-remote origin "refs/heads/$BRANCH" | cut -f1)
+          if [ "$tip" = "$SHA" ]; then git switch -C "$BRANCH"; echo "ok=true" >> "$GITHUB_OUTPUT"; else echo "Branch moved to $tip; skipping."; echo "ok=false" >> "$GITHUB_OUTPUT"; fi
+      - if: steps.current.outputs.ok == 'true'
+        uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - if: steps.current.outputs.ok == 'true'
+        run: npm ci
+      - if: steps.current.outputs.ok == 'true'
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            /factory-fix CI failed on this branch (run ${{ github.event.workflow_run.html_url }}). Reproduce locally, fix the root cause with the smallest change, never weaken a test, push to this same branch. If a second attempt hits the same failure, stop and comment what you learned.
+          claude_args: --max-turns 60 --max-budget-usd 5

@@ -195,6 +195,20 @@ describe('a vignette, played', () => {
     expect(s.ctx.sources.filter((x) => x.buffer?.duration === 1.8)).toHaveLength(1);
   });
 
+  it('back from a pause, what had already sounded in the step back is not handed out again', async () => {
+    const s = setup();
+    const p = new VignettePlayer(DEF, 'first', s.host);
+    await p.prepare();
+    p.start();
+    run(p, s.ctx, 7.3); // the light dimmed at 6.5; "Hang on, I'll look." has begun (7.0)
+    expect(s.fx.filter(([f]) => f.kind === 'dim')).toHaveLength(1);
+    p.pause();
+    p.resume(); // back to 6.4: the dim lies in the step back
+    run(p, s.ctx, 3);
+    expect(s.fx.filter(([f]) => f.kind === 'dim')).toHaveLength(1);
+    expect(s.ctx.sources.filter((x) => x.buffer?.duration === 1.6)).toHaveLength(2); // the sentence is said again
+  });
+
   it('back from a pause, nothing is said over the sentence said again (the rest of the score keeps its place)', async () => {
     const s = setup();
     const p = new VignettePlayer(DEF, 'first', s.host);

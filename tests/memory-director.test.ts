@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { MemoryDirector, type SceneState } from '../src/state/MemoryDirector';
 import { Director } from '../src/state/Director';
+import { ALL_MEMORIES } from '../src/content/memories';
 import { PERSONAS } from './playtest/personas';
 import { visit } from './playtest/measure';
 
@@ -112,6 +113,29 @@ describe('when a living memory opens', () => {
   });
 });
 
+describe('claims() and what may speak', () => {
+  it("a painted memory keeps its line when an available set is given that holds only vignettes and voice keys", () => {
+    const m = new MemoryDirector();
+    m.setAvailable(new Set(['rain', 'cereal:first:default']));
+    expect(m.claims('cereal')).toBe(true);
+  });
+  it('a painted memory keeps its line when no voices are kept', () => {
+    const m = new MemoryDirector();
+    m.setAvailable(new Set());
+    expect(m.claims('cereal')).toBe(true);
+  });
+});
+
+describe('claims() once the arc has ended', () => {
+  it("a painted memory's unplayed line is the room's once the memory that ends the arc (woodland) has played", () => {
+    const m = new MemoryDirector();
+    m.update(base({ now: 300 })); // (past things' earliest time: its line is claimed first)
+    expect(m.claims('didnt-know-say')).toBe(true);
+    (m as unknown as { tracks: Map<string, { played: boolean }> }).tracks.get('woodland')!.played = true;
+    expect(m.claims('didnt-know-say')).toBe(false);
+  });
+});
+
 describe('later memories are offered, not hidden', () => {
   const offerState = (o: Partial<Parameters<MemoryDirector['offer']>[0]> = {}) => ({
     now: 200, phase: 'contradiction', free: true, visibleFacing: () => false, departing: false, otherMemory: false, ...o,
@@ -215,5 +239,25 @@ describe('never pushing: the kitchen-light memory is a pointing too', () => {
     const later = new MemoryDirector();
     later.setAvailable(new Set());
     expect(later.offer(offerState({ now: 200, darkEnded: 130, kitchenOffered: true, kitchenOfferedAt: 70 }))?.id).toBe('bedroom');
+  });
+});
+
+describe('the visit\'s arc and heard vignettes', () => {
+  type Arc = { tracks: Map<string, { played: boolean }>; arcAllows: (m: unknown, now: number, kitchen: boolean) => boolean };
+  const memory = (id: string) => ALL_MEMORIES.find((m) => m.id === id)!;
+  const vignette = ALL_MEMORIES.find((m) => m.kind === 'vignette')!;
+
+  it('a heard vignette does not unlock the absence memories, nor close the first', () => {
+    const m = new MemoryDirector() as unknown as Arc;
+    m.tracks.get(vignette.id)!.played = true;
+    expect(m.arcAllows(memory('woodland'), 400, false)).toBe(false);
+    expect(m.arcAllows(memory('door'), 400, false)).toBe(false);
+    expect(m.arcAllows(memory('cereal'), 30, false)).toBe(true);
+  });
+
+  it('a painted memory does', () => {
+    const m = new MemoryDirector() as unknown as Arc;
+    m.tracks.get('cereal')!.played = true;
+    expect(m.arcAllows(memory('woodland'), 400, false)).toBe(true);
   });
 });

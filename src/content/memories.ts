@@ -10,6 +10,8 @@ import { VIGNETTES, type Tone } from './vignettes';
 export interface SceneMemory {
   id: string;
   phraseId: string;
+  /** Every line that opens it, its own first (a vignette's `anchor.also`). */
+  phraseIds?: string[];
   /** Earliest engine time (seconds from the hand-off) it may play. */
   earliest: number;
   /** Seconds of looking at the line that arm it (a tap arms it at once). */
@@ -97,6 +99,25 @@ export const SCENE_MEMORIES: SceneMemory[] = [
     id: 'things', phraseId: 'didnt-know-say', earliest: 210, arc: 'afterAnother', arm: 2.5, commit: 1.0, minHold: 12, seenAt: 26, maxHold: 53.0, span: 63.0,
     variants: { first: 'film', revisit: [] }, lookBack: false, offer: { phases: ['contradiction', 'transform'], apart: 120 }, reserved: true,
   },
+  // Memory VII, The Shape of Someone (docs/shadows.md): the chair's shadow climbs the wall, shade
+  // gathers round it, and in it two people's shadows come together and hold each other while the
+  // people stay apart. It opens from "You understood me once, completely, for about a minute."
+  // Offered once another memory has been, as the room begins to contradict itself; seen once it
+  // has been entered and played to their meeting (defs.ts SHADOWS_AT + SHADOWS_BEATS.meet, 18.1 s).
+  {
+    id: 'shadows', phraseId: 'understood-minute', earliest: 190, arc: 'afterAnother', arm: 2.5, commit: 1.0, minHold: 12, seenAt: 18, maxHold: 30.5, span: 44.0,
+    variants: { first: 'film', revisit: [] }, lookBack: false, offer: { phases: ['contradiction', 'transform'], apart: 120 }, reserved: true,
+  },
+  // The Drive Home (docs/drive-home.md): two brothers drive home at night, angry; without looking,
+  // the driver turns the heater vent toward the other, who later turns it partway back. It opens
+  // from "Are you angry with me?" Only ever a heart: on a return visit, once Almost has been seen,
+  // the room's recoil leads here instead (HEART_SHARED). Seen once it has been entered and played
+  // to the driver's turn of the vent (defs.ts DRIVE_BEATS.vent, 28.1 s); not before the carry in
+  // (13.6 s) can looking away end it.
+  {
+    id: 'drive', phraseId: 'angry-with-me', earliest: 170, arc: 'afterAnother', arm: 2.5, commit: 1.0, minHold: 17, seenAt: 29, maxHold: 44.0, span: 58.5,
+    variants: { first: 'film', revisit: [] }, lookBack: false, offer: { phases: [], apart: 120 }, reserved: true,
+  },
   // Peace with a cost: the longest, once the room has begun to contradict itself.
   {
     id: 'bedroom', phraseId: 'happiest-unneeded', earliest: 150, arm: 2.5, commit: 1.0, minHold: 12, maxHold: 26,
@@ -118,6 +139,7 @@ export const SCENE_BY_PHRASE = new Map(SCENE_MEMORIES.map((m) => [m.phraseId, m]
 export const VIGNETTE_MEMORIES: SceneMemory[] = VIGNETTES.map((v) => ({
   id: v.id,
   phraseId: v.anchor.phrase ?? '',
+  phraseIds: v.anchor.phrase ? [v.anchor.phrase, ...(v.anchor.also ?? [])] : [],
   earliest: v.earliest,
   arm: v.arm,
   commit: v.commit,
@@ -139,4 +161,60 @@ export const VIGNETTE_MEMORIES: SceneMemory[] = VIGNETTES.map((v) => ({
 /** Every memory the Director may open: the painted ones, then the vignettes. */
 export const ALL_MEMORIES: SceneMemory[] = [...SCENE_MEMORIES, ...VIGNETTE_MEMORIES];
 /** By the line that opens it (the chair's vignette has none). */
-export const MEMORY_BY_PHRASE = new Map(ALL_MEMORIES.filter((m) => m.phraseId).map((m) => [m.phraseId, m]));
+export const MEMORY_BY_PHRASE = new Map(ALL_MEMORIES.flatMap((m) => linesOf(m).map((p) => [p, m] as const)));
+
+/** Every line that opens a memory, its own first. */
+export function linesOf(m: SceneMemory): string[] {
+  return m.phraseIds?.length ? m.phraseIds : m.phraseId ? [m.phraseId] : [];
+}
+
+/**
+ * The visit's heart (docs/reviews/2026-11-emotional-arc.md): one painted memory a visit, reachable
+ * from early on, chosen from what has happened between the visitor and the chair:
+ * - the room has recoiled at them (they came back to the chair after going away): Almost, a hand
+ *   that reaches, starts and is taken back. They have just felt the room do it. This is the one
+ *   rhyme a visitor can see both halves of, and the only heart that leaves a line. On a return
+ *   visit, once Almost has been seen, The Drive Home instead (HEART_SHARED);
+ * - otherwise, from two and a half minutes, if they have stayed by it a long while (45 s, or knelt 8 s): the
+ *   woodland, company and then the clearing empty (its own coda is what it leaves);
+ * - or if they came to it and went away and have stayed away (50 s): Things I Should Have Said, a
+ *   goodbye at a door.
+ * Until its line is pointed at it may still change (a recoil makes it Almost). It needs no memory
+ * before it; once it has played, no other painted memory comes that visit.
+ */
+export const HEART_BY_SHAPE = { recoiled: 'almost', close: 'woodland', refused: 'things' } as const;
+export type HeartShape = keyof typeof HEART_BY_SHAPE;
+/**
+ * A heart shared by two memories (docs/shadows.md): someone who has stayed by the chair is given
+ * the woodland or Memory VII, the shadows (the chair's own shadow goes to the wall, and in it two
+ * shadows hold each other "for about a minute"), whichever they have seen fewer times on earlier
+ * visits; on a first visit, by the visit's own coin. (As an offered memory after another, it played
+ * in 0-2% of simulated visits: the interaction designer's review, 2026-11-09.)
+ */
+export const HEART_SHARED: Partial<Record<HeartShape, readonly string[]>> = { close: ['woodland', 'shadows'], recoiled: ['almost', 'drive'] };
+/**
+ * A shared heart whose first is kept on a tie, not left to the visit's coin: the recoil is Almost's
+ * on a first visit (its rhyme, and the only heart that leaves a line), and The Drive Home's on a
+ * return once Almost has been seen more often (the artist chose it, 2026-11-09: docs/drive-home.md).
+ * After the room has flinched at them, "Are you angry with me?" is their own question.
+ */
+export const HEART_FIRST_ON_TIE: ReadonlySet<HeartShape> = new Set(['recoiled']);
+/** Every memory that can be a heart. */
+export const HEART_IDS: ReadonlySet<string> = new Set([...Object.values(HEART_BY_SHAPE), ...Object.values(HEART_SHARED).flat()]);
+/** This visit's heart for a shape: `counts` seen on earlier visits, `coin` the visit's own draw (0..1). */
+export function heartOf(shape: HeartShape, counts: Record<string, number>, coin: number): string {
+  const shared = HEART_SHARED[shape];
+  if (!shared) return HEART_BY_SHAPE[shape];
+  const least = Math.min(...shared.map((id) => counts[id] ?? 0));
+  const fewest = shared.filter((id) => (counts[id] ?? 0) === least);
+  if (HEART_FIRST_ON_TIE.has(shape)) return fewest[0];
+  return fewest[Math.min(fewest.length - 1, Math.floor(coin * fewest.length))];
+}
+/** What a heart leaves beside "I wanted you to stay." (a phrase id): Almost only. */
+export const HEART_ANSWER: Record<string, string> = { almost: 'took-hand-back' };
+/** The earliest a heart may be pointed at or begin (engine seconds from the hand-off). */
+export const HEART_EARLIEST = 75;
+/** The other hearts are chosen only from here (the recoil, a median 103 s in, comes first). */
+export const HEART_DECIDE = 150;
+/** Almost is pointed at no sooner than this after the recoil (its 7 s hold, and a breath). */
+export const HEART_AFTER_RECOIL = 17;

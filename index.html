@@ -71,7 +71,7 @@
         </fieldset>
         <fieldset>
           <legend>privacy</legend>
-          <p class="small">Nothing you write, and nothing about how you move, is sent anywhere. What you write lives only in this tab and is gone when you close it. The microphone is never used. Only your settings and a count of visits are remembered on this device.</p>
+          <p class="small">Nothing you write, and nothing about how you move, is sent anywhere. What you write lives only in this tab and is gone when you close it. The microphone is never used. Only your settings, a count of visits, which memories you have seen, whether you stayed close to the chair, a line of the room's own writing, and whether the opening and the touch hint have been shown are remembered on this device; "forget" clears all of it but your settings.</p>
           <button id="forget" class="quiet-button small">forget what I wrote, and that I was here</button>
         </fieldset>
         <button id="leave" class="quiet-button">leave the room</button>
@@ -80,7 +80,7 @@
 
     <div id="departure" class="layer departure" hidden>
       <p class="departure-line" id="departure-line"></p>
-      <button id="return" class="quiet-button" hidden>go back in</button>
+      <button id="return" class="quiet-button" aria-describedby="departure-line" hidden>go back in</button>
     </div>
 
     <pre id="debug" class="debug" hidden></pre>

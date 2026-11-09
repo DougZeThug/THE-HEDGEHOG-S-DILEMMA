@@ -724,11 +724,13 @@ export class LivingScene {
     }
     // Hair: the loose ends answer the air (each lock its own spring), as the grass does.
     const still = val('scene.breeze', 1) * life * (this.reduced ? 0.25 : 1);
+    // (Close, the same sheet-px sway is drawn 2.6–3.3× larger: less of it.)
+    const sway = near ? s.near!.wind : 1;
     for (const [name, h] of Object.entries(s.hair)) {
       const at = this.at.get(name);
       if (!at) continue;
       const w = windResponse(t, at.x, h.hz, h.zeta, s.gusts, still);
-      this.bone(name, { x: h.amp[0] * w, y: h.amp[1] * w });
+      this.bone(name, { x: h.amp[0] * w * sway, y: h.amp[1] * w * sway });
     }
     // His hand: toward hers along his forearm; once, a twitch at the wrist.
     const hand = val('figure:a.hand', 0);

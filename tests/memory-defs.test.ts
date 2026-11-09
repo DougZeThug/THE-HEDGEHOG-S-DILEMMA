@@ -31,6 +31,8 @@ describe('the living memories, as defined and committed', () => {
     ['woodland-afternoon', 'woodland', 'afternoon', 'scripts/stroke-order.py'],
     ['almost-film', 'almost', 'film', 'scripts/almost/emergence.py'],
     ['things-film', 'things', 'film', 'scripts/things/emergence.py'],
+    ['shadows-film', 'shadows', 'film', 'scripts/memory-vii/order.py'],
+    ['drive-film', 'drive', 'film', 'scripts/the-drive-home/order.py'],
   ]) {
     it(`${id}: the order map's two clocks were timed on the timeline that plays`, () => {
       // What the baked map was timed on (the script writes it to the manifest).

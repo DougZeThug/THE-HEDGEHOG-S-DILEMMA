@@ -376,5 +376,20 @@
   ],
   "vig:gone-quiet:fine": [
     "vignettes/gone-quiet--fine.mp3"
+  ],
+  "vig:cereal:my-bowl": [
+    "vignettes/cereal--my-bowl-b.mp3"
+  ],
+  "vig:cereal:clean-one": [
+    "vignettes/cereal--clean-one.mp3"
+  ],
+  "vig:rain:close": [
+    "vignettes/rain--close-b.mp3"
+  ],
+  "vig:rain:nice": [
+    "vignettes/rain--nice-b.mp3"
+  ],
+  "vig:rain:nice-again": [
+    "vignettes/rain--nice-again-b.mp3"
   ]
 }

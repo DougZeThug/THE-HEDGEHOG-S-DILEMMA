@@ -26,6 +26,8 @@ export interface CharBox {
   xHeight: number;
   /** Typewritten characters arrive whole, as if stamped. */
   stamp?: boolean;
+  /** Which line of the text it is on (the bands of neighbouring lines overlap). */
+  line?: number;
 }
 
 export interface Bake {
@@ -51,8 +53,16 @@ export function bakeStrokes(alpha: Uint8ClampedArray | Uint8Array, W: number, H:
   const ownerDx = new Float32Array(N);
   const ink = (p: number) => alpha[p] > 24;
 
-  // Which character each inked pixel belongs to: of the boxes containing it (they overlap at the
-  // edges, padded), the one whose middle is nearest.
+  // Which character each inked pixel belongs to. First its line: the bands of neighbouring lines
+  // overlap, so a pixel goes to the line whose letters could reach it (an ascender rises about
+  // 0.8 of the size above the baseline, a descender falls about 0.3 below). Then, of the boxes of
+  // that line containing it (they overlap at the edges, padded), the one whose middle is nearest.
+  const ownerCost = new Float32Array(N);
+  const lineCost = (bx: CharBox, y: number) => {
+    const px = (bx.base - bx.yTop) / 1.05;
+    const dy = y - bx.base;
+    return dy < 0 ? -dy / (0.8 * px) : dy / (0.3 * px);
+  };
   for (let b = 0; b < boxes.length; b++) {
     const bx = boxes[b];
     const mid = (bx.x0 + bx.x1) / 2;
@@ -62,9 +72,13 @@ export function bakeStrokes(alpha: Uint8ClampedArray | Uint8Array, W: number, H:
       const p = y * W + x;
       if (!ink(p)) continue;
       const dx = Math.abs(x + 0.5 - mid);
-      if (owner[p] < 0 || dx < ownerDx[p]) {
+      const cost = bx.line === undefined ? 0 : lineCost(bx, y + 0.5);
+      const o = owner[p] < 0 ? undefined : boxes[owner[p]];
+      const otherLine = !!o && bx.line !== undefined && o.line !== undefined && o.line !== bx.line;
+      if (!o || (otherLine ? cost < ownerCost[p] : dx < ownerDx[p])) {
         owner[p] = b;
         ownerDx[p] = dx;
+        ownerCost[p] = cost;
       }
     }
   }

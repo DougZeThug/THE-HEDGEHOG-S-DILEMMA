@@ -48,6 +48,8 @@ export interface LivingSpec {
   cover: { wide: [number, number]; upright: [number, number]; ultra: [number, number]; uprightScale?: number };
   /** In place of `wide` and `ultra`: the focus for any screen this wide (width over height, not upright). */
   coverAt?: (aspect: number) => [number, number];
+  /** On an upright screen, where it covers by the film's own second (`scene.film`), if it moves. */
+  uprightAt?: (film: number, reduced?: boolean) => [number, number];
   /**
    * The two-shot (scripts/two-shot.py): its frame (stage px: x0, y0 and width; the height is the
    * painting's proportion), locked, by the screen's aspect (width over height: each frame for
@@ -65,6 +67,8 @@ export interface LivingSpec {
     gaze: [number, number];
     gazeB: [number, number];
     breath: number;
+    /** The hair's sway close (a fraction of the wide's, in sheet px: it is magnified 2.6–3.3× on screen). */
+    wind: number;
     span: [number, number];
     beats: number[];
   };
@@ -164,6 +168,10 @@ export const WOODLAND: LivingSpec = {
     gaze: [0.5, 0.08],
     gazeB: [-0.45, 0.1],
     breath: 0.45,
+    // (Not the breath's 0.45: hair is slow wind, the only motion left on the heads in the long hold,
+    // and on a phone anything under ~0.5 leaves it under a screen pixel. Screen-px parity with the
+    // wide would be ~0.3–0.4; the technical artist's review, 2026-10-29.)
+    wind: 0.6,
     span: [TWO_SHOT.from, TWO_SHOT.to],
     // (His blink too: a return never cuts in on a half-shut lid. Her turn whole, every drawing of
     // it: a return never cuts into it, nor into the moment between her eyes and her head.)

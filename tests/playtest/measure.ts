@@ -41,11 +41,11 @@ export interface Development {
  * migration, recontext, music, life next door, situations' own ambience, and the room's
  * filler when it is waiting (sounds, writing behind you) — is the room's own life.
  */
-const RESPONSIVE = /^(finish-|accumulate-turn|accumulate-read|encounter:|first-approach|near-|long-near|still-|still-voice|withdraw-|kneel|motif-|tap|respond-line|respond-chair|respond-still|voice-attention|rehear|contribution|sit:residue|sit:listening|withhold|vignette|echo:)/;
+export const RESPONSIVE = /^(finish-|accumulate-turn|accumulate-read|encounter:|first-approach|near-|long-near|still-|still-voice|withdraw-|kneel|motif-|tap|return-recoil|leaving|respond-line|respond-chair|respond-still|voice-attention|rehear|contribution|sit:residue|sit:listening|withhold|vignette|echo:)/;
 
 const HALF = 3.2;
 
-const vignetteSpan = (id: string, variant: string) => {
+export const vignetteSpan = (id: string, variant: string) => {
   const v = VIGNETTE_BY_ID.get(id);
   return (v?.variants[variant] ?? v?.variants.first)?.span ?? 20;
 };
@@ -56,13 +56,14 @@ export function facingOf(yaw: number): Surface {
   return dz < 0 ? 'north' : 'south';
 }
 
-function nearWall(x: number, z: number): Surface | null {
+export function nearWall(x: number, z: number): Surface | null {
   const d: [Surface, number][] = [['north', z + HALF], ['south', HALF - z], ['east', HALF - x], ['west', x + HALF]];
   d.sort((a, b) => a[1] - b[1]);
   return d[0][1] < 1.1 ? d[0][0] : null;
 }
 
-function classify(cue: Cue): { kind: Kind; label: string; recorded: boolean; surface?: Surface } | null {
+/** `where`: the wall a phrase's line was written on this visit, for a line written alone for a memory. */
+export function classify(cue: Cue, where?: (phraseId: string) => Surface | undefined): { kind: Kind; label: string; recorded: boolean; surface?: Surface } | null {
   switch (cue.type) {
     case 'voice':
       return cue.text
@@ -82,7 +83,8 @@ function classify(cue: Cue): { kind: Kind; label: string; recorded: boolean; sur
         surface: cue.surface ?? (cue.beside ? PHRASE_BY_ID.get(cue.beside)?.surface : undefined),
       };
     case 'redraw':
-      return { kind: 'text', label: `redraw ${cue.phraseId}`, recorded: false, surface: PHRASE_BY_ID.get(cue.phraseId)?.surface };
+      // (A keyed redraw writes again the line written alone for a memory, on the wall it was written on.)
+      return { kind: 'text', label: `redraw ${cue.phraseId}`, recorded: false, surface: (cue.key ? where?.(cue.phraseId) : undefined) ?? PHRASE_BY_ID.get(cue.phraseId)?.surface };
     case 'link':
       return { kind: 'text', label: `link ${cue.a}–${cue.b}`, recorded: false, surface: PHRASE_BY_ID.get(cue.a)?.surface };
     case 'erode':
@@ -93,6 +95,7 @@ function classify(cue: Cue): { kind: Kind; label: string; recorded: boolean; sur
       return { kind: 'text', label: `draw ${cue.id}`, recorded: false, surface: DRAWING_BY_ID.get(cue.id)?.surface };
     case 'glow':
     case 'flash':
+    case 'flinch':
       return { kind: 'light', label: cue.type, recorded: false };
     case 'memory':
       return { kind: 'light', label: `memory ${cue.phraseId}`, recorded: false, surface: PHRASE_BY_ID.get(cue.phraseId)?.surface };
@@ -144,7 +147,7 @@ export const WINDOWS = [15, 30, 60, 90, 180];
  * that has on the same wall, or nothing.
  */
 /** How long a painted memory holds the room: its own span, or about 22 s and its residue. */
-function memorySpan(id: string, maxHold: number): number {
+export function memorySpan(id: string, maxHold: number): number {
   return SCENE_MEMORIES.find((m) => m.id === id)?.span ?? Math.min(maxHold, 22) + 6;
 }
 
@@ -206,7 +209,7 @@ export function visit(p: Persona, seconds: number, seed: number, dt = 0.1, past:
     }
     for (const c of cues) {
       if (c.cue.type === 'stopVoice') interruptions++;
-      const k = classify(c.cue);
+      const k = classify(c.cue, (id) => writtenOn.get(id));
       if (!k) continue;
       devs.push({
         t: +(t + dt).toFixed(1), rule: c.rule, kind: k.kind, recorded: k.recorded, label: k.label, surface: k.surface,
@@ -246,7 +249,7 @@ export function visit(p: Persona, seconds: number, seed: number, dt = 0.1, past:
  * What a gaze can rest on: the line, if it is written where the visitor is looking; else a line
  * that is written on the wall they face; else nothing.
  */
-function readable(d: Director, id: string | null, facing: Surface, writtenOn: Map<string, Surface>): string | null {
+export function readable(d: Director, id: string | null, facing: Surface, writtenOn: Map<string, Surface>): string | null {
   if (!id) return null;
   const where = (pid: string) => writtenOn.get(pid) ?? PHRASE_BY_ID.get(pid)?.surface;
   const home = PHRASE_BY_ID.get(id)?.surface;

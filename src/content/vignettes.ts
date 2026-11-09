@@ -130,8 +130,16 @@ export interface Echo {
 }
 
 export interface Anchor {
-  /** The wall line that opens it. */
+  /** The wall line that opens it (the one the room offers or writes again for it). */
   phrase?: string;
+  /**
+   * Other lines it may open beside, read as its own is: a scene with more than one way in (a
+   * line written late, or on a wall some never face, is not its only door). Each sits beside
+   * the scene, never one it would only act out; the line read is where it is placed. Offers and
+   * lines written again for it keep its own line; effects and echoes that name a line keep theirs
+   * (a word lost from one line means nothing on another).
+   */
+  also?: string[];
   /** Or: a drawing on the wall that means that line (looking at it reads it). */
   drawing?: string;
   /** Or: being still by the chair (or kneeling there). */
@@ -195,17 +203,19 @@ function inRange(x: number, r?: [number, number]) {
   return !r || (x >= r[0] && x <= r[1]);
 }
 
+/** Whether a rule's conditions hold for this visitor (vignettes, and the painted memories' voices). */
+export function matchesRule(w: VariantRule['when'], ctx: VariantContext): boolean {
+  if (!inRange(ctx.seen, w.seen) || !inRange(ctx.visits, w.visits)) return false;
+  if (w.motif && !ctx.motifs.includes(w.motif)) return false;
+  if (w.notMotif && ctx.motifs.includes(w.notMotif)) return false;
+  if (w.withdrew !== undefined && w.withdrew !== ctx.withdrew) return false;
+  if (w.field && !Object.entries(w.field).every(([k, rg]) => inRange(ctx.field[k] ?? 0, rg))) return false;
+  return true;
+}
+
 /** Which version a visitor meets: deterministic (no chance), from what they have done. */
 export function chooseVariant(def: VignetteDef, ctx: VariantContext): string {
-  for (const r of def.rules) {
-    const w = r.when;
-    if (!inRange(ctx.seen, w.seen) || !inRange(ctx.visits, w.visits)) continue;
-    if (w.motif && !ctx.motifs.includes(w.motif)) continue;
-    if (w.notMotif && ctx.motifs.includes(w.notMotif)) continue;
-    if (w.withdrew !== undefined && w.withdrew !== ctx.withdrew) continue;
-    if (w.field && !Object.entries(w.field).every(([k, rg]) => inRange(ctx.field[k] ?? 0, rg))) continue;
-    if (def.variants[r.variant]) return r.variant;
-  }
+  for (const r of def.rules) if (matchesRule(r.when, ctx) && def.variants[r.variant]) return r.variant;
   if (ctx.seen > 0 && def.variants.again) return 'again';
   return 'first';
 }

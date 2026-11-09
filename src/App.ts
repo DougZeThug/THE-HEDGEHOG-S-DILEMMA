@@ -6,6 +6,7 @@ import { Chair } from './world/Chair';
 import { Lighting, shadowMapSize } from './world/Lighting';
 import { lookFor, parseLook, LOOK_NAMES, LOOKS, type Look, type LookName } from './world/Style';
 import { MemoryLight } from './world/MemoryLight';
+import { StreetLight, STREET_GENTLE } from './world/StreetLight';
 import { MemoryWindow } from './world/MemoryWindow';
 import { Immersion, UPRIGHT } from './world/living/Immersion';
 import { Inside } from './world/living/Inside';
@@ -19,6 +20,7 @@ import type { MemoryAudioHost } from './memory/MemoryAudio';
 import { VignettePlayer, type VignetteHost } from './memory/VignettePlayer';
 import { isSpot, type SpotPlace } from './memory/cueSheet';
 import { VIGNETTE_BY_ID, VIGNETTES, vignetteKeys, spokenLines, lineKey, type Effect, type GapKind } from './content/vignettes';
+import { allVersions, chooseVoices, versionKeys, voicesEnd, voicesId, voicesStart } from './content/memory-voices';
 import { WallText, wallClock, type TextItem } from './world/WallText';
 import { CameraRig } from './world/CameraRig';
 import { Post } from './world/Post';
@@ -27,7 +29,7 @@ import { ROOM } from './world/layout';
 import { Director, returnYaw } from './state/Director';
 import type { Cue, VoicePosition } from './state/cues';
 import type { Surface } from './content/types';
-import { PHRASES } from './content/phrases';
+import { PHRASE_BY_ID, PHRASES } from './content/phrases';
 import { THRESHOLD_LINES } from './content/relations';
 import { AudioEngine } from './audio/AudioEngine';
 import { Ambience } from './audio/Ambience';
@@ -36,8 +38,8 @@ import { Voices, type VoicePlacement, type Played } from './audio/Voices';
 import { openingScore, levelsAt, stageAt, ROOM_LEVELS, OPENING_WRITTEN, OPENING_SPOKEN, OPENING_UNFINISHED, type Score, type Levels, type Stage, type ScoreEvent } from './state/OpeningScore';
 import VOICE_TIMINGS from './content/voice-timings.json';
 import { Captions } from './ui/Captions';
-import { loadPrefs, savePrefs, readVisits, writeVisits, forgetVisits, readOpeningSeen, writeOpeningSeen, readMemoryCounts, writeMemoryCounts, readTrace, writeTrace, type Prefs } from './ui/prefs';
-import { SCENE_BY_PHRASE } from './content/memories';
+import { loadPrefs, savePrefs, readVisits, writeVisits, forgetVisits, readOpeningSeen, writeOpeningSeen, readMemoryCounts, writeMemoryCounts, readTrace, writeTrace, readHeartAnswer, writeHeartAnswer, type Prefs } from './ui/prefs';
+import { SCENE_BY_PHRASE, SCENE_MEMORIES } from './content/memories';
 import { LocalInterpreter } from './interpret/LocalInterpreter';
 import type { Interpreter } from './interpret/Interpreter';
 import { clamp } from './core/math';
@@ -99,10 +101,16 @@ export class App {
   private leaving: number | null = null;
   /** A memory's light on a wall, and the writing it falls across. */
   readonly memoryLight = new MemoryLight();
+  /** Streetlights passing across a living memory's wall (The Drive Home, docs/drive-home.md). */
+  readonly street = new StreetLight();
   /** A living memory in the plaster (src/memory): neutral and on the wall from boot, so it is compiled with the room. */
   readonly memoryWindow = new MemoryWindow();
   /** The living memory playing now (at most one), and the writing it formed round. */
   private living: { memory: LivingMemory; id: string; key: string; anchor: NonNullable<ReturnType<WallText['anchorOf']>>; bled: boolean; hiddenSince: number | null; held: boolean;
+    /** A `?memory=` preview: never counted, nothing persisted. */
+    preview?: boolean;
+    /** The room's light has come to the visitor at its end (The Drive Home: `room.lean`). */
+    leaned?: boolean;
     /** Seconds looking away from it, and watching it; why it was let go. */
     awayFor: number; watched: number; minHold: number; seenAt?: number; reached: number; deep: boolean; why: string | null;
     /** Let go early (a film's `leave`): the film held on the frame it cut to, to the end. */
@@ -142,6 +150,18 @@ export class App {
     const id = p.get('vignette');
     return id ? { id, variant: p.get('variant') ?? 'first', at: null } : null;
   })();
+  /**
+   * `?memory=<id>[&variant=<v>][&voices=<version>]`: play a painted memory with its overheard
+   * voices, as a preview, a few seconds after the room is open (takes kept or not; an unrecorded
+   * line is a wordless voice with its caption).
+   */
+  private previewMemory: { id: string; variant: string; voices: string | null; at: number | null } | null = (() => {
+    const p = new URLSearchParams(location.search);
+    const id = p.get('memory');
+    if (!id || p.has('studio')) return null;
+    const variant = p.get('variant') ?? (SCENE_MEMORIES.find((m) => m.id === id)?.variants.first ?? 'first');
+    return { id, variant, voices: p.get('voices') ?? chooseVoices(id, variant, { seen: 0, visits: 1, field: {}, motifs: [], withdrew: false }), at: null };
+  })();
   private prefetched = new Set<string>();
   /** Theatre Studio's ticker, while the Memory Editor is open (development only). */
   studioTick: ((now: number) => void) | null = null;
@@ -177,7 +197,9 @@ export class App {
   async boot() {
     const params = new URLSearchParams(location.search);
     const seedParam = Number(params.get('seed'));
-    const seed = Number.isFinite(seedParam) && seedParam > 0 ? seedParam : 1000 + (this.visits + 1) * 7919;
+    // Each visit its own draw (`?seed=` fixes it): by visit count alone, every first visit anyone
+    // ever made drew the same room (docs/reviews/2026-11-core-loop.md).
+    const seed = Number.isFinite(seedParam) && seedParam > 0 ? seedParam : 1 + Math.floor(Math.random() * 2 ** 30);
     $('threshold-line').textContent = THRESHOLD_LINES[Math.min(THRESHOLD_LINES.length - 1, this.visits)];
 
     // The fonts (at most four seconds), then the material scans the room's surfaces are baked with
@@ -210,12 +232,28 @@ export class App {
     this.rig = new CameraRig(innerWidth / innerHeight);
     const forced = params.get('situations')?.split(',').map((s) => s.trim()).filter(Boolean);
     const trace = this.visits > 0 ? readTrace() : null;
+    // Design experiments for inspection (`?exp=a,b`): only those this build defines.
+    const wanted = params.get('exp')?.split(',').map((s) => s.trim()).filter(Boolean) ?? [];
+    const unknown = wanted.filter((e) => !Director.EXPERIMENTS.includes(e));
+    if (unknown.length) console.warn(`[hedgehog] no such experiment: ${unknown.join(', ')} (defined: ${Director.EXPERIMENTS.join(', ') || 'none'})`);
     this.director = new Director({
       seed,
       visits: this.visits + 1,
       trace,
+      // What the last visit's heart left is found beside the first line again.
+      answer: this.visits > 0 ? readHeartAnswer() : null,
       memoryCounts: readMemoryCounts(),
       situations: forced,
+      experiments: wanted,
+      // Is a piece of writing in view (the heart's line is found, never written in front of them).
+      inView: (id) => {
+        // (The heart's answer is read once it is all there: not while the hand is still writing it.)
+        if (id.startsWith('heart:') && this.text.writing(id)) return false;
+        const c = this.text.centreOf(id);
+        if (!c) return false;
+        const p = c.project(this.rig.camera);
+        return p.z < 1 && Math.abs(p.x) < 1.15 && Math.abs(p.y) < 1.15;
+      },
       // Where each piece of writing is, for situations that relate place to memory.
       geometry: (id) => {
         const w = this.text.whereIs(id);
@@ -266,6 +304,9 @@ export class App {
     // is in the scene, unseen, so it is compiled here too.
     this.room.frames.north.writing.add(this.memoryLight.mesh);
     this.room.frames.north.writing.add(this.memoryWindow.mesh);
+    // (The streetlights' quad too, lit by nothing, so its program is compiled now.)
+    this.street.place(this.text.anchorOf('stay') ?? { group: this.room.frames.north.writing, minX: -3, maxX: 3, minY: -1.7, maxY: 1.7 });
+    this.street.mesh.visible = true;
     this.renderer.setRenderTarget(this.post.composer.readBuffer);
     this.renderer.compile(this.scene, this.rig.camera);
     this.renderer.setRenderTarget(null);
@@ -274,6 +315,7 @@ export class App {
     immersion.pass.enabled = true;
     this.post.render();
     immersion.off();
+    this.street.release();
     const enter = $<HTMLButtonElement>('enter');
     enter.disabled = false;
     enter.textContent = this.visits > 0 ? 'go in again' : 'go in';
@@ -479,8 +521,30 @@ export class App {
         const w = mesh.localToWorld(new THREE.Vector3(p.u, p.v, -p.d / Math.max(1e-3, mesh.scale.z)));
         return [w.x, w.y, w.z];
       },
-      caption: (text, seconds) => {
-        if (!this.captions.speaking) this.captions.show(text, Math.max(1.6, seconds), true);
+      // Spoken lines (a painted memory's overheard voices) are levelled as a vignette's are.
+      level: (asset, buf) => (asset.startsWith('vig:') ? voices.voicedLevel(buf) : 1),
+      caption: (text, seconds, speech, side) => {
+        // Words said in it are captioned as speech, by side; its sounds only while nobody speaks.
+        // (Beneath the words still on screen, as a vignette's, when it has words: never over them.)
+        if (speech) this.captions.show(text, Math.max(1.4, seconds), false, side, true);
+        else if (this.living?.memory.prepared.voices) this.captions.show(text, Math.max(1.6, seconds), true, undefined, true);
+        else if (!this.captions.speaking) this.captions.show(text, Math.max(1.6, seconds), true);
+      },
+      // Not recorded yet (`?memory=` previews only): the words in a voice without words, and the caption.
+      fallback: (cue, delay) => {
+        const text = cue.text ?? '';
+        const living = this.living;
+        // Previews only: a visitor hears kept takes or nothing. A kept take that failed to load
+        // leaves the memory wordless here, not a synthetic whisper with the words captioned.
+        if (!living?.preview) return;
+        setTimeout(() => {
+          // (Not after it has been let go: a sentence not yet begun is never begun then.)
+          if (!living || this.living !== living || (living.memory.state !== 'emerging' && living.memory.state !== 'active')) return;
+          const from = isSpot(cue.place) ? this.spotWorld(cue.place) : this.memoryAudioHost()!.where(cue.place);
+          void voices.playLine('whisper', text, { from }, 0.7, undefined, { synth: true, priority: true }).then((pl) => {
+            if (pl.duration > 0) this.captions.show(text, pl.duration, false, cue.side);
+          });
+        }, delay * 1000);
       },
     };
   }
@@ -496,7 +560,19 @@ export class App {
     if (c) this.rig.attend(c, 2.4);
   }
 
-  async playMemory(id: string, phraseId: string, variant = 'first'): Promise<boolean> {
+  /**
+   * The version of a painted memory's overheard voices it may speak: every line kept by the
+   * artist, or (a preview) taken so far, kept or not. Otherwise null: wordless, as it always was.
+   */
+  private memoryVoices(id: string, variant: string, version: string | null | undefined, preview: boolean): string | null {
+    const voices = this.voices;
+    if (!version || !voices) return null;
+    const keys = versionKeys(id, variant, version);
+    if (!keys.length) return null;
+    return keys.every((k) => (preview ? voices.filesOf(k).length > 0 : voices.hasAsset(k))) || preview ? version : null;
+  }
+
+  async playMemory(id: string, phraseId: string, variant = 'first', voiced?: string | null, preview = false): Promise<boolean> {
     let a = this.text.anchorOf(phraseId, this.gazeId ?? this.lastTappedKey);
     // A memory that opens from a drawing can begin from the drawing alone.
     const opensFrom = SCENE_BY_PHRASE.get(phraseId)?.id === 'door' ? 'ghost-door' : null;
@@ -504,6 +580,8 @@ export class App {
     if (drawn && (!a || a.group !== drawn.group)) a = drawn;
     if (!a) return false;
     this.endLivingMemory('switch');
+    // (The Drive Home's light, if it is still on its way back to the chair, goes back now.)
+    this.lighting.leanHome(this.time);
     // Only the latest request plays (two overlapping ones would otherwise both load).
     const gen = ++this.memoryGen;
     let rt: typeof import('./memory/runtime');
@@ -517,6 +595,7 @@ export class App {
         screen: { width: innerWidth * this.pixelRatio(), height: innerHeight * this.pixelRatio() },
         noise: this.memoryWindow.noise,
         reduced: this.prefs.reducedMotion,
+        voices: { version: this.memoryVoices(id, variant, voiced, preview), filesOf: (k) => this.voices?.filesOf(k) ?? [] },
       });
     } catch (e) {
       console.warn('memory could not be prepared', e);
@@ -536,6 +615,7 @@ export class App {
       // words back (memoryState). Read after that, `this.living` was null: QA, 2026-10-18.)
       if (this.living === before) {
         this.memoryWindow.release();
+        this.street.release();
         for (const k of before.washed) this.text.wash(k, 0);
         this.living = null;
       }
@@ -551,7 +631,11 @@ export class App {
     // Anything already drawn on that wall is kept clear of (a painting never lands on a drawing).
     this.memoryWindow.avoid = fixed ? [] : this.drawingsOn(a.group);
     this.memoryWindow.setLayers(prepared.layers, prepared.size, prepared.band);
-    this.memoryWindow.setLiving(prepared.living ? { crop: prepared.living.crop, size: prepared.size, order: prepared.living.order } : null, !prepared.living && !!prepared.def.living);
+    this.memoryWindow.setLiving(prepared.living ? { crop: prepared.living.crop, size: prepared.size, order: prepared.living.order, feather: prepared.living.feather } : null, !prepared.living && !!prepared.def.living);
+    // (Over the whole of its wall: it shows only while a streetlight crosses it.)
+    this.street.place(a);
+    this.street.reducedMotion = this.prefs.reducedMotion;
+    this.street.strength = this.prefs.intensity === 'gentle' ? STREET_GENTLE : 1;
     this.inside.begin(hashString(a.key), this.prefs.reducedMotion);
     const memory = new rt.LivingMemory(prepared, {
       reduced: this.prefs.reducedMotion,
@@ -562,7 +646,7 @@ export class App {
       },
     });
     const sm = SCENE_BY_PHRASE.get(phraseId);
-    this.living = { memory, id, key: a.key, anchor: a, bled: false, hiddenSince: null, held: false, awayFor: 0, watched: 0, minHold: sm?.minHold ?? 8, seenAt: sm?.seenAt, reached: 0, deep: false, why: null, away: false, told: 0, washed: new Set(), downSince: null, gaveUp: false, coda: false };
+    this.living = { memory, id, key: a.key, anchor: a, bled: false, hiddenSince: null, held: false, awayFor: 0, watched: 0, minHold: Math.max(sm?.minHold ?? 8, prepared.voices ? voicesEnd(id, prepared.variant, prepared.voices.version) + 1 : 0), seenAt: sm?.seenAt, reached: 0, deep: false, why: null, away: false, told: 0, washed: new Set(), downSince: null, gaveUp: false, coda: false, preview };
     this.memoryClock.reset();
     // The room hushes round it (and its music stops), until it lets go. For the door the white
     // room itself goes to evening, so the landing's light is the brightest thing there. Nothing
@@ -573,8 +657,8 @@ export class App {
     // A memory whose music is the room's last: no chord of the room's under it (its reverb isn't
     // hushed, and four of its five chords are a semitone from the woodland's key).
     if (this.ambience && (prepared.def.lastMusic === prepared.variant || prepared.def.drone === false)) this.ambience.score.drone = 0;
-    if (prepared.def.roomDim) this.lighting.dimToChair(prepared.def.roomDim, prepared.def.maxHold + 4, this.time);
-    if (this.director.scenes.active?.id !== id) this.director.memoryExternal(id);
+    if (prepared.def.roomDim) this.lighting.dimToChair(prepared.def.roomDim, Math.max(prepared.def.maxHold, prepared.def.sections.exit) + (prepared.def.roomDimOut ?? 4), this.time);
+    if (this.director.scenes.active?.id !== id) this.director.memoryExternal(id, !!prepared.voices);
     // Its position 0 is this instant on the audio clock, for its first sounds and its first frame
     // alike (the clock measures its first frame from here: QA, 2026-10-19).
     const ctx = this.audio?.ctx;
@@ -588,8 +672,9 @@ export class App {
     if (!l) return;
     // What the picture is, for a screen reader (not shown: the captions are for sounds).
     if (s === 'active') this.srRegion().textContent = l.memory.prepared.def.describe(l.memory.prepared.variant);
-    // Letting go early: the room's own light comes back with it (over about 4 s).
-    if (s === 'withdrawing' && l.memory.prepared.def.roomDim) this.lighting.dimToChair(l.memory.prepared.def.roomDim, 4, this.time);
+    // Letting go early: the room's own light comes back with it (over about 4 s; Memory VII's
+    // keeps the room down while its shade goes back into the wall: `roomDimOut`).
+    if (s === 'withdrawing' && l.memory.prepared.def.roomDim) this.lighting.dimToChair(l.memory.prepared.def.roomDim, l.memory.prepared.def.roomDimOut ?? 4, this.time);
     if (s === 'residue' || s === 'complete') {
       // The room comes back as the memory lets go (issued now, never precomputed).
       this.audio?.memoryHush(0, 20);
@@ -605,6 +690,7 @@ export class App {
       this.inside.end();
       this.captions.dim = false;
       this.memoryWindow.release();
+      this.street.release();
       for (const k of l.washed) this.text.wash(k, 0);
       // Its recordings are let go too (a phone keeps little decoded audio; they load again if it returns).
       const p = l.memory.prepared;
@@ -615,7 +701,8 @@ export class App {
       // It ran to its end if nobody let it go early. (A tab hidden for long ends it uncounted, as a
       // vignette: it comes back, the same, another time.)
       const seen = l.why !== 'hidden' && entered && (l.seenAt !== undefined ? l.reached >= l.seenAt : l.watched >= Math.min(l.minHold, 8));
-      if (this.director.memoryEnded(l.id, seen, l.why === null || l.why === 'complete') && !this.forgotten) {
+      if (l.preview) this.director.memoryPreviewEnded(l.id);
+      else if (this.director.memoryEnded(l.id, seen, l.why === null || l.why === 'complete') && !this.forgotten) {
         const counts = readMemoryCounts();
         counts[l.id] = (counts[l.id] ?? 0) + 1;
         writeMemoryCounts(counts);
@@ -652,6 +739,55 @@ export class App {
     this.memoryLight.strength = (this.prefs.intensity === 'gentle' ? 0.6 : 1) * spill;
     this.memoryLight.startPane(l.anchor.group, at.x, at.y, (pane.w / 2) * at.scale, (pane.h / 2) * at.scale, pane.transom * at.scale, pane.mullion * at.scale, { attack: 3, hold: 4, release: 6 }, this.time, 0);
     this.memoryKey = l.key;
+  }
+
+  /**
+   * A living memory's hold on the chair's shadow (Memory VII, docs/shadows.md: `room.shadow` and
+   * `room.lamp`), from its last frame: the lamp is aimed at its painting's place on the wall, a
+   * little under its middle. Nothing playing, or nothing held, and the shadow goes home by itself.
+   */
+  private holdChairShadow() {
+    const m = this.lighting.memoryShadow;
+    const l = this.living;
+    const f = l?.memory.controller.frame?.final;
+    // (And its night, The Drive Home's: nothing playing, the room's light comes back by itself.)
+    this.lighting.night = f?.['room.night'] ?? 0;
+    m.amount = f?.['room.shadow'] ?? 0;
+    m.lamp = f?.['room.lamp'] ?? 1;
+    if (!l || m.amount <= 0 || !this.memoryWindow.isPlaced) return;
+    const p = this.memoryWindow.painting;
+    l.anchor.group.updateWorldMatrix(true, false);
+    l.anchor.group.localToWorld(m.at.set(p.cx, p.cy - 0.15 * p.h, 0));
+  }
+
+  /**
+   * The Drive Home's end (docs/drive-home.md): as the indicator stops, the room's light comes to
+   * the visitor first, before the chair: onto where they are looking, a little over a metre up, on
+   * the wall they face or the floor before them, taken once and never following them; then back to
+   * the chair by itself over half a minute (Lighting.leanTo). Not if they are already by the chair
+   * (the light is there), never after a let go (compose: `lean`).
+   */
+  private leanToVisitor(l: NonNullable<App['living']>, lean: number) {
+    if (l.leaned || lean < 0.5) return;
+    l.leaned = true;
+    const eye = this.rig.restingEye;
+    const chair = this.chair.group.position;
+    if (Math.hypot(eye.x - chair.x, eye.z - chair.z) < 1.5) return;
+    // Under reduced motion the room's light does not travel (as the kitchen's: light, not movement).
+    if (this.prefs.reducedMotion) return;
+    const dir = this.rig.camera.getWorldDirection(new THREE.Vector3()).setY(0);
+    if (dir.lengthSq() < 1e-6) return;
+    dir.normalize();
+    // Where the look meets a wall (the room's box), at most 3 m ahead: the floor short of it.
+    const hx = ROOM.halfW - 0.05, hz = ROOM.halfD - 0.05;
+    let t = 3;
+    if (dir.x > 1e-6) t = Math.min(t, (hx - eye.x) / dir.x);
+    if (dir.x < -1e-6) t = Math.min(t, (-hx - eye.x) / dir.x);
+    if (dir.z > 1e-6) t = Math.min(t, (hz - eye.z) / dir.z);
+    if (dir.z < -1e-6) t = Math.min(t, (-hz - eye.z) / dir.z);
+    const at = new THREE.Vector3(eye.x + dir.x * t, t < 2.95 ? 1.2 : 0, eye.z + dir.z * t);
+    this.lighting.leanTo(at, this.time);
+    this.srRegion().textContent = 'The light moves a little toward you.';
   }
 
   /** Let the playing memory go: gracefully, or (switch, depart, hidden) at once. */
@@ -749,7 +885,8 @@ export class App {
       fallback: (cue, delay) => {
         const text = cue.text ?? '';
         setTimeout(() => {
-          if (!this.vignette || this.vignette.id !== def.id) return;
+          // Previews only: a visitor hears kept takes or nothing (a take that failed to load stays silent).
+          if (!this.vignette || this.vignette.id !== def.id || !this.vignette.preview) return;
           const from = isSpot(cue.place) ? this.spotWorld(cue.place) : base.where(cue.place);
           void voices.playLine('whisper', text, { from }, 0.7, undefined, { synth: true, priority: true }).then((p) => {
             if (p.duration > 0) this.captions.show(text, p.duration, false, cue.side);
@@ -824,7 +961,8 @@ export class App {
    * preview (`?vignette=<id>&variant=<v>`, the artist's panel): a preview plays whether or not its
    * voices are recorded (an unrecorded line is a wordless voice with its caption).
    */
-  async playVignette(id: string, variant: string, preview = false): Promise<boolean> {
+  /** `line`: which of its lines opened it (it is placed beside that one); its own, by default. */
+  async playVignette(id: string, variant: string, preview = false, line?: string): Promise<boolean> {
     const def = VIGNETTE_BY_ID.get(id);
     if (!def || this.living || this.mode !== 'room') return false;
     const host = this.vignetteHost(def);
@@ -835,8 +973,12 @@ export class App {
     $('hint').classList.remove('on');
     const gen = ++this.vignetteGen;
     // A preview shows its line, if the room hasn't written it (so what it leaves there is seen).
-    if (preview && def.anchor.phrase && !this.text.anchorOf(def.anchor.phrase)) this.text.setShown(def.anchor.phrase);
-    const a = def.anchor.phrase ? this.text.anchorOf(def.anchor.phrase, this.gazeId ?? this.lastTappedKey) : null;
+    const opens = line && (line === def.anchor.phrase || def.anchor.also?.includes(line)) ? line : def.anchor.phrase;
+    if (preview && opens && !this.text.anchorOf(opens)) this.text.setShown(opens);
+    // Placed by the line read; if it has gone, its own line only where they face it; else round them.
+    const own = def.anchor.phrase && opens !== def.anchor.phrase ? this.text.anchorOf(def.anchor.phrase) : null;
+    // (Where its own line is written now: an offer writes it on whichever wall they faced.)
+    const a = (opens ? this.text.anchorOf(opens, this.gazeId ?? this.lastTappedKey) : null) ?? (own && own.group === this.room.frames[this.director.facing]?.writing ? own : null);
     const frame = this.spotFrame(a?.key ?? null);
     const player = new VignettePlayer(def, variant, host, hashString(def.id + variant));
     // Its places are fixed from now (the frame is read while preparing, too).
@@ -881,6 +1023,21 @@ export class App {
   }
 
   private stepVignette() {
+    const pm = this.previewMemory;
+    if (pm && this.mode === 'room' && !this.opening && !this.living) {
+      pm.at ??= wallClock() + 4;
+      if (wallClock() >= pm.at) {
+        this.previewMemory = null;
+        const phraseId = SCENE_MEMORIES.find((m) => m.id === pm.id)?.phraseId;
+        if (phraseId) {
+          if (!this.text.anchorOf(phraseId)) this.text.setShown(phraseId);
+          setTimeout(() => {
+            this.frameMemory(phraseId);
+            void (this.voices?.loadPreview() ?? Promise.resolve()).then(() => this.playMemory(pm.id, phraseId, pm.variant, pm.voices, true));
+          }, 600);
+        }
+      }
+    }
     const pv = this.previewVignette;
     if (pv && this.mode === 'room' && !this.opening && !this.living) {
       pv.at ??= wallClock() + 4;
@@ -941,6 +1098,8 @@ export class App {
       const lines = new Set(Object.keys(def.variants).flatMap((k) => spokenLines(def, k)));
       if ([...lines].every((l) => this.voices?.hasAsset(lineKey(def, l)))) out.add(def.id);
     }
+    // And the painted memories' voices: a version only once every line of it is kept.
+    for (const { id, variant, version } of allVersions()) if (this.memoryVoices(id, variant, version, false)) out.add(voicesId(id, variant, version));
     return out;
   }
 
@@ -959,6 +1118,10 @@ export class App {
     }
     const f = l.memory.controller.scrub(position);
     this.memoryWindow.update(f.final, this.rig.restingEye, 1);
+    // (The streetlights too, so a capture or the editor shows where a pass is; and the light that
+    // comes to the visitor at the end, on its own clock, as it would played.)
+    this.memoryWindow.setBand(this.street.update(f.final['room.street'] ?? 0));
+    this.leanToVisitor(l, f.final['room.lean'] ?? 0);
     this.drawLiving(l, f, 0);
     return { state: f.state, position: f.position, final: f.final };
   }
@@ -1015,7 +1178,7 @@ export class App {
    */
   private prefetchMemories() {
     if (this.mode !== 'room' || (this.frameCount++ & 31) !== 0) return;
-    const soon = new Set(this.director.scenes.comingSoon(this.director.now).map((m) => m.id));
+    const soon = new Set(this.director.scenes.comingSoon(this.director.now, this.director.memoryPlayed).map((m) => m.id));
     for (const [phraseId, m] of SCENE_BY_PHRASE) {
       // Its line on a wall, or its offer near (a reserved line is written only as it is offered).
       if (this.prefetched.has(m.id) || !(this.text.anchorOf(phraseId) || soon.has(m.id))) continue;
@@ -1037,6 +1200,8 @@ export class App {
       const f = this.studioTick ? l.memory.controller.refresh() : l.memory.controller.frame;
       if (f) {
         this.memoryWindow.update(f.final, this.rig.restingEye, 1 / 60);
+        this.memoryWindow.setBand(this.street.update(f.final['room.street'] ?? 0));
+        this.leanToVisitor(l, f.final['room.lean'] ?? 0);
         this.drawLiving(l, f, 0);
         this.bleedMemory(l, f);
       }
@@ -1066,6 +1231,8 @@ export class App {
     const frame = l.memory.step(dt, now);
     if (frame) {
       this.memoryWindow.update(frame.final, this.rig.restingEye, dt);
+      this.memoryWindow.setBand(this.street.update(frame.final['room.street'] ?? 0));
+      this.leanToVisitor(l, frame.final['room.lean'] ?? 0);
       this.drawLiving(l, frame, dt);
       this.bleedMemory(l, frame);
     }
@@ -1103,11 +1270,12 @@ export class App {
     const shot = pl.scene.choose(f.final, { inside: this.inside.taken, turn: this.inside.turned, t: f.t, now: this.time, aspect });
     this.post.close = shot > 0 ? 1 : 0;
     // (A film's close shot is framed by its own focus, from its first frame to its last: a reframe on
-    // its cut, never a move; upright, the face whose shot it is: src/memory/living/woodlandFilm.ts.)
+    // its cut, never a move; upright, the face whose shot it is: src/memory/living/woodlandFilm.ts.
+    // Upright, a film that moves its focus by its own clock says where: src/memory/living/drive.ts.)
     const close = shot > 0 ? pl.spec.close : undefined;
     const focus = close
       ? (upright ? close.upright : close.coverAt(aspect))
-      : upright ? pl.spec.cover.upright : pl.spec.coverAt?.(aspect) ?? (aspect > 2.0 ? pl.spec.cover.ultra : pl.spec.cover.wide);
+      : upright ? pl.spec.uprightAt?.(f.final['scene.film'] ?? 0, this.prefs.reducedMotion) ?? pl.spec.cover.upright : pl.spec.coverAt?.(aspect) ?? (aspect > 2.0 ? pl.spec.cover.ultra : pl.spec.cover.wide);
     const go = this.inside.step(dt, {
       immerse: f.final['scene.immerse'] ?? 0,
       focus,
@@ -1117,6 +1285,7 @@ export class App {
       leavingNaturally: f.state === 'withdrawing' || f.state === 'residue',
       approach: 'scene.approach' in f.final ? f.final['scene.approach'] : undefined,
       torn: pl.torn,
+      shade: pl.shade,
       scale: upright ? pl.spec.cover.uprightScale ?? 1 : 1,
     }, { reduced: this.prefs.reducedMotion, aspect, scene: pl.scene.target.texture, group: l.anchor.group });
     // The window was placed before the spread changed: place it again for this frame.
@@ -1207,7 +1376,15 @@ export class App {
 
   /** One word for the next visit about how this one left the chair; nothing after a forget. */
   private keepTrace() {
-    if (!this.forgotten) writeTrace(this.director.leaving());
+    if (this.forgotten) return;
+    writeTrace(this.director.leaving());
+    // What the heart left, written on the wall yet or not; a visit whose heart wasn't seen leaves
+    // the last one where it was. (A tab closed in the heart's memory, already played past its
+    // heart, closed on a heart that was seen: the memory never ended, but it counts.)
+    const l = this.living;
+    const watched = l && !l.preview && l.seenAt !== undefined && l.reached >= l.seenAt && (this.inside.entered || !l.memory.prepared.living?.immerse) ? l.id : undefined;
+    const answer = this.director.heartLeft(watched);
+    if (answer) writeHeartAnswer(answer);
   }
 
   private beginOpening() {
@@ -1509,13 +1686,19 @@ export class App {
         carried: this.inside.carrying,
       };
       const cues = this.director.tick(dt, input, this.room.facing(this.rig.yaw));
-      for (const c of cues) this.apply(c.cue);
+      for (const c of cues) {
+        this.apply(c.cue);
+        // The way out is told to a screen reader as it is seen: the room going, and what keeps or takes it.
+        if (c.rule === 'leaving' && c.cue.type === 'silence') this.srRegion().textContent = 'The room begins to let you go. Walk on to leave; turn back, or wait, to stay.';
+        else if (c.rule === 'leaving-kept') this.srRegion().textContent = 'The room comes back.';
+      }
     }
 
     const env = this.director.env;
     const v = this.director.visitor;
     const scaleTarget = this.prefs.reducedMotion ? 1 + (env.roomScale - 1) * 0.3 : env.roomScale;
     this.room.setScale(this.room.scale + (scaleTarget - this.room.scale) * (1 - Math.exp(-dt / 6)));
+    this.holdChairShadow();
     this.lighting.update(dt, env, this.time, this.chair.group.position, this.chair.group.rotation.y);
     if (this.lighting.shadowDirty) this.renderer.shadowMap.needsUpdate = true;
     // Exposure, like the look's light, comes and goes with the room's own light (the opening, a dim).
@@ -1562,13 +1745,13 @@ export class App {
         this.text.hide(cue.phraseId, cue.seconds);
         break;
       case 'redraw':
-        this.text.redraw(cue.phraseId, cue.seconds * (this.prefs.reducedMotion ? 0.7 : 1));
+        this.text.redraw(cue.key ?? cue.phraseId, cue.seconds * (this.prefs.reducedMotion ? 0.7 : 1));
         break;
       case 'write': {
         const c = this.chair.group.position;
         const near = cue.nearPoint && cue.surface === 'floor'
           ? { u: c.x + cue.nearPoint.x + ROOM.halfW, v: c.z + cue.nearPoint.z + ROOM.halfD }
-          : cue.surface && !cue.beside ? this.viewPointOn(cue.surface) : undefined;
+          : cue.surface && !cue.beside ? this.viewPointOn(cue.surface, cue.purpose === 'recall') : undefined;
         const size = this.touch && cue.size === 'xs' && cue.purpose === 'recall' ? 's' : cue.size;
         // A memory's line by the drawing it opens from; looking at the drawing is reading it too.
         if (cue.under && cue.source) this.text.drawingMeans(cue.under, cue.source);
@@ -1610,13 +1793,13 @@ export class App {
         this.text.erode(cue.key, cue.keep, this.time);
         break;
       case 'vignette': {
-        void this.playVignette(cue.id, cue.variant).then((ok) => {
+        void this.playVignette(cue.id, cue.variant, false, cue.phraseId).then((ok) => {
           if (!ok) this.director.memoryFailed(cue.id);
         });
         break;
       }
       case 'memory-scene': {
-        void this.playMemory(cue.id, cue.phraseId, cue.variant).then((ok) => {
+        void this.playMemory(cue.id, cue.phraseId, cue.variant, cue.voices).then((ok) => {
           if (!ok) this.director.memoryFailed(cue.id);
         });
         break;
@@ -1653,8 +1836,8 @@ export class App {
       case 'silence':
         // A silence dimmed for its whole length (at the chair): its sound starts back a few seconds
         // before its light does (heard, then seen).
-        if (cue.dim !== undefined && cue.dimSeconds === cue.seconds) this.audio?.silence(cue.depth * (this.prefs.intensity === 'gentle' ? 0.8 : 1), Math.max(1, cue.seconds - 8), 1.4, 2.5);
-        else this.audio?.silence(cue.depth * (this.prefs.intensity === 'gentle' ? 0.8 : 1), cue.seconds);
+        if (cue.dim !== undefined && cue.dimSeconds === cue.seconds) this.audio?.silence(cue.depth * (this.prefs.intensity === 'gentle' ? 0.8 : 1), Math.max(1, cue.seconds - 8), cue.fall ?? 1.4, cue.rise ?? 2.5);
+        else this.audio?.silence(cue.depth * (this.prefs.intensity === 'gentle' ? 0.8 : 1), cue.seconds, cue.fall, cue.rise);
         if (cue.dim !== undefined) this.lighting.dimToChair(this.prefs.intensity === 'gentle' ? Math.max(cue.dim, 0.5) : cue.dim, Math.min(cue.seconds, cue.dimSeconds ?? 11), this.time);
         break;
       case 'lift':
@@ -1668,6 +1851,20 @@ export class App {
       case 'flash':
         this.lighting.triggerFlash(cue.kind, cue.amount * (this.prefs.intensity === 'gentle' ? 0.5 : 1), cue.seconds, this.time);
         break;
+      case 'leave':
+        // They stood at the door and the room let them go.
+        this.depart('door');
+        break;
+      case 'flinch': {
+        // Sound first (a 70 ms fall, held a moment, back soon), then the room's light pulls back
+        // toward the chair a quarter-second later: in over 0.9 s, held 1 s, out over 5 s.
+        const gentle = this.prefs.intensity === 'gentle';
+        this.audio?.silence(0.62 * cue.amount * (gentle ? 0.8 : 1), 1.2, 0.07, 1.5);
+        // The second time the room stays as it is and the chair's own light goes: the hurt in the chair.
+        const to = cue.chair ? 1 : 1 - 0.28 * cue.amount * (gentle ? 0.55 : 1);
+        this.lighting.dimToChair(to, 0.9 + 1 + 5, this.time, { delay: 0.25, fall: 0.9, rise: 5, glow: gentle ? 0.5 : 1, key: cue.chair ? 0.4 * (gentle ? 0.6 : 1) : 0 });
+        break;
+      }
     }
   }
 
@@ -1683,8 +1880,26 @@ export class App {
     return out;
   }
 
-  private viewPointOn(surface: Surface): { u: number; v: number } | undefined {
+  /**
+   * Where the view meets a surface. `level`: along the view's heading, not its pitch, and at a
+   * height a line can be read at: a line offered for a memory to someone looking down at the
+   * chair was written above the frame (interaction designer, 2026-11-06).
+   */
+  private viewPointOn(surface: Surface, level = false): { u: number; v: number } | undefined {
     const frame = this.room.frames[surface];
+    const wall = surface !== 'floor' && surface !== 'ceiling';
+    if (level && wall) {
+      const cam = this.rig.camera;
+      const dir = cam.getWorldDirection(new THREE.Vector3()).setY(0);
+      if (dir.lengthSq() > 1e-6) {
+        this.raycaster.set(new THREE.Vector3(cam.position.x, 1.35, cam.position.z), dir.normalize());
+        const hit = this.raycaster.intersectObject(frame.mesh, false)[0];
+        if (hit) {
+          const local = frame.group.worldToLocal(hit.point.clone());
+          return { u: local.x / this.room.scale + frame.size.w / 2, v: local.y + frame.size.h / 2 };
+        }
+      }
+    }
     this.raycaster.setFromCamera(new THREE.Vector2(0, 0), this.rig.camera);
     const hit = this.raycaster.intersectObject(frame.mesh, false)[0];
     if (!hit) return undefined;
@@ -1763,7 +1978,10 @@ export class App {
       this.rig.setKneel(false);
       return;
     }
-    if (this.gazeChair || d < 1.2) {
+    // (Writing on a wall being looked at is touched, even close to the chair: a click on a line
+    // offered there knelt instead. QA, 2026-11-06.)
+    const wallLine = !!this.gazeId && !this.gazeChair && ['north', 'east', 'south', 'west'].includes(this.text.items.get(this.gazeId)?.placement.surface ?? '');
+    if (this.gazeChair || (d < 1.2 && !wallLine)) {
       if (d < 1.5) this.rig.setKneel(true);
       else this.rig.attend(this.chair.group.position.clone().setY(0.35), 0.95);
       return;
@@ -1787,9 +2005,14 @@ export class App {
       const pid = this.text.phraseOf(this.gazeId);
       this.lastTappedKey = this.gazeId;
       if (pid) this.director.tapped({ phraseId: pid });
+      this.text.press(this.gazeId);
       if (c && it) {
         const s = it.placement.surface;
-        if (s === 'floor') this.rig.attend(c, 0.8);
+        // (Touched again while the room lets them go: a touch never walks them on. The words drift
+        // as the room's scale breathes, so the walk to them is never quite over, and walking on
+        // toward the wall is what leaves. QA, PR #56.)
+        if (pid === Director.EXIT && this.director.lettingGo) this.rig.faceToward(c);
+        else if (s === 'floor') this.rig.attend(c, 0.8);
         else if (s === 'ceiling') this.rig.faceToward(c);
         else this.rig.attend(c, 1.25);
       }
@@ -1798,9 +2021,17 @@ export class App {
 
   private cyclePhrase(dir: 1 | -1) {
     const cam = this.rig.camera.position;
-    const vis: { centre: THREE.Vector3 }[] = [...this.text.items.values()].filter((i) => i.vis > 0.5 && i.purpose !== 'drawing' && i.uniforms.uOpacity.value > 0.2 && i.placement.surface !== 'ceiling');
+    // (What is written there, wherever it came from: a phrase, a recalled line, the visitor's own words.)
+    const vis: { centre: THREE.Vector3; words?: string; where: string }[] = [...this.text.items.values()]
+      .filter((i) => i.vis > 0.5 && i.purpose !== 'drawing' && i.uniforms.uOpacity.value > 0.2 && i.placement.surface !== 'ceiling')
+      .map((i) => ({
+        centre: i.centre,
+        words: i.phrase?.text ?? (i.source ? PHRASE_BY_ID.get(i.source)?.text : undefined) ?? ((i.mesh.userData.text as string) || undefined),
+        where: i.placement.surface === 'floor' ? 'On the floor' : 'On the wall',
+      }));
     const air = this.text.airCentre;
-    if (air) vis.push({ centre: air });
+    const airKey = this.text.airState?.key.replace(/^air:/, '');
+    if (air) vis.push({ centre: air, words: (airKey && PHRASE_BY_ID.get(airKey)?.text) || 'words written in the air', where: 'In the air' });
     if (!vis.length) return;
     vis.sort((a, b) => {
       const aa = Math.atan2(-(a.centre.x - cam.x), -(a.centre.z - cam.z));
@@ -1809,6 +2040,9 @@ export class App {
     });
     this.tabIndex = (this.tabIndex + dir + vis.length) % vis.length;
     this.rig.faceToward(vis[this.tabIndex].centre);
+    // Without sight, the writing turned to is read out (the way out among it: QA, 2026-11-06).
+    const { words, where } = vis[this.tabIndex];
+    if (words) this.srRegion().textContent = `${where}: ${words}`;
   }
 
   private bindInput() {
@@ -1890,6 +2124,7 @@ export class App {
     let dragInside = false;
     let lastX = 0, lastY = 0, downX = 0, downY = 0, downT = 0;
     let lockWanted = false;
+    let lockFresh = false;
     canvas.addEventListener('pointerdown', (e) => {
       if (this.mode !== 'room') return;
       downX = lastX = e.clientX;
@@ -1907,8 +2142,16 @@ export class App {
     });
     canvas.addEventListener('pointermove', (e) => {
       if (this.mode !== 'room') return;
-      if (document.pointerLockElement === canvas) this.lookBy(e.movementX, e.movementY);
-      else if (dragging && e.pointerType === 'mouse') {
+      if (document.pointerLockElement === canvas) {
+        // (The first move once the mouse is taken can carry the pointer's jump to the lock as
+        // movement: Chromium reported the cursor's whole offset from the corner, a turn of 80°
+        // nobody made, and a memory begun by that click was looked away from and lost. However
+        // small the jump, the first move is dropped: it is a few pixels of a real move at most.)
+        const fresh = lockFresh;
+        lockFresh = false;
+        if (fresh) return;
+        this.lookBy(e.movementX, e.movementY);
+      } else if (dragging && e.pointerType === 'mouse') {
         // (A drag begun before a living memory took the view isn't a turn away from it.)
         if (!this.inside.locked || dragInside) this.lookBy((e.clientX - lastX) * 1.2, (e.clientY - lastY) * 1.2);
         lastX = e.clientX;
@@ -1920,19 +2163,26 @@ export class App {
       dragging = false;
       const moved = Math.hypot(e.clientX - downX, e.clientY - downY);
       if (moved < 5 && performance.now() - downT < 350 && this.mode === 'room') {
-        // A click: try to take the mouse; if refused, a click still interacts.
+        // A click: try to take the mouse; if refused, a click still interacts. A click on what is in
+        // the middle of the view (the words being looked at, the chair) is also that touch: the
+        // first click on writing used to do nothing but take the mouse (docs/reviews/2026-11-core-loop.md).
         if (!this.touch && canvas.requestPointerLock) {
+          const r = canvas.getBoundingClientRect();
+          const centre = Math.abs(e.clientX - (r.left + r.width / 2)) < r.width * 0.12 && Math.abs(e.clientY - (r.top + r.height / 2)) < r.height * 0.14;
+          if (centre) this.interact();
           lockWanted = true;
+          // (Refused, the click still acts — once: not again if it already has.)
           try {
             const r = canvas.requestPointerLock() as unknown as Promise<void> | undefined;
-            r?.catch?.(() => this.interact());
+            r?.catch?.(() => !centre && this.interact());
           } catch {
-            this.interact();
+            if (!centre) this.interact();
           }
         } else this.interact();
       }
     });
     document.addEventListener('pointerlockchange', () => {
+      lockFresh = document.pointerLockElement === canvas;
       if (document.pointerLockElement !== canvas && lockWanted && this.mode === 'room') {
         lockWanted = false;
         this.openSettings();
@@ -2078,7 +2328,13 @@ export class App {
     const l = this.living;
     if (l && !l.held && (l.memory.state === 'emerging' || l.memory.state === 'active')) {
       const onWindow = this.raycaster.intersectObject(this.memoryWindow.mesh, false).length > 0;
-      if (onWindow) {
+      // (While someone in it is speaking, a stray touch is staying too: a phone visitor steadying
+      // themselves never cuts a sentence: interaction review, 2026-10-27.)
+      // (From its first line to its last, the pause between them included: QA, 2026-10-27.)
+      const pv = l.memory.prepared.voices, pos = l.memory.controller.frame?.position ?? 0;
+      const speaking = !!pv && ((l.memory.prepared.audio?.voicesUntil ?? 0) > (this.audio?.ctx.currentTime ?? Infinity) ||
+        (pos >= voicesStart(l.id, l.memory.prepared.variant, pv.version) && pos < voicesEnd(l.id, l.memory.prepared.variant, pv.version)));
+      if (onWindow || speaking) {
         l.awayFor = 0;
         return;
       }
@@ -2139,6 +2395,8 @@ export class App {
     const pid = this.text.phraseOf(it.key);
     this.lastTappedKey = it.key;
     if (pid) this.director.tapped({ phraseId: pid });
+    // The ink takes a touch from a finger as from a click.
+    this.text.press(it.key);
     const c = it.centre;
     // A line that opens into a memory: stop where its painting is seen whole (on a portrait
     // phone 1.25 m shows only about a metre of wall).
@@ -2150,7 +2408,8 @@ export class App {
     }
     // (For a memory's line, aim a little below the words, at the painting that forms under them.)
     const aim = stop > 1.25 || (pid && SCENE_BY_PHRASE.has(pid)) ? c.clone().setY(c.y - 0.2) : c;
-    if (it.placement.surface === 'ceiling') this.rig.faceToward(c);
+    // (Touched again while the room lets them go: never a walk on, which would be leaving; see attendGaze.)
+    if (it.placement.surface === 'ceiling' || (pid === Director.EXIT && this.director.lettingGo)) this.rig.faceToward(c);
     else this.rig.attend(aim, it.placement.surface === 'floor' ? 0.8 : stop);
   }
 
@@ -2284,6 +2543,10 @@ export class App {
       this.rig.reducedMotion = p.reducedMotion;
     }
     document.documentElement.classList.toggle('reduce-motion', p.reducedMotion);
+    // (Changed while The Drive Home plays: its streetlights stop crossing, its light stays put.)
+    this.street.reducedMotion = p.reducedMotion;
+    this.street.strength = p.intensity === 'gentle' ? STREET_GENTLE : 1;
+    if (p.reducedMotion) this.lighting?.cancelLean();
     if (p.muted || !p.speech) this.voices?.stopSpeech();
     if (this.post) {
       this.post.reducedMotion = p.reducedMotion;
@@ -2317,6 +2580,8 @@ export class App {
   openSettings() {
     if (this.mode !== 'room') return;
     this.mode = 'settings';
+    // (Paused as the room let them go: they stayed.)
+    this.director.stayed();
     if (document.pointerLockElement) document.exitPointerLock();
     this.rig.keys.clear();
     this.rig.cancelAttend();
@@ -2368,14 +2633,14 @@ export class App {
 
   // ─────────────────────────────── leaving ───────────────────────────────
 
-  depart() {
+  depart(how: 'door' | 'menu' = 'menu') {
     if (this.mode !== 'settings' && this.mode !== 'room') return;
     this.endLivingMemory('depart');
     $('settings').hidden = true;
     this.mode = 'departed';
     void this.wakeLock?.release().catch(() => {});
     this.wakeLock = null;
-    const line = this.director.departureLine();
+    const line = this.director.departureLine(how);
     this.keepTrace();
     this.director.depart();
     this.leaving = wallClock();
@@ -2390,13 +2655,28 @@ export class App {
     this.departTimer = window.setTimeout(() => {
       dep.hidden = false;
       requestAnimationFrame(() => dep.classList.add('on'));
-      $('departure-line').textContent = line;
+      // The visit's sentence, when there is one: the room's first line, and under it, a moment later,
+      // what the visit's heart left beside it on the wall (docs/reviews/2026-11-emotional-arc.md).
+      const [first, answer] = line.split('\n');
+      const el = $('departure-line');
+      el.textContent = first;
+      if (answer) {
+        // (A pause for a screen reader between the two: "I wanted you to" runs on into the answer.)
+        const pause = document.createElement('span');
+        pause.className = 'sr-only';
+        pause.textContent = ' … ';
+        const span = document.createElement('span');
+        span.className = 'departure-answer';
+        span.textContent = answer;
+        el.append(pause, span);
+      }
       setTimeout(() => $('departure-line').classList.add('on'), 1500);
+      // (Not before the answer, when there is one, has fully come.)
       setTimeout(() => {
         $('return').hidden = false;
         $('return').focus();
         void this.audio?.suspend();
-      }, 6000);
+      }, answer && !this.prefs.reducedMotion ? 9000 : 6000);
     }, this.prefs.reducedMotion ? 1500 : 4600);
   }
 

@@ -33,3 +33,5 @@ export type Balance =
   | { known: false; reason: string };
 export function readBalance(key: string, fetchFn?: (url: string, init?: any) => Promise<any>): Promise<Balance>;
 export function balanceAllows(balance: Balance, estimate: number): { ok: boolean; note: string };
+/** Directions a vignette (or a painted memory's voice) never uses: bright, amused or laughing. */
+export declare const BRIGHT_TAGS: RegExp;

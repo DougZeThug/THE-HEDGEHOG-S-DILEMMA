@@ -34,7 +34,7 @@ export function closeCover(aspect: number): [number, number] {
   return [across >= FACES.to - FACES.from ? (FACES.from + FACES.to) / 2 : HERS, v];
 }
 
-export interface FilmSpec extends Pick<LivingSpec, 'cover' | 'coverAt'> {
+export interface FilmSpec extends Pick<LivingSpec, 'cover' | 'coverAt' | 'uprightAt'> {
   /**
    * Let go before `before` (memory s), the film cuts to its frame at `to` (its own seconds) and
    * holds it as it goes back into the wall: the frame the wall's pencil draws.

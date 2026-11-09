@@ -1,0 +1,121 @@
+# Overheard voices in the painted memories (2026-10-27)
+
+The brief: when a visual memory forms, let the visitor sometimes overhear a few seconds of somebody else's life (people talking to each other, never explaining), then leave them with the room's silence. The artist chose to put voices inside the painted memories (rather than more heard-only vignettes), with lighter writing (humour, affection, domestic bickering) recorded in the kept, held-back register (`BRIGHT_TAGS` stays).
+
+Much of the original issue already existed when it was taken up: nine voiced vignettes (`docs/vignettes.md`) and six painted memories (`docs/memories.md`), none of which spoke. What was missing was a memory with both a picture and overheard speech.
+
+Reviewed by the creative director, cinematic director, sound designer and interaction designer, then challenged by the skeptic.
+
+## Decisions
+
+1. **One scheduling authority.** A painted memory's voices are `voice:` cues on its own cue sheet and markers on its own timeline (`src/content/memory-voices.ts`, merged in `src/memory/runtime.ts`), played by its MemoryAudio on its clock. There is no second engine. The MemoryDirector chooses the version as the memory begins (deterministic: `chooseVoices`) and carries it on the `memory-scene` cue.
+2. **Only kept takes reach visitors.** A version is heard only if every one of its lines has a take the artist kept. Otherwise the memory plays exactly as before: wordless, with no captions and no murmur standing in for speech. `?memory=<id>&variant=<v>&voices=<version>` previews it with takes not kept yet, or a wordless voice and its caption.
+3. **Cereal's first sitting speaks; nothing else does.**
+   - **Lines:** "That's my bowl." (restrained, the left bowl, 7.4 s), then "It's the clean one." (sarah, the right bowl, 8.8 s). The laugh at 10.5 (two people, together) answers both, and the light still lifts on it.
+   - **Why two lines, not three:** the three-line version ("It's mine, though.") would have had to move the laugh and the light (cinematic). A third line also explains the joke (skeptic), and two lines leave the wordless and voiced cereal sharing one Theatre sheet (sound).
+   - **Radio:** −18 dB instead of −15.5 in the voiced version only, so the lines sit in its troughs.
+   - **Casting:** away from biscuit's liam/sarah pair, so no single couple forms across memories (creative). Sarah is the writer in seven of the nine vignettes: the writer in her own kitchen.
+4. **Cereal later stays wordless.** The same laugh in an empty kitchen, with the light not answering it, is its rhyme with the first (cinematic, creative). "You're still here?" on a return visit would have read as addressed to the visitor.
+5. **The bedroom stays wordless.** A call from downstairs puts a need into "happiest when nobody needed anything from me". The piano downstairs is already the other person, wordless. The bedroom opened in 1 of 40 scripted visits, so a line there would also have cost a 9 s longer hold for almost nobody (skeptic).
+6. **Cut:**
+   - Two cups, which the room already has five ways (creative).
+   - The cereal version chosen by the visitor having withdrawn, which would punish behaviour with a sadder memory and is meaningless that early (creative, interaction).
+7. **Rain is deferred, not dropped.** Its line `raining-anyway` reaches the walls only through an encounter arc, so it could open only through an offer, and offers (two a visit) would take the place of the rare C, D and G (interaction). Before adding a tenth vignette, re-anchor the two of the nine nobody reaches (decision 10). The creative director's rewrite is kept for when it comes: "Close that, will you?" / "It's nice." / [the rain starts] / "…It's nice."
+8. **The picture leads, and nothing is chopped.**
+   - **Quiet windows:** each voiced variant lists the windows of its picture's beats that no voice may enter (cereal: the laugh and the light's lift, 10.5–11.6), and no line comes within 1.5 s of the scene forming. Both are tested.
+   - **Soft releases:** looking away, walking off or a tap elsewhere lets a sentence already begun finish, and nothing new begins. A hard release (switch, departure, hidden tab) still cuts.
+   - **Hold:** a voiced memory holds against a turned head until its last line is said, plus a second.
+   - **Stray taps:** while someone in it is speaking, a stray tap counts as staying.
+9. **Nothing talks over it, and its words are captioned as speech.**
+   - **Other sounds:** nothing of the room's (not even a finished line) sounds while a memory with voices of its own plays.
+   - **Captions:** its lines are captioned as speech, each by the side of the painting it is said from. Phones play one channel, so the caption is how a phone visitor knows who is speaking. Its sound captions go beneath the words rather than replacing them.
+   - **Level:** its lines are levelled as a vignette's are.
+10. **Found on the way, not fixed here.** `npx vite-node scripts/vignette-reach.ts` now gives 67 vignettes in 40 visits with **the charger and the washing up at 0/40**. `docs/vignettes.md` reports otherwise, so that should be looked into separately.
+
+## QA (qa-accessibility, after implementing)
+
+Fixed:
+- **The Director's view of the memory.** The Director treated cereal as speaking although nothing was kept. It now counts a version as speaking only once the App names it among what may speak (`setAvailable`, `voicesId`), so a wordless cereal is wordless to both.
+- **Speaker sides in captions.** The sides never rendered: the vignettes' caption backing centred every line, a bug older than this change. Both people's lines now lean apart, on phones too (measured: left 16–109 px, right 273–374 px at 390 px), and so do the vignettes'.
+- **Pauses.** A pause mid-sentence lost the sentence. It is now said again from its start, the scene stepping back to just before it, as a vignette's does, and nothing already heard is played twice (tested).
+- **Previews.** A `?memory=` preview counted as a real viewing on that device. It is now never counted, and the Director knows a voiced preview has voices.
+- **Stray taps.** A tap in the pause between the two lines released the memory. The whole exchange is now covered.
+- **The preview's whisper.** Its stand-in voice no longer begins after the memory is let go.
+
+Left as they are:
+- **Caption density.** A screen reader may re-announce the caption region as the laugh's caption joins the words; vignettes already do this. To be checked on a real screen reader before changing `aria-atomic`.
+- **Line lengths in the tests.** The tests estimate them until measured timings exist for vignette takes (`voice-timings.json` has none). The audition sets the real gaps.
+
+## Recording
+
+- **Direction:** four takes in `src/content/vignettes.dialogue.json` (two seeds per line). Both lines are `[quietly, flat]`: dry, deadpan, unhurried, mouth half full. The scene context carries the humour; no tag asks for it. "Held back" is not "sad": read sad, "That's my bowl." sounds hurt, and the laugh then arrives as strangers.
+- **Dry run:** `node scripts/generate-dialogue.mjs --vignettes --dry-run --only=cereal--my-bowl,cereal--my-bowl-b,cereal--clean-one,cereal--clean-one-b` plans 4 takes, about 132 credits estimated (recent vignette runs have billed about 0.45 of their estimate). Without `--only`, the run would also generate five `-c` takes queued earlier for other vignettes (about 113 more).
+- **Approval:** nothing is generated without the artist's approval.
+- **At audition:** judge the two lines **and the laugh together** in the read-through (`node scripts/audition.mjs`, "cereal (painted memory, its voices)").
+  - If it plays as a hurt exchange followed by strangers laughing, keep nothing: the memory stays wordless at no cost.
+  - Check the laugh's level against the lines. The version's `gains` can set it.
+  - Real take lengths decide the final gaps. If two kept takes together run longer than about 2.65 s, choose a shorter take rather than moving the laugh.
+- **Recorded (2026-10-27, with the artist's approval):** the four takes, 58 credits billed (132 estimated). Each was heard back word for word by the speech-to-text check.
+- **Kept, by the artist:**
+  - `cereal--my-bowl-b`: speech from 0.15 to 1.06 s into the file, so heard at about 7.55–8.46.
+  - `cereal--clean-one`: speech to 1.29 s, heard at about 8.8–10.09.
+  - That leaves a third of a second between them and about half a second before the laugh. No beat moved.
+  - The other two takes stay unkept.
+- **Live:** cereal's first sitting speaks for visitors. Checked in an ordinary visit (no preview): the Director chose the voices, and the lines were captioned left (7.5 s) and right (8.85 s) on a phone.
+
+## Reach: the rare vignettes, and Rain (2026-10-27, later)
+
+Reviewed by the creative director, sound designer and interaction designer, challenged by the skeptic; the artist decided where the skeptic disagreed with an earlier choice.
+
+1. **Measure on 200 visits, not 40.**
+   - Eight seeds were too few. The "0 of 40" that started this round was partly sample noise: at 200 visits the washing up was met 7 times.
+   - `scripts/vignette-reach.ts` now runs seeds 1–40 by default (`N=…` for another count) and counts a vignette as playable only as the App would, with its takes kept (`LIVE=…` to count one anyway).
+   - The script used to let the Director begin unrecorded vignettes, because it never told it what was available.
+2. **The charger opens beside "I think I was happy then."**
+   - The old line, "Nobody tells you how ordinary it feels.", is written only late, on the west wall, and was almost never read while the charger could play.
+   - Reach: 4 → about 25 in 200.
+   - The "ordinary" annotation on happy-then's third encounter is removed. Beside the line the charger now opens from, it glossed the scene. The two lines still meet late on the west wall (`rc-happy-ordinary`).
+   - The room may still voice happy-then before the charger plays. That happens in about 11 visits in 200, and keeping it back would have silenced a kept reading in about 70 (the skeptic).
+3. **The washing up stays on "far enough to miss you"** (the artist).
+   - "I don't need anyone." gained 0–5 in 200, depending on the simulation's assumptions.
+   - On a single hearing, the scene would only act that line out.
+4. **More than one way in** (`anchor.also`), adopted by the artist for three vignettes, with the creative director's lines:
+
+   | Vignette | Extra lines | Reach in 200, before → after |
+   |---|---|---|
+   | Rain | "still warm" | 2 → 15 |
+   | Practice (D) | "Can I sit here for a while?", "The kettle clicked off." | 20 → 38 |
+   | Back-seat (C) | "Look at me." | 15 → 24 |
+
+   - Rejected lines:
+     - "Nothing happened. That was the nice part.": it explains Rain.
+     - "Whose idea was the tent?" and "You fell asleep on my shoulder…": the room's rare light lines are kept free of scenes.
+     - "I still say 'we' by accident.": it would close the call down to a breakup.
+   - Never add a kettle sound to practice: the kettle line would then be acted out.
+5. **Never three in five minutes.**
+   - With more ways in, settled visitors met a third vignette late in a visit, never before about seven minutes.
+   - The real crowding was three within five minutes: 22 such runs in 200 visits.
+   - At most two vignettes now begin in any 300 s. That removes those runs, keeps nearly all of the new reach, and leaves the painted memories, the aftermaths and the long silences as they were (interaction designer).
+6. **Rain is built.**
+   - It opens beside `warm-night` or "still warm", and clears the reopening bar: 8 in 200 at notice 0.3, 15 at the default.
+   - Words, the creative director's: "Close that, will you?" / "It's nice." / [it starts to rain] / "…It's nice."
+   - The heard-before version has the rain from the start and the hesitant "…It's nice." second.
+   - Score and sounds, the sound designer's:
+     - the rain beyond the wall;
+     - the drops on the sill a sound of their own, not the sink's drip;
+     - no silence gaps, which would duck the rain.
+   - Casting: `warm` and `sarah`. `liam` would have made biscuit's couple recur (the skeptic).
+   - The room has no window. The window is heard, never placed.
+   - Its six takes wait for recording, with the artist's approval and the key in the environment.
+7. **Not done:** a vignette may still begin the moment a held silence lifts (29 visits in 200, as before this round). The room's own voices wait 6 s after a deep silence; vignettes could too. That's for a later round.
+
+8. **QA after implementing** (qa-accessibility, 2026-10-27):
+   - **The paintings' offers.** The extra ways in made more vignettes owed, and owed vignettes ranked first for the room's three pointings a visit. Painted offers fell from 207 to 167 in 200 visits (woodland 56 → 38, bedroom 16 → 9), mostly spent on a vignette's own line written alone after the visitor had read a different one.
+     - Fixed in two ways. A vignette owed through another way in is pointed at only by that line, written again. A painted memory never yet met now ranks ahead of owed vignettes.
+     - Painted offers are now 252 and painted memories met 86, against 207 and 80 before this round.
+     - Vignettes are 352 against 344: practice 20 → 29, back-seat 15 → 16, Rain 2 → 12 (10 at notice 0.3).
+   - **Unrecorded vignettes.** One that can't play no longer keeps its lines back from the room (`claims()`).
+   - **Placement.** A vignette opened from a line that has since gone is placed beside one of its lines still on the wall. The App's fallback checks the wall where its own line is actually written, not the wall it belongs to.
+   - **Tests added:** a touch on another way in, the owed re-ink, the paintings' priority, and unrecorded claims.
+   - **Not reproduced:** a room reading overlapping its vignette. Visitors' voices never sound during a scene. A slow decode on a real phone remains to check.
+9. **Rain kept** (the artist, after listening): `rain--close-b`, `rain--nice-b` and `rain--nice-again-b`. Rain is live, met in about 12 of 200 simulated visits.

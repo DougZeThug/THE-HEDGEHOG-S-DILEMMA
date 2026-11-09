@@ -237,7 +237,9 @@ export function textTexture(text: string, hand: Hand, size: Size, key: string, m
   const boxes: CharBox[] = [];
   let wi = 0;
   let y = px * 1.0;
+  let li = 0;
   for (const line of lines) {
+    li++;
     let x = px * 0.15;
     const words = line.split(' ');
     for (const w of words) {
@@ -251,7 +253,7 @@ export function textTexture(text: string, hand: Hand, size: Size, key: string, m
       let cx = 0;
       for (let k = 0; k < w.length; k++) {
         const cw = st.tracking ? g.measureText(w[k]).width + st.tracking * px : g.measureText(w.slice(0, k + 1)).width - cx;
-        boxes.push({ i: i0 + k, x0: x + cx - px * 0.04, x1: x + cx + cw + px * 0.04, yTop: y + dy - px * 1.05, yBottom: y + dy + px * 0.55, base: y + dy, xHeight: px * 0.45, stamp: hand === 'typed' });
+        boxes.push({ i: i0 + k, x0: x + cx - px * 0.04, x1: x + cx + cw + px * 0.04, yTop: y + dy - px * 1.05, yBottom: y + dy + px * 0.55, base: y + dy, xHeight: px * 0.45, stamp: hand === 'typed', line: li });
         cx += cw;
       }
       if (st.tracking) {

@@ -70,6 +70,16 @@ const FRAG = /* glsl */ `
   // Its words lie on it, washed to a trace (a living memory's revisit, on the wall without a scene
   // of its own): no plaster kept round them.
   uniform float uUnder;
+  // A living memory's own soft edge on the wall (m; 0: the usual brush): shade has no edge
+  // (Memory VII: a 6-11 cm brush round a patch of shade read as a stain; the technical artist's
+  // and the cinematic director's reviews, 2026-11-09).
+  uniform float uFeather;
+  // Light passing across the wall (The Drive Home's streetlights, src/world/StreetLight.ts): its
+  // band (centre from the window's centre, half width, shear (m of x a metre up), strength) and the
+  // wall's middle from the window's centre (m); what it has left found (the order map's b), and
+  // the flat dark of what isn't found yet, as a share of the plaster (1: none, nothing touched).
+  uniform vec4 uBand;
+  uniform float uBandY, uFound, uDark;
   varying vec2 vUv;
 
   vec3 toLinear(vec3 c) { return mix(c / 12.92, pow((c + 0.055) / 1.055, vec3(2.4)), step(0.04045, c)); }
@@ -118,7 +128,7 @@ const FRAG = /* glsl */ `
     // a brush, not a frame). One drawn in order has its corners rounded as wide as its band (no
     // corner is ever seen: image 3 has none; the creative director's and the skeptic's reviews).
     vec2 e = min(vUv, 1.0 - vUv) * uSize;
-    float band = (0.06 + 0.05 * n) * (1.0 + 0.6 * uOpen);
+    float band = max((0.06 + 0.05 * n) * (1.0 + 0.6 * uOpen), uFeather * (0.9 + 0.2 * n));
     float rr = band * 1.5 * uOrdered;
     float ed = (e.x < rr && e.y < rr) ? rr - length(vec2(rr) - e) : min(e.x, e.y);
     float edge = smoothstep(0.0, band, ed + (n2 - 0.5) * 0.08 * uOpen);
@@ -172,6 +182,16 @@ const FRAG = /* glsl */ `
     pigCov *= 1.0 - mix(0.0, 0.85, reserve * uStylize * (1.0 - uOpen) * (1.0 - uUnder));
 
     vec3 pigment = toLinear(col / max(cov, 1e-3));
+    if (uDark < 1.0) {
+      // Faces in a car at night: found where a streetlight crosses them, and left found after.
+      float bx = (m.x - uBand.x - uBand.z * (m.y - uBandY)) / max(uBand.y, 1e-3);
+      float lit = uBand.w * exp(-bx * bx);
+      float b = texture2D(uOrder, P).b + (n2 - 0.5) * 0.1;
+      float found = smoothstep(b - 0.16, b + 0.16, uFound);
+      // (Not yet found it is the flat dark of a car's inside at night, a share of the plaster, no
+      // face in it: the picture only darkened still showed its pale faces before any light came.)
+      pigment = mix(vec3(uPlaster * uDark), pigment, max(lit, found));
+    }
     vec3 lit = toLinear(min(light, vec3(1.0))) * shade * uLight * lightMask * edgeAll * uPresence;
 
     // dst × (cover × pigment / plaster + (1 − cover)) + dst × light (see the blend below).
@@ -298,6 +318,11 @@ export class MemoryWindow {
       uSunk: { value: 1 },
       uLift: { value: 0 },
       uUnder: { value: 0 },
+      uFeather: { value: 0 },
+      uBand: { value: new THREE.Vector4(0, 0.5, 0, 0) },
+      uBandY: { value: 0 },
+      uFound: { value: 0 },
+      uDark: { value: 1 },
     };
     const mat = new THREE.ShaderMaterial({
       uniforms: this.u,
@@ -348,8 +373,9 @@ export class MemoryWindow {
    * the plaster as its scene was, and lying under its words, which are washed (src/App.ts): without,
    * its words' bare plaster took the top half of it, and at full strength the dusk was a black stain.
    */
-  setLiving(o: { crop: [number, number, number, number]; size: [number, number]; order?: THREE.Texture | null } | null, under = false): void {
+  setLiving(o: { crop: [number, number, number, number]; size: [number, number]; order?: THREE.Texture | null; feather?: number } | null, under = false): void {
     this.living = o;
+    this.u.uFeather.value = o?.feather ?? 0;
     this.spread = 0;
     this.u.uSoftReserve.value = o ? 1 : 0;
     this.u.uSunk.value = o || under ? SUNK : 1;
@@ -383,6 +409,8 @@ export class MemoryWindow {
   /** Let the memory's textures go (the caller disposes them); back to the neutral dummy. */
   clearLayers(): void {
     this.setLiving(null);
+    this.setBand(null);
+    this.u.uDark.value = 1;
     (this.u.uView0.value as THREE.Vector4).set(0, 0, 1, 1);
     this.setLayers([]);
     this.u.uPresence.value = 0;
@@ -545,8 +573,24 @@ export class MemoryWindow {
     this.at.scale = 1;
   }
 
+  /**
+   * Light passing across its wall (The Drive Home): the band's centre (its writing group's metres),
+   * half width and shear, and its strength; the wall's middle height there. null: none.
+   */
+  setBand(b: { x: number; half: number; shear: number; amount: number; midY: number } | null): void {
+    const u = this.u.uBand.value as THREE.Vector4;
+    if (!b) {
+      u.w = 0;
+      return;
+    }
+    u.set(b.x - this.mesh.position.x, b.half, b.shear, b.amount);
+    this.u.uBandY.value = b.midY - this.mesh.position.y;
+  }
+
   /** The light and the layers of a living memory (no parallax: its scene draws its own depth). */
   private reveal(final: Values, v: (k: string, d: number) => number, _scale: number): void {
+    this.u.uFound.value = v('window.found', 0);
+    this.u.uDark.value = this.u.uOrdered.value > 0.5 ? v('window.dark', 1) : 1;
     this.u.uReveal.value = v('window.reveal', 0) * 1.25;
     this.u.uSketch.value = v('window.sketch', 0) * 1.25;
     this.u.uPresence.value = v('window.presence', 1);

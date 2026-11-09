@@ -87,8 +87,9 @@ kbd { font-family: inherit; font-size: 0.85em; border: 1px solid #c9c7c1; border
    lean apart. */
 .captions .cap.vig:not(.sound) { display: table; margin-left: auto; margin-right: auto; background: rgba(240, 238, 232, 0.86); color: rgb(30, 31, 36); padding: 0.1em 0.55em; border-radius: 0.6em; }
 .captions .cap.on.waiting { opacity: 0.85; font-style: italic; }
-.captions .cap.side-left { margin-left: 0; margin-right: auto; }
-.captions .cap.side-right { margin-left: auto; margin-right: 0; }
+/* (As specific as the backing above, or it centres them: QA, 2026-10-27; and a table, so a margin can move it.) */
+.captions .cap.side-left, .captions .cap.vig.side-left:not(.sound) { display: table; margin-left: 0; margin-right: auto; }
+.captions .cap.side-right, .captions .cap.vig.side-right:not(.sound) { display: table; margin-left: auto; margin-right: 0; }
 .captions .cap.sound { display: table; margin-left: auto; margin-right: auto; font-size: max(16px, 0.95em); font-style: normal; color: rgb(30, 31, 36); background: rgba(240, 238, 232, 0.86); padding: 0.1em 0.55em; border-radius: 0.6em; }
 /* Over a dark picture: light words, a dark glow, no pill. */
 .captions.dim .cap.sound { background: transparent; color: rgba(236, 233, 226, 0.92); text-shadow: 0 0 4px rgba(0, 0, 0, 0.95), 0 0 12px rgba(0, 0, 0, 0.85); }
@@ -154,6 +155,9 @@ kbd { font-family: inherit; font-size: 0.85em; border: 1px solid #c9c7c1; border
 .departure.on { opacity: 1; }
 .departure-line { font-style: italic; font-size: clamp(1.2rem, 3vw, 1.7rem); max-width: 34rem; text-align: center; opacity: 0; transition: opacity 3s ease; }
 .departure-line.on { opacity: 1; }
+.departure-answer { display: block; margin-top: 1.1em; font-size: 0.85em; font-style: normal; opacity: 0; transition: opacity 3s ease 3.5s; }
+.departure-line.on .departure-answer { opacity: 0.8; }
+.reduce-motion .departure-answer { transition: opacity 0.6s ease 1s; }
 .departure .quiet-button { color: #d9d7d2; border-color: #55565a; margin-top: 2.5rem; }
 
 .debug {
@@ -162,5 +166,6 @@ kbd { font-family: inherit; font-size: 0.85em; border: 1px solid #c9c7c1; border
 }
 @media (prefers-reduced-motion: reduce) {
   #threshold, .captions .cap, .hint, .departure, .departure-line { transition-duration: 0.6s; }
+  .departure-answer { transition: opacity 0.6s ease 1s; }
 }
 .reduce-motion #threshold, .reduce-motion .captions .cap, .reduce-motion .hint, .reduce-motion .departure, .reduce-motion .departure-line, .reduce-motion .corner-btn { transition-duration: 0.6s; }

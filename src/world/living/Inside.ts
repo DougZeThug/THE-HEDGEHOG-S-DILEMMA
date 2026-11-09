@@ -47,6 +47,8 @@ export interface InsideFrame {
   approach?: number;
   /** Its edge torn (hard and ragged), not a soft brush (`PreparedLiving.torn`). */
   torn?: boolean;
+  /** Its edge a shadow's (`PreparedLiving.shade`). */
+  shade?: boolean;
   /** How much closer than just filling the screen the painting covers it (1: just filling it). */
   scale?: number;
 }
@@ -324,6 +326,7 @@ export class Inside {
       view: this.view,
       seed: this.seed,
       torn: !!f.torn,
+      shade: !!f.shade,
     });
     // What the scene must draw: the painting's part on the screen (all of it on the wall).
     if (this.immersion.pass.enabled && show > 0.5) visiblePart(this.immersion.screenToPainting, this.zoom, this.view);
@@ -367,7 +370,8 @@ export class Inside {
     const n = new THREE.Vector3(0, 0, 1).transformDirection(this.proxy.parent!.matrixWorld);
     n.y = 0;
     n.normalize();
-    const v = THREE.MathUtils.degToRad(this.rig.baseFov);
+    // (The view they actually have: kneeling it is wider, and the painting fills it from nearer.)
+    const v = THREE.MathUtils.degToRad(this.rig.viewFov);
     const h = 2 * Math.atan(Math.tan(v / 2) * aspect);
     const d = Math.max(0.45, (Math.min(p.h / (2 * Math.tan(v / 2)), p.w / (2 * Math.tan(h / 2))) * 1.04) / this.scale);
     const eye = this.rig.eyeHeight;

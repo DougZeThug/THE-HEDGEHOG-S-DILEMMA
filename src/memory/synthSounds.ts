@@ -1,16 +1,16 @@
 /**
  * Small everyday sounds for the vignettes, made in the engine (no recording, no credits): the
  * inside of a car at night, an indicator, a shop's fridge, a till, a tap dripping once, a
- * biscuit packet. Plain and close, generated dry at an even level; place, distance and room come
+ * biscuit packet, rain through an open window and a drop on its sill. Plain and close, generated dry at an even level; place, distance and room come
  * from the vignette's cue sheet, as for every memory sound (src/memory/cueSheet.ts).
  *
- * Beds (`road`, `fridge`) are seamless loops normalised to about −45 dBFS RMS, as `synthAir` is;
+ * Beds (`road`, `fridge`, `rain`) are seamless loops normalised to about −45 dBFS RMS, as `synthAir` is;
  * one-shots peak at about −12 dBFS. What carries each sound sits above 200 Hz, where a phone can play it.
  * Seeded: the same sound every time.
  */
-export type SynthKind = 'road' | 'indicator' | 'fridge' | 'till' | 'drip' | 'rustle';
+export type SynthKind = 'road' | 'indicator' | 'fridge' | 'till' | 'drip' | 'rustle' | 'rain' | 'sill';
 
-export const SYNTH_KINDS: SynthKind[] = ['road', 'indicator', 'fridge', 'till', 'drip', 'rustle'];
+export const SYNTH_KINDS: SynthKind[] = ['road', 'indicator', 'fridge', 'till', 'drip', 'rustle', 'rain', 'sill'];
 
 const made = new Map<string, AudioBuffer>();
 
@@ -147,6 +147,39 @@ export function render(kind: SynthKind, rate: number, seed = 1): Float32Array {
         x[i] = base[i] * 0.15 * Math.exp(-t / 0.9);
       }
       for (let t = 0.02; t < 1.4; t += 0.012 + Math.abs(rnd()) * 0.07 * (1 + t)) click(x, t, 3000 + rnd() * 2500, 0.0025, (0.5 + Math.abs(rnd()) * 0.5) * Math.exp(-t / 0.8));
+      return toPeak(x, -12);
+    }
+    case 'rain': {
+      // Rain through an open window, steady and light: a banded wash (the far field), a little
+      // sheen, and drops at random (Poisson: never a rhythm) for the near field. Three passes of
+      // the band: one left too much above 6 kHz (harsh on a phone). Nothing much below 250 Hz.
+      const T = 17, n = len(T);
+      const band3 = (x: Float32Array, lo: number, hi: number) => band(band(band(x, lo, hi), lo, hi), lo, hi);
+      const wash = toRms(band3(noise(n), 350, 4000), 0);
+      const sheen = toRms(band3(noise(n), 1800, 4000), 0);
+      const drops = new Float32Array(n);
+      const RATE = 30; // drops a second
+      for (let t = 0; ; ) {
+        t += -Math.log(Math.max(1e-6, (rnd() + 1) / 2)) / RATE;
+        if (t >= T - 0.01) break;
+        // Most drops faint (0 to −24 dB, even in dB), each its own pitch and ring (3–8 ms).
+        click(drops, t, 1500 + (2500 * (rnd() + 1)) / 2, 0.0006 + (0.001 * (rnd() + 1)) / 2, Math.pow(10, (-24 * (rnd() + 1)) / 2 / 20));
+      }
+      toRms(band(band(drops, 900, 5000), 900, 5000), -6); // the drops 6 dB under the wash
+      const x = new Float32Array(n);
+      for (let i = 0; i < n; i++) {
+        const t = i / rate;
+        x[i] = wash[i] * (1 + 0.12 * Math.sin(2 * Math.PI * 0.23 * t + 0.7) + 0.08 * Math.sin(2 * Math.PI * 0.071 * t + 2.1)) + sheen[i] * 0.35 + drops[i];
+      }
+      return toRms(loop(x, 1), -45);
+    }
+    case 'sill': {
+      // One heavy drop on a windowsill: a short knock and a splash (each seed another drop). Not
+      // `drip`, whose rising bubble is water into water: a tap.
+      const x = new Float32Array(len(0.4));
+      click(x, 0.005, 1700 + (700 * (rnd() + 1)) / 2, 0.004, 1);
+      const splash = band(noise(len(0.04)), 2000, 6000), o = len(0.008);
+      for (let i = 0; i < splash.length; i++) x[o + i] += splash[i] * 0.35 * Math.exp(-i / rate / 0.008);
       return toPeak(x, -12);
     }
   }

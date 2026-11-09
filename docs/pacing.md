@@ -68,6 +68,33 @@ Measured, before → after (first visits, 40):
   | the bedroom | 9 | 4 |
   | charger (B) | 2 | 0 |
 
+## The core loop: answers to what the visitor does (November 2026)
+
+The pacing above asks whether *something* happens. The core-loop audit (`docs/reviews/2026-11-core-loop.md`) asked whether what the visitor did was answered **where they did it, within 8 s, perceptibly, and more often than chance**.
+
+It was measured with closed-loop visitors who react to the room (`tests/playtest/visitors.ts`, `npx vite-node scripts/experiment.ts`): about 24,000 simulated visits, plus real-browser runs with measured frames.
+
+Pacing settings that changed:
+- A recoil at a return to the chair: a fast hush (depth 0.62, 70 ms fall, 1.2 s hold, 1.5 s rise) and the room's light pulled back toward the chair (to 0.72, 0.9 s in, 1 s held, 5 s out), twice a visit at most.
+  - It never comes inside a memory, a held silence or an aftermath, nor after the words in the air were just rubbed out.
+  - It is an answer, so the scheduler doesn't space it.
+- The first approach is answered only once the visitor has arrived (walking past the chair answers nothing).
+- The words in the air hold the room for 12 s from when they appear, not from when they are decided.
+- The way out's dim (the room's light to 0.25, the chair lit) belongs to the visitor: the turn into the last phase waits for it, and it waits for the turn.
+
+Measured on first visits, before → after (desktop / phone; placebo in brackets; the final run, `docs/reviews/core-loop/after.md`):
+- coming to the chair: 15% / 18% → 31% / 36% (7% / 5%);
+- coming back to it: 12% / 15% → 30% / 35%;
+- kneeling: 23% / 31% → 32% / 42%;
+- active 30 s windows with nothing answered: 21% → 19%;
+- developments a minute: 6.8 → 7.0; imposed quiet: 40% → 43%; overlapping sounds: 0 → 0.
+
+`tests/pacing.test.ts` still holds its existing timing and restraint targets, unchanged; it does not assert these rates (the battery reports them).
+
+## The visit's heart (November 2026)
+
+The strongest memories (Almost, Things, the woodland) needed another memory first, a late phase and a free slot among three pointings a visit, so they reached 0% of 3-minute and 10% of 10-minute first visits. A visit now has one heart, reachable from 75 s and chosen from what happened at the chair, the recoil above all (`docs/memories.md`, *Which memory a visit is for*; most visits have one, 84–98% by length). Simulated, same visitors and seeds: any of the three in 33% / 56% / 67% of 3/5/10-minute first visits; developments a minute a little fewer (7.4 → 7.0 at five minutes, 7.0 → 6.7 at ten), voices and overlaps unchanged; held silence 98% → 95% at five minutes and 98% at ten; 30 s windows with nothing perceived outside memory playtime 16–18% → 16–19%. After Almost's answer the room writes and reveals nothing new on the north wall for the rest of the visit (it chooses from the other walls; a visitor's own words still go where they write them), and a turn of the visit waits while a return to the chair may be under way, so the recoil isn't lost to it. The full record: `docs/reviews/2026-11-emotional-arc.md`.
+
 ## What it is now
 
 - **Engagement** (`src/state/Engagement.ts`). What a visitor does becomes signals: reading a line, coming back to one after looking away, touching writing or the chair, approaching, staying with the chair, kneeling, looking around, crossing the room, pausing on purpose, writing. Attending to the writing counts for more than moving about. The visit's *depth* grows from these, and slowly by itself.

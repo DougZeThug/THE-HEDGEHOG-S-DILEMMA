@@ -122,6 +122,34 @@ describe('memory audio: scheduled on the audio clock, never twice, nothing left 
     expect(bedAgain.startAt![1]).toBeCloseTo(0.05 + ((6.3 + 1 / 30 - 2) % 7.9), 1);
   });
 
+  it('resumed with the picture stepped back (a sentence said again), the music steps back with it; the bed carries on', async () => {
+    const { ctx, audio } = setup();
+    await audio.prepare();
+    const d = new CueDispatch(MARKERS);
+    playThrough(ctx, audio, d, 0, 14);
+    audio.pause();
+    ctx.advance(3);
+    audio.resume(undefined, 2);
+    const again = ctx.sources.slice(-2);
+    const musicAgain = again.find((s) => !s.loop)!;
+    expect(again.find((s) => s.loop)).toBeTruthy();
+    // About 5 s into the music when it paused (from 9 s): 3 s in, 2 s earlier, as the picture is.
+    expect(musicAgain.startAt![1]).toBeCloseTo(5 - 2, 1);
+  });
+
+  it('stepped back to before the music began, the music waits for its place again', async () => {
+    const { ctx, audio } = setup();
+    await audio.prepare();
+    playThrough(ctx, audio, new CueDispatch(MARKERS), 0, 10); // the music (9 s) about 1 s in
+    audio.pause();
+    ctx.advance(1);
+    const t = ctx.currentTime;
+    audio.resume(undefined, 4);
+    const m = ctx.sources.slice(-2).find((s) => !s.loop)!;
+    expect(m.startAt![1]).toBeCloseTo(0, 6);
+    expect(m.startAt![0]).toBeGreaterThan(t + 2.5);
+  });
+
   it('a suspended context misses events instead of bursting them later', async () => {
     const { ctx, audio } = setup();
     await audio.prepare();
@@ -657,5 +685,140 @@ describe('a stall inside the hand-out window', () => {
     const d = new CueDispatch([{ label: 'music:evening', position: 2 }], 0.75);
     const handed = [...d.advance(1.4), ...d.advance(1.95), ...d.advance(2.0), ...d.advance(2.3)];
     expect(handed.length).toBe(1);
+  });
+});
+
+describe('paused while a soft release lets a begun sentence finish', () => {
+  const sheet: CueSheet = {
+    room: [0.4, 3, 0.06],
+    cues: { 'voice:line': { asset: 'line', gainDb: -12, place: { u: 0, v: 0, d: 1 }, text: 'Five more minutes.' } },
+  };
+  const markers: Marker[] = [{ label: 'voice:line', position: 1 }];
+
+  async function speaking(delay = 0) {
+    const ctx = new FakeCtx();
+    const captions: string[] = [];
+    const host: MemoryAudioHost = {
+      ctx: ctx as unknown as BaseAudioContext, out: new FakeNode(ctx) as unknown as AudioNode,
+      load: async () => ({ duration: 4 }) as AudioBuffer, impulse: () => ({}) as AudioBuffer,
+      intensity: 1, where: () => [0, 0, 0], caption: (text) => void captions.push(text),
+    };
+    const audio = new MemoryAudio(host, sheet, markers);
+    await audio.prepare();
+    ctx.currentTime = 100;
+    audio.play([{ marker: markers[0], delay }] as never);
+    ctx.advance(1);
+    const voice = ctx.sources.find((s) => s.buffer?.duration === 4)!;
+    return { ctx, audio, voice, captions };
+  }
+
+  it('a sentence whose caption is still pending when the pause comes is captioned once, at the pause', async () => {
+    vi.useFakeTimers();
+    const { ctx, audio, captions } = await speaking(1.2); // (not yet begun when the memory lets go, naturally)
+    expect(captions).toEqual([]);
+    audio.release('natural', 0.6);
+    ctx.advance(0.5);
+    audio.pause();
+    expect(captions).toEqual(['Five more minutes.']);
+    vi.runAllTimers();
+    expect(captions).toEqual(['Five more minutes.']);
+  });
+
+  it('the sentence is not chopped or taken back: it plays on to its end', async () => {
+    const { ctx, audio, voice } = await speaking();
+    audio.release('interrupt', 0.6, true);
+    ctx.advance(0.5);
+    const back = audio.pause();
+    expect(back).toEqual([]);
+    expect(voice.stopAt).toBeNull();
+    audio.resume();
+    expect(voice.stopAt).toBeNull();
+    // (Still sounding just before its four seconds are up, and over after.)
+    ctx.advance(2.4);
+    expect(voice.stopAt === null && ctx.currentTime < voice.startAt![0] + 4).toBe(true);
+    ctx.advance(1.2);
+    expect(ctx.currentTime).toBeGreaterThanOrEqual(voice.startAt![0] + 4);
+  });
+
+  it('its words are shown again for what is left of it when the pause ends', async () => {
+    const ctx = new FakeCtx();
+    const shown: [string, number][] = [];
+    const host: MemoryAudioHost = {
+      ctx: ctx as unknown as BaseAudioContext, out: new FakeNode(ctx) as unknown as AudioNode,
+      load: async () => ({ duration: 4 }) as AudioBuffer, impulse: () => ({}) as AudioBuffer,
+      intensity: 1, where: () => [0, 0, 0], caption: (t, s) => void shown.push([t, s]),
+    };
+    const audio = new MemoryAudio(host, sheet, markers);
+    await audio.prepare();
+    ctx.currentTime = 100;
+    audio.play([{ marker: markers[0], delay: 0 }] as never);
+    ctx.advance(1);
+    audio.release('interrupt', 0.6, true);
+    audio.pause();
+    shown.length = 0;
+    ctx.advance(1); // the pause; 2 s of the 4 are left
+    audio.resume();
+    expect(shown.length).toBe(1);
+    expect(shown[0][0]).toBe('Five more minutes.');
+    expect(shown[0][1]).toBeGreaterThan(1.5);
+    expect(shown[0][1]).toBeLessThan(2.6);
+  });
+
+  it('a line cut short by stopAfter is shown only until that cut, not to the end of its recording', async () => {
+    const ctx = new FakeCtx();
+    const shown: [string, number][] = [];
+    const host: MemoryAudioHost = {
+      ctx: ctx as unknown as BaseAudioContext, out: new FakeNode(ctx) as unknown as AudioNode,
+      load: async () => ({ duration: 4 }) as AudioBuffer, impulse: () => ({}) as AudioBuffer,
+      intensity: 1, where: () => [0, 0, 0], caption: (t, s) => void shown.push([t, s]),
+    };
+    const cut: CueSheet = {
+      ...sheet,
+      cues: { 'voice:line': { ...sheet.cues['voice:line'], stopAfter: 2.5 } },
+    };
+    const audio = new MemoryAudio(host, cut, markers);
+    await audio.prepare();
+    ctx.currentTime = 100;
+    audio.play([{ marker: markers[0], delay: 0 }] as never);
+    ctx.advance(1);
+    audio.release('interrupt', 0.6, true);
+    audio.pause();
+    shown.length = 0;
+    ctx.advance(1); // 0.5 s of the 2.5 s it is given are left (3 s of the recording would be)
+    audio.resume();
+    expect(shown.length).toBe(1);
+    expect(shown[0][1]).toBeLessThan(0.7);
+  });
+
+  it('(contrast) paused while the memory is still held, the sentence is taken back to be said again', async () => {
+    const { audio } = await speaking();
+    expect(audio.pause().map((m) => m.label)).toEqual(['voice:line']);
+  });
+});
+
+describe('a voice that could not be loaded', () => {
+  it('is silent and uncaptioned unless the host offers a stand-in (App offers one only for a preview; that gate is not unit-tested)', async () => {
+    const sheet: CueSheet = {
+      room: [0.4, 3, 0.06],
+      cues: { 'voice:line': { asset: 'line', gainDb: -12, place: { u: 0, v: 0, d: 1 }, text: 'Five more minutes.' } },
+    };
+    const markers: Marker[] = [{ label: 'voice:line', position: 1 }];
+    for (const preview of [false, true]) {
+      const ctx = new FakeCtx();
+      const stoodIn: string[] = [];
+      const captions: string[] = [];
+      const host: MemoryAudioHost = {
+        ctx: ctx as unknown as BaseAudioContext, out: new FakeNode(ctx) as unknown as AudioNode,
+        load: async () => null as unknown as AudioBuffer, // the take would not fetch or decode
+        impulse: () => ({}) as AudioBuffer, intensity: 1, where: () => [0, 0, 0], caption: (t) => captions.push(t),
+        fallback: preview ? (cue) => void stoodIn.push(cue.text ?? '') : undefined,
+      };
+      const audio = new MemoryAudio(host, sheet, markers);
+      await audio.prepare();
+      audio.play([{ marker: markers[0], delay: 0 }] as never);
+      expect(audio.sounding).toBe(0);
+      expect(captions).toEqual([]);
+      expect(stoodIn, `preview ${preview}`).toEqual(preview ? ['Five more minutes.'] : []);
+    }
   });
 });

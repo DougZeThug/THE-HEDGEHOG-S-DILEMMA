@@ -94,3 +94,36 @@ describe("the room's music stops under a memory, its reverb with it", () => {
     expect(last(g.memoryDuck.gain)).toEqual(['target', 0.30000000000000004, 25]);
   });
 });
+
+describe("the room's silences inside one another", () => {
+  it('a deeper, shorter silence inside a longer one returns to the longer one, not to the full room (sound review, 2026-11-06)', () => {
+    const { a, g } = engine();
+    const ctx = a.ctx as unknown as FakeCtx;
+    ctx.currentTime = 10;
+    a.silence(0.4, 12);
+    ctx.currentTime = 12;
+    // A recoil: deep, fast, short.
+    a.silence(0.62, 1.2, 0.07, 1.5);
+    const ev = g.duck.gain.events.slice(-3);
+    expect(ev[0][0]).toBe('target');
+    expect(ev[0][1]).toBeCloseTo(0.38, 9);
+    // Back to the first silence's depth when it ends, and up only when the first one would have.
+    expect(ev[1][0]).toBe('target');
+    expect(ev[1][1]).toBeCloseTo(0.6, 9);
+    expect(ev[1][2]).toBeCloseTo(13.2, 9);
+    expect(ev[2]).toEqual(['target', 1, 22]);
+    // A third, deeper still, inside both: when it ends, back to the second; then the first; then the room.
+    ctx.currentTime = 12.5;
+    a.silence(0.8, 0.3, 0.07, 1);
+    const three = g.duck.gain.events.slice(-4);
+    expect(three[0][1]).toBeCloseTo(0.2, 9);
+    expect([three[1][1], three[1][2]]).toEqual([expect.closeTo(0.38, 9), expect.closeTo(12.8, 9)]);
+    expect([three[2][1], three[2][2]]).toEqual([expect.closeTo(0.6, 9), expect.closeTo(13.2, 9)]);
+    expect(three[3]).toEqual(['target', 1, 22]);
+    // Between the two ends, the longer silence still holds: a shallower one doesn't lift it.
+    ctx.currentTime = 15;
+    const n = g.duck.gain.events.length;
+    a.silence(0.2, 3);
+    expect(g.duck.gain.events.length).toBe(n);
+  });
+});
