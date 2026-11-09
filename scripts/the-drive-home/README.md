@@ -1,7 +1,7 @@
 # The Drive Home
 
 Painterly rotoscoping (returning): estrangement, restraint, unconditional care.
-A 51.6-second standalone film, a study, not wired into the room.
+A 51.6-second film; in the room it is the living memory `drive` (docs/drive-home.md).
 
 Two grown siblings drive home at night after a difficult family gathering.
 Something is wrong between them; we never learn what. The passenger stares out
@@ -36,6 +36,9 @@ where neither man's lips move are used.
   louver clicks, hands rubbing, a passing car). The indicator's blink in the
   picture is matched to the relay in `signal-4`.
 - The film: `audition/the-drive-home/the-drive-home.mp4`.
+- In the room (docs/drive-home.md): `film.py room` (the cut from its second shot, no fades of its
+  own), `web.sh` (its web copies and wall art, by `order.py`: the dusk's order and the faces
+  found first), `room-sound.sh` (its three cues, from the approved takes and mix).
 
 The first cut (2026-11-04) drew the figures from signed distance fields; its
 `render.py` is in the history at commit cfa21f0.

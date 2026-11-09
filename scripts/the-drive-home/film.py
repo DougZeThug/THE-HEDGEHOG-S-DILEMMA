@@ -314,7 +314,7 @@ def drawing(name, k):
     return cv2.cvtColor(cv2.imread(p), cv2.COLOR_BGR2RGB).astype(np.float32) / 255
 
 
-def frame_at(f):
+def frame_at(f, room=False):
     t = f / FPS
     live = [s for s in SHOTS if s["start"] - 0.8 <= t < s["start"] + s["dur"]]
     img = np.zeros((R.H, R.W, 3), np.float32)
@@ -330,19 +330,30 @@ def frame_at(f):
             a = smooth01((t - (s["start"] + s["dur"] - 0.8)) / 0.8)
             img = img * (1 - a) + drawing(nxt["name"], 0) * a
         break
+    if room:
+        # (In the room it begins and ends on the wall: no fade from or to black of its own, the wall
+        # takes it in and gives it back: src/memory/defs.ts DRIVE.)
+        return np.clip(img, 0, 1)
     fade_in = smooth01(t / 1.6)
     fade_out = 1 - smooth01((t - (LENGTH - 3.0)) / 2.4)
     return np.clip(img * fade_in * fade_out, 0, 1)
 
 
-def picture(out):
+# The room's cut begins at the second shot, the two of them side by side (the road at night before it
+# is near black, and carried in on it the view filled with black: the cinematic director's review,
+# 2026-11-09). docs/drive-home.md.
+ROOM_FROM = 6.0
+
+
+def picture(out, room=False):
+    first = int(round(ROOM_FROM * FPS)) if room else 0
     n = int(LENGTH * FPS)
     p = subprocess.Popen(["ffmpeg", "-y", "-v", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{R.W}x{R.H}",
                           "-r", str(FPS), "-i", "-", "-c:v", "libx264", "-preset", "slow", "-crf", "16",
                           "-pix_fmt", "yuv420p", out], stdin=subprocess.PIPE)
     last = None
-    for f in range(n):
-        img = (frame_at(f) * 255 + 0.5).astype(np.uint8)
+    for f in range(first, n):
+        img = (frame_at(f, room) * 255 + 0.5).astype(np.uint8)
         p.stdin.write(img.tobytes())
     p.stdin.close()
     p.wait()
@@ -363,6 +374,8 @@ def main():
         print(os.path.join(CACHE, f"still-{s['name']}.jpg"))
     elif cmd == "picture":
         picture(sys.argv[2])
+    elif cmd == "room":
+        picture(sys.argv[2], room=True)
 
 
 if __name__ == "__main__":

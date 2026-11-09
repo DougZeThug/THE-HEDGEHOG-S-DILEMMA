@@ -12,6 +12,7 @@ import { WOODLAND as WOODLAND_SPEC, type LivingSpec } from './living/woodland';
 import { ALMOST } from './living/almost';
 import { THINGS } from './living/things';
 import { SHADOWS } from './living/shadows';
+import { DRIVE } from './living/drive';
 import { FilmScene, filmType, loadFilm, releaseFilm } from './living/FilmScene';
 import { fetchBlob } from './fetched';
 import { withVoices } from '../content/memory-voices';
@@ -66,7 +67,7 @@ interface FilmManifest {
 }
 
 /** Where each film sits when it covers the screen (src/memory/living/), by memory. */
-const FILM_SPECS: Record<string, Pick<LivingSpec, 'cover' | 'coverAt' | 'uprightAt'>> = { almost: ALMOST, things: THINGS, shadows: SHADOWS };
+const FILM_SPECS: Record<string, Pick<LivingSpec, 'cover' | 'coverAt' | 'uprightAt'>> = { almost: ALMOST, things: THINGS, shadows: SHADOWS, drive: DRIVE };
 
 const isFilm = (m: LivingManifest | FilmManifest | null | undefined): m is FilmManifest => !!m && (m as FilmManifest).kind === 'film';
 /** How long the film's bytes may take to come (ms; most are fetched ahead, when its line is armed). */

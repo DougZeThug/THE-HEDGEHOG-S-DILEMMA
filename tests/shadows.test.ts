@@ -131,7 +131,8 @@ describe("the shared heart: someone who stayed by the chair", () => {
     expect(heartOf('close', {}, 0.7)).toBe('shadows');
     expect(heartOf('close', { woodland: 1 }, 0.2)).toBe('shadows');
     expect(heartOf('close', { shadows: 1 }, 0.7)).toBe('woodland');
-    expect(heartOf('recoiled', { almost: 3 }, 0.7)).toBe('almost');
+    // (The recoil's heart is Almost's while it has been seen no more than The Drive Home: tests/drive.test.ts.)
+    expect(heartOf('recoiled', { almost: 3, drive: 3 }, 0.7)).toBe('almost');
     expect(heartOf('refused', {}, 0.7)).toBe('things');
   });
 });

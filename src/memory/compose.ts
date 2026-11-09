@@ -48,6 +48,9 @@ const smooth = (e0: number, e1: number, x: number) => {
  *   shot     = the wide (0) as soon as it is let go
  *   immerse  = base × s(0.25, 0.75, exit)      (not × presence: gentle still goes all the way in)
  *   shadow   = the same (the chair's shadow, held by Memory VII, goes home with the way in)
+ *   night    = the same (The Drive Home's night)
+ *   street   = whole passes only once let go (no streetlight begins or finishes crossing)
+ *   lean     = 0 once let go (the light comes to the visitor only after the whole of it)
  *   painting = base × emerge × s(0, 0.35, exit) × presence   (opacity, presence, light)
  */
 export function compose(base: Values, env: Values, w: Weights, living = false): Values {
@@ -79,8 +82,17 @@ export function compose(base: Values, env: Values, w: Weights, living = false): 
         out[k] = clamp01(v * smooth(0.25, 0.75, exitRaw));
         break;
       case 'shadow':
-        // (The room's own shadow, held by a memory: let go early, it goes home with the way in.)
+      case 'night':
+        // (The room's own shadow or night, held by a memory: let go early, it goes home with the way in.)
         out[k] = clamp01(v * smooth(0.25, 0.75, exitRaw));
+        break;
+      case 'street':
+        // (Streetlights crossing the wall: let go early, none crosses any more.)
+        out[k] = exitRaw < 0.999 ? Math.floor(v) : v;
+        break;
+      case 'lean':
+        // (The light comes to the visitor only at the end of the whole of it, never after a let go.)
+        out[k] = exitRaw < 0.999 ? 0 : v;
         break;
       case 'people':
         out[k] = clamp01(v * smooth(0.55, 1, exitRaw));

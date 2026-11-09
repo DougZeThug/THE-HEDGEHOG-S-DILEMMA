@@ -26,7 +26,7 @@ A visit may have one painted memory reachable from early on, its *heart*, chosen
 
 | What happened | Heart | Leaves |
 |---|---|---|
-| the room recoiled at them (`Director.answerReturn`) | Almost, pointed at ≥17 s after the recoil | "I took my hand back." beside "I wanted you to stay." (then nothing new on the north wall that visit), the departure card if the line has been in view, and the next visit (once Almost is seen, written yet or not) |
+| the room recoiled at them (`Director.answerReturn`) | Almost, pointed at ≥17 s after the recoil; on a return visit once Almost has been seen more often than it, The Drive Home (`HEART_SHARED.recoiled`, Almost on a tie: `HEART_FIRST_ON_TIE`; `docs/drive-home.md`) | Almost: "I took my hand back." beside "I wanted you to stay." (then nothing new on the north wall that visit), the departure card if the line has been in view, and the next visit (once Almost is seen, written yet or not); The Drive Home: nothing |
 | no recoil; from 150 s, a stay of 45 s or kneeling 8 s at any time in the visit (`Director.leaving`) | the woodland or Memory VII, the shadows (`HEART_SHARED`, `heartOf`: whichever was seen fewer times on earlier visits; on a first visit the visit's own coin; `docs/shadows.md`) | the woodland: its own coda ("we had all afternoon"); the shadows: nothing more |
 | no recoil and no such stay; from 150 s, came and went and stayed away 50 s | Things I Should Have Said | nothing more |
 

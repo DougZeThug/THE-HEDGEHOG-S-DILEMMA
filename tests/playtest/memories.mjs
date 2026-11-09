@@ -21,8 +21,8 @@ const BASE = process.env.BASE ?? 'http://localhost:4173/';
 const OUT = process.env.OUT ?? `test-output/review/memories/${process.env.MEMORY ?? 'cereal'}`;
 const PROFILES = (process.env.PROFILES ?? 'desktop,phone').split(',');
 const MEMORY = process.env.MEMORY ?? 'cereal';
-const VARIANT = process.env.VARIANT ?? { cereal: 'first', bedroom: 'morning', door: 'approach', woodland: 'afternoon', almost: 'film', things: 'film', shadows: 'film' }[MEMORY];
-const PHRASE = { cereal: 'cereal', bedroom: 'happiest-unneeded', door: 'door-open', woodland: 'more-minutes', almost: 'your-hand', things: 'didnt-know-say', shadows: 'understood-minute' }[MEMORY];
+const VARIANT = process.env.VARIANT ?? { cereal: 'first', bedroom: 'morning', door: 'approach', woodland: 'afternoon', almost: 'film', things: 'film', shadows: 'film', drive: 'film' }[MEMORY];
+const PHRASE = { cereal: 'cereal', bedroom: 'happiest-unneeded', door: 'door-open', woodland: 'more-minutes', almost: 'your-hand', things: 'didnt-know-say', shadows: 'understood-minute', drive: 'angry-with-me' }[MEMORY];
 // Stages: [name, sequence position or null for the untouched wall], per memory.
 const STAGES = {
   cereal: [['0-untouched', null], ['1-first-drawing', 1.8], ['2-developing', 3.8], ['3-active', 9], ['4-active-late', 20], ['5-dissolving', 24.5], ['6-drawing-alone', 26.2], ['7-residue', 29]],
@@ -53,6 +53,13 @@ const STAGES = {
   shadows: [['00-untouched', null], ['01-chair-shadow', 2.0], ['02-on-the-wall', 4.2], ['03-gathering', 5.5], ['04-light-on-wall', 7.8], ['05-carried', 9.8], ['06-inside', 12.0],
     ['07-bows', 14.3], ['08-meet', 18.4], ['09-hold', 21.0], ['10-thread', 24.3], ['11-dark', 30.2], ['12-returning', 33.0], ['13-chair-alone', 34.8],
     ['14-words-first', 36.0], ['15-withdrawing', 38.0], ['16-sliding-home', 41.0], ['17-white-room', 44.0]],
+  // The Drive Home (docs/drive-home.md): dusk, three streetlights finding the faces (the third on
+  // into the film's own lamp), the way in, the film's beats, the way out, the tail lamps into the
+  // plaster, the relay as the night lifts, the light come to the visitor, going back to the chair.
+  drive: [['00-untouched', null], ['01-dusk', 2.0], ['02-first-light', 3.1], ['03-found', 4.2], ['04-second-light', 5.3], ['05-film', 6.6],
+    ['06-third-light', 8.0], ['07-carried', 12.0], ['08-window', 14.5], ['09-hands', 18.5], ['10-vent', 28.8], ['11-vent-back', 36.8],
+    ['12-indicator', 39.6], ['13-town', 42.0], ['14-carried-out', 46.0], ['15-tail-lamps', 50.0], ['16-relay', 54.0],
+    ['17-light-to-you', 57.7]],
 }[MEMORY];
 mkdirSync(OUT, { recursive: true });
 
@@ -113,7 +120,8 @@ for (const profile of PROFILES) {
       continue;
     }
     const st = await page.evaluate((p) => window.__hedgehog.heldAt(p), pos);
-    await page.waitForTimeout(name.includes('residue') || name.includes('alone') ? 3000 : 1200);
+    // (The Drive Home's light comes to the visitor on its own clock, over 6 s, once it is begun.)
+    await page.waitForTimeout(name.includes('light-to-you') ? 9000 : name.includes('residue') || name.includes('alone') ? 3000 : 1200);
     // (Generous: under load, software GL can take most of a minute for a frame.)
     await page.screenshot({ path: `${OUT}/${profile}-${name}.png`, timeout: 180000 });
     // A living scene drawn black (nothing reached its target) is a failure, whatever the frame.
@@ -129,7 +137,9 @@ for (const profile of PROFILES) {
       }
       return most < 8;
     });
-    if (blank) errors.push(`the living scene is blank at ${name}`);
+    // (The Drive Home ends on its tail lamps, a few red points in the dark, then the picture has gone.)
+    const dark = MEMORY === 'drive' && /tail-lamps|relay|light-to-you/.test(name);
+    if (blank && !dark) errors.push(`the living scene is blank at ${name}`);
     // The woodland's two-shot is shown (not silently the wide) on a screen that can frame it, and
     // the wide on one that can't (an upright phone: decisions 7 and 21).
     if (['07-two', '08-her-look', '09-his-look'].includes(name)) {
