@@ -172,6 +172,24 @@ export function linesOf(m: SceneMemory): string[] {
  */
 export const HEART_BY_SHAPE = { recoiled: 'almost', close: 'woodland', refused: 'things' } as const;
 export type HeartShape = keyof typeof HEART_BY_SHAPE;
+/**
+ * A heart shared by two memories (docs/shadows.md): someone who has stayed by the chair is given
+ * the woodland or Memory VII, the shadows (the chair's own shadow goes to the wall, and in it two
+ * shadows hold each other "for about a minute"), whichever they have seen fewer times on earlier
+ * visits; on a first visit, by the visit's own coin. (As an offered memory after another, it played
+ * in 0-2% of simulated visits: the interaction designer's review, 2026-11-09.)
+ */
+export const HEART_SHARED: Partial<Record<HeartShape, readonly string[]>> = { close: ['woodland', 'shadows'] };
+/** Every memory that can be a heart. */
+export const HEART_IDS: ReadonlySet<string> = new Set([...Object.values(HEART_BY_SHAPE), ...Object.values(HEART_SHARED).flat()]);
+/** This visit's heart for a shape: `counts` seen on earlier visits, `coin` the visit's own draw (0..1). */
+export function heartOf(shape: HeartShape, counts: Record<string, number>, coin: number): string {
+  const shared = HEART_SHARED[shape];
+  if (!shared) return HEART_BY_SHAPE[shape];
+  const least = Math.min(...shared.map((id) => counts[id] ?? 0));
+  const fewest = shared.filter((id) => (counts[id] ?? 0) === least);
+  return fewest[Math.min(fewest.length - 1, Math.floor(coin * fewest.length))];
+}
 /** What a heart leaves beside "I wanted you to stay." (a phrase id): Almost only. */
 export const HEART_ANSWER: Record<string, string> = { almost: 'took-hand-back' };
 /** The earliest a heart may be pointed at or begin (engine seconds from the hand-off). */

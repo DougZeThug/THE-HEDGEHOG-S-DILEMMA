@@ -29,8 +29,8 @@ east wall), kept off the walls until it is offered.
 Let go early, the chair's shadow goes home with the way in (`compose`: `shadow`), or eases home by
 itself if the memory ends at once (`Lighting.heldShadow`).
 
-It is offered like Things was before the hearts: once another memory has been, as the room begins
-to contradict itself.
+It is a heart, shared with the woodland: someone who has stayed by the chair 45 s (or knelt) is
+given one or the other (below).
 
 ## Making it
 
@@ -76,8 +76,11 @@ challenged by the skeptic; checked in the browser (`MEMORY=shadows node tests/pl
    seen (all four reviewers).
 7. **Upright phones follow her, then hold where they meet** (interaction designer; skeptic: never
    follow one of them after).
-8. **Its place in a visit is the artist's call** (interaction designer): as an offered memory after
-   another it played in 0–2% of simulated first visits.
+8. **A shared heart** (interaction designer; recommended to the artist, whose call it is): as an offered
+   memory after another it played in 0–2% of simulated first visits. The skeptic measured the
+   shared heart: woodland 16 → 12 and shadows 0 → 7 of 150 visits, painted reach 16 → 19. The reason
+   is perceptual more than the line's rhyme: someone who has stayed 45 s by the chair is the visitor
+   best placed to see its shadow move.
 
 ## Still needs a person
 
@@ -86,3 +89,5 @@ challenged by the skeptic; checked in the browser (`MEMORY=shadows node tests/pl
 - The sound, by ear (`public/music/shadows-*.mp3`).
 - The visitor has no body: beside a low lamp, the absence of their own shadow may be noticed
   (skeptic). Meaning or gap?
+- The woodland's music is the room's last; on a visit where the shadows take the heart, the visit
+  ends without it.

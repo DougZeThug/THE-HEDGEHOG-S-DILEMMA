@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import * as THREE from 'three';
 import { SHADOWS, SHADOWS_AT, SHADOWS_BEATS, SHADOWS_SECONDS, SHADOWS_SECTIONS } from '../src/memory/defs';
-import { SCENE_MEMORIES } from '../src/content/memories';
+import { SCENE_MEMORIES, HEART_BY_SHAPE, HEART_IDS, heartOf } from '../src/content/memories';
 import { PHRASE_BY_ID } from '../src/content/phrases';
 import { key, shadowsAt, uprightAt } from '../src/memory/living/shadows';
 import { compose } from '../src/memory/compose';
@@ -120,6 +120,19 @@ describe('Memory VII on an upright screen', () => {
   });
   it('never jumps: under 2% of the frame a tenth of a second', () => {
     for (let t = 0; t < SHADOWS_SECONDS; t += 0.1) expect(Math.abs(uprightAt(t + 0.1)[0] - uprightAt(t)[0])).toBeLessThan(0.02);
+  });
+});
+
+describe("the shared heart: someone who stayed by the chair", () => {
+  it('is given the woodland or the shadows, whichever they have seen less; on a first visit by the coin', () => {
+    expect(HEART_BY_SHAPE.close).toBe('woodland');
+    expect(HEART_IDS.has('shadows')).toBe(true);
+    expect(heartOf('close', {}, 0.2)).toBe('woodland');
+    expect(heartOf('close', {}, 0.7)).toBe('shadows');
+    expect(heartOf('close', { woodland: 1 }, 0.2)).toBe('shadows');
+    expect(heartOf('close', { shadows: 1 }, 0.7)).toBe('woodland');
+    expect(heartOf('recoiled', { almost: 3 }, 0.7)).toBe('almost');
+    expect(heartOf('refused', {}, 0.7)).toBe('things');
   });
 });
 
