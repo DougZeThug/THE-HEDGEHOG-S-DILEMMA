@@ -63,6 +63,8 @@ export class MemoryAudio implements AudioSink {
   private room: ConvolverNode;
   private wet: GainNode;
   private released = false;
+  /** Let go at its natural close (not interrupted): its going's own cues still begin. */
+  private releasedNaturally = false;
   /** What a pause stopped: where in its own timeline it was, and (sent ahead of the picture by the
    *  lead, not yet reached by it) how long before the picture reaches its start. */
   private paused: { marker: Marker; at: number; wait: number }[] = [];
@@ -181,7 +183,8 @@ export class MemoryAudio implements AudioSink {
       if (kind === 'voice' && into === 0 && !this.released) this.host.fallback?.(cue, Math.max(0, at - this.now));
       return;
     }
-    if (this.released && kind !== 'sfx') return; // nothing new to stay once the memory lets go
+    // Nothing new to stay once the memory lets go; but a natural going may have sounds of its own.
+    if (this.released && kind !== 'sfx' && !(cue.inWithdrawal && this.releasedNaturally)) return;
     // Seconds from now until the picture reaches the point `into` of this cue (it sees what is
     // heard), and where that was, for its caption.
     const shown = at + this.lead - this.now, into0 = into;
@@ -404,6 +407,7 @@ export class MemoryAudio implements AudioSink {
   release(mode: 'natural' | 'interrupt', fade: number, soft = false): void {
     if (this.released) return;
     this.released = true;
+    this.releasedNaturally = mode === 'natural';
     // Let go naturally, a sentence or a one-shot plays on (begun or not), captioned as it is heard;
     // interrupted, one that has begun is heard a moment more, and captioned at once.
     const begun = (l: Live) => (l.kind === 'voice' || l.kind === 'sfx') && l.at <= this.now + 0.005;
@@ -525,7 +529,7 @@ export class MemoryAudio implements AudioSink {
    */
   seek(_position: number): void {
     if (this.disposed) return;
-    this.released = false;
+    this.released = this.releasedNaturally = false;
     this.paused = [];
     this.settleLater();
     for (const l of [...this.live]) this.fadeOut(l, l.kind === 'sfx' ? 0.05 : 0.3);

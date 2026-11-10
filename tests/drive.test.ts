@@ -127,6 +127,12 @@ describe('The Drive Home on its timeline', () => {
     expect(uprightAt(39.7 - DRIVE_FROM, true)[0]).toBe(0.24);
   });
 
+  it('the relay, after the natural release, is part of its going: it may begin once the memory has let go', () => {
+    const relay = DRIVE.markers.find((m) => m.label === 'music:relay')!;
+    expect(relay.position).toBeGreaterThan(DRIVE.maxHold!);
+    expect(DRIVE.cues('film').cues['music:relay'].inWithdrawal).toBe(true);
+  });
+
   it('a screen reader is told what is there as the film begins, and the next line well after', () => {
     const said = DRIVE.describe('film');
     expect(said).toMatch(/two men/i);
