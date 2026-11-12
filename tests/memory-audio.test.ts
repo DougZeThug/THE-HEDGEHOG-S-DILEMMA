@@ -150,6 +150,22 @@ describe('memory audio: scheduled on the audio clock, never twice, nothing left 
     expect(m.startAt![0]).toBeGreaterThan(t + 2.5);
   });
 
+  it("a going's own music (inWithdrawal) begins after a natural release, never after an interruption", async () => {
+    for (const mode of ['natural', 'interrupt'] as const) {
+      const ctx = new FakeCtx();
+      const sheet: CueSheet = { room: SHEET.room, cues: { 'music:relay': { asset: 'music/memory-kitchen.mp3', gainDb: -30, place: { u: 0, v: 0, d: 2 }, inWithdrawal: true, caption: '[the indicator ticking]' }, 'music:other': { asset: 'music/memory-kitchen.mp3', gainDb: -30, place: { u: 0, v: 0, d: 2 } } } };
+      const markers: Marker[] = [{ label: 'music:relay', position: 3 }, { label: 'music:other', position: 3 }];
+      const host: MemoryAudioHost = { ctx: ctx as unknown as BaseAudioContext, out: new FakeNode(ctx) as unknown as AudioNode, load: async (a) => ({ duration: DURATION[a] }) as AudioBuffer, impulse: () => ({}) as AudioBuffer, intensity: 1, where: () => [0, 0, 0] };
+      const audio = new MemoryAudio(host, sheet, markers);
+      await audio.prepare();
+      const d = new CueDispatch(markers);
+      playThrough(ctx, audio, d, 0, 1);
+      audio.release(mode, 2);
+      playThrough(ctx, audio, d, 1, 4);
+      expect(ctx.sources.length, mode).toBe(mode === 'natural' ? 1 : 0);
+    }
+  });
+
   it('a suspended context misses events instead of bursting them later', async () => {
     const { ctx, audio } = setup();
     await audio.prepare();
