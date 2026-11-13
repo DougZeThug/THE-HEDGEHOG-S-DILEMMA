@@ -13,7 +13,7 @@ import { sitRule } from '../rules';
  * room's weather; situations are the things that happen in it.
  */
 
-export type Channel = 'beyond' | 'chair-voice' | 'music';
+type Channel = 'beyond' | 'chair-voice' | 'music';
 
 export interface PhraseGeometry {
   surface: Surface;
@@ -65,7 +65,7 @@ export interface SituationHost {
   lastContribution(): ContributionTrace | null;
 }
 
-export interface SituationState {
+interface SituationState {
   stage: string;
   startedAt: number;
   stageAt: number;

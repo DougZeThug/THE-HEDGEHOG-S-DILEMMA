@@ -15,7 +15,7 @@ import { memoryAudioHost, previewWhisper } from './audioHost';
 import type { AppContext, Peers } from './context';
 
 /** Where a vignette's places in the room are measured from (fixed as it begins). */
-export interface SpotFrame {
+interface SpotFrame {
   eye: THREE.Vector3;
   fwd: THREE.Vector3;
   right: THREE.Vector3;

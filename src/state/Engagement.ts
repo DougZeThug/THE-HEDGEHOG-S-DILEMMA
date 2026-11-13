@@ -11,7 +11,7 @@ import type { VisitorModel } from './VisitorModel';
  * stands and listens still sees the room change — just later.
  */
 
-export type SignalKind =
+type SignalKind =
   | 'read' // attention settled on a line
   | 'return' // met a line again after looking away
   | 'tap' // touched / clicked writing
@@ -25,7 +25,7 @@ export type SignalKind =
   | 'contribute'
   | 'memory'; // stayed with a living memory past its first moments
 
-export interface Signal {
+interface Signal {
   kind: SignalKind;
   t: number;
   /** Phrase involved, if any. */

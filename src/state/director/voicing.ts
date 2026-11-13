@@ -15,7 +15,7 @@ import type { RuleHost } from './host';
 const KEPT_READINGS = new Set([PHRASE_IDS.stay, 'love-go-away', 'happy-then']);
 
 /** What the voices need to know of the heart, the way out and the opening. */
-export interface VoicingLink {
+interface VoicingLink {
   /** The north wall is held for the heart's answer. */
   northKept(): boolean;
   /** "Stay" and its answers are never said near the way out. */

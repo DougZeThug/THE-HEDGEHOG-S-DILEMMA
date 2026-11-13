@@ -23,7 +23,7 @@ export const WAY_OUT: string = PHRASE_IDS.partyEarly;
  * keeps them; how long after a touch they may take to arrive and stand there; how soon after
  * being kept it may begin again.
  */
-export const LET_GO = { wait: 12, on: 0.25, wall: 2.55, turn: 0.35, step: 0.25, window: 20, again: 30 };
+const LET_GO = { wait: 12, on: 0.25, wall: 2.55, turn: 0.35, step: 0.25, window: 20, again: 30 };
 
 export class WayOut {
   /** They left by the way out (the departure line knows). */

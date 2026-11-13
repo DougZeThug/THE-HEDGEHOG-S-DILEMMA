@@ -44,7 +44,7 @@ import { pickRepertoire } from './situations/library';
 import { ROOM } from '../core/room';
 import type { Environment } from '../core/environment';
 
-export interface DirectorOptions {
+interface DirectorOptions {
   seed: number;
   visits?: number;
   /** How many times each living memory has been seen on earlier visits. */

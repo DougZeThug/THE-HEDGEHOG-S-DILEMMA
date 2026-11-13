@@ -5,7 +5,7 @@ import { isMemoryOrHeartKey } from '../writeKeys';
 import type { QueueOptions, RuleHost } from './host';
 
 /** What cue admission needs of the rule groups it keeps in step. */
-export interface AdmissionLink {
+interface AdmissionLink {
   /** The north wall is held for the heart's answer. */
   northKept(): boolean;
   /** Whether a cue would write, reveal or re-ink something on the north wall. */

@@ -21,7 +21,7 @@ export const RULE = {
 export const sitRule = (id: string): string => `sit:${id}`;
 export const isSituation = (rule: string): boolean => rule.startsWith('sit:');
 /** The situations that answer the visitor (a rubbed-out word, a looked-at line) rather than being the room's own life. */
-export const isSituationAnswer = (rule: string): boolean => /^sit:(residue|listening)/.test(rule);
+const isSituationAnswer = (rule: string): boolean => /^sit:(residue|listening)/.test(rule);
 /** A situation's own sounds: they wait out an aftermath and a held silence; the answers don't. */
 export const isSituationLife = (rule: string): boolean => isSituation(rule) && !isSituationAnswer(rule);
 
@@ -50,7 +50,7 @@ export const isStillness = (rule: string): boolean => rule.startsWith('still');
 export const ROOM_OWN = /^(drift|accumulate$|stray|resurface|recontext|music$|distant-life|chair-nudge|voice$|rehear$|return$|air$|link$|sit:(?!residue|listening))/;
 
 /** Where a cue came from, read once by `queue()` so the scheduler never re-parses names. */
-export type RuleSource = 'room' | 'turn' | 'answer';
+type RuleSource = 'room' | 'turn' | 'answer';
 export function ruleSource(rule: string): RuleSource {
   if (isPhaseTurn(rule)) return 'turn';
   return ROOM_OWN.test(rule) ? 'room' : 'answer';

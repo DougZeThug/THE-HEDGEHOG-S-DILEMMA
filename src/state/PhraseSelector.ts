@@ -6,7 +6,7 @@ import type { Memory } from './Memory';
 import type { Rng } from '../core/rng';
 
 /** What the room is "reaching for" given its field. */
-export function desireVector(f: FieldValues, phase: Phase): Record<Dimension, number> {
+function desireVector(f: FieldValues, phase: Phase): Record<Dimension, number> {
   const late = phase === 'transform' ? 1 : 0;
   return {
     happiness: f.warmth * 0.6 + f.relief * 0.3 + f.reminiscence * 0.3,

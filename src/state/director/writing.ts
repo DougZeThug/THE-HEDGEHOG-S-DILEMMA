@@ -9,13 +9,13 @@ import type { RuleHost } from './host';
 // ("the light in the kitchen at four in the afternoon" is kept back: it is the memory, late.)
 export const FIRST_WRITTEN: readonly string[] = ['cereal', 'sandwich', 'good-day', 'summer', 'laugh-breathe', 'home', 'rain-carpark'];
 
-export interface WritingOptions {
+interface WritingOptions {
   /** The old arrival: the walls already written and a line redrawn as you come in. */
   legacy: boolean;
 }
 
 /** What writing needs to know of the kitchen-light memory and the way out. */
-export interface WritingLink {
+interface WritingLink {
   memoryPlayed(): boolean;
   /** The way out is shown and is this line. */
   isWayOut(phraseId: string): boolean;

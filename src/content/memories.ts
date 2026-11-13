@@ -196,24 +196,25 @@ export type HeartShape = keyof typeof HEART_BY_SHAPE;
  * shadows hold each other "for about a minute"), whichever they have seen fewer times on earlier
  * visits; on a first visit, by the visit's own coin. (As an offered memory after another, it played
  * in 0-2% of simulated visits: the interaction designer's review, 2026-11-09.)
- */
-export const HEART_SHARED: Partial<Record<HeartShape, readonly string[]>> = { close: ['woodland', 'shadows'], recoiled: ['almost', 'drive'] };
-/**
- * A shared heart whose first is kept on a tie, not left to the visit's coin: the recoil is Almost's
+ *
+ * `firstOnTie`: the first is kept on a tie, not left to the visit's coin. The recoil is Almost's
  * on a first visit (its rhyme, and the only heart that leaves a line), and The Drive Home's on a
  * return once Almost has been seen more often (the artist chose it, 2026-11-09: docs/drive-home.md).
  * After the room has flinched at them, "Are you angry with me?" is their own question.
  */
-export const HEART_FIRST_ON_TIE: ReadonlySet<HeartShape> = new Set(['recoiled']);
+const HEART_SHARED: Partial<Record<HeartShape, { ids: readonly string[]; firstOnTie?: true }>> = {
+  close: { ids: ['woodland', 'shadows'] },
+  recoiled: { ids: ['almost', 'drive'], firstOnTie: true },
+};
 /** Every memory that can be a heart. */
-export const HEART_IDS: ReadonlySet<string> = new Set([...Object.values(HEART_BY_SHAPE), ...Object.values(HEART_SHARED).flat()]);
+export const HEART_IDS: ReadonlySet<string> = new Set([...Object.values(HEART_BY_SHAPE), ...Object.values(HEART_SHARED).flatMap((h) => h.ids)]);
 /** This visit's heart for a shape: `counts` seen on earlier visits, `coin` the visit's own draw (0..1). */
 export function heartOf(shape: HeartShape, counts: Record<string, number>, coin: number): string {
   const shared = HEART_SHARED[shape];
   if (!shared) return HEART_BY_SHAPE[shape];
-  const least = Math.min(...shared.map((id) => counts[id] ?? 0));
-  const fewest = shared.filter((id) => (counts[id] ?? 0) === least);
-  if (HEART_FIRST_ON_TIE.has(shape)) return fewest[0];
+  const least = Math.min(...shared.ids.map((id) => counts[id] ?? 0));
+  const fewest = shared.ids.filter((id) => (counts[id] ?? 0) === least);
+  if (shared.firstOnTie) return fewest[0];
   return fewest[Math.min(fewest.length - 1, Math.floor(coin * fewest.length))];
 }
 /** What a heart leaves beside "I wanted you to stay." (a phrase id): Almost only. */

@@ -5,7 +5,7 @@ import type { DimVector, Hand } from './types';
  * Authored re-contextualisations. Late in a visit, a phrase the visitor has already read
  * can be written again somewhere else, in another hand, beside a phrase that changes it.
  */
-export interface Recontext {
+interface Recontext {
   id: string;
   /** Phrase written again. */
   phrase: string;

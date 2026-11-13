@@ -10,7 +10,7 @@ function otherWalls(not: Surface[]): Surface[] {
   return WALLS.filter((w) => !not.includes(w));
 }
 
-export const REST = -100;
+const REST = -100;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. The next room
@@ -321,7 +321,7 @@ export const erosion: SituationDef = {
   },
 };
 
-export const SITUATIONS: SituationDef[] = [nextRoom, humming, listening, residue, erosion];
+const SITUATIONS: SituationDef[] = [nextRoom, humming, listening, residue, erosion];
 export const SITUATION_BY_ID = new Map(SITUATIONS.map((s) => [s.id, s]));
 
 /**

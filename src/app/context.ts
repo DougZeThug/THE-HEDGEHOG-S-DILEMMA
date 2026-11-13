@@ -35,7 +35,7 @@ import type { Menus } from './menus';
 import type { Hints } from './hints';
 import type { ScreenWake } from './opening';
 
-export type Mode = 'threshold' | 'room' | 'settings' | 'contribute' | 'departed';
+type Mode = 'threshold' | 'room' | 'settings' | 'contribute' | 'departed';
 
 /** Everything `buildWorld` makes: built once, so none of it is ever half-initialised. */
 export interface World {

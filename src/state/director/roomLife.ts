@@ -11,7 +11,7 @@ import { WriteKeys } from '../writeKeys';
 import type { RuleHost } from './host';
 
 /** What room life needs to know of the heart: the north wall is held while its answer waits. */
-export interface RoomLifeLink {
+interface RoomLifeLink {
   northKept(): boolean;
 }
 

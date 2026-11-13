@@ -19,9 +19,9 @@ import { RULE, isSituation } from './rules';
  * answer with something different rather than more of the same.
  */
 
-export type Rhythm = 'arrival' | 'recovery' | 'quiet' | 'stalled';
+type Rhythm = 'arrival' | 'recovery' | 'quiet' | 'stalled';
 
-export type DevKind = 'voice' | 'sound' | 'music' | 'text' | 'light' | 'chair' | 'silence';
+type DevKind = 'voice' | 'sound' | 'music' | 'text' | 'light' | 'chair' | 'silence';
 
 export interface Dev {
   t: number;

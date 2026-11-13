@@ -5,7 +5,7 @@ import type { DimVector, Dimension, Phrase, Surface } from './types';
  * east the ordinary warm past, west being misread, south very little. Writing that does
  * not belong to a wall's character is how the walls contaminate each other.
  */
-export const WALL_CHARACTER: Record<'north' | 'east' | 'west' | 'south', DimVector> = {
+const WALL_CHARACTER: Record<'north' | 'east' | 'west' | 'south', DimVector> = {
   north: { desire: 1, fear: 0.9, affection: 0.7, contradiction: 0.8, isolation: 0.5 },
   east: { happiness: 1, nostalgia: 1, affection: 0.6, relief: 0.4, connection: 0.5 },
   west: { shame: 1, anger: 0.9, misunderstanding: 1, uncertainty: 0.6, forgiveness: 0.4 },

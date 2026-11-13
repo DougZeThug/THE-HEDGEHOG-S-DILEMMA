@@ -5,7 +5,7 @@
  * parse them here and nowhere else.
  */
 
-export type WriteKey =
+type WriteKey =
   | { kind: 'memory'; id: string }
   | { kind: 'heart'; id: string }
   | { kind: 'enc'; id: string; n: number }

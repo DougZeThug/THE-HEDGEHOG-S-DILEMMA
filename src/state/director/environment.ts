@@ -5,7 +5,7 @@ import type { Memory } from '../Memory';
 import { lateness } from '../Phase';
 import type { Environment } from '../../core/environment';
 
-export interface EnvironmentInput {
+interface EnvironmentInput {
   field: FieldValues;
   strength: Memory['strength'];
   phase: Phase;

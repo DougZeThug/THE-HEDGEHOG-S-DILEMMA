@@ -16,7 +16,7 @@ import type { VisibleState } from '../situations/Situation';
 import type { WallLedger } from './ledger';
 
 /** Times and counts that more than one rule group reads or sets. */
-export interface SharedMarks {
+interface SharedMarks {
   /** How often the chair has creaked this visit (the opening, an approach, a response share the allowance). */
   creaks: number;
   /** When the long held silence ends: the room's own life waits, and the turn to the last phase doesn't break into it. */

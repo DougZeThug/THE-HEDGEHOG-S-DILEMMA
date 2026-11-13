@@ -11,7 +11,7 @@ import type { RuleHost } from './host';
 /** The room's north wall lines: held for the heart's answer. */
 export const NORTH_LINES: readonly string[] = PHRASES.filter((p) => p.surface === 'north').map((p) => p.id);
 
-export interface HeartOptions {
+interface HeartOptions {
   seed: number;
   /** The last visit's heart answer (a phrase id), if this visit should find it. */
   answer: string | null;
