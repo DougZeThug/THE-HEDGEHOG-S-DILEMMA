@@ -4,6 +4,16 @@ import { cueKind, isSpot, type AnyPlace, type Cue, type CueKind, type CueSheet }
 import type { Marker } from './types';
 
 /**
+ * Web Audio throws `InvalidAccessError` for a node already disconnected and `InvalidStateError`
+ * for a source already stopped or never started: both mean "already done". Anything else is a bug.
+ */
+function expectedAudioError(e: unknown): void {
+  const name = (e as { name?: string } | null)?.name;
+  if (name !== 'InvalidAccessError' && name !== 'InvalidStateError') console.warn('memory audio:', e);
+}
+
+
+/**
  * A memory's sound, played through Web Audio on the AudioContext's clock.
  *
  * The playback controller hands it the events that fall due (each once, with how far ahead it
@@ -350,8 +360,9 @@ export class MemoryAudio implements AudioSink {
     for (const n of l.nodes) {
       try {
         n.disconnect();
-      } catch {
-        /* already gone */
+      } catch (e) {
+        // (Already disconnected.)
+        expectedAudioError(e);
       }
     }
   }
@@ -363,8 +374,9 @@ export class MemoryAudio implements AudioSink {
       // Scheduled but not yet sounding: it never will.
       try {
         l.src.stop();
-      } catch {
-        /* never started */
+      } catch (e) {
+        // (Never started.)
+        expectedAudioError(e);
       }
       this.drop(l);
       return;
@@ -375,8 +387,9 @@ export class MemoryAudio implements AudioSink {
     g.linearRampToValueAtTime(SILENT, t + Math.max(0.02, fade));
     try {
       l.src.stop(t + Math.max(0.02, fade) + 0.02);
-    } catch {
-      /* already stopped */
+    } catch (e) {
+      // (Already stopped.)
+      expectedAudioError(e);
     }
   }
 
@@ -563,8 +576,9 @@ export class MemoryAudio implements AudioSink {
       try {
         room.disconnect();
         wet.disconnect();
-      } catch {
-        /* already gone */
+      } catch (e) {
+        // (Already disconnected.)
+        expectedAudioError(e);
       }
     };
     // Sources disconnect themselves when they end; the room goes once its tail has rung out.

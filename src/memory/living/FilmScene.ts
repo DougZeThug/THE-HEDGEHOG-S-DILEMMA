@@ -53,7 +53,9 @@ export function drawable(v: HTMLVideoElement): boolean {
     g.drawImage(v, 0, 0, 2, 2);
     g.getImageData(0, 0, 1, 1);
     return true;
-  } catch {
+  } catch (e) {
+    // (A frame the canvas will not read back: a cross-origin `SecurityError`, or a decoder not yet ready.)
+    console.debug('film frame not drawable', e);
     return false;
   }
 }
