@@ -65,9 +65,9 @@ export class Responses {
   }
 
   private respondAtChair(): boolean {
-    if (this.h.tally.creaks < 2 && this.h.scheduler.ready('respond-creak', this.h.now, 90)) {
+    if (this.h.shared.creaks < 2 && this.h.scheduler.ready('respond-creak', this.h.now, 90)) {
       this.h.scheduler.mark('respond-creak', this.h.now);
-      this.h.tally.creaks++;
+      this.h.shared.creaks++;
       this.h.queue(0.5, { type: 'sound', kind: 'chair-creak', position: { kind: 'chair' }, gain: 0.26 }, 'respond-chair');
       return true;
     }

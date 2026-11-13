@@ -3,7 +3,6 @@ import { STAY_WORDS } from '../../content/relations';
 import { phaseAtLeast } from '../Phase';
 import { RULE, isPhaseTurn } from '../rules';
 import type { VisitorInput } from '../VisitorModel';
-import type { Phase } from '../../content/types';
 import type { RuleHost } from './host';
 
 /**
@@ -26,13 +25,6 @@ export const WAY_OUT: string = PHRASE_IDS.partyEarly;
  */
 export const LET_GO = { wait: 12, on: 0.25, wall: 2.55, turn: 0.35, step: 0.25, window: 20, again: 30 };
 
-/** What the visit's turn (the Director's phase hand-over) tells the way out. */
-export interface TurnLink {
-  pendingPhase(): Phase | null;
-  lastTurnAt(): number;
-  heldSilenceUntil(): number;
-}
-
 export class WayOut {
   /** They left by the way out (the departure line knows). */
   left = false;
@@ -44,10 +36,7 @@ export class WayOut {
   private keptAt = -Infinity;
   private lastYaw = 0;
 
-  constructor(
-    private readonly h: RuleHost,
-    private readonly link: TurnLink,
-  ) {}
+  constructor(private readonly h: RuleHost) {}
 
   /** The room is letting them go (the way out touched, then stood still): the App doesn't walk them on for a touch. */
   get lettingGo(): boolean {
@@ -103,8 +92,8 @@ export class WayOut {
 
   /** The way out may be taken: the visit has turned (contradiction or later), nothing else holds the room. */
   private exitOpen(): boolean {
-    return !this.h.departing && !this.letGo && !this.link.pendingPhase() && this.h.now - this.link.lastTurnAt() >= 20 && !this.h.scheduler.pending().some((e) => isPhaseTurn(e.payload.rule)) && phaseAtLeast(this.h.phase, 'contradiction') && this.h.now >= 120 &&
-      this.h.now - this.keptAt >= LET_GO.again && !this.h.scenes.active && !this.h.aftermath() && this.h.now >= this.link.heldSilenceUntil() && this.h.visible.has(WAY_OUT);
+    return !this.h.departing && !this.letGo && !this.h.shared.pendingPhase && this.h.now - this.h.shared.lastTurnAt >= 20 && !this.h.scheduler.pending().some((e) => isPhaseTurn(e.payload.rule)) && phaseAtLeast(this.h.phase, 'contradiction') && this.h.now >= 120 &&
+      this.h.now - this.keptAt >= LET_GO.again && !this.h.scenes.active && !this.h.aftermath() && this.h.now >= this.h.shared.heldSilenceUntil && this.h.visible.has(WAY_OUT);
   }
 
   private beginLetGo(): void {

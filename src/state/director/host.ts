@@ -13,6 +13,33 @@ import type { SituationRunner } from '../situations/Situation';
 import type { VisitorModel } from '../VisitorModel';
 import type { VisibleState } from '../Director';
 
+/** Times and counts that more than one rule group reads or sets. */
+export interface SharedMarks {
+  /** How often the chair has creaked this visit (the opening, an approach, a response share the allowance). */
+  creaks: number;
+  /** When the long held silence ends: the room's own life waits, and the turn to the last phase doesn't break into it. */
+  heldSilenceUntil: number;
+  /** When words were last written in the air (a return through them is that return's answer). */
+  airAt: number;
+  /** The last turn into a new phase, and the last turn the visitor can see (it writes, or holds a silence and dims). */
+  lastTurnAt: number;
+  markedTurnAt: number;
+  /** When the visit turned to its last phase. */
+  transformAt: number;
+  /** A turn waiting for a living memory to end and a few seconds more. */
+  pendingPhase: Phase | null;
+}
+
+export const newSharedMarks = (): SharedMarks => ({
+  creaks: 0,
+  heldSilenceUntil: -Infinity,
+  airAt: -Infinity,
+  lastTurnAt: -Infinity,
+  markedTurnAt: -Infinity,
+  transformAt: Infinity,
+  pendingPhase: null,
+});
+
 export type QueueOptions = { major?: boolean; key?: string; ttl?: number; priority?: number };
 
 /**
@@ -41,8 +68,7 @@ export interface RuleHost {
   readonly owned: ReadonlySet<string>;
   /** No voices of the room's own until then (a memory's line has just been offered, or a vignette has ended). */
   readonly memoryQuietUntil: number;
-  /** Counts several rule groups add to. */
-  readonly tally: { creaks: number };
+  readonly shared: SharedMarks;
   /** The wall faced, or null when looking at the floor or ceiling. */
   facingWall(): Wall | null;
 

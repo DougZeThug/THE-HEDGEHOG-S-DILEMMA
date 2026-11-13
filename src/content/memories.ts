@@ -216,5 +216,7 @@ export const HEART_ANSWER: Record<string, string> = { almost: 'took-hand-back' }
 export const HEART_EARLIEST = 75;
 /** The other hearts are chosen only from here (the recoil, a median 103 s in, comes first). */
 export const HEART_DECIDE = 150;
+/** Seconds before the heart's line, finding no room beside the first line, is tried again. */
+export const HEART_RETRY = 20;
 /** Almost is pointed at no sooner than this after the recoil (its 7 s hold, and a breath). */
 export const HEART_AFTER_RECOIL = 17;
