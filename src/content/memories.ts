@@ -1,11 +1,16 @@
 /**
  * Which lines open into a living memory, and when (docs/memories.md). What each memory is (its
- * art, timeline and sound) is in src/memory/defs.ts; this is only what the Director needs.
+ * art, timeline and sound) is in src/memory/memories/; this is only what the Director needs.
  *
  * A line without a memory stays a line: nothing about it says otherwise.
  */
 import type { Phase, Surface } from './types';
 import { VIGNETTES, type Tone } from './vignettes';
+import { ALMOST_SECTIONS, ALMOST_SEEN_AT } from '../memory/beats/almost';
+import { DRIVE_SECTIONS, DRIVE_SEEN_AT } from '../memory/beats/drive';
+import { SHADOWS_SECTIONS, SHADOWS_SEEN_AT } from '../memory/beats/shadows';
+import { THINGS_SECTIONS, THINGS_SEEN_AT } from '../memory/beats/things';
+import { WOODLAND_SECTIONS, WOODLAND_SEEN_AT } from '../memory/beats/woodland';
 
 export interface SceneMemory {
   id: string;
@@ -77,45 +82,41 @@ export const SCENE_MEMORIES: SceneMemory[] = [
   // (it takes a first visit's late place; the bedroom comes on a visit after it). Nothing painted
   // comes after it in that visit. A return visit meets the clearing again, empty, kept in the wall.
   {
-    // (seenAt: her head turning to him, defs.ts WOODLAND_FILM.glance.head; maxHold and span the
-    // afternoon's exit and end; tested.)
-    id: 'woodland', phraseId: 'more-minutes', earliest: 200, arc: 'afterAnother', arm: 2.5, commit: 1.0, minHold: 12, seenAt: 20.2, maxHold: 38.5, span: 47.5,
+    id: 'woodland', phraseId: 'more-minutes', earliest: 200, arc: 'afterAnother', arm: 2.5, commit: 1.0, minHold: 12, seenAt: WOODLAND_SEEN_AT, maxHold: WOODLAND_SECTIONS.exit, span: WOODLAND_SECTIONS.end,
     variants: { first: 'afternoon', revisit: ['empty'] }, lookBack: false, offer: { phases: ['contradiction', 'transform'], apart: 120 }, reserved: true, last: true,
   },
   // Almost (docs/almost.md): a felt film, two people side by side at a kitchen table at night; a
   // hand that reaches, a start, a hand taken back, an arm laid nearer too late. Offered once
   // another memory has been, as the room begins to contradict itself. It counts as seen once it
-  // has been entered and played to the startle (defs.ts FILM_AT + FILM_BEATS.startle, 17.1 s). A
-  // return visit plays it again.
+  // has been entered and played to the startle. A return visit plays it again.
   {
-    id: 'almost', phraseId: 'your-hand', earliest: 170, arc: 'afterAnother', arm: 2.5, commit: 1.0, minHold: 12, seenAt: 18, maxHold: 37.5, span: 47.5,
+    id: 'almost', phraseId: 'your-hand', earliest: 170, arc: 'afterAnother', arm: 2.5, commit: 1.0, minHold: 12, seenAt: ALMOST_SEEN_AT, maxHold: ALMOST_SECTIONS.exit, span: ALMOST_SECTIONS.end,
     variants: { first: 'film', revisit: [] }, lookBack: false, offer: { phases: ['contradiction', 'transform'], apart: 120 }, reserved: true,
   },
   // Things I Should Have Said (docs/things.md): a charcoal drawing of a goodbye at a door, tried
   // again in pencil and erased. It opens from "I didn't know what to say." Offered once another
   // memory has been, as the room begins to contradict itself; seen once it has been entered and
-  // played to his almost (defs.ts THINGS_AT + THINGS_BEATS.found, 23.8 s).
+  // played to his turning back.
   {
-    id: 'things', phraseId: 'didnt-know-say', earliest: 210, arc: 'afterAnother', arm: 2.5, commit: 1.0, minHold: 12, seenAt: 26, maxHold: 53.0, span: 63.0,
+    id: 'things', phraseId: 'didnt-know-say', earliest: 210, arc: 'afterAnother', arm: 2.5, commit: 1.0, minHold: 12, seenAt: THINGS_SEEN_AT, maxHold: THINGS_SECTIONS.exit, span: THINGS_SECTIONS.end,
     variants: { first: 'film', revisit: [] }, lookBack: false, offer: { phases: ['contradiction', 'transform'], apart: 120 }, reserved: true,
   },
   // Memory VII, The Shape of Someone (docs/shadows.md): the chair's shadow climbs the wall, shade
   // gathers round it, and in it two people's shadows come together and hold each other while the
   // people stay apart. It opens from "You understood me once, completely, for about a minute."
   // Offered once another memory has been, as the room begins to contradict itself; seen once it
-  // has been entered and played to their meeting (defs.ts SHADOWS_AT + SHADOWS_BEATS.meet, 18.1 s).
+  // has been entered and played to their meeting.
   {
-    id: 'shadows', phraseId: 'understood-minute', earliest: 190, arc: 'afterAnother', arm: 2.5, commit: 1.0, minHold: 12, seenAt: 18, maxHold: 30.5, span: 44.0,
+    id: 'shadows', phraseId: 'understood-minute', earliest: 190, arc: 'afterAnother', arm: 2.5, commit: 1.0, minHold: 12, seenAt: SHADOWS_SEEN_AT, maxHold: SHADOWS_SECTIONS.exit, span: SHADOWS_SECTIONS.end,
     variants: { first: 'film', revisit: [] }, lookBack: false, offer: { phases: ['contradiction', 'transform'], apart: 120 }, reserved: true,
   },
   // The Drive Home (docs/drive-home.md): two brothers drive home at night, angry; without looking,
   // the driver turns the heater vent toward the other, who later turns it partway back. It opens
   // from "Are you angry with me?" Only ever a heart: on a return visit, once Almost has been seen,
   // the room's recoil leads here instead (HEART_SHARED). Seen once it has been entered and played
-  // to the driver's turn of the vent (defs.ts DRIVE_BEATS.vent, 28.1 s); not before the carry in
-  // (13.6 s) can looking away end it.
+  // to the driver's turn of the vent; not before the carry in can looking away end it.
   {
-    id: 'drive', phraseId: 'angry-with-me', earliest: 170, arc: 'afterAnother', arm: 2.5, commit: 1.0, minHold: 17, seenAt: 29, maxHold: 44.0, span: 58.5,
+    id: 'drive', phraseId: 'angry-with-me', earliest: 170, arc: 'afterAnother', arm: 2.5, commit: 1.0, minHold: 17, seenAt: DRIVE_SEEN_AT, maxHold: DRIVE_SECTIONS.exit, span: DRIVE_SECTIONS.end,
     variants: { first: 'film', revisit: [] }, lookBack: false, offer: { phases: [], apart: 120 }, reserved: true,
   },
   // Peace with a cost: the longest, once the room has begun to contradict itself.

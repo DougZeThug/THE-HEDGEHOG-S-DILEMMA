@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { MEMORIES } from '../src/memory/registry';
+import { MEMORIES, defineMemory, filmSpecOf, memoryEntry } from '../src/memory/registry';
 import { sheetId } from '../src/memory/memoryDef';
 import { memorySchema } from '../src/memory/sheets';
 import { cueKind } from '../src/memory/cueSheet';
@@ -28,13 +28,28 @@ describe('the living memories, as defined and committed', () => {
     const [, a, b, ease] = py.match(new RegExp(`^${name} = \\(([\\d.]+), ([\\d.]+), '(\\w+)'\\)`, 'm'))!;
     return [Number(a), Number(b), ease];
   };
-  for (const [id, art, variant, script] of [
-    ['woodland-afternoon', 'woodland', 'afternoon', 'scripts/stroke-order.py'],
-    ['almost-film', 'almost', 'film', 'scripts/almost/emergence.py'],
-    ['things-film', 'things', 'film', 'scripts/things/emergence.py'],
-    ['shadows-film', 'shadows', 'film', 'scripts/memory-vii/order.py'],
-    ['drive-film', 'drive', 'film', 'scripts/the-drive-home/order.py'],
-  ]) {
+  it('the registry knows every memory by id, and an unknown id is an error', () => {
+    for (const id of Object.keys(MEMORIES)) expect(memoryEntry(id).def.id).toBe(id);
+    expect(() => memoryEntry('nope')).toThrow(/No memory/);
+    expect(() => filmSpecOf('cereal')).toThrow(/no film spec/);
+    // A living memory must say how its picture sits; a plain one must not pretend to.
+    expect(() => defineMemory({ def: { ...MEMORIES.drive } })).toThrow(/no film or rig/);
+    expect(() => defineMemory({ def: MEMORIES.cereal, film: filmSpecOf('drive') })).toThrow(/not living/);
+  });
+  // The script that bakes each living memory's order map (its first variant is the living one).
+  const ORDER_SCRIPTS: Record<string, string> = {
+    woodland: 'scripts/stroke-order.py',
+    almost: 'scripts/almost/emergence.py',
+    things: 'scripts/things/emergence.py',
+    shadows: 'scripts/memory-vii/order.py',
+    drive: 'scripts/the-drive-home/order.py',
+  };
+  it('every living memory has an order script', () => {
+    expect(Object.values(MEMORIES).filter((d) => d.living).map((d) => d.id).sort()).toEqual(Object.keys(ORDER_SCRIPTS).sort());
+  });
+  for (const { id: memory, art, variants: [variant] } of Object.values(MEMORIES).filter((d) => d.living)) {
+    const id = sheetId(memory, variant);
+    const script = ORDER_SCRIPTS[memory];
     it(`${id}: the order map's two clocks were timed on the timeline that plays`, () => {
       // What the baked map was timed on (the script writes it to the manifest).
       const manifest = JSON.parse(readFileSync(join(ROOT, `public/memories/${art}/manifest.json`), 'utf8'));

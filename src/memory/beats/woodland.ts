@@ -30,3 +30,5 @@ export const SCORE_FROM = 8.2;
  * back to the wide. The sound reads its times from here (synthWoods.ts `TIMES`).
  */
 export const SHOTS = { two: WOODLAND_FILM.shots.close, wideAgain: WOODLAND_FILM.shots.wideAgain };
+/** The room counts the afternoon seen once she has turned her head to him (memory s). */
+export const WOODLAND_SEEN_AT = WOODLAND_FILM.glance.head;

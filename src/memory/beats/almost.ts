@@ -8,3 +8,5 @@ export const FILM_SECONDS = 679 / 24;
 export const FILM_BEATS = {
   notice: 60 / 24, reach: 90 / 24, touch: 156 / 24, startle: 164 / 24, lap: 255 / 24, look: 295 / 24, offer: 343 / 24, tooLate: 415 / 24, almost: 487 / 24,
 };
+/** The room counts it seen once it has been entered and played to the startle (memory s, whole). */
+export const ALMOST_SEEN_AT = Math.ceil(FILM_AT + FILM_BEATS.startle);

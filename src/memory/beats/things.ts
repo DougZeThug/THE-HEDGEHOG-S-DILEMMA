@@ -10,3 +10,5 @@ export const THINGS_BEATS = {
   going: 2.0, gone: 5.1, latch: 7.6, lift: 11.2, found: 12.3, turnsBack: 14.5, hand: 16.383, held: 18.495, takenBack: 20.395,
   hers: 24.895, reach: 26.195, hersHeld: 27.508, hersTaken: 28.907, erased: 32.657, him: 34.258, empty: 35.758,
 };
+/** The room counts it seen once it has been entered and played to his turning back (memory s). */
+export const THINGS_SEEN_AT = THINGS_AT + THINGS_BEATS.turnsBack;

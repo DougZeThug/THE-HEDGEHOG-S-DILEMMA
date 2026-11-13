@@ -9,14 +9,12 @@
  */
 
 import { easeInOut } from '../../core/math';
+import { SHADOWS_BEATS } from '../beats/shadows';
 
 
 /** render.py's keys (seconds into the film; the light's x and the pair's gap, of the frame's width). */
 const LIGHT_X: [number, number][] = [[0, 0.8], [6, 0.66], [12, 0.53], [16.5, 0.47], [21, 0.31], [26, 0.22]];
 const GAP: [number, number][] = [[0, 1560], [5, 1180], [8, 800], [10.2, 880], [12.6, 420], [14.1, 292], [17.0, 284], [19.6, 560], [22.5, 1120], [26, 1560]].map(([t, g]) => [t, g / 1920]);
-
-/** Where they meet (film seconds: render.py's GAP). */
-const MET = 12.6;
 
 export function key(t: number, keys: [number, number][]): number {
   if (t <= keys[0][0]) return keys[0][1];
@@ -38,13 +36,13 @@ export function shadowsAt(t: number): { his: number; mid: number; hers: number; 
 export function uprightAt(film: number): [number, number] {
   // (Once they have met it stays where they met: they leave the column on both sides, as the film
   // never takes a side; following her after, it did: the skeptic's review, 2026-11-09.)
-  const s = shadowsAt(Math.min(film, MET));
+  const s = shadowsAt(Math.min(film, SHADOWS_BEATS.meet));
   const onHer = s.hers - 0.06;
   const w = easeInOut((s.gap - 0.22) / 0.22);
   return [Math.min(0.86, Math.max(0.14, s.mid + (onHer - s.mid) * w)), 0.48];
 }
 
 export const SHADOWS = {
-  cover: { wide: [0.5, 0.5] as [number, number], upright: uprightAt(0), ultra: [0.5, 0.48] as [number, number], uprightScale: 1 },
+  cover: { wide: [0.5, 0.5] as [number, number], upright: uprightAt(0), ultra: [0.5, 0.48] as [number, number] },
   uprightAt,
 };
