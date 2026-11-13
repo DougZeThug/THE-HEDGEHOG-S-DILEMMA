@@ -11,7 +11,7 @@ import type { Schema } from './theatre';
  *         temperature and strength, and how much of it spills into the room (the bleed).
  * layer:* each painted layer's strength, its small offset, and its depth in the plaster.
  */
-export const WINDOW: Schema[string] = {
+const WINDOW: Schema[string] = {
   // Its size relative to the line it forms round (1: about as wide as the words), and a nudge
   // from where it sits (its top just above the words), in metres.
   scale: [1, 0.5, 1.5],
@@ -30,7 +30,7 @@ export const WINDOW: Schema[string] = {
   dark: [1, 0, 1],
 };
 
-export const LIGHT: Schema[string] = {
+const LIGHT: Schema[string] = {
   x: [0, -0.6, 0.6],
   y: [0, -0.5, 0.5],
   radius: [0.45, 0.05, 1.2],
@@ -40,7 +40,7 @@ export const LIGHT: Schema[string] = {
   roomSpill: [0, 0, 1],
 };
 
-export const LAYER: Schema[string] = {
+const LAYER: Schema[string] = {
   opacity: [1, 0, 1],
   x: [0, -0.3, 0.3],
   y: [0, -0.3, 0.3],
@@ -67,7 +67,7 @@ export const LAYER: Schema[string] = {
  *   film     a film's own time (s): the frame it shows (src/memory/living/FilmScene.ts; keyed
  *            straight at one second a second while it plays)
  */
-export const SCENE: Schema[string] = {
+const SCENE: Schema[string] = {
   life: [1, 0, 1],
   immerse: [0, 0, 1],
   breeze: [1, 0, 1],
@@ -117,7 +117,7 @@ export const ROOM: Schema[string] = {
  *             toward him; the scene shows the drawing nearest to it, in either shot: held keys on
  *             twos, every change a cut
  */
-export const FIGURE: Schema[string] = {
+const FIGURE: Schema[string] = {
   head: [0, -0.06, 0.06],
   look: [0, -1, 1],
   eyes: [0, -1, 1],

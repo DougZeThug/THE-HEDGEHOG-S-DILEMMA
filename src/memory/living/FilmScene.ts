@@ -20,7 +20,7 @@ import type { Values } from '../types';
  * the two figures. Both are the film as photographed (the spec's `cover` focus points).
  */
 
-export interface FilmArt {
+interface FilmArt {
   video: HTMLVideoElement;
   fps: number;
   frames: number;

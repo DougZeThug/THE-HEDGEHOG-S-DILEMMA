@@ -39,7 +39,7 @@ export function turnHead(t: number): number {
   return 1 - Math.exp(-x) * (1 + x + (x * x) / 2);
 }
 /** One of her turn's drawings: when it is shown (s), her eyes' and her head's share of the way, and the `figure:b.turn` that shows it. */
-export interface TurnDrawing {
+interface TurnDrawing {
   at: number;
   eyes: number;
   head: number;

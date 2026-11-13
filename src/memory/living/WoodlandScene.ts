@@ -17,7 +17,7 @@ import type { Values } from '../types';
  */
 
 /** One of the puppet's deformers (figure uv, y up; src/memory/living/woodland.ts drives them). */
-export interface Deformer {
+interface Deformer {
   name: string;
   c: [number, number];
   r: [number, number];

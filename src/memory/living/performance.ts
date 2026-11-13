@@ -102,14 +102,14 @@ export function gust(t: number, gusts: readonly Gust[]): { strength: number; fro
  * incommensurate rates, travelling left to right) plus the gusts, each arriving at `x` as its front
  * crosses. Signed: positive bends things to the right (the gusts come from the left).
  */
-export interface Breeze {
+interface Breeze {
   /** Hz, relative strength, phase (radians), and how far it travels across the frame per second (frames). */
   waves: { f: number; a: number; p: number }[];
   /** The breeze's lean (its mean force: things lean a little right, as the painting's grass does). */
   lean: number;
 }
 
-export const BREEZE: Breeze = {
+const BREEZE: Breeze = {
   waves: [
     { f: 0.11, a: 0.45, p: 0.7 },
     { f: 0.23, a: 0.35, p: 2.1 },
@@ -120,8 +120,7 @@ export const BREEZE: Breeze = {
   lean: 0.15,
 };
 
-/** The canopy as a spring (Hz, damping): slower than the grass, as big trees sway. What is heard
- *  of a gust follows it (`gustSway`). */
+/** The canopy as a spring (Hz, damping): slower than the grass, as big trees sway. */
 export const CANOPY = [0.45, 0.6] as const;
 
 /** A gust's envelope (in crossings, as `gust`'s), in straight pieces. */
@@ -178,30 +177,6 @@ export function windResponse(t: number, x: number, hz: number, zeta: number, gus
     y -= prev * ramp(tau - 1.6 * g.cross);
   }
   return y;
-}
-
-/** How far a full gust (strength 1, a second to cross) bends the canopy at its most. */
-const SWAY_PEAK = (() => {
-  let m = 0;
-  for (let t = 0; t < 8; t += 0.01) m = Math.max(m, windResponse(t, 0, CANOPY[0], CANOPY[1], [{ at: 0, cross: 1, strength: 1 }], 0));
-  return m;
-})();
-
-/**
- * The gusts as the leaves over painting `x` answer them (the canopy's spring): how far the gusts
- * alone bend them, as a share of how far a full gust does at its most; and where the front of the
- * one bending them most is across the frame (0 left .. 1 right). What is heard of a gust follows
- * this (src/memory/synthWoods.ts), so the sound swells and settles with what is seen to move
- * (the skeptic's second review, 2026-10-17).
- */
-export function gustSway(t: number, x: number, gusts: readonly Gust[]): { strength: number; front: number } {
-  let best = { strength: 0, front: -1 };
-  for (const g of gusts) {
-    // (`still` 0: the gust's part of the answer alone, without the breeze's.)
-    const s = Math.max(0, windResponse(t, x, CANOPY[0], CANOPY[1], [g], 0)) / SWAY_PEAK;
-    if (s > best.strength) best = { strength: s, front: (t - g.at) / g.cross };
-  }
-  return best;
 }
 
 /**

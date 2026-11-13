@@ -42,7 +42,7 @@ export interface AudioSink {
   dispose(fade: number): void;
 }
 
-export interface PlaybackOptions {
+interface PlaybackOptions {
   timeline: TimelineSource;
   audio?: AudioSink;
   weights: Weights;

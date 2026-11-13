@@ -20,7 +20,7 @@ import { smoothstep } from '../core/math';
  *   woods        the rest of the day's (stereo, wide): two cicadas either side, the chorus in the trees
  */
 export const WOODS_KINDS = ['cicadas', 'woods'] as const;
-export type WoodsKind = (typeof WOODS_KINDS)[number];
+type WoodsKind = (typeof WOODS_KINDS)[number];
 export const RATE = 24000;
 
 /** The afternoon's insects' timeline (seconds from the memory's start; the picture's, which these
@@ -144,7 +144,7 @@ function normalise(xs: Float32Array[], db: number): void {
 
 // ─────────────────────────────── cicadas ───────────────────────────────
 
-export interface Cicada {
+interface Cicada {
   /** Where its buzz is (Hz), and how narrow (Q). */
   f: number;
   q: number;

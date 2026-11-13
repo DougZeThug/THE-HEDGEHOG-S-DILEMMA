@@ -74,8 +74,3 @@ export function leaveTimeline(env: Values, o: Reduced & { mode: 'natural' | 'int
   quiet();
   return tl;
 }
-
-/** How long a leave timeline runs (it may include a residue). */
-export function leaveDuration(tl: gsap.core.Timeline): number {
-  return tl.duration();
-}

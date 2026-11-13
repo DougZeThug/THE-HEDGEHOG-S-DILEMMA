@@ -16,7 +16,7 @@ import type { TheatreState } from '../seed';
  * production plays; commit it. "Download" is the fallback (put the file in the same place).
  * See docs/memories.md.
  */
-export interface EditorHost {
+interface EditorHost {
   playMemory(id: string, phraseId: string, variant: string): Promise<boolean>;
   heldAt(position: number | null): unknown;
   followPlayhead(position: number): void;

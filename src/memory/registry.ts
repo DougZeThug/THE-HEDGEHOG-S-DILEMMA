@@ -21,7 +21,7 @@ import { DRIVE as DRIVE_FILM } from './living/drive';
  * how its picture sits on a screen. An id that is not here is an error, never another memory's
  * framing.
  */
-export interface MemoryEntry {
+interface MemoryEntry {
   def: MemoryDef;
   /** Where its film sits on a screen (src/memory/living/): the film variants. */
   film?: FilmSpec;
@@ -53,8 +53,6 @@ const BY_ID = new Map(ENTRIES.map((e) => [e.def.id, e]));
 if (BY_ID.size !== ENTRIES.length) throw new Error('Two memories share an id');
 
 export const MEMORIES: Record<string, MemoryDef> = Object.fromEntries(ENTRIES.map((e) => [e.def.id, e.def]));
-
-export const hasMemory = (id: string): boolean => BY_ID.has(id);
 
 export function memoryEntry(id: string): MemoryEntry {
   const e = BY_ID.get(id);
