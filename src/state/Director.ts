@@ -5,13 +5,15 @@ import { HEART_AFTER_RECOIL, HEART_ANSWER, HEART_DECIDE, heartOf, SCENE_MEMORIES
 import { computeEnvironment, type Environment } from './director/environment';
 import { Contributions } from './director/contributions';
 import { Echoes } from './director/echoes';
+import { WayOut, WAY_OUT } from './director/wayOut';
+import { cameBack, stayedClose, visitShape } from './director/visitShape';
 import { Encounters } from './director/encounters';
 import { Responses } from './director/responses';
 import type { QueueOptions, RuleHost } from './director/host';
 import { Rng } from '../core/rng';
 import { EventScheduler } from '../core/scheduler';
 import { PHRASES, PHRASE_BY_ID } from '../content/phrases';
-import { DEPARTURE_BY_VISIT, DEPARTURE_STILL, RECONTEXTS, VOICE_FRAGMENT_BY_ID, VOICE_FRAGMENTS, type VoiceFragment } from '../content/relations';
+import { ANSWERS_TO_STAY, DEPARTURE_BY_VISIT, DEPARTURE_STILL, RECONTEXTS, STAY_WORDS, VOICE_FRAGMENT_BY_ID, VOICE_FRAGMENTS, type VoiceFragment } from '../content/relations';
 import { WALLS, type Motif, type Phase, type Wall, type Phrase, type Surface, type Tier } from '../content/types';
 import { VisitorModel, type VisitorInput } from './VisitorModel';
 import { Memory, warmthOf } from './Memory';
@@ -143,7 +145,12 @@ export class Director implements RuleHost {
   readonly tally = { creaks: 0 };
   private readonly contributions = new Contributions(this);
   private readonly echoes = new Echoes(this);
-  private readonly encounters = new Encounters(this, (id) => id === Director.EXIT && this.exitShown);
+  private readonly wayOut = new WayOut(this, {
+    pendingPhase: () => this.pendingPhase,
+    lastTurnAt: () => this.lastTurnAt,
+    heldSilenceUntil: () => this.heldSilenceUntil,
+  });
+  private readonly encounters = new Encounters(this, (id) => this.wayOut.isOpenLine(id));
   private readonly responses = new Responses(this);
   private readonly host: SituationHost;
   readonly owned: Set<string>;
@@ -417,7 +424,7 @@ export class Director implements RuleHost {
    */
   voiceRefused(rule: string, phraseId?: string, finish = false): boolean {
     // Never "stay" near the way out: not as it appears, nor while they touch it (it would be a plea).
-    if (phraseId && Director.STAY_WORDS.has(phraseId) && (this.letGo || this.now - this.letGoAsked <= Director.LET_GO.window || Math.abs(this.now - this.exitShownAt) < 20)) return true;
+    if (phraseId && STAY_WORDS.has(phraseId) && this.wayOut.refusesStayWords()) return true;
     if (phraseId && !finish && this.withheld().includes(phraseId)) return true;
     // The memory's line has just been written for the visitor to stay with: the room doesn't
     // talk over it (authored situations and a finished line aside).
@@ -532,7 +539,7 @@ export class Director implements RuleHost {
       // with the kitchen-light line: the room waits with them. Nor while they may be coming back
       // to the chair: the recoil is theirs, and the turn's line comes after it, not over it.)
       const returnWaits = this.returnInReach() && this.now - this.pendingPhaseAt < 30;
-      if (this.pendingPhase && !returnWaits && !this.scenes.active && this.now >= this.scenesQuietAt && !this.aftermath() && !this.memoryAwaited() && !this.letGo && this.now - this.letGoAsked > Director.LET_GO.window) {
+      if (this.pendingPhase && !returnWaits && !this.scenes.active && this.now >= this.scenesQuietAt && !this.aftermath() && !this.memoryAwaited() && !this.wayOut.engaged()) {
         this.onPhase(this.pendingPhase);
         this.pendingPhase = null;
       }
@@ -587,7 +594,7 @@ export class Director implements RuleHost {
       this.ruleAir();
       if (!quiet) this.responses.tick();
       this.ruleTableLift();
-      this.ruleLeaving(input);
+      this.wayOut.tick(input);
     }
     this.pacing.tick(dt, this.now, this.phase, this.engagement.activity(this.now));
 
@@ -606,7 +613,7 @@ export class Director implements RuleHost {
       }
       const tc = { t: +this.now.toFixed(2), cue, rule };
       if (cue.type === 'air') this.pacing.holdFor(this.now, 12);
-      if (cue.type === 'voice' && cue.phraseId && Director.STAY_WORDS.has(cue.phraseId)) this.lastStayVoiceAt = this.now;
+      if (cue.type === 'voice' && cue.phraseId) this.wayOut.voiceSounded(cue.phraseId);
       if (rule === RULE.tableSilence && cue.type === 'silence') {
         this.tableFrom = this.now;
         this.tableUntil = this.now + cue.seconds;
@@ -756,7 +763,7 @@ export class Director implements RuleHost {
 
   private cull() {
     // (Never the way out, once it is the way out: Codex review, PR #56.)
-    const revealed = [...this.visible.entries()].filter(([id, s]) => !s.base && s.mode === 'shown' && !(id === Director.EXIT && this.exitShown));
+    const revealed = [...this.visible.entries()].filter(([id, s]) => !s.base && s.mode === 'shown' && !this.wayOut.isOpenLine(id));
     const over = revealed.length - this.budget();
     if (over <= 0) return;
     revealed.sort((a, b) => a[1].since - b[1].since);
@@ -796,7 +803,6 @@ export class Director implements RuleHost {
   /** What may be written in the air, in order of preference. */
   static readonly AIR_LINES = ['closer', 'far-enough', 'come-back-dont'];
 
-  static readonly ANSWERS_TO_STAY = ['w-stay', 'closer', 'need-no-one', 'if-closer', 'not-going', 'still-here', 'far-enough', 'afraid-leave', 'come-back-dont', 'maybe-wanted', 'w-away', 'w-almost'];
 
   /**
    * While a line is left unfinished, nothing answers it: not its echoes, not what contradicts
@@ -809,7 +815,7 @@ export class Director implements RuleHost {
     for (const id of this.unfinished) {
       const p = PHRASE_BY_ID.get(id);
       for (const r of [...(p?.echoes ?? []), ...(p?.contradicts ?? [])]) out.add(r);
-      if (id === 'stay') for (const r of Director.ANSWERS_TO_STAY) out.add(r);
+      if (id === 'stay') for (const r of ANSWERS_TO_STAY) out.add(r);
     }
     return [...out];
   }
@@ -1064,7 +1070,7 @@ export class Director implements RuleHost {
     const v = this.visitor;
     // (Not the memory's line before its memory: that look is the memory's to answer.)
     const memoryLine = (v.gazeId === Director.MEMORY.phraseId && !this.memoryPlayed) || this.scenes.claims(v.gazeId);
-    const reading = v.gazeId && v.gazeFor > 2.5 && !memoryLine && !(v.gazeId === Director.EXIT && this.exitShown) ? PHRASE_BY_ID.get(v.gazeId) : undefined;
+    const reading = v.gazeId && v.gazeFor > 2.5 && !memoryLine && !this.wayOut.isOpenLine(v.gazeId) ? PHRASE_BY_ID.get(v.gazeId) : undefined;
     const answerRead = !!reading && this.now - this.lastAccumulateAt > 5 && this.accumulated < 14;
     if (this.now < this.nextAccumulate && !answerRead) return;
     if (this.aftermath() && !answerRead) return;
@@ -1206,14 +1212,7 @@ export class Director implements RuleHost {
       return true;
     }
     if (!t.phraseId || !PHRASE_BY_ID.has(t.phraseId)) return false;
-    // Touching anything else while the room is letting them go keeps them (ruleLeaving).
-    if ((this.letGo || this.now - this.letGoAsked <= Director.LET_GO.window) && t.phraseId !== Director.EXIT) {
-      this.letGoAsked = -Infinity;
-      if (this.letGo) this.keep();
-    }
-    // (A touch walks them to the words: the room starts letting them go once they are standing
-    // there, still. Touched again while it does, nothing: leaving is not the act that found it.)
-    else if (t.phraseId === Director.EXIT && !this.letGo && this.exitOpen()) this.letGoAsked = this.now;
+    this.wayOut.touched(t.phraseId);
     this.visitor.touch(t.phraseId);
     // Touching the memory's line asks for its memory, however recently it was touched.
     if (t.phraseId === Director.MEMORY.phraseId && !this.memoryPlayed && this.visible.has(t.phraseId)) this.memoryTouched = true;
@@ -1325,7 +1324,7 @@ export class Director implements RuleHost {
     if (this.pacing.sinceDev(this.now) < 8 || !this.scheduler.majorFree(this.now) || this.attending() || v.speed > 0.5) return;
     if (this.aftermath()) return;
     // (Nor on the way out, nor just after it: the room coming back must come back.)
-    if (this.letGo || this.now - this.letGoAsked <= Director.LET_GO.window || this.now - this.keptAt < 20) return;
+    if (this.wayOut.engaged() || this.wayOut.keptWithin(20)) return;
     this.heldDueAt ??= this.now;
     // (While they are there with the chair, it keeps waiting for its moment, up to two minutes.)
     const withChair = v.distance <= 2.5 && v.gazeChairFor >= 3;
@@ -1513,7 +1512,7 @@ export class Director implements RuleHost {
    * rest come in their own order, the ones this browser has not seen first.
    */
   private earned(): string[] {
-    return this.cameBack(this.now - 120) ? [MEMORY_IDS.almost] : [];
+    return cameBack(this.visitor, this.now - 120) ? [MEMORY_IDS.almost] : [];
   }
 
   // ─────────────────────────── the visit's heart ───────────────────────────
@@ -2115,170 +2114,27 @@ export class Director implements RuleHost {
 
   // ───────────────────────────── leaving ─────────────────────────────
 
-  /**
-   * The way out (docs/reviews/2026-11-core-loop.md). Nothing is detected: from the middle of a visit,
-   * touching one line on the wall they came in by (it is about leaving early, and it being lovely)
-   * starts the room letting them go: its sound thins, its own light ebbs from the walls, the
-   * chair, behind them, stays lit, and creaks once. Walking on, toward the wall, they go. A turn, a
-   * step any other way, touching anything else, or nothing at all for a while keeps them: the room
-   * comes back, and if they turned round, they find the chair lit alone as they first saw it.
-   * Touching the words again does nothing: leaving is not the act that found it (interaction
-   * designer, 2026-11-06: a second touch is the explorer's reflex).
-   */
-  static readonly EXIT: string = PHRASE_IDS.partyEarly;
-  /** "I wanted you to stay." and what answers it: never said near the way out. */
-  static readonly STAY_WORDS = new Set(['stay', ...Director.ANSWERS_TO_STAY]);
-  private exitShownAt = -Infinity;
-  private lastStayVoiceAt = -Infinity;
-  private letGoCreaked = false;
+  static readonly EXIT: string = WAY_OUT;
   private lastTurnAt = -Infinity;
   /** The last turn the visitor can see (it writes, or holds a silence and dims). */
   private markedTurnAt = -Infinity;
-  /**
-   * The way out's numbers: how long the room waits for them to go (s); how far on toward the wall
-   * is going (m) and how near the wall that ends; a turn (rad) or a step any other way (m) that
-   * keeps them; how long after a touch they may take to arrive and stand there; how soon after
-   * being kept it may begin again.
-   */
-  static readonly LET_GO = { wait: 12, on: 0.25, wall: 2.55, turn: 0.35, step: 0.25, window: 20, again: 30 };
-  private letGo: { at: number; x: number; z: number; yaw: number } | null = null;
-  /** The room is letting them go (the way out touched, then stood still): the App doesn't walk them on for a touch. */
   get lettingGo(): boolean {
-    return this.letGo !== null;
-  }
-  private letGoAsked = -Infinity;
-  private keptAt = -Infinity;
-  private exitShown = false;
-
-  /** The way out may be taken: the visit has turned (contradiction or later), nothing else holds the room. */
-  private exitOpen(): boolean {
-    return !this.departing && !this.letGo && !this.pendingPhase && this.now - this.lastTurnAt >= 20 && !this.scheduler.pending().some((e) => isPhaseTurn(e.payload.rule)) && phaseAtLeast(this.phase, 'contradiction') && this.now >= 120 &&
-      this.now - this.keptAt >= Director.LET_GO.again && !this.scenes.active && !this.aftermath() && this.now >= this.heldSilenceUntil && this.visible.has(Director.EXIT);
-  }
-
-  private beginLetGo(): void {
-    const v = this.visitor;
-    this.letGo = { at: this.now, x: v.x, z: v.z, yaw: this.lastYaw };
-    // Sound first; the walls' light goes over the next seconds, the chair's stays.
-    this.queue(0, { type: 'silence', depth: 0.5, seconds: Director.LET_GO.wait + 4, dim: 0.25, dimSeconds: Director.LET_GO.wait + 4, fall: 2.5 }, 'leaving', { ttl: 1 });
-    // Nothing of the room's own while it lets them go.
-    this.pacing.holdFor(this.now, Director.LET_GO.wait + 1);
-  }
-
-  /** Touched again as the room let them go: they have gone. */
-  private goNow(): void {
-    this.letGo = null;
-    this.left = true;
-    this.queue(0, { type: 'leave' }, 'leaving', { ttl: 2 });
+    return this.wayOut.lettingGo;
   }
 
   /** The visitor paused the room (settings): a leaving under way is not taken. */
   stayed(): void {
-    this.letGoAsked = -Infinity;
-    if (this.letGo) this.keep();
+    this.wayOut.stayed();
   }
 
-  /** They stayed: the room comes back (heard first, then seen, a moment after they turn). */
-  private keep(): void {
-    this.letGo = null;
-    this.keptAt = this.now;
-    this.pacing.release(this.now);
-    this.queue(1.5, { type: 'lift', seconds: 4 }, 'leaving-kept', { ttl: 2 });
-  }
-
-  private ruleLeaving(input: VisitorInput) {
-    this.lastYaw = input.yaw;
-    // The line is on its wall by the time the visit turns: found, not watched (written while they face elsewhere).
-    if (!this.exitShown && phaseAtLeast(this.phase, 'contradiction') && this.now >= 120 && this.facing !== 'south' && !this.visible.has(Director.EXIT) && !this.scheduler.hasPending(`reveal:${Director.EXIT}`) && this.now - this.lastStayVoiceAt >= 20) {
-      this.exitShown = true;
-      this.exitShownAt = this.now;
-      this.reveal(Director.EXIT, 0, 'exit-line', 'emerge', 8);
-    }
-    // (Standing there after the touch: the touch's own short walk to the words is not them going.)
-    const since = this.now - this.letGoAsked;
-    if (since <= Director.LET_GO.window && since >= 1 && !this.letGo && this.visitor.deepStillFor >= Math.min(0.8, since) && this.exitOpen()) {
-      this.letGoAsked = -Infinity;
-      this.beginLetGo();
-    }
-    if (!this.exitShown && this.visible.has(Director.EXIT) && phaseAtLeast(this.phase, 'contradiction') && this.now >= 120) {
-      this.exitShown = true;
-      this.exitShownAt = this.now;
-    }
-    // Taken off the wall by something else: written back, while they face elsewhere.
-    if (this.exitShown && !this.visible.has(Director.EXIT) && this.facing !== 'south' && !this.scheduler.hasPending(`reveal:${Director.EXIT}`)) this.reveal(Director.EXIT, 0, 'exit-line', 'emerge', 8);
-    const g = this.letGo;
-    if (!g) return;
-    // A moment in, the chair behind them, once: what they would be leaving (creative director).
-    if (!this.letGoCreaked && this.now - g.at >= 4.5) {
-      this.letGoCreaked = true;
-      this.queue(0, { type: 'sound', kind: 'chair-creak', position: { kind: 'chair' }, gain: 0.2 }, 'leaving-creak', { ttl: 2 });
-    }
-    let turn = Math.abs(input.yaw - g.yaw) % (Math.PI * 2);
-    if (turn > Math.PI) turn = Math.PI * 2 - turn;
-    // Walking on, toward the wall they came in by (the way they face), is going.
-    const fx = -Math.sin(g.yaw), fz = -Math.cos(g.yaw);
-    const dx = input.x - g.x, dz = input.z - g.z;
-    const on = dx * fx + dz * fz, aside = Math.abs(dx * fz - dz * fx);
-    // (At once if they like: the room only begins once they have stood still after the touch, so
-    // its own walk to the words is over. Codex review, PR #56.)
-    if (turn <= Director.LET_GO.turn && aside < Director.LET_GO.step && (on >= Director.LET_GO.on || (on > 0.05 && input.z >= Director.LET_GO.wall))) {
-      this.goNow();
-      return;
-    }
-    // A step back or aside, a turn: they stay. (A step on that isn't yet going is still waiting; a
-    // step that goes more aside or back than on, of a step's length, diagonals included, is staying.
-    // Not the plain distance: walking on a little off straight would stay before it could go. PR #56.)
-    const moved = Math.hypot(dx, dz);
-    if (turn > Director.LET_GO.turn || aside >= Director.LET_GO.step || on <= -Director.LET_GO.step || (moved > Director.LET_GO.step && on < moved * Math.SQRT1_2) || input.kneeling || this.scenes.active) {
-      this.keep();
-      return;
-    }
-    // Not taken: the room waited, and they stayed.
-    if (this.now - g.at >= Director.LET_GO.wait) this.keep();
-  }
-  private lastYaw = 0;
-  /** They left by the way out (the departure line knows). */
-  left = false;
-
-  /**
-   * Whether this visit stayed close to the chair (knelt there, or stayed by it a while): the one
-   * word kept for the next visit (docs/reviews/2026-10-emotional-depth.md).
-   */
+  /** Whether this visit stayed close to the chair: the one word kept for the next visit. */
   leaving(): 'close' | null {
-    const v = this.visitor;
-    // (Walking past the chair is not staying with it, and staying means a long while: the chair
-    // turned away on the next visit, and its line, belong to a visit that stayed, not to most visits
-    // — they had come to be for nearly four in five, docs/reviews/2026-11-core-loop.md.)
-    return v.kneelTime >= 8 || v.comings.some((a) => a.dwell >= 45 || (a.leftAt === null && v.t - a.enteredAt >= 45)) ? 'close' : null;
+    return stayedClose(this.visitor);
   }
 
   /** How the visit went with the chair, in one word (see DEPARTURE_BY_VISIT). */
   visitShape(how: 'door' | 'menu' = 'menu'): keyof typeof DEPARTURE_BY_VISIT {
-    const v = this.visitor;
-    const comings = v.comings;
-    if (how === 'door') return 'door';
-    // How it ended first: leaving from a long stay by it is "still warm where you were"; then coming
-    // back, the dilemma itself; then having stayed close earlier.
-    const last = comings[comings.length - 1];
-    if (last && (last.leftAt === null ? v.t - last.enteredAt : last.dwell) >= 25 && (last.leftAt === null || v.t - last.leftAt < 30)) return 'close';
-    if (this.cameBack()) return 'cameBack';
-    if (this.leaving() === 'close') return 'close';
-    if (comings.length && comings[comings.length - 1].leftAt !== null) return 'refused';
-    if (!comings.length) return 'apart';
-    return 'otherwise';
-  }
-
-  /** They came near, went away past the withdraw distance, and came near again and stayed a little (≥ 8 s). */
-  private cameBack(before = Infinity): boolean {
-    const c = this.visitor.comings;
-    for (let i = 1; i < c.length; i++) {
-      if (c[i].enteredAt > before) break;
-      // Away a while (gone, not a step back and in again: 20 s), then near again for a moment.
-      const away = c.slice(0, i).some((a) => a.leftAt !== null && c[i].enteredAt - a.leftAt >= 20);
-      const stayed = c[i].dwell >= 8 || (c[i].leftAt === null && this.visitor.t - c[i].enteredAt >= 8);
-      if (away && stayed) return true;
-    }
-    return false;
+    return visitShape(this.visitor, how);
   }
 
   departureLine(how: 'door' | 'menu' = 'menu'): string {
@@ -2288,7 +2144,7 @@ export class Director implements RuleHost {
       const stay = this.unfinished.has('stay') ? 'I wanted you to' : PHRASE_BY_ID.get('stay')!.text;
       return `${stay}\n${PHRASE_BY_ID.get(answer)!.text}`;
     }
-    const shape = this.visitShape(this.left ? 'door' : how);
+    const shape = this.visitShape(this.wayOut.left ? 'door' : how);
     // (Someone who stood still and never came to it: the stillness is what happened.)
     if (shape === 'apart' && this.memory.dominant() === 'stillness') return DEPARTURE_STILL;
     return DEPARTURE_BY_VISIT[shape];
@@ -2304,11 +2160,7 @@ export class Director implements RuleHost {
   returnAfterDeparture(): void {
     this.departing = false;
     this.visits++;
-    // Back in: they have not left by the way out (it may be taken again, in a while).
-    this.left = false;
-    this.letGo = null;
-    this.letGoAsked = -Infinity;
-    this.keptAt = this.now;
+    this.wayOut.returned();
     const p = this.selector.select(this.ctx(), {
       exclude: this.hiddenExcluding(),
       tiers: ['familiar', 'contradiction', 'transform', 'arrival'],

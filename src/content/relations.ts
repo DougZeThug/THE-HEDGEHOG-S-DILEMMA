@@ -187,3 +187,8 @@ export const THRESHOLD_LINES = [
   'Someone has been here.',
 ];
 
+
+/** The lines that answer "I wanted you to stay." (kept back while it is unfinished). */
+export const ANSWERS_TO_STAY = ['w-stay', 'closer', 'need-no-one', 'if-closer', 'not-going', 'still-here', 'far-enough', 'afraid-leave', 'come-back-dont', 'maybe-wanted', 'w-away', 'w-almost'];
+/** "I wanted you to stay." and what answers it: never said near the way out. */
+export const STAY_WORDS: ReadonlySet<string> = new Set(['stay', ...ANSWERS_TO_STAY]);
