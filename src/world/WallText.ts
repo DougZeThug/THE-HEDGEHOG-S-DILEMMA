@@ -3,18 +3,19 @@ import type { Phrase, Surface, Hand, Size } from '../content/types';
 import { PHRASES, PHRASE_BY_ID } from '../content/phrases';
 import type { Room } from './Room';
 import { layoutPhrases, layoutOf, surfaceSize, drawingSpots, drawingBeside, isWallSurface, type Placement, type SurfaceLayout } from './layout';
-import { HANDS, measureText, wordPosition, textTexture, pencilLineTexture, inkTexture } from './textures';
+import { measureText, wordPosition, textTexture, pencilLineTexture, inkTexture } from './textures';
 import { DRAWINGS, DRAWING_BY_ID, type DrawingDef } from '../content/drawings';
 import { bakeDrawing, bakedSize } from './sketch';
 import { wordRanges } from './handwriting';
-import { approach, clamp, smoothstep } from '../core/math';
+import { approach } from '../core/math';
 import { hashString } from '../core/rng';
 import { idle } from '../core/time';
 import type { Environment } from '../core/environment';
 import { AirWriting } from './airText';
+import { stepItem, type TextStepContext } from './textStep';
 import { makeTextMaterial, type TextUniforms } from './textMaterial';
 import { placeByDrawing, placeWithin, placeWrite } from './writePlacement';
-import { handAt, recedeStep, speechPlan, wallClock, wordBand, type RecedeState, type WritePlan } from './writePlan';
+import { handAt, speechPlan, wallClock, wordBand, type RecedeState, type WritePlan } from './writePlan';
 
 /**
  * Writing on the walls. Every piece of writing is a textured plane lying on its surface, lit
@@ -563,7 +564,7 @@ export class WallText {
     }
     const pos = cam.getWorldPosition(new THREE.Vector3());
     const fwd = cam.getWorldDirection(new THREE.Vector3());
-    const to = new THREE.Vector3();
+    const ctx: TextStepContext = { dt, pos, fwd, to: new THREE.Vector3(), env, gazeId, gazeFor, faintBoost: this.faintBoost };
     this.airWriting.update(dt, now, pos, env);
     for (const it of [...this.items.values()]) {
       if (it.expires && now > it.expires && it.target > 0) {
@@ -580,60 +581,7 @@ export class WallText {
         continue;
       }
       it.mesh.visible = true;
-      to.copy(it.centre).sub(pos);
-      const dist = to.length();
-      // Distance legibility: small and faint writing needs you to come close.
-      let legible = 1;
-      if (it.phrase?.tier === 'near') legible = smoothstep(2.8, 1.1, dist);
-      else if (it.size === 'xs') legible = 0.35 + 0.65 * smoothstep(5.5, 2.2, dist);
-      else if (it.hand === 'faint') legible = 0.45 + 0.55 * smoothstep(6, 2.5, dist);
-      // Drawings are found rather than displayed: barely there from across the room.
-      if (it.purpose === 'drawing') legible = 0.5 + 0.5 * smoothstep(5.5, 1.6, dist);
-      // Shy writing withdraws from a direct look.
-      if (it.phrase?.shy) {
-        const ang = fwd.angleTo(to);
-        const target = ang < 0.16 && dist < 6 ? 0.06 : 1;
-        it.shy = approach(it.shy, target, dt, target < it.shy ? 0.7 : 2.2);
-      }
-      const gazed = gazeId === it.key;
-      it.emphasis = approach(it.emphasis, gazed ? clamp((gazeFor - 0.8) / 3) * 0.7 : 0, dt, gazed ? 1.2 : 3);
-      if (it.pressed) it.pressed = it.pressed < 0.01 ? 0 : approach(it.pressed, 0, dt, 0.8);
-      // A touch leaves a little of itself on the words, fading over minutes (the hand's, not the eye's).
-      if (it.handled) it.handled = it.handled < 0.005 ? 0 : approach(it.handled, 0, dt, 240);
-      // Receding: the closer, the less of it (and a look doesn't bring it back); stepping back
-      // returns it, more slowly than it went.
-      let recede = 0;
-      if (it.recede) {
-        it.recede = recedeStep(it.recede, dist, dt);
-        recede = it.recede.k;
-        it.emphasis *= 1 - recede;
-      }
-      if (it.gap) {
-        const g = it.gap;
-        g.gone = g.target > g.gone ? Math.min(g.target, g.gone + g.rate * dt) : Math.max(g.target, g.gone - g.rate * dt);
-        it.uniforms.uGap.value.set(g.lo, g.hi, g.gone);
-      }
-      let base = HANDS[it.hand].opacity * (it.strength ?? 1) * (1 - (it.wash ?? 0));
-      // Faint writing on a brighter wall sits higher on the tone curve and loses contrast: the
-      // look gives it back (only the faint: the strong lines held their own).
-      if (it.placement.surface === 'floor') {
-        // The floor by the chair is the brightest surface in the room, the key's pool high on the
-        // tone curve, where pencil is compressed hardest, strong lines too: all of it is given back
-        // more (and none in the original look).
-        base = Math.min(0.8, base * this.faintBoost ** 2);
-      } else if (base < 0.4) base = Math.min(0.4, base * this.faintBoost);
-      if (it.plan) {
-        const h = handAt(it.plan, wallClock());
-        it.uniforms.uWrite.value = h / Math.max(1e-3, it.duration);
-        // Done: the writing simply exists (an unfinished sentence keeps its plan, to be finished).
-        if (h >= it.duration) {
-          it.plan = null;
-          it.uniforms.uWrite.value = 2;
-        }
-      }
-      it.uniforms.uReveal.value = it.vis * (1 - 0.55 * recede);
-      it.uniforms.uOpacity.value = clamp(base * legible * Math.min(it.shy, 1 - 0.5 * recede) * env.textContrast * (1 + it.emphasis * 0.3), 0, 1);
-      it.uniforms.uEmphasis.value = Math.min(1, Math.max(it.emphasis, it.handled ?? 0) + (it.pressed ?? 0) * 0.35);
+      stepItem(it, ctx);
     }
     for (const ln of [...this.lines.values()]) {
       if (ln.expires && now > ln.expires) ln.target = 0;
