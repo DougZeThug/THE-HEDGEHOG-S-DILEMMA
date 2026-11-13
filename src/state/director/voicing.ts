@@ -9,20 +9,13 @@ import type { VoiceKind } from '../../content/types';
 import { phaseAtLeast } from '../Phase';
 import { performancesFor, pickReadings } from '../performance';
 import { isSituation } from '../rules';
-import type { RuleHost } from './host';
+import type { RuleHost, RuleLinks } from './host';
 
 /** Lines with several directed readings, kept for their own meetings and a second hearing. */
 const KEPT_READINGS = new Set([PHRASE_IDS.stay, 'love-go-away', 'happy-then']);
 
 /** What the voices need to know of the heart, the way out and the opening. */
-interface VoicingLink {
-  /** The north wall is held for the heart's answer. */
-  northKept(): boolean;
-  /** "Stay" and its answers are never said near the way out. */
-  refusesStayWords(): boolean;
-  /** The old arrival (the walls already written). */
-  legacy: boolean;
-}
+type VoicingLink = Pick<RuleLinks, 'northKept' | 'refusesStayWords' | 'legacy'>;
 
 /**
  * The room's voices: whether it declines to say a line now, which recorded reading is cast, the

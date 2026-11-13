@@ -2,16 +2,12 @@ import { PHRASE_BY_ID } from '../../content/phrases';
 import type { Cue } from '../cues';
 import { RULE, ROOM_OWN, isMeetingOrContribution, isSituation, isSituationLife, parseEncounterRule } from '../rules';
 import { isMemoryOrHeartKey } from '../writeKeys';
-import type { QueueOptions, RuleHost } from './host';
+import type { QueueOptions, RuleHost, RuleLinks } from './host';
 
 /** What cue admission needs of the rule groups it keeps in step. */
-interface AdmissionLink {
-  /** The north wall is held for the heart's answer. */
-  northKept(): boolean;
+interface AdmissionLink extends Pick<RuleLinks, 'northKept' | 'isWayOut'> {
   /** Whether a cue would write, reveal or re-ink something on the north wall. */
   onNorth(cue: Cue): boolean;
-  /** The way out is shown and is this line (it is never culled). */
-  isWayOut(phraseId: string): boolean;
   aftermathUntil(): number;
   /** A draw from the room's own gap stream (so the visit's other choices are unchanged by it). */
   gap(min: number, max: number): number;

@@ -13,7 +13,7 @@
  * Pure data and pure functions. The words live in memory-voices.json and nowhere else.
  */
 import DATA from './memory-voices.json';
-import { matchesRule, readingTake, type Speaker, type VLine, type VariantContext, type VariantRule } from './vignettes';
+import { lineOf, matchesRule, readingTake, type Speaker, type VLine, type VariantContext, type VariantRule } from './vignettes';
 import type { Cue, CueSheet, Place } from '../memory/cueSheet';
 import type { Marker } from '../memory/types';
 
@@ -100,7 +100,7 @@ export function voicesEnd(id: string, variant: string, version: string | null | 
   const def = MEMORY_VOICES_BY_ID.get(id);
   const v = versionOf(id, variant, version);
   if (!def || !v) return 0;
-  return Math.max(0, ...v.beats.map((b) => b.at + (b.stopAfter ?? estimateSpeech(def.lines.find((l) => l.id === b.line)?.text ?? ''))));
+  return Math.max(0, ...v.beats.map((b) => b.at + (b.stopAfter ?? estimateSpeech(lineOf(def, b.line)?.text ?? ''))));
 }
 
 /** How a version is named among what may speak (`MemoryDirector.setAvailable`). */
@@ -117,7 +117,7 @@ export function versionKeys(id: string, variant: string, version: string | null 
   const v = versionOf(id, variant, version);
   if (!def || !v) return [];
   return [...new Set(v.beats.flatMap((b) => {
-    const l = def.lines.find((x) => x.id === b.line);
+    const l = lineOf(def, b.line);
     return l ? [memoryLineKey(def, l)] : [];
   }))];
 }
@@ -142,14 +142,14 @@ export function withVoices(
   // Captions tell two people apart by which side of the painting each speaks from (phones play
   // one channel: the caption is how a phone visitor knows who). One voice alone is centred.
   const order: string[] = Object.keys(def.speakers);
-  const at = (speaker: string) => v.beats.find((b) => def.lines.find((l) => l.id === b.line)?.speaker === speaker)?.place.u ?? 0;
+  const at = (speaker: string) => v.beats.find((b) => lineOf(def, b.line)?.speaker === speaker)?.place.u ?? 0;
   const side = (speaker: string): 'left' | 'right' | undefined => (order.length < 2 ? undefined : at(speaker) < 0 ? 'left' : 'right');
   const mute = new Set(v.mute ?? []);
   const cues: Record<string, Cue> = { ...sheet.cues };
   for (const [label, gainDb] of Object.entries(v.gains ?? {})) if (cues[label]) cues[label] = { ...cues[label], gainDb };
   const out = markers.filter((m) => !mute.has(m.label));
   v.beats.forEach((b, i) => {
-    const line = def.lines.find((l) => l.id === b.line);
+    const line = lineOf(def, b.line);
     if (!line) return;
     const label = `voice:${line.id}@${i}`;
     const asset = memoryLineKey(def, line);

@@ -3,7 +3,7 @@ import { PHRASES, PHRASE_BY_ID } from '../../content/phrases';
 import { PHRASE_IDS } from '../../content/ids';
 import type { Surface } from '../../content/types';
 import { WriteKeys } from '../writeKeys';
-import type { RuleHost } from './host';
+import type { RuleHost, RuleLinks } from './host';
 
 /** Writing the room starts with, ordinary things first; the rest comes by selection. */
 // ("the light in the kitchen at four in the afternoon" is kept back: it is the memory, late.)
@@ -15,11 +15,7 @@ interface WritingOptions {
 }
 
 /** What writing needs to know of the kitchen-light memory and the way out. */
-interface WritingLink {
-  memoryPlayed(): boolean;
-  /** The way out is shown and is this line. */
-  isWayOut(phraseId: string): boolean;
-}
+type WritingLink = Pick<RuleLinks, 'memoryPlayed' | 'isWayOut'>;
 
 /**
  * Writing arrives on the walls: the room fills as the visit goes on, an unfinished line is finished

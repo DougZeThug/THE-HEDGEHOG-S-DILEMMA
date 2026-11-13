@@ -8,12 +8,10 @@ import { TIER_OPEN, type SelectQuery } from '../PhraseSelector';
 import { devKind } from '../Pacing';
 import type { VisitorInput } from '../VisitorModel';
 import { WriteKeys } from '../writeKeys';
-import type { RuleHost } from './host';
+import type { RuleHost, RuleLinks } from './host';
 
 /** What room life needs to know of the heart: the north wall is held while its answer waits. */
-interface RoomLifeLink {
-  northKept(): boolean;
-}
+type RoomLifeLink = Pick<RuleLinks, 'northKept'>;
 
 /**
  * What the room does of its own accord, not in answer to the visitor: writing drifts in, warm

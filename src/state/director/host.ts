@@ -51,6 +51,23 @@ export const newSharedMarks = (): SharedMarks => ({
 export type QueueOptions = { major?: boolean; key?: string; ttl?: number; priority?: number };
 
 /**
+ * What the rule groups ask of one another. The Director wires each (src/state/Director.ts); a group
+ * names the members it needs with `Pick<RuleLinks, ...>` rather than declaring them again.
+ */
+export interface RuleLinks {
+  /** The north wall is held for the heart's answer. */
+  northKept(): boolean;
+  /** The way out is shown and is this line (it is never culled). */
+  isWayOut(phraseId: string): boolean;
+  /** The kitchen-light memory has played. */
+  memoryPlayed(): boolean;
+  /** "Stay" and its answers are never said near the way out. */
+  refusesStayWords(): boolean;
+  /** The old arrival (the walls already written). */
+  legacy: boolean;
+}
+
+/**
  * What a group of the Director's rules may see and do: the shared room (visitor, field, walls,
  * scheduler) and the few verbs every rule uses (queue a cue, reveal a line, speak). Each rule
  * group owns its own state and reaches the rest of the room only through this.
