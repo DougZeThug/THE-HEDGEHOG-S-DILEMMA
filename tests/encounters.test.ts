@@ -40,12 +40,12 @@ describe('a meeting that comes due while a memory plays', () => {
   const play = (cue: Cue, rule: string) => {
     const d = new Director({ seed: 3, situations: ['residue'] });
     d.release({ written: ['stay'] });
-    const q = d as unknown as { queue: (delay: number, cue: Cue, rule: string) => void; scenes: { active: unknown } };
-    q.scenes.active = { id: 'biscuit', since: d.now };
+    const q = d as unknown as { queue: (delay: number, cue: Cue, rule: string) => void };
+    d.scenes.active = { id: 'biscuit', since: d.now };
     q.queue(0.5, cue, rule);
     const during: TimedCue[] = [];
     for (let t = 0; t < 3; t += 0.1) during.push(...d.tick(0.1, base, 'north'));
-    q.scenes.active = null;
+    d.scenes.active = null;
     const after: TimedCue[] = [];
     for (let t = 0; t < 15; t += 0.1) after.push(...d.tick(0.1, base, 'north'));
     return { during: during.filter((c) => c.rule === rule), after: after.filter((c) => c.rule === rule) };
@@ -68,12 +68,12 @@ describe('a meeting put off by a memory', () => {
   it('keeps its priority and key while it waits', () => {
     const d = new Director({ seed: 3, situations: ['residue'] });
     d.release({ written: ['stay'] });
-    const x = d as unknown as { queue: (delay: number, cue: Cue, rule: string, o?: object) => void; scenes: { active: unknown }; scheduler: { pending(): { priority: number; key?: string; payload: { rule: string } }[] } };
-    x.scenes.active = { id: 'biscuit', since: d.now };
+    const x = d as unknown as { queue: (delay: number, cue: Cue, rule: string, o?: object) => void };
+    d.scenes.active = { id: 'biscuit', since: d.now };
     x.queue(0.5, { type: 'sound', kind: 'door', position: { kind: 'chair' }, gain: 0.45 } as Cue, 'encounter:stay:3', { priority: 5, key: 'enc-door' });
     const base = BASE_INPUT;
     for (let t = 0; t < 1; t += 0.1) d.tick(0.1, base, 'north');
-    const waiting = x.scheduler.pending().find((e) => e.payload.rule === 'encounter:stay:3');
+    const waiting = d.scheduler.pending().find((e) => e.payload.rule === 'encounter:stay:3');
     expect(waiting?.priority).toBe(5);
     expect(waiting?.key).toBe('enc-door');
   });

@@ -222,7 +222,7 @@ describe('living memories in a visit', () => {
     const d = new Director({ seed: 3 });
     d.scenes.tapped('cereal');
     // (A visit where cereal played: the kitchen memory rule stands down.)
-    (d.scenes as unknown as { active: unknown }).active = { id: 'cereal', since: 0 };
+    d.scenes.active = { id: 'cereal', since: 0 };
     expect(d.scenes.anyPlayed).toBe(true);
   });
 });

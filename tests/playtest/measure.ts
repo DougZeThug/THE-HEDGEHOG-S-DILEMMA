@@ -151,9 +151,11 @@ export function memorySpan(id: string, maxHold: number): number {
   return SCENE_MEMORIES.find((m) => m.id === id)?.span ?? Math.min(maxHold, 22) + 6;
 }
 
-export function visit(p: Persona, seconds: number, seed: number, dt = 0.1, past: { visits?: number; memoryCounts?: Record<string, number> } = {}): VisitResult {
-  const d = new Director({ seed, ...past });
+export function visit(p: Persona, seconds: number, seed: number, dt = 0.1, past: { visits?: number; memoryCounts?: Record<string, number>; keepBack?: readonly string[] } = {}): VisitResult {
+  const { keepBack, ...before } = past;
+  const d = new Director({ seed, ...before });
   d.release({ written: OPENING_WRITTEN, spoken: OPENING_SPOKEN, unfinished: OPENING_UNFINISHED });
+  if (keepBack) d.keepBack(keepBack);
   const devs: Development[] = [];
   let interruptions = 0;
   let taps = 0;
