@@ -1,10 +1,14 @@
 import type { CueSheet } from '../cueSheet';
 import type { SheetSeed } from '../seed';
 import { THINGS_SECTIONS, THINGS_AT, THINGS_SECONDS, THINGS_BEATS } from '../beats/things';
-import { sectionMarkers, type MemoryDef } from '../memoryDef';
+import { FILM_CUE, entryTracks, filmClock, sectionMarkers, type MemoryDef } from '../memoryDef';
 
 /** Its sound's level (soundscape.py places its layers from Memory II's figures' loudness: the same gain). */
 const THINGS_DB = -9;
+
+/** The wall's own sound is the drawing's, and begins as the pencil does. */
+const WALL_CUE = 'music:wall';
+const WALL_AT = 1.5;
 
 /**
  * Things I Should Have Said (docs/things.md): a charcoal and pencil film on one sheet (v2, the
@@ -43,15 +47,15 @@ export const THINGS: MemoryDef = {
   layers: ['scene', 'lines'],
   sections: THINGS_SECTIONS,
   // (The wall's sound with the wall's drawing, its `window.sketch`; the film's with the film.)
-  markers: [{ label: 'music:wall', position: 1.5 }, { label: 'music:film', position: THINGS_AT }],
+  markers: [{ label: WALL_CUE, position: WALL_AT }, { label: FILM_CUE, position: THINGS_AT }],
   seed: (): SheetSeed => {
     const S = THINGS_SECTIONS;
     return {
       tracks: {
         // The pencil, then the tone, both on the draw-on's own 6 s (scripts/things/emergence.py's
         // clocks: tests/memory-defs.test.ts).
-        'window.sketch': [[1.5, 0, 'linear'], [7.5, 1]],
-        'window.reveal': [[1.5, 0, 'linear'], [7.5, 1]],
+        'window.sketch': [[WALL_AT, 0, 'linear'], [7.5, 1]],
+        'window.reveal': [[WALL_AT, 0, 'linear'], [7.5, 1]],
         'window.presence': [[0, 1]],
         'window.parallax': [[0, 0]],
         // Earlier marks remain beneath: the room's writing stays under the pencil, and goes only
@@ -70,11 +74,10 @@ export const THINGS: MemoryDef = {
         'layer:scene.opacity': [[0, 1], [S.exit + 4, 1], [S.exit + 6, 0.4], [S.end - 1, 0.28], [S.end, 0]],
         // The wall's own pencil sinks into the film's (the same lines) once it is all there.
         'layer:lines.opacity': [[0, 1], [8.0, 1], [9.0, 0]],
-        'scene.approach': [[1.0, 0, 'linear'], [10.5, 1], [S.exit + 1, 1, 'linear'], [S.exit + 5, 0]],
-        'scene.immerse': [[0, 0, 'hold'], [7.8, 0, 'linear'], [9.6, 0.68, 'linear'], [11, 1, 'hold'], [S.exit, 1, 'linear'], [S.exit + 2, 0.72, 'linear'], [S.exit + 5, 0]],
+        ...entryTracks(S.exit, { approach: 10.5, begin: 7.8, rise: 9.6, full: 11 }),
         // The film's own time: its first frame (the goodbye finished) until it is entered, then as
         // a clock does, then its last frame held.
-        'scene.film': [[0, 0, 'hold'], [THINGS_AT, 0, 'linear'], [THINGS_AT + THINGS_SECONDS, THINGS_SECONDS, 'hold']],
+        'scene.film': filmClock(THINGS_AT, THINGS_SECONDS),
       },
       markers: [
         ...sectionMarkers(S),
@@ -88,8 +91,8 @@ export const THINGS: MemoryDef = {
     cues: {
       // The wall drawing the goodbye, at the film's own gain: as a point 2 m in the wall it came out
       // 10 dB under it, barely over the room's hush (QA); stopped with the picture if the visitor goes.
-      'music:wall': { asset: 'music/things-wall.mp3', gainDb: THINGS_DB, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, fadeOut: 0.8, caption: '[pencil, then charcoal, on the wall]', captionAt: 0.3 },
-      'music:film': { asset: 'music/things-film.mp3', gainDb: THINGS_DB, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, fadeOut: 2, caption: '[an eraser on paper]', captionAt: THINGS_BEATS.lift + 0.3,
+      [WALL_CUE]: { asset: 'music/things-wall.mp3', gainDb: THINGS_DB, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, fadeOut: 0.8, caption: '[pencil, then charcoal, on the wall]', captionAt: 0.3 },
+      [FILM_CUE]: { asset: 'music/things-film.mp3', gainDb: THINGS_DB, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, fadeOut: 2, caption: '[an eraser on paper]', captionAt: THINGS_BEATS.lift + 0.3,
         // (one caption at a time: each held until the next, long enough to read (0.4 s a word, at
         // least 1.2 s: tests/film-scene.test.ts; the notes in the holds are shorter than the 2.5 s
         // every caption had before them); the pencil

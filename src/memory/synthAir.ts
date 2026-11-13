@@ -14,7 +14,11 @@ export function synthAir(sampleRate: number, seed = 7, seconds = 16): Promise<Au
   const key = `${sampleRate}:${seed}:${seconds}`;
   let p = made.get(key);
   if (!p) {
-    p = make(sampleRate, seed, seconds).catch(() => null);
+    // (A bed that can't be made is no bed: the memory plays without it, as where the browser can't render offline.)
+    p = make(sampleRate, seed, seconds).catch((e) => {
+      console.debug('memory air not made', e);
+      return null;
+    });
     made.set(key, p);
   }
   return p;

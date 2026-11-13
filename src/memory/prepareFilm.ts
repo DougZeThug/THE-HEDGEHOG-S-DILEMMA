@@ -1,7 +1,7 @@
 import { FilmScene, filmType, loadFilm, releaseFilm } from './living/FilmScene';
-import { FILM_FETCH_MS, colourTimes, loadLayer, type FilmManifest } from './art';
+import { FILM_FETCH_MS, colourTimes, filmUrl, loadLayer, type FilmManifest } from './art';
 import { fetchBlob } from './fetched';
-import { filmSpecOf } from './registry';
+import { FILM_CUE } from './memoryDef';
 import { dropScene, fallBackToPoster, targetSize, type Stage } from './stage';
 import type { PreparedFilm } from './prepared';
 
@@ -11,7 +11,7 @@ import type { PreparedFilm } from './prepared';
  * wall's poster in its place) if the film couldn't be had.
  */
 export async function prepareFilm(st: Stage, lm: FilmManifest): Promise<PreparedFilm | null> {
-  const { def, host, base, suffix, manifest } = st;
+  const { def, entry, host, base, suffix, manifest } = st;
   let video: HTMLVideoElement | null = null;
   try {
     const type = filmType();
@@ -19,13 +19,14 @@ export async function prepareFilm(st: Stage, lm: FilmManifest): Promise<Prepared
     // (under a deadline too: a request never answered left the memory never beginning, no still,
     // no sound: QA, 2026-10-21)
     const blob = await Promise.race([
-      fetchBlob(`${base}${def.art}/${lm.film}${suffix}.${type}`),
+      fetchBlob(filmUrl(base, def.art, lm, suffix, type)),
       new Promise<never>((_, no) => setTimeout(() => no(new Error('film not fetched in time')), FILM_FETCH_MS)),
     ]);
     video = await loadFilm(URL.createObjectURL(blob));
     const orderR = lm.order ? await loadLayer(st.url(lm.order, ''), { data: true }) : null;
     if (orderR) st.extra.push(orderR);
-    const spec = filmSpecOf(def.id);
+    const spec = entry.film;
+    if (!spec) throw new Error(`Memory "${def.id}" has no film spec`);
     const scene = new FilmScene({ video, fps: lm.fps, frames: lm.frames }, { ...targetSize(host), reduced: !!host.reduced, close: spec.close?.frames });
     st.scene = scene;
     st.loaded.unshift({ texture: scene.target.texture, bitmap: null as unknown as ImageBitmap, name: 'scene', kind: 'pigment' });
@@ -46,7 +47,7 @@ export async function prepareFilm(st: Stage, lm: FilmManifest): Promise<Prepared
     // The film couldn't be had: the wall's poster instead, still (as any memory).
     console.warn('film unavailable; the memory stays a still', e);
     // (and without the film's sound: its eraser over a still read as broken: QA, 2026-10-21)
-    st.audio?.without('music:film');
+    st.audio?.without(FILM_CUE);
     // (A film loaded before its order map failed is no scene's yet: let go here, or its blob and
     // decoder stayed for every attempt: review of PR 14.)
     const hadScene = !!st.scene;

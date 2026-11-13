@@ -21,7 +21,7 @@ import { DRIVE as DRIVE_FILM } from './living/drive';
  * how its picture sits on a screen. An id that is not here is an error, never another memory's
  * framing.
  */
-interface MemoryEntry {
+export interface MemoryEntry {
   def: MemoryDef;
   /** Where its film sits on a screen (src/memory/living/): the film variants. */
   film?: FilmSpec;
@@ -64,12 +64,5 @@ export function memoryEntry(id: string): MemoryEntry {
 export function filmSpecOf(id: string): FilmSpec {
   const spec = memoryEntry(id).film;
   if (!spec) throw new Error(`Memory "${id}" has no film spec`);
-  return spec;
-}
-
-/** The painted rig of a painted living memory. */
-export function rigSpecOf(id: string): LivingSpec {
-  const spec = memoryEntry(id).rig;
-  if (!spec) throw new Error(`Memory "${id}" has no painted rig`);
   return spec;
 }

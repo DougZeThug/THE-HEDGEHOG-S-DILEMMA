@@ -1,6 +1,7 @@
 import { getProject, types, createRafDriver, type IProject, type ISheet, type ISheetObject, type IRafDriver } from '@theatre/core';
 import committed from './theatre-state.json';
 import type { TheatreState } from './seed';
+import { cueKind } from './cueSheet';
 import type { Marker, Sections, TimelineSource, Values } from './types';
 
 /**
@@ -53,7 +54,7 @@ export function sheetMarkers(sheetId: string, fallback: { sections: Sections; ma
     const m = all.find((x) => x.label === k);
     if (m) sections[k] = m.position;
   }
-  const sounds = all.filter((m) => /^(sfx|bed|music):/.test(m.label)).map((m) => ({ label: m.label, position: m.position }));
+  const sounds = all.filter((m) => { const k = cueKind(m.label); return k !== null && k !== 'voice'; }).map((m) => ({ label: m.label, position: m.position }));
   return { sections, markers: sounds.length ? sounds.sort((a, b) => a.position - b.position) : fallback.markers };
 }
 

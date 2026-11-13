@@ -1,7 +1,7 @@
 import type { CueSheet } from '../cueSheet';
 import type { SheetSeed } from '../seed';
 import { ALMOST_SECTIONS, FILM_AT, FILM_SECONDS, FILM_BEATS } from '../beats/almost';
-import { sectionMarkers, type MemoryDef } from '../memoryDef';
+import { FILM_CUE, entryTracks, filmClock, sectionMarkers, type MemoryDef } from '../memoryDef';
 
 /** Its two sounds' levels (scripts/almost/sound.py lays both at the film mix's own balance, so the
  *  same gain for each). Set by what is heard, A-weighted: the kitchen's file is -52 dBFS(A), so -61
@@ -55,7 +55,7 @@ export const ALMOST: MemoryDef = {
   sections: ALMOST_SECTIONS,
   markers: [
     { label: 'music:kitchen', position: 0.6 },
-    { label: 'music:film', position: FILM_AT },
+    { label: FILM_CUE, position: FILM_AT },
   ],
   seed: (): SheetSeed => {
     const S = ALMOST_SECTIONS;
@@ -85,11 +85,10 @@ export const ALMOST: MemoryDef = {
         // up as the colour goes, and goes into the plaster after it.
         'layer:fibres.opacity': [[0, 1], [7.2, 1], [8.6, 0], [S.exit + 4, 0], [S.exit + 5.6, 1], [S.exit + 6.5, 1], [S.exit + 8, 0]],
         // The way in, one move, as the woodland's (shaped in Inside.ts).
-        'scene.approach': [[1.0, 0, 'linear'], [10.0, 1], [S.exit + 1, 1, 'linear'], [S.exit + 5, 0]],
-        'scene.immerse': [[0, 0, 'hold'], [6.2, 0, 'linear'], [8.2, 0.68, 'linear'], [9.8, 1, 'hold'], [S.exit, 1, 'linear'], [S.exit + 2, 0.72, 'linear'], [S.exit + 5, 0]],
+        ...entryTracks(S.exit, { approach: 10.0, begin: 6.2, rise: 8.2, full: 9.8 }),
         // The film's own time: its first frame until it opens out, then as a clock does, then its
         // last frame held.
-        'scene.film': [[0, 0, 'hold'], [FILM_AT, 0, 'linear'], [FILM_AT + FILM_SECONDS, FILM_SECONDS, 'hold']],
+        'scene.film': filmClock(FILM_AT, FILM_SECONDS),
       },
       markers: [
         ...sectionMarkers(S),
@@ -106,7 +105,7 @@ export const ALMOST: MemoryDef = {
       // release, until the room's hum (the same mains) takes over.
       'music:kitchen': { asset: 'music/almost-kitchen.mp3', gainDb: KITCHEN_DB, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, fadeIn: 2.5, caption: '[a fridge humming; a clock ticking]', captionAt: 1.2 },
       // The wool, the wood and the chair, laid to the film's frames (it begins with the film).
-      'music:film': { asset: 'music/almost-film.mp3', gainDb: FILM_DB, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, fadeOut: 2, caption: '[her chair creaks]', captionAt: FILM_BEATS.startle + 0.05 },
+      [FILM_CUE]: { asset: 'music/almost-film.mp3', gainDb: FILM_DB, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, fadeOut: 2, caption: '[her chair creaks]', captionAt: FILM_BEATS.startle + 0.05 },
     },
   }),
   exit: 3,

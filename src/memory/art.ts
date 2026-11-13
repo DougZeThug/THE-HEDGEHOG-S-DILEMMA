@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { LayerKind } from '../world/MemoryWindow';
-import type { FigureArt, Eye } from './living/WoodlandScene';
+import type { FigureArt, Eye } from './living/woodlandArt';
 import type { LivingSpec } from './living/woodland';
 import { fetchBlob } from './fetched';
 
@@ -140,6 +140,9 @@ export function colourTimes(bitmap: ImageBitmap): ((u: number, v: number) => num
     return null;
   }
 }
+
+/** A film's file (the browser's type, `filmType()`), at the quality's suffix. */
+export const filmUrl = (base: string, art: string, lm: FilmManifest, suffix: string, type: string): string => `${base}${art}/${lm.film}${suffix}.${type}`;
 
 export async function manifestOf(base: string, art: string): Promise<ArtManifest> {
   return JSON.parse(await (await fetchBlob(`${base}${art}/manifest.json`)).text()) as ArtManifest;

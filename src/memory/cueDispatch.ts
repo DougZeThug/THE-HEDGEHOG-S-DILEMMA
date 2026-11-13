@@ -1,3 +1,4 @@
+import { isLasting } from './cueSheet';
 import type { Marker } from './types';
 
 /**
@@ -19,16 +20,18 @@ export interface Due {
   late?: number;
 }
 
-/** What is state rather than an event: a bed or music still owed after a stall jumped past it. */
-const LASTING = /^(bed|music):/;
 /** How late a one-shot a stall passed may still be played (seconds). */
 const LATE_ONE_SHOT = 3;
+/** How far behind the position an event may be and still be handed out (seconds). */
+const TOLERANCE = 0.12;
+/** A step longer than this (seconds) is treated as a stall that jumped forward, not as playing. */
+const MAX_STEP = 0.5;
 
 export class CueDispatch {
   private fired = new Set<string>();
   private last: number | null = null;
 
-  constructor(readonly markers: Marker[], readonly lookahead = 0.3, readonly tolerance = 0.12) {}
+  constructor(readonly markers: Marker[], readonly lookahead = 0.3) {}
 
   private id(m: Marker): string {
     return `${m.label}@${m.position.toFixed(3)}`;
@@ -36,16 +39,16 @@ export class CueDispatch {
 
   /**
    * Advance from the last position to `pos`, never past `limit` (where the sequence will hold).
-   * A step longer than `maxStep` is treated as a seek.
+   * A step longer than MAX_STEP is treated as a stall.
    */
-  advance(pos: number, limit = Infinity, maxStep = 0.5): Due[] {
+  advance(pos: number, limit = Infinity): Due[] {
     const prev = this.last;
     this.last = pos;
     if (prev !== null && pos < prev - 1e-6) {
       this.seek(pos);
       return [];
     }
-    if (prev !== null && pos - prev > maxStep) {
+    if (prev !== null && pos - prev > MAX_STEP) {
       // A stall (a slow frame) jumped forward while playing: a bed or the music it passed is
       // still owed, started part-way in. A one-shot passed in the last few seconds is still
       // played, late (the footsteps that are the door's only event are not lost to one slow
@@ -54,7 +57,7 @@ export class CueDispatch {
       for (const m of this.markers) {
         const id = this.id(m);
         if (this.fired.has(id) || m.position < prev || m.position >= pos) continue;
-        if (LASTING.test(m.label)) owed.push({ marker: m, delay: 0, late: pos - m.position });
+        if (isLasting(m.label)) owed.push({ marker: m, delay: 0, late: pos - m.position });
         else if (pos - m.position <= LATE_ONE_SHOT) owed.push({ marker: m, delay: 0 });
       }
       // What it passed is heard; what lies ahead stays as it was: one already handed out ahead of
@@ -65,7 +68,7 @@ export class CueDispatch {
     }
     const to = Math.min(pos + this.lookahead, limit);
     // From wherever the last step reached (a slowish frame skips nothing), or a frame's grace.
-    const from = Math.min(pos - this.tolerance, prev ?? pos);
+    const from = Math.min(pos - TOLERANCE, prev ?? pos);
     const out: Due[] = [];
     for (const m of this.markers) {
       const id = this.id(m);

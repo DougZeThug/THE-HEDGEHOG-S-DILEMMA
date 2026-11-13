@@ -5,6 +5,10 @@ import { SHEET, rowsOf, puppet, flowerStrips, airborne } from './woodlandGeometr
 import { CANOPY, blinkDrawing, breath, hash01, windDrift, windResponse } from './performance';
 import type { LivingSpec } from './woodland';
 import type { Values } from '../types';
+import { headFor, type FigureArt, type LivingArt } from './woodlandArt';
+import { bandFor, hasNear, headCel, mayReturn } from './shotPolicy';
+
+export { headFor, type Eye, type FigureArt, type HeadCels, type LivingArt, type NearArt } from './woodlandArt';
 
 /**
  * A living memory's scene (docs/reviews/2026-10-woodland.md): the painting and the people,
@@ -16,110 +20,6 @@ import type { Values } from '../types';
  * the sway, the breathing, the blinks and the gestures. The view (what part of the painting is
  * on the screen) moves at the screen's rate.
  */
-
-/** One of the puppet's deformers (figure uv, y up; src/memory/living/woodland.ts drives them). */
-interface Deformer {
-  name: string;
-  c: [number, number];
-  r: [number, number];
-  angle: number;
-  edge: number;
-  pivot: [number, number];
-  part: 'body' | 'limb';
-}
-
-export interface FigureArt {
-  /** An atlas: the body, then her forearm (rows of `pixels`, `gutter` apart). */
-  texture: THREE.Texture;
-  /** An atlas: their lids shut, half, and her sleeve. */
-  lids: THREE.Texture;
-  /** Where they lie on the painting: x0, y0, w, h (painting uv, y up). */
-  place: [number, number, number, number];
-  pixels: [number, number];
-  gutter: number;
-  split: number;
-  deformers: Deformer[];
-  /** Her forearm's extent (figure uv: u0, v0, u1, v1) and the way back along it (a unit vector, sheet px). */
-  limb: { box: [number, number, number, number]; axis: [number, number] };
-}
-
-/** Her turn (cells: its drawings, then the region they are laid in by), where its cells lie on the panel (sheet px, y down: x0, y0, w, h), each drawing's `figure:b.turn` (how far through her turn's drawings: 0 the panel's head .. 1 the last), how many cells, and how they are laid out (columns, rows; each cell's inset in its frame, a fraction of its pitch across and up). */
-export interface HeadCels {
-  texture: THREE.Texture;
-  box: [number, number, number, number];
-  at: number[];
-  cells: number;
-  grid: [number, number, number, number];
-}
-
-/**
- * Which of her heads to show for how far through her turn's drawings she is (`figure:b.turn`): 0 the
- * panel's own, i + 1 the drawing at `at[i]`; the nearest, a tie going to the one further on.
- */
-export function headFor(turn: number, at: readonly number[]): number {
-  let cel = 0, best = Math.abs(turn);
-  at.forEach((a, i) => {
-    const d = Math.abs(turn - a);
-    if (d < best - 1e-9 || (d <= best + 1e-9 && a > (cel ? at[cel - 1] : 0))) {
-      cel = i + 1;
-      best = d;
-    }
-  });
-  return cel;
-}
-
-/**
- * An eye (sheet px, y down): its opening (centre, radii, angle: positive turns its outer end down),
- * its iris (centre, radius), its white (rgb).
- */
-export type Eye = [number, number, number, number, number, number, number, number, number, number, number];
-
-/**
- * The two-shot (scripts/two-shot.py): the two of them close. The same puppet as the wide (the wide's
- * people are this panel at 0.8, its deformers in the panel's pixels), drawn from the panel at its
- * own size, over the ground round them, out of focus; her turn (scripts/her-turn.py), in either
- * shot.
- */
-export interface NearArt {
-  /** An atlas: the body, her forearm (rows of `pixels`, `gutter` apart), as far across the panel as `reach` (sheet px). */
-  texture: THREE.Texture;
-  /** Their lids shut, half, and her sleeve (rows), at this size, over `lidBox` (sheet px, y down: x0, y0, w, h). */
-  lids: THREE.Texture;
-  /** Her turn, at this size. */
-  heads: HeadCels;
-  /** The ground round them, out of focus. */
-  ground: THREE.Texture;
-  /** Where their bed's grass moves in the air (R, over the atlas's reach). */
-  maps: THREE.Texture;
-  pixels: [number, number];
-  gutter: number;
-  reach: number;
-  lidBox: [number, number, number, number];
-  /** Where the ground lies (stage px, y down: x0, y0, w, h). */
-  groundBox: [number, number, number, number];
-  /** Their eyes: his two, then hers. */
-  eyes: Eye[];
-}
-
-export interface LivingArt {
-  plate: THREE.Texture;
-  /** The near flowers' heads (cut from the plate) and where they are (painting uv: x, y, radius as a fraction of the width). */
-  flowers: { texture: THREE.Texture; heads: [number, number, number][] } | null;
-  /** The sky in the canopy's gap, drifting: where it shows, the afternoon's and the evening's, their box and left margin. */
-  clouds: { mask: THREE.Texture; day: THREE.Texture; after: THREE.Texture; box: [number, number, number, number]; pad: number } | null;
-  maps: THREE.Texture;
-  grade: THREE.Texture | null;
-  /** The same composition later, nobody there (the cut, `scene.after`). */
-  after: THREE.Texture | null;
-  sky: { texture: THREE.Texture; box: [number, number, number, number] } | null;
-  figures: FigureArt | null;
-  /** Her head turned to him, at the wide's size (her look, in the wide), if it could be had. */
-  heads?: HeadCels | null;
-  /** The two-shot, if it could be had and her look in the wide too (else its shot is the wide). */
-  near?: NearArt | null;
-  /** The plate's pixels. */
-  size: [number, number];
-}
 
 const FPS = 12;
 /** A turn (radians) that gives the close shot way to the wide, and one under which it may come back (after RETURN s). */
@@ -386,7 +286,7 @@ export class WoodlandScene {
     const two = shot > 0 && this.hasNear;
     // A cut (the people, the evening, the shot, her head's drawing) is drawn on its own frame, not
     // at the next drawing.
-    const state = `${(v['scene.after'] ?? 0) >= 0.5 ? 1 : 0}|${(v['scene.people'] ?? 1) > 0.001 ? 1 : 0}|${shot}|${this.headCel(v)}`;
+    const state = `${(v['scene.after'] ?? 0) >= 0.5 ? 1 : 0}|${(v['scene.people'] ?? 1) > 0.001 ? 1 : 0}|${shot}|${headCel(this.art, v)}`;
     if (tq === this.drawnAt && !viewMoved && !lookMoved && !tapping && state === this.lastState) return false;
     this.lastState = state;
     this.drawnAt = tq;
@@ -436,7 +336,7 @@ export class WoodlandScene {
     if (two) {
       // The two of them close, the camera locked (its frame the screen's: `aspect`), over the
       // ground round them; nothing else of the wide.
-      this.frameStage(...(this.band ?? this.bandFor(o.aspect ?? WIDE)).frame);
+      this.frameStage(...(this.band ?? bandFor(this.spec, o.aspect ?? WIDE)).frame);
     }
     if (this.people) this.pose(tq, val);
     // The two-shot shows them over their ground alone; the wide shows everything else.
@@ -484,7 +384,7 @@ export class WoodlandScene {
     // It comes on only for the aspects it is shown for. On, its frame holds through a resize while
     // it still holds both faces and the hands; past that it is framed again for the screen (by a
     // frame that holds them there), or it is the wide.
-    const on = this.shot === 1, b = this.band, next = sp ? this.bandFor(aspect) : null;
+    const on = this.shot === 1, b = this.band, next = sp ? bandFor(this.spec, aspect) : null;
     const holds = (x: { holds: [number, number] } | null) => !!x && aspect >= x.holds[0] && aspect <= x.holds[1];
     const held = on && holds(b);
     const near = this.hasNear && !!sp && (held || (aspect >= sp.aspect[0] && aspect <= sp.aspect[1]) || (on && holds(next)));
@@ -505,7 +405,7 @@ export class WoodlandScene {
       } else if (this.gaveWay) {
         if (o.turn > SETTLE) this.settled = -1;
         else if (this.settled < 0) this.settled = now;
-        if (this.settled >= 0 && now - this.settled >= RETURN && fresh && this.mayReturn(o.t)) this.gaveWay = false;
+        if (this.settled >= 0 && now - this.settled >= RETURN && fresh && mayReturn(this.spec, o.t)) this.gaveWay = false;
       }
     }
     this.lastDrawing = drawing;
@@ -517,39 +417,19 @@ export class WoodlandScene {
     if (asked > 0 && o.inside && !this.gaveWay) {
       if (!near) this.unframed = true;
       else if (this.unframed) {
-        if (fresh && this.mayReturn(o.t)) this.unframed = false;
+        if (fresh && mayReturn(this.spec, o.t)) this.unframed = false;
         else shot = 0;
       }
     }
     // Its frame is the screen's as it comes on, held while it holds them.
-    if (shot === 1 && !held) this.band = this.bandFor(aspect);
+    if (shot === 1 && !held) this.band = bandFor(this.spec, aspect);
     this.shot = shot;
     return this.shot;
   }
 
-  /** Her head's drawing for these values (the same in either shot: both atlases hold the same drawings). */
-  private headCel(v: Values): number {
-    const heads = this.art.near?.heads ?? this.art.heads;
-    return heads ? headFor(v['figure:b.turn'] ?? 0, heads.at) : 0;
-  }
-
-  /** The two-shot's band for a screen's aspect (`near.frames`). */
-  private bandFor(aspect: number): NonNullable<LivingSpec['near']>['frames'][number] {
-    const fr = this.spec.near!.frames;
-    return fr.find((b) => aspect <= b.upTo) ?? fr[fr.length - 1];
-  }
-
-  /** Whether the two-shot may come back at `t`: not near a beat, not in its last two seconds. */
-  private mayReturn(t: number): boolean {
-    const sp = this.spec.near;
-    if (!sp) return false;
-    if (t > sp.span[1] - 2) return false;
-    return sp.beats.every((b) => Math.abs(t - b) >= 0.5);
-  }
-
   /** Whether the two-shot could be had (with her look drawn in the wide too: every state in both shots). */
   get hasNear(): boolean {
-    return !!this.art.near && !!this.art.figures && !!this.art.heads;
+    return hasNear(this.art);
   }
 
   /** The people at `t`: their breathing, blinks and hair (from time) and what they do (authored). */

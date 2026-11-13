@@ -1,5 +1,5 @@
 import type { CueSheet } from './cueSheet';
-import type { SheetSeed } from './seed';
+import type { Key, SheetSeed } from './seed';
 import type { Sway } from './behaviours';
 import type { Marker, Sections } from './types';
 
@@ -89,3 +89,22 @@ export const sectionMarkers = (S: Sections): Marker[] => [
   { label: 'residue', position: S.residue },
   { label: 'end', position: S.end },
 ];
+
+/** The cue (and marker) a film's own sound plays on: begun with the film, withdrawn if the film fails. */
+export const FILM_CUE = 'music:film';
+
+/** A film's own clock (`scene.film`): its first frame until `at`, then real time for `seconds`, then its last frame held. */
+export const filmClock = (at: number, seconds: number): Key[] => [[0, 0, 'hold'], [at, 0, 'linear'], [at + seconds, seconds, 'hold']];
+
+/**
+ * The way in and out of a living memory (`scene.approach`, `scene.immerse`), shaped in Inside.ts:
+ * `approach` begins at `from` (seconds) and is whole by `full`; `immerse` stays 0 until `begin`,
+ * rises to 0.68 by `rise`, and is 1 from `full` until the exit; both go back after it (`back` is
+ * when immerse reaches 0, seconds after the exit).
+ */
+export function entryTracks(exit: number, o: { from?: number; approach: number; begin: number; rise: number; full: number; back?: number }): Record<string, Key[]> {
+  return {
+    'scene.approach': [[o.from ?? 1.0, 0, 'linear'], [o.approach, 1], [exit + 1, 1, 'linear'], [exit + 5, 0]],
+    'scene.immerse': [[0, 0, 'hold'], [o.begin, 0, 'linear'], [o.rise, 0.68, 'linear'], [o.full, 1, 'hold'], [exit, 1, 'linear'], [exit + 2, 0.72, 'linear'], [exit + (o.back ?? 5), 0]],
+  };
+}

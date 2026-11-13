@@ -1,10 +1,12 @@
 import type { CueSheet } from '../cueSheet';
 import type { SheetSeed } from '../seed';
 import { DRIVE_SECTIONS, DRIVE_AT, DRIVE_SECONDS, DRIVE_BEATS, DRIVE_PASSES } from '../beats/drive';
-import { sectionMarkers, type MemoryDef } from '../memoryDef';
+import { FILM_CUE, entryTracks, filmClock, sectionMarkers, type MemoryDef } from '../memoryDef';
 
 /** Its sound's level (the film's mix as the artist heard it). */
 const DRIVE_DB = -17;
+
+const WALL_CUE = 'music:wall';
 
 /**
  * The Drive Home (docs/drive-home.md): two grown brothers drive home at night after a difficult
@@ -39,7 +41,7 @@ export const DRIVE: MemoryDef = {
   variants: ['film'],
   layers: ['scene'],
   sections: DRIVE_SECTIONS,
-  markers: [{ label: 'music:wall', position: 4.4 }, { label: 'music:film', position: DRIVE_AT }, { label: 'music:relay', position: 47.9 }],
+  markers: [{ label: WALL_CUE, position: 4.4 }, { label: FILM_CUE, position: DRIVE_AT }, { label: 'music:relay', position: 47.9 }],
   seed: (): SheetSeed => {
     const S = DRIVE_SECTIONS;
     const P = DRIVE_PASSES;
@@ -70,10 +72,9 @@ export const DRIVE: MemoryDef = {
         'room.night': [[0, 0], [3.0, 1], [S.residue - 0.5, 1], [57.5, 0]],
         // As the relay stops, the room's light comes to the visitor first (App takes it from here).
         'room.lean': [[0, 0, 'hold'], [57.4, 0, 'linear'], [57.6, 1]],
-        'scene.approach': [[1.0, 0, 'linear'], [13.0, 1], [S.exit + 1, 1, 'linear'], [S.exit + 5, 0]],
-        'scene.immerse': [[0, 0, 'hold'], [10.9, 0, 'linear'], [12.4, 0.68, 'linear'], [13.6, 1, 'hold'], [S.exit, 1, 'linear'], [S.exit + 2, 0.72, 'linear'], [S.exit + 4.5, 0]],
+        ...entryTracks(S.exit, { approach: 13.0, begin: 10.9, rise: 12.4, full: 13.6, back: 4.5 }),
         // Its first frame (the two of them, in the dark) while the faces are found, then as a clock does.
-        'scene.film': [[0, 0, 'hold'], [DRIVE_AT, 0, 'linear'], [DRIVE_AT + DRIVE_SECONDS, DRIVE_SECONDS, 'hold']],
+        'scene.film': filmClock(DRIVE_AT, DRIVE_SECONDS),
       },
       markers: [
         ...sectionMarkers(S),
@@ -84,8 +85,8 @@ export const DRIVE: MemoryDef = {
   cues: (): CueSheet => ({
     room: [0.3, 2, 0.04],
     cues: {
-      'music:wall': { asset: 'music/drive-wall.mp3', gainDb: DRIVE_DB, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, fadeOut: 1, caption: '[tyres on a wet road]', captionAt: 0.3 },
-      'music:film': { asset: 'music/drive-film.mp3', gainDb: DRIVE_DB, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, fadeOut: 2, caption: '[an engine, low; the hiss of tyres]', captionAt: 0.5,
+      [WALL_CUE]: { asset: 'music/drive-wall.mp3', gainDb: DRIVE_DB, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, fadeOut: 1, caption: '[tyres on a wet road]', captionAt: 0.3 },
+      [FILM_CUE]: { asset: 'music/drive-film.mp3', gainDb: DRIVE_DB, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, fadeOut: 2, caption: '[an engine, low; the hiss of tyres]', captionAt: 0.5,
         captions: [
           { at: DRIVE_BEATS.hands - DRIVE_AT, text: '[hands rubbed together]' },
           { at: DRIVE_BEATS.vent - DRIVE_AT, text: '[the vent clicks round; warm air]' },

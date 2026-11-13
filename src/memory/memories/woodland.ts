@@ -2,7 +2,7 @@ import type { CueSheet } from '../cueSheet';
 import type { SheetSeed } from '../seed';
 import type { Sections } from '../types';
 import { WOODLAND_SECTIONS, WOODLAND_FILM, CUT, EVENING_AT, EVENING_OFFSET, SCORE_FROM } from '../beats/woodland';
-import { sectionMarkers, type MemoryDef } from '../memoryDef';
+import { entryTracks, filmClock, sectionMarkers, type MemoryDef } from '../memoryDef';
 
 /** The woodland's recorded sound against its insects (dB on the files as baked), set by measure:
  *  the piano about 4.5 LU under the place round it. (There is no wind: it read as a noise louder
@@ -161,12 +161,11 @@ export const WOODLAND: MemoryDef = {
         // to all there is over its own straight 1.6 s, 8.2–9.8 (cinematic review, 2026-10-18: it
         // was the threshold's briefest phase); still by 10.5. Back: steadily (never a jolt), the
         // plaster re-forming as they are carried back.
-        'scene.approach': [[1.2, 0, 'linear'], [10.5, 1], [S.exit + 1, 1, 'linear'], [S.exit + 5, 0]],
-        'scene.immerse': [[0, 0, 'hold'], [6.2, 0, 'linear'], [8.2, 0.68, 'linear'], [9.8, 1, 'hold'], [S.exit, 1, 'linear'], [S.exit + 2, 0.72, 'linear'], [S.exit + 5, 0]],
+        ...entryTracks(S.exit, { from: 1.2, approach: 10.5, begin: 6.2, rise: 8.2, full: 9.8 }),
         // The film's own time: its first frame (the opening wide) through the way in, then as a
         // clock does, its four shots at their own speed, then its last frame (the empty clearing at
         // dusk) held as it goes back to the wall. One clock: never looped, never restarted.
-        'scene.film': [[0, 0, 'hold'], [F.at, 0, 'linear'], [F.at + filmSeconds, filmSeconds, 'hold']],
+        'scene.film': filmClock(F.at, filmSeconds),
         // The cut, for what reads it (the captions go light over the dusk): the afternoon until
         // it, the same place later from it. (The film cuts there itself, on its frame 504.)
         'scene.after': [[0, 0, 'hold'], [CUT, 1]],

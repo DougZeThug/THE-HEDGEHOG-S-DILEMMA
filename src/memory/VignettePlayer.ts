@@ -1,6 +1,7 @@
 import { CueDispatch } from './cueDispatch';
 import { MemoryAudio, type MemoryAudioHost } from './MemoryAudio';
 import { scoreMarkers, toCueSheet, type Effect, type GapKind, type Score, type VignetteDef } from '../content/vignettes';
+import { cueKind } from './cueSheet';
 import type { Marker } from './types';
 
 /**
@@ -90,7 +91,7 @@ export class VignettePlayer {
       return;
     }
     const due = this.dispatch.advance(this.position, this.score.span);
-    const sounds = due.filter((d) => /^(voice|sfx|bed|music):/.test(d.marker.label));
+    const sounds = due.filter((d) => cueKind(d.marker.label) !== null);
     this.audio.play(sounds);
     for (const d of due) {
       const i = Number(d.marker.label.slice(d.marker.label.lastIndexOf('@') + 1));
