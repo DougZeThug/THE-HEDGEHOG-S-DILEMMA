@@ -1,8 +1,19 @@
 import type { DrawingDef } from '../content/drawings';
-import type { Phrase, Surface } from '../content/types';
+import { isSideWall, type Phrase, type Surface, type Wall } from '../content/types';
 import { Rng, hashString } from '../core/rng';
 import { ROOM } from '../core/room';
 
+/** Walls that play a part of their own. Everything else asks the wall by role, not by compass name. */
+export const WALL_ROLE = {
+  /** Behind the chair: the quiet wall, plastered plainly, its column left empty for answers. */
+  calm: 'north',
+  behindChair: 'north',
+  /** Where a visitor's own words are written. */
+  contribution: 'south',
+} as const satisfies Record<string, Wall>;
+
+/** Where writing goes, in this order, when its own wall is full. */
+const OVERFLOW_ORDER: readonly Wall[] = ['south', 'west', 'north', 'east'];
 
 export interface SurfaceSize {
   /** Extent along u (metres). */
@@ -12,9 +23,9 @@ export interface SurfaceSize {
 }
 
 export function surfaceSize(s: Surface): SurfaceSize {
-  if (s === 'north' || s === 'south') return { w: ROOM.halfW * 2, h: ROOM.height };
-  if (s === 'east' || s === 'west') return { w: ROOM.halfD * 2, h: ROOM.height };
-  return { w: ROOM.halfW * 2, h: ROOM.halfD * 2 };
+  if (isSideWall(s)) return { w: ROOM.halfD * 2, h: ROOM.height };
+  if (s === 'floor' || s === 'ceiling') return { w: ROOM.halfW * 2, h: ROOM.halfD * 2 };
+  return { w: ROOM.halfW * 2, h: ROOM.height };
 }
 
 /**
@@ -89,8 +100,8 @@ const CLUSTERS: Record<Surface, Cluster[]> = {
  * the band of the south wall where visitors' own words will be written.
  */
 export const RESERVED: Partial<Record<Surface, Rect[]>> = {
-  north: [{ u: ROOM.halfW, v: 1.55, w: 1.1, h: 1.2 }],
-  south: [{ u: ROOM.halfW, v: 1.45, w: 2.2, h: 0.9 }],
+  [WALL_ROLE.behindChair]: [{ u: ROOM.halfW, v: 1.55, w: 1.1, h: 1.2 }],
+  [WALL_ROLE.contribution]: [{ u: ROOM.halfW, v: 1.45, w: 2.2, h: 0.9 }],
   // The skylight's opening (Room.PANEL), with a margin: nothing is written into the light.
   ceiling: [{ u: ROOM.halfW + 0.1, v: ROOM.halfD - 0.95, w: 1.6, h: 1.6 }],
 };
@@ -263,7 +274,7 @@ export class SurfaceLayout {
     const size = surfaceSize(p.surface);
     const rot = p.hand === 'typed' ? 0 : ((hashString(p.id) % 1000) / 1000 - 0.5) * 0.05;
     // The wall is full: the writing goes onto another wall rather than over other writing.
-    for (const other of ['south', 'west', 'north', 'east'] as Surface[]) {
+    for (const other of OVERFLOW_ORDER) {
       if (other === p.surface) continue;
       const o = this.scan(other, w, h, 0.02);
       if (o) return this.add({ surface: other, ...o, rot });

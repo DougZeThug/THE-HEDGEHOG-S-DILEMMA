@@ -1,13 +1,16 @@
 import * as THREE from 'three';
-import type { Surface } from '../content/types';
+import { WALLS, type Surface } from '../content/types';
 import { surfaceSize } from './layout';
 import { ROOM } from '../core/room';
 
 /** Where the frosted panel hangs: north of the chair, so the chair's shadow falls toward whoever arrives. */
 export const PANEL = { x: 0.1, z: -0.95 };
-import { wallMaps, floorMaps, ceilingMaps, surfaceDetail, handMarks, weatheringMap } from './surfaces';
+import { wallMaps, floorMaps, ceilingMaps, ceilingGlowMap, weatheringMap } from './surfaces';
+import type { Quality } from './quality';
+import { handMarks } from './marks';
 import { ceilingFor, panelFor, type Look } from './Style';
 import { makeNoise } from './noise';
+import { canvas } from './canvas';
 
 const SKIRT = 0.1;
 /** The skylight: frosted glass set back in a square well, its sides splaying out to the ceiling. */
@@ -112,28 +115,6 @@ function lipGeometry(): THREE.BufferGeometry {
   return geo;
 }
 
-/**
- * The ceiling's bounce, as a map: broad, centred between the skylight and the wall behind the
- * chair (the light that comes back off the floor and that wall), not a halo round the opening.
- */
-function ceilingGlow(wM: number, dM: number): THREE.CanvasTexture {
-  const ppm = 40;
-  const c = document.createElement('canvas');
-  c.width = Math.round(wM * ppm);
-  c.height = Math.round(dM * ppm);
-  const g = c.getContext('2d')!;
-  // Canvas rows run toward -z in the room (the ceiling is laid face down), as in surfaces.ts.
-  const px = c.width / 2 + PANEL.x * ppm, pz = c.height / 2 - (PANEL.z - 0.9) * ppm;
-  const grd = g.createRadialGradient(px, pz, 0.2 * ppm, px, pz, 3.6 * ppm);
-  grd.addColorStop(0, '#d8d8d8');
-  grd.addColorStop(0.45, '#8a8a8a');
-  grd.addColorStop(1, '#2a2a2a');
-  g.fillStyle = grd;
-  g.fillRect(0, 0, c.width, c.height);
-  // Linear values (a factor, not a colour).
-  return new THREE.CanvasTexture(c);
-}
-
 export interface SurfaceFrame {
   surface: Surface;
   /** Positioned on the surface plane: local +x = u direction, +y = v direction, +z = into the room. */
@@ -155,16 +136,14 @@ export class Room {
   readonly panel: THREE.Mesh;
   scale = 1;
 
-  constructor(quality: 'low' | 'medium' | 'high' = 'medium') {
-    surfaceDetail(quality);
+  constructor(private readonly quality: Quality = 'medium') {
     const H = ROOM.height;
-    const wallSurfaces: Surface[] = ['north', 'east', 'south', 'west'];
     const seeds: Record<Surface, number> = { north: 11, east: 23, south: 37, west: 41, floor: 53, ceiling: 67 };
-    for (const s of [...wallSurfaces, 'floor', 'ceiling'] as Surface[]) {
+    for (const s of [...WALLS, 'floor', 'ceiling'] as Surface[]) {
       const size = surfaceSize(s);
       const isFloor = s === 'floor';
       const isCeil = s === 'ceiling';
-      const tex = isFloor ? floorMaps(seeds[s], size.w, size.h) : isCeil ? ceilingMaps(seeds[s], size.w, size.h) : wallMaps(s, seeds[s], size.w, size.h);
+      const tex = isFloor ? floorMaps(seeds[s], size.w, size.h, quality) : isCeil ? ceilingMaps(seeds[s], size.w, size.h, quality) : wallMaps(s, seeds[s], size.w, size.h, quality);
       const mat = new THREE.MeshStandardMaterial({
         map: tex.map,
         bumpMap: tex.bump,
@@ -176,7 +155,7 @@ export class Room {
         // A white ceiling is lit only by bounce; a little self-light stands in for it, strongest
         // round the panel and falling away to the walls (a flat grey lid reads as an office).
         emissive: new THREE.Color(isCeil ? 0x23262a : 0x000000),
-        emissiveMap: isCeil ? ceilingGlow(size.w, size.h) : null,
+        emissiveMap: isCeil ? ceilingGlowMap(size.w, size.h, PANEL) : null,
       });
       // The ceiling has the skylight's opening cut in it (it stays put as the room scales).
       const mesh = new THREE.Mesh(isCeil ? ceilingGeometry() : new THREE.PlaneGeometry(size.w, size.h), mat);
@@ -211,9 +190,7 @@ export class Room {
 
     // Frosted glass — the only visible source of light — at the top of its well. Light through
     // it is even but not flat: a faint frosted mottle, a little brighter at the centre.
-    const pc = document.createElement('canvas');
-    pc.width = pc.height = 128;
-    const pg = pc.getContext('2d')!;
+    const [pc, pg] = canvas(128, 128);
     const grd = pg.createRadialGradient(64, 64, 6, 64, 64, 92);
     grd.addColorStop(0, '#ffffff');
     grd.addColorStop(1, '#ecebe6');
@@ -343,10 +320,7 @@ export class Room {
     // Where the board stands on the floor: the same line, deeper.
     const edge = which === 'contact' ? 'bottom' : which;
     const across = edge === 'left' || edge === 'right';
-    const c = document.createElement('canvas');
-    c.width = across ? 64 : 1;
-    c.height = across ? 1 : 64;
-    const g = c.getContext('2d')!;
+    const [c, g] = canvas(across ? 64 : 1, across ? 1 : 64);
     // From the junction outward: a core a third of the strip wide (about a centimetre), then gone.
     const grd = across
       ? g.createLinearGradient(edge === 'left' ? 0 : 64, 0, edge === 'left' ? 64 : 0, 0)
@@ -381,7 +355,7 @@ export class Room {
     f.south.group.position.set(0, H / 2, ROOM.halfD * s);
     f.east.group.position.set(ROOM.halfW * s, H / 2, 0);
     f.west.group.position.set(-ROOM.halfW * s, H / 2, 0);
-    for (const k of ['north', 'south', 'east', 'west'] as Surface[]) {
+    for (const k of WALLS) {
       f[k].mesh.scale.x = s;
       for (const o of f[k].group.children) {
         if (o.name === 'skirting' || o.name === 'weathering') o.scale.x = s;
@@ -398,10 +372,10 @@ export class Room {
   /** The writer's hand under the lines on the walls (graphite drags and thumbs, painted once). */
   handMarks(lines: { surface: Surface; u: number; v: number; w: number; h: number }[]) {
     const seeds: Record<string, number> = { north: 101, east: 103, south: 107, west: 109 };
-    for (const s of ['north', 'east', 'south', 'west'] as Surface[]) {
+    for (const s of WALLS) {
       const own = lines.filter((l) => l.surface === s);
       const map = (this.frames[s].mesh.material as THREE.MeshStandardMaterial).map as THREE.CanvasTexture | null;
-      if (own.length && map) handMarks(map, own, seeds[s]);
+      if (own.length && map) handMarks(map, own, seeds[s], this.quality);
     }
   }
 

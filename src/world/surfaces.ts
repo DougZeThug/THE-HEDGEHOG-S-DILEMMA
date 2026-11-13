@@ -1,8 +1,14 @@
 import * as THREE from 'three';
+import { isSideWall, type Surface } from '../content/types';
 import { Rng } from '../core/rng';
+import { smoothstep } from '../core/math';
+import { baseScuffs, corners, fineDetail, plaster, SCAN_AMP, texelsFor, toTex, type SurfaceMaps } from './bake';
+import { canvas } from './canvas';
+import { WALL_ROLE } from './layout';
+import { MARKS, erasedWriting, graphiteDust, graphiteSmudges, heightMarks, removedSheet, tally } from './marks';
 import { makeNoise } from './noise';
-import type { Surface } from '../content/types';
-import { scanDetail, sampleDetail, type Detail } from './scans';
+import type { Quality } from './quality';
+import { scanDetail, sampleDetail } from './scans';
 
 /**
  * The room's surfaces, painted once at load. Everything here is meant to be nearly
@@ -12,298 +18,8 @@ import { scanDetail, sampleDetail, type Detail } from './scans';
  * pencil ticks of someone's height, days counted.
  */
 
-// Texel density. Every size below is authored at 200 px/m and scaled by K, so a lower
-// density paints the same room, only softer — and a quarter of the pixels to bake at load.
-let PX_PER_M = 200;
-/**
- * How legible the room's history is. Its marks were drawn so faint (alpha 0.02–0.12) that no
- * render showed them; the review (2026-10-illustrated) asked for them to be found from a metre
- * or two on a phone, the erased "I'm sorry" still a ghost.
- */
-const MARKS = 1.6;
-let K = 1;
-const DENSITY = { low: 100, medium: 200, high: 200 } as const;
-/**
- * How strongly each surface takes its scan (colour: relative per sd; bump: bake levels per sd),
- * set by measuring band-pass contrast against the artist's reference at matched pixel density.
- */
-const SCAN_AMP = {
-  wall: { colour: 0.025, bump: 10 },
-  // The side walls, lit raking from the panel, show their plaster most in the reference.
-  sideWall: { colour: 0.035, bump: 12 },
-  floor: { colour: 0.03, bump: 8 },
-  ceiling: { colour: 0.026, bump: 8 },
-};
-
-/** Set before painting: low-quality devices bake their surfaces at half the resolution. */
-export function surfaceDetail(quality: keyof typeof DENSITY): void {
-  PX_PER_M = DENSITY[quality];
-  K = PX_PER_M / 200;
-}
-
-function canvas(w: number, h: number): [HTMLCanvasElement, CanvasRenderingContext2D] {
-  const c = document.createElement('canvas');
-  c.width = w;
-  c.height = h;
-  return [c, c.getContext('2d', { willReadFrequently: true })!];
-}
-
-export interface SurfaceMaps {
-  map: THREE.CanvasTexture;
-  bump: THREE.CanvasTexture;
-  rough?: THREE.CanvasTexture;
-}
-
-function toTex(c: HTMLCanvasElement, srgb: boolean): THREE.CanvasTexture {
-  const t = new THREE.CanvasTexture(c);
-  if (srgb) t.colorSpace = THREE.SRGBColorSpace;
-  t.anisotropy = 8;
-  return t;
-}
-
-/**
- * Hand-trowelled plaster: broad mottling, faint directional passes, fine tooth. Writes colour and
- * bump. With a scan (scans.ts), its fine structure is folded in: the colour multiplied by
- * 1 + colour·z, the relief raised by bump·z (z the scan's high-passed luminance, in sd).
- */
-function plaster(W: number, H: number, seed: number, tone: [number, number, number], scale: { mottle: number; trowel: number; grain: number; blotch?: number; tooth?: number }, scan?: { detail: Detail | null; colour: number; bump: number }) {
-  const [c, g] = canvas(W, H);
-  const [bc, bg] = canvas(W, H);
-  const img = g.createImageData(W, H);
-  const bimg = bg.createImageData(W, H);
-  const n1 = makeNoise(seed), n2 = makeNoise(seed + 1), n3 = makeNoise(seed + 2), n4 = makeNoise(seed + 4);
-  const blotch = scale.blotch ?? 0;
-  const r = new Rng(seed + 3);
-  for (let y = 0; y < H; y++) {
-    for (let x = 0; x < W; x++) {
-      const m = n1.fbm(x / (260 * K), y / (260 * K), 4) - 0.5; // broad, soft
-      const tr = n2.fbm(x / (140 * K), y / (34 * K), 3) - 0.5; // trowel passes, mostly horizontal
-      const warm = n3.fbm(x / (500 * K), y / (500 * K), 2) - 0.5;
-      const fine = r.next() - 0.5;
-      // Cloudy patches a hand's breadth to an arm's across, and here and there a darker cloud:
-      // plaster that has been patched, painted over and lived beside, never quite even.
-      let cloud = 0;
-      if (blotch) {
-        // Broad and gentle (dark clouds at the scale of a stain read as damp), and a mid-scale
-        // tooth of a few centimetres: what makes plaster read as plaster from across a room.
-        const b = n4.fbm(x / (110 * K), y / (110 * K), 4) - 0.5;
-        const tooth = n4.fbm(x / (12 * K) + 41, y / (12 * K) + 7, 2) - 0.5;
-        cloud = b * blotch + tooth * (scale.tooth ?? 5);
-      }
-      const d = m * scale.mottle + tr * scale.trowel + fine * scale.grain + cloud;
-      // On low quality (half the texels) only half of it: finer than the bake can hold, the scan
-      // would turn to noise competing with the writing.
-      const sz = scan?.detail ? K * sampleDetail(scan.detail, x / PX_PER_M, y / PX_PER_M) : 0;
-      const sc = 1 + (scan?.colour ?? 0) * sz;
-      const i = (y * W + x) * 4;
-      img.data[i] = (tone[0] + d + warm * 3) * sc;
-      img.data[i + 1] = (tone[1] + d + warm * 1.2) * sc;
-      img.data[i + 2] = (tone[2] + d - warm * 2) * sc;
-      img.data[i + 3] = 255;
-      const b = 128 + tr * 70 + m * 30 + fine * 26 + (scan?.bump ?? 0) * sz;
-      bimg.data[i] = bimg.data[i + 1] = bimg.data[i + 2] = b;
-      bimg.data[i + 3] = 255;
-    }
-  }
-  g.putImageData(img, 0, 0);
-  bg.putImageData(bimg, 0, 0);
-  return { c, g, bc, bg };
-}
-
-/** Soft occlusion where planes meet, baked in. */
-function corners(g: CanvasRenderingContext2D, W: number, H: number, edges: { top?: number; bottom?: number; left?: number; right?: number }, rgb = '108,104,98') {
-  const band = (x0: number, y0: number, x1: number, y1: number, a: number) => {
-    const grd = g.createLinearGradient(x0, y0, x1, y1);
-    grd.addColorStop(0, `rgba(${rgb},${a})`);
-    grd.addColorStop(0.35, `rgba(${rgb},${a * 0.35})`);
-    grd.addColorStop(1, `rgba(${rgb},0)`);
-    g.fillStyle = grd;
-    g.fillRect(0, 0, W, H);
-  };
-  if (edges.bottom) band(0, H, 0, H - edges.bottom * PX_PER_M, 0.2);
-  if (edges.top) band(0, 0, 0, edges.top * PX_PER_M, edges.top < 0.2 ? 0.1 : 0.16);
-  if (edges.left) band(0, 0, edges.left * PX_PER_M, 0, 0.2);
-  if (edges.right) band(W, 0, W - edges.right * PX_PER_M, 0, 0.2);
-}
-
-/** Graphite that was written and rubbed out: a grey ghost, smeared, with eraser passes through it. */
-function erasedWriting(g: CanvasRenderingContext2D, text: string, x: number, y: number, size: number, r: Rng, strength = 1, font = 'Reenie Beanie') {
-  const px = size * K;
-  const [tc, tg] = canvas(Math.ceil(px * text.length * 0.6 + px), Math.ceil(px * 1.6));
-  tg.font = `400 ${px}px "${font}", cursive`;
-  tg.fillStyle = 'rgb(62,62,68)';
-  tg.textBaseline = 'middle';
-  tg.fillText(text, px * 0.3, tc.height / 2);
-  g.save();
-  g.translate(x, y);
-  g.rotate(r.range(-0.04, 0.04));
-  g.filter = `blur(${1.4 * K}px)`;
-  g.globalAlpha = 0.05 * strength * MARKS;
-  g.drawImage(tc, 0, 0);
-  g.globalAlpha = 0.025 * strength * MARKS;
-  g.drawImage(tc, r.range(2, 6) * K, r.range(-1, 1.5) * K); // smear in the direction of rubbing
-  g.filter = `blur(${6 * K}px)`;
-  g.globalAlpha = 0.018 * strength * MARKS;
-  g.fillStyle = 'rgb(128,128,134)';
-  for (let k = 0; k < 3; k++) g.fillRect(r.range(-6 * K, tc.width * 0.5), tc.height * r.range(0.3, 0.5), tc.width * r.range(0.3, 0.6), tc.height * 0.22);
-  g.restore();
-  g.filter = 'none';
-  g.globalAlpha = 1;
-}
-
-/** Four small residues of masking tape around a paler rectangle: something hung here, for a long time. */
-function removedSheet(g: CanvasRenderingContext2D, cx: number, cy: number, w: number, h: number, r: Rng) {
-  g.save();
-  g.translate(cx, cy);
-  g.rotate(r.range(-0.02, 0.02));
-  // Cleaner than the wall round it: the paper kept the grime off.
-  g.fillStyle = 'rgba(255,255,252,0.09)';
-  g.fillRect(-w / 2, -h / 2, w, h);
-  for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
-    if (r.chance(0.15)) continue; // one corner was never taped
-    g.save();
-    g.translate((sx * w) / 2, (sy * h) / 2);
-    g.rotate(sx * sy * r.range(0.5, 0.9));
-    g.fillStyle = `rgba(196,176,128,${r.range(0.07, 0.12) * MARKS})`;
-    g.fillRect(-13 * K, -4.5 * K, 26 * K, 9 * K);
-    g.fillStyle = 'rgba(255,255,255,0.05)';
-    g.fillRect(-13 * K, -4.5 * K, 26 * K, 2 * K);
-    g.restore();
-  }
-  g.restore();
-}
-
-/** Pencil ticks at a child's height, with initials, mostly rubbed away. */
-function heightMarks(g: CanvasRenderingContext2D, x: number, floorY: number, r: Rng) {
-  g.save();
-  g.filter = `blur(${0.6 * K}px)`;
-  for (const [h, label] of [[0.82, 'J'], [0.94, ''], [1.03, 'J'], [1.16, '']] as const) {
-    const y = floorY - h * PX_PER_M;
-    g.globalAlpha = r.range(0.07, 0.12) * MARKS;
-    g.strokeStyle = 'rgb(60,60,66)';
-    g.lineWidth = 1.2 * K;
-    g.beginPath();
-    g.moveTo(x, y);
-    g.lineTo(x + r.range(16, 24) * K, y + r.range(-1, 1) * K);
-    g.stroke();
-    if (label) {
-      g.font = `400 ${14 * K}px "Reenie Beanie", cursive`;
-      g.fillStyle = 'rgb(60,60,66)';
-      g.fillText(label, x + 28 * K, y + 4 * K);
-    }
-  }
-  g.restore();
-  g.globalAlpha = 1;
-}
-
-/** Days counted, in groups of five, very small and very faint. */
-function tally(g: CanvasRenderingContext2D, x: number, y: number, groups: number, r: Rng) {
-  g.save();
-  g.strokeStyle = 'rgb(66,66,72)';
-  g.lineWidth = K;
-  g.globalAlpha = 0.11 * MARKS;
-  g.filter = `blur(${0.4 * K}px)`;
-  for (let k = 0; k < groups; k++) {
-    const gx = x + k * 20 * K;
-    for (let i = 0; i < 4; i++) {
-      g.beginPath();
-      g.moveTo(gx + i * 3.5 * K, y + r.range(-1, 1) * K);
-      g.lineTo(gx + (i * 3.5 + r.range(-0.8, 0.8)) * K, y + 13 * K);
-      g.stroke();
-    }
-    if (k < groups - 1 || r.chance(0.5)) {
-      g.beginPath();
-      g.moveTo(gx - 2 * K, y + 10 * K);
-      g.lineTo(gx + 14 * K, y + 2 * K);
-      g.stroke();
-    }
-  }
-  g.restore();
-  g.globalAlpha = 1;
-}
-
-/** Graphite and crayon dust settled along the top of the skirting under the busiest writing. */
-function graphiteDust(g: CanvasRenderingContext2D, x0: number, x1: number, y: number, r: Rng) {
-  // Soft spots drawn as gradients (canvas blur filters aren't everywhere).
-  for (let x = x0; x < x1; x += 6 * K) {
-    const cy = y - r.range(3, 10) * K, rad = r.range(4, 10) * K;
-    const grd = g.createRadialGradient(x, cy, 0, x, cy, rad);
-    grd.addColorStop(0, `rgba(110,86,66,${r.range(0.015, 0.04)})`);
-    grd.addColorStop(1, 'rgba(110,86,66,0)');
-    g.fillStyle = grd;
-    g.fillRect(x - rad, cy - rad, rad * 2, rad * 2);
-  }
-}
-
-/**
- * Graphite on the plaster that isn't writing: the side of a hand dragged under a line, a
- * thumb wiped clean, a palm leant on, and paler halos where something was rubbed out. Only
- * ever where hands reach (0.5–2.1 m).
- */
-function graphiteSmudges(g: CanvasRenderingContext2D, W: number, H: number, r: Rng, n: number) {
-  const soft = (x: number, y: number, rx: number, ry: number, rot: number, rgba: string) => {
-    g.save();
-    g.translate(x, y);
-    g.rotate(rot);
-    g.scale(1, ry / rx);
-    const grd = g.createRadialGradient(0, 0, 0, 0, 0, rx);
-    grd.addColorStop(0, rgba);
-    grd.addColorStop(1, rgba.replace(/[\d.]+\)$/, '0)'));
-    g.fillStyle = grd;
-    g.fillRect(-rx, -rx, rx * 2, rx * 2);
-    g.restore();
-  };
-  for (let i = 0; i < n; i++) {
-    const x = r.range(0.2, W / PX_PER_M - 0.2) * PX_PER_M, y = H - r.range(0.5, 2.1) * PX_PER_M;
-    const kind = r.next();
-    if (kind < 0.45) {
-      // A drag: long, low, a little slanted.
-      soft(x, y, r.range(10, 26) * K, r.range(1.5, 4) * K, r.range(-0.25, 0.1), `rgba(72,72,78,${r.range(0.04, 0.09)})`);
-    } else if (kind < 0.75) {
-      // A thumb or fingertip.
-      soft(x, y, r.range(2.5, 5) * K, r.range(2, 4) * K, r.range(0, 3), `rgba(70,70,76,${r.range(0.05, 0.1)})`);
-    } else if (kind < 0.9) {
-      // An eraser's halo: cleaner than the wall round it.
-      soft(x, y, r.range(12, 24) * K, r.range(5, 10) * K, r.range(-0.2, 0.2), `rgba(255,255,250,${r.range(0.05, 0.09)})`);
-    } else {
-      // A palm, leant on.
-      soft(x, y, r.range(8, 12) * K, r.range(10, 14) * K, r.range(-0.3, 0.3), `rgba(80,78,76,${r.range(0.025, 0.05)})`);
-    }
-  }
-}
-
-/**
- * The writer's hand, under the lines that are on the walls: the heel of a right hand dragged
- * along beneath a line from about its middle, a thumb at its end. Painted onto a wall's map
- * once the writing is laid out (u, v: the line's centre in the wall's metres; w, h its size).
- */
-export function handMarks(map: THREE.CanvasTexture, lines: { u: number; v: number; w: number; h: number }[], seed: number) {
-  const c = map.image as HTMLCanvasElement;
-  const g = c.getContext('2d')!;
-  const H = c.height;
-  const r = new Rng(seed);
-  const soft = (x: number, y: number, rx: number, ry: number, rot: number, a: number) => {
-    g.save();
-    g.translate(x, y);
-    g.rotate(rot);
-    g.scale(1, ry / rx);
-    const grd = g.createRadialGradient(0, 0, 0, 0, 0, rx);
-    grd.addColorStop(0, `rgba(72,72,78,${a})`);
-    grd.addColorStop(1, 'rgba(72,72,78,0)');
-    g.fillStyle = grd;
-    g.fillRect(-rx, -rx, rx * 2, rx * 2);
-    g.restore();
-  };
-  for (const l of lines) {
-    const base = H - (l.v - l.h / 2 - r.range(0.03, 0.06)) * PX_PER_M;
-    const x0 = (l.u - l.w / 2 + l.w * 0.4) * PX_PER_M;
-    const len = l.w * r.range(0.35, 0.55) * PX_PER_M;
-    // The drag: several overlapping soft strokes along the baseline.
-    for (let k = 0; k < 5; k++) soft(x0 + (len * k) / 5, base + r.range(-1.5, 1.5) * K, len / 5, r.range(2, 4) * K, r.range(-0.06, 0.04), r.range(0.1, 0.16));
-    soft((l.u + l.w / 2) * PX_PER_M + r.range(1, 4) * K, base - r.range(2, 8) * K, r.range(3, 5) * K, r.range(2.5, 4) * K, r.range(0, 3), r.range(0.12, 0.18));
-  }
-  map.needsUpdate = true;
-}
+/** Weathering is soft and broad: a coarse map is enough. */
+const WEATHERING_PX_PER_M = 64;
 
 /**
  * Weathering, as an alpha map laid over a wall (its strength is the look's, so it can be turned
@@ -312,17 +28,13 @@ export function handMarks(map: THREE.CanvasTexture, lines: { u: number; v: numbe
  * side walls, as in the artist's reference.
  */
 export function weatheringMap(surface: Surface, wM: number, hM: number, seed: number): THREE.CanvasTexture {
-  const ppm = 64;
+  const ppm = WEATHERING_PX_PER_M;
   const W = Math.round(wM * ppm), H = Math.round(hM * ppm);
-  const [c, g] = canvas(W, H);
+  const [c, g] = canvas(W, H, true);
   const img = g.createImageData(W, H);
   const r = new Rng(seed);
   const n = makeNoise(seed + 3), m = makeNoise(seed + 7);
-  const side = surface === 'east' || surface === 'west';
-  const ss = (a: number, b: number, x: number) => {
-    const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
-    return t * t * (3 - 2 * t);
-  };
+  const side = isSideWall(surface);
   // Streaks (metres): where the water started, how far it ran, how wide, how dark.
   // On the side walls a few distinct runs gathered in two places (near each end), clean wall
   // between, as in the reference; elsewhere a couple of faint ones.
@@ -336,7 +48,7 @@ export function weatheringMap(surface: Surface, wM: number, hM: number, seed: nu
       const u = (i + 0.5) / ppm;
       let a = 0;
       // Old damp: cloudy, irregular, never round.
-      a += ss(0.6, 0.78, n.fbm(u / 0.5, v / 0.5, 4)) * (side ? 0.09 : 0.04);
+      a += smoothstep(0.6, 0.78, n.fbm(u / 0.5, v / 0.5, 4)) * (side ? 0.09 : 0.04);
       for (const st of streaks) {
         const t = (st.top - v) / st.len;
         if (t < 0 || t > 1) continue;
@@ -345,13 +57,13 @@ export function weatheringMap(surface: Surface, wM: number, hM: number, seed: nu
         if (Math.abs(dx) > 6) continue;
         // Starts faint, darkest a little below where it began, thins out as it runs down;
         // uneven along its length, with a soft wider stain round the run.
-        const along = ss(0, 0.15, t) * (1 - t) ** 1.4 * (0.6 + 0.8 * m.fbm(st.k + 5, v * 8, 2));
+        const along = smoothstep(0, 0.15, t) * (1 - t) ** 1.4 * (0.6 + 0.8 * m.fbm(st.k + 5, v * 8, 2));
         a += st.a * along * (Math.exp(-dx * dx) + 0.4 * Math.exp(-(dx * dx) / 9));
       }
       // Grime in the corners and along the foot, uneven.
       const edge = Math.min(u, wM - u);
-      a += 0.09 * (1 - ss(0, 0.4, edge)) * (0.5 + n.fbm(u * 0.3, v / 0.6, 3));
-      a += (surface === 'north' ? 0.04 : 0.08) * (1 - ss(0.1, 0.5, v)) * (0.6 + 0.6 * m.fbm(u / 0.4, 3, 2));
+      a += 0.09 * (1 - smoothstep(0, 0.4, edge)) * (0.5 + n.fbm(u * 0.3, v / 0.6, 3));
+      a += (surface === WALL_ROLE.calm ? 0.04 : 0.08) * (1 - smoothstep(0.1, 0.5, v)) * (0.6 + 0.6 * m.fbm(u / 0.4, 3, 2));
       const k = (j * W + i) * 4;
       img.data[k] = img.data[k + 1] = img.data[k + 2] = Math.round(255 * Math.min(1, a));
       img.data[k + 3] = 255;
@@ -361,62 +73,10 @@ export function weatheringMap(surface: Surface, wM: number, hM: number, seed: nu
   return new THREE.CanvasTexture(c);
 }
 
-/**
- * What makes a surface read as a surface up close: specks and pits (per m²), and hairline
- * scratches, a few centimetres long; dark (and some light, `light` of them) in colour, and
- * pressed into the relief.
- */
-function fineDetail(g: CanvasRenderingContext2D, bg: CanvasRenderingContext2D, W: number, H: number, r: Rng, o: { specks: number; pits: number; scratches: number; light?: number }) {
-  const area = (W / PX_PER_M) * (H / PX_PER_M);
-  for (let i = 0, n = Math.round(o.specks * area); i < n; i++) {
-    const x = r.range(0, W), y = r.range(0, H), rad = r.range(0.5, 1.4) * K;
-    const lightSpeck = r.chance(o.light ?? 0.15);
-    g.fillStyle = lightSpeck ? `rgba(255,252,246,${r.range(0.06, 0.14)})` : `rgba(78,74,68,${r.range(0.04, 0.11)})`;
-    g.beginPath();
-    g.arc(x, y, rad, 0, Math.PI * 2);
-    g.fill();
-  }
-  for (let i = 0, n = Math.round(o.pits * area); i < n; i++) {
-    const x = r.range(0, W), y = r.range(0, H), rad = r.range(0.8, 2) * K;
-    g.fillStyle = `rgba(96,92,86,${r.range(0.04, 0.09)})`;
-    bg.fillStyle = `rgba(60,60,60,${r.range(0.25, 0.45)})`;
-    for (const c of [g, bg]) {
-      c.beginPath();
-      c.arc(x, y, rad, 0, Math.PI * 2);
-      c.fill();
-    }
-  }
-  g.lineCap = bg.lineCap = 'round';
-  for (let i = 0, n = Math.round(o.scratches * area); i < n; i++) {
-    const x = r.range(0, W), y = r.range(0, H), len = r.range(1, 6) * PX_PER_M * 0.01, a = r.range(0, Math.PI);
-    const x1 = x + Math.cos(a) * len, y1 = y + Math.sin(a) * len;
-    g.strokeStyle = `rgba(86,82,76,${r.range(0.05, 0.12)})`;
-    g.lineWidth = 0.6 * K;
-    bg.strokeStyle = 'rgba(70,70,70,0.5)';
-    bg.lineWidth = 0.6 * K;
-    for (const c of [g, bg]) {
-      c.beginPath();
-      c.moveTo(x, y);
-      c.quadraticCurveTo((x + x1) / 2 + r.range(-2, 2) * K, (y + y1) / 2 + r.range(-2, 2) * K, x1, y1);
-      c.stroke();
-    }
-  }
-}
 
-/** Scuffs along the skirting: shoes, a chair back, a bag set down. */
-function baseScuffs(g: CanvasRenderingContext2D, W: number, H: number, r: Rng, n: number) {
-  for (let i = 0; i < n; i++) {
-    g.fillStyle = `rgba(80,78,74,${r.range(0.03, 0.08)})`;
-    g.save();
-    g.translate(r.range(0, W), H - r.range(18, 60) * K);
-    g.rotate(r.range(-0.3, 0.3));
-    g.fillRect(0, 0, r.range(6, 34) * K, r.range(1, 2.5) * K);
-    g.restore();
-  }
-}
-
-export function wallMaps(surface: Surface, seed: number, wM: number, hM: number): SurfaceMaps {
-  const W = Math.round(wM * PX_PER_M), H = Math.round(hM * PX_PER_M);
+export function wallMaps(surface: Surface, seed: number, wM: number, hM: number, quality: Quality): SurfaceMaps {
+  const t = texelsFor(quality);
+  const W = Math.round(wM * t.ppm), H = Math.round(hM * t.ppm);
   const tone: Record<string, [number, number, number]> = {
     north: [237, 234, 228],
     east: [238, 234, 227],
@@ -425,53 +85,53 @@ export function wallMaps(surface: Surface, seed: number, wM: number, hM: number)
   };
   // The wall you read is the calmest surface in the room (as in the reference): less cloud, less
   // tooth; its history is in particular marks, not grain spread everywhere.
-  const calm = surface === 'north';
-  const { c, g, bc, bg } = plaster(W, H, seed, tone[surface] ?? [236, 234, 228], { mottle: 10, trowel: 5, grain: 4, blotch: calm ? 5 : 8, tooth: calm ? 4 : 7.5 }, { detail: scanDetail('plaster'), ...(surface === 'east' || surface === 'west' ? SCAN_AMP.sideWall : SCAN_AMP.wall) });
+  const calm = surface === WALL_ROLE.calm;
+  const { c, g, bc, bg } = plaster(t, W, H, seed, tone[surface] ?? [236, 234, 228], { mottle: 10, trowel: 5, grain: 4, blotch: calm ? 5 : 8, tooth: calm ? 4 : 7.5 }, { detail: scanDetail('plaster'), ...(isSideWall(surface) ? SCAN_AMP.sideWall : SCAN_AMP.wall) });
   const r = new Rng(seed + 11);
   const floorY = H;
-  const mx = (u: number) => u * PX_PER_M;
-  const my = (v: number) => H - v * PX_PER_M;
+  const mx = (u: number) => u * t.ppm;
+  const my = (v: number) => H - v * t.ppm;
 
-  // The history each wall carries.
-  if (surface === 'north') {
+  // The history each wall carries: authored wall by wall, so a four-way choice rather than a property.
+  if (surface === WALL_ROLE.behindChair) {
     // Behind the chair, in the space that is kept empty: one word, rubbed out (the other person).
     // An apology was rubbed out too, lower and off to the side, not where the light gathers.
-    erasedWriting(g, 'you', mx(3.35), my(1.35), 36, r, 1.1);
-    erasedWriting(g, "I'm sorry", mx(4.4), my(1.0), 44, r, 0.9);
-    removedSheet(g, mx(5.2), my(2.15), 0.42 * PX_PER_M, 0.3 * PX_PER_M, r);
-    graphiteDust(g, mx(1.0), mx(3.2), my(0.115), r);
+    erasedWriting(t, g, 'you', mx(3.35), my(1.35), 36, r, 1.1);
+    erasedWriting(t, g, "I'm sorry", mx(4.4), my(1.0), 44, r, 0.9);
+    removedSheet(t, g, mx(5.2), my(2.15), 0.42 * t.ppm, 0.3 * t.ppm, r);
+    graphiteDust(t, g, mx(1.0), mx(3.2), my(0.115), r);
   } else if (surface === 'east') {
-    heightMarks(g, mx(0.35), floorY, r);
-    removedSheet(g, mx(3.6), my(2.4), 0.3 * PX_PER_M, 0.22 * PX_PER_M, r);
-    erasedWriting(g, 'always', mx(4.9), my(0.7), 30, r, 0.8);
+    heightMarks(t, g, mx(0.35), floorY, r);
+    removedSheet(t, g, mx(3.6), my(2.4), 0.3 * t.ppm, 0.22 * t.ppm, r);
+    erasedWriting(t, g, 'always', mx(4.9), my(0.7), 30, r, 0.8);
   } else if (surface === 'west') {
     // Not every rubbed-out thing was a confession: a list, once.
-    erasedWriting(g, 'milk', mx(1.0), my(1.27), 30, r, 0.9);
-    erasedWriting(g, 'bread', mx(1.02), my(1.15), 30, r, 0.9);
-    erasedWriting(g, 'batteries', mx(0.99), my(1.03), 30, r, 0.8);
+    erasedWriting(t, g, 'milk', mx(1.0), my(1.27), 30, r, 0.9);
+    erasedWriting(t, g, 'bread', mx(1.02), my(1.15), 30, r, 0.9);
+    erasedWriting(t, g, 'batteries', mx(0.99), my(1.03), 30, r, 0.8);
     // A word scribbled out hard, then erased anyway.
     g.save();
     g.globalAlpha = 0.06 * MARKS;
     g.strokeStyle = 'rgb(60,60,66)';
-    g.filter = `blur(${K}px)`;
-    g.lineWidth = 2 * K;
+    g.filter = `blur(${t.k}px)`;
+    g.lineWidth = 2 * t.k;
     g.beginPath();
     const sx = mx(2.4), sy = my(0.62);
     g.moveTo(sx, sy);
-    for (let k = 0; k < 14; k++) g.lineTo(sx + (k * 5 + r.range(-2, 2)) * K, sy + ((k % 2 ? -9 : 9) + r.range(-2, 2)) * K);
+    for (let k = 0; k < 14; k++) g.lineTo(sx + (k * 5 + r.range(-2, 2)) * t.k, sy + ((k % 2 ? -9 : 9) + r.range(-2, 2)) * t.k);
     g.stroke();
     g.restore();
     g.filter = 'none';
   } else if (surface === 'south') {
-    tally(g, mx(5.55), my(0.42), 6, r);
-    removedSheet(g, mx(3.2), my(1.55), 0.55 * PX_PER_M, 0.4 * PX_PER_M, r);
+    tally(t, g, mx(5.55), my(0.42), 6, r);
+    removedSheet(t, g, mx(3.2), my(1.55), 0.55 * t.ppm, 0.4 * t.ppm, r);
   }
 
-  baseScuffs(g, W, H, r, 22);
-  graphiteSmudges(g, W, H, r, 3);
-  fineDetail(g, bg, W, H, new Rng(seed + 31), { specks: 18, pits: 6, scratches: 0.8 });
+  baseScuffs(t, g, W, H, r, 22);
+  graphiteSmudges(t, g, W, H, r, 3);
+  fineDetail(t, g, bg, W, H, new Rng(seed + 31), { specks: 18, pits: 6, scratches: 0.8 });
   // Little at the top: the box keeps a crisp, lit edge under its darker lid.
-  corners(g, W, H, { bottom: surface === 'north' ? 0.3 : 0.55, top: 0.12, left: 0.45, right: 0.45 });
+  corners(t, g, W, H, { bottom: calm ? 0.3 : 0.55, top: 0.12, left: 0.45, right: 0.45 });
   const map = toTex(c, true);
   const bump = toTex(bc, false);
   return { map, bump };
@@ -482,32 +142,33 @@ export function wallMaps(surface: Surface, seed: number, wM: number, hM: number)
  * in; scuffed in arcs around the chair; and, a little to one side, the faint marks of
  * where the chair used to stand.
  */
-export function floorMaps(seed: number, wM: number, dM: number): SurfaceMaps {
-  const W = Math.round(wM * PX_PER_M), H = Math.round(dM * PX_PER_M);
+export function floorMaps(seed: number, wM: number, dM: number, quality: Quality): SurfaceMaps {
+  const t = texelsFor(quality);
+  const W = Math.round(wM * t.ppm), H = Math.round(dM * t.ppm);
   // Sealed concrete, a shade darker than the walls: cloudy, flecked, with a soft sheen where
   // the light falls (so the pool reads as light on a surface, not a paler floor).
-  const { c, g, bc, bg } = plaster(W, H, seed, [190, 186, 181], { mottle: 15, trowel: 2, grain: 5, blotch: 18 }, { detail: scanDetail('concrete'), ...SCAN_AMP.floor });
+  const { c, g, bc, bg } = plaster(t, W, H, seed, [190, 186, 181], { mottle: 15, trowel: 2, grain: 5, blotch: 18 }, { detail: scanDetail('concrete'), ...SCAN_AMP.floor });
   // Aggregate in the concrete, pits, the fine scratches of things set down and dragged.
-  fineDetail(g, bg, W, H, new Rng(seed + 31), { specks: 30, pits: 3, scratches: 0.5, light: 0.5 });
+  fineDetail(t, g, bg, W, H, new Rng(seed + 31), { specks: 30, pits: 3, scratches: 0.5, light: 0.5 });
   const r = new Rng(seed + 5);
   const n = makeNoise(seed + 9);
   const cx = W / 2, cy = H / 2;
 
   // Roughness: matte, with a smoother path worn from the south side to the chair.
-  const [rc, rg] = canvas(W, H);
+  const [rc, rg] = canvas(W, H, true);
   const rimg = rg.createImageData(W, H);
   const roughScan = scanDetail('concrete-rough');
   for (let y = 0; y < H; y++)
     for (let x = 0; x < W; x++) {
-      const along = y > cy ? 1 : Math.max(0, 1 - (cy - y) / (0.4 * PX_PER_M));
-      const across = Math.exp(-(((x - cx) / (0.55 * PX_PER_M)) ** 2));
-      const path = along * across * (0.6 + 0.4 * n.fbm(x / (60 * K), y / (60 * K), 2));
-      const ring = Math.exp(-(((Math.hypot(x - cx, y - cy) - 0.42 * PX_PER_M) / (0.22 * PX_PER_M)) ** 2));
+      const along = y > cy ? 1 : Math.max(0, 1 - (cy - y) / (0.4 * t.ppm));
+      const across = Math.exp(-(((x - cx) / (0.55 * t.ppm)) ** 2));
+      const path = along * across * (0.6 + 0.4 * n.fbm(x / (60 * t.k), y / (60 * t.k), 2));
+      const ring = Math.exp(-(((Math.hypot(x - cx, y - cy) - 0.42 * t.ppm) / (0.22 * t.ppm)) ** 2));
       // Polished where people stand by the chair: a soft sheen there catches the light.
-      const near = Math.exp(-((Math.hypot(x - cx, y - cy) / (0.75 * PX_PER_M)) ** 2));
+      const near = Math.exp(-((Math.hypot(x - cx, y - cy) / (0.75 * t.ppm)) ** 2));
       // The concrete's own: where it was trowelled smoother or left open (the scan, gently).
-      const sr = roughScan ? 0.035 * sampleDetail(roughScan, x / PX_PER_M, y / PX_PER_M) : 0;
-      const rough = 0.74 - 0.12 * path - 0.14 * ring - 0.14 * near + (n.fbm(x / (30 * K), y / (30 * K), 2) - 0.5) * 0.1 + sr;
+      const sr = roughScan ? 0.035 * sampleDetail(roughScan, x / t.ppm, y / t.ppm) : 0;
+      const rough = 0.74 - 0.12 * path - 0.14 * ring - 0.14 * near + (n.fbm(x / (30 * t.k), y / (30 * t.k), 2) - 0.5) * 0.1 + sr;
       const i = (y * W + x) * 4;
       rimg.data[i] = rimg.data[i + 1] = rimg.data[i + 2] = Math.round(rough * 255);
       rimg.data[i + 3] = 255;
@@ -520,7 +181,7 @@ export function floorMaps(seed: number, wM: number, dM: number): SurfaceMaps {
   path.addColorStop(1, 'rgba(255,255,250,0.0)');
   g.save();
   g.beginPath();
-  g.ellipse(cx, (cy + H) / 2, 0.5 * PX_PER_M, (H - cy) / 2, 0, 0, Math.PI * 2);
+  g.ellipse(cx, (cy + H) / 2, 0.5 * t.ppm, (H - cy) / 2, 0, 0, Math.PI * 2);
   g.clip();
   g.fillStyle = path;
   g.fillRect(0, 0, W, H);
@@ -528,44 +189,44 @@ export function floorMaps(seed: number, wM: number, dM: number): SurfaceMaps {
 
   // Arcs where the chair has been dragged and turned, again and again.
   for (let i = 0; i < 70; i++) {
-    const a = r.range(0, Math.PI * 2), d = r.range(0.2, 0.55) * PX_PER_M;
+    const a = r.range(0, Math.PI * 2), d = r.range(0.2, 0.55) * t.ppm;
     g.strokeStyle = `rgba(96,90,82,${r.range(0.025, 0.07)})`;
-    g.lineWidth = r.range(0.6, 1.6) * K;
+    g.lineWidth = r.range(0.6, 1.6) * t.k;
     g.beginPath();
     g.arc(cx, cy, d, a, a + r.range(0.04, 0.22));
     g.stroke();
   }
   // Where it used to stand: four small pressed marks and a cleaner square, a little to the side.
-  const ox = cx + 0.34 * PX_PER_M, oy = cy - 0.22 * PX_PER_M;
+  const ox = cx + 0.34 * t.ppm, oy = cy - 0.22 * t.ppm;
   g.save();
   g.translate(ox, oy);
   g.rotate(-0.12);
   g.fillStyle = 'rgba(255,255,250,0.035)';
   // (At the chair's size in the room: Chair.CHAIR_SCALE.)
-  g.fillRect(-0.22 * PX_PER_M, -0.2 * PX_PER_M, 0.44 * PX_PER_M, 0.4 * PX_PER_M);
+  g.fillRect(-0.22 * t.ppm, -0.2 * t.ppm, 0.44 * t.ppm, 0.4 * t.ppm);
   for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
     g.fillStyle = 'rgba(88,82,74,0.09)';
     g.beginPath();
-    g.arc(sx * 0.2 * PX_PER_M, sy * 0.18 * PX_PER_M, 3.2 * K, 0, Math.PI * 2);
+    g.arc(sx * 0.2 * t.ppm, sy * 0.18 * t.ppm, 3.2 * t.k, 0, Math.PI * 2);
     g.fill();
   }
   g.restore();
   // Heel marks, sparse, mostly along the path.
   for (let i = 0; i < 26; i++) {
-    const y = r.range(cy, H - 10 * K), x = cx + r.range(-0.6, 0.6) * PX_PER_M;
+    const y = r.range(cy, H - 10 * t.k), x = cx + r.range(-0.6, 0.6) * t.ppm;
     g.save();
     g.translate(x, y);
     g.rotate(r.range(0, Math.PI));
     g.fillStyle = `rgba(70,66,62,${r.range(0.03, 0.08)})`;
-    g.fillRect(0, 0, r.range(4, 16) * K, r.range(0.8, 1.8) * K);
+    g.fillRect(0, 0, r.range(4, 16) * t.k, r.range(0.8, 1.8) * t.k);
     g.restore();
   }
   // The floor darkens away from the chair: the concrete nearest it has been walked to, swept,
   // sat beside; further out it is duller and greyer (and the pool of light reads as a pool).
   // Neutral grey, not brown (falling light keeps its hue; dirt doesn't), centred a little toward
   // the panel, as the light is.
-  const lcy = cy - 0.4 * PX_PER_M;
-  const vg = g.createRadialGradient(cx, lcy, 0.8 * PX_PER_M, cx, lcy, 3.6 * PX_PER_M);
+  const lcy = cy - 0.4 * t.ppm;
+  const vg = g.createRadialGradient(cx, lcy, 0.8 * t.ppm, cx, lcy, 3.6 * t.ppm);
   vg.addColorStop(0, 'rgba(0,0,0,0)');
   vg.addColorStop(0.45, 'rgba(118,118,118,0.12)');
   vg.addColorStop(1, 'rgba(118,118,118,0.22)');
@@ -573,26 +234,49 @@ export function floorMaps(seed: number, wM: number, dM: number): SurfaceMaps {
   g.fillRect(0, 0, W, H);
   // And toward where the visitor comes in, the floor nearer them is in the dim: they look into
   // the light, not stand in it.
-  const front = g.createLinearGradient(0, cy + 0.2 * PX_PER_M, 0, H);
+  const front = g.createLinearGradient(0, cy + 0.2 * t.ppm, 0, H);
   front.addColorStop(0, 'rgba(110,110,110,0)');
   front.addColorStop(1, 'rgba(110,110,110,0.5)');
   g.fillStyle = front;
   g.fillRect(0, 0, W, H);
-  corners(g, W, H, { top: 0.45, bottom: 0.45, left: 0.45, right: 0.45 }, '96,92,86');
+  corners(t, g, W, H, { top: 0.45, bottom: 0.45, left: 0.45, right: 0.45 }, '96,92,86');
 
   return { map: toTex(c, true), bump: toTex(bc, false), rough: toTex(rc, false) };
 }
 
 /** The ceiling: a slightly cooler white, nearly featureless, with the faintest board joints. */
-export function ceilingMaps(seed: number, wM: number, dM: number): SurfaceMaps {
-  const W = Math.round(wM * PX_PER_M), H = Math.round(dM * PX_PER_M);
-  const { c, g, bc } = plaster(W, H, seed, [229, 232, 235], { mottle: 4, trowel: 1.5, grain: 2 }, { detail: scanDetail('plaster'), ...SCAN_AMP.ceiling });
-  for (let x = 1.2 * PX_PER_M; x < W; x += 1.2 * PX_PER_M) {
+export function ceilingMaps(seed: number, wM: number, dM: number, quality: Quality): SurfaceMaps {
+  const t = texelsFor(quality);
+  const W = Math.round(wM * t.ppm), H = Math.round(dM * t.ppm);
+  const { c, g, bc } = plaster(t, W, H, seed, [229, 232, 235], { mottle: 4, trowel: 1.5, grain: 2 }, { detail: scanDetail('plaster'), ...SCAN_AMP.ceiling });
+  for (let x = 1.2 * t.ppm; x < W; x += 1.2 * t.ppm) {
     g.fillStyle = 'rgba(120,124,130,0.06)';
-    g.fillRect(x, 0, Math.max(1, K), H);
+    g.fillRect(x, 0, Math.max(1, t.k), H);
   }
   // (No painted spill round the skylight: the ceiling is the room's dark lid, as in the reference;
   // its bounce is Room's emissive map, on the look.)
-  corners(g, W, H, { top: 0.4, bottom: 0.4, left: 0.4, right: 0.4 }, '104,108,114');
+  corners(t, g, W, H, { top: 0.4, bottom: 0.4, left: 0.4, right: 0.4 }, '104,108,114');
   return { map: toTex(c, true), bump: toTex(bc, false) };
+}
+
+/** The glow is a soft gradient: a coarse map is enough. */
+const GLOW_PX_PER_M = 40;
+
+/**
+ * The ceiling's bounce, as a map: broad, centred between the skylight and the wall behind the
+ * chair (the light that comes back off the floor and that wall), not a halo round the opening.
+ */
+export function ceilingGlowMap(wM: number, dM: number, panel: { x: number; z: number }): THREE.CanvasTexture {
+  const ppm = GLOW_PX_PER_M;
+  const [c, g] = canvas(Math.round(wM * ppm), Math.round(dM * ppm));
+  // Canvas rows run toward -z in the room (the ceiling is laid face down).
+  const px = c.width / 2 + panel.x * ppm, pz = c.height / 2 - (panel.z - 0.9) * ppm;
+  const grd = g.createRadialGradient(px, pz, 0.2 * ppm, px, pz, 3.6 * ppm);
+  grd.addColorStop(0, '#d8d8d8');
+  grd.addColorStop(0.45, '#8a8a8a');
+  grd.addColorStop(1, '#2a2a2a');
+  g.fillStyle = grd;
+  g.fillRect(0, 0, c.width, c.height);
+  // Linear values (a factor, not a colour).
+  return new THREE.CanvasTexture(c);
 }

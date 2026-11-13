@@ -23,6 +23,8 @@ export interface NormalTile {
   rgba: Uint8ClampedArray;
 }
 
+import { canvas } from './canvas';
+
 const BASE = './textures/scan/';
 const SIZES = { plaster: 1.0, concrete: 3.0, 'wood-grain': 0.6, 'wood-seat': 0.55 } as const;
 type Name = keyof typeof SIZES;
@@ -37,10 +39,7 @@ async function pixels(url: string): Promise<ImageData | null> {
     const img = new Image();
     img.src = url;
     await img.decode();
-    const c = document.createElement('canvas');
-    c.width = img.naturalWidth;
-    c.height = img.naturalHeight;
-    const g = c.getContext('2d', { willReadFrequently: true })!;
+    const [c, g] = canvas(img.naturalWidth, img.naturalHeight, true);
     g.drawImage(img, 0, 0);
     return g.getImageData(0, 0, c.width, c.height);
   } catch {

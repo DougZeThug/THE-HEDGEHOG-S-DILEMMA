@@ -4,7 +4,10 @@ import { ROOM } from '../core/room';
 import { PANEL } from './Room';
 import type { Environment } from '../core/environment';
 import { approach } from '../core/math';
+import { shadowMapSize, type Quality } from './quality';
 import { lookFor, neutralFor, type Look } from './Style';
+
+export { shadowMapSize };
 
 /** One frosted overhead source does nearly all the work; the fill is only bounce. */
 /** The lights were set for a 3.1 m ceiling; from higher they fall off with distance. */
@@ -15,7 +18,6 @@ const HEMI = 1.15;
 
 /** VSM blur radius, in texels of a 512 map (the radius scales with the map, so the penumbra doesn't). */
 const SHADOW_RADIUS = 5;
-export const shadowMapSize = (quality: 'low' | 'medium' | 'high') => (quality === 'low' ? 512 : 1024);
 
 /** What may change before the shadow is redrawn: key and target (m), cone (rad), chair (m, rad), blur, map. */
 const SIG_TOL = [0.003, 0.003, 0.003, 0.003, 0.003, 0.003, 0.002, 0.002, 0.003, 0.01, 0.5];
@@ -113,7 +115,7 @@ export class Lighting {
   /** How far the light has come to the visitor now (0..1). */
   leanNow = 0;
 
-  constructor(quality: 'low' | 'medium' | 'high') {
+  constructor(quality: Quality) {
     RectAreaLightUniformsLib.init();
     this.area = new THREE.RectAreaLight(0xfff8ee, AREA, 0.9, 0.9);
     this.area.position.set(PANEL.x, ROOM.height - 0.02, PANEL.z);

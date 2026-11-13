@@ -2,17 +2,10 @@ import * as THREE from 'three';
 import { Rng, hashString } from '../core/rng';
 import type { Hand, Size } from '../content/types';
 import { handTiming, wordRanges } from './handwriting';
+import { canvas } from './canvas';
 import { bakeStrokes, type CharBox } from './strokes';
 
 /** Procedural canvases: plaster, paper, painted floor, wood grain, handwriting. */
-
-function canvas(w: number, h: number, readBack = false): [HTMLCanvasElement, CanvasRenderingContext2D] {
-  const c = document.createElement('canvas');
-  c.width = w;
-  c.height = h;
-  // Canvases read back on the CPU stay on the CPU: no GPU readback stall.
-  return [c, c.getContext('2d', readBack ? { willReadFrequently: true } : undefined)!];
-}
 
 let grainCache: HTMLCanvasElement | null = null;
 /** Fine, irregular grain used for paper fibres and pencil tooth. */
@@ -104,15 +97,8 @@ export const SIZE_EM: Record<Size, number> = { xs: 0.06, s: 0.095, m: 0.14, l: 0
 /** Maximum line width before wrapping (metres). */
 const WRAP: Record<Size, number> = { xs: 1.1, s: 1.6, m: 2.1, l: 2.6, xl: 3.0 };
 
-export const FONTS_TO_LOAD = [
-  '400 32px "Reenie Beanie"',
-  '400 32px "Caveat"',
-  '500 32px "Caveat"',
-  '600 32px "Caveat"',
-  '700 32px "Caveat"',
-  '600 32px "Cormorant Garamond"',
-  '400 32px "Nothing You Could Do"',
-];
+/** Every face the hands use, as `document.fonts.load` strings: all must be ready before anything is baked. */
+export const FONTS_TO_LOAD = [...new Set(Object.values(HANDS).map((h) => `${h.weight} 32px "${h.font}"`))];
 
 let measureCtx: CanvasRenderingContext2D | null = null;
 function mctx() {
