@@ -53,7 +53,7 @@ interface VariantVoices {
 }
 
 interface MemoryVoicesDef {
-  /** The painted memory's id (src/memory/defs.ts). */
+  /** The painted memory's id (src/memory/memories/). */
   id: string;
   speakers: Record<string, Speaker>;
   lines: VLine[];

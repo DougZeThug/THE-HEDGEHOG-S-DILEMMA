@@ -30,7 +30,7 @@ is "THE HEDGEHOG'S DILEMMA, MEMORY II — ALMOST" (2026-10-20).
 | QA sheets | `scripts/almost/posesheet.py`, `strips.py`, `tile.py` | the pose sheet (the story's ten key poses, captioned); motion strips (chosen frames of a film side by side) |
 | Sound | `scripts/generate-almost.mjs`, `scripts/almost/sound.py` | ElevenLabs takes of the small material sounds; the fridge and the room made in code; all laid on the exposure sheet's frames, measured (A-weighted, loudness, the clock against the beats) |
 | The way through the wall | `scripts/almost/masks.py`, `scripts/almost/emergence.py` | the first photograph in wool fibres, when each fibre grows and when the colour comes; the wall's poster; the art manifest |
-| In the room | `src/memory/living/FilmScene.ts`, `src/memory/defs.ts` (`ALMOST`), `src/content/memories.ts` | the film drawn into the living memory's render target, slaved to the memory's clock; its timeline, cues and lines |
+| In the room | `src/memory/living/FilmScene.ts`, `src/memory/memories/almost.ts` (`ALMOST`), `src/memory/beats/almost.ts`, `src/content/memories.ts` | the film drawn into the living memory's render target, slaved to the memory's clock; its timeline, cues and lines |
 
 ## Rebuilding it
 
