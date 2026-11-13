@@ -5,6 +5,7 @@ import type { Memory } from '../Memory';
 import type { FieldValues } from '../EmotionalField';
 import type { Cue, VoicePosition } from '../cues';
 import type { VisibleState } from '../Director';
+import { sitRule } from '../rules';
 
 /**
  * Situations: authored, multi-beat episodes that bind concrete things (a wall, a phrase,
@@ -123,7 +124,7 @@ export class SituationRunner {
   }
 
   private ctx(h: SituationHost, a: Active): SituationContext {
-    const rule = `sit:${a.def.id}`;
+    const rule = sitRule(a.def.id);
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this;
     return {

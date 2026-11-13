@@ -1,4 +1,4 @@
-import type { Dimension, DimVector, Hand } from './types';
+import type { DimVector, Hand } from './types';
 
 /**
  * Authored re-contextualisations. Late in a visit, a phrase the visitor has already read
@@ -44,6 +44,8 @@ export const VOICE_FRAGMENTS: VoiceFragment[] = [
   { id: 'vf-come-here', caption: 'Come here.', kind: 'speech', dims: { affection: 0.6, desire: 0.5, fear: 0.2 } },
   { id: 'vf-shh', caption: 'shh. it’s alright.', kind: 'speech', dims: { forgiveness: 0.5, affection: 0.5, relief: 0.5 } },
 ];
+
+export const VOICE_FRAGMENT_BY_ID: ReadonlyMap<string, VoiceFragment> = new Map(VOICE_FRAGMENTS.map((f) => [f.id, f]));
 
 /**
  * Lexicon used by the local interpreter: stems → dimensions. Deliberately not a
@@ -185,7 +187,3 @@ export const THRESHOLD_LINES = [
   'Someone has been here.',
 ];
 
-export const DIMENSION_LIST: Dimension[] = [
-  'isolation', 'connection', 'fear', 'happiness', 'grief', 'shame', 'nostalgia', 'affection',
-  'anger', 'uncertainty', 'forgiveness', 'desire', 'relief', 'self', 'misunderstanding', 'contradiction',
-];
