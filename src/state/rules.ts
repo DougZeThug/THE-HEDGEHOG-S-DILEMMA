@@ -41,6 +41,10 @@ export const isContribution = (rule: string): boolean => rule.startsWith('contri
 /** A gesture decided in a meeting or from a contribution: counted when decided, so it waits rather than being lost. */
 export const isMeetingOrContribution = (rule: string): boolean => isEncounter(rule) || isContribution(rule);
 /** The stillness ladder's cues (`still-1`, `still-voice`, ...). */
+/** The room has begun letting the visitor go (the silence that opens it), or has handed them back. */
+export const isLeavingBegun = (q: { rule: string; cue: { type: string } }): boolean => q.rule === RULE.leaving && q.cue.type === 'silence';
+export const isLeavingKept = (rule: string): boolean => rule === RULE.leavingKept;
+
 export const isStillness = (rule: string): boolean => rule.startsWith('still');
 
 /**

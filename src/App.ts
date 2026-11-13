@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { parseLook, LOOKS, type PresetLookName } from './world/Style';
 import { ROOM_LEVELS } from './state/OpeningScore';
-import { RULE } from './state/rules';
+import { isLeavingBegun, isLeavingKept } from './state/rules';
 import type { VisitorInput } from './state/VisitorModel';
 import { loadPrefs, readVisits } from './ui/prefs';
 import { Captions } from './ui/Captions';
@@ -248,8 +248,8 @@ export class App {
       for (const q of cues) {
         parts.cues.apply(q.cue);
         // The way out is told to a screen reader as it is seen: the room going, and what keeps or takes it.
-        if (q.rule === RULE.leaving && q.cue.type === 'silence') c.announce('The room begins to let you go. Walk on to leave; turn back, or wait, to stay.');
-        else if (q.rule === RULE.leavingKept) c.announce('The room comes back.');
+        if (isLeavingBegun(q)) c.announce('The room begins to let you go. Walk on to leave; turn back, or wait, to stay.');
+        else if (isLeavingKept(q.rule)) c.announce('The room comes back.');
       }
     }
 
