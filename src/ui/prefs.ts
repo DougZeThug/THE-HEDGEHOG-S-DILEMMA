@@ -13,8 +13,22 @@ export interface Prefs {
   quality: 'low' | 'medium' | 'high';
 }
 
-const KEY = 'hh.prefs.v1';
-const VISITS = 'hh.visits';
+/**
+ * Every key the room writes to localStorage. `forgetVisits` clears from this one table (preferences
+ * aside), so a key added here is forgotten with the rest unless it is marked as a preference.
+ */
+export const STORAGE_KEYS = {
+  prefs: 'hh.prefs.v1',
+  visits: 'hh.visits',
+  memoryCounts: 'hh.memories',
+  trace: 'hh.trace.v1',
+  heart: 'hh.heart.v1',
+  openingSeen: 'hh.opening-seen',
+  touchHint: 'hh.touch-hint',
+} as const;
+
+/** Every key except the preferences: all of it is about having been visited, and "forget me" clears it. */
+const VISIT_KEYS = Object.values(STORAGE_KEYS).filter((k) => k !== STORAGE_KEYS.prefs);
 
 function safeGet(k: string): string | null {
   try {
@@ -40,7 +54,7 @@ export function defaultPrefs(): Prefs {
 
 export function loadPrefs(): Prefs {
   const d = defaultPrefs();
-  const raw = safeGet(KEY);
+  const raw = safeGet(STORAGE_KEYS.prefs);
   if (!raw) return d;
   try {
     const p = JSON.parse(raw) as Partial<Prefs>;
@@ -65,30 +79,34 @@ export function loadPrefs(): Prefs {
 }
 
 export function savePrefs(p: Prefs) {
-  safeSet(KEY, JSON.stringify(p));
+  safeSet(STORAGE_KEYS.prefs, JSON.stringify(p));
 }
 
 export function readVisits(): number {
-  const n = Number(safeGet(VISITS));
+  const n = Number(safeGet(STORAGE_KEYS.visits));
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
 }
 export function writeVisits(n: number) {
-  safeSet(VISITS, String(n));
+  safeSet(STORAGE_KEYS.visits, String(n));
 }
-const MEMORY_COUNTS = 'hh.memories';
 /** How many times each living memory has been seen, across visits (its revisit variant). */
 export function readMemoryCounts(): Record<string, number> {
   try {
-    const v = JSON.parse(safeGet(MEMORY_COUNTS) ?? '{}');
+    const v = JSON.parse(safeGet(STORAGE_KEYS.memoryCounts) ?? '{}');
     return v && typeof v === 'object' ? v : {};
   } catch {
     return {};
   }
 }
 export function writeMemoryCounts(c: Record<string, number>) {
-  safeSet(MEMORY_COUNTS, JSON.stringify(c));
+  safeSet(STORAGE_KEYS.memoryCounts, JSON.stringify(c));
 }
-const TRACE = 'hh.trace.v1';
+/** One more time `id` has been seen, remembered for the next visit. */
+export function countMemory(id: string) {
+  const counts = readMemoryCounts();
+  counts[id] = (counts[id] ?? 0) + 1;
+  writeMemoryCounts(counts);
+}
 /**
  * How the last visit ended, as one word the room can answer on a return (docs/reviews/
  * 2026-10-emotional-depth.md): nothing about where anyone stood, what they wrote or what they did,
@@ -97,17 +115,16 @@ const TRACE = 'hh.trace.v1';
 export type Leaving = 'close';
 export function readTrace(): Leaving | null {
   try {
-    const v = JSON.parse(safeGet(TRACE) ?? 'null');
+    const v = JSON.parse(safeGet(STORAGE_KEYS.trace) ?? 'null');
     return v && v.v === 1 && v.leaving === 'close' ? v.leaving : null;
   } catch {
     return null;
   }
 }
 export function writeTrace(leaving: Leaving | null) {
-  safeSet(TRACE, leaving ? JSON.stringify({ v: 1, leaving }) : null);
+  safeSet(STORAGE_KEYS.trace, leaving ? JSON.stringify({ v: 1, leaving }) : null);
 }
 
-const HEART = 'hh.heart.v1';
 /**
  * What the last visit's heart left beside the room's first line (a phrase id; docs/reviews/
  * 2026-11-emotional-arc.md): one of the room's own lines, never anything the visitor did or wrote.
@@ -115,31 +132,33 @@ const HEART = 'hh.heart.v1';
  */
 export function readHeartAnswer(): string | null {
   try {
-    const v = JSON.parse(safeGet(HEART) ?? 'null');
+    const v = JSON.parse(safeGet(STORAGE_KEYS.heart) ?? 'null');
     return v && v.v === 1 && typeof v.answer === 'string' && /^[a-z-]{1,40}$/.test(v.answer) ? v.answer : null;
   } catch {
     return null;
   }
 }
 export function writeHeartAnswer(answer: string) {
-  safeSet(HEART, JSON.stringify({ v: 1, answer }));
+  safeSet(STORAGE_KEYS.heart, JSON.stringify({ v: 1, answer }));
 }
 
 /** Everything the room remembers about having been visited (preferences aside). */
 export function forgetVisits() {
-  safeSet(VISITS, null);
-  safeSet(MEMORY_COUNTS, null);
-  safeSet('hh.opening-seen', null);
-  safeSet(TRACE, null);
-  safeSet(HEART, null);
-  safeSet('hh.touch-hint', null);
+  for (const k of VISIT_KEYS) safeSet(k, null);
 }
 
-const OPENING_SEEN = 'hh.opening-seen';
 /** The opening has been seen to its end before (a visit abandoned in the dark doesn't count). */
 export function readOpeningSeen(): boolean {
-  return safeGet(OPENING_SEEN) === '1';
+  return safeGet(STORAGE_KEYS.openingSeen) === '1';
 }
 export function writeOpeningSeen() {
-  safeSet(OPENING_SEEN, '1');
+  safeSet(STORAGE_KEYS.openingSeen, '1');
+}
+
+/** The one-time hint that words and the chair can be touched has been shown on this device. */
+export function readTouchHintSeen(): boolean {
+  return safeGet(STORAGE_KEYS.touchHint) !== null;
+}
+export function writeTouchHintSeen() {
+  safeSet(STORAGE_KEYS.touchHint, '1');
 }

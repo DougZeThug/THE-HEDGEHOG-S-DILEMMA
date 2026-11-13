@@ -10,6 +10,14 @@ export const GESTURES = ['writeOnWall', 'quiet', 'revealRelated', 'distantRecoll
 /** What the room may do with a visitor's words (not an encounter's `Gesture`, src/content/encounters.ts). */
 export type ContributionGesture = (typeof GESTURES)[number];
 
+/**
+ * The longest a contribution may be. index.html's `#contribute-input` carries the same number as its
+ * `maxlength`: change both together (the field stops typing there; the App trims to it all the same).
+ */
+export const MAX_CONTRIBUTION = 140;
+/** What the interpreter reads of one: twice what the field admits, so a longer text from elsewhere still reads whole. */
+export const MAX_INTERPRETED = MAX_CONTRIBUTION * 2;
+
 export interface Interpretation {
   dims: DimVector;
   related: string[];

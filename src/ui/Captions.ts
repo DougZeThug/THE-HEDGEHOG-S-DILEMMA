@@ -1,3 +1,12 @@
+/**
+ * What a caption is for, which decides the least time it stays: a person's words, a sound (a door,
+ * music), or the brief [rubbed out] of a word erased from the air.
+ */
+export type CaptionKind = 'speech' | 'sound' | 'rubbedOut';
+
+/** The shortest time (seconds) each kind of caption is held, however short the sound it names. */
+const FLOOR: Record<CaptionKind, number> = { speech: 1.4, sound: 1.6, rubbedOut: 1.4 };
+
 /** Quiet captions for what is heard. One at a time. */
 export class Captions {
   private _enabled = true;
@@ -49,6 +58,14 @@ export class Captions {
       setTimeout(() => s.remove(), 1600);
     }, hold);
     if (!sound) this.lastWords = { el: s, timer };
+  }
+
+  /**
+   * A caption of a kind, held at least that kind's floor. `beneath`: under words still on screen
+   * (a memory's or a vignette's), never over them.
+   */
+  say(kind: CaptionKind, text: string, seconds: number, side?: 'left' | 'right', beneath = false) {
+    this.show(text, Math.max(FLOOR[kind], seconds), kind !== 'speech', side, beneath);
   }
 
   private lastWords: { el: HTMLElement; timer: ReturnType<typeof setTimeout> } | null = null;

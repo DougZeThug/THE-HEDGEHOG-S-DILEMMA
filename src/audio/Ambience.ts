@@ -149,7 +149,7 @@ export class Ambience {
     this.nextChord = Math.max(this.nextChord, until + 35);
   }
 
-  update(_dt: number, env: Environment, t: number) {
+  update(env: Environment, t: number) {
     if (!this.started) return;
     const a = this.a;
     const f = this.fade;

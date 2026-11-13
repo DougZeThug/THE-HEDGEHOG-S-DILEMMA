@@ -18,7 +18,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { Rng } from '../src/core/rng';
 import { Director } from '../src/state/Director';
-import { LocalInterpreter } from '../src/interpret/LocalInterpreter';
+import { interpretLocally } from '../src/interpret/LocalInterpreter';
 import { CLASSES, adversaries, drawGenome, liveVisit, type Genome, type VisitSummary } from '../tests/playtest/visitors';
 
 // (REPORT=file also writes what is printed: the guard forbids redirecting a script's output.)
@@ -46,7 +46,7 @@ const gr = new Rng(20261106);
 for (const cls of CLASSES) for (let i = 0; i < N; i++) genomes.push(drawGenome(cls, gr, i));
 const advs = adversaries();
 
-const interpretation = await new LocalInterpreter().interpret('the kettle, and you not saying anything');
+const interpretation = interpretLocally('the kettle, and you not saying anything');
 
 const pct = (a: number, b: number) => (b ? `${Math.round((100 * a) / b)}%` : '—');
 const median = (xs: number[]) => (xs.length ? [...xs].sort((a, b) => a - b)[Math.floor((xs.length - 1) / 2)] : NaN);

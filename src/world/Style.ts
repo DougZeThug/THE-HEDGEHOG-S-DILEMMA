@@ -62,11 +62,14 @@ export const LOOKS = {
   reference: { fill: 0.85, area: 1.5, key: 1.1, cone: 0.6, glow: 0.6, warmth: 1, ceiling: 3.5, exposure: 1.15, vignette: 0.2, grain: 0.015, texture: 1.15, contact: 1, shadowSoft: 1.6, faint: 1.2, skyGlow: 0.7, contrast: 0.15, stains: 1, aim: 0.55, panel: 1.35, vigLow: 1 },
 } satisfies Record<string, Look>;
 
-export type LookName = 'original' | 'subtle' | 'reference';
-export const LOOK_NAMES: LookName[] = ['original', 'subtle', 'reference'];
+/** The looks the room is authored with. */
+export type PresetLookName = 'original' | 'subtle' | 'reference';
+/** A preset, or 'custom': a slider of the artist's panel (?tune) has moved one value off a preset. */
+export type LookName = PresetLookName | 'custom';
+export const LOOK_NAMES: PresetLookName[] = ['original', 'subtle', 'reference'];
 
 /** A named look: subtle is halfway. */
-export function lookFor(name: LookName): Look {
+export function lookFor(name: PresetLookName): Look {
   const t = name === 'original' ? 0 : name === 'subtle' ? 0.5 : 1;
   const a = LOOKS.original, b = LOOKS.reference;
   const out = {} as Look;
@@ -74,7 +77,7 @@ export function lookFor(name: LookName): Look {
   return out;
 }
 
-export function parseLook(s: string | null): LookName {
+export function parseLook(s: string | null): PresetLookName {
   return s === 'original' || s === 'subtle' || s === 'reference' ? s : 'reference';
 }
 
