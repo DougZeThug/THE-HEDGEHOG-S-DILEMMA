@@ -2,7 +2,7 @@
  * The woodland memory's recorded sound, laid along its own timeline offline: the generated takes
  * (audition/woodland/, scripts/generate-woodland.mjs) shaped into the stems the memory plays
  * (public/music/woodland-*.mp3), each at a level of its own (the cue sheet sets each one's place
- * in the mix, measured: src/memory/defs.ts). Decisions 71–74 of docs/reviews/2026-10-woodland.md.
+ * in the mix, measured: src/memory/memories/woodland.ts). Decisions 71–74 of docs/reviews/2026-10-woodland.md.
  *
  *   woodland-evening.mp3        from the cut (34.5 s): the evening cicadas already singing, far
  *                               (slices of the takes, wide, each swelling on its own; a forest's

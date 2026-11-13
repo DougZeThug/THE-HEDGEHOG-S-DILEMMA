@@ -1,6 +1,6 @@
 /**
  * The woodland memory's sound, mixed offline for the review film (tests/playtest/record-woodland.mjs):
- * its own cue sheet and markers (src/memory/defs.ts), its own renders (src/memory/synthWoods.ts) and
+ * its own cue sheet and markers (src/memory/memories/woodland.ts), its own renders (src/memory/synthWoods.ts) and
  * its recordings (`music/<file>` cues, from public/music/, decoded by ffmpeg), at their authored
  * levels; places approximated (a pan from where each sits, a little less for what is further off);
  * a cue's `stopAfter` or `until` cut where the room cuts it (40 ms, ending there). Raised as a

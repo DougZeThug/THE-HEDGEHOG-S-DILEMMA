@@ -24,7 +24,7 @@ type WoodsKind = (typeof WOODS_KINDS)[number];
 export const RATE = 24000;
 
 /** The afternoon's insects' timeline (seconds from the memory's start; the picture's, which these
- *  follow, are in defs.ts). */
+ *  follow, are in beats/woodland.ts). */
 export const TIMES = {
   /** They end on the cut: the render is the afternoon and nothing after it. */
   length: CUT,

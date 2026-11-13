@@ -9,7 +9,7 @@ try { ({ chromium } = require('playwright')); } catch { ({ chromium } = require(
 const ROOT = process.cwd();
 const css = readdirSync(`${ROOT}/dist/assets`).find((f) => f.endsWith('.css'));
 const OUT = process.argv[2] ?? 'test-output/review/woodland/sound/caps';
-// (In the order of tests/playtest/woodland-film.py's CAPS: the woodland's captions, src/memory/defs.ts.)
+// (In the order of tests/playtest/woodland-film.py's CAPS: the woodland's captions, src/memory/memories/woodland.ts.)
 // ([text, over the dark dusk]: there a sound's caption is light words, no pill: src/ui/Captions.ts `dim`.)
 const caps = process.argv[3] ? JSON.parse(process.argv[3]) : [['[cicadas, beyond the wall]', false], ['[cicadas in the trees; a piano]', false], ['[evening cicadas, far off; no piano]', true], ['[an evening cicada, far off]', false]];
 mkdirSync(OUT, { recursive: true });

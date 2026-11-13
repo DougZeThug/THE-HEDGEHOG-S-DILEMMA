@@ -28,7 +28,7 @@ import { DEFORMERS, livingMaterials } from '../src/world/living/materials';
 // rules it composes by, the way into it, and its ending: a cut, on one frame. Since 2026-10-24 the
 // afternoon plays a film (scripts/woodland-film/); the painted rig it played before is kept
 // (dormant), and what is tested of it here is the rig itself, on its own 53 s timeline (`RIG`).
-/** The painted rig's shots and cut (its own timeline: defs.ts TWO_SHOT). */
+/** The painted rig's shots and cut (its own timeline: living/woodlandRig.ts TWO_SHOT). */
 const RIG = { two: TWO_SHOT.from, wideAgain: TWO_SHOT.to, cut: 34.5 };
 /** The film's frame at a timeline's values (src/memory/living/FilmScene.ts `frameAt`). */
 const frameOf = (v: Record<string, number>) => Math.max(0, Math.min(WOODLAND_FILM.frames - 1, Math.floor((v['scene.film'] ?? 0) * WOODLAND_FILM.fps + 1e-6)));

@@ -28,7 +28,7 @@ ROOT = 'test-output/review/woodland'
 FPS = 12
 PRE = 5.0          # film seconds before the memory
 # (text, memory seconds it is shown at, seconds it holds before fading): MemoryAudio and Captions.
-# Each is shown as its sound is heard (the cue's marker, or its captionAt: src/memory/defs.ts).
+# Each is shown as its sound is heard (the cue's marker, or its captionAt: src/memory/memories/woodland.ts).
 CAPS = [(0, 0.0, 3.7), (1, 9.9, 3.7), (2, 36.0, 3.7), (3, 48.5, 5.2)]
 
 

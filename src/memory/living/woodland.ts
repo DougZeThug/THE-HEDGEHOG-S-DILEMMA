@@ -59,7 +59,7 @@ export interface LivingSpec {
    * it toward the picture's right, and across it, down); how far their breath goes close (of the
    * wide's); when it is on (memory s: from, to) and when they do something in it (memory s: after
    * giving way it never comes back within half a second of one). The times are the timeline's own
-   * (defs.ts TWO_SHOT).
+   * (woodlandRig.ts TWO_SHOT).
    */
   near?: {
     frames: { upTo: number; frame: [number, number, number]; holds: [number, number] }[];

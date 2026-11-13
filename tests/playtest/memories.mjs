@@ -31,25 +31,25 @@ const STAGES = {
   // The woodland (docs/reviews/2026-10-woodland.md): the artist's eight shots.
   woodland: VARIANT === 'empty'
     ? [['0-untouched', null], ['1-first-drawing', 2.6], ['2-developing', 5], ['3-active', 10], ['4-dissolving', 18], ['5-drawing-alone', 20.6]]
-    // (The afternoon is a film since 2026-10-24: src/memory/defs.ts WOODLAND_FILM.)
+    // (The afternoon is a film since 2026-10-24: src/memory/beats/woodland.ts WOODLAND_FILM.)
     : [['00-untouched', null], ['01-pencil', 2.5], ['02-pencil-more', 4.5], ['03-colour', 6.5], ['04-carried', 8.5], ['05-crossing', 9.6], ['06-wide', 12.3], ['07-two', 16.5], ['08-her-look', 21.9], ['09-wide-again', 27.0],
        // The cut (30.5 s): the last frame before it and the first after it, then the empty clearing.
        ['10-last-frame-before-cut', 30.5 - 1 / 48], ['11-first-frame-after-cut', 30.5 + 1 / 48], ['12-empty-dusk', 35.5], ['13-returning', 40.5], ['14-wall', 43.5], ['15-white-room', 46.5]],
   // Almost (docs/almost.md): the wool through the plaster, the colour, the way in, the film's
-  // beats (its first frame held until 10.3 s: src/memory/defs.ts FILM_BEATS), and the way back out
+  // beats (its first frame held until 10.3 s: src/memory/beats/almost.ts FILM_BEATS), and the way back out
   // (the colour into the wool at once, then the wool into the plaster).
   almost: [['00-untouched', null], ['01-fibres', 2.5], ['02-fibres-more', 4.5], ['03-colour', 6.3], ['04-carried', 8.5], ['05-inside', 10.0],
     ['06-notice', 13.2], ['07-reach', 15.3], ['08-touch', 16.85], ['09-startle', 17.2], ['10-hand-in-air', 18.0], ['11-silence', 22.0],
     ['12-her-look', 23.2], ['13-offer', 26.7], ['14-almost', 32.5], ['15-returning', 40.0], ['16-colour-going', 42.5], ['17-fibres-going', 44.8],
     ['18-white-room', 48.5]],
   // Things I Should Have Said (docs/things.md): the wall draws the goodbye (the pencil, then the
-  // tone), the way in, the film's beats (its first frame held until 11.5 s: src/memory/defs.ts
+  // tone), the way in, the film's beats (its first frame held until 11.5 s: src/memory/beats/things.ts
   // THINGS_BEATS), the way back out (a trace, then the plaster).
   things: [['00-untouched', null], ['01-construction', 2.2], ['02-her', 4.0], ['03-him', 6.0], ['04-tone', 7.5], ['05-carried', 9.5], ['06-inside', 11.2],
     ['07-wave', 12.4], ['08-walk', 15.0], ['09-door', 18.3], ['10-silence', 21.0], ['11-found', 25.0], ['12-turning', 27.0], ['13-his-hand', 30.0],
     ['14-taken-back', 33.0], ['15-hers', 39.0], ['16-erased', 46.0], ['17-empty', 50.0], ['18-returning', 55.5], ['19-trace', 59.5], ['20-white-room', 63.0]],
   // Memory VII (docs/shadows.md): the chair's shadow onto the wall, the shade round it, the film's
-  // light in it, the way in, the film's beats (it begins on the wall at 5.5 s: src/memory/defs.ts
+  // light in it, the way in, the film's beats (it begins on the wall at 5.5 s: src/memory/beats/shadows.ts
   // SHADOWS_BEATS), the way out: the chair's shadow alone, the words first, the shade back, home.
   shadows: [['00-untouched', null], ['01-chair-shadow', 2.0], ['02-on-the-wall', 4.2], ['03-gathering', 5.5], ['04-light-on-wall', 7.8], ['05-carried', 9.8], ['06-inside', 12.0],
     ['07-bows', 14.3], ['08-meet', 18.4], ['09-hold', 21.0], ['10-thread', 24.3], ['11-dark', 30.2], ['12-returning', 33.0], ['13-chair-alone', 34.8],

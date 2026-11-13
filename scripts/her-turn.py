@@ -35,7 +35,7 @@ morphing). So her own head is turned, the way scripts/drawn-rig/README.md descri
   turn, fading out by `HAIR_REACH`. It is dragged by every edge of hers that draws back from it, and
   by every edge where no line is drawn (her hair at her crown and temples is one with the hair beyond).
   Her soft edge is split so that, not turned, the rig is the panel exactly.
-- **The performance** is src/memory/defs.ts `TURN` (mirrored by `schedule()`):
+- **The performance** is src/memory/living/woodlandRig.ts `TURN` (mirrored by `schedule()`):
   - her eyes go to him first, in two drawings, as the two-shot shader draws a look (`gazeB` in
     src/memory/living/woodland.ts);
   - a moment;
@@ -978,18 +978,18 @@ def sheet_crop():
 
 def turn_head(t, ease):
     """How far her head has turned `t` s after it starts: its speed rises gently, is greatest at
-    2 * `ease`, and dies away slowly as she settles (velocity t^2 e^(-t/ease); src/memory/defs.ts
+    2 * `ease`, and dies away slowly as she settles (velocity t^2 e^(-t/ease); src/memory/living/woodlandRig.ts
     `turnHead`)."""
     x = max(0.0, t) / ease
     return 1 - math.exp(-x) * (1 + x + x * x / 2)
 
 
 def schedule():
-    """Her turn's drawings, as src/memory/defs.ts `turnDrawings` makes them (checked against it in
+    """Her turn's drawings, as src/memory/living/woodlandRig.ts `turnDrawings` makes them (checked against it in
     tests/living-memory.test.ts): when each is shown (s into the memory), her eyes' share of the way
     to him, her head's share of its turn, and the `figure:b.turn` that shows it. And the two-shot's
     times, and the head's ease."""
-    src = open(os.path.join(ROOT, 'src', 'memory', 'defs.ts')).read()
+    src = open(os.path.join(ROOT, 'src', 'memory', 'living', 'woodlandRig.ts')).read()
     times = {k: float(v) for k, v in re.findall(r'(\w+):\s*([\d.]+)', re.search(r'export const TWO_SHOT\s*=\s*\{([^}]*)\}', src).group(1))}
     turn = re.search(r'export const TURN\s*=\s*\{([^}]*)\}', src).group(1)
     eyes = [float(v) for v in re.search(r'eyes:\s*\[([^\]]*)\]', turn).group(1).split(',')]
