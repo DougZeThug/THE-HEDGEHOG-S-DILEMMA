@@ -2,21 +2,17 @@ import { MemoryAudio } from './MemoryAudio';
 import { sheetId } from './memoryDef';
 import { memorySchema } from './sheets';
 import { sheetSource } from './theatre';
-import { memoryEntry } from './registry';
 import { withVoices } from '../content/memory-voices';
 import { isFilm, loadLayer, manifestOf } from './art';
 import { prepareFilm } from './prepareFilm';
 import { preparePainting } from './preparePainting';
 import type { Prepared, PreparedLiving, RuntimeHost } from './prepared';
-import type { Stage } from './stage';
+import { resolve, type Stage } from './stage';
 
 /** Fetch and decode a memory's art and sounds (in parallel), uploading one texture a frame. */
 export async function prepare(id: string, variant: string, host: RuntimeHost): Promise<Prepared> {
-  const { def } = memoryEntry(id);
-  const v = def.variants.includes(variant) ? variant : def.variants[0];
-  const base = host.base ?? './memories/';
+  const { entry, def, v, base, suffix } = resolve(id, variant, host);
   const manifest = await manifestOf(base, def.art);
-  const suffix = host.quality === 'low' ? '@low' : '';
   let audio: MemoryAudio | null = null;
   const voices = host.voices?.version ? { version: host.voices.version, filesOf: host.voices.filesOf } : null;
   if (host.audio) {
@@ -32,7 +28,7 @@ export async function prepare(id: string, variant: string, host: RuntimeHost): P
   const url = (file: string, sfx = suffix) => `${base}${def.art}/${file}${sfx}.webp`;
   const settled = await Promise.allSettled(wallLayers.map((l) => loadLayer(url(l.file))));
   const st: Stage = {
-    def, v, host, base, suffix, manifest, audio, url,
+    entry, def, v, host, base, suffix, manifest, audio, url,
     loaded: [],
     extra: [],
     scene: null,

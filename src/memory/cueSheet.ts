@@ -107,3 +107,9 @@ export function cueKind(label: string): CueKind | null {
   const k = label.slice(0, label.indexOf(':'));
   return k === 'sfx' || k === 'bed' || k === 'music' || k === 'voice' ? k : null;
 }
+
+/** State rather than an event: a bed or music, which a stall that passed its start still owes. */
+export const isLasting = (label: string): boolean => {
+  const k = cueKind(label);
+  return k === 'bed' || k === 'music';
+};

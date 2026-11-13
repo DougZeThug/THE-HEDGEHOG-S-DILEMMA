@@ -1,7 +1,7 @@
 import { fetchBlob } from './fetched';
 import { filmType } from './living/FilmScene';
-import { memoryEntry, rigSpecOf } from './registry';
-import { framesNear, isFilm, livingFiles, manifestOf } from './art';
+import { framesNear, filmUrl, isFilm, livingFiles, manifestOf } from './art';
+import { resolve } from './stage';
 import type { RuntimeHost } from './prepared';
 
 /**
@@ -11,10 +11,7 @@ import type { RuntimeHost } from './prepared';
  * sounds (`mem:…`) are the voices' own loader's.
  */
 export async function prefetch(id: string, variant: string, host: Pick<RuntimeHost, 'quality' | 'base' | 'screen'>): Promise<void> {
-  const { def } = memoryEntry(id);
-  const v = def.variants.includes(variant) ? variant : def.variants[0];
-  const base = host.base ?? './memories/';
-  const suffix = host.quality === 'low' ? '@low' : '';
+  const { entry, def, v, base, suffix } = resolve(id, variant, host);
   try {
     const manifest = await manifestOf(base, def.art);
     const lm = manifest.living?.[v];
@@ -23,22 +20,16 @@ export async function prefetch(id: string, variant: string, host: Pick<RuntimeHo
     if (isFilm(lm)) {
       // (Where no video can be asked what it plays, the film waits to be fetched as it begins; its
       // wall and its sounds are fetched all the same.)
-      let type: ReturnType<typeof filmType> = null;
-      try {
-        type = filmType();
-      } catch {
-        // (No video element to ask: a browser without one has no film to fetch.)
-        type = null;
-      }
+      const type = filmType();
       const files = [...wall, ...(lm.order ? [{ file: lm.order, suffix: '' }] : [])];
       await Promise.all([
         ...files.map((f) => fetchBlob(`${base}${def.art}/${f.file}${f.suffix}.webp`)),
-        ...(type ? [fetchBlob(`${base}${def.art}/${lm.film}${suffix}.${type}`)] : []),
+        ...(type ? [fetchBlob(filmUrl(base, def.art, lm, suffix, type))] : []),
         ...sounds.map((a) => fetchBlob(`./${a}`)),
       ]);
       return;
     }
-    const files = lm ? [...wall, ...livingFiles(lm, suffix, !framesNear(host, rigSpecOf(def.id)))] : wall;
+    const files = lm ? [...wall, ...livingFiles(lm, suffix, !framesNear(host, entry.rig!))] : wall;
     await Promise.all([...files.map((f) => fetchBlob(`${base}${def.art}/${f.file}${f.suffix}.webp`)), ...sounds.map((a) => fetchBlob(`./${a}`))]);
   } catch (e) {
     // (A failed fetch costs only the head start: it is fetched again when it is needed.)

@@ -1,7 +1,6 @@
 import type * as THREE from 'three';
 import { WoodlandScene, type HeadCels, type LivingArt, type NearArt } from './living/WoodlandScene';
 import { framesNear, loadLayer, colourTimes, type LivingManifest } from './art';
-import { rigSpecOf } from './registry';
 import { dropScene, fallBackToPoster, targetSize, type Stage } from './stage';
 import type { PreparedPainting } from './prepared';
 
@@ -11,9 +10,10 @@ import type { PreparedPainting } from './prepared';
  * scene couldn't be made.
  */
 export async function preparePainting(st: Stage, lm: LivingManifest): Promise<PreparedPainting | null> {
-  const { def, host, manifest, extra, suffix } = st;
+  const { def, entry, host, manifest, extra, suffix } = st;
   const url = st.url;
-  const spec = rigSpecOf(def.id);
+  const spec = entry.rig;
+  if (!spec) throw new Error(`Memory "${def.id}" has no painted rig`);
   try {
     const one = async (file: string, o: { data?: boolean; sfx?: string } = {}) => {
       const r = await loadLayer(url(file, o.sfx ?? suffix), { living: true, data: o.data });

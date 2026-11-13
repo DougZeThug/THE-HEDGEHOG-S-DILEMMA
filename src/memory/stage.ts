@@ -2,6 +2,7 @@ import type * as THREE from 'three';
 import type { LayerKind } from '../world/MemoryWindow';
 import type { MemoryAudio } from './MemoryAudio';
 import type { MemoryDef } from './memoryDef';
+import { memoryEntry, type MemoryEntry } from './registry';
 import type { WoodlandScene } from './living/WoodlandScene';
 import type { FilmScene } from './living/FilmScene';
 import { loadLayer, type ArtManifest } from './art';
@@ -15,12 +16,13 @@ export interface Decoded {
 
 /** What `prepare` has loaded so far, so that a failure anywhere can let all of it go. */
 export interface Stage {
+  /** Its registry entry (the film's or rig's spec is read from it). */
+  entry: MemoryEntry;
   def: MemoryDef;
   /** The variant being prepared. */
   v: string;
   host: RuntimeHost;
   base: string;
-  /** '@low' on a phone, else ''. */
   suffix: string;
   manifest: ArtManifest;
   audio: MemoryAudio | null;
@@ -32,6 +34,13 @@ export interface Stage {
   url(file: string, sfx?: string): string;
   /** Let go of everything staged, the audio too. */
   letGo(): void;
+}
+
+/** A memory, its variant (the first if `variant` is not one of its own), and where its art is: `suffix` is '@low' on a phone. */
+export function resolve(id: string, variant: string, host: Pick<RuntimeHost, 'quality' | 'base'>) {
+  const entry = memoryEntry(id);
+  const v = entry.def.variants.includes(variant) ? variant : entry.def.variants[0];
+  return { entry, def: entry.def, v, base: host.base ?? './memories/', suffix: host.quality === 'low' ? '@low' : '' };
 }
 
 /** A living scene's render target: the screen's shape, capped by quality (its long side). */

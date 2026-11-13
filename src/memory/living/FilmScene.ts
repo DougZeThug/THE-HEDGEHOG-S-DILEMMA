@@ -30,7 +30,12 @@ interface FilmArt {
  * Whether this browser plays a film type ('webm' VP9 or 'mp4' H.264), best first. WebKit (Safari,
  * and every browser on an iPhone) gets H.264 first: what it decodes in hardware on every device.
  */
-export function filmType(probe: HTMLVideoElement = document.createElement('video')): 'webm' | 'mp4' | null {
+export function filmType(probe?: HTMLVideoElement): 'webm' | 'mp4' | null {
+  // (No video element to ask, as outside a browser: no film to play.)
+  if (!probe) {
+    if (typeof document === 'undefined') return null;
+    probe = document.createElement('video');
+  }
   const vp9 = !!probe.canPlayType('video/webm; codecs="vp9"');
   const h264 = !!(probe.canPlayType('video/mp4; codecs="avc1.640028"') || probe.canPlayType('video/mp4; codecs="avc1.42E01E"'));
   if (h264 && 'webkitSetPresentationMode' in probe) return 'mp4';

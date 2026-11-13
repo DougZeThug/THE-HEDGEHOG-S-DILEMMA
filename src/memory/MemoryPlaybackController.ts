@@ -2,6 +2,7 @@ import { lifeTimeline, leaveTimeline, type Sway } from './behaviours';
 import { compose, type Weights } from './compose';
 import { seek } from './gsapClock';
 import { CueDispatch, type Due } from './cueDispatch';
+import { cueKind } from './cueSheet';
 import type { Lifecycle, Marker, MemoryFrame, ReleaseReason, Sections, TimelineSource, Values } from './types';
 
 /**
@@ -173,7 +174,7 @@ export class MemoryPlaybackController {
     const back = this.o.audio?.pause(this.lastNow) ?? [];
     for (const m of back) this.dispatch.unfire(m);
     // Sentences the pause cut part-way (begun before the frozen picture): said again on resume.
-    this.again = back.filter((m) => m.label.startsWith('voice:') && m.position <= this.pos + 0.005);
+    this.again = back.filter((m) => cueKind(m.label) === 'voice' && m.position <= this.pos + 0.005);
     this.takenBack = back;
   }
   private again: Marker[] = [];

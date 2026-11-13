@@ -21,7 +21,7 @@ import { DRIVE as DRIVE_FILM } from './living/drive';
  * how its picture sits on a screen. An id that is not here is an error, never another memory's
  * framing.
  */
-interface MemoryEntry {
+export interface MemoryEntry {
   def: MemoryDef;
   /** Where its film sits on a screen (src/memory/living/): the film variants. */
   film?: FilmSpec;
