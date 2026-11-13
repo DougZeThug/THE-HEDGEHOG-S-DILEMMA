@@ -4,10 +4,8 @@ import { ROOM } from '../core/room';
 import { PANEL } from './Room';
 import type { Environment } from '../core/environment';
 import { approach } from '../core/math';
-import { shadowMapSize, type Quality } from './quality';
+import { QUALITY, type Quality } from './quality';
 import { LIGHT_WHITE, lookFor, neutralFor, type Look } from './Style';
-
-export { shadowMapSize };
 
 /** One frosted overhead source does nearly all the work; the fill is only bounce. */
 /** The lights were set for a 3.1 m ceiling; from higher they fall off with distance. */
@@ -129,7 +127,7 @@ export class Lighting {
     this.key.position.copy(this.keyBase);
     this.key.target.position.set(0, 0, 0);
     this.key.castShadow = true;
-    const size = shadowMapSize(quality);
+    const size = QUALITY[quality].shadowMap;
     this.key.shadow.mapSize.set(size, size);
     // Only the chair casts a shadow, so the shadow's camera looks at the middle of the cone,
     // not all of it (a 115° frustum spent most of the map on bare floor): its texels shrink

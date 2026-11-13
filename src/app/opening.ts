@@ -1,7 +1,7 @@
 import { STATIC_DRAWINGS } from '../content/drawings';
 import { ROOM } from '../core/room';
 import { idle, ignored, sleep } from '../core/time';
-import { wallClock } from '../world/WallText';
+import { wallClock } from '../world/writePlan';
 import { AudioEngine } from '../audio/AudioEngine';
 import { Ambience } from '../audio/Ambience';
 import { Music } from '../audio/Music';

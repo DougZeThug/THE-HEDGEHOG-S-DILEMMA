@@ -1,5 +1,5 @@
 import { ROOM_LEVELS } from '../state/OpeningScore';
-import { wallClock } from '../world/WallText';
+import { wallClock } from '../world/writePlan';
 import { interpretLocally } from '../interpret/LocalInterpreter';
 import { MAX_CONTRIBUTION } from '../interpret/schema';
 import { forgetVisits, savePrefs, type Prefs } from '../ui/prefs';

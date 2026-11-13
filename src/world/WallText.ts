@@ -16,8 +16,6 @@ import { makeTextMaterial, type TextUniforms } from './textMaterial';
 import { placeByDrawing, placeWithin, placeWrite } from './writePlacement';
 import { handAt, recedeStep, speechPlan, wallClock, wordBand, type RecedeState, type WritePlan } from './writePlan';
 
-export { handAt, recedeStep, speechPlan, wallClock, wordBand, type RecedeState, type WritePlan };
-
 /**
  * Writing on the walls. Every piece of writing is a textured plane lying on its surface, lit
  * by the same light as the plaster. New writing is *written*: a hand puts it down stroke by
@@ -109,23 +107,23 @@ export class WallText {
   /** How much faint writing is strengthened (the look's, with the room's light; 1 = as written). */
   faintBoost = 1;
   /** Writing in the air: at most one piece, which goes when approached. */
-  private airText = new AirWriting(this.geo, () => this.reducedMotion);
+  readonly airWriting = new AirWriting(this.geo, () => this.reducedMotion);
   get air(): THREE.Group {
-    return this.airText.group;
+    return this.airWriting.group;
   }
   /** The key light's strength relative to the room's usual (the air writing's shadow follows it). */
   get airShadowLight(): number {
-    return this.airText.shadowLight;
+    return this.airWriting.shadowLight;
   }
   set airShadowLight(v: number) {
-    this.airText.shadowLight = v;
+    this.airWriting.shadowLight = v;
   }
   /** Told once when the writing in the air goes: rubbed out by someone coming close, or simply fading. */
   get onAirGone(): AirWriting['onGone'] {
-    return this.airText.onGone;
+    return this.airWriting.onGone;
   }
   set onAirGone(f: AirWriting['onGone']) {
-    this.airText.onGone = f;
+    this.airWriting.onGone = f;
   }
 
   constructor(private room: Room, seed: number) {
@@ -325,24 +323,6 @@ export class WallText {
     const pl = this.placementOf(id);
     if (!pl) return undefined;
     return { surface: pl.surface, centre: this.room.world(pl.surface, pl.u, pl.v, new THREE.Vector3()) };
-  }
-
-  /**
-   * Write a phrase in the air at `at` (world), facing `face`, by the same hand as on the walls
-   * but fainter, on no surface at all (see AirWriting). One at a time.
-   */
-  writeInAir(o: Parameters<AirWriting['write']>[0]): boolean {
-    return this.airText.write(o);
-  }
-
-  /** Where the writing in the air is, while it is there (for keyboard navigation). */
-  get airCentre(): THREE.Vector3 | null {
-    return this.airText.centre;
-  }
-
-  /** The writing in the air, if any, and how much of it is there (for tests and the inspector). */
-  get airState(): AirWriting['state'] {
-    return this.airText.state;
   }
 
   /** Write new text beside a phrase or somewhere on a surface. Returns false if there was no room. */
@@ -584,7 +564,7 @@ export class WallText {
     const pos = cam.getWorldPosition(new THREE.Vector3());
     const fwd = cam.getWorldDirection(new THREE.Vector3());
     const to = new THREE.Vector3();
-    this.airText.update(dt, now, pos, env);
+    this.airWriting.update(dt, now, pos, env);
     for (const it of [...this.items.values()]) {
       if (it.expires && now > it.expires && it.target > 0) {
         it.target = 0;

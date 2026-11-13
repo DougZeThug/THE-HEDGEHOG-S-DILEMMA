@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { ROOM } from '../core/room';
 import { hashString } from '../core/rng';
 import { sleep } from '../core/time';
-import { wallClock } from '../world/WallText';
+import { wallClock } from '../world/writePlan';
 import type { Cue, VoicePosition } from '../state/cues';
 import type { Surface } from '../content/types';
 import type { Played } from '../audio/Voices';
@@ -116,7 +116,7 @@ export class Cues {
         dir.normalize();
         // To the visitor's left, so the chair stands at the end of the line rather than under its middle.
         const at = new THREE.Vector3(c.x + dir.x * cue.toward - dir.z * cue.aside, cue.height, c.z + dir.z * cue.toward + dir.x * cue.aside);
-        this.ctx.text.writeInAir({ key: `air:${cue.phraseId}`, phraseId: cue.phraseId, at, face: p, light: this.ctx.lighting.key.position, now: this.ctx.time });
+        this.ctx.text.airWriting.write({ key: `air:${cue.phraseId}`, phraseId: cue.phraseId, at, face: p, light: this.ctx.lighting.key.position, now: this.ctx.time });
         break;
       }
       case 'silence':

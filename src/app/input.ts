@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { clamp } from '../core/math';
-import { wallClock, type TextItem } from '../world/WallText';
+import type { TextItem } from '../world/WallText';
+import { wallClock } from '../world/writePlan';
 import { stageAt } from '../state/OpeningScore';
 import { Director } from '../state/Director';
 import { PHRASE_BY_ID } from '../content/phrases';
@@ -80,8 +81,8 @@ export class Input {
         words: i.phrase?.text ?? (i.source ? PHRASE_BY_ID.get(i.source)?.text : undefined) ?? ((i.mesh.userData.text as string) || undefined),
         where: i.placement.surface === 'floor' ? 'On the floor' : 'On the wall',
       }));
-    const air = this.ctx.text.airCentre;
-    const airKey = this.ctx.text.airState?.key.replace(/^air:/, '');
+    const air = this.ctx.text.airWriting.centre;
+    const airKey = this.ctx.text.airWriting.state?.key.replace(/^air:/, '');
     if (air) vis.push({ centre: air, words: (airKey && PHRASE_BY_ID.get(airKey)?.text) || 'words written in the air', where: 'In the air' });
     if (!vis.length) return;
     vis.sort((a, b) => {

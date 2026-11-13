@@ -306,7 +306,7 @@ describe('the Director and its vignettes', () => {
   });
 });
 
-import { wordBand, recedeStep, type RecedeState } from '../src/world/WallText';
+import { wordBand, recedeStep, type RecedeState } from '../src/world/writePlan';
 
 describe('what a vignette leaves on the walls', () => {
   it("a lost word's band runs from halfway into the gap before it to halfway into the gap after", () => {
