@@ -49,15 +49,15 @@ export function chooseSource(q: SourceQuery): Source {
  * phone); the other takes follow a few at a time while the room is quiet, and any take chosen
  * before then is fetched when it is needed.
  */
-export function preloadStages(manifest: Record<string, string[]>, perPhrase = 1): { first: string[]; rest: string[] } {
+export function preloadStages(manifest: Record<string, string[]>): { first: string[]; rest: string[] } {
   const first: string[] = [], rest: string[] = [];
   for (const [key, files] of Object.entries(manifest)) {
     // A memory's sounds (a vignette's voices too) are fetched when it is prepared, never on arrival.
     if (key.startsWith('mem:') || key.startsWith('vig:')) continue;
     if (!key.startsWith('phrase:')) first.push(...files);
     else {
-      first.push(...files.slice(0, perPhrase));
-      rest.push(...files.slice(perPhrase));
+      first.push(...files.slice(0, 1));
+      rest.push(...files.slice(1));
     }
   }
   return { first, rest };

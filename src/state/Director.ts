@@ -24,7 +24,8 @@ import { ARCS, type Arc, type EncounterBeat, type Gesture } from '../content/enc
 import { belonging, CHARACTER_WALLS } from '../content/walls';
 import { rankPerformances, performancesFor } from './performance';
 import { SituationRunner, type PhraseGeometry, type SituationHost, type ContributionTrace } from './situations/Situation';
-import { SITUATIONS, SITUATION_BY_ID, keptWord } from './situations/library';
+import { pickRepertoire } from './situations/library';
+import { keptWord } from '../core/words';
 import { ROOM } from '../world/layout';
 import { hashString } from '../core/rng';
 
@@ -333,19 +334,7 @@ export class Director {
     if (this.visits > 1 && opts.trace !== 'close') this.reveal(PHRASE_IDS.rememberMe, 7, 'return', 'emerge', 8);
   }
 
-  /** Seeded choice of which situations this visit can hold: three of the four, plus erosion if the visitor writes. */
-  static repertoire(visits: number, forced?: string[], seed?: number) {
-    if (forced?.length) return forced.map((id) => SITUATION_BY_ID.get(id)).filter((d): d is NonNullable<typeof d> => !!d);
-    // (With a visit's own seed every visit can hold any three; by visit count alone, every visitor's
-    // first visit held the same three, and one of them never came on a first or second visit.)
-    const r = new Rng(hashString(seed === undefined ? `situations:${visits}` : `situations:${visits}:${seed}`));
-    const main = SITUATIONS.filter((d) => d.id !== 'erosion');
-    for (let i = main.length - 1; i > 0; i--) {
-      const j = r.int(0, i);
-      [main[i], main[j]] = [main[j], main[i]];
-    }
-    return [...main.slice(0, 3), SITUATION_BY_ID.get('erosion')!];
-  }
+  static readonly repertoire = pickRepertoire;
 
   private makeHost(): SituationHost {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
@@ -2329,7 +2318,7 @@ export class Director {
     // The words are always written. The room does not reply: at most one other thing
     // happens, often nothing, and anything related surfaces much later, as if by itself.
     this.queue(0.5, { type: 'write', key, text, hand: 'visitor', size: text.length > 60 ? 'xs' : 's', surface: this.facing, purpose: 'contribution', ttl: 0 }, 'contribution');
-    const options = it.gestures.filter((g) => g !== 'writeOnWall' && g !== 'music');
+    const options = it.gestures.filter((g) => g !== 'writeOnWall');
     // Its own stream of chance, so what a visitor's words bring doesn't shift whenever some
     // unrelated rule of the room is added or changed.
     const r = new Rng(hashString(`contribution:${this.seed}:${this.contributionCount}`));
@@ -2453,7 +2442,7 @@ export class Director {
 
   forgetContributions(): void {
     this.lastContrib = null;
-    this.situations.drop('erosion');
+    this.situations.dropTagged('contribution');
     this.memory.contributions = [];
     this.scheduler.cancelWhere((e) => isContribution(e.rule));
   }

@@ -1,9 +1,8 @@
 import { PHRASES, PHRASE_BY_ID } from '../../content/phrases';
-import type { Phrase, Surface } from '../../content/types';
+import { WALLS, type Phrase, type Surface } from '../../content/types';
+import { hashString, Rng } from '../../core/rng';
 import { warmthOf } from '../Memory';
 import type { SituationContext, SituationDef, SituationHost } from './Situation';
-
-const WALLS: Surface[] = ['north', 'east', 'south', 'west'];
 
 function otherWalls(not: Surface[]): Surface[] {
   return WALLS.filter((w) => !not.includes(w));
@@ -297,6 +296,7 @@ export const residue: SituationDef = {
 // ─────────────────────────────────────────────────────────────────────────────
 export const erosion: SituationDef = {
   id: 'erosion',
+  tag: 'contribution',
   maxLife: 600,
   gentle: true,
   ready: (h) => {
@@ -325,16 +325,19 @@ export const erosion: SituationDef = {
 export const SITUATIONS: SituationDef[] = [nextRoom, humming, listening, residue, erosion];
 export const SITUATION_BY_ID = new Map(SITUATIONS.map((s) => [s.id, s]));
 
-const STOP = new Set(
-  'the a an and or but if then so to of in on at by for with from as is are was were be been am i me my you your we our they them it its this that there here not no do did does have has had just very really what who why how when where all some any one'.split(' '),
-);
-
-/** The word that survives: the longest word that carries something. */
-export function keptWord(text: string): string {
-  const words = text.toLowerCase().replace(/[’']/g, "'").match(/[a-z']+/g) ?? [];
-  const content = words.map((w) => w.replace(/^'+|'+$/g, '')).filter((w) => w.length > 1 && !STOP.has(w));
-  const pool = content.length ? content : words;
-  let best = pool[0] ?? '';
-  for (const w of pool) if (w.length > best.length) best = w;
-  return best;
+/**
+ * Which situations a visit can hold: three of the main ones, chosen by the visit's seed (by visit
+ * count alone, every visitor's first visit held the same three, and one of them never came on a
+ * first or second visit), plus those tagged to the visitor's own writing (erosion) every time.
+ * `forced` names a repertoire outright (inspection and tests).
+ */
+export function pickRepertoire(visits: number, forced?: string[], seed?: number): SituationDef[] {
+  if (forced?.length) return forced.map((id) => SITUATION_BY_ID.get(id)).filter((d): d is SituationDef => !!d);
+  const r = new Rng(hashString(seed === undefined ? `situations:${visits}` : `situations:${visits}:${seed}`));
+  const main = SITUATIONS.filter((d) => d.tag !== 'contribution');
+  for (let i = main.length - 1; i > 0; i--) {
+    const j = r.int(0, i);
+    [main[i], main[j]] = [main[j], main[i]];
+  }
+  return [...main.slice(0, 3), ...SITUATIONS.filter((d) => d.tag === 'contribution')];
 }

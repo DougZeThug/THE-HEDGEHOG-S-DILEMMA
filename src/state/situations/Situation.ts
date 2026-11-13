@@ -83,6 +83,8 @@ export interface SituationContext {
 
 export interface SituationDef {
   id: string;
+  /** `contribution`: it answers the visitor's own writing, so forgetting that writing closes it. */
+  tag?: 'contribution';
   /** Upper bound on how long it may stay open (seconds). */
   maxLife: number;
   /** Quiet enough to begin at any moment (it claims nothing and makes no sound when it starts). */
@@ -108,8 +110,8 @@ export class SituationRunner {
   private lastStart = -Infinity;
   /** Last time any situation held the 'beyond' channel. */
   lastBeyond = -Infinity;
-  maxActive = 2;
-  startGap = 40;
+  private readonly maxActive = 2;
+  private readonly startGap = 40;
 
   constructor(readonly repertoire: SituationDef[]) {
     this.pending = [...repertoire];
@@ -189,12 +191,12 @@ export class SituationRunner {
     if (a.ended === 'abort') this.pending.push(a.def);
   }
 
-  /** Close a situation from outside (e.g. the visitor asked the room to forget their words). */
-  drop(id: string) {
-    const i = this.active.findIndex((a) => a.def.id === id);
-    if (i >= 0) {
-      for (const [ch, holder] of [...this.claims]) if (holder === id) this.claims.delete(ch);
-      this.active.splice(i, 1);
+  /** Close the open situations with this tag from outside (the visitor asked the room to forget their words). */
+  dropTagged(tag: NonNullable<SituationDef['tag']>) {
+    for (const a of [...this.active]) {
+      if (a.def.tag !== tag) continue;
+      for (const [ch, holder] of [...this.claims]) if (holder === a.def.id) this.claims.delete(ch);
+      this.active.splice(this.active.indexOf(a), 1);
     }
   }
 

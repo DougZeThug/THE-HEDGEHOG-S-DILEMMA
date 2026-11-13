@@ -3,7 +3,7 @@ import { LEXICON } from '../content/relations';
 import { PHRASES, PHRASE_BY_ID } from '../content/phrases';
 import { affinity } from '../state/PhraseSelector';
 import type { Interpreter } from './Interpreter';
-import { validateInterpretation, type Gesture, type Interpretation } from './schema';
+import { validateInterpretation, type ContributionGesture, type Interpretation } from './schema';
 
 export function tokenize(text: string): string[] {
   return text
@@ -91,7 +91,7 @@ export function interpretLocally(text: string): Interpretation {
   for (const id of related) for (const c of PHRASE_BY_ID.get(id)?.contradicts ?? []) if (!contradictions.includes(c) && !related.includes(c)) contradictions.push(c);
 
   const intensity = Math.min(1, 0.25 + hits * 0.12 + raw.length / 300);
-  const g: Gesture[] = ['writeOnWall', 'quiet', 'revealRelated'];
+  const g: ContributionGesture[] = ['writeOnWall', 'quiet', 'revealRelated'];
   if ((dims.nostalgia ?? 0) + (dims.grief ?? 0) > 0.6 || tense === 'past') g.push('distantRecollection');
   if ((dims.contradiction ?? 0) > 0.25 || question || contradictions.length) g.push('rearrange');
   if (hits > 0) g.push('temperatureShift');
