@@ -15,7 +15,7 @@ import type { Engagement } from './Engagement';
  * first half-minute, contradiction around the first minute (two at most), transformation
  * between two and four minutes for an engaged visitor; five for one who barely moves.
  */
-export const PHASE_GATES: Record<Exclude<Phase, 'arrival'>, { depth: number; floor: number; fallback: number }> = {
+const PHASE_GATES: Record<Exclude<Phase, 'arrival'>, { depth: number; floor: number; fallback: number }> = {
   familiar: { depth: 3, floor: 8, fallback: 40 },
   contradiction: { depth: 16, floor: 25, fallback: 120 },
   transform: { depth: 45, floor: 100, fallback: 300 },

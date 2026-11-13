@@ -55,7 +55,7 @@ export interface SceneState {
   finished?: (phraseId: string) => boolean;
 }
 
-export interface SceneStart {
+interface SceneStart {
   id: string;
   phraseId: string;
   variant: string;
@@ -76,14 +76,14 @@ export interface PendingEcho {
 
 /** Seconds a vignette keeps from the end of any other memory (more after one of its tone). */
 export const VIGNETTE_APART = 90;
-export const SAME_TONE_APART = 150;
+const SAME_TONE_APART = 150;
 /**
  * Never three in five minutes: at most this many vignettes begun in any `VIGNETTE_WINDOW` seconds.
  * (With more than one way into some, a settled visitor met three late in a visit; three close
  * together is the pushing the room never does: interaction review, 2026-10-27.)
  */
 export const VIGNETTE_WINDOW = 300;
-export const VIGNETTES_IN_WINDOW = 2;
+const VIGNETTES_IN_WINDOW = 2;
 
 interface Track {
   armed: boolean;
@@ -108,19 +108,19 @@ interface Track {
 }
 
 /** A look this long begins a vignette whose line the room has just pointed at (or that is owed). */
-export const EASY_LOOK = 1.5;
+const EASY_LOOK = 1.5;
 /** The room points at a line (an offer, or a line written again) at most this often… */
-export const POINT_APART = 120;
+const POINT_APART = 120;
 /** …this many times a visit (the painted memories' offers included)… */
-export const POINTS_PER_VISIT = 3;
+const POINTS_PER_VISIT = 3;
 /** …and never this soon after a vignette has ended. */
-export const POINT_AFTER_VIGNETTE = 60;
+const POINT_AFTER_VIGNETTE = 60;
 /** The memories that can be a visit's heart. */
 const HEARTS: ReadonlySet<string> = HEART_IDS;
 
 /** What the room points at: a line written alone where the visitor looks, or (`reink`) one already there, written again. */
 /** `key`: a re-ink of a line written alone for it (`memory:<phrase>`), not of the phrase in its own place. */
-export type OfferPick = SceneMemory & { reink?: boolean; key?: string };
+type OfferPick = SceneMemory & { reink?: boolean; key?: string };
 
 export class MemoryDirector {
   private tracks = new Map<string, Track>();

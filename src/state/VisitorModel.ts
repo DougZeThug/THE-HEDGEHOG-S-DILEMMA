@@ -37,7 +37,7 @@ export interface VisitorInput {
  */
 export const ENCOUNTER = { settle: 1.8, apart: 10 };
 
-export interface EncounterRecord {
+interface EncounterRecord {
   count: number;
   startedAt: number;
   /** Last moment attention rested on it. */
@@ -46,14 +46,14 @@ export interface EncounterRecord {
   open: boolean;
 }
 
-export const BANDS = {
+const BANDS = {
   near: 1.15,
   /** Must go past this after being near to count as a withdrawal. */
   withdraw: 2.1,
   far: 2.6,
 };
 
-export interface ApproachRecord {
+interface ApproachRecord {
   enteredAt: number;
   leftAt: number | null;
   dwell: number;

@@ -307,13 +307,11 @@ export class ScreenWake {
     }
   }
 
-  /** The visitor has gone: let the screen sleep again. */
   release() {
     void this.lock?.release().catch(ignored); // (already released by the browser: nothing to undo)
     this.lock = null;
   }
 
-  /** The browser released it itself when the page was hidden. */
   dropped() {
     this.lock = null;
   }

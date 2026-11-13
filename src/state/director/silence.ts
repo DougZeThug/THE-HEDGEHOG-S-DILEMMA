@@ -4,7 +4,7 @@ import { phaseAtLeast } from '../Phase';
 import type { RuleHost } from './host';
 
 /** What the held silence needs to know of the way out. */
-export interface SilenceLink {
+interface SilenceLink {
   /** The room is letting them go, or has just been kept from going: the silence waits. */
   wayOutRecent(): boolean;
 }

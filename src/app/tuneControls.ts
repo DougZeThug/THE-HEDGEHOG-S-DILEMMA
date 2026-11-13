@@ -2,6 +2,7 @@
  * The artist's panel (?tune): which values of the room's light and look it moves, and the actions
  * beside them. Presentation only: it never touches the Director's state or timing (src/ui/Tune.ts).
  */
+import { MEMORY_IDS } from '../content/ids';
 import { Director } from '../state/Director';
 import { LOOK_NAMES, type Look } from '../world/Style';
 import { applyLook, setStyle } from './prefsApply';
@@ -49,11 +50,11 @@ export function mountTuneControls(ctx: AppContext, peers: Peers, mount: Mount): 
       {
         label: 'cereal, now',
         run: () => {
-          if (!ctx.text.anchorOf('cereal')) ctx.text.setShown('cereal');
+          if (!ctx.text.anchorOf(MEMORY_IDS.cereal)) ctx.text.setShown(MEMORY_IDS.cereal);
           // Walk to where it is seen whole, face it, and begin once the line is there.
           void sleep(600).then(() => {
-            peers.living.frameMemory('cereal');
-            void peers.living.playMemory('cereal', 'cereal');
+            peers.living.frameMemory(MEMORY_IDS.cereal);
+            void peers.living.playMemory(MEMORY_IDS.cereal, MEMORY_IDS.cereal);
           });
         },
       },

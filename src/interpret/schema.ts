@@ -6,7 +6,7 @@ import { PHRASE_BY_ID } from '../content/phrases';
  * The experience engine only ever acts on a validated Interpretation; it never runs
  * code, styles or audio commands supplied by an interpreter.
  */
-export const GESTURES = ['writeOnWall', 'quiet', 'revealRelated', 'distantRecollection', 'temperatureShift', 'rearrange'] as const;
+const GESTURES = ['writeOnWall', 'quiet', 'revealRelated', 'distantRecollection', 'temperatureShift', 'rearrange'] as const;
 /** What the room may do with a visitor's words (not an encounter's `Gesture`, src/content/encounters.ts). */
 export type ContributionGesture = (typeof GESTURES)[number];
 

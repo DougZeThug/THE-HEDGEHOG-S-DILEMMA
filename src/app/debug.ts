@@ -12,7 +12,6 @@ export class Debug {
     if (this.enabled) ctx.dom.debug.hidden = false;
   }
 
-  /** Each frame, after it is drawn. */
   frame(dt: number) {
     this.fps = this.fps * 0.95 + (1 / Math.max(dt, 1e-3)) * 0.05;
     if (this.enabled && this.ctx.time - this.lastShown > 0.25) this.show();

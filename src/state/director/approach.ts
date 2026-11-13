@@ -17,7 +17,6 @@ export class Approach {
 
   constructor(private readonly h: RuleHost) {}
 
-  /** The first approach to the chair has been answered. */
   get spokenFirst(): boolean {
     return this.spokenFirstApproach;
   }

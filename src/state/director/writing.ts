@@ -3,24 +3,19 @@ import { PHRASES, PHRASE_BY_ID } from '../../content/phrases';
 import { PHRASE_IDS } from '../../content/ids';
 import type { Surface } from '../../content/types';
 import { WriteKeys } from '../writeKeys';
-import type { RuleHost } from './host';
+import type { RuleHost, RuleLinks } from './host';
 
 /** Writing the room starts with, ordinary things first; the rest comes by selection. */
 // ("the light in the kitchen at four in the afternoon" is kept back: it is the memory, late.)
 export const FIRST_WRITTEN: readonly string[] = ['cereal', 'sandwich', 'good-day', 'summer', 'laugh-breathe', 'home', 'rain-carpark'];
 
-export interface WritingOptions {
+interface WritingOptions {
   /** The old arrival: the walls already written and a line redrawn as you come in. */
   legacy: boolean;
 }
 
 /** What writing needs to know of the kitchen-light memory and the way out. */
-export interface WritingLink {
-  /** The kitchen-light memory has played. */
-  memoryPlayed(): boolean;
-  /** The way out is shown and is this line. */
-  isWayOut(phraseId: string): boolean;
-}
+type WritingLink = Pick<RuleLinks, 'memoryPlayed' | 'isWayOut'>;
 
 /**
  * Writing arrives on the walls: the room fills as the visit goes on, an unfinished line is finished
@@ -56,7 +51,6 @@ export class Writing {
 
   private drawRetried = new Set<string>();
 
-  /** Drawings drawn during this visit (each at most once). */
   readonly drawn = new Set<string>();
 
 
@@ -170,7 +164,7 @@ export class Writing {
   opening() {
     if (this.openingDone || this.h.now < 0.3) return;
     this.openingDone = true;
-    const focal = this.h.visits <= 1 ? 'stay' : this.h.rng.pick(['stay', 'closer', 'not-going']);
+    const focal = this.h.visits <= 1 ? PHRASE_IDS.stay : this.h.rng.pick([PHRASE_IDS.stay, 'closer', 'not-going']);
     this.h.queue(0, { type: 'redraw', phraseId: focal, seconds: 4.5 }, 'opening');
     const r = this.h.rng.next();
     if (r < 0.4) {

@@ -5,7 +5,6 @@ export class Withdraw {
 
   private lastSeenWithdraw = -Infinity;
 
-  /** Stepping back. */
   tick() {
     const v = this.h.visitor;
     if (v.lastWithdrawAt <= this.lastSeenWithdraw) return;

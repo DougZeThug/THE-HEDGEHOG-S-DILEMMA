@@ -82,7 +82,6 @@ export class Contributions {
     }
   }
 
-  /** The visitor asked to be forgotten. */
   forget(): void {
     this.last = null;
     this.h.situations.dropTagged('contribution');

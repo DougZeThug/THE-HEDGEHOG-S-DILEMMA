@@ -27,7 +27,7 @@ const DESIGNED = 3;
 export const KITCHEN_LIGHT = { phraseId: PHRASE_IDS.kitchenLight, attack: 3, hold: 6, release: 4 };
 
 /** What the memory rules need of the rest of the room. */
-export interface MemoryLink {
+interface MemoryLink {
   /** Facing the north wall while the heart holds it: nothing is offered there. */
   northHeld(): boolean;
   /** A memory the visit counted has ended (the heart's answer is decided there). */

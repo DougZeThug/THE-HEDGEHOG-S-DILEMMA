@@ -90,6 +90,9 @@ export type ScoreEvent =
   | { at: number; fx: Effect }
   | { at: number; gap: GapKind; seconds: number; caption?: string };
 
+/** The line of a vignette or a memory's voices with this id. */
+export const lineOf = (def: { lines: VLine[] }, id: string): VLine | undefined => def.lines.find((l) => l.id === id);
+
 export interface Score {
   /** Seconds from the first sound to the last thing the vignette does. */
   span: number;
@@ -129,7 +132,7 @@ export interface Echo {
   voice?: { line: string; place: 'chair' | 'beyond' | 'behind'; stopAfter?: number; caption?: string; asLaugh?: boolean };
 }
 
-export interface Anchor {
+interface Anchor {
   /** The wall line that opens it (the one the room offers or writes again for it). */
   phrase?: string;
   /**
@@ -231,7 +234,7 @@ export function scoreMarkers(score: Score): Marker[] {
   return score.events.map((e, i) => ({ label: labelOf(e, i), position: e.at })).sort((a, b) => a.position - b.position);
 }
 
-export function labelOf(e: ScoreEvent, i: number): string {
+function labelOf(e: ScoreEvent, i: number): string {
   if ('line' in e) return `voice:${e.line}@${i}`;
   if ('sfx' in e) return `sfx:${e.sfx}@${i}`;
   if ('bed' in e) return `bed:${e.bed}@${i}`;
@@ -255,7 +258,7 @@ export function toCueSheet(
   score.events.forEach((e, i) => {
     const label = labelOf(e, i);
     if ('line' in e) {
-      const line = def.lines.find((l) => l.id === e.line);
+      const line = lineOf(def, e.line);
       if (!line) return;
       const cut = e.end === 'cut';
       const asset = keyOf(line);
@@ -278,12 +281,12 @@ export function vignetteKeys(def: VignetteDef): string[] {
   for (const s of Object.values(def.variants))
     for (const e of s.events) {
       if ('line' in e) {
-        const l = def.lines.find((x) => x.id === e.line);
+        const l = lineOf(def, e.line);
         if (l) keys.add(lineKey(def, l));
       } else if (('sfx' in e || 'bed' in e) && !e.asset.startsWith('synth:') && !e.asset.startsWith('music/')) keys.add(e.asset);
     }
   for (const e of def.echoes ?? []) {
-    const l = e.voice && def.lines.find((x) => x.id === e.voice!.line);
+    const l = e.voice && lineOf(def, e.voice!.line);
     if (l) keys.add(lineKey(def, l));
   }
   return [...keys];

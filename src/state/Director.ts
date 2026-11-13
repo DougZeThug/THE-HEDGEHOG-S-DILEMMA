@@ -12,7 +12,7 @@ import { Responses } from './director/responses';
 import { Approach } from './director/approach';
 import { Heart, NORTH_LINES } from './director/heart';
 import { WallLedger } from './director/ledger';
-import { RoomLife, AIR_LINES } from './director/roomLife';
+import { RoomLife } from './director/roomLife';
 import { Silence } from './director/silence';
 import { KITCHEN_LIGHT, MemoryRules } from './director/memoryRules';
 import { Admission } from './director/admission';
@@ -24,7 +24,7 @@ import { newSharedMarks, type QueueOptions, type RuleHost } from './director/hos
 import { Rng } from '../core/rng';
 import { EventScheduler } from '../core/scheduler';
 import { PHRASES, PHRASE_BY_ID } from '../content/phrases';
-import { DEPARTURE_BY_VISIT, DEPARTURE_STILL, WELCOME_BACK, type VoiceFragment } from '../content/relations';
+import { AIR_LINES, DEPARTURE_BY_VISIT, DEPARTURE_STILL, WELCOME_BACK, type VoiceFragment } from '../content/relations';
 import { WALLS, type Phase, type Wall, type Phrase, type Surface } from '../content/types';
 import { VisitorModel, type VisitorInput } from './VisitorModel';
 import { Memory } from './Memory';
@@ -44,7 +44,7 @@ import { pickRepertoire } from './situations/library';
 import { ROOM } from '../core/room';
 import type { Environment } from '../core/environment';
 
-export interface DirectorOptions {
+interface DirectorOptions {
   seed: number;
   visits?: number;
   /** How many times each living memory has been seen on earlier visits. */
@@ -550,7 +550,6 @@ export class Director implements RuleHost {
    * room has only just been left: a door closing behind them, or the chair settling with a
    * warmth still on it, or the hum simply dropping as the line is finished.
    */
-  /** Hold the room for the authored opening. */
   hold() {
     this.held = true;
   }
@@ -604,18 +603,9 @@ export class Director implements RuleHost {
   // ─────────────────────────── the visit's heart ───────────────────────────
   // (docs/reviews/2026-11-emotional-arc.md)
 
-  /**
-   * The App reports a living memory has gone (or could not begin). `seen`: watched past its first
-   * moments. Returns whether it counts as seen (persisted for revisits).
-   */
   /** Lines that have migrated to a wall that isn't theirs: phrase id → wall. */
   get strays(): ReadonlyMap<string, Surface> {
     return this.roomLife.strays;
-  }
-
-  /** Drawings drawn during this visit (each at most once). */
-  get drawn(): ReadonlySet<string> {
-    return this.writing.drawn;
   }
 
   /** A drawing found no room on its wall: it may be tried again later, once. */
@@ -623,7 +613,6 @@ export class Director implements RuleHost {
     this.writing.drawFailed(id);
   }
 
-  /** The kitchen-light memory has played. */
   get memoryPlayed(): boolean {
     return this.memoryRules.memoryPlayed;
   }
@@ -651,10 +640,6 @@ export class Director implements RuleHost {
     return this.memoryRules.memoryEnded(id, seen, ranToEnd);
   }
 
-  /** The answer the heart wrote beside "I wanted you to stay." (a phrase id), once. */
-  get heartAnswer(): string | null {
-    return this.heart.answer;
-  }
   answerKept(): string | null {
     return this.heart.answerKept();
   }
@@ -764,7 +749,7 @@ export class Director implements RuleHost {
   }
 
   /** How the visit went with the chair, in one word (see DEPARTURE_BY_VISIT). */
-  visitShape(how: 'door' | 'menu' = 'menu'): keyof typeof DEPARTURE_BY_VISIT {
+  private visitShape(how: 'door' | 'menu' = 'menu'): keyof typeof DEPARTURE_BY_VISIT {
     return visitShape(this.visitor, how);
   }
 
@@ -772,7 +757,7 @@ export class Director implements RuleHost {
     // The visit's sentence: the room's first line as the visit left it, and what its heart answered.
     const answer = this.heart.answerRead();
     if (answer && this.heart.hearts()) {
-      const stay = this.ledger.unfinished.has('stay') ? 'I wanted you to' : PHRASE_BY_ID.get('stay')!.text;
+      const stay = this.ledger.unfinished.has(PHRASE_IDS.stay) ? 'I wanted you to' : PHRASE_BY_ID.get(PHRASE_IDS.stay)!.text;
       return `${stay}\n${PHRASE_BY_ID.get(answer)!.text}`;
     }
     const shape = this.visitShape(this.wayOut.left ? 'door' : how);

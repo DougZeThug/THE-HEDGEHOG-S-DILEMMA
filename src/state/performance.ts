@@ -22,7 +22,7 @@ export function performancesFor(phraseId: string): readonly Performance[] {
 }
 
 /** How well a performance suits this moment: the field it was directed for, and the manner asked for. */
-export function suitability(p: Performance, field: FieldValues, style?: VoiceStyle): number {
+function suitability(p: Performance, field: FieldValues, style?: VoiceStyle): number {
   // A weighted mean, not a sum: a reading directed for more feelings at once must not win
   // simply because it lists more of them.
   let s = 0, total = 0;

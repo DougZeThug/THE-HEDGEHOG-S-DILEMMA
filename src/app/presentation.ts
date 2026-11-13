@@ -26,7 +26,7 @@ const GENTLE = {
   flinchGlow: 0.5,
 } as const;
 
-export type GentleKind = keyof typeof GENTLE;
+type GentleKind = keyof typeof GENTLE;
 
 /** At gentle intensity a held dim never takes the room's light below this fraction. */
 const GENTLE_DIM_FLOOR = 0.5;
@@ -42,6 +42,9 @@ export function gentle(intensity: Prefs['intensity'], kind: GentleKind): number 
 }
 
 /** How long each of the hints stays on screen (ms). */
+/** The most the room is ever hushed for a memory (-26 dB). */
+export const HUSH_MAX = 0.95;
+
 export const HINT_MS = { controls: 5500, walk: 5500, touch: 4500 } as const;
 
 /** Put a line in the hint's place for `ms`, then take it away. */

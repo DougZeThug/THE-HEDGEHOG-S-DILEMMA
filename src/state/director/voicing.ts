@@ -1,29 +1,21 @@
 import { PHRASES, PHRASE_BY_ID } from '../../content/phrases';
 import { ARCS } from '../../content/encounters';
-import { PHRASE_IDS } from '../../content/ids';
+import { FRAGMENT_IDS, PHRASE_IDS } from '../../content/ids';
 import { STAY_WORDS, type VoiceFragment } from '../../content/relations';
 import { WALLS, type Motif, type Phrase } from '../../content/types';
 import { VOICE_FRAGMENT_BY_ID } from '../../content/relations';
-import { FRAGMENT_IDS } from '../../content/ids';
 import type { VoicePosition } from '../cues';
 import type { VoiceKind } from '../../content/types';
 import { phaseAtLeast } from '../Phase';
 import { performancesFor, pickReadings } from '../performance';
 import { isSituation } from '../rules';
-import type { RuleHost } from './host';
+import type { RuleHost, RuleLinks } from './host';
 
 /** Lines with several directed readings, kept for their own meetings and a second hearing. */
-const KEPT_READINGS = new Set(['stay', 'love-go-away', 'happy-then']);
+const KEPT_READINGS = new Set([PHRASE_IDS.stay, 'love-go-away', 'happy-then']);
 
 /** What the voices need to know of the heart, the way out and the opening. */
-export interface VoicingLink {
-  /** The north wall is held for the heart's answer. */
-  northKept(): boolean;
-  /** "Stay" and its answers are never said near the way out. */
-  refusesStayWords(): boolean;
-  /** The old arrival (the walls already written). */
-  legacy: boolean;
-}
+type VoicingLink = Pick<RuleLinks, 'northKept' | 'refusesStayWords' | 'legacy'>;
 
 /**
  * The room's voices: whether it declines to say a line now, which recorded reading is cast, the
@@ -228,7 +220,7 @@ export class Voicing {
         this.fragment('motif-warmth', VOICE_FRAGMENT_BY_ID.get(FRAGMENT_IDS.laughNextRoom)!, { kind: 'beyond', surface: 'east' }, 3, 0.45);
         break;
       case 'distance':
-        this.h.reveal(this.h.rng.chance(0.5) ? 'far-enough' : 'happiest-unneeded', 2, 'motif-distance', 'emerge', 10);
+        this.h.reveal(this.h.rng.chance(0.5) ? PHRASE_IDS.farEnough : PHRASE_IDS.happiestUnneeded, 2, 'motif-distance', 'emerge', 10);
         break;
       case 'wandering':
         this.fragment('motif-wandering', VOICE_FRAGMENT_BY_ID.get(FRAGMENT_IDS.twoVoices)!, { kind: 'beyond', surface: this.h.rng.pick(WALLS) }, 6, 0.35);

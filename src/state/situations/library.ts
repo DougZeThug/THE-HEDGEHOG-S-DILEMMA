@@ -1,3 +1,4 @@
+import { FRAGMENT_IDS, SITUATION_IDS } from '../../content/ids';
 import { HUM_NOTE } from '../../core/hum';
 import { PHRASES, PHRASE_BY_ID } from '../../content/phrases';
 import { WALLS, type Phrase, type Surface } from '../../content/types';
@@ -9,8 +10,7 @@ function otherWalls(not: Surface[]): Surface[] {
   return WALLS.filter((w) => !not.includes(w));
 }
 
-/** A rest inside a hummed sequence. */
-export const REST = -100;
+const REST = -100;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. The next room
@@ -23,7 +23,7 @@ const LAUGH_SECONDS = 4.5;
 export const nextRoom: SituationDef = {
   id: 'next-room',
   maxLife: 720,
-  owns: ['vf-laugh-next-room'],
+  owns: [FRAGMENT_IDS.laughNextRoom],
   ready: (h, claimed) => h.phase !== 'arrival' && h.now > 25 && !claimed('beyond') && h.visitor.speed < 0.6,
   begin(c) {
     if (!c.claim('beyond')) return c.end('abort');
@@ -113,7 +113,7 @@ export const nextRoom: SituationDef = {
 function laugh(c: SituationContext, wall: Surface, gain: number, delay = 0) {
   c.emit(delay, {
     type: 'voice', kind: 'laugh', text: null, caption: '(laughter, through the wall)', position: { kind: 'beyond', surface: wall },
-    gain, assetId: 'vf-laugh-next-room', tag: 'next-room',
+    gain, assetId: FRAGMENT_IDS.laughNextRoom, tag: 'next-room',
   }, { major: true, ttl: 12 });
 }
 
@@ -294,7 +294,7 @@ export const residue: SituationDef = {
 //    the same word in it, and it appears faintly beside what is left.
 // ─────────────────────────────────────────────────────────────────────────────
 export const erosion: SituationDef = {
-  id: 'erosion',
+  id: SITUATION_IDS.erosion,
   tag: 'contribution',
   maxLife: 600,
   gentle: true,
@@ -321,7 +321,7 @@ export const erosion: SituationDef = {
   },
 };
 
-export const SITUATIONS: SituationDef[] = [nextRoom, humming, listening, residue, erosion];
+const SITUATIONS: SituationDef[] = [nextRoom, humming, listening, residue, erosion];
 export const SITUATION_BY_ID = new Map(SITUATIONS.map((s) => [s.id, s]));
 
 /**

@@ -4,7 +4,9 @@
  * the source. It changes only presentation (light levels, uniforms), never the Director's state
  * or timing. Nothing is stored: a value is kept by copying it into the code.
  */
-export interface TuneControl {
+import { ignored } from '../core/time';
+
+interface TuneControl {
   group: string;
   label: string;
   min: number;
@@ -76,7 +78,7 @@ export function mountTune(controls: TuneControl[], actions: { label: string; run
   fold(matchMedia('(pointer: coarse)').matches);
   setInterval(() => !body.hidden && refresh(), 1000);
   const values = () => JSON.stringify(Object.fromEntries(controls.map((c) => [`${c.group}.${c.label}`, +c.get().toFixed(3)])), null, 1);
-  const copy = { label: 'copy values', run: () => void navigator.clipboard?.writeText(values()).catch(() => {}) };
+  const copy = { label: 'copy values', run: () => void navigator.clipboard?.writeText(values()).catch(ignored) /* no clipboard permission: the values are still on screen */ };
   const toggles: [HTMLButtonElement, () => boolean][] = [];
   const pressed = () => {
     for (const [b, p] of toggles) b.setAttribute('aria-pressed', String(p()));

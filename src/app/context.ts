@@ -35,7 +35,7 @@ import type { Menus } from './menus';
 import type { Hints } from './hints';
 import type { ScreenWake } from './opening';
 
-export type Mode = 'threshold' | 'room' | 'settings' | 'contribute' | 'departed';
+type Mode = 'threshold' | 'room' | 'settings' | 'contribute' | 'departed';
 
 /** Everything `buildWorld` makes: built once, so none of it is ever half-initialised. */
 export interface World {
@@ -89,7 +89,6 @@ export class AppContext implements World {
   gazeChair = false;
   /** The piece of writing last touched (the memory's light falls where the visitor touched). */
   lastTappedKey: string | null = null;
-  /** The visitor has touched writing or the chair at least once. */
   touched = false;
   /** The visitor has dragged on the screen (so knows how to move). */
   dragged = false;
@@ -173,7 +172,7 @@ export interface Parts {
 /** What the parts may call on one another: only these, so a part's other members are its own. */
 export interface Peers {
   opening: Pick<Opening, 'active' | 'enter' | 'skipOpening' | 'advanceTitle'>;
-  living: Pick<LivingMemories, 'playMemory' | 'frameMemory' | 'endLivingMemory' | 'keepTrace' | 'memoryAudioHost' | 'memoryVoices' | 'resetClock'>;
+  living: Pick<LivingMemories, 'playMemory' | 'frameMemory' | 'endLivingMemory' | 'keepTrace' | 'memoryVoices' | 'resetClock'>;
   vignettes: Pick<Vignettes, 'playVignette' | 'spotWorld' | 'vignettesAvailable' | 'vignetteClock'>;
   cues: Pick<Cues, 'apply' | 'drawingsOn' | 'place' | 'writeWithVoice'>;
   menus: Pick<Menus, 'openSettings' | 'closeSettings' | 'openContribute' | 'closeContribute' | 'depart' | 'setPref' | 'leaving'>;

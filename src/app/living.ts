@@ -10,7 +10,6 @@ export interface Living {
   anchor: NonNullable<ReturnType<WallText['anchorOf']>>;
   /** What it leaves in the room (the kitchen's sun) has been handed over. */
   bled: boolean;
-  /** When the tab was hidden, while it is. */
   hiddenSince: number | null;
   /** Held at a position by the editor or a capture: shown as if played there, nothing sounds. */
   held: boolean;

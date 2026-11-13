@@ -7,6 +7,7 @@ import { Director } from '../state/Director';
 import { PHRASE_BY_ID } from '../content/phrases';
 import { SCENE_BY_PHRASE } from '../content/memories';
 import { voicesEnd, voicesStart } from '../content/memory-voices';
+import { isWallSurface } from '../world/layout';
 import { CLASS } from '../ui/dom';
 import type { AppContext, Peers } from './context';
 
@@ -32,10 +33,11 @@ export class Input {
     }
     // (Writing on a wall being looked at is touched, even close to the chair: a click on a line
     // offered there knelt instead. QA, 2026-11-06.)
-    const wallLine = !!this.ctx.gazeId && !this.ctx.gazeChair && ['north', 'east', 'south', 'west'].includes(this.ctx.text.items.get(this.ctx.gazeId)?.placement.surface ?? '');
+    const gazeSurface = this.ctx.gazeId ? this.ctx.text.items.get(this.ctx.gazeId)?.placement.surface : undefined;
+    const wallLine = !this.ctx.gazeChair && !!gazeSurface && isWallSurface(gazeSurface);
     if (this.ctx.gazeChair || (d < 1.2 && !wallLine)) {
       if (d < 1.5) this.ctx.rig.setKneel(true);
-      else this.ctx.rig.attend(this.ctx.chair.group.position.clone().setY(0.35), 0.95);
+      else this.lookAtChair();
       return;
     }
     this.attendGaze();
@@ -46,9 +48,14 @@ export class Input {
     if (!this.ctx.inside.look(dx, dy)) this.ctx.rig.look(dx, dy);
   }
 
+  /** Turn to the chair (not kneeling at it). */
+  private lookAtChair() {
+    this.ctx.rig.attend(this.ctx.chair.group.position.clone().setY(0.35), 0.95);
+  }
+
   attendGaze() {
     if (this.ctx.gazeChair) {
-      this.ctx.rig.attend(this.ctx.chair.group.position.clone().setY(0.35), 0.95);
+      this.lookAtChair();
       return;
     }
     if (this.ctx.gazeId) {
@@ -226,11 +233,13 @@ export class Input {
           if (centre) this.interact();
           lockWanted = true;
           // (Refused, the click still acts — once: not again if it already has.)
-          try {
-            const r = canvas.requestPointerLock() as unknown as Promise<void> | undefined;
-            r?.catch?.(() => !centre && this.interact());
-          } catch {
+          const refused = () => {
             if (!centre) this.interact();
+          };
+          try {
+            (canvas.requestPointerLock() as unknown as Promise<void> | undefined)?.catch?.(refused);
+          } catch {
+            refused();
           }
         } else this.interact();
       }
@@ -350,7 +359,7 @@ export class Input {
       this.ctx.touched = true;
       this.ctx.director.tapped({ chair: true });
       if (this.ctx.rig.distanceToChair() < 1.5) this.ctx.rig.setKneel(!this.ctx.rig.kneeling);
-      else this.ctx.rig.attend(this.ctx.chair.group.position.clone().setY(0.35), 0.95);
+      else this.lookAtChair();
       return;
     }
     const pad = 24;

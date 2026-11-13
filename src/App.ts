@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { parseLook, LOOKS, type PresetLookName } from './world/Style';
 import { ROOM_LEVELS } from './state/OpeningScore';
-import { RULE } from './state/rules';
+import { isLeavingBegun, isLeavingKept } from './state/rules';
 import type { VisitorInput } from './state/VisitorModel';
 import { loadPrefs, readVisits } from './ui/prefs';
 import { Captions } from './ui/Captions';
@@ -93,9 +93,6 @@ export class App {
   get renderer() {
     return this.ctx.renderer;
   }
-  get room() {
-    return this.ctx.room;
-  }
   get chair() {
     return this.ctx.chair;
   }
@@ -128,12 +125,6 @@ export class App {
   }
   get fps() {
     return this.debug.fps;
-  }
-  get captions() {
-    return this.ctx.captions;
-  }
-  get prefs() {
-    return this.ctx.prefs;
   }
   get mode() {
     return this.ctx.mode;
@@ -200,12 +191,6 @@ export class App {
   depart(how: 'door' | 'menu' = 'menu') {
     this.parts.menus.depart(how);
   }
-  openSettings() {
-    this.parts.menus.openSettings();
-  }
-  closeSettings() {
-    this.parts.menus.closeSettings();
-  }
 
   /** What the Director is told of the visitor each tick. `carried`: moved by a memory, not by themselves. */
   private directorInput(gazePhraseId: string | null, gazeChair: boolean, carried: boolean): VisitorInput {
@@ -263,8 +248,8 @@ export class App {
       for (const q of cues) {
         parts.cues.apply(q.cue);
         // The way out is told to a screen reader as it is seen: the room going, and what keeps or takes it.
-        if (q.rule === RULE.leaving && q.cue.type === 'silence') c.announce('The room begins to let you go. Walk on to leave; turn back, or wait, to stay.');
-        else if (q.rule === RULE.leavingKept) c.announce('The room comes back.');
+        if (isLeavingBegun(q)) c.announce('The room begins to let you go. Walk on to leave; turn back, or wait, to stay.');
+        else if (isLeavingKept(q.rule)) c.announce('The room comes back.');
       }
     }
 

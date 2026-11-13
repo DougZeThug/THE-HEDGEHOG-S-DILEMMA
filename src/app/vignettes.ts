@@ -6,16 +6,16 @@ import { MemoryClock } from '../memory/clock';
 import { VignettePlayer, type VignetteHost } from '../memory/VignettePlayer';
 import { isSpot, type SpotPlace } from '../memory/cueSheet';
 import { VIGNETTE_BY_ID, VIGNETTES, vignetteKeys, spokenLines, lineKey, type Effect, type GapKind } from '../content/vignettes';
-import { allVersions, chooseVoices, voicesId } from '../content/memory-voices';
-import { SCENE_MEMORIES } from '../content/memories';
+import { allVersions, voicesId } from '../content/memory-voices';
 import { countMemory } from '../ui/prefs';
 import { CLASS } from '../ui/dom';
 import { wallClock } from '../world/writePlan';
-import { gentle, gentleDim } from './presentation';
+import { gentle, gentleDim, HUSH_MAX } from './presentation';
+import { memoryAudioHost, previewWhisper } from './audioHost';
 import type { AppContext, Peers } from './context';
 
 /** Where a vignette's places in the room are measured from (fixed as it begins). */
-export interface SpotFrame {
+interface SpotFrame {
   eye: THREE.Vector3;
   fwd: THREE.Vector3;
   right: THREE.Vector3;
@@ -57,19 +57,6 @@ export class Vignettes {
     const id = p.get('vignette');
     return id ? { id, variant: p.get('variant') ?? 'first', at: null } : null;
   })();
-  /**
-   * `?memory=<id>[&variant=<v>][&voices=<version>]`: play a painted memory with its overheard
-   * voices, as a preview, a few seconds after the room is open (takes kept or not; an unrecorded
-   * line is a wordless voice with its caption).
-   */
-  private previewMemory: { id: string; variant: string; voices: string | null; at: number | null } | null = (() => {
-    const p = new URLSearchParams(location.search);
-    const id = p.get('memory');
-    if (!id || p.has('studio')) return null;
-    const variant = p.get('variant') ?? (SCENE_MEMORIES.find((m) => m.id === id)?.variants.first ?? 'first');
-    return { id, variant, voices: p.get('voices') ?? chooseVoices(id, variant, { seen: 0, visits: 1, field: {}, motifs: [], withdrew: false }), at: null };
-  })();
-
   constructor(
     private readonly ctx: AppContext,
     private readonly peers: Peers,
@@ -136,7 +123,7 @@ export class Vignettes {
   }
 
   private vignetteHost(def: { id: string }): VignetteHost | null {
-    const base = this.peers.living.memoryAudioHost();
+    const base = memoryAudioHost(this.ctx, this.peers);
     if (!base || !this.ctx.voices) return null;
     const voices = this.ctx.voices;
     return {
@@ -154,14 +141,11 @@ export class Vignettes {
       },
       // Not recorded yet (previews only): the words in a voice without words, and the caption.
       fallback: (cue, delay) => {
-        const text = cue.text ?? '';
         setTimeout(() => {
           // Previews only: a visitor hears kept takes or nothing (a take that failed to load stays silent).
           if (!this.ctx.vignette || this.ctx.vignette.id !== def.id || !this.ctx.vignette.preview) return;
           const from = isSpot(cue.place) ? this.spotWorld(cue.place) : base.where(cue.place);
-          void voices.playLine('whisper', text, { from }, 0.7, undefined, { synth: true, priority: true }).then((p) => {
-            if (p.duration > 0) this.ctx.captions.show(text, p.duration, false, cue.side);
-          });
+          previewWhisper(this.ctx, voices, cue, from);
         }, delay * 1000);
       },
       effect: (fx, delay) => {
@@ -213,7 +197,7 @@ export class Vignettes {
     const v = this.ctx.vignette;
     if (kind === 'silence' && v) {
       const hush = v.player.def.hush;
-      this.ctx.audio?.memoryHush(Math.min(0.95, hush + 0.35), 1.2);
+      this.ctx.audio?.memoryHush(Math.min(HUSH_MAX, hush + 0.35), 1.2);
       setTimeout(() => {
         if (this.ctx.vignette === v && !v.player.releasedHow) this.ctx.audio?.memoryHush(hush, 2);
       }, Math.max(0.5, seconds - 1) * 1000);
@@ -281,21 +265,6 @@ export class Vignettes {
 
   /** Each frame: the previews' turn, then the vignette playing now (its clock, its let-go, its end). */
   step() {
-    const pm = this.previewMemory;
-    if (pm && this.ctx.mode === 'room' && !this.peers.opening.active && !this.ctx.living) {
-      pm.at ??= wallClock() + 4;
-      if (wallClock() >= pm.at) {
-        this.previewMemory = null;
-        const phraseId = SCENE_MEMORIES.find((m) => m.id === pm.id)?.phraseId;
-        if (phraseId) {
-          if (!this.ctx.text.anchorOf(phraseId)) this.ctx.text.setShown(phraseId);
-          setTimeout(() => {
-            this.peers.living.frameMemory(phraseId);
-            void (this.ctx.voices?.loadPreview() ?? Promise.resolve()).then(() => this.peers.living.playMemory(pm.id, phraseId, pm.variant, pm.voices, true));
-          }, 600);
-        }
-      }
-    }
     const pv = this.previewVignette;
     if (pv && this.ctx.mode === 'room' && !this.peers.opening.active && !this.ctx.living) {
       pv.at ??= wallClock() + 4;
