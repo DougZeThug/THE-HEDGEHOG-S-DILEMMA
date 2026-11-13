@@ -2,17 +2,19 @@ import { DRAWINGS, DRAWING_BY_ID } from '../content/drawings';
 import { MemoryDirector, type PendingEcho } from './MemoryDirector';
 import { VIGNETTE_BY_ID, lineKey } from '../content/vignettes';
 import { HEART_AFTER_RECOIL, HEART_ANSWER, HEART_DECIDE, heartOf, SCENE_MEMORIES, type HeartShape } from '../content/memories';
+import { computeEnvironment, type Environment } from './director/environment';
+import { Contributions } from './director/contributions';
+import type { QueueOptions, RuleHost } from './director/host';
 import { Rng } from '../core/rng';
 import { EventScheduler } from '../core/scheduler';
-import { clamp, smoothstep } from '../core/math';
 import { PHRASES, PHRASE_BY_ID } from '../content/phrases';
 import { DEPARTURE_BY_VISIT, DEPARTURE_STILL, RECONTEXTS, VOICE_FRAGMENT_BY_ID, VOICE_FRAGMENTS, type VoiceFragment } from '../content/relations';
 import { WALLS, oppositeWall, type Motif, type Phase, type Wall, type Phrase, type Surface, type Tier } from '../content/types';
 import { VisitorModel, type VisitorInput } from './VisitorModel';
 import { Memory, warmthOf } from './Memory';
 import { EmotionalField } from './EmotionalField';
-import { PhaseTracker, lateness, phaseAtLeast } from './Phase';
-import { RULE, ROOM_OWN, encounterRule, isContribution, isEncounter, isMeetingOrContribution, isPhaseTurn, isSituation, isSituationLife, isStillness, parseEncounterRule, ruleSource } from './rules';
+import { PhaseTracker, phaseAtLeast } from './Phase';
+import { RULE, ROOM_OWN, encounterRule, isEncounter, isMeetingOrContribution, isPhaseTurn, isSituation, isSituationLife, isStillness, parseEncounterRule, ruleSource } from './rules';
 import { WriteKeys, isHeartKey, isMemoryOrHeartKey, parseWriteKey } from './writeKeys';
 import { DRAWING_IDS, FRAGMENT_IDS, MEMORY_IDS, PHRASE_IDS } from '../content/ids';
 import { Engagement } from './Engagement';
@@ -23,36 +25,11 @@ import type { Interpretation } from '../interpret/schema';
 import { ARCS, type Arc, type EncounterBeat, type Gesture } from '../content/encounters';
 import { belonging, CHARACTER_WALLS } from '../content/walls';
 import { rankPerformances, performancesFor } from './performance';
-import { SituationRunner, type PhraseGeometry, type SituationHost, type ContributionTrace } from './situations/Situation';
+import { SituationRunner, type PhraseGeometry, type SituationHost } from './situations/Situation';
 import { pickRepertoire } from './situations/library';
-import { keptWord } from '../core/words';
 import { ROOM } from '../world/layout';
-import { hashString } from '../core/rng';
 
-/** Continuous environment targets, recomputed every tick from the field. */
-export interface Environment {
-  lightIntensity: number;
-  /** -1 cool … +1 warm */
-  lightWarmth: number;
-  /** Radians the key light (and so the chair's shadow) has drifted from where it should be. */
-  shadowDrift: number;
-  /** 1 = room as built; >1 walls further away. */
-  roomScale: number;
-  /** 0..1, near-black at emotional extremes and at departure. */
-  darkness: number;
-  /** Clarity of the writing. */
-  textContrast: number;
-  /** Local warm glow around the chair. */
-  chairGlow: number;
-  saturation: number;
-  // audio
-  hum: number;
-  vent: number;
-  outside: number;
-  drone: number;
-  droneBrightness: number;
-  reverb: number;
-}
+export type { Environment };
 
 export interface VisibleState {
   mode: 'shown' | 'still';
@@ -118,7 +95,7 @@ export const CLOSE_TURN = 1.9;
  */
 const DESIGNED = 3;
 
-export class Director {
+export class Director implements RuleHost {
   readonly visitor = new VisitorModel();
   readonly memory = new Memory();
   readonly field = new EmotionalField();
@@ -159,9 +136,9 @@ export class Director {
     return (WALLS as readonly Surface[]).includes(this._facing) ? (this._facing as Wall) : null;
   }
   readonly situations: SituationRunner;
+  private readonly contributions = new Contributions(this);
   private readonly host: SituationHost;
-  private readonly owned: Set<string>;
-  private lastContrib: ContributionTrace | null = null;
+  readonly owned: Set<string>;
   private geometry: (id: string) => PhraseGeometry | undefined;
   private inView: (phraseId: string) => boolean;
   private annotationsUsed = new Set<string>();
@@ -270,11 +247,10 @@ export class Director {
   private lastSeenWithdraw = -Infinity;
   private chairNudges = 0;
   private kneelVoiced = false;
-  private contributionCount = 0;
   private nextDistantLife = 45;
   private openingDone = false;
   private readonly legacy: boolean;
-  private readonly seed: number;
+  readonly seed: number;
   /** Memories seen on earlier visits, and this visit's coin for a shared heart (content/memories.ts heartOf). */
   private memoryCounts: Record<string, number>;
   private readonly heartCoin: number;
@@ -383,7 +359,7 @@ export class Director {
         return d.musicWithdrawn;
       },
       markMusic: () => d.scheduler.mark('music', d.now),
-      lastContribution: () => d.lastContrib,
+      lastContribution: () => d.contributions.last,
       // A situation is a strong thing: it doesn't begin over a meeting, inside a held silence,
       // or while the room is still recovering from something else.
       attending: () => d.attending() || d.aftermath() || d.pacing.holding(d.now) || !d.pacing.intenseFree(d.now) || !d.scheduler.majorFree(d.now),
@@ -411,7 +387,7 @@ export class Director {
     return this.heldBeats.size > 0 || this.memoryAwaited() || !!this.scenes.active || this.scheduler.pending().some((e) => isEncounter(e.payload.rule) && e.payload.cue.type === 'voice');
   }
 
-  private ctx(): SelectContext {
+  ctx(): SelectContext {
     return {
       field: this.field.v,
       phase: this.phase,
@@ -422,13 +398,13 @@ export class Director {
     };
   }
 
-  private queue(delay: number, cue: Cue, rule: string, opts: { major?: boolean; key?: string; ttl?: number; priority?: number } = {}) {
+  queue(delay: number, cue: Cue, rule: string, opts: QueueOptions = {}) {
     // The room's own events never come together (a burst reads as a machine): spaced by the scheduler.
     const source = ruleSource(rule);
     this.scheduler.schedule(this.now + delay, { cue, rule }, { ...opts, room: source === 'room', group: rule, marks: source === 'turn' });
   }
 
-  private reveal(id: string, delay: number, rule: string, mode: 'emerge' | 'still' = 'emerge', seconds = 9) {
+  reveal(id: string, delay: number, rule: string, mode: 'emerge' | 'still' = 'emerge', seconds = 9) {
     const p = PHRASE_BY_ID.get(id);
     if (!p || p.tier === 'annotation') return;
     this.queue(delay, { type: 'reveal', phraseId: id, mode, seconds }, rule, { key: `reveal:${id}` });
@@ -452,7 +428,7 @@ export class Director {
   }
 
   /** Queues the voice; false when the room declined to speak (nothing was queued or counted). */
-  private voice(
+  voice(
     rule: string,
     delay: number,
     kind: VoiceKind,
@@ -506,14 +482,14 @@ export class Director {
   }
 
   /** Says a phrase; only a voice that was queued is counted as spoken. */
-  private speakPhrase(rule: string, p: Phrase, position: VoicePosition, delay = 0, styleOverride?: Phrase['voice'], gain = 0.8): boolean {
+  speakPhrase(rule: string, p: Phrase, position: VoicePosition, delay = 0, styleOverride?: Phrase['voice'], gain = 0.8): boolean {
     const style = styleOverride ?? p.voice ?? 'whisper';
     if (!this.voice(rule, delay, style, p.text, p.text, position, { phraseId: p.id, gain })) return false;
     this.memory.spoken.set(p.id, this.now + delay);
     return true;
   }
 
-  private fragment(rule: string, f: VoiceFragment, position: VoicePosition, delay = 0, gain = 0.6) {
+  fragment(rule: string, f: VoiceFragment, position: VoicePosition, delay = 0, gain = 0.6) {
     if (position.kind === 'chair' && this.situations.claimed('chair-voice') && !isSituation(rule)) return;
     // Sounds that belong to an authored situation are not used as generic texture.
     if (this.owned.has(f.id) && !isSituation(rule)) return;
@@ -2280,93 +2256,22 @@ export class Director {
   // ───────────────────────────── environment ─────────────────────────────
 
   computeEnv(): Environment {
-    const f = this.field.v;
-    const m = this.memory.strength;
-    const v = this.visitor;
-    const late = lateness(this.phase);
-    const extreme = smoothstep(0.6, 0.95, f.exposure * 0.6 + f.tension * 0.6);
-    return {
-      lightIntensity: clamp(0.95 + 0.16 * f.exposure - 0.12 * f.hush - 0.1 * f.solitude * (1 - f.relief) + 0.05 * f.warmth, 0.55, 1.25),
-      lightWarmth: clamp(0.65 * f.warmth + 0.45 * f.reminiscence - 0.55 * f.exposure - 0.3 * f.solitude * (1 - f.reminiscence) + 0.2 * f.relief, -1, 1),
-      shadowDrift: 0.42 * f.dissonance + 0.5 * m.hesitation + 0.15 * late,
-      roomScale: Math.max(1, 1 + 0.13 * f.solitude * (0.4 + late) + 0.07 * (v.kneeling ? 1 : 0) + 0.04 * f.hush - 0.04 * f.exposure * late),
-      darkness: clamp(0.35 * extreme + 0.18 * smoothstep(40, 120, v.deepStillFor) + (this.departing ? 1 : 0)),
-      textContrast: clamp(1 + 0.35 * f.hush - 0.2 * f.tension + 0.1 * f.reminiscence, 0.7, 1.4),
-      chairGlow: clamp(0.15 + 0.6 * f.warmth * (1 - f.exposure) + 0.25 * m.closeness),
-      saturation: clamp(0.85 + 0.2 * f.warmth + 0.15 * f.reminiscence - 0.3 * f.exposure - 0.2 * f.solitude, 0.45, 1.15),
-      hum: clamp(1 - 0.75 * f.hush + 0.2 * f.exposure),
-      vent: clamp(0.9 - 0.85 * f.hush),
-      outside: clamp(0.25 + 0.5 * f.solitude * (1 - f.hush) + 0.2 * f.relief),
-      drone: clamp(0.18 + 0.35 * f.dissonance + 0.3 * f.exposure + 0.2 * f.reminiscence - 0.25 * f.hush),
-      droneBrightness: clamp(0.3 + 0.4 * f.warmth - 0.2 * f.solitude + 0.3 * f.tension),
-      reverb: clamp(0.35 + 0.4 * (this.env ? this.env.roomScale - 1 : 0) * 4 + 0.2 * f.solitude + 0.15 * (v.kneeling ? 1 : 0)),
-    };
+    return computeEnvironment({
+      field: this.field.v,
+      strength: this.memory.strength,
+      phase: this.phase,
+      kneeling: this.visitor.kneeling,
+      deepStillFor: this.visitor.deepStillFor,
+      departing: this.departing,
+      previousRoomScale: this.env?.roomScale,
+    });
   }
 
   // ───────────────────────────── contributions ─────────────────────────────
 
-  /**
-   * A visitor's words become material in the room. The text itself is passed to the
-   * world once (to be written on a wall) and is not retained by the Director.
-   */
+  /** A visitor's words become material in the room (the text is passed to the world once and not retained). */
   contribute(text: string, it: Interpretation): void {
-    this.contributionCount++;
-    this.engagement.raise('contribute', this.now);
-    this.memory.contributions.push({ dims: it.dims, at: this.now });
-    const key = WriteKeys.contribution(this.contributionCount);
-    this.lastContrib = { key, keep: keptWord(text), surface: this.facing, at: this.now };
-    // The words are always written. The room does not reply: at most one other thing
-    // happens, often nothing, and anything related surfaces much later, as if by itself.
-    this.queue(0.5, { type: 'write', key, text, hand: 'visitor', size: text.length > 60 ? 'xs' : 's', surface: this.facing, purpose: 'contribution', ttl: 0 }, 'contribution');
-    const options = it.gestures.filter((g) => g !== 'writeOnWall');
-    // Its own stream of chance, so what a visitor's words bring doesn't shift whenever some
-    // unrelated rule of the room is added or changed.
-    const r = new Rng(hashString(`contribution:${this.seed}:${this.contributionCount}`));
-    if (!options.length || r.chance(0.4)) return;
-    const g = r.pick(options);
-    const later = r.range(60, 180);
-    switch (g) {
-      case 'quiet':
-        this.queue(1, { type: 'silence', depth: 0.45 + 0.25 * it.intensity, seconds: 10 }, 'contribution-quiet', { major: true, ttl: 6 });
-        break;
-      case 'revealRelated': {
-        const p = it.related.map((id) => PHRASE_BY_ID.get(id)).find((x) => x && x.tier !== 'annotation' && !this.visible.has(x.id));
-        if (p) this.reveal(p.id, later, 'contribution-related', 'emerge', 12);
-        break;
-      }
-      case 'distantRecollection': {
-        const p = it.related.map((id) => PHRASE_BY_ID.get(id)).find((x) => x?.voice && !this.memory.spoken.has(x.id));
-        if (p) this.speakPhrase('contribution-recollection', p, { kind: 'beyond', surface: this.rng.pick(WALLS) }, later, 'distant', 0.45);
-        else this.fragment('contribution-recollection', VOICE_FRAGMENT_BY_ID.get(FRAGMENT_IDS.twoVoices)!, { kind: 'beyond', surface: 'west' }, later, 0.35);
-        break;
-      }
-      case 'rearrange': {
-        const a = it.related[0];
-        const b = it.contradictions[0];
-        if (!a || !b) break;
-        if (!this.visible.has(b)) this.reveal(b, later, 'contribution-rearrange', 'emerge', 10);
-        const pa = PHRASE_BY_ID.get(a);
-        const pb = PHRASE_BY_ID.get(b);
-        if (pa && pb && pa.surface === pb.surface) this.queue(later + 12, { type: 'link', a, b, ttl: 60 }, 'contribution-rearrange');
-        break;
-      }
-      case 'temperatureShift': {
-        // Authored asymmetries rather than sentiment colours: grief warms the light (memory),
-        // anger cools and hardens it, joy brings a little ache with it, shame makes the room look away.
-        const d = it.dims;
-        this.field.nudge({
-          warmth: 0.25 * (d.grief ?? 0) + 0.15 * (d.affection ?? 0) + 0.1 * (d.happiness ?? 0) - 0.15 * (d.anger ?? 0),
-          reminiscence: 0.4 * (d.nostalgia ?? 0) + 0.2 * (d.grief ?? 0) + 0.15 * (d.happiness ?? 0),
-          tension: 0.25 * (d.anger ?? 0) + 0.1 * (d.fear ?? 0),
-          exposure: -0.2 * (d.shame ?? 0) + 0.1 * (d.affection ?? 0),
-          hush: 0.2 * (d.fear ?? 0) + 0.15 * (d.uncertainty ?? 0),
-          dissonance: 0.12 * (d.happiness ?? 0) + 0.3 * (d.contradiction ?? 0),
-          solitude: 0.2 * (d.isolation ?? 0),
-          relief: 0.15 * (d.isolation ?? 0) + 0.2 * (d.forgiveness ?? 0),
-        });
-        break;
-      }
-    }
+    this.contributions.add(text, it);
   }
 
   /** The world could not find room for a piece of writing: let its relation be tried again later. */
@@ -2441,10 +2346,7 @@ export class Director {
   }
 
   forgetContributions(): void {
-    this.lastContrib = null;
-    this.situations.dropTagged('contribution');
-    this.memory.contributions = [];
-    this.scheduler.cancelWhere((e) => isContribution(e.rule));
+    this.contributions.forget();
   }
 
   // ───────────────────────────── leaving ─────────────────────────────
