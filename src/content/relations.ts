@@ -1,3 +1,4 @@
+import { PHRASE_IDS } from './ids';
 import type { DimVector, Hand } from './types';
 
 /**
@@ -188,11 +189,17 @@ export const THRESHOLD_LINES = [
 ];
 
 
+const ANSWER_LINES: readonly { id: string; air?: true }[] = [
+  { id: 'w-stay' }, { id: 'closer', air: true }, { id: 'need-no-one' }, { id: 'if-closer' }, { id: 'not-going' }, { id: 'still-here' },
+  { id: PHRASE_IDS.farEnough, air: true }, { id: 'afraid-leave' }, { id: 'come-back-dont', air: true }, { id: 'maybe-wanted' }, { id: 'w-away' }, { id: 'w-almost' },
+];
 /** The lines that answer "I wanted you to stay." (kept back while it is unfinished). */
-export const ANSWERS_TO_STAY = ['w-stay', 'closer', 'need-no-one', 'if-closer', 'not-going', 'still-here', 'far-enough', 'afraid-leave', 'come-back-dont', 'maybe-wanted', 'w-away', 'w-almost'];
+const ANSWERS_TO_STAY: readonly string[] = ANSWER_LINES.map((a) => a.id);
+/** Answers that may also be written in the air, in order of preference. */
+export const AIR_LINES: readonly string[] = ANSWER_LINES.filter((a) => a.air).map((a) => a.id);
 /** Lines kept back while the key line is left unfinished (nothing answers it but the visitor finishing it). */
-export const WITHHELD_WHILE_UNFINISHED: Readonly<Record<string, readonly string[]>> = { stay: ANSWERS_TO_STAY };
+export const WITHHELD_WHILE_UNFINISHED: Readonly<Record<string, readonly string[]>> = { [PHRASE_IDS.stay]: ANSWERS_TO_STAY };
 /** The lines that welcome someone back into the room they left (preferred when they return within a session). */
 export const WELCOME_BACK: ReadonlySet<string> = new Set(['glad-came', 'remember-me']);
 /** "I wanted you to stay." and what answers it: never said near the way out. */
-export const STAY_WORDS: ReadonlySet<string> = new Set(['stay', ...ANSWERS_TO_STAY]);
+export const STAY_WORDS: ReadonlySet<string> = new Set([PHRASE_IDS.stay, ...ANSWERS_TO_STAY]);

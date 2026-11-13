@@ -170,7 +170,7 @@ export class Writing {
   opening() {
     if (this.openingDone || this.h.now < 0.3) return;
     this.openingDone = true;
-    const focal = this.h.visits <= 1 ? 'stay' : this.h.rng.pick(['stay', 'closer', 'not-going']);
+    const focal = this.h.visits <= 1 ? PHRASE_IDS.stay : this.h.rng.pick([PHRASE_IDS.stay, 'closer', 'not-going']);
     this.h.queue(0, { type: 'redraw', phraseId: focal, seconds: 4.5 }, 'opening');
     const r = this.h.rng.next();
     if (r < 0.4) {

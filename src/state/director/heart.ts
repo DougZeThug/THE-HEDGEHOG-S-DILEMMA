@@ -1,4 +1,5 @@
 // The visit's heart (docs/reviews/2026-11-emotional-arc.md)
+import { PHRASE_IDS } from '../../content/ids';
 import { Rng } from '../../core/rng';
 import { HEART_AFTER_RECOIL, HEART_ANSWER, HEART_DECIDE, HEART_RETRY, heartOf, type HeartShape } from '../../content/memories';
 import { PHRASE_BY_ID, PHRASES } from '../../content/phrases';
@@ -84,16 +85,16 @@ export class Heart {
    */
   keptAnswer() {
     // (With the first line gone there is nothing to write it beside: the wall is not held for it.)
-    if (this.keptWaits && !this.h.visible.has('stay')) this.keptWaits = false;
+    if (this.keptWaits && !this.h.visible.has(PHRASE_IDS.stay)) this.keptWaits = false;
     // (Not while a memory plays: nothing is written then, and it would be lost. After it, it is found.)
-    if (!this.pastAnswer || this.pastForgotten || !this.hearts() || this.keptFound || this.h.now < this.keptAgainAt || this.h.departing || this.h.scenes.active || !this.h.visible.has('stay')) return;
-    if (this.o.inView('stay') || PHRASE_BY_ID.get('stay')!.surface === this.h.facing) return;
+    if (!this.pastAnswer || this.pastForgotten || !this.hearts() || this.keptFound || this.h.now < this.keptAgainAt || this.h.departing || this.h.scenes.active || !this.h.visible.has(PHRASE_IDS.stay)) return;
+    if (this.o.inView(PHRASE_IDS.stay) || PHRASE_BY_ID.get(PHRASE_IDS.stay)!.surface === this.h.facing) return;
     this.keptFound = true;
     this.keptWaits = false;
     // (This visit's own heart has already written the same line there.)
     if (this.answer === this.pastAnswer) return;
     const a = PHRASE_BY_ID.get(this.pastAnswer)!;
-    this.h.queue(0, { type: 'write', key: WriteKeys.heart(a.id), text: a.text, hand: a.hand, size: 's', beside: 'stay', purpose: 'annotation', ttl: 0, source: a.id, found: true }, 'heart-kept');
+    this.h.queue(0, { type: 'write', key: WriteKeys.heart(a.id), text: a.text, hand: a.hand, size: 's', beside: PHRASE_IDS.stay, purpose: 'annotation', ttl: 0, source: a.id, found: true }, 'heart-kept');
   }
 
   /**
@@ -102,17 +103,17 @@ export class Heart {
    */
   writeAnswer() {
     if (!this.heartSeen || this.answer || this.h.now < this.heartAnswerAt || this.h.departing || this.h.scenes.active) return;
-    if (this.h.pacing.holding(this.h.now) || this.h.pacing.repeats('text', this.h.now, 6) || !this.h.visible.has('stay')) return;
+    if (this.h.pacing.holding(this.h.now) || this.h.pacing.repeats('text', this.h.now, 6) || !this.h.visible.has(PHRASE_IDS.stay)) return;
     // (Not while the first line is in view: found, not watched. QA: the wall faced was not enough,
     // the line was in the middle of the frame at a diagonal.)
-    if (this.o.inView('stay') && this.h.now < this.heartAnswerAt + 40) return;
+    if (this.o.inView(PHRASE_IDS.stay) && this.h.now < this.heartAnswerAt + 40) return;
     const a = PHRASE_BY_ID.get(HEART_ANSWER[this.heartSeen] ?? '');
     if (!a) return;
     this.answer = a.id;
     this.answerWaits = false;
     // (The last visit left the same line, and it has been found there: it is already written.)
     if (this.keptFound && this.pastAnswer === a.id) return;
-    this.h.queue(0, { type: 'write', key: WriteKeys.heart(a.id), text: a.text, hand: a.hand, size: 's', beside: 'stay', purpose: 'annotation', ttl: 0, source: a.id }, 'heart-answer');
+    this.h.queue(0, { type: 'write', key: WriteKeys.heart(a.id), text: a.text, hand: a.hand, size: 's', beside: PHRASE_IDS.stay, purpose: 'annotation', ttl: 0, source: a.id }, 'heart-answer');
   }
 
   /** A living memory the visit counted has ended: if it was the heart and was seen, what it leaves comes once its aftermath is over. */

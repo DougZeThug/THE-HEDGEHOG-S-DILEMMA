@@ -1,7 +1,7 @@
 import { CHARACTER_WALLS, belonging } from '../../content/walls';
 import { PHRASES, PHRASE_BY_ID } from '../../content/phrases';
 import { PHRASE_IDS, FRAGMENT_IDS } from '../../content/ids';
-import { RECONTEXTS, VOICE_FRAGMENTS, VOICE_FRAGMENT_BY_ID } from '../../content/relations';
+import { AIR_LINES, RECONTEXTS, VOICE_FRAGMENTS, VOICE_FRAGMENT_BY_ID } from '../../content/relations';
 import { WALLS, type Phrase, type Surface, type Tier } from '../../content/types';
 import { phaseAtLeast } from '../Phase';
 import { TIER_OPEN, type SelectQuery } from '../PhraseSelector';
@@ -9,9 +9,6 @@ import { devKind } from '../Pacing';
 import type { VisitorInput } from '../VisitorModel';
 import { WriteKeys } from '../writeKeys';
 import type { RuleHost } from './host';
-
-/** What may be written in the air, in order of preference. */
-export const AIR_LINES: readonly string[] = ['closer', 'far-enough', 'come-back-dont'];
 
 /** What room life needs to know of the heart: the north wall is held while its answer waits. */
 export interface RoomLifeLink {

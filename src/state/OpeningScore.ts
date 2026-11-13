@@ -12,6 +12,7 @@
  * inspected, tested and skipped. The App applies the levels to light, image and sound each
  * frame and performs the events once each. Time is wall-clock seconds since the tap.
  */
+import { PHRASE_IDS } from '../content/ids';
 
 export type Stage = 'title' | 'dark' | 'chair' | 'room' | 'writing' | 'voice' | 'handoff' | 'done';
 
@@ -120,9 +121,9 @@ export function openingScore(o: { returning: boolean; touch: boolean }): Score {
         walk: [[T + 2.4, 0], [T + 2.5, 1]],
       },
       events: [
-        { at: 0, kind: 'prepare', phrases: ['stay'] },
+        { at: 0, kind: 'prepare', phrases: [PHRASE_IDS.stay] },
         { at: T + 0.3, kind: 'sound', key: 'sfx:switch', where: 'door', gain: 0.55, caption: '[a switch]' },
-        { at: T + 4.6, kind: 'write', phrase: 'stay', upto: 4, sound: 'sfx:graphite' },
+        { at: T + 4.6, kind: 'write', phrase: PHRASE_IDS.stay, upto: 4, sound: 'sfx:graphite' },
         { at: T + 8.5, kind: 'handoff' },
       ],
       handoff: T + 8.5,
@@ -160,14 +161,14 @@ export function openingScore(o: { returning: boolean; touch: boolean }): Score {
     },
     events: [
       // In the dark, while the title holds: the first lines are made ready.
-      { at: 0.4, kind: 'prepare', phrases: ['stay'] },
+      { at: 0.4, kind: 'prepare', phrases: [PHRASE_IDS.stay] },
       // Someone has just got up from the chair; then the switch by the door.
       { at: at(0.1), kind: 'sound', key: 'sfx:chair-creak', where: 'chair', gain: 0.22, caption: '[a chair creaks]' },
       { at: at(1.0), kind: 'sound', key: 'sfx:switch', where: 'door', gain: 0.55, caption: '[a switch]' },
-      { at: at(8.6), kind: 'write', phrase: 'stay', upto: 4, sound: 'sfx:graphite' },
+      { at: at(8.6), kind: 'write', phrase: PHRASE_IDS.stay, upto: 4, sound: 'sfx:graphite' },
       // The laugh comes after the hand has stopped and the stop has been held (the App waits for
       // the hand: this is the earliest it may come).
-      { at: at(13.0), kind: 'voice', phrase: 'crumbs', file: 'dialogue/crumbs--laughing.mp3', text: "You've got crumbs on you.", hand: 'crayon', besideOf: 'stay', afterStop: 2.0 },
+      { at: at(13.0), kind: 'voice', phrase: 'crumbs', file: 'dialogue/crumbs--laughing.mp3', text: "You've got crumbs on you.", hand: 'crayon', besideOf: PHRASE_IDS.stay, afterStop: 2.0 },
       { at: at(17.6), kind: 'handoff' },
     ],
     handoff: at(17.6),
@@ -175,7 +176,7 @@ export function openingScore(o: { returning: boolean; touch: boolean }): Score {
 }
 
 /** What the opening leaves behind, for the Director to know at the hand-off. */
-export const OPENING_WRITTEN = ['stay'];
+export const OPENING_WRITTEN = [PHRASE_IDS.stay];
 export const OPENING_SPOKEN = ['crumbs'];
 /** Left unfinished: "I wanted you to" — finished later by someone who stays with it, or never. */
-export const OPENING_UNFINISHED = ['stay'];
+export const OPENING_UNFINISHED = [PHRASE_IDS.stay];

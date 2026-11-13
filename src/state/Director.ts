@@ -12,7 +12,7 @@ import { Responses } from './director/responses';
 import { Approach } from './director/approach';
 import { Heart, NORTH_LINES } from './director/heart';
 import { WallLedger } from './director/ledger';
-import { RoomLife, AIR_LINES } from './director/roomLife';
+import { RoomLife } from './director/roomLife';
 import { Silence } from './director/silence';
 import { KITCHEN_LIGHT, MemoryRules } from './director/memoryRules';
 import { Admission } from './director/admission';
@@ -24,7 +24,7 @@ import { newSharedMarks, type QueueOptions, type RuleHost } from './director/hos
 import { Rng } from '../core/rng';
 import { EventScheduler } from '../core/scheduler';
 import { PHRASES, PHRASE_BY_ID } from '../content/phrases';
-import { DEPARTURE_BY_VISIT, DEPARTURE_STILL, WELCOME_BACK, type VoiceFragment } from '../content/relations';
+import { AIR_LINES, DEPARTURE_BY_VISIT, DEPARTURE_STILL, WELCOME_BACK, type VoiceFragment } from '../content/relations';
 import { WALLS, type Phase, type Wall, type Phrase, type Surface } from '../content/types';
 import { VisitorModel, type VisitorInput } from './VisitorModel';
 import { Memory } from './Memory';
@@ -772,7 +772,7 @@ export class Director implements RuleHost {
     // The visit's sentence: the room's first line as the visit left it, and what its heart answered.
     const answer = this.heart.answerRead();
     if (answer && this.heart.hearts()) {
-      const stay = this.ledger.unfinished.has('stay') ? 'I wanted you to' : PHRASE_BY_ID.get('stay')!.text;
+      const stay = this.ledger.unfinished.has(PHRASE_IDS.stay) ? 'I wanted you to' : PHRASE_BY_ID.get(PHRASE_IDS.stay)!.text;
       return `${stay}\n${PHRASE_BY_ID.get(answer)!.text}`;
     }
     const shape = this.visitShape(this.wayOut.left ? 'door' : how);

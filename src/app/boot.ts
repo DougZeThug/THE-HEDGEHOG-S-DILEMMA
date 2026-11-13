@@ -3,6 +3,7 @@
  * renderer, the room, the chair, the light, the writing, the camera, the Director and the grade.
  * Everything comes out defined; nothing is filled in later.
  */
+import { PHRASE_IDS } from '../content/ids';
 import * as THREE from 'three';
 import { Room } from '../world/Room';
 import { loadScans, releaseScans } from '../world/scans';
@@ -147,7 +148,7 @@ export function warmUp(ctx: AppContext, immersion: Immersion): void {
   ctx.room.frames.north.writing.add(ctx.memoryLight.mesh);
   ctx.room.frames.north.writing.add(ctx.memoryWindow.mesh);
   // (The streetlights' quad too, lit by nothing, so its program is compiled now.)
-  ctx.street.place(ctx.text.anchorOf('stay') ?? { group: ctx.room.frames.north.writing, minX: -3, maxX: 3, minY: -1.7, maxY: 1.7 });
+  ctx.street.place(ctx.text.anchorOf(PHRASE_IDS.stay) ?? { group: ctx.room.frames.north.writing, minX: -3, maxX: 3, minY: -1.7, maxY: 1.7 });
   ctx.street.mesh.visible = true;
   ctx.renderer.setRenderTarget(ctx.post.composer.readBuffer);
   ctx.renderer.compile(ctx.scene, ctx.rig.camera);
