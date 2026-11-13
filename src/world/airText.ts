@@ -34,7 +34,6 @@ interface AirItem {
  * shadow on the floor. At most one piece at a time.
  */
 export class AirWriting {
-  /** Add to the scene. */
   readonly group = new THREE.Group();
   /** The key light's strength relative to the room's usual (the shadow follows it). */
   shadowLight = 1;

@@ -110,7 +110,6 @@ export class WallText {
   faintBoost = 1;
   /** Writing in the air: at most one piece, which goes when approached. */
   private airText = new AirWriting(this.geo, () => this.reducedMotion);
-  /** Add to the scene. */
   get air(): THREE.Group {
     return this.airText.group;
   }

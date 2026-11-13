@@ -215,7 +215,6 @@ export class Voices {
     const send = c.createGain();
     send.gain.value = reverb;
     outNode.connect(send).connect(this.a.reverbIn);
-    // Detach after the sound is done.
     setTimeout(() => {
       try {
         input.disconnect();

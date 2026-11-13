@@ -289,7 +289,6 @@ export class VoiceSynth {
     }
     const bank = this.formantBank(src, st.formantShift, st.voiced ? 6 : 9, sum);
 
-    // Consonant layer.
     const fric = c.createBiquadFilter();
     fric.type = 'highpass';
     fric.frequency.value = 3800;
@@ -343,13 +342,11 @@ export class VoiceSynth {
     n.connect(bp).connect(g).connect(tail);
     for (let i = 0; i < cycles; i++) {
       const t = t0 + i * 3.4;
-      // inhale
       bp.frequency.setValueAtTime(900, t);
       bp.frequency.linearRampToValueAtTime(1600, t + 1.1);
       g.gain.setValueAtTime(0, t);
       g.gain.linearRampToValueAtTime(0.35, t + 0.9);
       g.gain.linearRampToValueAtTime(0, t + 1.2);
-      // exhale
       bp.frequency.setValueAtTime(1300, t + 1.5);
       bp.frequency.linearRampToValueAtTime(700, t + 3.1);
       g.gain.setValueAtTime(0, t + 1.4);

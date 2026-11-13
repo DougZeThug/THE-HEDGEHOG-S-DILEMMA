@@ -3,14 +3,15 @@ import { WALLS, type Surface } from '../content/types';
 import { surfaceSize } from './layout';
 import { ROOM } from '../core/room';
 
-/** Where the frosted panel hangs: north of the chair, so the chair's shadow falls toward whoever arrives. */
-export const PANEL = { x: 0.1, z: -0.95 };
 import { wallMaps, floorMaps, ceilingMaps, ceilingGlowMap, weatheringMap } from './surfaces';
 import type { Quality } from './quality';
 import { handMarks } from './marks';
 import { ceilingFor, panelFor, type Look } from './Style';
 import { makeNoise } from './noise';
 import { canvas } from './canvas';
+
+/** Where the frosted panel hangs: north of the chair, so the chair's shadow falls toward whoever arrives. */
+export const PANEL = { x: 0.1, z: -0.95 };
 
 const SKIRT = 0.1;
 /** The skylight: frosted glass set back in a square well, its sides splaying out to the ceiling. */
