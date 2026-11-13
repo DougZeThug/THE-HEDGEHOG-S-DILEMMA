@@ -5,16 +5,15 @@ import { ROOM } from '../core/room';
 import { hashString } from '../core/rng';
 import { idle } from '../core/time';
 import { PHRASE_IDS } from '../content/ids';
-import { fetchBlob } from '../memory/fetched';
 import type { Lifecycle } from '../memory/types';
-import type { MemoryAudioHost } from '../memory/MemoryAudio';
 import { MemoryClock } from '../memory/clock';
-import { isSpot } from '../memory/cueSheet';
-import { versionKeys, voicesEnd } from '../content/memory-voices';
-import { SCENE_BY_PHRASE } from '../content/memories';
+import { chooseVoices, versionKeys, voicesEnd } from '../content/memory-voices';
+import { SCENE_BY_PHRASE, SCENE_MEMORIES } from '../content/memories';
 import { readMemoryCounts, countMemory, writeTrace, writeHeartAnswer } from '../ui/prefs';
 import { gentle, HUSH_MAX } from './presentation';
 import { pixelRatio } from './prefsApply';
+import { memoryAudioHost } from './audioHost';
+import { wallClock } from '../world/WallText';
 import type { AppContext, Peers } from './context';
 import type { Living } from './living';
 
@@ -30,6 +29,19 @@ export class LivingMemories {
   private frameCount = 0;
   private readonly prefetched = new Set<string>();
 
+  /**
+   * `?memory=<id>[&variant=<v>][&voices=<version>]`: play a painted memory with its overheard
+   * voices, as a preview, a few seconds after the room is open (takes kept or not; an unrecorded
+   * line is a wordless voice with its caption).
+   */
+  private previewMemory: { id: string; variant: string; voices: string | null; at: number | null } | null = (() => {
+    const p = new URLSearchParams(location.search);
+    const id = p.get('memory');
+    if (!id || p.has('studio')) return null;
+    const variant = p.get('variant') ?? (SCENE_MEMORIES.find((m) => m.id === id)?.variants.first ?? 'first');
+    return { id, variant, voices: p.get('voices') ?? chooseVoices(id, variant, { seen: 0, visits: 1, field: {}, motifs: [], withdrew: false }), at: null };
+  })();
+
   constructor(
     private readonly ctx: AppContext,
     private readonly peers: Peers,
@@ -38,64 +50,6 @@ export class LivingMemories {
   /** The memories' runtime (GSAP, Theatre.js, the controller): a lazy chunk, loaded once. */
   private memoryChunk() {
     return (this.memoryRuntime ??= import('../memory/runtime'));
-  }
-
-  memoryAudioHost(): MemoryAudioHost | null {
-    const a = this.ctx.audio, voices = this.ctx.voices;
-    if (!a || !voices) return null;
-    const mesh = this.ctx.memoryWindow.mesh;
-    return {
-      ctx: a.ctx,
-      out: a.buses.memory,
-      load: async (asset, take) => {
-        if (asset.startsWith('synth:')) return loadSynth(asset, a.ctx, take);
-        if (!asset.startsWith('music/')) return voices.raw(asset, take);
-        try {
-          // (Fetched ahead with the memory's art, when its line was armed.)
-          return await a.ctx.decodeAudioData(await (await fetchBlob('./' + asset)).arrayBuffer());
-        } catch (e) {
-          // Music that will not decode is a memory without that music, not a failed memory.
-          console.warn(`[hedgehog] ${asset} could not be loaded or decoded; the memory plays without it`, e);
-          return null;
-        }
-      },
-      impulse: (sec, decay, seed) => a.impulse(sec, decay, seed),
-      get intensity() {
-        return a.intensity;
-      },
-      // Window-local (u, v across it; d metres behind the wall) → the room.
-      where: (p) => {
-        if (isSpot(p)) return this.peers.vignettes.spotWorld(p);
-        mesh.updateWorldMatrix(true, false);
-        const w = mesh.localToWorld(new THREE.Vector3(p.u, p.v, -p.d / Math.max(1e-3, mesh.scale.z)));
-        return [w.x, w.y, w.z];
-      },
-      // Spoken lines (a painted memory's overheard voices) are levelled as a vignette's are.
-      level: (asset, buf) => (asset.startsWith('vig:') ? voices.voicedLevel(buf) : 1),
-      caption: (text, seconds, speech, side) => {
-        // Words said in it are captioned as speech, by side; its sounds only while nobody speaks.
-        // (Beneath the words still on screen, as a vignette's, when it has words: never over them.)
-        if (speech) this.ctx.captions.say('speech', text, seconds, side, true);
-        else if (this.ctx.living?.memory.prepared.voices) this.ctx.captions.say('sound', text, seconds, undefined, true);
-        else if (!this.ctx.captions.speaking) this.ctx.captions.say('sound', text, seconds);
-      },
-      // Not recorded yet (`?memory=` previews only): the words in a voice without words, and the caption.
-      fallback: (cue, delay) => {
-        const text = cue.text ?? '';
-        const living = this.ctx.living;
-        // Previews only: a visitor hears kept takes or nothing. A kept take that failed to load
-        // leaves the memory wordless here, not a synthetic whisper with the words captioned.
-        if (!living?.preview) return;
-        setTimeout(() => {
-          // (Not after it has been let go: a sentence not yet begun is never begun then.)
-          if (!living || this.ctx.living !== living || (living.memory.state !== 'emerging' && living.memory.state !== 'active')) return;
-          const from = isSpot(cue.place) ? this.peers.vignettes.spotWorld(cue.place) : this.memoryAudioHost()!.where(cue.place);
-          void voices.playLine('whisper', text, { from }, 0.7, undefined, { synth: true, priority: true }).then((pl) => {
-            if (pl.duration > 0) this.ctx.captions.show(text, pl.duration, false, cue.side);
-          });
-        }, delay * 1000);
-      },
-    };
   }
 
   /** Walk to where a memory is seen whole and face it (the editor's Start: the real framing). */
@@ -140,7 +94,7 @@ export class LivingMemories {
       rt = await this.memoryChunk();
       prepared = await rt.prepare(id, variant, {
         renderer: this.ctx.renderer,
-        audio: this.memoryAudioHost(),
+        audio: memoryAudioHost(this.ctx, this.peers),
         quality: this.ctx.prefs.quality,
         screen: { width: innerWidth * pixelRatio(this.ctx), height: innerHeight * pixelRatio(this.ctx) },
         noise: this.ctx.memoryWindow.noise,
@@ -442,7 +396,27 @@ export class LivingMemories {
   }
 
   /** Each frame: the memory's clock, the visitor's attention to it, and its picture and sound. */
+  /** The `?memory=` preview's turn: a few seconds after the room is open, when nothing else is playing. */
+  private stepPreview() {
+    const pm = this.previewMemory;
+    if (pm && this.ctx.mode === 'room' && !this.peers.opening.active && !this.ctx.living) {
+      pm.at ??= wallClock() + 4;
+      if (wallClock() >= pm.at) {
+        this.previewMemory = null;
+        const phraseId = SCENE_MEMORIES.find((m) => m.id === pm.id)?.phraseId;
+        if (phraseId) {
+          if (!this.ctx.text.anchorOf(phraseId)) this.ctx.text.setShown(phraseId);
+          setTimeout(() => {
+            this.frameMemory(phraseId);
+            void (this.ctx.voices?.loadPreview() ?? Promise.resolve()).then(() => this.playMemory(pm.id, phraseId, pm.variant, pm.voices, true));
+          }, 600);
+        }
+      }
+    }
+  }
+
   step() {
+    this.stepPreview();
     this.ctx.studioTick?.(performance.now());
     this.prefetchMemories();
     const l = this.ctx.living;
@@ -627,14 +601,4 @@ export class LivingMemories {
     const answer = this.ctx.director.heartLeft(watched);
     if (answer) writeHeartAnswer(answer);
   }
-}
-
-/** A `synth:` asset: a sound the room makes itself rather than loads (src/memory/synth*.ts). */
-async function loadSynth(asset: string, ctx: AudioContext, take: number | undefined): Promise<AudioBuffer | null> {
-  const name = asset.slice('synth:'.length);
-  if (name === 'air') return (await import('../memory/synthAir')).synthAir(ctx.sampleRate, 7 + (take ?? 0));
-  const woods = await import('../memory/synthWoods');
-  if ((woods.WOODS_KINDS as readonly string[]).includes(name)) return woods.synthWoods(ctx, name as (typeof woods.WOODS_KINDS)[number]);
-  const { synthSound, SYNTH_KINDS } = await import('../memory/synthSounds');
-  return (SYNTH_KINDS as readonly string[]).includes(name) ? synthSound(ctx, name as (typeof SYNTH_KINDS)[number], 1 + (take ?? 0)) : null;
 }

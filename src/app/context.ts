@@ -173,7 +173,7 @@ export interface Parts {
 /** What the parts may call on one another: only these, so a part's other members are its own. */
 export interface Peers {
   opening: Pick<Opening, 'active' | 'enter' | 'skipOpening' | 'advanceTitle'>;
-  living: Pick<LivingMemories, 'playMemory' | 'frameMemory' | 'endLivingMemory' | 'keepTrace' | 'memoryAudioHost' | 'memoryVoices' | 'resetClock'>;
+  living: Pick<LivingMemories, 'playMemory' | 'frameMemory' | 'endLivingMemory' | 'keepTrace' | 'memoryVoices' | 'resetClock'>;
   vignettes: Pick<Vignettes, 'playVignette' | 'spotWorld' | 'vignettesAvailable' | 'vignetteClock'>;
   cues: Pick<Cues, 'apply' | 'drawingsOn' | 'place' | 'writeWithVoice'>;
   menus: Pick<Menus, 'openSettings' | 'closeSettings' | 'openContribute' | 'closeContribute' | 'depart' | 'setPref' | 'leaving'>;
