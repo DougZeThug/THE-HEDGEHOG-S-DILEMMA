@@ -199,7 +199,11 @@ const FRAG = /* glsl */ `
   }
 `;
 
-/** A 256² tiling value noise: one fetch instead of a hash fbm (cheaper, and no artefacts on phones). */
+/**
+ * A 256² tiling value noise: one fetch instead of a hash fbm (cheaper, and no artefacts on phones).
+ * Not noise.ts's `makeNoise`: that one is a permuted lattice that does not tile, and the two do not
+ * give the same values; only the smoothstep fade is common, too small to be worth a shared hot path.
+ */
 function noiseTexture(): THREE.DataTexture {
   const N = 256, G = 16;
   const grid = new Float32Array(G * G);

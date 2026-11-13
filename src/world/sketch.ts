@@ -1,4 +1,5 @@
 import type { DrawingDef, DrawingStyle, Shape } from '../content/drawings';
+import { smoothstep } from '../core/math';
 import { Rng, hashString } from '../core/rng';
 import { nearestFill } from './strokes';
 
@@ -187,13 +188,9 @@ const hash2 = (x: number, y: number, s: number) => {
   h = Math.imul(h ^ (h >>> 13), 1274126177);
   return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
 };
-const smooth = (a: number, b: number, x: number) => {
-  const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
-  return t * t * (3 - 2 * t);
-};
 /** Value noise at a cell size of `cell` px, for where an eraser has been. */
 function valueNoise(x: number, y: number, cell: number, s: number) {
-  const gx = x / cell, gy = y / cell, x0 = Math.floor(gx), y0 = Math.floor(gy), fx = smooth(0, 1, gx - x0), fy = smooth(0, 1, gy - y0);
+  const gx = x / cell, gy = y / cell, x0 = Math.floor(gx), y0 = Math.floor(gy), fx = smoothstep(0, 1, gx - x0), fy = smoothstep(0, 1, gy - y0);
   const a = hash2(x0, y0, s), b = hash2(x0 + 1, y0, s), c = hash2(x0, y0 + 1, s), d = hash2(x0 + 1, y0 + 1, s);
   return a + (b - a) * fx + (c - a) * fy + (a - b - c + d) * fx * fy;
 }
@@ -218,7 +215,7 @@ export function bakeDrawing(def: DrawingDef): DrawingBake {
     for (let y = Math.max(0, Math.floor(cy - R)); y <= Math.min(H - 1, Math.ceil(cy + R)); y++) {
       for (let x = Math.max(0, Math.floor(cx - R)); x <= Math.min(W - 1, Math.ceil(cx + R)); x++) {
         const d = Math.hypot(x + 0.5 - cx, y + 0.5 - cy);
-        const cov = smooth(hw + soft, hw - soft, d) * a;
+        const cov = smoothstep(hw + soft, hw - soft, d) * a;
         if (cov <= 0.01) continue;
         const p = y * W + x;
         if (cov > alpha[p]) alpha[p] = cov;
@@ -260,7 +257,7 @@ export function bakeDrawing(def: DrawingDef): DrawingBake {
       const x = s[i - 1][0] + (s[i][0] - s[i - 1][0]) * f + (wx(at * 60) - 0.5) * 2 * st.wobble + bend;
       const y = s[i - 1][1] + (s[i][1] - s[i - 1][1]) * f + (wy(at * 60) - 0.5) * 2 * st.wobble + bend * 0.6;
       // Pressure: lighter where the line starts and lifts, uneven along the way.
-      const p = Math.min(1, (0.55 + 0.45 * press(at * 40)) * smooth(0, 0.08, u) * (0.6 + 0.4 * smooth(1, 0.85, u)) * heavy);
+      const p = Math.min(1, (0.55 + 0.45 * press(at * 40)) * smoothstep(0, 0.08, u) * (0.6 + 0.4 * smoothstep(1, 0.85, u)) * heavy);
       const px = pad + x * k, py = pad + y * k;
       const hw = (st.width * k * (0.75 + 0.35 * p)) / 2;
       stamp(px, py, hw, 0.35 + 0.6 * p, start + u * dur, st.soft);
@@ -283,7 +280,7 @@ export function bakeDrawing(def: DrawingDef): DrawingBake {
       for (let x = 0; x < W; x++) {
         // Inside the sheet's corner (right of cx, above cy): nothing; a 0.7 px edge.
         const din = Math.min(x + 0.5 - cx, cy - (y + 0.5));
-        if (din > -0.7) alpha[y * W + x] *= smooth(0.7, -0.7, din);
+        if (din > -0.7) alpha[y * W + x] *= smoothstep(0.7, -0.7, din);
       }
   }
 
@@ -301,7 +298,7 @@ export function bakeDrawing(def: DrawingDef): DrawingBake {
       if (rub > 0) {
         // Rubbed in patches, in the direction an eraser goes: mostly gone where the noise is low.
         const n = valueNoise(x, y * 1.8, 9 * (k / 700) + 4, rubSeed) * 0.7 + valueNoise(x, y, 3, rubSeed + 1) * 0.3;
-        a *= 0.15 + 0.85 * smooth(rub - 0.12, rub + 0.12, n);
+        a *= 0.15 + 0.85 * smoothstep(rub - 0.12, rub + 0.12, n);
       }
       if (sw) {
         const vx = sw.bx - sw.ax, vy = sw.by - sw.ay;
@@ -309,7 +306,7 @@ export function bakeDrawing(def: DrawingDef): DrawingBake {
         const d = Math.hypot(x - (sw.ax + vx * t), y - (sw.ay + vy * t));
         // Ragged at its edges, and lighter where the eraser lifted at the end.
         const edgeN = (valueNoise(x, y, 5, rubSeed + 2) - 0.5) * sw.half * 0.6;
-        const gone = smooth(sw.half + edgeN, sw.half * 0.55 + edgeN, d) * (0.6 + 0.4 * smooth(1, 0.7, t));
+        const gone = smoothstep(sw.half + edgeN, sw.half * 0.55 + edgeN, d) * (0.6 + 0.4 * smoothstep(1, 0.7, t));
         a *= 1 - 0.85 * gone;
       }
       alpha[p] = a;

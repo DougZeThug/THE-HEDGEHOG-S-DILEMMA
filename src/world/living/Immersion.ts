@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { clamp } from '../../core/math';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 
 /**
@@ -123,7 +124,7 @@ export class Immersion {
     (u.uView.value as THREE.Vector4).copy(o.view);
     // (`immerse` arrives eased already: eased again, nine tenths of the opening out fell in two
     // thirds of a second, the threshold's briefest phase: cinematic review, 2026-10-18.)
-    const k = clamp01(o.immerse);
+    const k = clamp(o.immerse);
     // (`scale`: closer than just covering, e.g. a portrait phone's view of a drawing that is wider than tall)
     const full = coverQuad(o.aspect, o.paint, o.focus, 1.06 * (o.scale ?? 1));
     const from = o.wall ?? full.map((p) => p.clone().sub(new THREE.Vector2(0.5, 0.5)).multiplyScalar(0.3).add(new THREE.Vector2(0.5, 0.5)));
@@ -145,8 +146,6 @@ export class Immersion {
     return this.u.uH.value as THREE.Matrix3;
   }
 }
-
-const clamp01 = (x: number) => (x < 0 ? 0 : x > 1 ? 1 : x);
 
 /** Narrower than this (width / height), a screen is upright: it sees a column of the painting. */
 export const UPRIGHT = 0.9;

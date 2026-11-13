@@ -9,6 +9,7 @@ import { bakeDrawing, bakedSize } from './sketch';
 import { wordRanges } from './handwriting';
 import { approach, clamp, smoothstep } from '../core/math';
 import { hashString } from '../core/rng';
+import { idle } from '../core/time';
 import type { Environment } from '../core/environment';
 
 /**
@@ -325,7 +326,6 @@ export class WallText {
     // frame it is drawn.
     for (const d of DRAWINGS) {
       if (d.when === 'start' || d.when.seen !== id) continue;
-      const idle = (globalThis as { requestIdleCallback?: (f: () => void) => void }).requestIdleCallback ?? ((f: () => void) => setTimeout(f, 200));
       idle(() => void this.ensure(d.id));
     }
     const p = PHRASE_BY_ID.get(id);

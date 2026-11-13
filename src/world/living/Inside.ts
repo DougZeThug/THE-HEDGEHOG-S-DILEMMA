@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { angleDiff } from '../../core/math';
+import { angleDiff, smoothstep } from '../../core/math';
 import type { CameraRig } from '../CameraRig';
 import type { MemoryWindow } from '../MemoryWindow';
 import type { Post } from '../Post';
@@ -65,10 +65,6 @@ const YIELD = 0.14; // a glance (under 8°) changes nothing
 // twice its own fastest), and how long a step back is held before it is leaving.
 const CATCH_UP = 0.35;
 const HELD = 0.35;
-const smooth = (e0: number, e1: number, x: number) => {
-  const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0)));
-  return t * t * (3 - 2 * t);
-};
 
 export class Inside {
   /** How far in it is now (after any yielding), 0..1. */
@@ -208,15 +204,15 @@ export class Inside {
     }
     // The memory yields as they turn away.
     // (Past a glance, the full view goes over about 12–22°; at 30° it lets go.)
-    this.eff = immerse * (1 - 0.45 * smooth(YIELD, LEAVE, this.turned));
+    this.eff = immerse * (1 - 0.45 * smoothstep(YIELD, LEAVE, this.turned));
     o = { ...o, reduced: this.reduced };
     const e = this.eff;
     // (The painting's own light comes up at its place over the wall's, then it opens out to all
     // there is: the light grows, then the frame. Cinematic review, 2026-10-17.)
-    const spread = smooth(0, 0.5, e);
-    const show = o.reduced ? smooth(0.4, 1, e) : smooth(0.3, 0.7, e);
+    const spread = smoothstep(0, 0.5, e);
+    const show = o.reduced ? smoothstep(0.4, 1, e) : smoothstep(0.3, 0.7, e);
     // (The opening out: the timeline gives it its own straight 1.6 s, 8.2–9.8; eased here once.)
-    const settle = o.reduced ? 1 : smooth(0.68, 1, e);
+    const settle = o.reduced ? 1 : smoothstep(0.68, 1, e);
     this.window.spread = spread;
 
     // The whole painting, where it is on its wall.
@@ -290,7 +286,7 @@ export class Inside {
         // stood.
         const a = this.from;
         const s0 = this.start ?? a;
-        const yieldK = 1 - 0.45 * smooth(YIELD, LEAVE, this.turned);
+        const yieldK = 1 - 0.45 * smoothstep(YIELD, LEAVE, this.turned);
         const aim = want >= this.pLock ? this.pLock + (want - this.pLock) * yieldK : want;
         // (Behind the curve after a held look, it catches up; backing off or going back, it
         // follows; held, it is on the curve; in a frame in which no time passed, nothing moves.)
@@ -298,7 +294,7 @@ export class Inside {
         else if (dt > 0) this.lean = aim > this.lean ? Math.min(aim, this.lean + CATCH_UP * dt) : aim;
         const pos = this.lean;
         const t = this.along(f.focus, o.aspect, a, pos);
-        const q = pos <= this.pLock ? 0 : this.pLock < 0.999 ? smooth(0, 1, (pos - this.pLock) / (1 - this.pLock)) : 1;
+        const q = pos <= this.pLock ? 0 : this.pLock < 0.999 ? smoothstep(0, 1, (pos - this.pLock) / (1 - this.pLock)) : 1;
         this.rig.place(t.x, t.z, s0.yaw + angleDiff(s0.yaw, t.yaw) * q, s0.pitch + (t.pitch - s0.pitch) * q);
         if (want <= 1e-3 && f.leavingNaturally) {
           // Back exactly where they stood.

@@ -1,6 +1,7 @@
 import type { AudioEngine } from './AudioEngine';
 import type { VoiceKind } from '../state/cues';
 import { Rng, hashString } from '../core/rng';
+import { idle } from '../core/time';
 import { chooseSource, preloadStages, type Source } from './selection';
 import dialogue from '../content/dialogue.json';
 
@@ -146,9 +147,6 @@ interface StyleDef {
   attack: number;
 }
 
-/** Run when the browser has a moment (or soon, where there is no idle callback). */
-const idle = (f: () => void) => ('requestIdleCallback' in window ? window.requestIdleCallback(() => f(), { timeout: 4000 }) : setTimeout(f, 500));
-
 const STYLES: Record<string, StyleDef> = {
   whisper: { syll: 0.2, formantShift: 1, voiced: false, reverb: 0.35, lowpass: 5200, gain: 1, stressAmt: 0.35, attack: 0.03 },
   tender: { syll: 0.25, formantShift: 0.92, voiced: false, reverb: 0.22, lowpass: 3200, gain: 1.05, stressAmt: 0.45, attack: 0.05 },
@@ -279,9 +277,9 @@ export class Voices {
     const later = () => {
       const next = rest.splice(0, 3);
       if (!next.length) return;
-      void Promise.all(next.map((f) => this.loadBuffer(f))).then(() => idle(later));
+      void Promise.all(next.map((f) => this.loadBuffer(f))).then(() => idle(later, 500, 4000));
     };
-    void Promise.all(first.map((f) => this.loadBuffer(f))).then(() => idle(later));
+    void Promise.all(first.map((f) => this.loadBuffer(f))).then(() => idle(later, 500, 4000));
   }
 
   /** Build the spatial tail: [input] → (muffle) → panner/stereo → bus (+ reverb send). Returns input node. */
