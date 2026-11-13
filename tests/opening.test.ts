@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { openingScore, levelsAt, stageAt, OPENING_UNFINISHED } from '../src/state/OpeningScore';
-import { speechPlan, handAt } from '../src/world/WallText';
+import { speechPlan, handAt } from '../src/world/writePlan';
 import { handTiming, speechTiming } from '../src/world/handwriting';
 import { bakeStrokes, type CharBox } from '../src/world/strokes';
 import { Director } from '../src/state/Director';

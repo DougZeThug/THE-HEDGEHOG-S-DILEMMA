@@ -1,8 +1,8 @@
 import * as THREE from 'three';
-import { isSideWall, type Surface } from '../content/types';
+import { isSideWall, type Surface, type Wall } from '../content/types';
 import { Rng } from '../core/rng';
 import { smoothstep } from '../core/math';
-import { baseScuffs, corners, fineDetail, plaster, SCAN_AMP, texelsFor, toTex, type SurfaceMaps } from './bake';
+import { baseScuffs, corners, fineDetail, plaster, SCAN_AMP, texelsFor, toTex, type SurfaceMaps, type Texels } from './bake';
 import { canvas } from './canvas';
 import { WALL_ROLE } from './layout';
 import { MARKS, erasedWriting, graphiteDust, graphiteSmudges, heightMarks, removedSheet, tally } from './marks';
@@ -73,6 +73,48 @@ export function weatheringMap(surface: Surface, wM: number, hM: number, seed: nu
   return new THREE.CanvasTexture(c);
 }
 
+/** The paint on a wall's surface; `my` flips a height above the floor into a canvas row. */
+type Brush = { t: Texels; g: CanvasRenderingContext2D; r: Rng; mx: (u: number) => number; my: (v: number) => number; floorY: number };
+
+/** The history each wall carries: authored wall by wall, so a four-way choice rather than a property. */
+const WALL_HISTORY: Record<Wall, (b: Brush) => void> = {
+  [WALL_ROLE.behindChair]: ({ t, g, r, mx, my }) => {
+    // Behind the chair, in the space that is kept empty: one word, rubbed out (the other person).
+    // An apology was rubbed out too, lower and off to the side, not where the light gathers.
+    erasedWriting(t, g, 'you', mx(3.35), my(1.35), 36, r, 1.1);
+    erasedWriting(t, g, "I'm sorry", mx(4.4), my(1.0), 44, r, 0.9);
+    removedSheet(t, g, mx(5.2), my(2.15), 0.42 * t.ppm, 0.3 * t.ppm, r);
+    graphiteDust(t, g, mx(1.0), mx(3.2), my(0.115), r);
+  },
+  east: ({ t, g, r, mx, my, floorY }) => {
+    heightMarks(t, g, mx(0.35), floorY, r);
+    removedSheet(t, g, mx(3.6), my(2.4), 0.3 * t.ppm, 0.22 * t.ppm, r);
+    erasedWriting(t, g, 'always', mx(4.9), my(0.7), 30, r, 0.8);
+  },
+  west: ({ t, g, r, mx, my }) => {
+    // Not every rubbed-out thing was a confession: a list, once.
+    erasedWriting(t, g, 'milk', mx(1.0), my(1.27), 30, r, 0.9);
+    erasedWriting(t, g, 'bread', mx(1.02), my(1.15), 30, r, 0.9);
+    erasedWriting(t, g, 'batteries', mx(0.99), my(1.03), 30, r, 0.8);
+    // A word scribbled out hard, then erased anyway.
+    g.save();
+    g.globalAlpha = 0.06 * MARKS;
+    g.strokeStyle = 'rgb(60,60,66)';
+    g.filter = `blur(${t.k}px)`;
+    g.lineWidth = 2 * t.k;
+    g.beginPath();
+    const sx = mx(2.4), sy = my(0.62);
+    g.moveTo(sx, sy);
+    for (let k = 0; k < 14; k++) g.lineTo(sx + (k * 5 + r.range(-2, 2)) * t.k, sy + ((k % 2 ? -9 : 9) + r.range(-2, 2)) * t.k);
+    g.stroke();
+    g.restore();
+    g.filter = 'none';
+  },
+  [WALL_ROLE.contribution]: ({ t, g, r, mx, my }) => {
+    tally(t, g, mx(5.55), my(0.42), 6, r);
+    removedSheet(t, g, mx(3.2), my(1.55), 0.55 * t.ppm, 0.4 * t.ppm, r);
+  },
+};
 
 export function wallMaps(surface: Surface, seed: number, wM: number, hM: number, quality: Quality): SurfaceMaps {
   const t = texelsFor(quality);
@@ -92,40 +134,7 @@ export function wallMaps(surface: Surface, seed: number, wM: number, hM: number,
   const mx = (u: number) => u * t.ppm;
   const my = (v: number) => H - v * t.ppm;
 
-  // The history each wall carries: authored wall by wall, so a four-way choice rather than a property.
-  if (surface === WALL_ROLE.behindChair) {
-    // Behind the chair, in the space that is kept empty: one word, rubbed out (the other person).
-    // An apology was rubbed out too, lower and off to the side, not where the light gathers.
-    erasedWriting(t, g, 'you', mx(3.35), my(1.35), 36, r, 1.1);
-    erasedWriting(t, g, "I'm sorry", mx(4.4), my(1.0), 44, r, 0.9);
-    removedSheet(t, g, mx(5.2), my(2.15), 0.42 * t.ppm, 0.3 * t.ppm, r);
-    graphiteDust(t, g, mx(1.0), mx(3.2), my(0.115), r);
-  } else if (surface === 'east') {
-    heightMarks(t, g, mx(0.35), floorY, r);
-    removedSheet(t, g, mx(3.6), my(2.4), 0.3 * t.ppm, 0.22 * t.ppm, r);
-    erasedWriting(t, g, 'always', mx(4.9), my(0.7), 30, r, 0.8);
-  } else if (surface === 'west') {
-    // Not every rubbed-out thing was a confession: a list, once.
-    erasedWriting(t, g, 'milk', mx(1.0), my(1.27), 30, r, 0.9);
-    erasedWriting(t, g, 'bread', mx(1.02), my(1.15), 30, r, 0.9);
-    erasedWriting(t, g, 'batteries', mx(0.99), my(1.03), 30, r, 0.8);
-    // A word scribbled out hard, then erased anyway.
-    g.save();
-    g.globalAlpha = 0.06 * MARKS;
-    g.strokeStyle = 'rgb(60,60,66)';
-    g.filter = `blur(${t.k}px)`;
-    g.lineWidth = 2 * t.k;
-    g.beginPath();
-    const sx = mx(2.4), sy = my(0.62);
-    g.moveTo(sx, sy);
-    for (let k = 0; k < 14; k++) g.lineTo(sx + (k * 5 + r.range(-2, 2)) * t.k, sy + ((k % 2 ? -9 : 9) + r.range(-2, 2)) * t.k);
-    g.stroke();
-    g.restore();
-    g.filter = 'none';
-  } else if (surface === 'south') {
-    tally(t, g, mx(5.55), my(0.42), 6, r);
-    removedSheet(t, g, mx(3.2), my(1.55), 0.55 * t.ppm, 0.4 * t.ppm, r);
-  }
+  WALL_HISTORY[surface as Wall]({ t, g, r, mx, my, floorY });
 
   baseScuffs(t, g, W, H, r, 22);
   graphiteSmudges(t, g, W, H, r, 3);

@@ -43,6 +43,7 @@ async function pixels(url: string): Promise<ImageData | null> {
     g.drawImage(img, 0, 0);
     return g.getImageData(0, 0, c.width, c.height);
   } catch {
+    // A missing or undecodable scan is how a room without scans looks: the painted grain stands alone.
     return null;
   }
 }

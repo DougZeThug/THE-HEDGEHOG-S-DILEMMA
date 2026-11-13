@@ -15,8 +15,11 @@ export const WALL_ROLE = {
 /** Where writing goes, in this order, when its own wall is full. */
 const OVERFLOW_ORDER: readonly Wall[] = ['south', 'west', 'north', 'east'];
 
+/** The floor or the ceiling: the surfaces laid out by depth, not by height. */
+export const isFlat = (s: Surface): s is 'floor' | 'ceiling' => s === 'floor' || s === 'ceiling';
+
 /** A wall, not the floor or the ceiling. */
-export const isWallSurface = (s: Surface): s is Wall => s !== 'floor' && s !== 'ceiling';
+export const isWallSurface = (s: Surface): s is Wall => !isFlat(s);
 
 interface SurfaceSize {
   /** Extent along u (metres). */
@@ -27,7 +30,7 @@ interface SurfaceSize {
 
 export function surfaceSize(s: Surface): SurfaceSize {
   if (isSideWall(s)) return { w: ROOM.halfD * 2, h: ROOM.height };
-  if (s === 'floor' || s === 'ceiling') return { w: ROOM.halfW * 2, h: ROOM.halfD * 2 };
+  if (isFlat(s)) return { w: ROOM.halfW * 2, h: ROOM.halfD * 2 };
   return { w: ROOM.halfW * 2, h: ROOM.height };
 }
 
@@ -200,7 +203,7 @@ export class SurfaceLayout {
     const cands: Rect[] = [];
     for (let v = h / 2 + 0.13; v <= size.h - h / 2 - 0.08; v += step)
       for (let u = w / 2 + 0.06; u <= size.w - w / 2 - 0.06; u += step) cands.push({ u, v, w, h });
-    const mid = surface === 'floor' || surface === 'ceiling' ? size.h / 2 : 1.5;
+    const mid = isFlat(surface) ? size.h / 2 : 1.5;
     cands.sort((a, b) => Math.abs(a.v - mid) - Math.abs(b.v - mid) + (this.rng.next() - 0.5) * 0.4);
     for (const r of cands) if (this.free(surface, r, pad, ignoreReserved)) return r;
     return null;
@@ -291,7 +294,7 @@ export class SurfaceLayout {
     const size = surfaceSize(p.surface);
     const rot = p.hand === 'typed' ? 0 : ((hashString(p.id) % 1000) / 1000 - 0.5) * 0.05;
     if (p.at) {
-      return this.add({ surface: p.surface, u: p.at[0] * size.w, v: p.surface === 'floor' || p.surface === 'ceiling' ? p.at[1] * size.h : p.at[1], w, h, rot });
+      return this.add({ surface: p.surface, u: p.at[0] * size.w, v: isFlat(p.surface) ? p.at[1] * size.h : p.at[1], w, h, rot });
     }
     const cname = chooseCluster(p);
     const clusters = CLUSTERS[p.surface];

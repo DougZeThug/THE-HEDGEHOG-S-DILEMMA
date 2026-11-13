@@ -10,7 +10,7 @@ import { allVersions, chooseVoices, voicesId } from '../content/memory-voices';
 import { SCENE_MEMORIES } from '../content/memories';
 import { countMemory } from '../ui/prefs';
 import { CLASS } from '../ui/dom';
-import { wallClock } from '../world/WallText';
+import { wallClock } from '../world/writePlan';
 import { gentle, gentleDim } from './presentation';
 import type { AppContext, Peers } from './context';
 

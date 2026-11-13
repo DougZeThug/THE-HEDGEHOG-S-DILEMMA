@@ -4,7 +4,7 @@
  */
 import * as THREE from 'three';
 import { lookFor, type PresetLookName } from '../world/Style';
-import { samplesFor, shadowMapSize } from '../world/quality';
+import { QUALITY } from '../world/quality';
 import { CLASS } from '../ui/dom';
 import { gentle } from './presentation';
 import type { AppContext } from './context';
@@ -67,7 +67,7 @@ export function applyPrefs(ctx: AppContext): void {
   ctx.post.reducedMotion = p.reducedMotion;
   ctx.post.intensityScale = gentle(p.intensity, 'post');
   resize(ctx);
-  const size = shadowMapSize(p.quality);
+  const size = QUALITY[p.quality].shadowMap;
   const sh = ctx.lighting.key.shadow;
   if (sh.mapSize.x !== size) {
     sh.mapSize.set(size, size);
@@ -75,5 +75,5 @@ export function applyPrefs(ctx: AppContext): void {
     sh.map = null as unknown as THREE.WebGLRenderTarget;
     ctx.lighting.invalidateShadow();
   }
-  ctx.post.setSamples(samplesFor(p.quality));
+  ctx.post.setSamples(QUALITY[p.quality].msaa);
 }

@@ -1,11 +1,12 @@
 import { STATIC_DRAWINGS } from '../content/drawings';
 import { ROOM } from '../core/room';
 import { idle, ignored, sleep } from '../core/time';
-import { wallClock } from '../world/WallText';
+import { wallClock } from '../world/writePlan';
 import { AudioEngine } from '../audio/AudioEngine';
 import { Ambience } from '../audio/Ambience';
 import { Music } from '../audio/Music';
-import { Voices, type VoicePlacement, type Played } from '../audio/Voices';
+import { Voices, type Played } from '../audio/Voices';
+import type { VoicePlacement } from '../audio/voiceSynth';
 import { openingScore, levelsAt, stageAt, ROOM_LEVELS, OPENING_WRITTEN, OPENING_SPOKEN, OPENING_UNFINISHED, type Score, type Levels, type Stage, type ScoreEvent } from '../state/OpeningScore';
 import { readOpeningSeen, writeOpeningSeen, writeVisits } from '../ui/prefs';
 import { CLASS } from '../ui/dom';

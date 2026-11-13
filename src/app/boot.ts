@@ -17,7 +17,7 @@ import { warmLiving } from '../world/living/materials';
 import { WallText } from '../world/WallText';
 import { CameraRig } from '../world/CameraRig';
 import { Post } from '../world/Post';
-import { samplesFor } from '../world/quality';
+import { QUALITY } from '../world/quality';
 import { FONTS_TO_LOAD } from '../world/textures';
 import { Director, returnYaw } from '../state/Director';
 import { THRESHOLD_LINES } from '../content/relations';
@@ -110,7 +110,7 @@ export async function buildWorld(params: URLSearchParams, dom: Dom, prefs: Prefs
   const memoryLight = new MemoryLight();
   const street = new StreetLight();
   const memoryWindow = new MemoryWindow();
-  const post = new Post(renderer, scene, rig.camera, samplesFor(prefs.quality));
+  const post = new Post(renderer, scene, rig.camera, QUALITY[prefs.quality].msaa);
   const immersion = new Immersion(memoryWindow.noise);
   post.addOverlay(immersion.pass);
   const inside = new Inside(rig, memoryWindow, immersion, post);

@@ -1,6 +1,6 @@
 /** The living memory's shader text (materials.ts holds the uniforms and the materials that use it). */
 
-export const COMMON = /* glsl */ `
+const COMMON = /* glsl */ `
   uniform sampler2D uNoise;
   uniform float uTime;
   uniform float uMotion;    // 1, or less under reduced motion

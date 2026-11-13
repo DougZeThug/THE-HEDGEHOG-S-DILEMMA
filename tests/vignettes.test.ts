@@ -304,7 +304,7 @@ describe('the Director and its vignettes', () => {
   });
 });
 
-import { wordBand, recedeStep, type RecedeState } from '../src/world/WallText';
+import { wordBand, recedeStep, type RecedeState } from '../src/world/writePlan';
 
 describe('what a vignette leaves on the walls', () => {
   it("a lost word's band runs from halfway into the gap before it to halfway into the gap after", () => {
@@ -366,7 +366,8 @@ describe('ending without being heard', () => {
 });
 
 import { readingTake } from '../src/content/vignettes';
-import { voicedGain, Voices } from '../src/audio/Voices';
+import { Voices } from '../src/audio/Voices';
+import { voicedGain } from '../src/audio/voiceAssets';
 
 describe('after the evaluation', () => {
   it("five minutes' heard-before version is heard once: after that the chair is the room's again", () => {

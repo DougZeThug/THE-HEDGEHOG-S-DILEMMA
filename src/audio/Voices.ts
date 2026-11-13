@@ -3,10 +3,15 @@ import type { VoiceKind } from '../content/types';
 import { Rng, hashString } from '../core/rng';
 import { idle } from '../core/time';
 import { chooseSource, preloadStages, type Source } from './selection';
-import { LEVEL_DB, loadKeyFile, measure, normaliseGain, voicedGain } from './voiceAssets';
+import { LEVEL_DB, isPerformance, loadKeyFile, measure, normaliseGain, voicedGain } from './voiceAssets';
 import { VoiceSynth, type VoicePlacement } from './voiceSynth';
 
-export { voicedGain, type VoicePlacement };
+/** Voices at once, beyond which a new one is dropped (unless it is a priority line). */
+const MAX_VOICES = 4;
+/** Seconds after a voice ends before its nodes are disconnected and its tag forgotten. */
+const TAIL_S = 6;
+/** Milliseconds after a voice ends before its slot is free again. */
+const RELEASE_MS = 500;
 
 /**
  * Voices.
@@ -99,10 +104,13 @@ export class Voices {
         .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(String(r.status)))))
         .then((b) => this.a.ctx.decodeAudioData(b))
         .then((buf) => {
-          this.norm.set(file, normaliseGain(buf, file.startsWith('dialogue/')) * Math.pow(10, (LEVEL_DB.get(file) ?? 0) / 20));
+          this.norm.set(file, normaliseGain(buf, isPerformance(file)) * Math.pow(10, (LEVEL_DB.get(file) ?? 0) / 20));
           return buf;
         })
-        .catch(() => null);
+        .catch((e) => {
+          console.warn(`${file} could not be loaded; the room goes without it`, e);
+          return null;
+        });
       this.buffers.set(file, p);
     }
     return p;
@@ -163,7 +171,7 @@ export class Voices {
       setTimeout(() => {
         const l = this.tagged.get(place.tag!);
         if (l) this.tagged.set(place.tag!, l.filter((n) => n !== input));
-      }, (dur + 6) * 1000);
+      }, (dur + TAIL_S) * 1000);
     }
     let node: AudioNode = input;
     if (place.muffled) {
@@ -223,7 +231,7 @@ export class Voices {
       } catch {
         /* already gone */
       }
-    }, (dur + 6) * 1000);
+    }, (dur + TAIL_S) * 1000);
     return input;
   }
 
@@ -239,16 +247,23 @@ export class Voices {
    * can follow the words. The file may differ from the one asked for (a fallback take).
    */
   async playLine(kind: VoiceKind, text: string | null, place: VoicePlacement, gain: number, assetKey?: string, opts: PlayOptions & { priority?: boolean } = {}): Promise<Played> {
-    if (this.active >= 4 && !opts.priority) return { duration: 0 }; // never a crowd
-    this.active++; // reserve the slot before anything asynchronous
+    const release = this.reserve(opts.priority); // before anything asynchronous
+    if (!release) return { duration: 0 }; // never a crowd
     let out: Played = { duration: 0 };
     try {
       out = await this.play_(kind, text, place, gain, opts.synth ? undefined : assetKey, opts);
     } finally {
-      setTimeout(() => this.active--, out.duration * 1000 + 500);
+      release(out.duration);
     }
     this.busyUntil = Math.max(this.busyUntil, performance.now() / 1000 + out.duration);
     return out;
+  }
+
+  /** Take a voice slot, or null when the room is full (a priority line always gets one). The release says how long the voice sounded. */
+  private reserve(priority = false): ((durationS: number) => void) | null {
+    if (this.active >= MAX_VOICES && !priority) return null;
+    this.active++;
+    return (durationS) => void setTimeout(() => this.active--, durationS * 1000 + RELEASE_MS);
   }
 
   /** When (performance.now() seconds) the room's last voice finishes sounding, wordless ones too. */
@@ -263,8 +278,8 @@ export class Voices {
    * the chair creaking. Recorded if a clip exists (`sfx:<kind>`), otherwise synthesised.
    */
   async sound(kind: 'door' | 'chair-creak' | 'cup' | 'switch' | 'graphite' | 'eraser', place: VoicePlacement, gain: number): Promise<number> {
-    if (this.active >= 4) return 0;
-    this.active++;
+    const release = this.reserve();
+    if (!release) return 0;
     let dur = 0;
     try {
       const g = gain * (0.55 + 0.45 * this.a.intensity);
@@ -280,7 +295,7 @@ export class Voices {
       dur = kind === 'door' ? this.synth.door(place, g) : kind === 'cup' ? this.synth.cup(place, g) : kind === 'switch' ? this.synth.click(place, g) : kind === 'eraser' ? this.synth.eraser(place, g) : this.synth.creak(place, g);
       return dur;
     } finally {
-      setTimeout(() => this.active--, dur * 1000 + 500);
+      release(dur);
     }
   }
 

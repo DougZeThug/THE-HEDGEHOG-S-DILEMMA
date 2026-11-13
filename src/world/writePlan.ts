@@ -1,3 +1,4 @@
+import type { Surface } from '../content/types';
 import { wordRanges } from './handwriting';
 
 /** The write plan: where the hand is and how it follows a voice, and how receding writing answers a visitor. Pure maths, no rendering. */
@@ -98,4 +99,15 @@ export function speechPlan(text: string, words: [number, number][], speech: [num
     free = end + 0.04;
   });
   return out;
+}
+
+/**
+ * Faint writing on a brighter wall sits higher on the tone curve and loses contrast: the look
+ * gives it back (only the faint: the strong lines held their own). The floor by the chair is the
+ * brightest surface in the room, the key's pool high on the tone curve, where pencil is compressed
+ * hardest, strong lines too: all of it is given back more (and none in the original look).
+ */
+export function faintOpacity(base: number, surface: Surface, boost: number): number {
+  if (surface === 'floor') return Math.min(0.8, base * boost ** 2);
+  return base < 0.4 ? Math.min(0.4, base * boost) : base;
 }
