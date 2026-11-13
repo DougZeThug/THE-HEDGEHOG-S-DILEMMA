@@ -2,6 +2,7 @@ import { FilmScene, filmType, loadFilm, releaseFilm } from './living/FilmScene';
 import { FILM_FETCH_MS, colourTimes, loadLayer, type FilmManifest } from './art';
 import { fetchBlob } from './fetched';
 import { filmSpecOf } from './registry';
+import { FILM_CUE } from './memoryDef';
 import { dropScene, fallBackToPoster, targetSize, type Stage } from './stage';
 import type { PreparedFilm } from './prepared';
 
@@ -46,7 +47,7 @@ export async function prepareFilm(st: Stage, lm: FilmManifest): Promise<Prepared
     // The film couldn't be had: the wall's poster instead, still (as any memory).
     console.warn('film unavailable; the memory stays a still', e);
     // (and without the film's sound: its eraser over a still read as broken: QA, 2026-10-21)
-    st.audio?.without('music:film');
+    st.audio?.without(FILM_CUE);
     // (A film loaded before its order map failed is no scene's yet: let go here, or its blob and
     // decoder stayed for every attempt: review of PR 14.)
     const hadScene = !!st.scene;

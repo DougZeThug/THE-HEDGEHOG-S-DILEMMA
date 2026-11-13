@@ -1,10 +1,12 @@
 import type { CueSheet } from '../cueSheet';
 import type { SheetSeed } from '../seed';
 import { SHADOWS_SECTIONS, SHADOWS_AT, SHADOWS_SECONDS, SHADOWS_BEATS } from '../beats/shadows';
-import { sectionMarkers, type MemoryDef } from '../memoryDef';
+import { FILM_CUE, entryTracks, filmClock, sectionMarkers, type MemoryDef } from '../memoryDef';
 
 /** Its sound's level (the film's mix is 8 dB louder than Almost's: the two sit together). */
 const SHADOWS_DB = -17;
+
+const WALL_CUE = 'music:wall';
 
 /**
  * Memory VII, The Shape of Someone (docs/shadows.md): a shadow-puppet film, rendered offline
@@ -39,7 +41,7 @@ export const SHADOWS: MemoryDef = {
   variants: ['film'],
   layers: ['scene'],
   sections: SHADOWS_SECTIONS,
-  markers: [{ label: 'music:wall', position: 0.3 }, { label: 'music:film', position: SHADOWS_AT }],
+  markers: [{ label: WALL_CUE, position: 0.3 }, { label: FILM_CUE, position: SHADOWS_AT }],
   seed: (): SheetSeed => {
     const S = SHADOWS_SECTIONS;
     return {
@@ -64,10 +66,9 @@ export const SHADOWS: MemoryDef = {
         // The chair's shadow onto the wall, and home again last; its lamp gives way to the film's light.
         'room.shadow': [[0.3, 0], [4.0, 1], [S.exit + 9.0, 1], [S.exit + 12.5, 0]],
         'room.lamp': [[0, 1], [SHADOWS_AT, 1], [SHADOWS_AT + 3, 0.15], [SHADOWS_AT + SHADOWS_BEATS.dark - 0.5, 0.15], [S.exit + 0.5, 1]],
-        'scene.approach': [[1.0, 0, 'linear'], [11.5, 1], [S.exit + 1, 1, 'linear'], [S.exit + 5, 0]],
-        'scene.immerse': [[0, 0, 'hold'], [8.5, 0, 'linear'], [10.3, 0.68, 'linear'], [11.7, 1, 'hold'], [S.exit, 1, 'linear'], [S.exit + 2, 0.72, 'linear'], [S.exit + 5, 0]],
+        ...entryTracks(S.exit, { approach: 11.5, begin: 8.5, rise: 10.3, full: 11.7 }),
         // Its first frame (the dim wall) while the shade gathers, then as a clock does, then its last.
-        'scene.film': [[0, 0, 'hold'], [SHADOWS_AT, 0, 'linear'], [SHADOWS_AT + SHADOWS_SECONDS, SHADOWS_SECONDS, 'hold']],
+        'scene.film': filmClock(SHADOWS_AT, SHADOWS_SECONDS),
       },
       markers: [
         ...sectionMarkers(S),
@@ -78,8 +79,8 @@ export const SHADOWS: MemoryDef = {
   cues: (): CueSheet => ({
     room: [0.3, 2, 0.04],
     cues: {
-      'music:wall': { asset: 'music/shadows-wall.mp3', gainDb: SHADOWS_DB, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, fadeOut: 1.5, caption: '[a low hum; the room goes quiet]', captionAt: 0.8 },
-      'music:film': { asset: 'music/shadows-film.mp3', gainDb: SHADOWS_DB, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, fadeOut: 2, caption: '[glass, ringing faintly]', captionAt: 2.2,
+      [WALL_CUE]: { asset: 'music/shadows-wall.mp3', gainDb: SHADOWS_DB, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, fadeOut: 1.5, caption: '[a low hum; the room goes quiet]', captionAt: 0.8 },
+      [FILM_CUE]: { asset: 'music/shadows-film.mp3', gainDb: SHADOWS_DB, place: { u: 0, v: 0, d: 2 }, wide: true, dry: true, fadeOut: 2, caption: '[glass, ringing faintly]', captionAt: 2.2,
         captions: [
           { at: 5.6, text: '[a low cello note]' },
           { at: 12.9, text: '[a cello, held low; one piano note]' },
