@@ -232,16 +232,19 @@ src/
                 ventilation, outside, unresolved drone), Music (generative piano-like
                 phrases that sometimes stop before resolving), Voices (recorded assets →
                 synthesised formant whispers/murmurs/laughter/humming → optional browser speech)
-  interpret/    schema.ts (validated Interpretation), LocalInterpreter, Interpreter interface
-  ui/           preferences, captions
-  App.ts        wiring: input, cues → world/audio, UI, departure/return
+  interpret/    schema.ts (validated Interpretation), LocalInterpreter (`interpretLocally`)
+  ui/           preferences (every localStorage key), captions, the page's elements (dom.ts)
+  app/          the App's parts, sharing one context: boot, opening, living memories, vignettes,
+                cues (Director → world/audio), input, menus (settings, writing, departure/return),
+                hints, lifecycle, the artist's panel (tuneControls)
+  App.ts        builds the room once, runs the frame loop; the handle `window.__hedgehog` holds
 ```
 
 Design rules the code follows:
 
 - **The engine is deterministic and inspectable.** Given a seed and a sequence of behaviour, the room produces the same cues (tested). `window.__hedgehog` exposes the live engine; `?debug` shows it.
 - **Cues are data.** The world and sound only ever receive typed cues and continuous environment targets; nothing else reaches them.
-- **Interpretation is structured and validated.** A contribution becomes an `Interpretation` (dimensions, related/contradicting phrase ids, a whitelisted set of gestures). `validateInterpretation` drops unknown ids, unknown gestures and any extra fields. A future model-backed interpreter would implement the `Interpreter` interface (none is included or wired) and could only ever return this shape — never code, styles or audio commands.
+- **Interpretation is structured and validated.** A contribution becomes an `Interpretation` (dimensions, related/contradicting phrase ids, a whitelisted set of gestures). `validateInterpretation` drops unknown ids, unknown gestures and any extra fields. A future model-backed interpreter (none is included or wired) would have to return this shape and pass `validateInterpretation` — never code, styles or audio commands.
 
 ## Sound and voices
 

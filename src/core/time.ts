@@ -12,3 +12,9 @@ export function idle(fn: () => void, fallbackMs = 200, timeoutMs?: number): void
   if (typeof requestIdleCallback === 'function') requestIdleCallback(() => fn(), timeoutMs === undefined ? undefined : { timeout: timeoutMs });
   else setTimeout(fn, fallbackMs);
 }
+
+/**
+ * For a promise whose failure changes nothing a visitor would notice (a font that will not load, an
+ * audio context still resuming): `.catch(ignored)` says so at the call site, with the reason beside it.
+ */
+export const ignored = (): undefined => undefined;

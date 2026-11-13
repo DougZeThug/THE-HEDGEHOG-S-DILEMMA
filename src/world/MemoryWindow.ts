@@ -374,7 +374,7 @@ export class MemoryWindow {
   /**
    * A living memory's painting: its size on the wall and the part shown first; null for any other.
    * `under`: a living memory's revisit, a painting on the wall as any other, but sunk and lifted in
-   * the plaster as its scene was, and lying under its words, which are washed (src/App.ts): without,
+   * the plaster as its scene was, and lying under its words, which are washed (src/app/livingMemory.ts): without,
    * its words' bare plaster took the top half of it, and at full strength the dusk was a black stain.
    */
   setLiving(o: { crop: [number, number, number, number]; size: [number, number]; order?: THREE.Texture | null; feather?: number } | null, under = false): void {

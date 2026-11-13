@@ -2,8 +2,7 @@ import { DIMENSIONS, type Dimension, type DimVector } from '../content/types';
 import { LEXICON } from '../content/relations';
 import { PHRASES, PHRASE_BY_ID } from '../content/phrases';
 import { affinity } from '../state/PhraseSelector';
-import type { Interpreter } from './Interpreter';
-import { validateInterpretation, type ContributionGesture, type Interpretation } from './schema';
+import { MAX_INTERPRETED, validateInterpretation, type ContributionGesture, type Interpretation } from './schema';
 
 export function tokenize(text: string): string[] {
   return text
@@ -33,7 +32,7 @@ function stemLookup(w: string): DimVector | undefined {
  * phrases on the walls that rhyme with — or quietly contradict — what was offered.
  */
 export function interpretLocally(text: string): Interpretation {
-  const raw = text.trim().slice(0, 280);
+  const raw = text.trim().slice(0, MAX_INTERPRETED);
   const lower = raw.toLowerCase();
   const tokens = tokenize(raw);
   const acc: Record<Dimension, number> = Object.fromEntries(DIMENSIONS.map((d) => [d, 0])) as Record<Dimension, number>;
@@ -97,11 +96,4 @@ export function interpretLocally(text: string): Interpretation {
   if (hits > 0) g.push('temperatureShift');
 
   return validateInterpretation({ dims, related, contradictions: contradictions.slice(0, 2), gestures: g, intensity, tense, question })!;
-}
-
-export class LocalInterpreter implements Interpreter {
-  readonly name = 'local';
-  async interpret(text: string): Promise<Interpretation> {
-    return interpretLocally(text);
-  }
 }

@@ -245,8 +245,7 @@ export class WallText {
   }
 
   /** Write a line again: it is gone at once and the hand writes it anew. */
-  redraw(id: string, seconds: number) {
-    void seconds;
+  redraw(id: string) {
     this.writeOn(id);
   }
 

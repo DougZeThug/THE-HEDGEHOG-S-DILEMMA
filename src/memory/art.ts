@@ -116,7 +116,7 @@ export async function loadLayer(url: string, o: { living?: boolean; data?: boole
 
 /**
  * When the colour reaches each part of the painting (its order map's g, 0..1), read once and
- * coarsely: for the room's writing under it (src/App.ts). Painting uv, y up.
+ * coarsely: for the room's writing under it (src/app/livingMemory.ts). Painting uv, y up.
  */
 export function colourTimes(bitmap: ImageBitmap): ((u: number, v: number) => number) | null {
   const w = 96, h = 54;
