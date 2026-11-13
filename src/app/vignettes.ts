@@ -11,7 +11,7 @@ import { SCENE_MEMORIES } from '../content/memories';
 import { countMemory } from '../ui/prefs';
 import { CLASS } from '../ui/dom';
 import { wallClock } from '../world/WallText';
-import { gentle, gentleDim } from './presentation';
+import { gentle, gentleDim, HUSH_MAX } from './presentation';
 import type { AppContext, Peers } from './context';
 
 /** Where a vignette's places in the room are measured from (fixed as it begins). */
@@ -213,7 +213,7 @@ export class Vignettes {
     const v = this.ctx.vignette;
     if (kind === 'silence' && v) {
       const hush = v.player.def.hush;
-      this.ctx.audio?.memoryHush(Math.min(0.95, hush + 0.35), 1.2);
+      this.ctx.audio?.memoryHush(Math.min(HUSH_MAX, hush + 0.35), 1.2);
       setTimeout(() => {
         if (this.ctx.vignette === v && !v.player.releasedHow) this.ctx.audio?.memoryHush(hush, 2);
       }, Math.max(0.5, seconds - 1) * 1000);

@@ -17,7 +17,7 @@ export interface Prefs {
  * Every key the room writes to localStorage. `forgetVisits` clears from this one table (preferences
  * aside), so a key added here is forgotten with the rest unless it is marked as a preference.
  */
-export const STORAGE_KEYS = {
+const STORAGE_KEYS = {
   prefs: 'hh.prefs.v1',
   visits: 'hh.visits',
   memoryCounts: 'hh.memories',
@@ -46,18 +46,27 @@ function safeSet(k: string, v: string | null) {
   }
 }
 
-export function defaultPrefs(): Prefs {
+function defaultPrefs(): Prefs {
   const reduced = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
   const touch = typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches;
   return { volume: 0.75, muted: false, captions: false, speech: false, intensity: 'full', reducedMotion: reduced, quality: touch ? 'low' : 'medium' };
 }
 
+/** Reads a stored JSON value through `fromJson`; anything missing, unparseable or rejected reads as `fallback`. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function readJson<T>(key: string, fromJson: (value: any) => T, fallback: T): T {
+  const raw = safeGet(key);
+  if (raw === null) return fallback;
+  try {
+    return fromJson(JSON.parse(raw));
+  } catch {
+    return fallback;
+  }
+}
+
 export function loadPrefs(): Prefs {
   const d = defaultPrefs();
-  const raw = safeGet(STORAGE_KEYS.prefs);
-  if (!raw) return d;
-  try {
-    const p = JSON.parse(raw) as Partial<Prefs>;
+  return readJson(STORAGE_KEYS.prefs, (p: Partial<Prefs>): Prefs => {
     return {
       volume: typeof p.volume === 'number' ? Math.min(1, Math.max(0, p.volume)) : d.volume,
       muted: typeof p.muted === 'boolean' ? p.muted : d.muted,
@@ -73,9 +82,7 @@ export function loadPrefs(): Prefs {
       reducedMotionChosen: !!p.reducedMotionChosen,
       quality: p.quality === 'low' || p.quality === 'medium' || p.quality === 'high' ? p.quality : d.quality,
     };
-  } catch {
-    return d;
-  }
+  }, d);
 }
 
 export function savePrefs(p: Prefs) {
@@ -91,12 +98,7 @@ export function writeVisits(n: number) {
 }
 /** How many times each living memory has been seen, across visits (its revisit variant). */
 export function readMemoryCounts(): Record<string, number> {
-  try {
-    const v = JSON.parse(safeGet(STORAGE_KEYS.memoryCounts) ?? '{}');
-    return v && typeof v === 'object' ? v : {};
-  } catch {
-    return {};
-  }
+  return readJson(STORAGE_KEYS.memoryCounts, (v) => (v && typeof v === 'object' ? v : {}), {});
 }
 export function writeMemoryCounts(c: Record<string, number>) {
   safeSet(STORAGE_KEYS.memoryCounts, JSON.stringify(c));
@@ -114,12 +116,7 @@ export function countMemory(id: string) {
  */
 export type Leaving = 'close';
 export function readTrace(): Leaving | null {
-  try {
-    const v = JSON.parse(safeGet(STORAGE_KEYS.trace) ?? 'null');
-    return v && v.v === 1 && v.leaving === 'close' ? v.leaving : null;
-  } catch {
-    return null;
-  }
+  return readJson(STORAGE_KEYS.trace, (v) => (v && v.v === 1 && v.leaving === 'close' ? v.leaving : null), null);
 }
 export function writeTrace(leaving: Leaving | null) {
   safeSet(STORAGE_KEYS.trace, leaving ? JSON.stringify({ v: 1, leaving }) : null);
@@ -131,12 +128,7 @@ export function writeTrace(leaving: Leaving | null) {
  * The Director checks it is one it knows. Versioned; anything unexpected reads as nothing.
  */
 export function readHeartAnswer(): string | null {
-  try {
-    const v = JSON.parse(safeGet(STORAGE_KEYS.heart) ?? 'null');
-    return v && v.v === 1 && typeof v.answer === 'string' && /^[a-z-]{1,40}$/.test(v.answer) ? v.answer : null;
-  } catch {
-    return null;
-  }
+  return readJson(STORAGE_KEYS.heart, (v) => (v && v.v === 1 && typeof v.answer === 'string' && /^[a-z-]{1,40}$/.test(v.answer) ? v.answer : null), null);
 }
 export function writeHeartAnswer(answer: string) {
   safeSet(STORAGE_KEYS.heart, JSON.stringify({ v: 1, answer }));

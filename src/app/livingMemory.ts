@@ -13,13 +13,10 @@ import { isSpot } from '../memory/cueSheet';
 import { versionKeys, voicesEnd } from '../content/memory-voices';
 import { SCENE_BY_PHRASE } from '../content/memories';
 import { readMemoryCounts, countMemory, writeTrace, writeHeartAnswer } from '../ui/prefs';
-import { gentle } from './presentation';
+import { gentle, HUSH_MAX } from './presentation';
 import { pixelRatio } from './prefsApply';
 import type { AppContext, Peers } from './context';
 import type { Living } from './living';
-
-/** How far the room goes down while the visitor is inside a living memory's painting (-26 dB). */
-const DEEP_HUSH = 0.95;
 
 /**
  * Living memories: a painting that forms in the plaster round a line, plays with its sound, lets
@@ -551,7 +548,7 @@ export class LivingMemories {
     const deep = this.ctx.inside.entered && (f.final['scene.immerse'] ?? 0) >= 0.9;
     if (deep !== l.deep && f.state !== 'residue' && f.state !== 'complete') {
       l.deep = deep;
-      this.ctx.audio?.memoryHush(deep ? DEEP_HUSH : l.memory.prepared.def.hush, deep ? 2.5 : 4.5);
+      this.ctx.audio?.memoryHush(deep ? HUSH_MAX : l.memory.prepared.def.hush, deep ? 2.5 : 4.5);
     }
     this.washUnderPainting(l, f.final);
     // (Its dusk is dark: a sound's caption over it, while it fills the view, is light words, not a
