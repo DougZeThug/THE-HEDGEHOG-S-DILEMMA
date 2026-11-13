@@ -21,8 +21,8 @@ export interface MemoryInspector {
 /** The members tests/ and the playtests read or call on `window.__hedgehog` (grep `__hedgehog` before changing one). */
 export type Hedgehog = Pick<
   App,
-  | 'score' | 'handoffAt' | 'time' | 'mode' | 'look' | 'scene'
-  | 'rig' | 'renderer' | 'director' | 'lighting' | 'text' | 'post' | 'chair' | 'inside' | 'audio' | 'memoryLight' | 'memoryWindow'
+  | 'score' | 'handoffAt' | 'time' | 'mode' | 'look' | 'scene' | 'fps' | 'gazeId'
+  | 'rig' | 'renderer' | 'director' | 'lighting' | 'text' | 'post' | 'chair' | 'inside' | 'audio' | 'voices' | 'memoryLight' | 'memoryWindow'
   | 'living' | 'vignette'
   | 'playMemory' | 'playVignette' | 'heldAt' | 'endLivingMemory' | 'lookBy' | 'advance' | 'apply' | 'depart' | 'setStyle'
 >;

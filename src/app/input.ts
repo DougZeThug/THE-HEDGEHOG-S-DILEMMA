@@ -303,7 +303,6 @@ export class Input {
       if (this.ctx.audio && this.ctx.mode === 'room' && this.ctx.audio.ctx.state !== 'running') void this.ctx.audio.resume();
     }, { passive: true });
 
-    // The opening and its Skip.
     this.ctx.dom.skip.addEventListener('click', () => this.peers.opening.skipOpening());
     canvas.addEventListener('pointerdown', () => {
       const o = this.peers.opening.active;

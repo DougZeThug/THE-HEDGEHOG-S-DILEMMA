@@ -4,7 +4,8 @@ import type { AppContext } from './context';
 /** `?debug`: a few lines of the room's state over the picture, four times a second. */
 export class Debug {
   readonly enabled = new URLSearchParams(location.search).has('debug');
-  private fps = 60;
+  /** A smoothed frames per second (the playtests read it through `window.__hedgehog.fps`). */
+  fps = 60;
   private lastShown = 0;
 
   constructor(private readonly ctx: AppContext) {

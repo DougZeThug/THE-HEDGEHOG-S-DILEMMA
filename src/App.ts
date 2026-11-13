@@ -120,6 +120,15 @@ export class App {
   get audio() {
     return this.ctx.audio;
   }
+  get voices() {
+    return this.ctx.voices;
+  }
+  get gazeId() {
+    return this.ctx.gazeId;
+  }
+  get fps() {
+    return this.debug.fps;
+  }
   get captions() {
     return this.ctx.captions;
   }
