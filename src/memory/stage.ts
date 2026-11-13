@@ -19,7 +19,6 @@ export interface Stage {
   /** Its registry entry (the film's or rig's spec is read from it). */
   entry: MemoryEntry;
   def: MemoryDef;
-  /** The variant being prepared. */
   v: string;
   host: RuntimeHost;
   base: string;

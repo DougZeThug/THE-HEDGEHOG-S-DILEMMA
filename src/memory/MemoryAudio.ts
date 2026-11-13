@@ -329,7 +329,6 @@ export class MemoryAudio implements AudioSink {
     }
   }
 
-  /** A caption `seconds` from now, as its sound `l` is heard (with the picture). */
   private later(seconds: number, f: () => void, l: Live): void {
     if (seconds <= 0.02) return f();
     const h = setTimeout(() => {

@@ -50,15 +50,12 @@ interface PlaybackOptions {
   reduced: boolean;
   /** Seconds of the entrance's soft fade. */
   entrance: number;
-  /** Secondary motion, from the memory's definition. */
   sways: Sway[];
-  /** Seconds of a graceful early exit. */
   exit: number;
   /** The residue envelope (sunlight staying in the room), only after a natural close. */
   residue?: { rise: number; hold: number; fall: number };
-  /** The longest the living scene is held before the memory closes itself (the Director usually releases it first). */
+  /** (The Director usually releases it first.) */
   maxHold: number;
-  /** Seconds sound may run on after the image has gone. */
   tail: number;
   /** A living memory: it authors its own withdrawal (compose.ts). */
   living?: boolean;

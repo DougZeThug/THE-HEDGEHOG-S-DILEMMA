@@ -66,10 +66,3 @@ export function filmSpecOf(id: string): FilmSpec {
   if (!spec) throw new Error(`Memory "${id}" has no film spec`);
   return spec;
 }
-
-/** The painted rig of a painted living memory. */
-export function rigSpecOf(id: string): LivingSpec {
-  const spec = memoryEntry(id).rig;
-  if (!spec) throw new Error(`Memory "${id}" has no painted rig`);
-  return spec;
-}

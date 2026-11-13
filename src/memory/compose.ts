@@ -15,11 +15,9 @@ import type { Values } from './types';
  *   light     = base × emerge × exit × presence
  */
 export interface Weights {
-  /** Overall presence: 1, or 0.6 under gentle intensity. */
   presence: number;
   /** Procedural motion (sway, drift, breathing): 1, or 0 under reduced motion. */
   motion: number;
-  /** Parallax strength: 1, or 0.25 under reduced motion. */
   parallax: number;
 }
 
