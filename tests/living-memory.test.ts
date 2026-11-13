@@ -583,7 +583,7 @@ describe('the afternoon as a film: its shots at their own speed, the two of them
   });
 });
 
-describe("the painted rig's two-shot (dormant since 2026-10-24: its own drawings and spec)", () => {
+describe("the painted rig's two-shot (dormant: its own drawings and spec)", () => {
   const T = TWO_SHOT;
   /** The rig's `figure:b.turn` at `t` as its timeline keyed it: each drawing's value, held from its time. */
   const turnAt = (t: number) => {

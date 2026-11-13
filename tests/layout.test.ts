@@ -52,7 +52,7 @@ describe('wall layout', () => {
   });
 });
 
-describe('a line under another, inside a place on its wall (the line where the painting was: decisions 122, 133, 137, 141)', () => {
+describe('a line under another, inside a place on its wall (the line where the painting was)', () => {
   const W = 1.11, H = 0.17; // "we had all afternoon" in the pencil at s
   const inside = (r: { u: number; v: number; w: number; h: number }, z: { u: number; v: number; w: number; h: number }) =>
     r.u - r.w / 2 >= z.u - z.w / 2 - 1e-9 && r.u + r.w / 2 <= z.u + z.w / 2 + 1e-9 && r.v - r.h / 2 >= z.v - z.h / 2 - 1e-9 && r.v + r.h / 2 <= z.v + z.h / 2 + 1e-9;

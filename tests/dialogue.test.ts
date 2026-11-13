@@ -37,7 +37,6 @@ describe('voice direction', () => {
     for (const w of ['laugh', 'angry', 'frustrated', 'warm', 'embarrassed', 'confused', 'grief', 'tender']) expect(inputs).toContain(w);
     const live = direction.performances.filter((p: any) => !p.retired && !p.audition);
     for (const id of ['crumbs--laughing', 'laugh-breathe--joy', 'love-go-away--teasing', 'love-go-away--laughing']) expect(live.map((p: any) => p.id)).toContain(id);
-    // Several clearly different readings of each of the three central lines, in different voices or settings.
     for (const id of ['stay', 'love-go-away', 'happy-then']) {
       const takes = live.filter((p: any) => p.phraseId === id);
       // "I think I was happy then." lost two readings in the audition; its new ones are waiting to be heard.
@@ -71,14 +70,11 @@ describe('generation planning', () => {
     const perf = direction.performances.find((p: any) => !p.retired);
     l.entries[perf.id] = { status: 'validated', hash: performanceHash(perf, direction) };
     expect(planJobs(direction, l, { only: [perf.id] }).jobs).toHaveLength(0);
-    // A changed direction (different input) is a different request.
     const changed = { ...direction, performances: [{ ...perf, input: perf.text }] };
     expect(planJobs(changed, l, { only: [perf.id] }).jobs).toHaveLength(1);
-    // Approved: only an explicit regeneration replaces it.
     l.entries[perf.id].review = 'approved';
     expect(planJobs(changed, l, { only: [perf.id] }).jobs).toHaveLength(0);
     expect(planJobs(changed, l, { only: [perf.id], regenerate: [perf.id] }).jobs).toHaveLength(1);
-    // A missing file is regenerated.
     l.entries[perf.id].review = 'pending';
     expect(planJobs(direction, l, { only: [perf.id], fileExists: () => false }).jobs).toHaveLength(1);
   });
@@ -162,7 +158,6 @@ describe('API failure handling', () => {
     await runJobs({ ...h, jobs: jobsFor(['closer--quiet']), direction, ledger: l, key: 'k' });
     expect(l.entries['closer--quiet'].status).toBe('needs-review');
     expect(l.entries['closer--quiet'].spokenTags).toEqual(['nervously']);
-    // A single added word is enough to hold a take back for a person to hear.
     const h2 = harness([]);
     h2.fetch = async (url: string) => (url.includes('speech-to-text') ? { ...ok(), json: async () => ({ text: "You've got crumbs on you, love" }) } : ok());
     const l2 = emptyLedger();
@@ -213,7 +208,6 @@ describe('the vignettes\' recording direction', () => {
     expect(validateDirection(vdir, (_: string, p: { vignette: string; line: string }) => lineText.get(`${p.vignette}/${p.line}`), { sad: true })).toEqual([]);
     const bad = { ...vdir, performances: [{ ...vdir.performances[0], input: `[laughing] ${vdir.performances[0].text}` }] };
     expect(validateDirection(bad, (_: string, p: { vignette: string; line: string }) => lineText.get(`${p.vignette}/${p.line}`), { sad: true }).join()).toMatch(/too bright/);
-    // Whispered and close to tears is allowed now.
     const close = { ...vdir, performances: [{ ...vdir.performances[0], input: `[whispering, close to tears] ${vdir.performances[0].text}` }] };
     expect(validateDirection(close, (_: string, p: { vignette: string; line: string }) => lineText.get(`${p.vignette}/${p.line}`), { sad: true })).toEqual([]);
   });

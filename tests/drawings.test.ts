@@ -41,7 +41,6 @@ describe('the drawings: few, small, mostly already there', () => {
     for (const d of DRAWINGS) if (d.at) expect(d.at[1] - d.size[1] / 2, d.id).toBeGreaterThan(0.095);
     // Apart from each other: no little gallery.
     for (const a of spots) for (const b of spots) if (a !== b && a.surface === b.surface) expect(Math.hypot(a.u - b.u, a.v - b.v)).toBeGreaterThan(0.4);
-    // The drawing that sits beside a line finds room there, clear of all the writing.
     const cups = DRAWING_BY_ID.get('cups')!;
     const p = drawingBeside(layoutOf(m), cups, m.get(cups.beside!));
     expect(p).toBeTruthy();
@@ -49,7 +48,6 @@ describe('the drawings: few, small, mostly already there', () => {
       const pl = m.get(q.id);
       if (pl && pl.surface === p!.surface) expect(overlaps(pl, p!, 0), q.id).toBe(false);
     }
-    // And when there is none (the wall filled with notes), it says so rather than overlapping.
     const full = layoutPhrases(PHRASES, measure, 4242, drawingSpots(DRAWINGS));
     const L = layoutOf(full);
     const t = full.get(cups.beside!)!;
@@ -73,7 +71,6 @@ describe('drawn by a hand', () => {
       // Line, not fill: a few percent of the box.
       expect(frac).toBeGreaterThan(0.005);
       expect(frac).toBeLessThan(0.3);
-      // Deterministic.
       expect(bakeDrawing(d).data).toEqual(b.data);
     });
   }

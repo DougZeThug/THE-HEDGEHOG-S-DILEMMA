@@ -25,7 +25,6 @@ describe('the heart, in the memory director', () => {
     const o = offerAt(md, 101);
     expect(o?.id).toBe('almost');
     expect(o?.reink).toBeFalsy();
-    // Not while the room isn't quiet for it either.
     const md2 = new MemoryDirector();
     md2.setHeart('almost', 100);
     expect(offerAt(md2, 101, { heartFree: false })).toBeNull();
@@ -57,7 +56,6 @@ describe('the heart, in the memory director', () => {
       const o = offerAt(md, t, { free: true, phase: 'transform' });
       if (o) expect(['woodland', 'things']).not.toContain(o.id);
     }
-    // It lapses only once HEART_LAPSE has gone by, not at it.
     expect(md.heartLapsed(81 + HEART_LAPSE)).toBe(false);
     expect(md.heartLapsed(81 + HEART_LAPSE + 1)).toBe(true);
     // The same visit, with another painted memory behind it (the others' own gate): at the boundary
@@ -94,7 +92,6 @@ describe('the heart, in the memory director', () => {
   it('written again, it is measured on the wall it was written on, not its phrase\'s own', () => {
     const where = (id: string) => (id === 'your-hand' ? 'east' as const : undefined);
     expect(classify({ type: 'redraw', phraseId: 'your-hand', key: 'memory:your-hand', seconds: 3 }, where)?.surface).toBe('east');
-    // The phrase in its own place stays where it is authored.
     expect(classify({ type: 'redraw', phraseId: 'your-hand', seconds: 3 }, where)?.surface).toBe('north');
   });
 
@@ -238,7 +235,6 @@ describe('the heart, through whole visits', () => {
     expect(d.scenes.heartDue(d.now)).toBe(true);
     expect(run(15, 'north')).not.toContain('memory-offer');
     expect(d.scenes.heartDue(d.now)).toBe(true);
-    // Turned to another wall, it is offered there.
     expect(run(30, 'east')).toContain('memory-offer');
   });
 
@@ -270,7 +266,6 @@ describe('the heart, through whole visits', () => {
     expect(runs.every((x) => !x.reach.kept)).toBe(true);
     const odd = liveVisit(g, 7, { seconds: 120, past: { visits: 2, memoryCounts: {}, trace: null, answer: 'didnt-know-how' } });
     expect(odd.reach.kept).toBe(false);
-    // A kept line that found no room is looked for again.
     const full = liveVisit(g, 7, { seconds: 120, past: { visits: 2, memoryCounts: r.memoryCounts, trace: null, answer: r.reach.left }, failOnce: 'heart:' });
     expect(full.reach.kept).toBe(true);
     // While it waits, the wall is held for it: nothing new is written or revealed there (cubic,

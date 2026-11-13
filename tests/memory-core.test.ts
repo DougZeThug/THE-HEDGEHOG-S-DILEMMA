@@ -192,7 +192,7 @@ describe('cue dispatch: every event once, never on a seek', () => {
     for (let p = 0.5; p <= 6; p += 0.05) for (const x of d.advance(p)) again.push(x.marker.label);
     expect(again).toEqual(['a', 'b', 'c']);
   });
-  it('a cue handed out ahead is not handed out again by the stalls that pass it (QA, 2026-10-22)', () => {
+  it('a cue handed out ahead is not handed out again by the stalls that pass it', () => {
     const d = new CueDispatch([{ label: 'music:wall', position: 1.5 }], 0.75);
     const got: string[] = [];
     for (let p = 0; p <= 0.789; p += 1 / 30) for (const x of d.advance(p)) got.push(x.marker.label);

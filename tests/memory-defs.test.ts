@@ -56,7 +56,7 @@ describe('the living memories, as defined and committed', () => {
   }
 });
 
-describe("the woodland's line where the painting was (decisions 119–123)", () => {
+describe("the woodland's line where the painting was", () => {
   it('only after its afternoon, once the room’s writing is back, before the memory ends', () => {
     const def = MEMORIES.woodland;
     expect(def.coda?.variant).toBe('afternoon');

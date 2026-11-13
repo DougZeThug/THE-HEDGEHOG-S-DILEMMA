@@ -14,7 +14,6 @@ describe('writing in the air', () => {
     for (const seed of [3, 11, 27]) {
       const d = new Director({ seed });
       d.release({ written: ['stay'], spoken: ['crumbs'] });
-      // At the chair for half a minute, then back to the door, looking at it.
       const cues = run(d, 240, (t) => (t < 30 ? { ...apart, z: 0.9, gazeChair: false } : t < 33 ? { ...apart, z: 0.9 + ((t - 30) / 3) * 1.7 } : apart));
       const air = cues.filter((c) => c.cue.type === 'air');
       expect(air.length, `seed ${seed}`).toBe(1);
@@ -66,7 +65,6 @@ describe('light as a motif', () => {
     expect(level(1)).toBeGreaterThan(0.6);
     expect(level(5)).toBeCloseTo(0.25, 2);
     expect(level(11.5)).toBe(1);
-    // Down and back once.
     let turns = 0;
     for (let i = 2; i < at.length; i++) if (Math.sign(at[i] - at[i - 1]) * Math.sign(at[i - 1] - at[i - 2]) < 0) turns++;
     expect(turns).toBeLessThanOrEqual(1);

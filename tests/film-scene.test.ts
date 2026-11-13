@@ -89,11 +89,9 @@ describe('a film as a living memory', () => {
     expect(scene.update(gl, 5, { 'scene.film': 0 }, { view })).toBe(true);
     expect(video.paused).toBe(true);
     expect(video.currentTime).toBeCloseTo(0.5 / 24, 9);
-    // The same time again (a held memory): nothing new, no draw, no seek.
     const seeks = video.seeks.length;
     expect(scene.update(gl, 5, { 'scene.film': 0 }, { view })).toBe(false);
     expect(video.seeks.length).toBe(seeks);
-    // A seek elsewhere (scrubbing): straight to that frame, still paused.
     scene.update(gl, 5, { 'scene.film': 12.51 }, { view });
     expect(video.paused).toBe(true);
     expect(video.currentTime).toBeCloseTo(300.5 / 24, 9);
@@ -245,7 +243,6 @@ describe('a film as a living memory', () => {
     await settle();
     expect(video.plays).toBe(1);
     expect(video.paused).toBe(false);
-    // In step: no seeks while it plays along.
     const seeks = video.seeks.length;
     for (let i = 0; i < 120; i++) {
       t += 1 / 60;
@@ -270,7 +267,6 @@ describe('a film as a living memory', () => {
     scene.update(gl, t, film(t), { view });
     expect(video.seeks.length).toBe(quiet + 1);
     expect(video.currentTime).toBeGreaterThan(t - FILM_AT);
-    // Paused (a held memory): the video pauses too.
     scene.update(gl, t, film(t), { view });
     expect(video.paused).toBe(true);
   });
@@ -432,7 +428,7 @@ describe('Things I Should Have Said on its timeline', () => {
     expect(THINGS.markers.find((k) => k.label === 'music:film')!.position).toBe(THINGS_AT);
   });
 
-  it("the wall's sound is the wall's drawing: its start, its length, its level, its caption before the film's (QA)", () => {
+  it("the wall's sound is the wall's drawing: its start, its length, its level, its caption before the film's", () => {
     const seed = THINGS.seed('film');
     const sketch = seed.tracks['window.sketch'] as [number, number][];
     const cues = THINGS.cues('film').cues;

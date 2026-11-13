@@ -80,7 +80,7 @@ function run(p: VignettePlayer, ctx: FakeCtx, seconds: number, dt = 1 / 60) {
 afterEach(() => vi.useRealTimers());
 
 describe('a vignette, played', () => {
-  it('a long frame never loses a line: its clock keeps its cap of a second (QA, 2026-10-19)', async () => {
+  it('a long frame never loses a line: its clock keeps its cap of a second', async () => {
     vi.useFakeTimers();
     for (const stall of [1.5, 2, 3]) {
       for (const before of [0.5, 3, 7]) {

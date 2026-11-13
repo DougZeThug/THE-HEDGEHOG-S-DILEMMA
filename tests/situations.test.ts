@@ -86,9 +86,7 @@ describe('situation: the next room', () => {
     v.run(15, { x: 0.1, z: 0.8 });
     const silence = v.of('sit:next-room').find((c) => c.cue.type === 'silence');
     expect(silence).toBeTruthy();
-    // The absence: no laughter anywhere near that moment, or ever again.
     const laughs = v.cues.filter((c) => isVoice(c.cue) && c.cue.kind === 'laugh');
-    // Nothing else speaks at the chair as the memory is written, or during the quiet that follows.
     const quietEnd = silence!.t + (silence!.cue as { seconds: number }).seconds;
     expect(v.cues.filter((c) => isVoice(c.cue) && c.t > write!.t - 6 && c.t < quietEnd && !c.rule.startsWith('sit:')).length).toBe(0);
     expect(laughs.every((c) => c.t < write!.t - 10)).toBe(true);
@@ -171,7 +169,6 @@ describe('situation: listening', () => {
     expect(stop).toBeTruthy();
     v.run(1, before('west'));
     expect(v.of('sit:listening').some((c) => c.cue.type === 'silence')).toBe(true);
-    // No further murmurs once caught.
     const after = v.run(200, { x: 2.2, z: 0.5, facing: 'east' }, (c) => c.rule === 'sit:listening' && c.cue.type === 'write');
     expect(after).toBeTruthy();
     expect(after!.cue.type === 'write' && after!.cue.surface).toBe('east');
@@ -193,7 +190,6 @@ describe('situation: residue', () => {
     v.run(30, { x: 0, z: 2.6 });
     expect(v.cues.some((c) => c.cue.type === 'chairTurn')).toBe(false);
     v.run(40, { x: 0, z: 2.6 });
-    // Near again, looking at it: it is not seen turning. Then with it out of view: found turned.
     expect(v.run(10, { x: 0, z: 1.5 }, (c) => c.cue.type === 'chairTurn')).toBeUndefined();
     const turn = v.run(10, { x: 0, z: 1.5, yaw: Math.PI }, (c) => c.cue.type === 'chairTurn');
     expect(turn).toBeTruthy();
@@ -224,7 +220,6 @@ describe('situation: erosion', () => {
     v.run(10, { x: 0, z: 2.6, facing: 'south' });
     const kin = v.of('sit:erosion').find((c) => c.cue.type === 'write');
     expect(kin && kin.cue.type === 'write' && kin.cue.beside).toBe('contrib:1:kept');
-    // The engine keeps only the one word, never the whole text.
     expect(JSON.stringify(v.d.situations.snapshot())).not.toContain('used to be');
   });
 

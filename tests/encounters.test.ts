@@ -45,7 +45,6 @@ describe('a meeting that comes due while a memory plays', () => {
     q.queue(0.5, cue, rule);
     const during: TimedCue[] = [];
     for (let t = 0; t < 3; t += 0.1) during.push(...d.tick(0.1, base, 'north'));
-    // (The memory has gone.)
     q.scenes.active = null;
     const after: TimedCue[] = [];
     for (let t = 0; t < 15; t += 0.1) after.push(...d.tick(0.1, base, 'north'));
@@ -100,7 +99,6 @@ describe('encounters: the same words, met again', () => {
     const third = own(v.look('stay', 10), 'stay');
     expect(types(third)).toEqual(['sound']);
     expect((third[0].cue as Extract<Cue, { type: 'sound' }>).kind).toBe('door');
-    // The line itself is unchanged: nothing hidden, struck or rewritten.
     expect(v.d.visible.get('stay')?.mode).toBe('shown');
 
     v.away(30);

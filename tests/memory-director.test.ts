@@ -207,7 +207,6 @@ describe('the Director and its memories, wired together', () => {
 describe('living memories in a visit', () => {
   it('a reader who comes back to the first line meets the memory; nothing talks over it', () => {
     const reader = PERSONAS.find((p) => p.id === 'reader')!;
-    // Over four visits, most meet it; never before its earliest time.
     const runs = [1, 2, 3, 4].map((seed) => visit(reader, 180, seed));
     const ats = runs.map((r) => r.devs.find((d) => d.label === 'memory-scene cereal')?.t).filter((t): t is number => t !== undefined);
     expect(ats.length).toBeGreaterThanOrEqual(3);

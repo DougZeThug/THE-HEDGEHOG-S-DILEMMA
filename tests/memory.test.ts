@@ -33,7 +33,6 @@ describe('a memory intruding as light', () => {
       const offer = cues.find((c) => c.rule === 'memory-offer')!;
       expect(offer.cue).toMatchObject({ type: 'write', surface: 'north', source: Director.MEMORY.phraseId });
       expect(['contradiction', 'transform']).toContain(d.phase);
-      // Not looked at: no light.
       expect(cues.some((c) => c.cue.type === 'memory')).toBe(false);
     }
   });
@@ -50,7 +49,6 @@ describe('a memory intruding as light', () => {
       if (!mem || mem.t - t0 > 3.0) late.push(`seed ${seed}: ${mem ? (mem.t - t0).toFixed(1) + ' s' : 'never'}`);
       if (mem) {
         expect(mem.cue).toMatchObject({ phraseId: Director.MEMORY.phraseId, attack: 3, hold: 6, release: 4 });
-        // Nothing else while they stay with it, either.
         const waiting = cues.filter((c) => c.t < mem.t && (c.cue.type === 'voice' || c.cue.type === 'write' || c.cue.type === 'reveal' || c.cue.type === 'music'));
         expect(waiting, `seed ${seed}`).toEqual([]);
         // Nothing of the room's own while it is there.

@@ -91,11 +91,9 @@ describe('Director', () => {
       const own = cues.filter((c) => c.rule.startsWith('contribution'));
       const w = own.find((c) => c.cue.type === 'write');
       expect(w && w.cue.type === 'write' && w.cue.text).toBe(text);
-      // Nothing that could read as an answer arrives within the first minute.
       for (const c of own) if (c.cue.type === 'reveal' || c.cue.type === 'voice') expect(c.t - 20).toBeGreaterThanOrEqual(59);
       extras.push(new Set(own.filter((c) => c.cue.type !== 'write').map((c) => c.rule)).size);
     }
-    // At most one other gesture, and often none at all.
     expect(Math.max(...extras)).toBeLessThanOrEqual(1);
     expect(extras.filter((n) => n === 0).length).toBeGreaterThan(4);
     expect(extras.filter((n) => n === 1).length).toBeGreaterThan(4);

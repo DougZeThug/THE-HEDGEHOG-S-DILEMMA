@@ -16,7 +16,6 @@ describe('the walls are not neatly partitioned', () => {
     expect(PHRASE_BY_ID.get('arm-dead')).toMatchObject({ surface: 'south', tier: 'arrival' }); // the most intimate line, on the empty wall
     expect(PHRASE_BY_ID.get('meant-some')!.surface).toBe('east');
     expect(PHRASE_BY_ID.get('jumper')!.surface).toBe('north');
-    // Each wall still has a dominant character.
     for (const wall of ['north', 'east', 'west'] as const) {
       const own = PHRASES.filter((p) => p.surface === wall);
       const mean = (w: typeof wall) => own.reduce((s, p) => s + belonging(p, w), 0) / own.length;

@@ -131,7 +131,7 @@ describe('the aftermath of a memory', () => {
   });
 });
 
-describe('after the afternoon (decision 118): two habits wait, a first approach does not', () => {
+describe('after the afternoon: two habits wait, a first approach does not', () => {
   /** The woodland's afternoon, taken in and seen to its end: the room's last music. */
   const afternoon = (d: Director) => {
     (d.scenes as unknown as { active: unknown }).active = { id: 'woodland', since: d.now };
