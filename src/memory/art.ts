@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { LayerKind } from '../world/MemoryWindow';
-import type { FigureArt, Eye } from './living/WoodlandScene';
+import type { FigureArt, Eye } from './living/woodlandArt';
 import type { LivingSpec } from './living/woodland';
 import { fetchBlob } from './fetched';
 

@@ -1,5 +1,6 @@
 import type * as THREE from 'three';
-import { WoodlandScene, type HeadCels, type LivingArt, type NearArt } from './living/WoodlandScene';
+import { WoodlandScene } from './living/WoodlandScene';
+import type { HeadCels, LivingArt, NearArt } from './living/woodlandArt';
 import { framesNear, loadLayer, colourTimes, type LivingManifest } from './art';
 import { dropScene, fallBackToPoster, targetSize, type Stage } from './stage';
 import type { PreparedPainting } from './prepared';
