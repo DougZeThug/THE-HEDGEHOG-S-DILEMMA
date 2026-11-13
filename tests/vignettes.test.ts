@@ -279,7 +279,8 @@ describe('the Director and its vignettes', () => {
     const d = new Director({ seed: 5 });
     // A vignette playing (as the App reports it).
     d.memoryExternal('a-bag');
-    const accept = (d as unknown as { accept(c: unknown, r: string): boolean }).accept.bind(d);
+    const adm = (d as unknown as { admission: { admit(c: unknown, r: string, o: object): boolean } }).admission;
+    const accept = (c: unknown, r: string) => adm.admit(c, r, {});
     expect(accept({ type: 'voice', kind: 'laugh', text: null, caption: '', position: { kind: 'beyond', surface: 'north' }, gain: 0.5 }, 'sit:next-room')).toBe(false);
     expect(accept({ type: 'sound', kind: 'cup', position: { kind: 'chair' }, gain: 0.5 }, 'respond-sound')).toBe(false);
     expect(accept({ type: 'music', mood: 'warm', notes: 4, truncate: false }, 'music')).toBe(false);

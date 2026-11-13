@@ -10,9 +10,8 @@ const base: VisitorInput = { x: 0, z: 2.4, yaw: 0, pitch: 0, gazePhraseId: null,
 type Priv = {
   speakPhrase: (rule: string, p: unknown, pos: unknown, delay?: number) => boolean;
   memory: { spoken: Map<string, number> };
-  memoryQuietUntil: number;
-  hesitationOwed: boolean;
-  onMotif: (m: string) => void;
+  shared: { memoryQuietUntil: number };
+  voicing: { hesitationOwed: boolean; onMotif: (m: string) => void };
   now: number;
 };
 const make = () => {
@@ -29,11 +28,11 @@ const run = (d: Director, seconds: number) => {
 describe('a voice the room declines to say leaves no trace', () => {
   it('is not marked as spoken when it was never queued', () => {
     const { d, p } = make();
-    p.memoryQuietUntil = p.now + 30;
+    p.shared.memoryQuietUntil = p.now + 30;
     const line = PHRASE_BY_ID.get('closer')!;
     expect(p.speakPhrase('test', line, { kind: 'chair' })).toBe(false);
     expect(p.memory.spoken.has('closer')).toBe(false);
-    p.memoryQuietUntil = -Infinity;
+    p.shared.memoryQuietUntil = -Infinity;
     expect(p.speakPhrase('test', line, { kind: 'chair' })).toBe(true);
     expect(p.memory.spoken.has('closer')).toBe(true);
     expect(run(d, 3).some((c) => c.cue.type === 'voice')).toBe(true);
@@ -41,14 +40,14 @@ describe('a voice the room declines to say leaves no trace', () => {
 
   it('owes the hesitation reply until the room can say it', () => {
     const { d, p } = make();
-    p.memoryQuietUntil = p.now + 20;
-    p.onMotif('hesitation');
-    expect(p.hesitationOwed).toBe(true);
+    p.shared.memoryQuietUntil = p.now + 20;
+    p.voicing.onMotif('hesitation');
+    expect(p.voicing.hesitationOwed).toBe(true);
     const during = run(d, 15).filter((c) => c.rule === 'motif-hesitation');
     expect(during).toEqual([]);
     const after = run(d, 30).filter((c) => c.rule === 'motif-hesitation');
     expect(after.length).toBe(1);
-    expect(p.hesitationOwed).toBe(false);
+    expect(p.voicing.hesitationOwed).toBe(false);
   });
 });
 

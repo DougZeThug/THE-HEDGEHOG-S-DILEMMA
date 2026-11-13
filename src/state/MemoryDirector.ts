@@ -1,4 +1,4 @@
-import { ALL_MEMORIES, HEART_IDS, HEART_EARLIEST, MEMORY_BY_PHRASE, linesOf, type SceneMemory } from '../content/memories';
+import { ALL_MEMORIES, HEART_IDS, HEART_EARLIEST, HEART_LAPSE, HEART_POINT_APART, HEART_REINK, MEMORY_BY_PHRASE, linesOf, type SceneMemory } from '../content/memories';
 import { VIGNETTE_BY_ID, chooseVariant, spokenLines, type Echo, type VariantContext } from '../content/vignettes';
 import { chooseVoices, voicesId } from '../content/memory-voices';
 
@@ -117,12 +117,6 @@ export const POINTS_PER_VISIT = 3;
 export const POINT_AFTER_VIGNETTE = 60;
 /** The memories that can be a visit's heart. */
 const HEARTS: ReadonlySet<string> = HEART_IDS;
-/** A heart pointed at and let be this long no longer keeps the others back. */
-export const HEART_LAPSE = 120;
-/** A heart pointed at and not taken up is written again once, no sooner than this. */
-export const HEART_REINK = 30;
-/** The heart keeps this far from the last pointing, the last memory and the last vignette. */
-export const HEART_POINT_APART = 45;
 
 /** What the room points at: a line written alone where the visitor looks, or (`reink`) one already there, written again. */
 /** `key`: a re-ink of a line written alone for it (`memory:<phrase>`), not of the phrase in its own place. */

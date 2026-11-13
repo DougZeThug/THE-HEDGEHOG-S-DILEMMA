@@ -9,7 +9,8 @@ import { PHRASES, PHRASE_BY_ID } from '../src/content/phrases';
 import { layoutPhrases, layoutToWorld } from '../src/world/layout';
 import { ROOM } from '../src/core/room';
 import { interpretLocally } from '../src/interpret/LocalInterpreter';
-import { keptWord, HUM_NOTE, nextRoom } from '../src/state/situations/library';
+import { HUM_NOTE, nextRoom } from '../src/state/situations/library';
+import { keptWord } from '../src/core/words';
 
 // Geometry without a browser: the same layout, approximate font metrics.
 const SZ: Record<string, number> = { xs: 0.13, s: 0.17, m: 0.22, l: 0.31, xl: 0.53 };

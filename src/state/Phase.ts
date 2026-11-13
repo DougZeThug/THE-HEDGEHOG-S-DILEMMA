@@ -21,6 +21,18 @@ export const PHASE_GATES: Record<Exclude<Phase, 'arrival'>, { depth: number; flo
   transform: { depth: 45, floor: 100, fallback: 300 },
 };
 
+const PHASE_ORDER: readonly Phase[] = ['arrival', 'familiar', 'contradiction', 'transform'];
+
+/** Whether the visit has reached `min` (the room contradicts itself from `contradiction` on). */
+export function phaseAtLeast(phase: Phase, min: Phase): boolean {
+  return PHASE_ORDER.indexOf(phase) >= PHASE_ORDER.indexOf(min);
+}
+
+/** How far the visit has turned: 0 before the room contradicts itself, half then, 1 in the last phase. */
+export function lateness(phase: Phase): 0 | 0.5 | 1 {
+  return phase === 'transform' ? 1 : phase === 'contradiction' ? 0.5 : 0;
+}
+
 export class PhaseTracker {
   phase: Phase = 'arrival';
   changedAt = 0;

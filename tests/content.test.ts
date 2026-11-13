@@ -2,6 +2,10 @@ import { describe, it, expect } from 'vitest';
 import { PHRASES, PHRASE_BY_ID } from '../src/content/phrases';
 import { RECONTEXTS, VOICE_FRAGMENTS } from '../src/content/relations';
 import { DIMENSIONS } from '../src/content/types';
+import { DRAWING_IDS, FRAGMENT_IDS, MEMORY_IDS, PHRASE_IDS, SITUATION_IDS } from '../src/content/ids';
+import { ALL_MEMORIES } from '../src/content/memories';
+import { DRAWING_BY_ID } from '../src/content/drawings';
+import { SITUATION_BY_ID } from '../src/state/situations/library';
 
 describe('phrase corpus', () => {
   it('has 80–121 phrases with unique ids', () => {
@@ -32,5 +36,22 @@ describe('phrase corpus', () => {
   });
   it('voice fragments are well formed', () => {
     for (const f of VOICE_FRAGMENTS) expect(f.caption.length).toBeGreaterThan(0);
+  });
+});
+
+describe('ids the Director names', () => {
+  it('every phrase id exists', () => {
+    for (const id of Object.values(PHRASE_IDS)) expect(PHRASE_BY_ID.has(id), id).toBe(true);
+  });
+  it('every living memory id exists', () => {
+    for (const id of Object.values(MEMORY_IDS)) expect(ALL_MEMORIES.some((m) => m.id === id), id).toBe(true);
+  });
+  it('every drawing a memory is written under exists', () => {
+    for (const m of ALL_MEMORIES) if (m.under) expect(DRAWING_BY_ID.has(m.under), m.id).toBe(true);
+  });
+  it('every drawing, fragment and situation id exists', () => {
+    for (const id of Object.values(DRAWING_IDS)) expect(DRAWING_BY_ID.has(id), id).toBe(true);
+    for (const id of Object.values(FRAGMENT_IDS)) expect(VOICE_FRAGMENTS.some((f) => f.id === id), id).toBe(true);
+    for (const id of Object.values(SITUATION_IDS)) expect(SITUATION_BY_ID.has(id), id).toBe(true);
   });
 });

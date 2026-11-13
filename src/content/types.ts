@@ -63,5 +63,8 @@ export interface Phrase {
   keywords?: string[];
 }
 
-export const PHASES = ['arrival', 'familiar', 'contradiction', 'transform'] as const;
-export type Phase = (typeof PHASES)[number];
+export type Phase = 'arrival' | 'familiar' | 'contradiction' | 'transform';
+
+/** Patterns the room notices across a visit (state/Memory.ts tracks them; content refers to them). */
+export const MOTIFS = ['hesitation', 'closeness', 'distance', 'stillness', 'warmth', 'wandering', 'reading', 'contributor'] as const;
+export type Motif = (typeof MOTIFS)[number];

@@ -66,6 +66,11 @@ export interface SceneMemory {
   afterFinished?: string;
   /** Heard this many times (over all visits), it no longer comes. */
   maxSeen?: number;
+  /**
+   * A drawing (src/content/drawings.ts) its offered line is written beneath, instead of on the wall
+   * faced: the door's line goes under the room's drawn door, which its memory opens from.
+   */
+  under?: string;
   /** Its line is kept off the walls until the memory offers it (it belongs to that moment). */
   reserved?: boolean;
   /** Once it has played, no other painted memory is offered in that visit (it ends the arc). */
@@ -130,7 +135,7 @@ export const SCENE_MEMORIES: SceneMemory[] = [
   // to the door and stops; a return visit, they only pass.
   {
     id: 'door', phraseId: 'door-open', earliest: 240, arc: 'afterAnother', arm: 2.5, commit: 1.0, minHold: 9, maxHold: 18,
-    variants: { first: 'approach', revisit: ['passing'] }, lookBack: false, offer: { phases: ['contradiction', 'transform'], apart: 120, wall: 'south' }, reserved: true,
+    variants: { first: 'approach', revisit: ['passing'] }, lookBack: false, offer: { phases: ['contradiction', 'transform'], apart: 120, wall: 'south' }, reserved: true, under: 'ghost-door',
   },
 ];
 
@@ -217,5 +222,13 @@ export const HEART_ANSWER: Record<string, string> = { almost: 'took-hand-back' }
 export const HEART_EARLIEST = 75;
 /** The other hearts are chosen only from here (the recoil, a median 103 s in, comes first). */
 export const HEART_DECIDE = 150;
+/** A heart pointed at and let be this long no longer keeps the others back. */
+export const HEART_LAPSE = 120;
+/** A heart pointed at and not taken up is written again once, no sooner than this. */
+export const HEART_REINK = 30;
+/** The heart keeps this far from the last pointing, the last memory and the last vignette. */
+export const HEART_POINT_APART = 45;
+/** Seconds before the heart's line, finding no room beside the first line, is tried again. */
+export const HEART_RETRY = 20;
 /** Almost is pointed at no sooner than this after the recoil (its 7 s hold, and a breath). */
 export const HEART_AFTER_RECOIL = 17;

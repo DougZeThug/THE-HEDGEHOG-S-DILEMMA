@@ -1,5 +1,4 @@
-import type { Hand, Phase, VoiceStyle } from './types';
-import type { Motif } from '../state/Memory';
+import type { Hand, Motif, Phase, VoiceStyle } from './types';
 
 /**
  * Encounters.

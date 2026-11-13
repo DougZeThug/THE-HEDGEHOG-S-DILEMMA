@@ -40,7 +40,7 @@ export function affinity(p: Phrase, d: Record<Dimension, number>): number {
   return w > 0 ? s / Math.sqrt(w) : 0;
 }
 
-const TIER_OPEN: Record<Phase, Tier[]> = {
+export const TIER_OPEN: Record<Phase, Tier[]> = {
   arrival: ['arrival', 'near'],
   familiar: ['arrival', 'near', 'familiar'],
   contradiction: ['arrival', 'near', 'familiar', 'contradiction'],
@@ -134,5 +134,3 @@ export class PhraseSelector {
     return i < 0 ? null : top[i].p;
   }
 }
-
-export { TIER_OPEN };
