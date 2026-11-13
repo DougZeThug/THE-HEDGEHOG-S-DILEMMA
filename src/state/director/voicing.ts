@@ -67,7 +67,7 @@ export class Voicing {
     if (phraseId && !finish && this.h.withheld().includes(phraseId)) return true;
     // The memory's line has just been written for the visitor to stay with: the room doesn't
     // talk over it (authored situations and a finished line aside).
-    if (this.h.now < this.h.memoryQuietUntil && !finish && !isSituation(rule)) return true;
+    if (this.h.now < this.h.shared.memoryQuietUntil && !finish && !isSituation(rule)) return true;
     // Nothing talks over a living memory (a finished line aside; nothing at all over one with voices of its own).
     if (this.h.scenes.active && (!finish || this.h.vignettePlaying)) return true;
     // A vignette's line is its own: the room doesn't say it first.

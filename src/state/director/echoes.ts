@@ -18,7 +18,7 @@ export class Echoes {
    */
   tick() {
     if (this.h.departing || this.h.scenes.active || this.h.attending()) return;
-    if (!this.h.scheduler.majorFree(this.h.now) || this.h.pacing.holding(this.h.now) || !this.h.pacing.intenseFree(this.h.now) || this.h.now < this.h.memoryQuietUntil) return;
+    if (!this.h.scheduler.majorFree(this.h.now) || this.h.pacing.holding(this.h.now) || !this.h.pacing.intenseFree(this.h.now) || this.h.now < this.h.shared.memoryQuietUntil) return;
     for (const p of this.h.scenes.dueEchoes(this.h.now)) {
       const cue = this.cue(p);
       if (!cue) continue;

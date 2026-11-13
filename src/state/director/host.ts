@@ -31,6 +31,8 @@ export interface SharedMarks {
   pendingPhase: Phase | null;
   /** After a vignette, even the room finishing its own line waits (its quiet is part of it). */
   vignetteQuietUntil: number;
+  /** No voices of the room's own until then (a memory's line has just been offered, or a vignette has ended). */
+  memoryQuietUntil: number;
 }
 
 export const newSharedMarks = (): SharedMarks => ({
@@ -42,6 +44,7 @@ export const newSharedMarks = (): SharedMarks => ({
   transformAt: Infinity,
   pendingPhase: null,
   vignetteQuietUntil: -Infinity,
+  memoryQuietUntil: -Infinity,
 });
 
 export type QueueOptions = { major?: boolean; key?: string; ttl?: number; priority?: number };
@@ -76,8 +79,6 @@ export interface RuleHost {
   readonly musicWithdrawn: boolean;
   /** A memory with voices of its own is playing: a vignette, or a painted memory begun with its overheard voices. */
   readonly vignettePlaying: boolean;
-  /** No voices of the room's own until then (a memory's line has just been offered, or a vignette has ended). */
-  readonly memoryQuietUntil: number;
   readonly shared: SharedMarks;
   /** The wall faced, or null when looking at the floor or ceiling. */
   facingWall(): Wall | null;
