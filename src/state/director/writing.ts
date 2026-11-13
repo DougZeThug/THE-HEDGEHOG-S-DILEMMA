@@ -16,7 +16,6 @@ export interface WritingOptions {
 
 /** What writing needs to know of the kitchen-light memory and the way out. */
 export interface WritingLink {
-  /** The kitchen-light memory has played. */
   memoryPlayed(): boolean;
   /** The way out is shown and is this line. */
   isWayOut(phraseId: string): boolean;
@@ -56,7 +55,6 @@ export class Writing {
 
   private drawRetried = new Set<string>();
 
-  /** Drawings drawn during this visit (each at most once). */
   readonly drawn = new Set<string>();
 
 

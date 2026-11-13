@@ -47,7 +47,6 @@ export class Heart {
   private keptWaits = false;
   /** The visitor asked to be forgotten: the last visit's answer is not written from then on. */
   private pastForgotten = false;
-  /** Memories seen on earlier visits. */
   memoryCounts: Record<string, number>;
   /** This visit's coin for a shared heart (its own draw, so nothing else the room draws moves with it). */
   private readonly heartCoin: number;
@@ -61,7 +60,6 @@ export class Heart {
     this.heartCoin = new Rng(o.seed * 104729 + 7).next();
   }
 
-  /** Whether this visit has a heart at all. */
   hearts(): boolean {
     return this.o.enabled;
   }

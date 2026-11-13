@@ -48,7 +48,6 @@ export class RoomLife {
     this.strays.delete(phraseId);
   }
 
-  /** The walls slowly offer more writing as the visit goes on. */
   drift() {
     const gap = { arrival: 30, familiar: 28, contradiction: 26, transform: 30 }[this.h.phase];
     if (this.h.now < 14 || !this.h.cool('drift', gap) || this.h.pacing.holding(this.h.now) || this.h.pacing.crowded(this.h.now)) return;

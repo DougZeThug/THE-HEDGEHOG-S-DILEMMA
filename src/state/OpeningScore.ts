@@ -18,7 +18,6 @@ export type Stage = 'title' | 'dark' | 'chair' | 'room' | 'writing' | 'voice' | 
 
 /** Everything the score holds, 0–1 unless noted. */
 export interface Levels {
-  /** Title card opacity. */
   title: number;
   /** The whole image covered in black. */
   black: number;

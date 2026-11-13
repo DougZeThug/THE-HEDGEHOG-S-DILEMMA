@@ -36,7 +36,6 @@ export interface VisibleState {
   since: number;
   /** Shown from the start (arrival tier) — never culled. */
   base: boolean;
-  /** A hide has been queued for it. */
   hiding?: boolean;
 }
 

@@ -550,7 +550,6 @@ export class Director implements RuleHost {
    * room has only just been left: a door closing behind them, or the chair settling with a
    * warmth still on it, or the hum simply dropping as the line is finished.
    */
-  /** Hold the room for the authored opening. */
   hold() {
     this.held = true;
   }
@@ -604,18 +603,9 @@ export class Director implements RuleHost {
   // ─────────────────────────── the visit's heart ───────────────────────────
   // (docs/reviews/2026-11-emotional-arc.md)
 
-  /**
-   * The App reports a living memory has gone (or could not begin). `seen`: watched past its first
-   * moments. Returns whether it counts as seen (persisted for revisits).
-   */
   /** Lines that have migrated to a wall that isn't theirs: phrase id → wall. */
   get strays(): ReadonlyMap<string, Surface> {
     return this.roomLife.strays;
-  }
-
-  /** Drawings drawn during this visit (each at most once). */
-  get drawn(): ReadonlySet<string> {
-    return this.writing.drawn;
   }
 
   /** A drawing found no room on its wall: it may be tried again later, once. */
@@ -623,7 +613,6 @@ export class Director implements RuleHost {
     this.writing.drawFailed(id);
   }
 
-  /** The kitchen-light memory has played. */
   get memoryPlayed(): boolean {
     return this.memoryRules.memoryPlayed;
   }
@@ -651,10 +640,6 @@ export class Director implements RuleHost {
     return this.memoryRules.memoryEnded(id, seen, ranToEnd);
   }
 
-  /** The answer the heart wrote beside "I wanted you to stay." (a phrase id), once. */
-  get heartAnswer(): string | null {
-    return this.heart.answer;
-  }
   answerKept(): string | null {
     return this.heart.answerKept();
   }
@@ -764,7 +749,7 @@ export class Director implements RuleHost {
   }
 
   /** How the visit went with the chair, in one word (see DEPARTURE_BY_VISIT). */
-  visitShape(how: 'door' | 'menu' = 'menu'): keyof typeof DEPARTURE_BY_VISIT {
+  private visitShape(how: 'door' | 'menu' = 'menu'): keyof typeof DEPARTURE_BY_VISIT {
     return visitShape(this.visitor, how);
   }
 

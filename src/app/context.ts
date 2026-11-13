@@ -89,7 +89,6 @@ export class AppContext implements World {
   gazeChair = false;
   /** The piece of writing last touched (the memory's light falls where the visitor touched). */
   lastTappedKey: string | null = null;
-  /** The visitor has touched writing or the chair at least once. */
   touched = false;
   /** The visitor has dragged on the screen (so knows how to move). */
   dragged = false;

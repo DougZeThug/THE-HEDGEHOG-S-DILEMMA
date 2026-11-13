@@ -10,7 +10,6 @@ function otherWalls(not: Surface[]): Surface[] {
   return WALLS.filter((w) => !not.includes(w));
 }
 
-/** A rest inside a hummed sequence. */
 export const REST = -100;
 
 // ─────────────────────────────────────────────────────────────────────────────

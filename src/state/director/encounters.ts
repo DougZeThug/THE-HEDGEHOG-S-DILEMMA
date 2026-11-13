@@ -22,7 +22,6 @@ export class Encounters {
     private readonly wayOutShown: (phraseId: string) => boolean,
   ) {}
 
-  /** A meeting's beat is waiting for room to play. */
   get waiting(): boolean {
     return this.heldBeats.size > 0;
   }
@@ -32,7 +31,6 @@ export class Encounters {
     this.played.set(phraseId, Math.max(0, n - 1));
   }
 
-  /** How many beats of each phrase's arc have been played. */
   private played = new Map<string, number>();
 
   /** Beats waiting for room to play, while their meeting lasts: phrase id → give up at. */

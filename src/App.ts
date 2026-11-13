@@ -93,9 +93,6 @@ export class App {
   get renderer() {
     return this.ctx.renderer;
   }
-  get room() {
-    return this.ctx.room;
-  }
   get chair() {
     return this.ctx.chair;
   }
@@ -128,12 +125,6 @@ export class App {
   }
   get fps() {
     return this.debug.fps;
-  }
-  get captions() {
-    return this.ctx.captions;
-  }
-  get prefs() {
-    return this.ctx.prefs;
   }
   get mode() {
     return this.ctx.mode;
@@ -199,12 +190,6 @@ export class App {
   }
   depart(how: 'door' | 'menu' = 'menu') {
     this.parts.menus.depart(how);
-  }
-  openSettings() {
-    this.parts.menus.openSettings();
-  }
-  closeSettings() {
-    this.parts.menus.closeSettings();
   }
 
   /** What the Director is told of the visitor each tick. `carried`: moved by a memory, not by themselves. */

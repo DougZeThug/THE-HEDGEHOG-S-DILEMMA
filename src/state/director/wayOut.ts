@@ -68,7 +68,6 @@ export class WayOut {
     if (STAY_WORDS.has(phraseId)) this.lastStayVoiceAt = this.h.now;
   }
 
-  /** A line was touched. */
   touched(phraseId: string): void {
     // Touching anything else while the room is letting them go keeps them.
     if (this.engaged() && phraseId !== WAY_OUT) {
