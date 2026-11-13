@@ -29,7 +29,7 @@ export interface WindowLayer {
   texture: THREE.Texture;
 }
 
-export const SLOTS = 6;
+const SLOTS = 6;
 
 const VERT = /* glsl */ `
   varying vec2 vUv;
@@ -236,7 +236,7 @@ function noiseTexture(): THREE.DataTexture {
 }
 
 /** A colour temperature (K) as linear RGB, normalised to its brightest channel. */
-export function kelvin(k: number): THREE.Vector3 {
+function kelvin(k: number): THREE.Vector3 {
   const t = k / 100;
   const r = t <= 66 ? 255 : 329.698727446 * Math.pow(t - 60, -0.1332047592);
   const g = t <= 66 ? 99.4708025861 * Math.log(t) - 161.1195681661 : 288.1221695283 * Math.pow(t - 60, -0.0755148492);
@@ -487,7 +487,7 @@ export class MemoryWindow {
     cy = THREE.MathUtils.clamp(cy, a.minY + h / 2, a.maxY - h / 2);
     if (L) {
       this.placeLiving(L, a, cx, cy);
-      this.reveal(final, v, scale);
+      this.reveal(final, v);
       return;
     }
     this.mesh.position.set(cx, cy, 0.004);
@@ -592,7 +592,7 @@ export class MemoryWindow {
   }
 
   /** The light and the layers of a living memory (no parallax: its scene draws its own depth). */
-  private reveal(final: Values, v: (k: string, d: number) => number, _scale: number): void {
+  private reveal(final: Values, v: (k: string, d: number) => number): void {
     this.u.uFound.value = v('window.found', 0);
     this.u.uDark.value = this.u.uOrdered.value > 0.5 ? v('window.dark', 1) : 1;
     this.u.uReveal.value = v('window.reveal', 0) * 1.25;

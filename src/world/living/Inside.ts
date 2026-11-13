@@ -25,7 +25,7 @@ import { Immersion, projectQuad, visiblePart } from './Immersion';
  * and control comes back half-way out, turned the way they turned. Taps do nothing. Escape still
  * pauses (settings), as everywhere.
  */
-export interface InsideFrame {
+interface InsideFrame {
   /** The timeline's immersion (composed: an early leaving already takes it back). */
   immerse: number;
   /** Where the visitor is carried to (the painting's point square in front of them: the wide's cover focus), and what the view keeps central. */
@@ -54,7 +54,7 @@ export interface InsideFrame {
 }
 
 /** How far along the way in (0..1) for `scene.approach` (0..1): slow to start, slow to arrive. */
-export function approachCurve(a: number): number {
+function approachCurve(a: number): number {
   const x = Math.min(1, Math.max(0, a));
   return Math.pow(x * x * (3 - 2 * x), 1.3);
 }

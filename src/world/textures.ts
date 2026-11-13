@@ -9,7 +9,7 @@ import { bakeStrokes, type CharBox } from './strokes';
 
 let grainCache: HTMLCanvasElement | null = null;
 /** Fine, irregular grain used for paper fibres and pencil tooth. */
-export function grainCanvas(): HTMLCanvasElement {
+function grainCanvas(): HTMLCanvasElement {
   if (grainCache) return grainCache;
   // (On the CPU, as the writing it is drawn into is: a GPU canvas as its pattern made each line's
   // read-back wait seconds on software GL, QA 2026-10-20.)
@@ -32,7 +32,7 @@ let waxCache: HTMLCanvasElement | null = null;
  * Where a crayon's wax skips: short streaks along the stroke direction, where the stick rode
  * over the high points of the plaster, and a few larger bare patches. Coarser than pencil tooth.
  */
-export function waxCanvas(): HTMLCanvasElement {
+function waxCanvas(): HTMLCanvasElement {
   if (waxCache) return waxCache;
   const [c, g] = canvas(256, 256, true);
   const r = new Rng(311);
@@ -59,7 +59,7 @@ export function waxCanvas(): HTMLCanvasElement {
 
 // ─────────────────────────────── handwriting ───────────────────────────────
 
-export interface HandStyle {
+interface HandStyle {
   font: string;
   weight: number;
   /** Visual scale of the font relative to the nominal letter height (fonts differ). */
@@ -92,7 +92,7 @@ export const HANDS: Record<Hand, HandStyle> = {
 };
 
 /** Nominal letter height (metres) per size. */
-export const SIZE_EM: Record<Size, number> = { xs: 0.06, s: 0.095, m: 0.14, l: 0.21, xl: 0.3 };
+const SIZE_EM: Record<Size, number> = { xs: 0.06, s: 0.095, m: 0.14, l: 0.21, xl: 0.3 };
 
 /** Maximum line width before wrapping (metres). */
 const WRAP: Record<Size, number> = { xs: 1.1, s: 1.6, m: 2.1, l: 2.6, xl: 3.0 };
@@ -127,22 +127,23 @@ function wrap(text: string, st: HandStyle, px: number, maxPx: number): string[] 
   return lines;
 }
 
-/** Metres-per-pixel of the text canvases. */
-const PX_PER_M = 700;
+/** Writing is baked at this density (a 2 m line is 1400 px), shrunk to fit `MAX_TEX_PX` if wider. */
+const TEXT_PX_PER_M = 700;
+const MAX_TEX_PX = 2048;
 const LINE = 1.18;
 
 /** `wrapM` overrides the size's usual line length (metres). */
 export function measureText(text: string, hand: Hand, size: Size, wrapM = WRAP[size]): { w: number; h: number } {
   const st = HANDS[hand];
-  const px = SIZE_EM[size] * st.scale * PX_PER_M;
-  const lines = wrap(text, st, px, wrapM * PX_PER_M);
+  const px = SIZE_EM[size] * st.scale * TEXT_PX_PER_M;
+  const lines = wrap(text, st, px, wrapM * TEXT_PX_PER_M);
   const g = mctx();
   g.font = fontString(st, px);
   let max = 0;
   // Drawn spaces run up to 1.2× and the last glyph can overhang its advance: room for both.
   const space = g.measureText(' ').width;
   for (const l of lines) max = Math.max(max, g.measureText(l).width + l.length * st.tracking * px + px * 0.12 + 0.3 * space * (l.split(' ').length - 1));
-  return { w: (max + px * 0.3) / PX_PER_M, h: (lines.length * px * LINE + px * 0.35) / PX_PER_M };
+  return { w: (max + px * 0.3) / TEXT_PX_PER_M, h: (lines.length * px * LINE + px * 0.35) / TEXT_PX_PER_M };
 }
 
 /**
@@ -152,8 +153,8 @@ export function measureText(text: string, hand: Hand, size: Size, wrapM = WRAP[s
  */
 export function wordPosition(text: string, idx: number, len: number, hand: Hand, size: Size, wrapM = WRAP[size]): { line: number; lines: number; x: number; w: number } {
   const st = HANDS[hand];
-  const px = SIZE_EM[size] * st.scale * PX_PER_M;
-  const lines = wrap(text, st, px, wrapM * PX_PER_M);
+  const px = SIZE_EM[size] * st.scale * TEXT_PX_PER_M;
+  const lines = wrap(text, st, px, wrapM * TEXT_PX_PER_M);
   const g = mctx();
   g.font = fontString(st, px);
   const width = (s: string) => g.measureText(s).width + s.length * st.tracking * px;
@@ -166,7 +167,7 @@ export function wordPosition(text: string, idx: number, len: number, hand: Hand,
     const end = at + lines[i].length;
     if (flatIdx < end || i === lines.length - 1) {
       const col = Math.max(0, Math.min(lines[i].length, flatIdx - at));
-      return { line: i, lines: lines.length, x: width(lines[i].slice(0, col)) / PX_PER_M, w: width(flat.slice(flatIdx, flatIdx + len)) / PX_PER_M };
+      return { line: i, lines: lines.length, x: width(lines[i].slice(0, col)) / TEXT_PX_PER_M, w: width(flat.slice(flatIdx, flatIdx + len)) / TEXT_PX_PER_M };
     }
     at = end + 1;
     seen = i;
@@ -184,7 +185,7 @@ export function wordPosition(text: string, idx: number, len: number, hand: Hand,
  * canvas upload: canvas colour is premultiplied, which would corrupt the timing at the soft
  * edges of the ink. The ink's colour comes from the material.
  */
-export interface TextBake {
+interface TextBake {
   tex: THREE.DataTexture;
   w: number;
   h: number;
@@ -194,18 +195,18 @@ export interface TextBake {
   duration: number;
 }
 
-export function textTexture(text: string, hand: Hand, size: Size, key: string, maxTexPx = 2048, wrapM = WRAP[size]): TextBake {
+export function textTexture(text: string, hand: Hand, size: Size, key: string, wrapM = WRAP[size]): TextBake {
   const st = HANDS[hand];
   const m = measureText(text, hand, size, wrapM);
   const tm = handTiming(text, hand, key);
   let scale = 1;
-  const wantW = m.w * PX_PER_M, wantH = m.h * PX_PER_M;
-  if (wantW > maxTexPx) scale = maxTexPx / wantW;
+  const wantW = m.w * TEXT_PX_PER_M, wantH = m.h * TEXT_PX_PER_M;
+  if (wantW > MAX_TEX_PX) scale = MAX_TEX_PX / wantW;
   const W = Math.max(8, Math.ceil(wantW * scale));
   const H = Math.max(8, Math.ceil(wantH * scale));
   const [, g] = canvas(W, H, true);
-  const px = SIZE_EM[size] * st.scale * PX_PER_M * scale;
-  const lines = wrap(text, st, SIZE_EM[size] * st.scale * PX_PER_M, wrapM * PX_PER_M);
+  const px = SIZE_EM[size] * st.scale * TEXT_PX_PER_M * scale;
+  const lines = wrap(text, st, SIZE_EM[size] * st.scale * TEXT_PX_PER_M, wrapM * TEXT_PX_PER_M);
   const r = new Rng(hashString(key));
   g.font = fontString(st, px);
   g.textBaseline = 'alphabetic';

@@ -18,7 +18,7 @@ const OVERFLOW_ORDER: readonly Wall[] = ['south', 'west', 'north', 'east'];
 /** A wall, not the floor or the ceiling. */
 export const isWallSurface = (s: Surface): s is Wall => s !== 'floor' && s !== 'ceiling';
 
-export interface SurfaceSize {
+interface SurfaceSize {
   /** Extent along u (metres). */
   w: number;
   /** Extent along v (metres). */

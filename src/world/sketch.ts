@@ -53,7 +53,7 @@ const arc = (cx: number, cy: number, rx: number, ry: number, a0: number, a1: num
 const SHEET_CUT = { x0: 0.6, y1: 0.55 };
 
 /** The strokes of a drawing, in the order drawn (metres, y down). */
-export function shapeStrokes(shape: Shape, w: number, h: number, r: Rng): P[][] {
+function shapeStrokes(shape: Shape, w: number, h: number, r: Rng): P[][] {
   const j = (s: number) => r.range(-s, s);
   switch (shape) {
     case 'sun': {
@@ -168,7 +168,7 @@ export function shapeStrokes(shape: Shape, w: number, h: number, r: Rng): P[][] 
 // ───────────────────────────── baking ─────────────────────────────
 
 /** A drawing's texture data and timing: the writing's format (rows bottom-up, R time, A ink). */
-export interface DrawingBake {
+interface DrawingBake {
   data: Uint8Array<ArrayBuffer>;
   W: number;
   H: number;

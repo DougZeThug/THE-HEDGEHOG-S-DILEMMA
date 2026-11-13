@@ -55,7 +55,7 @@ export class AirWriting {
     const p = PHRASE_BY_ID.get(o.phraseId);
     if (!p || this.item) return false;
     // In short lines, a narrow block that can stand beside the chair rather than across it.
-    const { tex, w, h, duration } = textTexture(p.text, p.hand, p.size, o.key, 2048, 0.85);
+    const { tex, w, h, duration } = textTexture(p.text, p.hand, p.size, o.key, 0.85);
     const { mat, uniforms } = makeTextMaterial(tex, p.hand, w / h, hashString(o.key), duration);
     mat.polygonOffset = false;
     const mesh = new THREE.Mesh(this.geo, mat);

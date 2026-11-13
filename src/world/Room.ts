@@ -115,7 +115,7 @@ function lipGeometry(): THREE.BufferGeometry {
   return geo;
 }
 
-export interface SurfaceFrame {
+interface SurfaceFrame {
   surface: Surface;
   /** Positioned on the surface plane: local +x = u direction, +y = v direction, +z = into the room. */
   group: THREE.Group;
