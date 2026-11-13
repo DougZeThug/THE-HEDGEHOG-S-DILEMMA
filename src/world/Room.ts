@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { WALLS, type Surface } from '../content/types';
+import { WALLS, type Surface, type Wall } from '../content/types';
 import { surfaceSize } from './layout';
 import { ROOM } from '../core/room';
 
@@ -12,6 +12,16 @@ import { canvas } from './canvas';
 
 /** Where the frosted panel hangs: north of the chair, so the chair's shadow falls toward whoever arrives. */
 export const PANEL = { x: 0.1, z: -0.95 };
+
+/** Seeds of each surface's painted texture, and of the writer's hand marks under the lines on the walls. */
+const SURFACE_SEED: Record<Wall, { texture: number; hand: number }> & Record<'floor' | 'ceiling', { texture: number }> = {
+  north: { texture: 11, hand: 101 },
+  east: { texture: 23, hand: 103 },
+  south: { texture: 37, hand: 107 },
+  west: { texture: 41, hand: 109 },
+  floor: { texture: 53 },
+  ceiling: { texture: 67 },
+};
 
 const SKIRT = 0.1;
 /** The skylight: frosted glass set back in a square well, its sides splaying out to the ceiling. */
@@ -139,12 +149,11 @@ export class Room {
 
   constructor(private readonly quality: Quality = 'medium') {
     const H = ROOM.height;
-    const seeds: Record<Surface, number> = { north: 11, east: 23, south: 37, west: 41, floor: 53, ceiling: 67 };
     for (const s of [...WALLS, 'floor', 'ceiling'] as Surface[]) {
       const size = surfaceSize(s);
       const isFloor = s === 'floor';
       const isCeil = s === 'ceiling';
-      const tex = isFloor ? floorMaps(seeds[s], size.w, size.h, quality) : isCeil ? ceilingMaps(seeds[s], size.w, size.h, quality) : wallMaps(s, seeds[s], size.w, size.h, quality);
+      const tex = isFloor ? floorMaps(SURFACE_SEED[s].texture, size.w, size.h, quality) : isCeil ? ceilingMaps(SURFACE_SEED[s].texture, size.w, size.h, quality) : wallMaps(s, SURFACE_SEED[s].texture, size.w, size.h, quality);
       const mat = new THREE.MeshStandardMaterial({
         map: tex.map,
         bumpMap: tex.bump,
@@ -155,7 +164,7 @@ export class Room {
         color: 0xffffff,
         // A white ceiling is lit only by bounce; a little self-light stands in for it, strongest
         // round the panel and falling away to the walls (a flat grey lid reads as an office).
-        emissive: new THREE.Color(isCeil ? 0x23262a : 0x000000),
+        emissive: isCeil ? ceilingFor(0) : new THREE.Color(0x000000),
         emissiveMap: isCeil ? ceilingGlowMap(size.w, size.h, PANEL) : null,
       });
       // The ceiling has the skylight's opening cut in it (it stays put as the room scales).
@@ -170,7 +179,7 @@ export class Room {
       if (!isFloor && !isCeil) {
         this.addSkirting(group, size.w, size.h);
         // Weathering over the plaster, under the writing; its strength is the look's.
-        const wm = new THREE.MeshStandardMaterial({ color: 0x6a6259, roughness: 0.95, alphaMap: weatheringMap(s, size.w, size.h, seeds[s] + 500), transparent: true, depthWrite: false, opacity: 0 });
+        const wm = new THREE.MeshStandardMaterial({ color: 0x6a6259, roughness: 0.95, alphaMap: weatheringMap(s, size.w, size.h, SURFACE_SEED[s].texture + 500), transparent: true, depthWrite: false, opacity: 0 });
         const weather = new THREE.Mesh(new THREE.PlaneGeometry(size.w, size.h), wm);
         weather.position.z = 0.002;
         weather.receiveShadow = true;
@@ -208,7 +217,7 @@ export class Room {
     pg.putImageData(frost, 0, 0);
     const ptex = new THREE.CanvasTexture(pc);
     ptex.colorSpace = THREE.SRGBColorSpace;
-    const panelMat = new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0xffffff, emissiveMap: ptex, emissiveIntensity: PANEL_GLOW, roughness: 1 });
+    const panelMat = new THREE.MeshStandardMaterial({ color: 0x000000, emissive: panelFor(0), emissiveMap: ptex, emissiveIntensity: PANEL_GLOW, roughness: 1 });
     this.panel = new THREE.Mesh(new THREE.PlaneGeometry(GLASS, GLASS), panelMat);
     this.panel.rotation.x = Math.PI / 2;
     this.panel.position.set(PANEL.x, H + WELL_DEPTH - 0.001, PANEL.z);
@@ -230,8 +239,8 @@ export class Room {
   }
 
   private well: THREE.Mesh;
-  private wellColour = new THREE.Color(0xffffff);
-  private ceilingEmissive = new THREE.Color(0x23262a);
+  private wellColour = panelFor(0);
+  private ceilingEmissive = ceilingFor(0);
   private ceilingLit = 1;
 
   /** The look's share of the room: the ceiling's bounce, the plaster's relief. */
@@ -372,11 +381,10 @@ export class Room {
 
   /** The writer's hand under the lines on the walls (graphite drags and thumbs, painted once). */
   handMarks(lines: { surface: Surface; u: number; v: number; w: number; h: number }[]) {
-    const seeds: Record<string, number> = { north: 101, east: 103, south: 107, west: 109 };
     for (const s of WALLS) {
       const own = lines.filter((l) => l.surface === s);
       const map = (this.frames[s].mesh.material as THREE.MeshStandardMaterial).map as THREE.CanvasTexture | null;
-      if (own.length && map) handMarks(map, own, seeds[s], this.quality);
+      if (own.length && map) handMarks(map, own, SURFACE_SEED[s].hand, this.quality);
     }
   }
 

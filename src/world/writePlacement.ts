@@ -1,7 +1,7 @@
 import { PHRASE_BY_ID } from '../content/phrases';
 import { WALLS, type Hand, type Size, type Surface } from '../content/types';
 import { hashString } from '../core/rng';
-import { WALL_ROLE, surfaceSize, type Placement, type Rect, type SurfaceLayout } from './layout';
+import { WALL_ROLE, isFlat, surfaceSize, type Placement, type Rect, type SurfaceLayout } from './layout';
 import { measureText } from './textures';
 
 /**
@@ -53,7 +53,7 @@ export function placeWrite(layout: SurfaceLayout, o: WriteSpot, target: Placemen
     // reads as a line of its own, not an answer. (The room tries again as lines there fade.)
     if (!rect && o.key.startsWith('heart:')) return null;
   }
-  const wall = !!surface && surface !== 'floor' && surface !== 'ceiling';
+  const wall = !!surface && !isFlat(surface);
   if (!rect && surface && o.near && o.purpose === 'recall' && wall && o.key.startsWith('memory:')) {
     // A memory's line, offered where the visitor looks: at a height it can be read at, as near
     // their line of sight as the wall allows, or not at all (it is offered again elsewhere). The
@@ -134,7 +134,7 @@ export function placeWithin(
 ): { placement: Placement; waiting: string[] } | null {
   const { layout, placements, items } = ctx;
   const anchor = items.get(o.under)?.placement;
-  if (!anchor || anchor.surface === 'floor' || anchor.surface === 'ceiling') return null;
+  if (!anchor || isFlat(anchor.surface)) return null;
   const size = surfaceSize(anchor.surface), s = ctx.scale;
   const within = { u: o.within.cx / s + size.w / 2, v: o.within.cy + size.h / 2, w: o.within.w / s, h: o.within.h };
   const m = measureText(o.text, o.hand, o.size);
