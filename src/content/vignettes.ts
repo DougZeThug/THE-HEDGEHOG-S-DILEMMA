@@ -53,7 +53,7 @@ export function readingTake(files: readonly string[], reading: string): number |
  */
 export type GapKind = 'pause' | 'interrupt' | 'silence' | 'wait';
 
-/** What the room does (src/App.ts `vignetteEffect`); never a figure, never a cutscene. */
+/** What the room does (src/app/vignettes.ts `vignetteEffect`); never a figure, never a cutscene. */
 export type Effect =
   /** Afternoon light across the line's wall (MemoryLight), slow to come and slower to go. */
   | { kind: 'sun'; attack: number; hold: number; release: number; strength?: number }

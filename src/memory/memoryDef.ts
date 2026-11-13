@@ -75,7 +75,7 @@ export interface MemoryDef {
    * `figure:a`, `figure:b`) are added to the schema, and the variants that have a living scene in
    * the art manifest are drawn by it (src/memory/living/). The others play on the wall as usual,
    * but sunk in the plaster as the scene is, and over their words, which go to a trace as the
-   * colour comes and come back with the pencil (src/App.ts).
+   * colour comes and come back with the pencil (src/app/livingMemory.ts).
    */
   living?: boolean;
 }

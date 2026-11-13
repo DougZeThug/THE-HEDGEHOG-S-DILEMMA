@@ -15,7 +15,7 @@ const DRIVE_DB = -17;
  * seconds are the film's). It opens from "Are you angry with me?" (the room's own recording of that
  * line is "a small, afraid voice from the back seat": the line was already a car).
  *
- * Everything is on the wall the visitor faces (looking away while it forms ends it: App.ts):
+ * Everything is on the wall the visitor faces (looking away while it forms ends it: src/app/livingMemory.ts):
  *   0-3       the room goes down to dusk, a cool night in its light (`room.night`); the patch of
  *             wall round the line darkens all together (`layer:scene.opacity`, the order map's G)
  *   2.4-9     three streetlights pass across the whole wall, right to left, slow at its edges and
