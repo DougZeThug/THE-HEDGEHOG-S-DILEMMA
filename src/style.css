@@ -1,12 +1,17 @@
 :root {
+  /* Also written in index.html (theme-color) and src/app/boot.ts (the scene's background): keep the three together. */
   --paper: #f3f2ef;
   /* The paper's channels (the same colour), for the washes over the room that need an alpha. */
   --paper-rgb: 243 242 239;
   --ink: #2a2b2f;
   --ink-soft: #6c6e74;
   --cyan: #5f8f9a;
+  /* The crayon's wax: HANDS.crayon.ink in world/textures.ts. */
   --amber: #a9702f;
-  /* The visitor's own hand: HANDS.visitor, in world/textures.ts. */
+  /* The dark rooms (threshold, departure) and their writing; the rgba(217, 215, 210, …) borders are --night-ink's channels. */
+  --night: #0b0b0c;
+  --night-ink: #d9d7d2;
+  /* The visitor's own hand: HANDS.visitor, in world/textures.ts. The families are loaded by FONTS_TO_LOAD there, as are 'Caveat' and 'Cormorant Garamond' for the walls. */
   --hand: 'Caveat', cursive;
   --serif: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
 }
@@ -29,12 +34,12 @@ html, body {
 
 /* threshold */
 /* The threshold is the title card: black, as the work begins (and ends) in the dark. */
-#threshold { background: #0b0b0c; color: #d9d7d2; z-index: 20; transition: opacity 1.2s ease; padding: 16px; overflow-y: auto; align-items: safe center; }
+#threshold { background: var(--night); color: var(--night-ink); z-index: 20; transition: opacity 1.2s ease; padding: 16px; overflow-y: auto; align-items: safe center; }
 #threshold.leaving { opacity: 0; pointer-events: none; }
-#threshold h1 { color: #d9d7d2; letter-spacing: 0.06em; font-weight: 500; }
+#threshold h1 { color: var(--night-ink); letter-spacing: 0.06em; font-weight: 500; }
 #threshold .threshold-line, #threshold .threshold-note, #threshold .threshold-how { color: #a7a49d; }
-#threshold .quiet-button { color: #d9d7d2; border-color: rgba(217, 215, 210, 0.45); }
-#threshold kbd { color: #d9d7d2; border-color: rgba(217, 215, 210, 0.35); background: transparent; }
+#threshold .quiet-button { color: var(--night-ink); border-color: rgba(217, 215, 210, 0.45); }
+#threshold kbd { color: var(--night-ink); border-color: rgba(217, 215, 210, 0.35); background: transparent; }
 /* After the tap: only the title stays, on black; the score controls its opacity. */
 #threshold.titling { opacity: 1; background: transparent; pointer-events: none; }
 #threshold.titling .threshold-inner > :not(h1) { opacity: 0; transition: opacity 0.6s ease; }
@@ -47,7 +52,7 @@ html, body {
 /* On the lit room: dark ink on a soft paper backdrop, so it is readable over any wall. */
 body:not(.dark-room) .skip { color: #3f4147; background: rgb(var(--paper-rgb) / 0.82); }
 /* Captions while the room is dark: light on dark (the room's captions are dark on white). */
-.dark-room .captions { color: #d9d7d2; text-shadow: 0 0 6px rgba(0, 0, 0, 0.9), 0 0 14px rgba(0, 0, 0, 0.8); }
+.dark-room .captions { color: var(--night-ink); text-shadow: 0 0 6px rgba(0, 0, 0, 0.9), 0 0 14px rgba(0, 0, 0, 0.8); }
 .dark-room .captions .cap.sound { color: rgba(217, 215, 210, 0.85); }
 .threshold-inner { max-width: 34rem; text-align: center; margin: auto 0; padding: 12px 0; }
 h1 { font-weight: 500; font-size: clamp(1.6rem, 4vw, 2.4rem); letter-spacing: 0.04em; margin: 0 0 1.4rem; color: #3b3c40; }
@@ -92,6 +97,7 @@ kbd { font-family: inherit; font-size: 0.85em; border: 1px solid #c9c7c1; border
 .captions .cap.vig:not(.sound) { display: table; margin-left: auto; margin-right: auto; background: rgba(240, 238, 232, 0.86); color: rgb(30, 31, 36); padding: 0.1em 0.55em; border-radius: 0.6em; }
 .captions .cap.on.waiting { opacity: 0.85; font-style: italic; }
 /* (As specific as the backing above, or it centres them: QA, 2026-10-27; and a table, so a margin can move it.) */
+/* `side-left`/`side-right` are set in ui/Captions.ts (`side-${side}`), not written out there. */
 .captions .cap.side-left, .captions .cap.vig.side-left:not(.sound) { display: table; margin-left: 0; margin-right: auto; }
 .captions .cap.side-right, .captions .cap.vig.side-right:not(.sound) { display: table; margin-left: auto; margin-right: 0; }
 .captions .cap.sound { display: table; margin-left: auto; margin-right: auto; font-size: max(16px, 0.95em); font-style: normal; color: rgb(30, 31, 36); background: rgba(240, 238, 232, 0.86); padding: 0.1em 0.55em; border-radius: 0.6em; }
@@ -155,14 +161,14 @@ kbd { font-family: inherit; font-size: 0.85em; border: 1px solid #c9c7c1; border
 #resume, #leave { display: block; margin: 1.2rem auto 0; }
 
 /* departure */
-.departure { z-index: 18; flex-direction: column; background: #0b0b0c; color: #d9d7d2; opacity: 0; transition: opacity 3s ease; padding: 16px; }
+.departure { z-index: 18; flex-direction: column; background: var(--night); color: var(--night-ink); opacity: 0; transition: opacity 3s ease; padding: 16px; }
 .departure.on { opacity: 1; }
 .departure-line { font-style: italic; font-size: clamp(1.2rem, 3vw, 1.7rem); max-width: 34rem; text-align: center; opacity: 0; transition: opacity 3s ease; }
 .departure-line.on { opacity: 1; }
 .departure-answer { display: block; margin-top: 1.1em; font-size: 0.85em; font-style: normal; opacity: 0; transition: opacity 3s ease 3.5s; }
 .departure-line.on .departure-answer { opacity: 0.8; }
 .reduce-motion .departure-answer { transition: opacity 0.6s ease 1s; }
-.departure .quiet-button { color: #d9d7d2; border-color: #55565a; margin-top: 2.5rem; }
+.departure .quiet-button { color: var(--night-ink); border-color: #55565a; margin-top: 2.5rem; }
 
 .debug {
   position: fixed; top: 8px; left: 8px; z-index: 30; margin: 0; padding: 8px 10px; max-width: min(460px, calc(100% - 16px));
