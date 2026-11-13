@@ -15,6 +15,9 @@ export const WALL_ROLE = {
 /** Where writing goes, in this order, when its own wall is full. */
 const OVERFLOW_ORDER: readonly Wall[] = ['south', 'west', 'north', 'east'];
 
+/** A wall, not the floor or the ceiling. */
+export const isWallSurface = (s: Surface): s is Wall => s !== 'floor' && s !== 'ceiling';
+
 export interface SurfaceSize {
   /** Extent along u (metres). */
   w: number;

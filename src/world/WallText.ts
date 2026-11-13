@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import type { Phrase, Surface, Hand, Size } from '../content/types';
 import { PHRASES, PHRASE_BY_ID } from '../content/phrases';
 import type { Room } from './Room';
-import { layoutPhrases, layoutOf, surfaceSize, drawingSpots, drawingBeside, type Placement, type SurfaceLayout } from './layout';
+import { layoutPhrases, layoutOf, surfaceSize, drawingSpots, drawingBeside, isWallSurface, type Placement, type SurfaceLayout } from './layout';
 import { HANDS, measureText, wordPosition, textTexture, pencilLineTexture, inkTexture } from './textures';
 import { DRAWINGS, DRAWING_BY_ID, type DrawingDef } from '../content/drawings';
 import { bakeDrawing, bakedSize } from './sketch';
@@ -11,6 +11,12 @@ import { approach, clamp, smoothstep } from '../core/math';
 import { hashString } from '../core/rng';
 import { idle } from '../core/time';
 import type { Environment } from '../core/environment';
+import { AirWriting } from './airText';
+import { makeTextMaterial, type TextUniforms } from './textMaterial';
+import { placeByDrawing, placeWithin, placeWrite } from './writePlacement';
+import { handAt, recedeStep, speechPlan, wallClock, wordBand, type RecedeState, type WritePlan } from './writePlan';
+
+export { handAt, recedeStep, speechPlan, wallClock, wordBand, type RecedeState, type WritePlan };
 
 /**
  * Writing on the walls. Every piece of writing is a textured plane lying on its surface, lit
@@ -20,132 +26,7 @@ import type { Environment } from '../core/environment';
  * patches, the way pencil does under an eraser.
  */
 
-const VERT_HEAD = /* glsl */ `
-uniform float uReveal;
-uniform float uOpacity;
-uniform float uEmphasis;
-uniform float uSeed;
-uniform float uAspect;
-`;
-
-/**
- * The hand keeps real time (the same clock the audio plays on), not the scene's clock, which
- * slows when frames are dropped: writing that follows a voice must not drift from it.
- */
-export const wallClock = () => performance.now() / 1000;
-
-const FRAG_NOISE = /* glsl */ `
-uniform float uLod;
-uniform float uThin;
-uniform vec3 uGap;
-uniform float uWrite;
-uniform float uFresh;
-uniform float uReveal;
-uniform float uOpacity;
-uniform float uEmphasis;
-uniform float uSeed;
-uniform float uAspect;
-float hhHash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
-float hhNoise(vec2 p){
-  vec2 i = floor(p), f = fract(p);
-  vec2 u = f*f*(3.0-2.0*f);
-  return mix(mix(hhHash(i), hhHash(i+vec2(1,0)), u.x), mix(hhHash(i+vec2(0,1)), hhHash(i+vec2(1,1)), u.x), u.y);
-}
-float hhFbm(vec2 p){ return 0.6*hhNoise(p) + 0.3*hhNoise(p*2.3) + 0.1*hhNoise(p*5.1); }
-`;
-
-function makeTextMaterial(tex: THREE.Texture, hand: Hand, aspect: number, seed: number, duration: number) {
-  const st = HANDS[hand];
-  const mat = new THREE.MeshStandardMaterial({
-    color: new THREE.Color(st.ink),
-    map: tex,
-    transparent: true,
-    depthWrite: false,
-    roughness: hand === 'marker' || hand === 'pen' ? 0.7 : 0.95,
-    metalness: 0,
-    polygonOffset: true,
-    polygonOffsetFactor: -2,
-    polygonOffsetUnits: -2,
-  });
-  const uniforms = {
-    /** How far the hand has got, as a fraction of the whole piece (≥1: all written). */
-    uWrite: { value: 2 },
-    /** How long just-written ink stays heavier, in the same units. */
-    uFresh: { value: 0.5 / Math.max(0.5, duration) },
-    uReveal: { value: 0 },
-    uOpacity: { value: st.opacity },
-    uEmphasis: { value: 0 },
-    uSeed: { value: (seed % 1000) / 37 },
-    uAspect: { value: aspect },
-    /** A fixed mip level for a shadow of the writing; -1 (the usual sampling) everywhere else. */
-    uLod: { value: -1 },
-    /** Drawings only: how much fine lines are held as they get small (0 for writing). */
-    uThin: { value: 0 },
-    /**
-     * One word gone (a vignette's trace): the band of the hand's time [x, y] that is that word,
-     * and how far it has gone (z, 0–1). Every text material has it (one shared program): off by
-     * default, so no piece of writing inherits another's gap.
-     */
-    uGap: { value: new THREE.Vector3(-1, -1, 0) },
-  };
-  mat.onBeforeCompile = (shader) => {
-    Object.assign(shader.uniforms, uniforms);
-    shader.vertexShader = VERT_HEAD + shader.vertexShader;
-    shader.fragmentShader = FRAG_NOISE + shader.fragmentShader.replace(
-      '#include <map_fragment>',
-      /* glsl */ `
-      float hhR = 0.0;
-      {
-        // Alpha is the ink; red is when the hand reaches it.
-        // A fixed, softer level for a shadow (uLod ≥ 0), so it doesn't sharpen as you come close.
-        // (The top of the words is further from the floor: its shadow is softer.)
-        vec4 hhTx = uLod >= 0.0 ? textureLod(map, vMapUv, uLod + vMapUv.y) : texture2D(map, vMapUv);
-        hhR = hhTx.r;
-        // Drawings' fine lines would mip away on a phone: hold their ink as they get small.
-        if (uThin > 0.0) hhTx.a = min(1.0, hhTx.a * (1.0 + uThin * clamp(log2(fwidth(vMapUv.x) * float(textureSize(map, 0).x)), 0.0, 2.0)));
-        if (hhTx.a < 0.004) discard;
-        float hhLeft = uWrite - hhTx.r;
-        float hhInk = smoothstep(-0.004, 0.006, hhLeft);
-        if (hhInk <= 0.0) discard;
-        // Just-written ink sits a little heavier for a moment, like a pen pressed down.
-        float hhFreshInk = 1.0 - smoothstep(0.0, uFresh, hhLeft);
-        diffuseColor.a *= hhTx.a * hhInk;
-        diffuseColor.rgb *= 1.0 - 0.25 * hhFreshInk;
-      }
-      // Rubbing out: patches, uneven, like an eraser on plaster (only while it happens).
-      if (uReveal < 0.999) {
-        float n = hhFbm(vMapUv * vec2(uAspect * 5.0, 5.0) + uSeed);
-        float edge = uReveal * 1.25 - 0.12;
-        diffuseColor.a *= 1.0 - smoothstep(edge - 0.1, edge + 0.02, n);
-      }
-      // A word gone: rubbed out unevenly, as an eraser leaves graphite on plaster: patches of a
-      // faint smudge, most of it gone (never a clean, even grey).
-      if (uGap.z > 0.0) {
-        float hhBand = step(uGap.x, hhR) * step(hhR, uGap.y);
-        float hhRub = hhFbm(vMapUv * vec2(uAspect * 8.0, 12.0) + uSeed * 1.7);
-        diffuseColor.a *= mix(1.0, 0.08 + 0.2 * smoothstep(0.45, 0.85, hhRub), uGap.z * hhBand);
-      }
-      diffuseColor.a *= uOpacity;
-      diffuseColor.rgb *= 1.0 - 0.45 * uEmphasis;`,
-    );
-  };
-  mat.customProgramCacheKey = () => 'hh-text4';
-  return { mat, uniforms };
-}
-
 type Purpose = 'phrase' | 'annotation' | 'recall' | 'recontext' | 'contribution' | 'drawing';
-
-/**
- * How the hand is moving: on its own from `start` (wall-clock seconds), or following a voice
- * through `segments` ([wall from, wall to, hand from, hand to], in order). It never goes
- * below `floor` (what is already written stays) or past `cap` (a sentence nobody finished).
- */
-export interface WritePlan {
-  start: number;
-  segments?: [number, number, number, number][];
-  floor: number;
-  cap: number;
-}
 
 export interface TextItem {
   key: string;
@@ -157,7 +38,7 @@ export interface TextItem {
   size: Size;
   placement: Placement;
   mesh: THREE.Mesh;
-  uniforms: ReturnType<typeof makeTextMaterial>['uniforms'];
+  uniforms: TextUniforms;
   vis: number;
   target: number;
   rate: number;
@@ -186,86 +67,6 @@ export interface TextItem {
   recede?: RecedeState;
 }
 
-/**
- * The band of a piece of writing's red (time) channel that is word `k`: from halfway through the
- * gap before it to halfway through the gap after (so no ink of a neighbour is caught).
- */
-export function wordBand(words: [number, number][], duration: number, k: number): [number, number] {
-  const d = Math.max(1e-3, duration);
-  const lo = k === 0 ? -1 : (words[k - 1][1] + words[k][0]) / 2 / d;
-  const hi = k === words.length - 1 ? 2 : (words[k][1] + words[k + 1][0]) / 2 / d;
-  return [lo, hi];
-}
-
-/**
- * Receding writing (E's line, once E has been heard) answers being come close to, rather than
- * fading with distance: whole beyond 2.2 m; someone within 1.7 m for 0.6 s and it withdraws
- * (over about 2 s; the very first time slower, so it is watched leaving); it comes back only once
- * they have stepped back past 2.6 m for 1.5 s, and slowly.
- */
-export interface RecedeState {
-  amount: number;
-  k: number;
-  near: number;
-  far: number;
-  away: boolean;
-  /** It has withdrawn before (the first withdrawal is the slow one). */
-  once: boolean;
-}
-
-export function recedeStep(r: RecedeState, dist: number, dt: number): RecedeState {
-  const near = dist < 1.7 ? r.near + dt : 0;
-  const far = dist > 2.6 ? r.far + dt : 0;
-  let away = r.away, once = r.once;
-  if (!away && near >= 0.6) away = true;
-  if (away && far >= 1.5) {
-    away = false;
-    once = true;
-  }
-  const target = away ? r.amount : 0;
-  const tau = target > r.k ? (once ? 0.8 : 3) : 2;
-  const k = target + (r.k - target) * Math.exp(-dt / tau);
-  return { ...r, near, far, away, once, k };
-}
-
-/** Where the hand is (its own seconds) at wall-clock time `now`. */
-export function handAt(plan: WritePlan, now: number): number {
-  let h: number;
-  if (!plan.segments) h = now - plan.start;
-  else {
-    h = plan.floor;
-    for (const [a, b, h0, h1] of plan.segments) {
-      if (now < a) break;
-      h = now >= b ? h1 : h0 + ((now - a) / Math.max(1e-3, b - a)) * (h1 - h0);
-    }
-  }
-  return Math.min(plan.cap, Math.max(plan.floor, h));
-}
-
-/**
- * A hand following a voice. `speech` is the recording's timing for each character of this
- * exact text (seconds from the start of the file), `audioStart` when the file starts playing
- * (wall clock). Each word starts as it is heard; a hand can't write as fast as people speak,
- * so a long word may run on a little, and the next one waits — pauses in the speech stay
- * pauses in the writing.
- */
-export function speechPlan(text: string, words: [number, number][], speech: [number, number][], audioStart: number, speedUp = 1.3): [number, number, number, number][] {
-  const ranges = wordRanges(text);
-  const out: [number, number, number, number][] = [];
-  let free = -Infinity;
-  ranges.forEach(([i0, i1], k) => {
-    const hw = words[k];
-    if (!hw) return;
-    const s = audioStart + (speech[i0]?.[0] ?? 0);
-    const e = audioStart + (speech[i1 - 1]?.[1] ?? 0);
-    const start = Math.max(s, free);
-    const end = start + Math.max(e - s, (hw[1] - hw[0]) / speedUp);
-    out.push([start, end, hw[0], hw[1]]);
-    free = end + 0.04;
-  });
-  return out;
-}
-
 interface LineItem {
   key: string;
   mesh: THREE.Mesh;
@@ -282,6 +83,20 @@ interface LineItem {
 /** How much of a touch the words keep (of the emphasis, 0–1; a long look reaches 0.7). */
 const HANDLED = 0.25;
 
+/** Where a piece of writing is, for light to be laid across it: its wall's writing group, its centre there, and the wall's limits. */
+export interface WallAnchor {
+  key: string;
+  group: THREE.Object3D;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  minX: number;
+  maxX: number;
+  minY: number;
+  maxY: number;
+}
+
 export class WallText {
   readonly items = new Map<string, TextItem>();
   private lines = new Map<string, LineItem>();
@@ -293,17 +108,26 @@ export class WallText {
   reducedMotion = false;
   /** How much faint writing is strengthened (the look's, with the room's light; 1 = as written). */
   faintBoost = 1;
-  /** Writing in the air (add to the scene): at most one piece, which goes when approached. */
-  readonly air = new THREE.Group();
-  private airItem: {
-    key: string; mesh: THREE.Mesh; uniforms: ReturnType<typeof makeTextMaterial>['uniforms'];
-    duration: number; plan: WritePlan | null; vis: number; target: number; rate: number; opacity: number; centre: THREE.Vector3;
-    shadow: { mesh: THREE.Mesh; uniforms: ReturnType<typeof makeTextMaterial>['uniforms']; light: THREE.Vector3; local: Float32Array } | null;
-  } | null = null;
-  /** The key light's strength relative to the room's usual (the shadow follows it). */
-  airShadowLight = 1;
+  /** Writing in the air: at most one piece, which goes when approached. */
+  private airText = new AirWriting(this.geo, () => this.reducedMotion);
+  /** Add to the scene. */
+  get air(): THREE.Group {
+    return this.airText.group;
+  }
+  /** The key light's strength relative to the room's usual (the air writing's shadow follows it). */
+  get airShadowLight(): number {
+    return this.airText.shadowLight;
+  }
+  set airShadowLight(v: number) {
+    this.airText.shadowLight = v;
+  }
   /** Told once when the writing in the air goes: rubbed out by someone coming close, or simply fading. */
-  onAirGone: ((how: 'approach' | 'faded', at: THREE.Vector3) => void) | null = null;
+  get onAirGone(): AirWriting['onGone'] {
+    return this.airText.onGone;
+  }
+  set onAirGone(f: AirWriting['onGone']) {
+    this.airText.onGone = f;
+  }
 
   constructor(private room: Room, seed: number) {
     // The drawings already on the walls have their places first: nothing is written over them.
@@ -352,23 +176,8 @@ export class WallText {
     const bake = bakeDrawing(def);
     const [w, h] = bakedSize(def, bake);
     const tex = inkTexture(bake.data, bake.W, bake.H);
-    const { mat, uniforms } = makeTextMaterial(tex, def.hand, w / h, hashString(def.id), bake.duration);
-    uniforms.uThin.value = def.style === 'ghost' ? 0 : 0.5;
-    const mesh = new THREE.Mesh(this.geo, mat);
-    mesh.scale.set(w, h, 1);
-    mesh.userData.text = '';
-    mesh.renderOrder = 2;
-    mesh.visible = false;
-    mesh.receiveShadow = true;
-    this.room.frames[pl.surface].writing.add(mesh);
-    const item: TextItem = {
-      key: def.id, purpose: 'drawing', hand: def.hand, size: 's', placement: { ...pl, rot: def.upright ? 0 : ((hashString(def.id) % 7) - 3) * 0.012 }, mesh, uniforms,
-      vis: 0, target: 0, rate: 0.1, shy: 1, emphasis: 0, expires: 0,
-      centre: new THREE.Vector3(), normal: new THREE.Vector3(),
-      words: bake.words, duration: bake.duration, plan: null, strength: def.strength,
-    };
-    this.position(item);
-    this.items.set(def.id, item);
+    const item = this.make({ key: def.id, text: '', hand: def.hand, tex, w, h, duration: bake.duration, words: bake.words, placement: { ...pl, rot: def.upright ? 0 : ((hashString(def.id) % 7) - 3) * 0.012 }, purpose: 'drawing', size: 's', strength: def.strength });
+    item.uniforms.uThin.value = def.style === 'ghost' ? 0 : 0.5;
     return item;
   }
 
@@ -381,22 +190,27 @@ export class WallText {
 
   private create(key: string, text: string, hand: Hand, size: Size, pl: Placement, purpose: Purpose, phrase?: Phrase): TextItem {
     const { tex, w, h, words, duration } = textTexture(text, hand, size, key);
-    const { mat, uniforms } = makeTextMaterial(tex, hand, w / h, hashString(key), duration);
+    return this.make({ key, text, hand, tex, w, h, duration, words, placement: pl, purpose, size, phrase });
+  }
+
+  /** The plane for a baked piece of writing, on its wall, not yet shown. */
+  private make(o: { key: string; text: string; hand: Hand; tex: THREE.Texture; w: number; h: number; duration: number; words: [number, number][]; placement: Placement; purpose: Purpose; size: Size; phrase?: Phrase; strength?: number }): TextItem {
+    const { mat, uniforms } = makeTextMaterial(o.tex, o.hand, o.w / o.h, hashString(o.key), o.duration);
     const mesh = new THREE.Mesh(this.geo, mat);
-    mesh.scale.set(w, h, 1);
-    mesh.userData.text = text;
+    mesh.scale.set(o.w, o.h, 1);
+    mesh.userData.text = o.text;
     mesh.renderOrder = 2;
     mesh.visible = false;
     mesh.receiveShadow = true;
-    this.room.frames[pl.surface].writing.add(mesh);
+    this.room.frames[o.placement.surface].writing.add(mesh);
     const item: TextItem = {
-      key, phrase, purpose, hand, size, placement: pl, mesh, uniforms,
+      key: o.key, phrase: o.phrase, purpose: o.purpose, hand: o.hand, size: o.size, placement: o.placement, mesh, uniforms,
       vis: 0, target: 0, rate: 0.1, shy: 1, emphasis: 0, expires: 0,
       centre: new THREE.Vector3(), normal: new THREE.Vector3(),
-      words, duration, plan: null,
+      words: o.words, duration: o.duration, plan: null, strength: o.strength,
     };
     this.position(item);
-    this.items.set(key, item);
+    this.items.set(o.key, item);
     return item;
   }
 
@@ -517,252 +331,31 @@ export class WallText {
 
   /**
    * Write a phrase in the air at `at` (world), facing `face`, by the same hand as on the walls
-   * but fainter, on no surface at all. It holds its orientation (it is not a sign that turns to
-   * follow you) and is legible only from about where it was written to: turn its edge to you and
-   * it is gone, and from behind there is nothing. It goes, rubbed out of the air, when the
-   * visitor comes within `goesAt` metres of it, or after `ttl` seconds. One at a time.
+   * but fainter, on no surface at all (see AirWriting). One at a time.
    */
-  writeInAir(o: { key: string; phraseId: string; at: THREE.Vector3; face: THREE.Vector3; light?: THREE.Vector3; goesAt?: number; ttl?: number; now: number }): boolean {
-    const p = PHRASE_BY_ID.get(o.phraseId);
-    if (!p || this.airItem) return false;
-    // In short lines, a narrow block that can stand beside the chair rather than across it.
-    const { tex, w, h, duration } = textTexture(p.text, p.hand, p.size, o.key, 2048, 0.85);
-    const { mat, uniforms } = makeTextMaterial(tex, p.hand, w / h, hashString(o.key), duration);
-    mat.polygonOffset = false;
-    const mesh = new THREE.Mesh(this.geo, mat);
-    mesh.scale.set(w, h, 1);
-    mesh.position.copy(o.at);
-    mesh.lookAt(o.face.x, o.at.y, o.face.z);
-    mesh.renderOrder = 3;
-    mesh.userData = { text: p.text, goesAt: o.goesAt ?? 1.4, expires: o.now + (o.ttl ?? 45), y: o.at.y, born: o.now, normal: new THREE.Vector2(o.face.x - o.at.x, o.face.z - o.at.z).normalize() };
-    this.air.add(mesh);
-    const now = wallClock();
-    const plan: WritePlan = { start: now + 0.6, floor: 0, cap: duration };
-    if (this.reducedMotion) plan.floor = duration;
-    uniforms.uWrite.value = 0;
-    const shadow = o.light ? this.airShadow(mesh, o.light, tex, p.hand, w / h, o.key, duration) : null;
-    this.airItem = { key: o.key, mesh, uniforms, duration, plan, vis: 1, target: 1, rate: 1, opacity: HANDS[p.hand].opacity * 0.75, centre: o.at.clone(), shadow };
-    return true;
-  }
-
-  /**
-   * A faint shadow of the writing on the floor, cast by the light over the chair: the words'
-   * own quad projected from the light onto the floor, the same writing sampled soft. It is
-   * written and rubbed out with the words. It is what says they hang in the air.
-   */
-  private airShadow(text: THREE.Mesh, light: THREE.Vector3, tex: THREE.Texture, hand: Hand, aspect: number, key: string, duration: number) {
-    // A strip in six rows, so the trapezoid the light casts doesn't fold the writing along its diagonal.
-    const geo = new THREE.PlaneGeometry(1, 1, 1, 6);
-    const local = Float32Array.from(geo.attributes.position.array);
-    const n = geo.attributes.normal.array as Float32Array;
-    for (let i = 0; i < n.length; i += 3) {
-      n[i] = 0;
-      n[i + 1] = 1;
-      n[i + 2] = 0;
-    }
-    const { mat, uniforms } = makeTextMaterial(tex, hand, aspect, hashString(key), duration);
-    mat.color.set(0x000000);
-    // Soft enough that no letter can be read: grey under the words, not a mirror of them.
-    uniforms.uLod.value = 4;
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.renderOrder = 2;
-    mesh.frustumCulled = false;
-    this.air.add(mesh);
-    const shadow = { mesh, uniforms, light, local };
-    this.projectShadow(text, shadow, true);
-    return shadow;
-  }
-
-  private tmp = new THREE.Vector3();
-  /** Cast the words' quad from the light onto the floor (every frame: the light drifts, the words bob). */
-  private projectShadow(text: THREE.Mesh, s: { mesh: THREE.Mesh; light: THREE.Vector3; local: Float32Array }, first = false) {
-    text.updateMatrixWorld();
-    const pos = s.mesh.geometry.attributes.position as THREE.BufferAttribute;
-    const L = s.light, y0 = 0.003, p = this.tmp;
-    for (let i = 0; i < pos.count; i++) {
-      p.set(s.local[i * 3], s.local[i * 3 + 1], 0).applyMatrix4(text.matrixWorld);
-      const k = (L.y - y0) / Math.max(0.05, L.y - p.y);
-      pos.setXYZ(i, L.x + (p.x - L.x) * k, y0, L.z + (p.z - L.z) * k);
-    }
-    pos.needsUpdate = true;
-    if (first) {
-      // Wound to face up, whichever way the words face.
-      const idx = s.mesh.geometry.index!;
-      const a = new THREE.Vector3().fromBufferAttribute(pos, idx.getX(0));
-      const b = new THREE.Vector3().fromBufferAttribute(pos, idx.getX(1));
-      const c = new THREE.Vector3().fromBufferAttribute(pos, idx.getX(2));
-      if (b.sub(a).cross(c.sub(a)).y < 0) {
-        for (let i = 0; i < idx.count; i += 3) {
-          const t = idx.getX(i + 1);
-          idx.setX(i + 1, idx.getX(i + 2));
-          idx.setX(i + 2, t);
-        }
-        idx.needsUpdate = true;
-      }
-    }
+  writeInAir(o: Parameters<AirWriting['write']>[0]): boolean {
+    return this.airText.write(o);
   }
 
   /** Where the writing in the air is, while it is there (for keyboard navigation). */
   get airCentre(): THREE.Vector3 | null {
-    const a = this.airItem;
-    return a && a.target > 0 ? a.centre.clone() : null;
+    return this.airText.centre;
   }
 
   /** The writing in the air, if any, and how much of it is there (for tests and the inspector). */
-  get airState(): { key: string; written: number; vis: number } | null {
-    const a = this.airItem;
-    if (!a) return null;
-    return { key: a.key, written: a.plan ? Math.min(1, handAt(a.plan, wallClock()) / a.duration) : 1, vis: a.vis };
-  }
-
-  private updateAir(dt: number, now: number, pos: THREE.Vector3, env: Environment) {
-    const a = this.airItem;
-    if (!a) return;
-    const d = Math.hypot(pos.x - a.centre.x, pos.z - a.centre.z);
-    if (a.target > 0 && (d < a.mesh.userData.goesAt || now > a.mesh.userData.expires)) {
-      a.target = 0;
-      // Coming close rubs it out quickly, before anyone could walk through it; left alone, it thins away slowly.
-      const close = d < a.mesh.userData.goesAt;
-      a.rate = close ? 1 / 0.9 : 1 / 10;
-      this.onAirGone?.(close ? 'approach' : 'faded', a.centre.clone());
-    }
-    // Barely drifting (1.5 cm over seven seconds): held up by nothing.
-    a.mesh.position.y = a.mesh.userData.y + 0.0075 * Math.sin(((now - a.mesh.userData.born) / 7) * Math.PI * 2);
-    // Full within 35° of where it faces, gone by 65°.
-    const { x: nx, y: nz } = a.mesh.userData.normal as THREE.Vector2;
-    const cos = d > 1e-3 ? (nx * (pos.x - a.centre.x) + nz * (pos.z - a.centre.z)) / d : 1;
-    const facing = smoothstep(Math.cos((65 * Math.PI) / 180), Math.cos((35 * Math.PI) / 180), cos);
-    a.vis = a.target > a.vis ? Math.min(a.target, a.vis + a.rate * dt) : Math.max(a.target, a.vis - a.rate * dt);
-    if (a.plan) {
-      const h = handAt(a.plan, wallClock());
-      a.uniforms.uWrite.value = h / Math.max(1e-3, a.duration);
-      if (h >= a.duration) {
-        a.plan = null;
-        a.uniforms.uWrite.value = 2;
-      }
-    }
-    a.uniforms.uReveal.value = a.vis;
-    a.uniforms.uOpacity.value = clamp(a.opacity * env.textContrast * facing, 0, 1);
-    if (a.shadow) {
-      this.projectShadow(a.mesh, a.shadow);
-      const s = a.shadow.uniforms;
-      s.uWrite.value = a.uniforms.uWrite.value;
-      s.uReveal.value = a.vis;
-      // Words that can't be seen from here (edge-on, from behind) cast nothing either.
-      s.uOpacity.value = 0.22 * this.airShadowLight * facing;
-    }
-    if (a.vis <= 0 && a.target <= 0) {
-      a.mesh.removeFromParent();
-      const mat = a.mesh.material as THREE.MeshStandardMaterial;
-      mat.map?.dispose();
-      mat.dispose();
-      if (a.shadow) {
-        a.shadow.mesh.removeFromParent();
-        a.shadow.mesh.geometry.dispose();
-        (a.shadow.mesh.material as THREE.Material).dispose();
-      }
-      this.airItem = null;
-    }
+  get airState(): AirWriting['state'] {
+    return this.airText.state;
   }
 
   /** Write new text beside a phrase or somewhere on a surface. Returns false if there was no room. */
   write(o: { key: string; text: string; hand: Hand; size: Size; beside?: string; surface?: Surface; near?: { u: number; v: number }; by?: string; purpose: Exclude<Purpose, 'phrase'>; ttl: number; now: number; source?: string; start?: boolean }): boolean {
     if (this.items.has(o.key)) return false;
-    // Written by a drawing (a memory's line, by the drawing it opens from): as close to it as the
-    // wall allows, under it, else beside it, in a smaller hand if that is what fits.
-    if (o.by) {
-      const d = this.items.get(o.by)?.placement;
-      if (d) {
-        for (const size of [o.size, 'xs'] as Size[]) {
-          const mm = measureText(o.text, o.hand, size);
-          const W = surfaceSize(d.surface).w;
-          const regions: [[number, number], [number, number]][] = [
-            [[d.u - d.w / 2 - 0.1, d.u - d.w / 2 + mm.w + 0.1], [d.v - d.h / 2 - mm.h - 0.25, d.v - d.h / 2 - 0.02]],
-            [[d.u - d.w / 2 - mm.w - 0.2, d.u - d.w / 2 - 0.02], [d.v - d.h / 2 - 0.1, d.v + d.h / 2]],
-            [[d.u + d.w / 2 + 0.02, d.u + d.w / 2 + mm.w + 0.2], [d.v - d.h / 2 - 0.1, d.v + d.h / 2]],
-          ];
-          for (const [ur, vr] of regions) {
-            const rect = this.layout.findIn(d.surface, mm.w, mm.h, [Math.max(0, ur[0]) / W, Math.min(W, ur[1]) / W], [Math.max(0.3, vr[0]), vr[1]], 0.03, 120, true);
-            if (!rect) continue;
-            const pl = this.layout.add({ surface: d.surface, ...rect, rot: (((hashString(o.key) % 100) / 100) - 0.5) * 0.04 });
-            const it = this.create(o.key, o.text, o.hand, size, pl, o.purpose);
-            it.source = o.source;
-            it.expires = o.ttl > 0 ? o.now + o.ttl : 0;
-            if (o.start !== false) this.writeOn(o.key);
-            return true;
-          }
-        }
-      }
-    }
-    const m = measureText(o.text, o.hand, o.size);
-    let rect = null as null | { u: number; v: number; w: number; h: number };
-    let surface: Surface | undefined = o.surface;
-    const target = o.beside ? this.placementOf(o.beside) : undefined;
-    if (target) {
-      surface = target.surface;
-      rect = this.layout.findBeside(target, m.w, m.h);
-      // The heart's answer is beside the first line or not yet written: anywhere else on that wall it
-      // reads as a line of its own, not an answer. (The room tries again as lines there fade.)
-      if (!rect && o.key.startsWith('heart:')) return false;
-    }
-    const wall = !!surface && surface !== 'floor' && surface !== 'ceiling';
-    if (!rect && surface && o.near && o.purpose === 'recall' && wall && o.key.startsWith('memory:')) {
-      // A memory's line, offered where the visitor looks: at a height it can be read at, as near
-      // their line of sight as the wall allows, or not at all (it is offered again elsewhere). The
-      // whole-wall scan put it by the skirting, out of frame on a phone (QA, 2026-11-06). Close to
-      // where they look it may go into the space kept behind the chair, as an answer may: from the
-      // chair, facing the wall behind it, that is where they look, and the rest of the band is full.
-      // Only that space: the band kept on the south wall is the visitors' own.
-      const behindChair = surface === 'north';
-      const size = surfaceSize(surface!);
-      const near = o.near;
-      const across = (spread: number): [number, number] => [Math.max(0, near.u - spread - m.w / 2) / size.w, Math.min(size.w, near.u + spread + m.w / 2) / size.w];
-      const band = (spread: number, open: boolean) => this.layout.findIn(surface!, m.w, m.h, across(spread), [0.9, 1.85], 0.02, 160, open);
-      for (const spread of [0.4, 0.9, 1.6, size.w]) {
-        rect = band(spread, false) ?? (behindChair && spread <= 0.9 ? band(spread, true) : null);
-        if (rect) break;
-      }
-      // (The tries are random: before it is given up, the band is gone over cell by cell, so a
-      // narrow place they missed is still found.)
-      rect ??= (behindChair ? this.layout.scanIn(surface!, m.w, m.h, across(0.9), [0.9, 1.85], 0.02, near, true) : null) ?? this.layout.scanIn(surface!, m.w, m.h, [0, 1], [0.9, 1.85], 0.02, near, false);
-      if (!rect) return false;
-    }
-    if (!rect && surface && o.near) {
-      const size = surfaceSize(surface);
-      for (const spread of [0.5, 1, 1.8]) {
-        rect = this.layout.findIn(surface, m.w, m.h, [(o.near.u - spread - m.w / 2) / size.w, (o.near.u + spread + m.w / 2) / size.w], [Math.max(0.3, o.near.v - spread * 0.5 - m.h / 2), Math.min(size.h - 0.15, o.near.v + spread * 0.5 + m.h / 2)], 0.03, 120, o.purpose === 'contribution');
-        if (rect) break;
-      }
-    }
-    if (!rect && target) rect = this.layout.scan(target.surface, m.w, m.h, 0.02);
-    if (!rect && surface) {
-      const size = surfaceSize(surface);
-      if (o.purpose === 'contribution' && surface === 'south')
-        rect = this.layout.findIn(surface, m.w, m.h, [0.3, 0.7], [1.0, 1.95], 0.05, 120, true) ?? this.layout.findIn(surface, m.w, m.h, [0.08, 0.92], [0.6, 2.4], 0.03, 120, true);
-      else rect = this.layout.findIn(surface, m.w, m.h, [0.05, 0.95], [0.9, Math.min(2.3, size.h - 0.2)], 0.03, 120);
-    }
-    if (!rect && surface) rect = this.layout.scan(surface, m.w, m.h, 0.02, o.purpose === 'contribution');
-    // A visitor's words are always written: try the other walls, then the band kept for them.
-    let size = o.size;
-    if (!rect && o.purpose === 'contribution') {
-      for (const s of ['south', 'north', 'east', 'west'] as Surface[]) {
-        if (s === surface) continue;
-        rect = this.layout.scan(s, m.w, m.h, 0.02, true);
-        if (rect) {
-          surface = s;
-          break;
-        }
-      }
-      if (!rect && size !== 'xs') {
-        size = 'xs';
-        const mx = measureText(o.text, o.hand, 'xs');
-        surface = 'south';
-        rect = this.layout.scan('south', mx.w, mx.h, 0, true);
-      }
-    }
-    if (!rect || !surface) return false;
-    const pl = this.layout.add({ surface, ...rect, rot: (((hashString(o.key) % 100) / 100) - 0.5) * 0.06 });
-    const it = this.create(o.key, o.text, o.hand, size, pl, o.purpose);
+    // Written by a drawing (a memory's line, by the drawing it opens from) if there is room by it;
+    // otherwise as any other line is.
+    const by = o.by ? this.items.get(o.by)?.placement : undefined;
+    const found = (by && placeByDrawing(this.layout, by, o)) || placeWrite(this.layout, o, o.beside ? this.placementOf(o.beside) : undefined);
+    if (!found) return false;
+    const it = this.create(o.key, o.text, o.hand, found.size, found.placement, o.purpose);
     it.source = o.source;
     it.expires = o.ttl > 0 ? o.now + o.ttl : 0;
     // start: false — made, but written later (by a voice).
@@ -771,54 +364,19 @@ export class WallText {
   }
 
   /**
-   * Write a line under another inside a place on its wall (`within`, in the writing group's metres,
-   * as the memory window gives a painting's place): just under it and close, clear of what is
-   * already written there (decisions 122, 133, 136 and 137). The places kept for lines not yet shown
-   * give way, and are found again elsewhere on their wall; a line with its own place close by
-   * waits, as does one with no room left on its wall. The ids of the lines that wait (the room keeps
-   * them off the walls from then on), or null, and nothing written, if nothing fits.
+   * Write a line under another inside a place on its wall (see `placeWithin`). The ids of the lines
+   * that wait (the room keeps them off the walls from then on), or null, and nothing written, if
+   * nothing fits.
    */
   writeWithin(o: { key: string; text: string; hand: Hand; size: Size; under: string; within: { cx: number; cy: number; w: number; h: number }; purpose: Exclude<Purpose, 'phrase'>; now: number; source?: string; start?: boolean }): string[] | null {
     if (this.items.has(o.key)) return null;
-    const anchor = this.items.get(o.under)?.placement;
-    if (!anchor || anchor.surface === 'floor' || anchor.surface === 'ceiling') return null;
-    const size = surfaceSize(anchor.surface), s = this.room.scale;
-    const within = { u: o.within.cx / s + size.w / 2, v: o.within.cy + size.h / 2, w: o.within.w / s, h: o.within.h };
-    const m = measureText(o.text, o.hand, o.size);
-    // (A line not yet on any wall keeps a place: one with no place of its own can go elsewhere, one
-    // with its own place can only wait, as can one made ahead (the opening's) and not yet written.)
-    const slots = new Map<Placement, string>(), own = new Map<Placement, string>();
-    for (const [id, pl] of this.placements) {
-      const made = this.items.get(id);
-      if (!made) (PHRASE_BY_ID.get(id)?.at ? own : slots).set(pl, id);
-      else if (made.placement === pl && made.vis <= 0.05 && made.target <= 0) own.set(pl, id);
-    }
-    // (What is already written on that wall, drawings too, its own line aside.)
-    const written = [...this.items.values()].filter((it) => it.key !== o.under && it.placement.surface === anchor.surface && (it.vis > 0.05 || it.target > 0)).map((it) => it.placement);
-    const found = this.layout.findUnder(anchor, m.w, m.h, within, (p) => slots.has(p), written, (p) => own.has(p));
+    const found = placeWithin({ layout: this.layout, placements: this.placements, items: this.items, scale: this.room.scale }, o);
     if (!found) return null;
-    for (const p of found.displaced) this.layout.remove(p);
-    const pl = this.layout.add({ surface: anchor.surface, ...found.rect, rot: (((hashString(o.key) % 100) / 100) - 0.5) * 0.04 });
-    // (Kept clear for the rest of the visit: nothing placed after it, those lines included, comes
-    // within 20 cm.)
-    this.layout.add({ surface: anchor.surface, u: pl.u, v: pl.v, w: pl.w + 0.4, h: pl.h + 0.4, rot: 0 });
-    // (A line moved has no place of its own: it goes elsewhere on its wall, or, with no room left
-    // there, waits with the others rather than go to another wall: QA, 2026-10-20.)
-    const waiting = found.waiting.map((p) => own.get(p)!);
-    for (const p of found.displaced) {
-      const id = slots.get(p)!;
-      const moved = this.layout.placeOn(PHRASE_BY_ID.get(id)!, (q) => measureText(q.text, q.hand, q.size));
-      if (moved) this.placements.set(id, moved);
-      else {
-        this.placements.delete(id);
-        waiting.push(id);
-      }
-    }
-    const it = this.create(o.key, o.text, o.hand, o.size, pl, o.purpose);
+    const it = this.create(o.key, o.text, o.hand, o.size, found.placement, o.purpose);
     it.source = o.source;
     it.expires = 0;
     if (o.start !== false) this.writeOn(o.key);
-    return waiting;
+    return found.waiting;
   }
 
   private makeLine(key: string, surface: Surface, seed: number): LineItem {
@@ -893,10 +451,6 @@ export class WallText {
     ln.mesh.rotation.z = Math.atan2(n.y, n.x);
   }
 
-  /**
-   * Rub out a piece of writing except for one word, which stays where it was written.
-   * The remaining word becomes its own item, `${key}:kept`.
-   */
   /** Every piece of writing that is this line (where it was written, and wherever it was written again). */
   keysOf(phraseId: string): string[] {
     return [...this.items.values()].filter((it) => it.purpose !== 'drawing' && (it.phrase?.id === phraseId || it.source === phraseId || it.key === phraseId)).map((it) => it.key);
@@ -933,21 +487,16 @@ export class WallText {
     it.mesh.visible = true;
   }
 
-  /** A lost word comes back. */
-  restoreWord(key: string, seconds = 6): void {
-    const it = this.items.get(key);
-    if (it?.gap) {
-      it.gap.target = 0;
-      it.gap.rate = 1 / Math.max(0.5, seconds);
-    }
-  }
-
   /** The line becomes harder to read as one comes close (for the rest of the visit, or until `amount` 0). */
   recede(key: string, amount: number): void {
     const it = this.items.get(key);
     if (it) it.recede = { amount, k: it.recede?.k ?? 0, near: 0, far: 0, away: it.recede?.away ?? false, once: it.recede?.once ?? false };
   }
 
+  /**
+   * Rub out a piece of writing except for one word, which stays where it was written.
+   * The remaining word becomes its own item, `${key}:kept`.
+   */
   erode(key: string, keep: string, now: number): boolean {
     const it = this.items.get(key);
     if (!it || it.vis <= 0 || !keep) return false;
@@ -1038,7 +587,7 @@ export class WallText {
     const pos = cam.getWorldPosition(new THREE.Vector3());
     const fwd = cam.getWorldDirection(new THREE.Vector3());
     const to = new THREE.Vector3();
-    this.updateAir(dt, now, pos, env);
+    this.airText.update(dt, now, pos, env);
     for (const it of [...this.items.values()]) {
       if (it.expires && now > it.expires && it.target > 0) {
         it.target = 0;
@@ -1134,21 +683,15 @@ export class WallText {
    * Where a phrase is written now, to lay light across it: the visible piece of writing that is
    * (or repeats) it, its wall's writing group, its centre there, and the wall's height limits.
    */
-  anchorOf(phraseId: string, preferKey?: string | null): { key: string; group: THREE.Object3D; x: number; y: number; w: number; h: number; minX: number; maxX: number; minY: number; maxY: number } | null {
+  anchorOf(phraseId: string, preferKey?: string | null): WallAnchor | null {
     let best: TextItem | null = null;
     for (const it of this.items.values()) {
       if (it.vis < 0.5 || it.purpose === 'drawing' || this.phraseOf(it.key) !== phraseId) continue;
-      if (it.placement.surface === 'floor' || it.placement.surface === 'ceiling') continue;
+      if (!isWallSurface(it.placement.surface)) continue;
       // The copy being looked at (or touched) first; then the one written for the memory.
       if (!best || it.key === preferKey || (best.key !== preferKey && it.key.startsWith('memory:'))) best = it;
     }
-    if (!best) return null;
-    const pl = best.placement;
-    const l = this.room.local(pl.surface, pl.u, pl.v);
-    const size = surfaceSize(pl.surface);
-    const half = size.h / 2, halfW = (size.w / 2) * this.room.scale;
-    // Inside the corners, above the skirting and its shadow gap, below the cornice.
-    return { key: best.key, group: this.room.frames[pl.surface].writing, x: l.x, y: l.y, w: pl.w, h: pl.h, minX: -halfW + 0.1, maxX: halfW - 0.1, minY: -half + 0.1, maxY: half - 0.1 };
+    return best && this.anchorAt(best);
   }
 
   /** A drawing now stands for a phrase: looking at it is meeting that phrase (a memory's drawing). */
@@ -1158,15 +701,19 @@ export class WallText {
   }
 
   /** The same, for one item by its key (a drawing a memory opens from). */
-  anchorOfKey(key: string): { key: string; group: THREE.Object3D; x: number; y: number; w: number; h: number; minX: number; maxX: number; minY: number; maxY: number } | null {
+  anchorOfKey(key: string): WallAnchor | null {
     const it = this.items.get(key);
-    if (!it || it.vis < 0.2) return null;
+    if (!it || it.vis < 0.2 || !isWallSurface(it.placement.surface)) return null;
+    return this.anchorAt(it);
+  }
+
+  private anchorAt(it: TextItem): WallAnchor {
     const pl = it.placement;
-    if (pl.surface === 'floor' || pl.surface === 'ceiling') return null;
     const l = this.room.local(pl.surface, pl.u, pl.v);
     const size = surfaceSize(pl.surface);
     const half = size.h / 2, halfW = (size.w / 2) * this.room.scale;
-    return { key, group: this.room.frames[pl.surface].writing, x: l.x, y: l.y, w: pl.w, h: pl.h, minX: -halfW + 0.1, maxX: halfW - 0.1, minY: -half + 0.1, maxY: half - 0.1 };
+    // Inside the corners, above the skirting and its shadow gap, below the cornice.
+    return { key: it.key, group: this.room.frames[pl.surface].writing, x: l.x, y: l.y, w: pl.w, h: pl.h, minX: -halfW + 0.1, maxX: halfW - 0.1, minY: -half + 0.1, maxY: half - 0.1 };
   }
 
   /** Light washing a piece of writing out (0–1). */
