@@ -1,14 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { Director } from '../src/state/Director';
-import type { VisitorInput } from '../src/state/VisitorModel';
 import type { TimedCue } from '../src/state/cues';
+import { input } from './helpers/visitor';
+import { run } from './sim';
 
-const still: VisitorInput = { x: 0.1, z: 2.2, yaw: 0, pitch: 0, gazePhraseId: null, gazeChair: false, nearSurface: null, kneeling: false };
-const run = (d: Director, seconds: number, input: (t: number) => VisitorInput, facing: 'north' | 'east' = 'north') => {
-  const out: TimedCue[] = [];
-  for (let t = 0; t < seconds; t += 0.1) out.push(...d.tick(0.1, input(t), facing));
-  return out;
-};
+const still = input({ x: 0.1, z: 2.2 });
 
 describe('a memory intruding as light', () => {
   it('is kept back from the first writing: not spent on arrival', () => {

@@ -4,7 +4,7 @@ import { Director } from '../src/state/Director';
 import { PHRASE_BY_ID, PHRASES } from '../src/content/phrases';
 import { belonging } from '../src/content/walls';
 import type { Cue, TimedCue } from '../src/state/cues';
-import type { VisitorInput } from '../src/state/VisitorModel';
+import { BASE_INPUT } from './helpers/visitor';
 
 type Write = Extract<Cue, { type: 'write' }>;
 const strays = (cues: TimedCue[]) => cues.filter((c) => c.rule === 'stray' || c.rule === 'stray-held');
@@ -61,7 +61,7 @@ describe('the walls are not neatly partitioned', () => {
 
   it('late in the visit, the line held longest is written on the empty wall behind', () => {
     const d = new Director({ seed: 4, situations: ['residue'] });
-    const base: VisitorInput = { x: 0, z: 2.4, yaw: 0, pitch: 0, gazePhraseId: null, gazeChair: false, nearSurface: null, kneeling: false };
+    const base = BASE_INPUT;
     const cues: TimedCue[] = [];
     for (let t = 0; t < 25; t += 0.1) cues.push(...d.tick(0.1, { ...base, x: 2.2, z: 0, gazePhraseId: 'good-day' }, 'east'));
     for (let t = 0; t < 700; t += 0.1) cues.push(...d.tick(0.1, { ...base, x: Math.sin(t * 0.05) * 2, z: Math.cos(t * 0.05) * 2, yaw: t * 0.05 }, 'north'));
@@ -75,7 +75,7 @@ describe('the walls are not neatly partitioned', () => {
     const d = new Director({ seed: 4, situations: ['residue'] });
     // (A visit with no vignettes recorded: their quiet would move this one's moments.)
     d.scenes.setAvailable(new Set());
-    const base: VisitorInput = { x: 0, z: 2.4, yaw: 0, pitch: 0, gazePhraseId: null, gazeChair: false, nearSurface: null, kneeling: false };
+    const base = BASE_INPUT;
     const cues: TimedCue[] = [];
     for (let t = 0; t < 25; t += 0.1) cues.push(...d.tick(0.1, { ...base, x: 2.2, z: 0, gazePhraseId: 'good-day' }, 'east'));
     // Wander, but face the south wall right through the transformation.

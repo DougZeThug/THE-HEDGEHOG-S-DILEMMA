@@ -6,6 +6,7 @@ import { layoutPhrases, overlaps, surfaceSize, RESERVED, drawingSpots, drawingBe
 import { Director } from '../src/state/Director';
 import type { VisitorInput } from '../src/state/VisitorModel';
 import type { TimedCue } from '../src/state/cues';
+import { input } from './helpers/visitor';
 
 const SZ: Record<string, number> = { xs: 0.13, s: 0.17, m: 0.22, l: 0.31, xl: 0.53 };
 const measure = (p: (typeof PHRASES)[number]) => {
@@ -86,7 +87,7 @@ describe('drawn by a hand', () => {
 });
 
 describe('the cups are drawn while their line is looked at', () => {
-  const still: VisitorInput = { x: 0.1, z: 1.8, yaw: 0, pitch: 0, gazePhraseId: null, gazeChair: false, nearSurface: null, kneeling: false };
+  const still = input({ x: 0.1, z: 1.8 });
   const run = (d: Director, seconds: number, input: (t: number) => VisitorInput) => {
     const out: TimedCue[] = [];
     for (let t = 0; t < seconds; t += 0.1) out.push(...d.tick(0.1, input(t), 'east'));

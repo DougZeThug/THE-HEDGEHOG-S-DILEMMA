@@ -7,6 +7,7 @@ import { Director } from '../src/state/Director';
 import { OPENING_WRITTEN, OPENING_SPOKEN, OPENING_UNFINISHED } from '../src/state/OpeningScore';
 import { AVAILABLE, CLASSES, drawGenome, liveVisit, type VisitSummary } from './playtest/visitors';
 import { classify } from './playtest/measure';
+import { input } from './helpers/visitor';
 
 /**
  * The visit's heart (docs/reviews/2026-11-emotional-arc.md): one painted memory a visit, reachable
@@ -208,7 +209,7 @@ describe('the heart, through whole visits', () => {
     d.scenes.setAvailable(AVAILABLE);
     d.release({ written: OPENING_WRITTEN, spoken: OPENING_SPOKEN, unfinished: OPENING_UNFINISHED });
     d.memoryExternal('woodland');
-    const still = { x: 0, z: 1.5, yaw: Math.PI / 2, pitch: -0.04, gazePhraseId: null, gazeChair: false, nearSurface: null, kneeling: false };
+    const still = input({ z: 1.5, yaw: Math.PI / 2, pitch: -0.04 });
     const found = (n: number) => {
       let kept = false;
       for (let i = 0; i < n; i++) kept = d.tick(0.1, still, 'east').some((c) => c.rule === 'heart-kept') || kept;
@@ -224,7 +225,7 @@ describe('the heart, through whole visits', () => {
     const d = new Director({ seed: 3, visits: 2, memoryCounts: {}, trace: null, answer: 'took-hand-back' });
     d.scenes.setAvailable(AVAILABLE);
     d.release({ written: OPENING_WRITTEN, spoken: OPENING_SPOKEN, unfinished: OPENING_UNFINISHED });
-    const at = (yaw: number) => ({ x: 0, z: 1.5, yaw, pitch: -0.04, gazePhraseId: null, gazeChair: false, nearSurface: null, kneeling: false });
+    const at = (yaw: number) => input({ z: 1.5, yaw, pitch: -0.04 });
     const run = (s: number, facing: 'north' | 'east') => {
       const out: string[] = [];
       for (let t = 0; t < s; t += 0.1) for (const c of d.tick(0.1, at(facing === 'east' ? Math.PI / 2 : 0), facing)) out.push(c.rule);

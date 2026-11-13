@@ -2,17 +2,12 @@ import { describe, it, expect } from 'vitest';
 import * as THREE from 'three';
 import { Director } from '../src/state/Director';
 import { Lighting } from '../src/world/Lighting';
-import type { VisitorInput } from '../src/state/VisitorModel';
 import type { Environment } from '../src/core/environment';
-import type { TimedCue } from '../src/state/cues';
+import { input } from './helpers/visitor';
+import { run } from './sim';
 
 // Standing back from the chair (about 2.6 m) and looking at it.
-const apart: VisitorInput = { x: 0.1, z: 2.6, yaw: 0, pitch: -0.1, gazePhraseId: null, gazeChair: true, nearSurface: null, kneeling: false };
-const run = (d: Director, seconds: number, input: (t: number) => VisitorInput) => {
-  const out: TimedCue[] = [];
-  for (let t = 0; t < seconds; t += 0.1) out.push(...d.tick(0.1, input(t), 'north'));
-  return out;
-};
+const apart = input({ x: 0.1, z: 2.6, pitch: -0.1, gazeChair: true });
 
 describe('writing in the air', () => {
   it('answers stepping back from the chair, once a visit, after the first minute', () => {

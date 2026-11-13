@@ -1,10 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { Director } from '../src/state/Director';
-import type { VisitorInput } from '../src/state/VisitorModel';
-import type { TimedCue } from '../src/state/cues';
 import { PHRASE_BY_ID } from '../src/content/phrases';
+import { run } from './sim';
 
-const base: VisitorInput = { x: 0, z: 2.4, yaw: 0, pitch: 0, gazePhraseId: null, gazeChair: false, nearSurface: null, kneeling: false };
 type Priv = {
   speakPhrase: (rule: string, p: unknown, pos: unknown, delay?: number) => boolean;
   memory: { spoken: Map<string, number> };
@@ -16,11 +14,6 @@ const make = () => {
   const d = new Director({ seed: 3, situations: ['residue'] });
   d.release({ written: ['stay'] });
   return { d, p: d as unknown as Priv };
-};
-const run = (d: Director, seconds: number) => {
-  const out: TimedCue[] = [];
-  for (let t = 0; t < seconds; t += 0.1) out.push(...d.tick(0.1, base, 'north'));
-  return out;
 };
 
 describe('a voice the room declines to say leaves no trace', () => {

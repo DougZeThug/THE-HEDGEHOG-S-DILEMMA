@@ -10,24 +10,13 @@ import { PHRASES } from '../src/content/phrases';
 import { warmthOf } from '../src/state/Memory';
 import { PERSONAS, type Persona } from './playtest/personas';
 import { visit, type Development } from './playtest/measure';
-import { simulate } from './sim';
-import type { VisitorInput } from '../src/state/VisitorModel';
+import { simulate, drive } from './sim';
+import { BASE_INPUT as base } from './helpers/visitor';
 import type { Surface } from '../src/content/types';
 import type { TimedCue } from '../src/state/cues';
 
-const base: VisitorInput = { x: 0, z: 2.4, yaw: 0, pitch: 0, gazePhraseId: null, gazeChair: false, nearSurface: null, kneeling: false };
 const looped = (p: Persona): Persona => ({ ...p, frame: (t) => p.frame(t < 240 ? t : 60 + ((t - 240) % 180)) });
 const isMemory = (d: Development) => /^(vignette|memory-scene) /.test(d.label);
-
-/** Drive a Director with a script, returning every cue with its rule. */
-function drive(d: Director, script: (t: number) => Partial<VisitorInput> & { facing?: Surface }, from: number, seconds: number, dt = 0.1) {
-  const out: TimedCue[] = [];
-  for (let t = from; t < from + seconds; t += dt) {
-    const s = script(t);
-    out.push(...d.tick(dt, { ...base, ...s }, s.facing ?? 'north'));
-  }
-  return out;
-}
 
 /** A memory has been playing and ends now (as the App reports it). */
 function ends(d: Director, id: string, seen = true, ranToEnd = true) {

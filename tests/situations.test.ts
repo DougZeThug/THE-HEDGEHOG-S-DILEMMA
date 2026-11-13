@@ -12,6 +12,7 @@ import { interpretLocally } from '../src/interpret/LocalInterpreter';
 import { nextRoom } from '../src/state/situations/library';
 import { HUM_NOTE } from '../src/core/hum';
 import { keptWord } from '../src/core/words';
+import { BASE_INPUT } from './helpers/visitor';
 
 // Geometry without a browser: the same layout, approximate font metrics.
 const SZ: Record<string, number> = { xs: 0.13, s: 0.17, m: 0.22, l: 0.31, xl: 0.53 };
@@ -32,7 +33,7 @@ class Visit {
     this.d = new Director({ seed, geometry, situations });
   }
   run(seconds: number, input: In | ((t: number) => In), until?: (c: TimedCue) => boolean): TimedCue | undefined {
-    const base: VisitorInput = { x: 0, z: 2.4, yaw: 0, pitch: 0, gazePhraseId: null, gazeChair: false, nearSurface: null, kneeling: false };
+    const base = BASE_INPUT;
     for (let t = 0; t < seconds; t += 0.1) {
       const i = typeof input === 'function' ? input(t) : input;
       const out = this.d.tick(0.1, { ...base, ...i }, i.facing ?? 'north');
