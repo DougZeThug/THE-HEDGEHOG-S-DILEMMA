@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { smoothstep } from '../../core/math';
 import { DEFORMERS, livingCamera, livingMaterials, livingTarget, type LivingMaterials } from '../../world/living/materials';
 import { CANOPY, blinkDrawing, breath, hash01, windDrift, windResponse } from './performance';
 import type { LivingSpec } from './woodland';
@@ -263,7 +264,7 @@ const SPRINGS = { grass: [0.7, 0.5], flower: [1.2, 0.3], leaves: CANOPY } as con
 /** How fast the sky drifts (plate px a second): the afternoon's, the evening's. */
 const DRIFT = { day: 2, after: 1.4 };
 
-export class LivingScene {
+export class WoodlandScene {
   readonly target: THREE.WebGLRenderTarget;
   private readonly scene = new THREE.Scene();
   private readonly camera = livingCamera();
@@ -546,7 +547,7 @@ export class LivingScene {
     }
     const pu = this.m.plate.uniforms;
     // The real dusk sky arrives in the gap as the evening comes (weather, not a cross-dissolve).
-    pu.uDuskSky.value = this.art.sky ? smooth(0.35, 0.95, dusk) : 0;
+    pu.uDuskSky.value = this.art.sky ? smoothstep(0.35, 0.95, dusk) : 0;
     const after = this.art.after && val('scene.after', 0) >= 0.5 ? 1 : 0;
     pu.uAfter.value = after;
     this.m.flowers.uniforms.uAfter.value = after;
@@ -772,9 +773,4 @@ export class LivingScene {
       mat.uniforms.uAfter.value = 0;
     }
   }
-}
-
-function smooth(e0: number, e1: number, x: number): number {
-  const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0)));
-  return t * t * (3 - 2 * t);
 }

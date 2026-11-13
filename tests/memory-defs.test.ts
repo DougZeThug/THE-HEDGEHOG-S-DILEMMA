@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { MEMORIES, sheetId } from '../src/memory/defs';
+import { MEMORIES } from '../src/memory/registry';
+import { sheetId } from '../src/memory/memoryDef';
 import { memorySchema } from '../src/memory/sheets';
 import { cueKind } from '../src/memory/cueSheet';
 import state from '../src/memory/theatre-state.json';

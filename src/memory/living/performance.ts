@@ -8,6 +8,8 @@
  * (Theatre), not here.
  */
 
+import { easeInOut } from '../../core/math';
+
 /** A small integer hash to [0, 1). */
 export function hash01(n: number, seed: number): number {
   let h = (Math.imul(n | 0, 0x27d4eb2d) ^ Math.imul(seed | 0, 0x165667b1)) >>> 0;
@@ -40,7 +42,6 @@ export interface BreathProfile {
   steady?: [number, number][];
 }
 
-const ease = (x: number) => 0.5 - 0.5 * Math.cos(Math.PI * Math.min(1, Math.max(0, x)));
 
 /**
  * How full the chest is at `t` (0 = rested out, ~1 = a full breath in). Breaths are laid end to
@@ -61,8 +62,8 @@ export function breath(t: number, p: BreathProfile): number {
       const x = t - start;
       const tin = core * p.inhale;
       const tout = core * (1 - p.inhale - p.rest);
-      if (x < tin) return depth * ease(x / tin);
-      if (x < tin + tout) return depth * (1 - ease((x - tin) / tout));
+      if (x < tin) return depth * easeInOut(x / tin);
+      if (x < tin + tout) return depth * (1 - easeInOut((x - tin) / tout));
       return 0;
     }
     start += len;
@@ -90,7 +91,7 @@ export function gust(t: number, gusts: readonly Gust[]): { strength: number; fro
     const x = (t - g.at) / g.cross;
     if (x < -0.3 || x > 1.6) continue;
     // Up quickly, down slowly: the air arrives, then the grass settles.
-    const env = x < 0 ? 0 : x < 0.25 ? ease(x / 0.25) : 1 - ease((x - 0.25) / 1.35);
+    const env = x < 0 ? 0 : x < 0.25 ? easeInOut(x / 0.25) : 1 - easeInOut((x - 0.25) / 1.35);
     if (env * g.strength > best.strength) best = { strength: env * g.strength, front: x };
   }
   return best;
@@ -125,8 +126,8 @@ export const CANOPY = [0.45, 0.6] as const;
 
 /** A gust's envelope (in crossings, as `gust`'s), in straight pieces. */
 const KNOTS: [number, number][] = [0, 1 / 6, 2 / 6, 3 / 6, 4 / 6, 5 / 6, 1]
-  .map((u): [number, number] => [0.25 * u, ease(u)])
-  .concat([1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i): [number, number] => [0.25 + 1.35 * (i / 10), 1 - ease(i / 10)]));
+  .map((u): [number, number] => [0.25 * u, easeInOut(u)])
+  .concat([1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i): [number, number] => [0.25 + 1.35 * (i / 10), 1 - easeInOut(i / 10)]));
 
 /** Seconds a gust's front takes from the left edge to `x`. */
 const arrive = (g: Gust, x: number) => g.at + x * g.cross;

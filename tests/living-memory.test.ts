@@ -9,7 +9,11 @@ import { compose, FULL, weightsFor } from '../src/memory/compose';
 import { coverQuad, squareToQuad, visiblePart } from '../src/world/living/Immersion';
 import { useInitialState, sheetSource } from '../src/memory/theatre';
 import { memorySchema } from '../src/memory/sheets';
-import { CUT as CUT_AT, MEMORIES, SHOTS, TURN, TWO_SHOT, WOODLAND as WOODLAND_DEF, WOODLAND_FILM, sheetId, turnDrawings, turnHead } from '../src/memory/defs';
+import { MEMORIES } from '../src/memory/registry';
+import { sheetId } from '../src/memory/memoryDef';
+import { WOODLAND as WOODLAND_DEF } from '../src/memory/memories/woodland';
+import { CUT as CUT_AT, SHOTS, WOODLAND_FILM } from '../src/memory/beats/woodland';
+import { TURN, TWO_SHOT, turnDrawings, turnHead } from '../src/memory/living/woodlandRig';
 import { FilmScene } from '../src/memory/living/FilmScene';
 import { WOODLAND_FILM_SPEC, closeCover } from '../src/memory/living/woodlandFilm';
 import { SCENE_MEMORIES } from '../src/content/memories';
@@ -17,7 +21,7 @@ import { MemoryPlaybackController } from '../src/memory/MemoryPlaybackController
 import { renderCicadas, renderWoods, cicada, midPhrases, RATE, TIMES } from '../src/memory/synthWoods';
 import state from '../src/memory/theatre-state.json';
 import manifest from '../public/memories/woodland/manifest.json';
-import { LivingScene, headFor, type HeadCels, type LivingArt, type NearArt } from '../src/memory/living/LivingScene';
+import { WoodlandScene, headFor, type HeadCels, type LivingArt, type NearArt } from '../src/memory/living/WoodlandScene';
 import { DEFORMERS, livingMaterials } from '../src/world/living/materials';
 
 // The woodland memory (docs/reviews/2026-10-woodland.md): its people's involuntary life, the
@@ -396,7 +400,7 @@ describe("which memories lie under the room's writing (the App's wiring, through
     const def = MEMORIES[id];
     const src = sheetSource(sheetId(id, variant), memorySchema(def.layers, def.living), { sections: def.sections, markers: def.markers });
     const scene = def.living && scenes[variant] ? { colourAt: () => 0.2 } : null;
-    const c = new MemoryPlaybackController({ timeline: src, weights: weightsFor(false, gentle), reduced: false, entrance: Math.min(2, src.sections.active * 0.4), sways: def.sways, exit: def.exit, maxHold: Math.max(def.maxHold, src.sections.exit), tail: def.tail, living: !!scene });
+    const c = new MemoryPlaybackController({ timeline: src, weights: weightsFor(false, gentle), reduced: false, entrance: Math.min(2, src.sections.active * 0.4), sways: def.sways ?? [], exit: def.exit, maxHold: Math.max(def.maxHold, src.sections.exit), tail: def.tail, living: !!scene });
     c.start();
     const frames: { t: number; w: number; state: string; pos: number }[] = [];
     for (let k = 0; k < 60 * 120; k++) {
@@ -801,7 +805,7 @@ describe('the scene, as built (no GL: what it would draw and let go)', () => {
     size: manifest.plate as [number, number],
   });
   const make = (o: { reduced?: boolean; low?: boolean } = {}) =>
-    new LivingScene(art(), SPEC, { width: 64, height: 36, noise: tex(), reduced: !!o.reduced, low: o.low });
+    new WoodlandScene(art(), SPEC, { width: 64, height: 36, noise: tex(), reduced: !!o.reduced, low: o.low });
   // The two-shot's art as the runtime builds it from the manifest (scripts/two-shot.py).
   const near = (): NearArt => {
     type Cells = { box: [number, number, number, number]; at: number[]; cells: number; grid: [number, number, number, number] };
@@ -831,7 +835,7 @@ describe('the scene, as built (no GL: what it would draw and let go)', () => {
   });
 
   it('the puppet is lighter on the low tier, and fewer motes under reduced motion', () => {
-    const verts = (s: LivingScene) => ((s as unknown as { grid: THREE.BufferGeometry }).grid.getAttribute('position').count);
+    const verts = (s: WoodlandScene) => ((s as unknown as { grid: THREE.BufferGeometry }).grid.getAttribute('position').count);
     const full = make(), low = make({ low: true });
     expect(verts(low)).toBeLessThan(verts(full) * 0.5);
     expect(verts(full)).toBeLessThan(20000);
@@ -878,7 +882,7 @@ describe('the scene, as built (no GL: what it would draw and let go)', () => {
     };
     const { art: a } = both();
     const paint = a.size[0] / a.size[1];
-    const s = new LivingScene(a, SPEC, { width: 64, height: 36, noise: tex(), reduced: false });
+    const s = new WoodlandScene(a, SPEC, { width: 64, height: 36, noise: tex(), reduced: false });
     const m = livingMaterials(tex());
     const v = { 'scene.shot': 1 };
     const [lo, hi] = SPEC.near!.aspect;
@@ -918,7 +922,7 @@ describe('the scene, as built (no GL: what it would draw and let go)', () => {
   });
 
   it('the two-shot: only for someone inside; gives way past 14° and comes back once they have settled, never near a beat nor in its last 2 s', () => {
-    const s = new LivingScene(both().art, SPEC, { width: 64, height: 36, noise: tex(), reduced: false });
+    const s = new WoodlandScene(both().art, SPEC, { width: 64, height: 36, noise: tex(), reduced: false });
     const v = { 'scene.shot': 1 };
     expect(s.choose(v, { inside: true, turn: 0, t: 16 })).toBe(1);
     // Not inside (seen on the wall): the wide.
@@ -979,14 +983,14 @@ describe('the scene, as built (no GL: what it would draw and let go)', () => {
     s.dispose();
     // Without her look drawn in the wide there is no two-shot (a turn away would undo her look).
     const { n } = both();
-    const none = new LivingScene({ ...art(), near: n, heads: null }, SPEC, { width: 64, height: 36, noise: tex(), reduced: false });
+    const none = new WoodlandScene({ ...art(), near: n, heads: null }, SPEC, { width: 64, height: 36, noise: tex(), reduced: false });
     expect(none.choose(v, { inside: true, turn: 0, t: 16 })).toBe(0);
     none.dispose();
   });
 
   it('her turn is drawn in either shot, his look only close; the two-shot is the panel at its reach, lit as the wide', () => {
     const { art: a, n } = both();
-    const s = new LivingScene(a, SPEC, { width: 64, height: 36, noise: tex(), reduced: false });
+    const s = new WoodlandScene(a, SPEC, { width: 64, height: 36, noise: tex(), reduced: false });
     const m = livingMaterials(tex());
     const u = m.people.uniforms;
     const v = { 'scene.shot': 1, 'figure:b.turn': 1, 'figure:a.eyes': 1 };

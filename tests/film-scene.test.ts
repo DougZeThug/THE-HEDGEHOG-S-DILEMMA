@@ -4,7 +4,10 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import * as THREE from 'three';
 import { FilmScene, filmType, loadFilm } from '../src/memory/living/FilmScene';
-import { ALMOST, ALMOST_SECTIONS, FILM_AT, FILM_BEATS, FILM_SECONDS, THINGS, THINGS_AT, THINGS_BEATS, THINGS_SECONDS, THINGS_SECTIONS } from '../src/memory/defs';
+import { ALMOST } from '../src/memory/memories/almost';
+import { THINGS } from '../src/memory/memories/things';
+import { ALMOST_SECTIONS, FILM_AT, FILM_BEATS, FILM_SECONDS } from '../src/memory/beats/almost';
+import { THINGS_AT, THINGS_BEATS, THINGS_SECONDS, THINGS_SECTIONS } from '../src/memory/beats/things';
 import { SCENE_MEMORIES } from '../src/content/memories';
 
 // "Almost" (docs/almost.md): a film played as a living memory. The memory's one clock decides the

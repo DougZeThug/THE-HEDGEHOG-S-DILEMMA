@@ -23,7 +23,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { CUT, EVENING_AT, EVENING_OFFSET } from '../src/memory/defs';
+import { CUT, EVENING_AT, EVENING_OFFSET } from '../src/memory/beats/woodland';
 
 const RATE = 48000;
 const TAKES = 'audition/woodland';

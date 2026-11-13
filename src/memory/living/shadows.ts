@@ -8,7 +8,8 @@
  * they met).
  */
 
-const ease = (x: number) => 0.5 - 0.5 * Math.cos(Math.PI * Math.min(1, Math.max(0, x)));
+import { easeInOut } from '../../core/math';
+
 
 /** render.py's keys (seconds into the film; the light's x and the pair's gap, of the frame's width). */
 const LIGHT_X: [number, number][] = [[0, 0.8], [6, 0.66], [12, 0.53], [16.5, 0.47], [21, 0.31], [26, 0.22]];
@@ -21,7 +22,7 @@ export function key(t: number, keys: [number, number][]): number {
   if (t <= keys[0][0]) return keys[0][1];
   for (let i = 1; i < keys.length; i++) {
     const [t0, v0] = keys[i - 1], [t1, v1] = keys[i];
-    if (t <= t1) return v0 + (v1 - v0) * ease((t - t0) / (t1 - t0));
+    if (t <= t1) return v0 + (v1 - v0) * easeInOut((t - t0) / (t1 - t0));
   }
   return keys[keys.length - 1][1];
 }
@@ -39,7 +40,7 @@ export function uprightAt(film: number): [number, number] {
   // never takes a side; following her after, it did: the skeptic's review, 2026-11-09.)
   const s = shadowsAt(Math.min(film, MET));
   const onHer = s.hers - 0.06;
-  const w = ease((s.gap - 0.22) / 0.22);
+  const w = easeInOut((s.gap - 0.22) / 0.22);
   return [Math.min(0.86, Math.max(0.14, s.mid + (onHer - s.mid) * w)), 0.48];
 }
 

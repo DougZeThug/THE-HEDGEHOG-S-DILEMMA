@@ -3,7 +3,7 @@ import { Director } from '../src/state/Director';
 import type { VisitorInput } from '../src/state/VisitorModel';
 import type { TimedCue } from '../src/state/cues';
 import { PHRASE_BY_ID } from '../src/content/phrases';
-import { MEMORIES } from '../src/memory/defs';
+import { MEMORIES } from '../src/memory/registry';
 import { readFileSync } from 'node:fs';
 
 const base: VisitorInput = { x: 0, z: 2.4, yaw: 0, pitch: 0, gazePhraseId: null, gazeChair: false, nearSurface: null, kneeling: false };

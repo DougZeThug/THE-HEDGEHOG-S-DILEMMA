@@ -1,3 +1,5 @@
+import { COVER_OVERSCAN as OVER } from './shared';
+
 /**
  * "Almost" (docs/almost.md): how its film sits on a screen. The film is an open-matte frame
  * (1280×1440 photographed): covering a wide screen shows a band across its middle; covering an
@@ -15,8 +17,6 @@ const EYES = 606;
 const EYES_BELOW = 0.12;
 /** The lowest the frame sits (v, from the bottom), on screens up to 16:9: room above her hat. */
 const LOW = 0.482;
-/** coverQuad's overscan (src/world/living/Immersion.ts). */
-const OVER = 1.06;
 
 /**
  * The film v kept at the screen's centre on a screen this wide (width over height, not upright).

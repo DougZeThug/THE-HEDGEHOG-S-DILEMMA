@@ -8,7 +8,8 @@
  * tail lamps. Every cut is a cut here too: each shot's place is held, never eased across a cut.
  */
 
-const ease = (x: number) => 0.5 - 0.5 * Math.cos(Math.PI * Math.min(1, Math.max(0, x)));
+import { easeInOut } from '../../core/math';
+
 
 /** Where the room's cut begins in the film (s): film.py ROOM_FROM. */
 export const DRIVE_FROM = 6.0;
@@ -42,7 +43,7 @@ export function uprightAt(film: number, reduced = false): [number, number] {
   for (const [at, v] of SHOTS) {
     if (t < at) break;
     const x = typeof v === 'number' ? 0 : (t - v[2]) / (v[3] - v[2]);
-    u = typeof v === 'number' ? v : v[0] + (v[1] - v[0]) * (reduced ? (x < 0.5 ? 0 : 1) : ease(x));
+    u = typeof v === 'number' ? v : v[0] + (v[1] - v[0]) * (reduced ? (x < 0.5 ? 0 : 1) : easeInOut(x));
   }
   return [u, 0.5];
 }

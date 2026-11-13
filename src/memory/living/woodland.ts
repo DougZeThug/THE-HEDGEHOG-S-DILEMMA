@@ -1,4 +1,4 @@
-import { TWO_SHOT, turnDrawings } from '../defs';
+import { TWO_SHOT, turnDrawings } from './woodlandRig';
 import type { BreathProfile, Gust } from './performance';
 
 /**

@@ -1,3 +1,5 @@
+import { COVER_OVERSCAN as OVER } from './shared';
+
 /**
  * "Things I Should Have Said" (docs/things.md): how its film sits on a screen. The film is the
  * sheet's open-matte frame (1280×1440, drawn by scripts/things/): covering a wide screen shows a
@@ -22,8 +24,6 @@ const HEAD = 473;
 const ABOVE = 16;
 const BELOW = 20;
 const BELOW_LEAST = 10;
-/** coverQuad's overscan (src/world/living/Immersion.ts). */
-const OVER = 1.06;
 /** The doorway and the two of them, across (columns 390-873: QA, 2026-10-22): their middle. */
 const ACROSS = 632;
 

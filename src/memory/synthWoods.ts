@@ -1,4 +1,5 @@
-import { CUT, SHOTS } from './defs';
+import { CUT, SHOTS } from './beats/woodland';
+import { smoothstep } from '../core/math';
 
 /**
  * The woodland memory's day insects, made in the engine (docs/reviews/2026-10-woodland.md): stand-ins
@@ -60,12 +61,8 @@ function rng(seed: number): () => number {
   };
 }
 
-const smooth = (e0: number, e1: number, x: number) => {
-  const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0)));
-  return t * t * (3 - 2 * t);
-};
 /** 1 outside [a, b], easing to 0 inside it over `edge` seconds. */
-const quiet = (t: number, [a, b]: [number, number], edge = 0.25) => 1 - smooth(a - edge, a, t) * (1 - smooth(b, b + edge, t));
+const quiet = (t: number, [a, b]: [number, number], edge = 0.25) => 1 - smoothstep(a - edge, a, t) * (1 - smoothstep(b, b + edge, t));
 
 /** An RBJ biquad, run in place. */
 function biquad(x: Float32Array, type: 'lowpass' | 'highpass' | 'bandpass' | 'peak', f: number, q: number, gainDb = 0): void {
@@ -178,7 +175,7 @@ export function cicada(out: Float32Array, c: Cicada, a: number, b: number, level
   const tone = control(x.length, (t) => (c.f * (1 + 0.004 * Math.sin(2 * Math.PI * 0.7 * (t - a))) * TAB) / RATE, a);
   const env = control(x.length, (t) => {
     const u = t - a;
-    return smooth(0, Math.min(1.5, len * 0.3), u) * (1 - smooth(len - Math.min(1.8, len * 0.35), len, u));
+    return smoothstep(0, Math.min(1.5, len * 0.3), u) * (1 - smoothstep(len - Math.min(1.8, len * 0.35), len, u));
   }, a);
   for (let i = 0; i < x.length; i++) {
     // The tymbal: sharp clicks, noise and a little tone ringing in its body.
@@ -219,7 +216,7 @@ function phrases(seed: number, from: number, to: number, sing: [number, number],
 export function renderCicadas(): Float32Array<ArrayBuffer>[] {
   const x = new Float32Array(Math.ceil(TIMES.length * RATE));
   const T = TIMES;
-  const level = (t: number) => 0.5 + 0.5 * smooth(T.inside[0], T.inside[1], t);
+  const level = (t: number) => 0.5 + 0.5 * smoothstep(T.inside[0], T.inside[1], t);
   T.near.forEach(([a, b], i) => cicada(x, { ...NEAR, seed: NEAR.seed + i }, a, b, level));
   normalise([x], -45);
   return [x];
@@ -257,7 +254,7 @@ export async function renderWoods(): Promise<Float32Array<ArrayBuffer>[]> {
   const L = new Float32Array(n), R = new Float32Array(n);
   const T = TIMES;
   const r = rng(77);
-  const opened = (t: number) => smooth(T.inside[0], T.inside[1], t);
+  const opened = (t: number) => smoothstep(T.inside[0], T.inside[1], t);
   // Two cicadas, left and right of them, a little further off.
   const mid = new Float32Array(n);
   const midLevel = (t: number) => (0.4 + 0.6 * opened(t)) * quiet(t, T.midQuiet, 0.6);
@@ -282,7 +279,7 @@ export async function renderWoods(): Promise<Float32Array<ArrayBuffer>[]> {
     const s1 = 0.05 + r() * 0.08, s2 = 0.13 + r() * 0.1, p1 = r() * 6.28, p2 = r() * 6.28, p3 = r() * 6.28;
     const { from: sf, to: st, depth } = T.shallow;
     const swell = control(n, (t) => {
-      const dep = 1 - (1 - depth) * smooth(sf[0], sf[1], t) * (1 - smooth(st[0], st[1], t));
+      const dep = 1 - (1 - depth) * smoothstep(sf[0], sf[1], t) * (1 - smoothstep(st[0], st[1], t));
       return 0.55 + dep * (0.25 * Math.sin(2 * Math.PI * s1 * t + p1) + 0.2 * Math.sin(2 * Math.PI * s2 * t + p2));
     });
     let cp = (p3 / 6.2832) * TAB;
@@ -308,7 +305,7 @@ export async function renderWoods(): Promise<Float32Array<ArrayBuffer>[]> {
   }
   // A third less than it was against the two either side (demoted with them: the reviews of
   // 2026-10-19). (It swelled 3 dB with the painted rig's gust; the film has no gust: 2026-10-24.)
-  const chorusLv = control(n, (t) => smooth(T.chorusFrom, T.chorusFrom + 2.5, t) * (0.45 + 0.55 * opened(t)));
+  const chorusLv = control(n, (t) => smoothstep(T.chorusFrom, T.chorusFrom + 2.5, t) * (0.45 + 0.55 * opened(t)));
   for (let i = 0; i < n; i++) {
     const lv = at64(chorusLv, i);
     L[i] += chorusL[i] * lv * 0.42;

@@ -1,7 +1,8 @@
 import studio from '@theatre/studio';
 import { onChange } from '@theatre/core';
 import { driver, PROJECT_ID, readStateFrom, theatreProject } from '../theatre';
-import { MEMORIES, sheetId } from '../defs';
+import { MEMORIES } from '../registry';
+import { sheetId } from '../memoryDef';
 import type { TheatreState } from '../seed';
 
 /**

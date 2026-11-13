@@ -6,7 +6,7 @@ import { Immersion } from '../src/world/living/Immersion';
 import { Inside } from '../src/world/living/Inside';
 import type { Post } from '../src/world/Post';
 import type { Room } from '../src/world/Room';
-import { LivingScene, type LivingArt, type NearArt } from '../src/memory/living/LivingScene';
+import { WoodlandScene, type LivingArt, type NearArt } from '../src/memory/living/WoodlandScene';
 import { WOODLAND as SPEC } from '../src/memory/living/woodland';
 import manifest from '../public/memories/woodland/manifest.json';
 
@@ -247,7 +247,7 @@ function app(o: { reduced?: boolean } = {}) {
     pixels: n.pixels, gutter: n.gutter, reach: n.reach, lidBox: n.lidBox, groundBox: n.ground.box,
     eyes: [...n.eyes.a, ...n.eyes.b] as NearArt['eyes'],
   };
-  const scene = new LivingScene(
+  const scene = new WoodlandScene(
     { plate: tex(), maps: tex(), grade: null, after: null, sky: null, flowers: null, clouds: null, size: manifest.plate as [number, number], near, heads: { texture: tex(), box: wh.box, at: wh.at, cells: wh.cells, grid: wh.grid },
       figures: { ...(lm.figures as unknown as NonNullable<LivingArt['figures']>), texture: tex(), lids: tex() } },
     SPEC, { width: 64, height: 36, noise: tex(), reduced: false },

@@ -10,7 +10,7 @@ import type { Marker, TimelineSource } from '../src/memory/types';
 import { FakeCtx, FakeNode, FakeSource } from './fakeAudio';
 import { VIGNETTES } from '../src/content/vignettes';
 import { SCENE_MEMORIES } from '../src/content/memories';
-import { MEMORIES } from '../src/memory/defs';
+import { MEMORIES } from '../src/memory/registry';
 import { BRIGHT_TAGS } from '../scripts/dialogue-lib.mjs';
 
 const DIRECTION = JSON.parse(readFileSync('src/content/vignettes.dialogue.json', 'utf8')) as {

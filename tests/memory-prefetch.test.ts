@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
-import { WOODLAND } from '../src/memory/defs';
+import { WOODLAND } from '../src/memory/memories/woodland';
 
 afterEach(() => vi.unstubAllGlobals());
 

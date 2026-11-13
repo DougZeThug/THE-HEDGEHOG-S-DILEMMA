@@ -16,7 +16,7 @@
  */
 import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
-import { WOODLAND } from '../../src/memory/defs';
+import { WOODLAND } from '../../src/memory/memories/woodland';
 import { renderCicadas, renderWoods, RATE as SYNTH_RATE } from '../../src/memory/synthWoods';
 import { isSpot, type Cue } from '../../src/memory/cueSheet';
 

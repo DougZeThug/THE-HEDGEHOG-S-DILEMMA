@@ -10,7 +10,9 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
-import { CUT, MEMORIES, SCORE_FROM, SHOTS, WOODLAND as DEF, WOODLAND_FILM } from '../src/memory/defs';
+import { MEMORIES } from '../src/memory/registry';
+import { WOODLAND as DEF } from '../src/memory/memories/woodland';
+import { CUT, SCORE_FROM, SHOTS, WOODLAND_FILM } from '../src/memory/beats/woodland';
 import { TIMES } from '../src/memory/synthWoods';
 
 type Note = { t: number; midi: number; vel: number; dur: number; hand: 'r' | 'l' };
