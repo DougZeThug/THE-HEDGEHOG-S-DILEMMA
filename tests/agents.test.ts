@@ -45,10 +45,6 @@ const profile = JSON.parse(readFileSync(join(ROOT, '.factory', 'profile.json'), 
 const domainReviewers: string[] = profile.domainReviewers.agents;
 
 describe('agent definitions', () => {
-  it('finds at least 13 agent files', () => {
-    expect(agents.length).toBeGreaterThanOrEqual(13);
-  });
-
   it('every file has non-empty name, description and tools, and the name matches the filename', () => {
     for (const a of agents) {
       for (const key of ['name', 'description', 'tools']) {

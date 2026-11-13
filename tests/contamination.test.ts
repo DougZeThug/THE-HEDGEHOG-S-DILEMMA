@@ -66,7 +66,7 @@ describe('the walls are not neatly partitioned', () => {
     for (let t = 0; t < 25; t += 0.1) cues.push(...d.tick(0.1, { ...base, x: 2.2, z: 0, gazePhraseId: 'good-day' }, 'east'));
     for (let t = 0; t < 700; t += 0.1) cues.push(...d.tick(0.1, { ...base, x: Math.sin(t * 0.05) * 2, z: Math.cos(t * 0.05) * 2, yaw: t * 0.05 }, 'north'));
     const held = cues.find((c) => c.rule === 'stray-held');
-    expect(held).toBeTruthy();
+    expect(held, 'stray-held was never cued').toBeDefined();
     expect((held!.cue as Write).source).toBe('good-day');
     expect((held!.cue as Write).surface).toBe('south');
   });

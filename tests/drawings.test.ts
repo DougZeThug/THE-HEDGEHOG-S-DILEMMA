@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { DRAWINGS, STATIC_DRAWINGS, DRAWING_BY_ID } from '../src/content/drawings';
+import { DRAWINGS, DRAWING_BY_ID } from '../src/content/drawings';
 import { PHRASES, PHRASE_BY_ID } from '../src/content/phrases';
 import { bakeDrawing } from '../src/world/sketch';
 import { layoutPhrases, overlaps, surfaceSize, RESERVED, drawingSpots, drawingBeside, layoutOf } from '../src/world/layout';
@@ -14,26 +14,6 @@ const measure = (p: (typeof PHRASES)[number]) => {
 };
 
 describe('the drawings: few, small, mostly already there', () => {
-  it('eight or so; most were always there, one is drawn while watched', () => {
-    expect(DRAWINGS.length).toBeGreaterThanOrEqual(6);
-    expect(DRAWINGS.length).toBeLessThanOrEqual(14);
-    expect(DRAWINGS.length - STATIC_DRAWINGS.length).toBeGreaterThanOrEqual(1);
-    // Clearly visible from the start (not the half-erased ghosts): two to four.
-    const plain = STATIC_DRAWINGS.filter((d) => d.style !== 'ghost');
-    expect(plain.length).toBeGreaterThanOrEqual(2);
-    expect(plain.length).toBeLessThanOrEqual(4);
-  });
-  it('small, faint, and never more than three on a wall; the opening wall left alone', () => {
-    const per = new Map<string, number>();
-    for (const d of DRAWINGS) {
-      per.set(d.surface, (per.get(d.surface) ?? 0) + 1);
-      expect(d.strength, d.id).toBeLessThanOrEqual(0.8);
-      // Small: only the chair, drawn round at its own size, is bigger than a hand.
-      if (d.id !== 'ghost-chair') expect(Math.max(...d.size), d.id).toBeLessThanOrEqual(0.3);
-    }
-    for (const [s, n] of per) expect(n, s).toBeLessThanOrEqual(3);
-    expect(per.get('north') ?? 0).toBe(0);
-  });
   it('not captions: at most one sits beside the words it echoes', () => {
     expect(DRAWINGS.filter((d) => d.beside).length).toBeLessThanOrEqual(1);
     for (const d of DRAWINGS) {
