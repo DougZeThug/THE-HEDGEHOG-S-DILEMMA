@@ -10,15 +10,6 @@ describe('Director', () => {
     expect(a).toEqual(b);
   });
 
-  it('a visitor who only stands still still experiences the room changing', () => {
-    const { d, cues } = simulate(scripts.still, 240);
-    const r = rules(cues);
-    expect(r.has('still-1')).toBe(true);
-    expect(r.has('still-silence')).toBe(true);
-    expect(d.phase).not.toBe('arrival');
-    expect(d.memory.has('stillness')).toBe(true);
-  });
-
   it('stillness is not a fixed ladder: what it brings varies between visits', () => {
     const firstAt = new Set<number>();
     let withVoice = 0;

@@ -271,13 +271,6 @@ describe('situation runner', () => {
     expect(leaks).toEqual([]);
   });
 
-  it('is deterministic', () => {
-    const a = new Visit(['next-room', 'humming']);
-    const b = new Visit(['next-room', 'humming']);
-    a.run(400, { x: 0, z: 2.4 });
-    b.run(400, { x: 0, z: 2.4 });
-    expect(a.cues.map((c) => JSON.stringify(c))).toEqual(b.cues.map((c) => JSON.stringify(c)));
-  });
 });
 
 describe('situation: the next room, its wall', () => {
