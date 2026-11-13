@@ -1,20 +1,23 @@
 import { DRAWINGS, DRAWING_BY_ID } from '../content/drawings';
-import { MemoryDirector, type PendingEcho } from './MemoryDirector';
-import { VIGNETTE_BY_ID, lineKey } from '../content/vignettes';
+import { MemoryDirector } from './MemoryDirector';
+import { VIGNETTE_BY_ID } from '../content/vignettes';
 import { HEART_AFTER_RECOIL, HEART_ANSWER, HEART_DECIDE, heartOf, SCENE_MEMORIES, type HeartShape } from '../content/memories';
 import { computeEnvironment, type Environment } from './director/environment';
 import { Contributions } from './director/contributions';
+import { Echoes } from './director/echoes';
+import { Encounters } from './director/encounters';
+import { Responses } from './director/responses';
 import type { QueueOptions, RuleHost } from './director/host';
 import { Rng } from '../core/rng';
 import { EventScheduler } from '../core/scheduler';
 import { PHRASES, PHRASE_BY_ID } from '../content/phrases';
 import { DEPARTURE_BY_VISIT, DEPARTURE_STILL, RECONTEXTS, VOICE_FRAGMENT_BY_ID, VOICE_FRAGMENTS, type VoiceFragment } from '../content/relations';
-import { WALLS, oppositeWall, type Motif, type Phase, type Wall, type Phrase, type Surface, type Tier } from '../content/types';
+import { WALLS, type Motif, type Phase, type Wall, type Phrase, type Surface, type Tier } from '../content/types';
 import { VisitorModel, type VisitorInput } from './VisitorModel';
 import { Memory, warmthOf } from './Memory';
 import { EmotionalField } from './EmotionalField';
 import { PhaseTracker, phaseAtLeast } from './Phase';
-import { RULE, ROOM_OWN, encounterRule, isEncounter, isMeetingOrContribution, isPhaseTurn, isSituation, isSituationLife, isStillness, parseEncounterRule, ruleSource } from './rules';
+import { RULE, ROOM_OWN, isEncounter, isMeetingOrContribution, isPhaseTurn, isSituation, isSituationLife, isStillness, parseEncounterRule, ruleSource } from './rules';
 import { WriteKeys, isHeartKey, isMemoryOrHeartKey, parseWriteKey } from './writeKeys';
 import { DRAWING_IDS, FRAGMENT_IDS, MEMORY_IDS, PHRASE_IDS } from '../content/ids';
 import { Engagement } from './Engagement';
@@ -22,7 +25,7 @@ import { Pacing, devKind } from './Pacing';
 import { PhraseSelector, TIER_OPEN, type SelectContext, type SelectQuery } from './PhraseSelector';
 import type { Cue, TimedCue, VoiceKind, VoicePosition } from './cues';
 import type { Interpretation } from '../interpret/schema';
-import { ARCS, type Arc, type EncounterBeat, type Gesture } from '../content/encounters';
+import { ARCS } from '../content/encounters';
 import { belonging, CHARACTER_WALLS } from '../content/walls';
 import { rankPerformances, performancesFor } from './performance';
 import { SituationRunner, type PhraseGeometry, type SituationHost } from './situations/Situation';
@@ -132,21 +135,22 @@ export class Director implements RuleHost {
     return this._facing;
   }
   /** The wall faced, or null when looking at the floor or ceiling. */
-  private facingWall(): Wall | null {
+  facingWall(): Wall | null {
     return (WALLS as readonly Surface[]).includes(this._facing) ? (this._facing as Wall) : null;
   }
   readonly situations: SituationRunner;
+  /** Counts several rule groups add to (the chair has creaked this often). */
+  readonly tally = { creaks: 0 };
   private readonly contributions = new Contributions(this);
+  private readonly echoes = new Echoes(this);
+  private readonly encounters = new Encounters(this, (id) => id === Director.EXIT && this.exitShown);
+  private readonly responses = new Responses(this);
   private readonly host: SituationHost;
   readonly owned: Set<string>;
   private geometry: (id: string) => PhraseGeometry | undefined;
   private inView: (phraseId: string) => boolean;
   private annotationsUsed = new Set<string>();
   private recontextsUsed = new Set<string>();
-  /** How many beats of each phrase's arc have been played. */
-  private played = new Map<string, number>();
-  /** Beats waiting for room to play, while their meeting lasts: phrase id → give up at. */
-  private heldBeats = new Map<string, number>();
   /** Lines that have migrated to a wall that isn't theirs: phrase id → wall. */
   readonly strays = new Map<string, Surface>();
   private heldMoved = false;
@@ -169,7 +173,7 @@ export class Director implements RuleHost {
   private memoryOfferedAt = -Infinity;
   memoryPlayed = false;
   /** No voices of the room's own until then: the memory's line has just been offered. */
-  private memoryQuietUntil = -Infinity;
+  memoryQuietUntil = -Infinity;
   /**
    * The aftermath of a memory that was heard or watched: for a while the room's own life (new
    * writing drifting in, music, voices of its own, a situation's sounds, filler in a lull) waits,
@@ -235,11 +239,9 @@ export class Director implements RuleHost {
   private readArmedFor: string | null = null;
   private longLookAt: string | null = null;
   private lastAttentionVoice = -Infinity;
-  private creaks = 0;
   private taps = 0;
   private tappedAt = new Map<string, number>();
   private lastTapAt = -Infinity;
-  private fragHeard = new Map<string, number>();
   private prevGaze: { id: string | null; held: number } = { id: null, held: 0 };
   /** Per-cooldown jitter, re-rolled each time it is used, so periodic rules don't beat in time. */
   private jitter = new Map<string, number>();
@@ -259,7 +261,6 @@ export class Director implements RuleHost {
   private nextAccumulate = 4;
   private lastAccumulateAt = -Infinity;
   private accumulated = 0;
-  private lastRespondKind: string | null = null;
   private nearVoices = 0;
   /** Stillness thresholds differ from visit to visit, so waiting is never a ladder. */
   private stillAt: [number, number, number, number];
@@ -383,8 +384,8 @@ export class Director implements RuleHost {
   }
 
   /** The visitor is in the middle of meeting a line: its beat is waiting or about to sound. */
-  private attending(): boolean {
-    return this.heldBeats.size > 0 || this.memoryAwaited() || !!this.scenes.active || this.scheduler.pending().some((e) => isEncounter(e.payload.rule) && e.payload.cue.type === 'voice');
+  attending(): boolean {
+    return this.encounters.waiting || this.memoryAwaited() || !!this.scenes.active || this.scheduler.pending().some((e) => isEncounter(e.payload.rule) && e.payload.cue.type === 'voice');
   }
 
   ctx(): SelectContext {
@@ -414,7 +415,7 @@ export class Director implements RuleHost {
    * Whether the room declines to say this now. A refused voice queues nothing, so nothing may be
    * counted for it: callers that commit state around a voice ask first, or use what `voice` returns.
    */
-  private voiceRefused(rule: string, phraseId?: string, finish = false): boolean {
+  voiceRefused(rule: string, phraseId?: string, finish = false): boolean {
     // Never "stay" near the way out: not as it appears, nor while they touch it (it would be a plea).
     if (phraseId && Director.STAY_WORDS.has(phraseId) && (this.letGo || this.now - this.letGoAsked <= Director.LET_GO.window || Math.abs(this.now - this.exitShownAt) < 20)) return true;
     if (phraseId && !finish && this.withheld().includes(phraseId)) return true;
@@ -545,7 +546,7 @@ export class Director implements RuleHost {
       this.ruleKeptAnswer();
       // (The answer has been read: the card may end on it.)
       if (this.heartAnswer && this.inView(WriteKeys.heart(this.heartAnswer))) this.answerInView += dt;
-      this.ruleEchoes();
+      this.echoes.tick();
       this.ruleAccumulate();
       this.ruleDrawings();
       this.ruleFinish();
@@ -567,7 +568,7 @@ export class Director implements RuleHost {
       this.ruleStillness(dt);
       this.ruleApproach();
       this.ruleWithdraw();
-      this.ruleEncounters();
+      this.encounters.tick();
       if (!quiet) {
         this.ruleWarmResurface();
         this.ruleMusic();
@@ -584,7 +585,7 @@ export class Director implements RuleHost {
       }
       this.ruleHeldSilence();
       this.ruleAir();
-      if (!quiet) this.ruleRespond();
+      if (!quiet) this.responses.tick();
       this.ruleTableLift();
       this.ruleLeaving(input);
     }
@@ -640,7 +641,7 @@ export class Director implements RuleHost {
     if (this.memory.spoken.get(cue.phraseId) !== undefined) this.memory.spoken.delete(cue.phraseId);
     this.heard.delete(cue.phraseId);
     const enc = parseEncounterRule(rule);
-    if (enc) this.played.set(enc.phraseId, Math.max(0, enc.n - 1));
+    if (enc) this.encounters.rewind(enc.phraseId, enc.n);
   }
 
   /** A line marked as there when its voice was queued, to be written as it was heard, that won't be. */
@@ -771,13 +772,13 @@ export class Director implements RuleHost {
   static readonly RESERVED = new Set<string>([PHRASE_IDS.thankStaying, PHRASE_IDS.movingChair, PHRASE_IDS.gladCame, PHRASE_IDS.dontHaveSay]);
 
   /** Kept for its moment: the reserved lines, and the memory's line until the memory offers it. */
-  private reserved(id: string): boolean {
+  reserved(id: string): boolean {
     // (The door's line belongs beneath the drawn door, the woodland's to its own offer: never
     // drifted onto a wall before that.)
     return Director.RESERVED.has(id) || (id === Director.MEMORY.phraseId && !this.memoryOffered) || this.heldForOffer(id);
   }
 
-  private hiddenExcluding(): Set<string> {
+  hiddenExcluding(): Set<string> {
     const out = new Set([...this.visible.keys(), ...Director.RESERVED, ...this.withheld()]);
     // (Nothing new on the north wall after the heart's answer: the room chooses from the others.)
     if (this.northKept()) for (const id of Director.NORTH) out.add(id);
@@ -802,7 +803,7 @@ export class Director implements RuleHost {
    * it, not other lines about going or staying. The visitor finishes it, or nobody does. And the
    * lines kept back for the rest of the visit (`keepBack`).
    */
-  private withheld(): string[] {
+  withheld(): string[] {
     if (!this.unfinished.size) return [...this.keptBack];
     const out = new Set<string>(this.keptBack);
     for (const id of this.unfinished) {
@@ -920,8 +921,8 @@ export class Director implements RuleHost {
       this.queue(0, { type: 'silence', depth: 0.4, seconds: 7 }, 'first-approach', { major: true, ttl: 4 });
       // Mostly the silence alone. An empty chair that breathes belongs late in a visit, if at all.
       const r = this.rng.next();
-      if (r < 0.2 && this.creaks < 2) {
-        this.creaks++;
+      if (r < 0.2 && this.tally.creaks < 2) {
+        this.tally.creaks++;
         this.queue(2.5, { type: 'sound', kind: 'chair-creak', position: { kind: 'chair' }, gain: 0.3 }, 'first-approach');
       } else if (r < 0.45 && this.phase === 'transform' && !this.situations.claimed('chair-voice'))
         this.fragment('first-approach', VOICE_FRAGMENT_BY_ID.get(FRAGMENT_IDS.breath)!, { kind: 'chair' }, 5, 0.4);
@@ -1186,7 +1187,7 @@ export class Director implements RuleHost {
       this.queue(2.2, { type: 'sound', kind: 'door', position: { kind: 'beyond', surface: 'south' }, gain: 0.36 }, 'opening');
     } else {
       // Someone has just got up from the chair, as you came in.
-      this.creaks++;
+      this.tally.creaks++;
       this.queue(0.9, { type: 'sound', kind: 'chair-creak', position: { kind: 'chair' }, gain: 0.28 }, 'opening');
       this.queue(1, { type: 'glow', x: 0, z: 0, amount: 0.2, seconds: 20 }, 'opening');
     }
@@ -1225,116 +1226,6 @@ export class Director implements RuleHost {
     this.taps++;
     // (The touch is felt in the ink, by the world: WallText.press. The dip in the hum it used to
     // get, half the time, can't be heard on a phone's speaker, where most touches are.)
-    return true;
-  }
-
-  /**
-   * When quiet has turned into waiting — the visitor is doing things and nothing has
-   * answered for longer than feels chosen — answer what they are doing: the line they are
-   * reading, the chair they are standing at, the room they have just looked round. Not with
-   * more of whatever just happened, and never loudly. Silence that is chosen (recovering
-   * after something strong, or simply not yet long) is left alone.
-   */
-  private ruleRespond() {
-    const now = this.now;
-    if (this.pacing.rhythm(now, this.phase, this.engagement.activity(now)) !== 'stalled' || !this.scheduler.ready('respond', now, 8) || this.attending()) return;
-    // Something already on its way will answer.
-    if (this.scheduler.pending().some((e) => e.at - now < 4 && devKind(e.payload.cue) && devKind(e.payload.cue) !== 'silence')) return;
-    this.scheduler.mark('respond', now);
-    const v = this.visitor;
-    const last = this.engagement.last();
-    const options: [string, () => boolean][] = [];
-    if (v.gazeId) options.push(['line', () => this.respondToLine(v.gazeId!)]);
-    if (v.near) options.push(['chair', () => this.respondAtChair()]);
-    if (last && (last.kind === 'sweep' || last.kind === 'cross') && now - last.t < 20) options.push(['behind', () => this.respondBehind()]);
-    if (v.stillFor > 3) options.push(['still', () => this.respondStill()]);
-    if (!this.pacing.crowded(now)) options.push(['behind', () => this.respondBehind()], ['sound', () => this.respondSound()]);
-    // Sometimes the answer is that nobody speaks: the room hushes, as if about to, and doesn't.
-    if (this.phase !== 'arrival' && this.lastRespondKind !== 'withhold' && this.rng.chance(0.25))
-      options.unshift(['withhold', () => (this.queue(0, { type: 'silence', depth: 0.38, seconds: 5 }, 'withhold', { major: true, ttl: 4 }), true)]);
-    // Not the same kind of answer twice running.
-    const tired = this.pacing.repeats('text', now, 25);
-    options.sort((a, b) => Number(a[0] === this.lastRespondKind) - Number(b[0] === this.lastRespondKind) || (tired ? Number(a[0] !== 'sound') - Number(b[0] !== 'sound') : 0));
-    for (const [kind, o] of options) {
-      if (o()) {
-        this.lastRespondKind = kind;
-        return;
-      }
-    }
-  }
-
-  private respondToLine(id: string): boolean {
-    const p = PHRASE_BY_ID.get(id);
-    if (!p) return false;
-    const ok = (x: Phrase | undefined): x is Phrase =>
-      !!x && x.tier !== 'annotation' && !this.visible.has(x.id) && !this.reserved(x.id) && (x.tier !== 'transform' || this.phase === 'transform');
-    // A related line comes up somewhere else — to be come across, not handed over beside it.
-    const related = [...(p.echoes ?? []), ...(this.phase === 'arrival' ? [] : (p.contradicts ?? []))].map((r) => PHRASE_BY_ID.get(r)).filter(ok);
-    const r = related[0];
-    if (r) {
-      this.reveal(r.id, 2, 'respond-line', 'emerge', 7);
-      return true;
-    }
-    // Otherwise something near it in feeling, on the same wall.
-    const q = this.selector.select(this.ctx(), { exclude: this.hiddenExcluding(), surfaces: [p.surface], bias: (x) => (x.keywords ?? []).some((k) => (p.keywords ?? []).includes(k)) ? 0.4 : 0 });
-    if (!q) return false;
-    this.reveal(q.id, 2, 'respond-line', 'emerge', 7);
-    return true;
-  }
-
-  private respondAtChair(): boolean {
-    if (this.creaks < 2 && this.scheduler.ready('respond-creak', this.now, 90)) {
-      this.scheduler.mark('respond-creak', this.now);
-      this.creaks++;
-      this.queue(0.5, { type: 'sound', kind: 'chair-creak', position: { kind: 'chair' }, gain: 0.26 }, 'respond-chair');
-      return true;
-    }
-    const p = PHRASES.find((x) => x.tier === 'near' && !this.visible.has(x.id)) ??
-      this.selector.select(this.ctx(), { tiers: ['still', 'familiar'], exclude: this.hiddenExcluding(), surfaces: ['floor', this.facing] });
-    if (!p) return false;
-    this.reveal(p.id, 0.5, 'respond-chair', 'emerge', 7);
-    return true;
-  }
-
-  /** Something appears on a wall the visitor has just turned away from, to be found. */
-  private respondBehind(): boolean {
-    const behind = this.facingWall() ? oppositeWall(this.facingWall()!) : undefined;
-    const walls = [behind ?? 'south', ...WALLS.filter((s) => s !== this.facing && s !== behind)];
-    // Early on, the room's next layer of writing is already within reach.
-    const tiers: Tier[] | undefined = this.phase === 'arrival' ? ['arrival', 'familiar'] : undefined;
-    for (const w of walls) {
-      const p = this.selector.select(this.ctx(), { exclude: this.hiddenExcluding(), surfaces: [w], tiers });
-      if (p) {
-        this.reveal(p.id, 0, 'respond-behind', 'emerge', 8);
-        return true;
-      }
-    }
-    return false;
-  }
-
-  private respondStill(): boolean {
-    const p = this.selector.select(this.ctx(), { tiers: ['still'], exclude: this.hiddenExcluding(), surfaces: [this.facing] }) ??
-      this.selector.select(this.ctx(), { exclude: this.hiddenExcluding(), surfaces: [this.facing] });
-    if (!p) return false;
-    this.reveal(p.id, 0, 'respond-still', p.tier === 'still' ? 'still' : 'emerge', 8);
-    return true;
-  }
-
-  private respondSound(): boolean {
-    if (this.situations.claimed('beyond') || !this.pacing.intenseFree(this.now) || this.pacing.repeats('sound', this.now, 25)) return false;
-    const wall = this.rng.pick(WALLS.filter((s) => s !== this.facing));
-    // (The door is kept for its authored moments.) Nothing heard twice within three minutes.
-    const fresh = (id: string) => this.now - (this.fragHeard.get(id) ?? -Infinity) > 180;
-    if (this.rng.chance(0.4) && fresh('sfx:cup')) {
-      this.fragHeard.set('sfx:cup', this.now);
-      this.queue(0, { type: 'sound', kind: 'cup', position: { kind: 'beyond', surface: wall }, gain: 0.3 }, 'respond-sound');
-      return true;
-    }
-    const frags = VOICE_FRAGMENTS.filter((f) => f.kind !== 'speech' && f.kind !== 'breath' && !this.owned.has(f.id) && fresh(f.id));
-    if (!frags.length) return false;
-    const f = this.rng.pick(frags);
-    this.fragHeard.set(f.id, this.now);
-    this.fragment('respond-sound', f, { kind: 'beyond', surface: wall }, 0, 0.35);
     return true;
   }
 
@@ -1893,133 +1784,6 @@ export class Director implements RuleHost {
     }
   }
 
-  /**
-   * Encounters. The same words, met again, in a different context. Each phrase has an arc —
-   * authored for the central ones, derived from relations for the rest — and each meeting
-   * plays the next beat of it. Most beats are nothing at all; empty beats count too, so the
-   * visitor never learns that looking makes things happen.
-   */
-  private ruleEncounters() {
-    // A beat that could not play when its meeting began waits while the visitor keeps looking.
-    const tries: string[] = [];
-    for (const [id, until] of this.heldBeats) {
-      if (this.now > until || !this.visitor.encounters.get(id)?.open) this.heldBeats.delete(id);
-      else tries.push(id);
-    }
-    for (const { id } of this.visitor.encounterStarted) tries.push(id);
-    for (const id of tries) {
-      const p = PHRASE_BY_ID.get(id);
-      if (!p) continue;
-      // The way out says nothing about leaving: no answer beside it, no reassurance (creative director, 2026-11-06).
-      if (id === Director.EXIT && this.exitShown) continue;
-      const n = this.played.get(id) ?? 0;
-      const beat = this.beatFor(p, n);
-      if (beat === null) continue;
-      // An empty beat is just the phrase, alone: it always happens, and takes no room.
-      if (!beat.gestures.length) {
-        this.played.set(id, n + 1);
-        this.heldBeats.delete(id);
-        continue;
-      }
-      const hold = () => {
-        if (!this.heldBeats.has(id)) this.heldBeats.set(id, this.now + 12);
-      };
-      if (!this.scheduler.ready('encounter', this.now, 8)) {
-        hold();
-        continue;
-      }
-      if (beat.gestures.some((g) => ('sound' in g || ('voice' in g && g.from === 'beyond')) && this.situations.claimed('beyond'))) continue;
-      // A voice belongs to the moment of looking; if the room has just spoken, the beat waits a
-      // little. (A meeting is what the visitor is attending to: it outranks recovery.)
-      if (beat.gestures.some((g) => 'voice' in g || 'breath' in g || 'silence' in g || 'sound' in g) && !this.scheduler.majorFree(this.now)) {
-        hold();
-        continue;
-      }
-      // A voice the room declines to say (a line left unfinished, a memory's quiet) is not lost:
-      // the beat waits for it, whole, rather than playing without it.
-      if (beat.gestures.some((g) => 'voice' in g) && this.voiceRefused(encounterRule(id, n + 1), id)) {
-        hold();
-        continue;
-      }
-      // A beat that has already waited plays at once: the wait was its pause.
-      const waited = this.heldBeats.has(id);
-      this.heldBeats.delete(id);
-      this.scheduler.mark('encounter', this.now);
-      this.played.set(id, n + 1);
-      this.playBeat(p, n + 1, beat, waited);
-    }
-  }
-
-  /** Beat for the (n+1)th meeting, or null when the phrase has nothing more and should rest. */
-  private beatFor(p: Phrase, n: number): EncounterBeat | null {
-    const arc = ARCS[p.id] ?? this.defaultArc(p);
-    const variants = arc[n];
-    if (!variants) return n < 6 ? { gestures: [] } : null;
-    const v = this.visitor;
-    return (
-      variants.find((b) => {
-        const w = b.when;
-        if (!w) return true;
-        if (w.phase && !w.phase.includes(this.phase)) return false;
-        if (w.motif && !this.memory.has(w.motif)) return false;
-        if (w.near !== undefined && w.near !== v.near) return false;
-        return true;
-      }) ?? { gestures: [] }
-    );
-  }
-
-  /** A restrained arc from a phrase's own relations: alone; one relation; a different context; rest. */
-  private defaultArc(p: Phrase): Arc {
-    const late = phaseAtLeast(this.phase, 'contradiction');
-    const echoes = (p.echoes ?? []).map((id) => PHRASE_BY_ID.get(id)).filter((x): x is Phrase => !!x);
-    const contra = (p.contradicts ?? []).map((id) => PHRASE_BY_ID.get(id)).filter((x): x is Phrase => !!x);
-    const ok = (x: Phrase) => x.tier !== 'transform' || this.phase === 'transform';
-    const first = [...(this.phase === 'arrival' ? echoes : [...echoes, ...contra])].find(ok);
-    const second = [...(late ? [...contra, ...echoes] : [...echoes, ...contra])].find((x) => ok(x) && x !== first);
-    const relate = (r: Phrase): Gesture =>
-      r.tier === 'annotation' || (!this.visible.has(r.id) && r.surface !== p.surface)
-        ? { annotate: r.id, hand: r.tier === 'annotation' ? r.hand : 'faint', strike: late && contra.includes(r) && this.rng.chance(0.3) }
-        : { reveal: r.id, link: r.surface === p.surface };
-    const arc: Arc = [[{ gestures: [] }]];
-    arc.push([{ gestures: first ? [relate(first)] : [], delay: 1.5 }]);
-    if (second) arc.push([{ gestures: [relate(second)], delay: 1.5 }]);
-    else if (p.voice) arc.push([{ gestures: [{ voice: p.voice === 'flat' ? 'tender' : 'flat', from: 'surface', gain: 0.5 }], delay: 2 }]);
-    return arc;
-  }
-
-  private playBeat(p: Phrase, n: number, beat: EncounterBeat, waited = false) {
-    const rule = encounterRule(p.id, n);
-    const d = waited ? 0.3 : beat.delay ?? 1.5;
-    const beyond = (): VoicePosition => ({ kind: 'beyond', surface: this.rng.pick(WALLS.filter((s) => s !== this.facing)) });
-    for (const g of beat.gestures) {
-      if ('voice' in g) {
-        const pos: VoicePosition =
-          g.from === 'behind' ? { kind: 'behind' } : g.from === 'chair' ? { kind: 'chair' } : g.from === 'surface' ? { kind: 'surface', phraseId: p.id } : g.from === 'nowhere' ? { kind: 'nowhere' } : beyond();
-        if (this.voice(rule, d, g.voice, p.text, p.text, pos, { phraseId: p.id, gain: g.gain ?? 0.5, ttl: 15, priority: 6 })) this.memory.spoken.set(p.id, this.now + d);
-      } else if ('annotate' in g) {
-        const a = PHRASE_BY_ID.get(g.annotate);
-        if (!a) continue;
-        this.queue(d, {
-          // An authored answer is written to be read from where the phrase is read.
-          type: 'write', key: WriteKeys.enc(p.id, n), text: a.text, hand: g.hand ?? a.hand, size: ARCS[p.id] ? 's' : 'xs', beside: p.id, purpose: 'annotation',
-          strike: g.strike ? p.id : undefined, ttl: 300, source: a.id,
-        }, rule);
-      } else if ('reveal' in g) {
-        if (!this.visible.has(g.reveal)) this.reveal(g.reveal, d, rule, 'emerge', 8);
-        const r = PHRASE_BY_ID.get(g.reveal);
-        if (g.link && r && r.surface === p.surface) this.queue(d + 2, { type: 'link', a: p.id, b: r.id, ttl: 60 }, rule);
-      } else if ('sound' in g) {
-        const pos: VoicePosition = g.sound === 'chair-creak' ? { kind: 'chair' } : beyond();
-        // A sound in a meeting is an event of its own: it keeps its distance from voices.
-        this.queue(d, { type: 'sound', kind: g.sound, position: pos, gain: g.gain ?? 0.45 }, rule, { major: true, ttl: 8 });
-      } else if ('silence' in g) {
-        this.queue(d, { type: 'silence', depth: g.silence, seconds: g.seconds }, rule, { priority: 3 });
-      } else if ('breath' in g) {
-        this.fragment(rule, VOICE_FRAGMENT_BY_ID.get(FRAGMENT_IDS.breath)!, { kind: g.breath }, d, 0.4);
-      }
-    }
-  }
-
   /** Warm memories return when the visitor is far away (never once the afternoon has been seen:
    * "That was a good day." after it would caption it, as the room's music would). */
   private ruleWarmResurface() {
@@ -2325,7 +2089,7 @@ export class Director implements RuleHost {
         break;
       case 'enc':
         // A beat whose writing found no room is played again at the next meeting.
-        this.played.set(k.id, Math.max(0, k.n - 1));
+        this.encounters.rewind(k.id, k.n);
         break;
     }
   }
@@ -2534,75 +2298,6 @@ export class Director implements RuleHost {
     this.departing = true;
     this.scheduler.cancelWhere(() => true);
     this.scenes.dropEchoes();
-  }
-
-  /**
-   * What a heard vignette left comes back, later in the visit, when it fits: never over anything,
-   * never while the room holds still, and only where its condition holds (on a wall the visitor
-   * isn't facing; by the chair). One that finds no moment before its time is up doesn't come.
-   */
-  private ruleEchoes() {
-    if (this.departing || this.scenes.active || this.attending()) return;
-    if (!this.scheduler.majorFree(this.now) || this.pacing.holding(this.now) || !this.pacing.intenseFree(this.now) || this.now < this.memoryQuietUntil) return;
-    for (const p of this.scenes.dueEchoes(this.now)) {
-      const cue = this.echoCue(p);
-      if (!cue) continue;
-      this.scenes.echoDone(p);
-      for (const [delay, c, opts] of cue) this.queue(delay, c, `echo:${p.vignette}`, opts);
-      return;
-    }
-  }
-
-  private echoCue(p: PendingEcho): [number, Cue, { major?: boolean; ttl?: number; key?: string }][] | null {
-    const def = VIGNETTE_BY_ID.get(p.vignette);
-    if (!def) return null;
-    const e = p.echo;
-    const anchor = def.anchor.phrase ? PHRASE_BY_ID.get(def.anchor.phrase) : undefined;
-    const w = e.when ?? {};
-    if (w.notFacing && anchor && anchor.surface === this.facing) return null;
-    if (w.facing && w.facing !== this.facing) return null;
-    if (w.nearChair && this.visitor.distance > 1.4) return null;
-    if (e.write) {
-      // Another wall, and not the one being looked at: it is found, not watched being written.
-      // The one behind them first (a wall beside can be at the edge of the view).
-      const behind = this.facingWall() ? oppositeWall(this.facingWall()!) : undefined;
-      // Beside the room's drawn door (B's "tomorrow"): found there, never watched being written.
-      if (e.write.atDoor) {
-        if (this.facing === 'south') return null;
-        // (Under the drawing alone, never beside the door's own line: two lines together read as a caption.)
-        return [[0, {
-          type: 'write', key: WriteKeys.echo(def.id, e.id), text: e.write.text, hand: e.write.hand, size: e.write.size,
-          under: DRAWING_IDS.ghostDoor, surface: 'south',
-          purpose: 'recall', ttl: 0, found: true,
-        }, { key: WriteKeys.echo(def.id, e.id) }]];
-      }
-      const surface = e.write.otherWall
-        ? behind && behind !== anchor?.surface ? behind : WALLS.find((s) => s !== this.facing && s !== anchor?.surface)
-        : undefined;
-      return [[0, {
-        type: 'write', key: WriteKeys.echo(def.id, e.id), text: e.write.text, hand: e.write.hand, size: e.write.size,
-        ...(e.write.beside ? { beside: e.write.beside } : {}), ...(surface ? { surface } : {}),
-        purpose: e.write.beside ? 'annotation' : 'recall', ...(e.write.strike && e.write.beside ? { strike: e.write.beside } : {}), ttl: 0,
-        // Found on a wall later, not watched being written.
-        found: true,
-      }, { key: WriteKeys.echo(def.id, e.id) }]];
-    }
-    if (e.voice) {
-      // A voice comes back only if it was recorded and kept.
-      if (!this.scenes.isAvailable(def.id)) return null;
-      const line = def.lines.find((l) => l.id === e.voice!.line);
-      if (!line) return null;
-      const position: VoicePosition = e.voice.place === 'beyond' ? { kind: 'beyond', surface: anchor?.surface ?? this.facing } : { kind: e.voice.place };
-      const tag = `echo:${def.id}:${e.id}`;
-      const laugh = !!e.voice.asLaugh;
-      const out: [number, Cue, { major?: boolean; ttl?: number; key?: string }][] = [[0, {
-        type: 'voice', kind: laugh ? 'laugh' : 'whisper', text: laugh ? null : line.text, caption: e.voice.caption ?? line.text, position, gain: 0.6,
-        assetId: lineKey(def, line), tag,
-      }, { major: true, ttl: 10 }]];
-      if (e.voice.stopAfter) out.push([e.voice.stopAfter, { type: 'stopVoice', tag, fade: 0.6 }, {}]);
-      return out;
-    }
-    return null;
   }
 
   /** Returning within the same session: the room has kept everything. */

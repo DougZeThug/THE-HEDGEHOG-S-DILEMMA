@@ -1,6 +1,6 @@
 import type { Rng } from '../../core/rng';
 import type { EventScheduler } from '../../core/scheduler';
-import type { Phase, Phrase, Surface } from '../../content/types';
+import type { Phase, Phrase, Surface, Wall } from '../../content/types';
 import type { VoiceFragment } from '../../content/relations';
 import type { Cue, VoiceKind, VoicePosition } from '../cues';
 import type { Engagement } from '../Engagement';
@@ -39,6 +39,12 @@ export interface RuleHost {
   readonly scenes: MemoryDirector;
   readonly situations: SituationRunner;
   readonly owned: ReadonlySet<string>;
+  /** No voices of the room's own until then (a memory's line has just been offered, or a vignette has ended). */
+  readonly memoryQuietUntil: number;
+  /** Counts several rule groups add to. */
+  readonly tally: { creaks: number };
+  /** The wall faced, or null when looking at the floor or ceiling. */
+  facingWall(): Wall | null;
 
   queue(delay: number, cue: Cue, rule: string, opts?: QueueOptions): void;
   reveal(id: string, delay: number, rule: string, mode?: 'emerge' | 'still', seconds?: number): void;
@@ -55,4 +61,14 @@ export interface RuleHost {
     extra?: { gain?: number; assetId?: string; phraseId?: string; ttl?: number; priority?: number; finish?: boolean },
   ): boolean;
   ctx(): SelectContext;
+  /** The visitor is in the middle of meeting a line: its beat is waiting or about to sound. */
+  attending(): boolean;
+  /** Whether the room declines to say this now (a refused voice queues nothing, so nothing may be counted for it). */
+  voiceRefused(rule: string, phraseId?: string, finish?: boolean): boolean;
+  /** Kept for its moment: never drifted onto a wall before that. */
+  reserved(id: string): boolean;
+  /** Lines not to choose from: on the walls, reserved, withheld. */
+  hiddenExcluding(): Set<string>;
+  withheld(): string[];
+  aftermath(): boolean;
 }
