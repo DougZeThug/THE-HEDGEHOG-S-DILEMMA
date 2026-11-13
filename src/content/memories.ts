@@ -61,6 +61,11 @@ export interface SceneMemory {
   afterFinished?: string;
   /** Heard this many times (over all visits), it no longer comes. */
   maxSeen?: number;
+  /**
+   * A drawing (src/content/drawings.ts) its offered line is written beneath, instead of on the wall
+   * faced: the door's line goes under the room's drawn door, which its memory opens from.
+   */
+  under?: string;
   /** Its line is kept off the walls until the memory offers it (it belongs to that moment). */
   reserved?: boolean;
   /** Once it has played, no other painted memory is offered in that visit (it ends the arc). */
@@ -129,7 +134,7 @@ export const SCENE_MEMORIES: SceneMemory[] = [
   // to the door and stops; a return visit, they only pass.
   {
     id: 'door', phraseId: 'door-open', earliest: 240, arc: 'afterAnother', arm: 2.5, commit: 1.0, minHold: 9, maxHold: 18,
-    variants: { first: 'approach', revisit: ['passing'] }, lookBack: false, offer: { phases: ['contradiction', 'transform'], apart: 120, wall: 'south' }, reserved: true,
+    variants: { first: 'approach', revisit: ['passing'] }, lookBack: false, offer: { phases: ['contradiction', 'transform'], apart: 120, wall: 'south' }, reserved: true, under: 'ghost-door',
   },
 ];
 

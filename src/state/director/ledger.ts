@@ -1,6 +1,5 @@
 import { PHRASE_BY_ID } from '../../content/phrases';
-import { ANSWERS_TO_STAY } from '../../content/relations';
-import { PHRASE_IDS } from '../../content/ids';
+import { WITHHELD_WHILE_UNFINISHED } from '../../content/relations';
 
 /** Which lines the walls have been told to hold, finish or leave alone this visit. */
 export class WallLedger {
@@ -31,7 +30,7 @@ export class WallLedger {
     for (const id of this.unfinished) {
       const p = PHRASE_BY_ID.get(id);
       for (const r of [...(p?.echoes ?? []), ...(p?.contradicts ?? [])]) out.add(r);
-      if (id === PHRASE_IDS.stay) for (const r of ANSWERS_TO_STAY) out.add(r);
+      for (const r of WITHHELD_WHILE_UNFINISHED[id] ?? []) out.add(r);
     }
     return [...out];
   }

@@ -46,6 +46,9 @@ describe('ids the Director names', () => {
   it('every living memory id exists', () => {
     for (const id of Object.values(MEMORY_IDS)) expect(ALL_MEMORIES.some((m) => m.id === id), id).toBe(true);
   });
+  it('every drawing a memory is written under exists', () => {
+    for (const m of ALL_MEMORIES) if (m.under) expect(DRAWING_BY_ID.has(m.under), m.id).toBe(true);
+  });
   it('every drawing, fragment and situation id exists', () => {
     for (const id of Object.values(DRAWING_IDS)) expect(DRAWING_BY_ID.has(id), id).toBe(true);
     for (const id of Object.values(FRAGMENT_IDS)) expect(VOICE_FRAGMENTS.some((f) => f.id === id), id).toBe(true);

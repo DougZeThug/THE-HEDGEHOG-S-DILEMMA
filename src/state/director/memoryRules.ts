@@ -2,7 +2,7 @@ import { VIGNETTE_BY_ID } from '../../content/vignettes';
 import { PHRASE_BY_ID } from '../../content/phrases';
 import { PHRASE_IDS } from '../../content/ids';
 import { DRAWING_BY_ID } from '../../content/drawings';
-import { DRAWING_IDS, MEMORY_IDS } from '../../content/ids';
+import { MEMORY_IDS } from '../../content/ids';
 import type { Surface } from '../../content/types';
 import { phaseAtLeast } from '../Phase';
 import { cameBack } from './visitShape';
@@ -237,7 +237,7 @@ export class MemoryRules {
       const p = PHRASE_BY_ID.get(offer.phraseId);
       if (!p) return;
       // The door's line is written beneath the room's drawn door, which its memory opens from.
-      const under = offer.id === 'door' ? DRAWING_BY_ID.get(DRAWING_IDS.ghostDoor) : undefined;
+      const under = offer.under ? DRAWING_BY_ID.get(offer.under) : undefined;
       this.h.visible.set(p.id, { mode: 'shown', since: this.h.now, base: true });
       this.h.memory.surfaced.set(p.id, this.h.now);
       this.h.pacing.holdFor(this.h.now, 2.4);

@@ -15,6 +15,7 @@ import { WallLedger } from './director/ledger';
 import { RoomLife, AIR_LINES } from './director/roomLife';
 import { Silence } from './director/silence';
 import { KITCHEN_LIGHT, MemoryRules } from './director/memoryRules';
+import { Admission } from './director/admission';
 import { Voicing } from './director/voicing';
 import { FIRST_WRITTEN, Writing } from './director/writing';
 import { Stillness } from './director/stillness';
@@ -23,14 +24,14 @@ import { newSharedMarks, type QueueOptions, type RuleHost } from './director/hos
 import { Rng } from '../core/rng';
 import { EventScheduler } from '../core/scheduler';
 import { PHRASES, PHRASE_BY_ID } from '../content/phrases';
-import { DEPARTURE_BY_VISIT, DEPARTURE_STILL, type VoiceFragment } from '../content/relations';
+import { DEPARTURE_BY_VISIT, DEPARTURE_STILL, WELCOME_BACK, type VoiceFragment } from '../content/relations';
 import { WALLS, type Phase, type Wall, type Phrase, type Surface } from '../content/types';
 import { VisitorModel, type VisitorInput } from './VisitorModel';
 import { Memory } from './Memory';
 import { EmotionalField } from './EmotionalField';
 import { PhaseTracker } from './Phase';
-import { RULE, ROOM_OWN, isEncounter, isMeetingOrContribution, isSituation, isSituationLife, parseEncounterRule, ruleSource } from './rules';
-import { isMemoryOrHeartKey, parseWriteKey } from './writeKeys';
+import { RULE, ROOM_OWN, isEncounter, ruleSource } from './rules';
+import { parseWriteKey } from './writeKeys';
 import { PHRASE_IDS } from '../content/ids';
 import { Engagement } from './Engagement';
 import { Pacing } from './Pacing';
@@ -155,6 +156,19 @@ export class Director implements RuleHost {
   private readonly writing: Writing;
   private readonly voicing: Voicing;
   private readonly memoryRules: MemoryRules;
+  private readonly admission = new Admission(this, {
+    northKept: () => this.heart.northKept(),
+    onNorth: (cue) => this.heart.onNorth(cue),
+    isWayOut: (id) => this.wayOut.isOpenLine(id),
+    aftermathUntil: () => this.aftermathUntil,
+    gap: (min, max) => this.gapRng.range(min, max),
+    turnClear: (want) => this.memoryRules.turnClear(want),
+    writeFailed: (key) => this.writeFailed(key),
+    kitchenLightLost: () => this.memoryRules.kitchenLightLost(),
+    silenceLost: () => this.silence.lost(),
+    rewindEncounter: (id, n) => this.encounters.rewind(id, n),
+    forgetReading: (id) => this.voicing.forget(id),
+  });
   private readonly roomLife = new RoomLife(this, { northKept: () => this.heart.northKept() });
   private readonly silence = new Silence(this, { wayOutRecent: () => this.wayOut.engaged() || this.wayOut.keptWithin(20) });
   private readonly host: SituationHost;
@@ -386,6 +400,11 @@ export class Director implements RuleHost {
     this.voicing.fragment(rule, f, position, delay, gain);
   }
 
+  /** A voice that was decided on but never sounded: undo what it was counted for. */
+  private lost(cue: Cue, rule: string): void {
+    this.admission.lost(cue, rule);
+  }
+
   // ───────────────────────────── tick ─────────────────────────────
 
   tick(dt: number, input: VisitorInput, facing: Surface): TimedCue[] {
@@ -482,8 +501,7 @@ export class Director implements RuleHost {
     for (const { cue, rule } of this.scheduler.expired) this.lost(cue, rule);
     for (const item of due) {
       const { cue, rule } = item;
-      this.dueOpts = this.scheduler.optsOf(item);
-      if (!this.accept(cue, rule)) {
+      if (!this.admission.admit(cue, rule, this.scheduler.optsOf(item))) {
         this.lost(cue, rule);
         continue;
       }
@@ -498,149 +516,6 @@ export class Director implements RuleHost {
       if (this.log.length > 400) this.log.shift();
     }
     return out;
-  }
-
-  /** A voice that was decided on but never sounded: undo what it was counted for. */
-  private lost(cue: Cue, rule: string) {
-    // A memory that never found room isn't spent: it waits for the next look.
-    if (cue.type === 'memory-scene' || cue.type === 'vignette') this.scenes.cancel(cue.id, this.now);
-    if (cue.type === 'memory') this.memoryRules.kitchenLightLost();
-    // A memory's line, or the heart's, decided on and never written: as if it found no room (not spent).
-    if (cue.type === 'write' && isMemoryOrHeartKey(cue.key)) this.writeFailed(cue.key);
-    // The held silence that never sounded: the visit still has it.
-    if (cue.type === 'silence' && (rule === RULE.heldSilence || rule === RULE.tableSilence)) this.silence.lost();
-    if (cue.type !== 'voice' || !cue.phraseId) return;
-    // A line the room was finishing, unheard: it is still unfinished.
-    if (cue.finish) this.ledger.unfinished.add(cue.phraseId);
-    // A voice that was to write its line as it was heard: the line was marked as there when the
-    // voice was queued. Unheard, it was never written, so it isn't there.
-    if (cue.write) this.unwrite(cue.phraseId);
-    if (this.memory.spoken.get(cue.phraseId) !== undefined) this.memory.spoken.delete(cue.phraseId);
-    this.voicing.forget(cue.phraseId);
-    const enc = parseEncounterRule(rule);
-    if (enc) this.encounters.rewind(enc.phraseId, enc.n);
-  }
-
-  /** A line marked as there when its voice was queued, to be written as it was heard, that won't be. */
-  private unwrite(id: string) {
-    const st = this.visible.get(id);
-    if (st?.base && this.ledger.accumulating.has(id)) {
-      this.visible.delete(id);
-      this.ledger.accumulating.delete(id);
-      this.memory.surfaced.delete(id);
-    }
-  }
-
-  /** How the cue now being accepted was scheduled (put back the same when it must wait). */
-  private dueOpts: { major?: boolean; ttl?: number; key?: string; priority?: number } = {};
-
-  /** Keep the Director's model of what is visible in sync with the cues it lets through. */
-  private accept(cue: Cue, rule: string): boolean {
-    // After the room's last music, none of its own again, nor anyone humming.
-    if (this._musicWithdrawn && (cue.type === 'music' || (cue.type === 'voice' && cue.kind === 'hum'))) return false;
-    // A situation that took the chair's voice or the space beyond the walls after this was
-    // queued keeps it: claims hold at the moment of sounding, not only when queued.
-    if (cue.type === 'voice' && !isSituation(rule)) {
-      if (cue.position.kind === 'chair' && this.situations.claimed('chair-voice')) return false;
-      if (cue.position.kind === 'beyond' && this.situations.claimed('beyond')) return false;
-    }
-    if (cue.type === 'music' && !isSituation(rule) && this.situations.claimed('music')) return false;
-    // Nothing sounds over a memory: a situation's laugh or murmur waits too (it is emitted
-    // directly, not through the voice rules that already wait).
-    // (A meeting's or a contribution's gesture was counted when it was decided: it waits, not lost.)
-    if (this.scenes.active && (cue.type === 'sound' || cue.type === 'music') && isMeetingOrContribution(rule)) {
-      this.queue(4, cue, rule, { ...this.dueOpts, major: true });
-      return false;
-    }
-    if (this.scenes.active && ((cue.type === 'voice' && (!cue.finish || this.vignettePlaying)) || cue.type === 'sound' || cue.type === 'music')) return false;
-    if (cue.type === 'reveal' && this.withheld().includes(cue.phraseId)) return false;
-    // Once the heart's answer is written, the north wall is left as the heart left it: nothing new
-    // is written, revealed or re-inked there for the rest of the visit (the visitor's own words
-    // aside). One peak, and its last word (creative director, 2026-11-06).
-    if (this.heart.northKept() && this.heart.onNorth(cue) && rule !== RULE.contribution) return false;
-    // (A voice queued to write its line there before the wall was held is heard, and writes nothing.)
-    if (cue.type === 'voice' && cue.write && cue.phraseId && this.heart.northKept() && PHRASE_BY_ID.get(cue.phraseId)?.surface === 'north') {
-      this.unwrite(cue.phraseId);
-      delete cue.write;
-    }
-    // (Nor is a line kept back written again in its own place: decision 137, QA 2026-10-20.)
-    if (cue.type === 'redraw' && this.ledger.keptBack.has(cue.phraseId)) return false;
-    // A situation's own sounds wait out a memory's aftermath (those answering the visitor don't).
-    if (this.aftermath() && isSituationLife(rule) && (cue.type === 'voice' || cue.type === 'sound' || cue.type === 'music')) {
-      this.queue(this.aftermathUntil - this.now + 1, cue, rule, this.dueOpts);
-      return false;
-    }
-    // Nothing of the room's own comes in a memory's aftermath, or while the room is holding (a
-    // held silence; the visitor staying with the kitchen-light line), even if it was decided
-    // before: it waits until after (and the scheduler spaces what was waiting).
-    if (ROOM_OWN.test(rule) && !isSituation(rule) && (this.aftermath() || this.pacing.holding(this.now))) {
-      // (After an aftermath, the first a few seconds after it.)
-      const after = this.aftermath() ? this.aftermathUntil + this.gapRng.range(3, 6) : this.pacing.heldUntil + 1;
-      this.queue(Math.max(after, this.now + 1) - this.now, cue, rule, this.dueOpts);
-      return false;
-    }
-    // Nor do they break into a held silence (a laugh on a timer, landing in the middle of it): after it, and its exhale.
-    if (this.pacing.holding(this.now) && isSituationLife(rule) && (cue.type === 'voice' || cue.type === 'sound' || cue.type === 'music')) {
-      this.queue(this.pacing.heldUntil - this.now + 6, cue, rule, this.dueOpts);
-      return false;
-    }
-    // The visit's turn, due while a vignette plays or just after one: it waits until it is clear.
-    if (rule === RULE.phaseTransform && cue.type === 'silence' && !this.departing) {
-      const { delay: d0, dark } = this.memoryRules.turnClear(this.vignettePlaying ? 30 : 0);
-      const delay = Math.max(d0, this.aftermath() ? this.aftermathUntil - this.now + 1 : 0);
-      if (delay > 0) {
-        const { dim: _d, dimSeconds: _s, ...rest } = cue;
-        this.queue(delay, dark ? cue : rest, rule, { major: true, ttl: 30 });
-        return false;
-      }
-    }
-    // While a living memory plays, the room waits with it: no silence (a dim would darken the
-    // painting), no new line revealed or written.
-    if (this.scenes.active && isMeetingOrContribution(rule) && (cue.type === 'silence' || cue.type === 'reveal' || cue.type === 'write')) {
-      this.queue(4, cue, rule, { ...this.dueOpts, major: cue.type === 'silence' });
-      return false;
-    }
-    if (this.scenes.active && (cue.type === 'silence' || cue.type === 'reveal' || (cue.type === 'write' && rule !== RULE.memoryOffer))) return false;
-    if (this.scenes.active) {
-      // Nor anything else that would move or appear. What the room had decided on (a drawing, words
-      // in the air, the kitchen's light, a line rubbed out or let go) waits until the memory has
-      // gone (it is already counted as done, so dropping it would lose it); a passing flash, glow,
-      // nudge of the chair or link between lines simply doesn't happen.
-      if (cue.type === 'draw' || cue.type === 'air' || cue.type === 'memory' || cue.type === 'erode' || cue.type === 'hide') {
-        this.queue(4, cue, rule, { major: cue.type === 'air' || cue.type === 'memory' });
-        return false;
-      }
-      if (cue.type === 'flash' || cue.type === 'glow' || cue.type === 'chairNudge' || cue.type === 'chairTurn' || cue.type === 'link' || (cue.type === 'redraw' && rule !== RULE.memoryOffer)) return false;
-    }
-    if (cue.type === 'reveal') {
-      const cur = this.visible.get(cue.phraseId);
-      if (cur && cur.mode === 'shown') return false;
-      if (cue.mode === 'still' && this.visitor.stillFor < 2) return false;
-      this.visible.set(cue.phraseId, { mode: cue.mode === 'still' ? 'still' : 'shown', since: this.now, base: this.ledger.accumulating.has(cue.phraseId) });
-      this.memory.surfaced.set(cue.phraseId, this.now);
-      this.cull();
-    } else if (cue.type === 'hide') {
-      const cur = this.visible.get(cue.phraseId);
-      if (!cur || cur.base) return false;
-      this.visible.delete(cue.phraseId);
-    }
-    return true;
-  }
-
-  private budget(): number {
-    return { arrival: 3, familiar: 8, contradiction: 12, transform: 16 }[this.phase];
-  }
-
-  private cull() {
-    // (Never the way out, once it is the way out: Codex review, PR #56.)
-    const revealed = [...this.visible.entries()].filter(([id, s]) => !s.base && s.mode === 'shown' && !this.wayOut.isOpenLine(id));
-    const over = revealed.length - this.budget();
-    if (over <= 0) return;
-    revealed.sort((a, b) => a[1].since - b[1].since);
-    for (const [id] of revealed.slice(0, over)) {
-      if (id === this.visitor.gazeId) continue;
-      this.queue(0.5, { type: 'hide', phraseId: id, seconds: 14 }, 'cull');
-    }
   }
 
   // ───────────────────────────── rules ─────────────────────────────
@@ -930,7 +805,7 @@ export class Director implements RuleHost {
     const p = this.selector.select(this.ctx(), {
       exclude: this.hiddenExcluding(),
       tiers: ['familiar', 'contradiction', 'transform', 'arrival'],
-      bias: (x) => (x.id === PHRASE_IDS.gladCame || x.id === PHRASE_IDS.rememberMe ? 0.6 : 0),
+      bias: (x) => (WELCOME_BACK.has(x.id) ? 0.6 : 0),
     });
     if (p) this.reveal(p.id, 6, 'return', 'emerge', 10);
     // (No random nudge: the chair keeps the pose the trace gave it.)
