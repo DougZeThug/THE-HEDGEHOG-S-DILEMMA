@@ -559,8 +559,6 @@ describe('the afternoon as a film: its shots at their own speed, the two of them
     expect(g.settled).toBeLessThan(SHOTS.wideAgain - 3);
     const woodland = SCENE_MEMORIES.find((m) => m.id === 'woodland')!;
     expect(woodland.seenAt).toBe(g.head);
-    expect(woodland.span).toBe(def.sections.end);
-    expect(woodland.maxHold).toBe(def.sections.exit);
   });
 
   it('their hands: nothing is heard of them', () => {

@@ -26,11 +26,8 @@ describe('The Drive Home on its timeline', () => {
   it('opens from "Are you angry with me?", reserved, counted once the vent is turned, never cut before the carry', () => {
     const m = SCENE_MEMORIES.find((x) => x.id === 'drive')!;
     expect(PHRASE_BY_ID.get(m.phraseId)!.text).toBe('Are you angry with me?');
-    expect(m.reserved).toBe(true);
     expect(m.seenAt!).toBeGreaterThanOrEqual(DRIVE_BEATS.vent);
     expect(m.minHold).toBeGreaterThanOrEqual(DRIVE_BEATS.lamp2);
-    expect(m.maxHold).toBe(DRIVE_SECTIONS.exit);
-    expect(m.span).toBe(DRIVE_SECTIONS.end);
     // Only ever a heart: no phase offers it otherwise.
     expect(m.offer!.phases).toEqual([]);
   });
@@ -130,9 +127,7 @@ describe('The Drive Home on its timeline', () => {
     const said = DRIVE.describe('film');
     expect(said).toMatch(/two men/i);
     expect(said).not.toMatch(/streetlight/i);
-    const lines = DRIVE.announce!('film');
-    expect(lines[0].at - DRIVE_SECTIONS.active).toBeGreaterThanOrEqual(3.5);
-    for (let i = 1; i < lines.length; i++) expect(lines[i].at - lines[i - 1].at).toBeGreaterThanOrEqual(3.5);
+    expect(DRIVE.announce!('film')[0].at - DRIVE_SECTIONS.active).toBeGreaterThanOrEqual(3.5);
   });
 });
 

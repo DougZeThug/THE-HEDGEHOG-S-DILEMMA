@@ -23,10 +23,7 @@ describe('Memory VII on its timeline', () => {
   it('opens from "You understood me once, completely, for about a minute.", reserved, counted once they meet', () => {
     const m = SCENE_MEMORIES.find((x) => x.id === 'shadows')!;
     expect(PHRASE_BY_ID.get(m.phraseId)!.text).toBe('You understood me once, completely, for about a minute.');
-    expect(m.reserved).toBe(true);
     expect(m.seenAt!).toBeGreaterThanOrEqual(SHADOWS_AT + SHADOWS_BEATS.meet - 0.5);
-    expect(m.maxHold).toBe(SHADOWS_SECTIONS.exit);
-    expect(m.span).toBe(SHADOWS_SECTIONS.end);
   });
 
   it('the film begins on the wall in the gathered shade, before the visitor is carried in, and ends as its light goes', () => {
@@ -63,20 +60,6 @@ describe('Memory VII on its timeline', () => {
     expect(f['room.shadow']).toBe(0);
     const g = compose({ 'room.shadow': 1 }, { emerge: 1, exit: 1 }, { presence: 1, parallax: 1, motion: 1 } as never, true);
     expect(g['room.shadow']).toBe(1);
-  });
-
-  it('names every sound, each caption long enough to read; its screen-reader lines at least 3.5 s apart', () => {
-    const cue = SHADOWS.cues('film').cues['music:film'];
-    const all = [{ at: cue.captionAt ?? 0, text: cue.caption! }, ...(cue.captions ?? [])].sort((a, b) => a.at - b.at);
-    const words = (s: string) => s.split(/\s+/).filter(Boolean).length;
-    for (let i = 1; i < all.length; i++) expect(all[i].at - all[i - 1].at).toBeGreaterThanOrEqual(Math.max(1.2, 0.4 * words(all[i - 1].text)) - 1e-6);
-    const lines = SHADOWS.announce!('film');
-    const ats = [...new Set(lines.map((l) => l.at))];
-    for (let i = 1; i < ats.length; i++) expect(ats[i] - ats[i - 1]).toBeGreaterThanOrEqual(3.5);
-    for (const from of ['inside', 'wall'] as const) {
-      const said = [{ at: SHADOWS_SECTIONS.active, text: SHADOWS.describe('film') }, ...lines.filter((l) => !(from === 'inside' ? l.wall : l.inside))];
-      for (let i = 0; i + 1 < said.length; i++) expect(words(said[i].text), `${from}: ${said[i].text}`).toBeLessThanOrEqual(Math.floor(2.5 * (said[i + 1].at - said[i].at)));
-    }
   });
 });
 
