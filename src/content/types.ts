@@ -42,6 +42,7 @@ export type Kind = 'word' | 'fragment' | 'question' | 'statement' | 'passage';
 export type Tier = 'arrival' | 'familiar' | 'contradiction' | 'transform' | 'still' | 'near' | 'annotation';
 
 export type VoiceStyle = 'whisper' | 'tender' | 'flat' | 'distant' | 'child';
+export type VoiceKind = VoiceStyle | 'laugh' | 'murmur' | 'breath' | 'hum';
 
 export interface Phrase {
   id: string;

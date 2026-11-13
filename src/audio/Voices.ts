@@ -1,5 +1,5 @@
 import type { AudioEngine } from './AudioEngine';
-import type { VoiceKind } from '../state/cues';
+import type { VoiceKind } from '../content/types';
 import { Rng, hashString } from '../core/rng';
 import { idle } from '../core/time';
 import { chooseSource, preloadStages, type Source } from './selection';

@@ -1,7 +1,7 @@
 import { Rng } from '../core/rng';
-import type { VoiceKind } from '../state/cues';
+import type { VoiceKind } from '../content/types';
 import type { AudioEngine } from './AudioEngine';
-import { HUM_NOTE } from './hum';
+import { HUM_NOTE } from '../core/hum';
 
 /**
  * Voice textures and household sounds, made from nothing: formant-filtered whispers shaped by the

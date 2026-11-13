@@ -1,3 +1,4 @@
+import { HUM_NOTE } from '../../core/hum';
 import { PHRASES, PHRASE_BY_ID } from '../../content/phrases';
 import { WALLS, type Phrase, type Surface } from '../../content/types';
 import { hashString, Rng } from '../../core/rng';
@@ -8,8 +9,6 @@ function otherWalls(not: Surface[]): Surface[] {
   return WALLS.filter((w) => !not.includes(w));
 }
 
-/** Seconds per hummed note; fixed so the room knows which note was cut off. */
-export const HUM_NOTE = 0.62;
 /** A rest inside a hummed sequence. */
 export const REST = -100;
 

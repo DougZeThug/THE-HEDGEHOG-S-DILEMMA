@@ -9,7 +9,8 @@ import { PHRASES, PHRASE_BY_ID } from '../src/content/phrases';
 import { layoutPhrases, layoutToWorld } from '../src/world/layout';
 import { ROOM } from '../src/core/room';
 import { interpretLocally } from '../src/interpret/LocalInterpreter';
-import { HUM_NOTE, nextRoom } from '../src/state/situations/library';
+import { nextRoom } from '../src/state/situations/library';
+import { HUM_NOTE } from '../src/core/hum';
 import { keptWord } from '../src/core/words';
 
 // Geometry without a browser: the same layout, approximate font metrics.
