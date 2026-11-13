@@ -12,6 +12,7 @@ import type { SelectContext, PhraseSelector } from '../PhraseSelector';
 import type { SituationRunner } from '../situations/Situation';
 import type { VisitorModel } from '../VisitorModel';
 import type { VisibleState } from '../Director';
+import type { WallLedger } from './ledger';
 
 /** Times and counts that more than one rule group reads or sets. */
 export interface SharedMarks {
@@ -28,6 +29,8 @@ export interface SharedMarks {
   transformAt: number;
   /** A turn waiting for a living memory to end and a few seconds more. */
   pendingPhase: Phase | null;
+  /** After a vignette, even the room finishing its own line waits (its quiet is part of it). */
+  vignetteQuietUntil: number;
 }
 
 export const newSharedMarks = (): SharedMarks => ({
@@ -38,6 +41,7 @@ export const newSharedMarks = (): SharedMarks => ({
   markedTurnAt: -Infinity,
   transformAt: Infinity,
   pendingPhase: null,
+  vignetteQuietUntil: -Infinity,
 });
 
 export type QueueOptions = { major?: boolean; key?: string; ttl?: number; priority?: number };
@@ -66,6 +70,12 @@ export interface RuleHost {
   readonly scenes: MemoryDirector;
   readonly situations: SituationRunner;
   readonly owned: ReadonlySet<string>;
+  readonly ledger: WallLedger;
+  readonly visits: number;
+  /** The room's music is over for this visit. */
+  readonly musicWithdrawn: boolean;
+  /** A memory with voices of its own is playing: a vignette, or a painted memory begun with its overheard voices. */
+  readonly vignettePlaying: boolean;
   /** No voices of the room's own until then (a memory's line has just been offered, or a vignette has ended). */
   readonly memoryQuietUntil: number;
   readonly shared: SharedMarks;
@@ -96,5 +106,8 @@ export interface RuleHost {
   /** Lines not to choose from: on the walls, reserved, withheld. */
   hiddenExcluding(): Set<string>;
   withheld(): string[];
+  /** A cooldown whose length wanders (×0.6–1.6) from use to use, so periodic rules don't beat in time. */
+  cool(key: string, base: number): boolean;
+  used(key: string): void;
   aftermath(): boolean;
 }
