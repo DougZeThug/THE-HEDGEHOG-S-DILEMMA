@@ -96,7 +96,10 @@ export class FakeCtx {
   sampleRate = 8000;
   private dest: FakeNode | null = null;
   get destination() {
-    if (!this.dest) (this.dest = new FakeNode(this)), this.nodes.delete(this.dest);
+    if (!this.dest) {
+      this.dest = new FakeNode(this);
+      this.nodes.delete(this.dest);
+    }
     return this.dest;
   }
   createDynamicsCompressor() {

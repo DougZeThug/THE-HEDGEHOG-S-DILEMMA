@@ -62,7 +62,6 @@ describe('pacing: phases open through engagement, not timers', () => {
   it('depth decides, not the clock: visitors who engage differently arrive at different times', () => {
     const times = ['explorer', 'reader', 'phone', 'chair'].map((id) => at(id, 'transform'));
     expect(new Set(times).size).toBeGreaterThanOrEqual(3);
-    // Engaging in any way counts for more than standing at the door.
     expect(Math.max(...times)).toBeLessThan(at('still', 'transform'));
   });
 
@@ -124,7 +123,6 @@ describe('rhythm', () => {
     const p = new Pacing();
     expect(p.rhythm(3, 'arrival', 0)).toBe('arrival');
     p.note(10, { type: 'voice', kind: 'tender', text: 'x', caption: 'x', position: { kind: 'chair' }, gain: 0.5 }, 'test');
-    // After a voice, a long held quiet.
     expect(p.rhythm(25, 'familiar', 0.3)).toBe('recovery');
     expect(p.intenseFree(25)).toBe(false);
     // Someone who is doing things is answered sooner than someone who isn't — who is never "kept waiting".

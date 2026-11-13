@@ -2,12 +2,13 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { MEMORY_VOICES, chooseVoices, memoryLineKey, versionKeys, voicesId, withVoices } from '../src/content/memory-voices';
 import { MemoryDirector, type SceneState } from '../src/state/MemoryDirector';
-import { MemoryAudio, type MemoryAudioHost } from '../src/memory/MemoryAudio';
+import { MemoryAudio } from '../src/memory/MemoryAudio';
 import { MemoryPlaybackController } from '../src/memory/MemoryPlaybackController';
 import { FULL } from '../src/memory/compose';
 import type { CueSheet } from '../src/memory/cueSheet';
 import type { Marker, TimelineSource } from '../src/memory/types';
-import { FakeCtx, FakeNode, FakeSource } from './fakeAudio';
+import { FakeCtx, FakeSource } from './fakeAudio';
+import { fakeHost } from './helpers/memoryHost';
 import { VIGNETTES } from '../src/content/vignettes';
 import { SCENE_MEMORIES } from '../src/content/memories';
 import { MEMORIES } from '../src/memory/registry';
@@ -201,11 +202,7 @@ describe('the painted memories\' voices, interrupted', () => {
   /** Played a frame at a time; paused at `pause[0]` for `pause[1]` s, or let go there. */
   async function play(o: { pause?: [number, number]; release?: [number, 'look-away' | 'switch'] }) {
     const ctx = new FakeCtx();
-    const host: MemoryAudioHost = {
-      ctx: ctx as unknown as BaseAudioContext, out: new FakeNode(ctx) as unknown as AudioNode,
-      load: async (asset) => ({ duration: lengths[asset] }) as AudioBuffer, impulse: () => ({}) as AudioBuffer,
-      intensity: 1, where: () => [0, 0, 0],
-    };
+    const host = fakeHost(ctx, lengths);
     const audio = new MemoryAudio(host, sheet, markers);
     const timeline: TimelineSource = { sections: { active: 5.5, exit: 22, residue: 28, end: 32 }, markers, at: () => ({}), dispose() {} };
     const c = new MemoryPlaybackController({ timeline, audio, weights: FULL, reduced: false, entrance: 2, sways: [], exit: 2.4, maxHold: 22, tail: 3, living: false });

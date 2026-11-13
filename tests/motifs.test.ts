@@ -2,24 +2,18 @@ import { describe, it, expect } from 'vitest';
 import * as THREE from 'three';
 import { Director } from '../src/state/Director';
 import { Lighting } from '../src/world/Lighting';
-import type { VisitorInput } from '../src/state/VisitorModel';
 import type { Environment } from '../src/core/environment';
-import type { TimedCue } from '../src/state/cues';
+import { input } from './helpers/visitor';
+import { run } from './sim';
 
 // Standing back from the chair (about 2.6 m) and looking at it.
-const apart: VisitorInput = { x: 0.1, z: 2.6, yaw: 0, pitch: -0.1, gazePhraseId: null, gazeChair: true, nearSurface: null, kneeling: false };
-const run = (d: Director, seconds: number, input: (t: number) => VisitorInput) => {
-  const out: TimedCue[] = [];
-  for (let t = 0; t < seconds; t += 0.1) out.push(...d.tick(0.1, input(t), 'north'));
-  return out;
-};
+const apart = input({ x: 0.1, z: 2.6, pitch: -0.1, gazeChair: true });
 
 describe('writing in the air', () => {
   it('answers stepping back from the chair, once a visit, after the first minute', () => {
     for (const seed of [3, 11, 27]) {
       const d = new Director({ seed });
       d.release({ written: ['stay'], spoken: ['crumbs'] });
-      // At the chair for half a minute, then back to the door, looking at it.
       const cues = run(d, 240, (t) => (t < 30 ? { ...apart, z: 0.9, gazeChair: false } : t < 33 ? { ...apart, z: 0.9 + ((t - 30) / 3) * 1.7 } : apart));
       const air = cues.filter((c) => c.cue.type === 'air');
       expect(air.length, `seed ${seed}`).toBe(1);
@@ -71,7 +65,6 @@ describe('light as a motif', () => {
     expect(level(1)).toBeGreaterThan(0.6);
     expect(level(5)).toBeCloseTo(0.25, 2);
     expect(level(11.5)).toBe(1);
-    // Down and back once.
     let turns = 0;
     for (let i = 2; i < at.length; i++) if (Math.sign(at[i] - at[i - 1]) * Math.sign(at[i - 1] - at[i - 2]) < 0) turns++;
     expect(turns).toBeLessThanOrEqual(1);

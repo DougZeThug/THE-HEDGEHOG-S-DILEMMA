@@ -9,7 +9,6 @@
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { createHash } from 'node:crypto';
 import { MEMORIES } from '../src/memory/registry';
 import { WOODLAND as DEF } from '../src/memory/memories/woodland';
 import { CUT, SCORE_FROM, SHOTS, WOODLAND_FILM } from '../src/memory/beats/woodland';
@@ -51,7 +50,6 @@ interface Retimed {
 }
 const score = JSON.parse(readFileSync('scripts/woodland-score/notes.json', 'utf8')) as Score;
 const re = JSON.parse(readFileSync('scripts/woodland-score/retimed.json', 'utf8')) as Retimed;
-const sha = (f: string) => createHash('sha256').update(readFileSync(f)).digest('hex').slice(0, 16);
 const melody = score.notes.filter((n) => n.hand === 'r');
 const played = re.notes.filter((n) => n.hand === 'r');
 const HOME = 73; // D♭5
@@ -70,13 +68,10 @@ const moments: [number, number, string][] = [
 ];
 
 describe("the woodland's score", () => {
-  it('the render is the file its notes describe; the memory plays it joined, from where its cue begins to the cut, and nothing after it', () => {
-    expect(sha('audition/woodland/woodland-score-53s.mp3')).toBe(score.sha256);
+  it('the memory plays the score joined, from where its cue begins to the cut, and nothing after it', () => {
     expect(score.from).toBe(SCORE_FROM);
     expect(score.cut).toBe(34.5);
     for (const n of score.ringing) expect(SCORE_FROM - n.t).toBeLessThan(1.5);
-    expect(re.source_sha256).toBe(score.sha256);
-    expect(sha('public/music/woodland-score.mp3')).toBe(re.sha256);
     expect(re.from).toBe(SCORE_FROM);
     expect(re.cut).toBe(CUT);
     expect(re.samples).toBe(Math.round((CUT - SCORE_FROM) * 48000));

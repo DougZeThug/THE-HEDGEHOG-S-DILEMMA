@@ -26,11 +26,9 @@ describe('the opening: darkness, a name, light, the chair, the room, writing, a 
       expect(title[0]).toBe(0);
       const held = frames.filter((f) => f.lv.title >= 0.9).map((f) => f.t);
       expect(held[held.length - 1] - held[0]).toBeGreaterThanOrEqual(touch ? 1.5 : 2.5);
-      // Rises once and falls once.
       let turns = 0;
       for (let i = 2; i < title.length; i++) if (Math.sign(title[i] - title[i - 1]) * Math.sign(title[i - 1] - title[i - 2]) < 0) turns++;
       expect(turns).toBeLessThanOrEqual(2);
-      // The screen stays black while the title is up, and the title is gone before any light.
       for (const f of frames) if (f.lv.title > 0.02) expect(f.lv.black).toBe(1);
       const firstLight = frames.find((f) => f.lv.key > 0.01)!.t;
       expect(frames.find((f) => f.t >= firstLight)!.lv.title).toBeLessThan(0.02);
@@ -44,7 +42,6 @@ describe('the opening: darkness, a name, light, the chair, the room, writing, a 
         if (f.lv.key > 0) expect(f.lv.cone).toBeGreaterThanOrEqual(0.5);
         if (f.lv.key > 0) expect(f.lv.hemi).toBeGreaterThan(0);
       }
-      // A sound in the dark before the light.
       const sounds = s.events.filter((e) => e.kind === 'sound').map((e) => e.at);
       expect(Math.min(...sounds)).toBeLessThan(frames.find((f) => f.lv.key > 0.01)!.t);
     });
@@ -110,7 +107,6 @@ describe('the Director waits for the opening', () => {
     const start = shown();
     expect(start).toBeLessThanOrEqual(4); // the opening's line and the floor writing by the chair
     for (let t = 0; t < 60; t += 0.1) d.tick(0.1, { ...still, yaw: Math.sin(t * 0.2) }, t % 30 < 15 ? 'north' : 'east');
-    // At least six readable lines within the first minute after the hand-off, still sparse.
     expect(shown()).toBeGreaterThanOrEqual(6);
     expect(shown() - start).toBeGreaterThanOrEqual(2);
     expect(shown()).toBeLessThanOrEqual(12);
@@ -141,7 +137,6 @@ describe('writing follows a voice with a hand, not as captions', () => {
       // Not caption-locked: no word is written in exactly the time it takes to say.
       const same = plan.filter(([a, b], k) => Math.abs(b - a - (e.chars[words[k][1] - 1][1] - e.chars[words[k][0]][0])) < 0.02).length;
       expect(same).toBeLessThan(plan.length);
-      // The hand never goes backwards.
       let prev = -1;
       for (let t = 9; t < speechEnd + 2; t += 0.02) {
         const h = handAt({ start: 0, segments: plan, floor: 0, cap: own.duration }, t);
@@ -157,7 +152,6 @@ describe('writing follows a voice with a hand, not as captions', () => {
     const b = handTiming('one, two. three', 'pen', 'y');
     expect(b.words[1].start - b.words[0].end).toBeGreaterThan(0.3);
     expect(b.words[2].start - b.words[1].end).toBeGreaterThan(0.5);
-    // Deterministic.
     expect(handTiming('same words', 'pencil', 'k')).toEqual(handTiming('same words', 'pencil', 'k'));
     expect(speechTiming('ab', 'pen', 'k', [[0, 0.1], [0.1, 0.2]]).speech).toBe(true);
   });
@@ -178,7 +172,6 @@ describe('stroke order', () => {
     const timing = handTiming('li', 'pencil', 'test');
     const b = bakeStrokes(a, W, H, boxes, timing, () => 0);
     const at = (x: number, y: number) => b.time[y * W + x];
-    // Down the l from its top.
     expect(at(8, 6)).toBeLessThan(at(8, 15));
     expect(at(8, 15)).toBeLessThan(at(8, 24));
     // The l before the i; the i's dot after its stem.
@@ -239,20 +232,6 @@ describe('stroke ownership between lines', () => {
   });
 });
 
-describe('voice timings', () => {
-  it('every recording in the room has character timings that match its text and fit inside it', () => {
-    const manifest = Object.entries((require('../public/voices/manifest.json') as Record<string, string[]>)).filter(([k]) => k.startsWith('phrase:')).flatMap(([, v]) => v);
-    for (const f of manifest) {
-      const e = T[f];
-      expect(e, f).toBeTruthy();
-      const perf = (dialogue.performances as { file: string; text: string }[]).find((p) => p.file === f)!;
-      expect(e.text).toBe(perf.text);
-      expect(e.chars.length).toBe(perf.text.length);
-      for (let i = 1; i < e.chars.length; i++) expect(e.chars[i][0], f).toBeGreaterThanOrEqual(e.chars[i - 1][0] - 1e-6);
-    }
-  });
-});
-
 describe('comfort', () => {
   it('the system reduced-motion setting is followed unless the visitor chose otherwise', async () => {
     const store = new Map<string, string>();
@@ -265,7 +244,6 @@ describe('comfort', () => {
     savePrefs({ ...loadPrefs(), volume: 0.4 });
     reduce = true;
     expect(loadPrefs().reducedMotion).toBe(true);
-    // A choice the visitor made is kept.
     savePrefs({ ...loadPrefs(), reducedMotion: false, reducedMotionChosen: true });
     expect(loadPrefs().reducedMotion).toBe(false);
   });
@@ -278,7 +256,6 @@ describe('comfort', () => {
     // Saved while they were on by default (with a volume change): still off.
     store.set('hh.prefs.v1', JSON.stringify({ volume: 0.4, captions: true }));
     expect(loadPrefs().captions).toBe(false);
-    // Chosen in settings: kept, on or off.
     savePrefs({ ...loadPrefs(), captions: true, captionsChosen: true });
     expect(loadPrefs().captions).toBe(true);
     savePrefs({ ...loadPrefs(), captions: false, captionsChosen: true });

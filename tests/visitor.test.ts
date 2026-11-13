@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
-import { VisitorModel, type VisitorInput } from '../src/state/VisitorModel';
+import { VisitorModel } from '../src/state/VisitorModel';
+import { input as inp } from './helpers/visitor';
 
-const inp = (o: Partial<VisitorInput>): VisitorInput => ({ x: 0, z: 2.4, yaw: 0, pitch: 0, gazePhraseId: null, gazeChair: false, nearSurface: null, kneeling: false, ...o });
 
 describe('VisitorModel', () => {
   it('measures stillness, and movement resets it', () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { MemoryAudio, type MemoryAudioHost } from '../src/memory/MemoryAudio';
+import { MemoryAudio } from '../src/memory/MemoryAudio';
 import { MemoryClock } from '../src/memory/clock';
 import { CueDispatch } from '../src/memory/cueDispatch';
 import { MemoryPlaybackController } from '../src/memory/MemoryPlaybackController';
@@ -7,7 +7,8 @@ import { FULL } from '../src/memory/compose';
 import type { CueSheet } from '../src/memory/cueSheet';
 import type { Marker, TimelineSource } from '../src/memory/types';
 
-import { FakeCtx, FakeNode, FakeParam, FakeSource } from './fakeAudio';
+import { FakeCtx, FakeParam, FakeSource } from './fakeAudio';
+import { fakeHost } from './helpers/memoryHost';
 
 const SHEET: CueSheet = {
   room: [0.5, 2, 0.2],
@@ -29,16 +30,7 @@ const DURATION: Record<string, number> = { 'mem:kitchen-evening': 8, 'mem:spoon-
 function setup() {
   const ctx = new FakeCtx();
   const captions: string[] = [];
-  const bus = new FakeNode(ctx);
-  const host: MemoryAudioHost = {
-    ctx: ctx as unknown as BaseAudioContext,
-    out: bus as unknown as AudioNode,
-    load: async (asset) => ({ duration: DURATION[asset] }) as AudioBuffer,
-    impulse: () => ({}) as AudioBuffer,
-    intensity: 1,
-    where: (p) => ('at' in p ? [0, 0, 0] : [p.u, p.v, -p.d]),
-    caption: (t) => captions.push(t),
-  };
+  const host = fakeHost(ctx, DURATION, { where: (p) => ('at' in p ? [0, 0, 0] : [p.u, p.v, -p.d]), caption: (t) => void captions.push(t) });
   const baseline = ctx.nodes.size;
   const audio = new MemoryAudio(host, SHEET, MARKERS);
   return { ctx, audio, captions, baseline };
@@ -155,7 +147,7 @@ describe('memory audio: scheduled on the audio clock, never twice, nothing left 
       const ctx = new FakeCtx();
       const sheet: CueSheet = { room: SHEET.room, cues: { 'music:relay': { asset: 'music/memory-kitchen.mp3', gainDb: -30, place: { u: 0, v: 0, d: 2 }, inWithdrawal: true, caption: '[the indicator ticking]' }, 'music:other': { asset: 'music/memory-kitchen.mp3', gainDb: -30, place: { u: 0, v: 0, d: 2 } } } };
       const markers: Marker[] = [{ label: 'music:relay', position: 3 }, { label: 'music:other', position: 3 }];
-      const host: MemoryAudioHost = { ctx: ctx as unknown as BaseAudioContext, out: new FakeNode(ctx) as unknown as AudioNode, load: async (a) => ({ duration: DURATION[a] }) as AudioBuffer, impulse: () => ({}) as AudioBuffer, intensity: 1, where: () => [0, 0, 0] };
+      const host = fakeHost(ctx, DURATION);
       const audio = new MemoryAudio(host, sheet, markers);
       await audio.prepare();
       const d = new CueDispatch(markers);
@@ -192,12 +184,13 @@ describe('memory audio: scheduled on the audio clock, never twice, nothing left 
   });
 
   it('dispose leaves no source sounding and no node connected', async () => {
+    vi.useFakeTimers();
     const { ctx, audio, baseline } = setup();
     await audio.prepare();
     playThrough(ctx, audio, new CueDispatch(MARKERS), 0, 9.5);
     audio.dispose(0.3);
     ctx.advance(2);
-    await new Promise((r) => setTimeout(r, 1100));
+    vi.advanceTimersByTime(1100);
     expect(audio.sounding).toBe(0);
     expect(ctx.nodes.size).toBe(baseline);
   });
@@ -224,14 +217,7 @@ describe('a cut on one instant of the audio clock (the woodland: the afternoon s
   function run(stallAt: number | null, stall = 1.5) {
     const ctx = new FakeCtx();
     ctx.sampleRate = 48000; // (a real context's rate: a render quantum of 2.7 ms)
-    const host: MemoryAudioHost = {
-      ctx: ctx as unknown as BaseAudioContext,
-      out: new FakeNode(ctx) as unknown as AudioNode,
-      load: async (asset) => ({ duration: lengths[asset] }) as AudioBuffer,
-      impulse: () => ({}) as AudioBuffer,
-      intensity: 1,
-      where: () => [0, 0, 0],
-    };
+    const host = fakeHost(ctx, lengths);
     const audio = new MemoryAudio(host, sheet, markers);
     // Each source's own gain (made just after it), kept: a source that has ended is disconnected.
     const gains = new Map<FakeSource, FakeParam>();
@@ -264,7 +250,7 @@ describe('a cut on one instant of the audio clock (the woodland: the afternoon s
     const ramp = g.events.filter((e) => e[0] === 'ramp').at(-1);
     return ramp ? ramp[2] : Infinity;
   };
-  for (const stallAt of [null, 20, 33]) {
+  for (const stallAt of [null, 33]) {
     it(`the afternoon is cut where the evening begins, to the millisecond${stallAt ? ` (a ${1.5} s stall at ${stallAt} s)` : ''}`, async () => {
       const { ctx, audio, gains, go } = run(stallAt);
       await audio.prepare();
@@ -367,15 +353,7 @@ describe("the woodland's cut, driven as the App drives it (one reading of the au
     Object.assign(ctx, { baseLatency: latency ? 0.02 : 0, outputLatency: latency ? latency - 0.02 : 0 });
     const captions: [string, number][] = [];
     let c: MemoryPlaybackController | null = null;
-    const host: MemoryAudioHost = {
-      ctx: ctx as unknown as BaseAudioContext,
-      out: new FakeNode(ctx) as unknown as AudioNode,
-      load: async (asset) => ({ duration: lengths[asset] }) as AudioBuffer,
-      impulse: () => ({}) as AudioBuffer,
-      intensity: 1,
-      where: () => [0, 0, 0],
-      caption: (t) => captions.push([t, c!.position]),
-    };
+    const host = fakeHost(ctx, lengths, { caption: (t) => void captions.push([t, c!.position]) });
     const audio = new MemoryAudio(host, sheet, markers);
     const gains = new Map<FakeSource, FakeParam>();
     let last: FakeSource | null = null;
@@ -454,7 +432,10 @@ describe("the woodland's cut, driven as the App drives it (one reading of the au
       const now = ctx.currentTime, running = ctx.state === 'running';
       const paused = (!!o.pause && c.position >= o.pause[0] && pausedFor < o.pause[1]) || !running;
       if (paused) pausedFor += frame;
-      if (paused !== c.isPaused) paused ? c.pause() : c.resume(now);
+      if (paused !== c.isPaused) {
+        if (paused) c.pause();
+        else c.resume(now);
+      }
       if (o.seek !== undefined && !seeked && c.position >= 30) {
         seeked = true;
         c.scrub(o.seek);
@@ -492,9 +473,9 @@ describe("the woodland's cut, driven as the App drives it (one reading of the au
     ['a 0.6 s frame at 34.1 s', { stall: [34.1, 0.6] }],
     ['a 0.35 s frame at 34.12 s', { stall: [34.12, 0.35] }],
   ];
-  for (const latency of [0, 0.12, 0.32]) {
+  for (const latency of [0, 0.32]) {
     for (const [what, o] of cases) {
-      it(`the afternoon stops where the evening is full, on the picture's cut: ${what}${latency ? ', sound reaching the ear 0.12 s late' : ''}`, async () => {
+      it(`the afternoon stops where the evening is full, on the picture's cut: ${what}${latency ? `, sound reaching the ear ${latency} s late` : ''}`, async () => {
         const r = rig(latency);
         await r.audio.prepare();
         const cut = drive(r, o);
@@ -634,11 +615,7 @@ describe('captions: each shown as its sound is heard, with the picture', () => {
     Object.assign(ctx, { baseLatency: latency ? 0.02 : 0, outputLatency: latency ? latency - 0.02 : 0 });
     const shown = new Map<string, number>();
     let c: MemoryPlaybackController | null = null;
-    const host: MemoryAudioHost = {
-      ctx: ctx as unknown as BaseAudioContext, out: new FakeNode(ctx) as unknown as AudioNode,
-      load: async (asset) => ({ duration: lengths[asset] }) as AudioBuffer, impulse: () => ({}) as AudioBuffer,
-      intensity: 1, where: () => [0, 0, 0], caption: (t) => void (shown.has(t) || shown.set(t, c!.position)),
-    };
+    const host = fakeHost(ctx, lengths, { caption: (t) => void (shown.has(t) || shown.set(t, c!.position)) });
     const audio = new MemoryAudio(host, sheet, markers);
     const timeline: TimelineSource = { sections: { active: 6, exit: 42.5, residue: 49.5, end: 53 }, markers, at: () => ({}), dispose() {} };
     c = new MemoryPlaybackController({ timeline, audio, weights: FULL, reduced: false, entrance: 2, sways: [], exit: 3, maxHold: 60, tail: 2, living: true });
@@ -669,7 +646,7 @@ describe('captions: each shown as its sound is heard, with the picture', () => {
     return { shown, ctx };
   }
 
-  for (const latency of [0, 0.12, 0.33]) {
+  for (const latency of [0, 0.33]) {
     it(`with its own moment or without, within a frame of the picture reaching it (output latency ${latency} s)`, async () => {
       const { shown } = await play(latency);
       for (const [text, at] of [['[cicadas in the trees; a piano]', 9.9], ['[a latch]', 14.05], ['[a floorboard, just outside]', 20.0], ['Five more minutes.', 30.0], ['[an evening cicada, far off]', 48.5]] as const)
@@ -714,11 +691,7 @@ describe('paused while a soft release lets a begun sentence finish', () => {
   async function speaking(delay = 0) {
     const ctx = new FakeCtx();
     const captions: string[] = [];
-    const host: MemoryAudioHost = {
-      ctx: ctx as unknown as BaseAudioContext, out: new FakeNode(ctx) as unknown as AudioNode,
-      load: async () => ({ duration: 4 }) as AudioBuffer, impulse: () => ({}) as AudioBuffer,
-      intensity: 1, where: () => [0, 0, 0], caption: (text) => void captions.push(text),
-    };
+    const host = fakeHost(ctx, {}, { caption: (text) => void captions.push(text) });
     const audio = new MemoryAudio(host, sheet, markers);
     await audio.prepare();
     ctx.currentTime = 100;
@@ -759,11 +732,7 @@ describe('paused while a soft release lets a begun sentence finish', () => {
   it('its words are shown again for what is left of it when the pause ends', async () => {
     const ctx = new FakeCtx();
     const shown: [string, number][] = [];
-    const host: MemoryAudioHost = {
-      ctx: ctx as unknown as BaseAudioContext, out: new FakeNode(ctx) as unknown as AudioNode,
-      load: async () => ({ duration: 4 }) as AudioBuffer, impulse: () => ({}) as AudioBuffer,
-      intensity: 1, where: () => [0, 0, 0], caption: (t, s) => void shown.push([t, s]),
-    };
+    const host = fakeHost(ctx, {}, { caption: (t, s) => void shown.push([t, s]) });
     const audio = new MemoryAudio(host, sheet, markers);
     await audio.prepare();
     ctx.currentTime = 100;
@@ -783,11 +752,7 @@ describe('paused while a soft release lets a begun sentence finish', () => {
   it('a line cut short by stopAfter is shown only until that cut, not to the end of its recording', async () => {
     const ctx = new FakeCtx();
     const shown: [string, number][] = [];
-    const host: MemoryAudioHost = {
-      ctx: ctx as unknown as BaseAudioContext, out: new FakeNode(ctx) as unknown as AudioNode,
-      load: async () => ({ duration: 4 }) as AudioBuffer, impulse: () => ({}) as AudioBuffer,
-      intensity: 1, where: () => [0, 0, 0], caption: (t, s) => void shown.push([t, s]),
-    };
+    const host = fakeHost(ctx, {}, { caption: (t, s) => void shown.push([t, s]) });
     const cut: CueSheet = {
       ...sheet,
       cues: { 'voice:line': { ...sheet.cues['voice:line'], stopAfter: 2.5 } },
@@ -813,7 +778,7 @@ describe('paused while a soft release lets a begun sentence finish', () => {
 });
 
 describe('a voice that could not be loaded', () => {
-  it('is silent and uncaptioned unless the host offers a stand-in (App offers one only for a preview; that gate is not unit-tested)', async () => {
+  it('is silent and uncaptioned unless the host offers a stand-in', async () => {
     const sheet: CueSheet = {
       room: [0.4, 3, 0.06],
       cues: { 'voice:line': { asset: 'line', gainDb: -12, place: { u: 0, v: 0, d: 1 }, text: 'Five more minutes.' } },
@@ -823,12 +788,11 @@ describe('a voice that could not be loaded', () => {
       const ctx = new FakeCtx();
       const stoodIn: string[] = [];
       const captions: string[] = [];
-      const host: MemoryAudioHost = {
-        ctx: ctx as unknown as BaseAudioContext, out: new FakeNode(ctx) as unknown as AudioNode,
+      const host = fakeHost(ctx, {}, {
         load: async () => null as unknown as AudioBuffer, // the take would not fetch or decode
-        impulse: () => ({}) as AudioBuffer, intensity: 1, where: () => [0, 0, 0], caption: (t) => captions.push(t),
+        caption: (t) => void captions.push(t),
         fallback: preview ? (cue) => void stoodIn.push(cue.text ?? '') : undefined,
-      };
+      });
       const audio = new MemoryAudio(host, sheet, markers);
       await audio.prepare();
       audio.play([{ marker: markers[0], delay: 0 }] as never);

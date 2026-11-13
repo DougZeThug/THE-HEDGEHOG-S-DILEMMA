@@ -1,14 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { Director } from '../src/state/Director';
-import type { VisitorInput } from '../src/state/VisitorModel';
 import type { TimedCue } from '../src/state/cues';
+import { input } from './helpers/visitor';
+import { run } from './sim';
 
-const still: VisitorInput = { x: 0.1, z: 2.2, yaw: 0, pitch: 0, gazePhraseId: null, gazeChair: false, nearSurface: null, kneeling: false };
-const run = (d: Director, seconds: number, input: (t: number) => VisitorInput, facing: 'north' | 'east' = 'north') => {
-  const out: TimedCue[] = [];
-  for (let t = 0; t < seconds; t += 0.1) out.push(...d.tick(0.1, input(t), facing));
-  return out;
-};
+const still = input({ x: 0.1, z: 2.2 });
 
 describe('a memory intruding as light', () => {
   it('is kept back from the first writing: not spent on arrival', () => {
@@ -37,7 +33,6 @@ describe('a memory intruding as light', () => {
       const offer = cues.find((c) => c.rule === 'memory-offer')!;
       expect(offer.cue).toMatchObject({ type: 'write', surface: 'north', source: Director.MEMORY.phraseId });
       expect(['contradiction', 'transform']).toContain(d.phase);
-      // Not looked at: no light.
       expect(cues.some((c) => c.cue.type === 'memory')).toBe(false);
     }
   });
@@ -54,7 +49,6 @@ describe('a memory intruding as light', () => {
       if (!mem || mem.t - t0 > 3.0) late.push(`seed ${seed}: ${mem ? (mem.t - t0).toFixed(1) + ' s' : 'never'}`);
       if (mem) {
         expect(mem.cue).toMatchObject({ phraseId: Director.MEMORY.phraseId, attack: 3, hold: 6, release: 4 });
-        // Nothing else while they stay with it, either.
         const waiting = cues.filter((c) => c.t < mem.t && (c.cue.type === 'voice' || c.cue.type === 'write' || c.cue.type === 'reveal' || c.cue.type === 'music'));
         expect(waiting, `seed ${seed}`).toEqual([]);
         // Nothing of the room's own while it is there.

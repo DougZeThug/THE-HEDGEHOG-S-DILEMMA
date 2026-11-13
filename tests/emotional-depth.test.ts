@@ -10,28 +10,17 @@ import { PHRASES } from '../src/content/phrases';
 import { warmthOf } from '../src/state/Memory';
 import { PERSONAS, type Persona } from './playtest/personas';
 import { visit, type Development } from './playtest/measure';
-import { simulate } from './sim';
-import type { VisitorInput } from '../src/state/VisitorModel';
+import { simulate, drive } from './sim';
+import { BASE_INPUT as base } from './helpers/visitor';
 import type { Surface } from '../src/content/types';
 import type { TimedCue } from '../src/state/cues';
 
-const base: VisitorInput = { x: 0, z: 2.4, yaw: 0, pitch: 0, gazePhraseId: null, gazeChair: false, nearSurface: null, kneeling: false };
 const looped = (p: Persona): Persona => ({ ...p, frame: (t) => p.frame(t < 240 ? t : 60 + ((t - 240) % 180)) });
 const isMemory = (d: Development) => /^(vignette|memory-scene) /.test(d.label);
 
-/** Drive a Director with a script, returning every cue with its rule. */
-function drive(d: Director, script: (t: number) => Partial<VisitorInput> & { facing?: Surface }, from: number, seconds: number, dt = 0.1) {
-  const out: TimedCue[] = [];
-  for (let t = from; t < from + seconds; t += dt) {
-    const s = script(t);
-    out.push(...d.tick(dt, { ...base, ...s }, s.facing ?? 'north'));
-  }
-  return out;
-}
-
 /** A memory has been playing and ends now (as the App reports it). */
 function ends(d: Director, id: string, seen = true, ranToEnd = true) {
-  (d.scenes as unknown as { active: unknown }).active = { id, since: d.now };
+  d.scenes.active = { id, since: d.now };
   return d.memoryEnded(id, seen, ranToEnd);
 }
 
@@ -81,7 +70,7 @@ describe('the aftermath of a memory', () => {
         const d = new Director({ seed });
         d.release();
         drive(d, (t) => ({ x: where.x + 0.4 * Math.sin(t / 2), z: where.z }), 0, 30);
-        (d.scenes as unknown as { active: unknown }).active = { id: 'woodland', since: d.now };
+        d.scenes.active = { id: 'woodland', since: d.now };
         drive(d, () => ({ ...where, carried: true }), 0, 55);
         d.memoryEnded('woodland', true, true);
         d.withdrawMusic();
@@ -113,21 +102,12 @@ describe('the aftermath of a memory', () => {
     // (QA, 2026-10-20: a memory's offer re-inked one there once a copy elsewhere had made it count
     // as on the wall.) Every line with its own place on a wall is kept back from the start.
     const keep = PHRASES.filter((p) => p.at && p.id !== 'stay' && p.surface !== 'floor' && p.surface !== 'ceiling').map((p) => p.id);
-    const release = Director.prototype.release;
-    Director.prototype.release = function (this: Director, o?: Parameters<Director['release']>[0]) {
-      release.call(this, o);
-      this.keepBack(keep);
-    };
     const own: string[] = [];
-    try {
-      for (const p of PERSONAS)
-        for (const seed of [1, 2, 3, 4]) {
-          const r = visit(looped(p), 600, seed);
-          for (const c of r.director.log) if ((c.cue.type === 'reveal' || c.cue.type === 'redraw') && keep.includes(c.cue.phraseId)) own.push(`${p.id}:${seed} ${c.t}s ${c.rule} ${c.cue.type} ${c.cue.phraseId}`);
-        }
-    } finally {
-      Director.prototype.release = release;
-    }
+    for (const p of PERSONAS)
+      for (const seed of [1, 2, 3, 4]) {
+        const r = visit(looped(p), 600, seed, 0.1, { keepBack: keep });
+        for (const c of r.director.log) if ((c.cue.type === 'reveal' || c.cue.type === 'redraw') && keep.includes(c.cue.phraseId)) own.push(`${p.id}:${seed} ${c.t}s ${c.rule} ${c.cue.type} ${c.cue.phraseId}`);
+      }
     expect(own).toEqual([]);
   });
 
@@ -142,10 +122,10 @@ describe('the aftermath of a memory', () => {
   });
 });
 
-describe('after the afternoon (decision 118): two habits wait, a first approach does not', () => {
+describe('after the afternoon: two habits wait, a first approach does not', () => {
   /** The woodland's afternoon, taken in and seen to its end: the room's last music. */
   const afternoon = (d: Director) => {
-    (d.scenes as unknown as { active: unknown }).active = { id: 'woodland', since: d.now };
+    d.scenes.active = { id: 'woodland', since: d.now };
     drive(d, () => ({ carried: true }), 0, 55);
     d.memoryEnded('woodland', true, true);
     d.withdrawMusic();
@@ -178,7 +158,7 @@ describe('after the afternoon (decision 118): two habits wait, a first approach 
         drive(d, (t) => ({ x: 0.4 * Math.sin(t), z: 2.4 }), 0, 30);
         if (woodland) afternoon(d);
         else {
-          (d.scenes as unknown as { active: unknown }).active = { id: 'cereal', since: d.now };
+          d.scenes.active = { id: 'cereal', since: d.now };
           drive(d, () => ({ carried: true }), 0, 30);
           d.memoryEnded('cereal', true, true);
         }
@@ -195,7 +175,7 @@ describe('after the afternoon (decision 118): two habits wait, a first approach 
       const d = new Director({ seed });
       d.release();
       drive(d, (t) => ({ x: 2.4 + 0.3 * Math.sin(t / 3), z: -2.0 }), 0, 30);
-      (d.scenes as unknown as { active: unknown }).active = { id: 'woodland', since: d.now };
+      d.scenes.active = { id: 'woodland', since: d.now };
       drive(d, () => ({ x: 2.4, z: -2.6, carried: true }), 0, 55);
       d.memoryEnded('woodland', true, true);
       d.withdrawMusic();

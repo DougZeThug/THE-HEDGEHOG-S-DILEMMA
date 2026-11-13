@@ -87,11 +87,9 @@ describe('the vignettes, as written', () => {
       }
   });
 
-  it('the words carry no direction, and the recordings are never directed bright or amused', () => {
-    // (Performance direction for these lines lives with the recordings; the scripts carry none.)
+  it('the words carry no direction', () => {
+    // (Performance direction for these lines lives with the recordings, and is held to the sad register in dialogue.test.ts.)
     for (const v of VIGNETTES) for (const l of v.lines) expect(l.text, `${v.id}/${l.id}`).not.toMatch(/\[/);
-    const vdir = JSON.parse(readFileSync('src/content/vignettes.dialogue.json', 'utf8')) as { performances: { id: string; input: string }[] };
-    for (const p of vdir.performances) expect(p.input, p.id).not.toMatch(/\[[^\]]*(laugh|bright|cheer|teas|amused|happ|playful|excited|pleased|calling out|casual|generous)/i);
   });
 
   it('the sounds they use exist: recorded, made in the engine, or the room air', () => {

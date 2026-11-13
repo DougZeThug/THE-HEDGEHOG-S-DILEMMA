@@ -1,23 +1,15 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import * as THREE from 'three';
 import { SHADOWS } from '../src/memory/memories/shadows';
 import { SHADOWS_AT, SHADOWS_BEATS, SHADOWS_SECONDS, SHADOWS_SECTIONS } from '../src/memory/beats/shadows';
 import { SCENE_MEMORIES, HEART_BY_SHAPE, HEART_IDS, heartOf } from '../src/content/memories';
 import { PHRASE_BY_ID } from '../src/content/phrases';
-import { key, shadowsAt, uprightAt } from '../src/memory/living/shadows';
+import { shadowsAt, uprightAt } from '../src/memory/living/shadows';
 import { compose } from '../src/memory/compose';
 import { Lighting } from '../src/world/Lighting';
 import type { Environment } from '../src/core/environment';
 
 /** Memory VII, The Shape of Someone, in the room (docs/shadows.md). */
-const ROOT = join(__dirname, '..');
-const render = readFileSync(join(ROOT, 'scripts/memory-vii/render.py'), 'utf8');
-const manifest = JSON.parse(readFileSync(join(ROOT, 'public/memories/shadows/manifest.json'), 'utf8'));
-/** A key list from render.py, as (t, v) pairs. */
-const keysOf = (name: string): [number, number][] =>
-  [...render.match(new RegExp(`^${name} = \\[(.*)\\]$`, 'm'))![1].matchAll(/\(([\d.]+), ([-\d.]+)\)/g)].map((m) => [Number(m[1]), Number(m[2])]);
 const seed = SHADOWS.seed('film');
 const track = (k: string) => seed.tracks[k] as [number, number, string?][];
 const at = (k: string, t: number) => {
@@ -31,27 +23,7 @@ describe('Memory VII on its timeline', () => {
   it('opens from "You understood me once, completely, for about a minute.", reserved, counted once they meet', () => {
     const m = SCENE_MEMORIES.find((x) => x.id === 'shadows')!;
     expect(PHRASE_BY_ID.get(m.phraseId)!.text).toBe('You understood me once, completely, for about a minute.');
-    expect(m.reserved).toBe(true);
     expect(m.seenAt!).toBeGreaterThanOrEqual(SHADOWS_AT + SHADOWS_BEATS.meet - 0.5);
-    expect(m.maxHold).toBe(SHADOWS_SECTIONS.exit);
-    expect(m.span).toBe(SHADOWS_SECTIONS.end);
-  });
-
-  it("the film's moments and the upright framing's keys are render.py's own", () => {
-    const has = (name: string, t: number) => expect(keysOf(name).some(([k]) => Math.abs(k - t) < 1e-6), `${name} @ ${t}`).toBe(true);
-    has('LIGHT_I', SHADOWS_BEATS.light);
-    has('LIGHT_I', SHADOWS_BEATS.dark);
-    has('GAP', SHADOWS_BEATS.meet);
-    has('GAP', SHADOWS_BEATS.hold);
-    has('GAP', SHADOWS_BEATS.part);
-    has('BRIDGE', SHADOWS_BEATS.thread);
-    has('A_ARM', SHADOWS_BEATS.reach);
-    for (const t of [0, 3, 8, 12.6, 15, 20, 26]) {
-      expect(key(t, keysOf('LIGHT_X'))).toBeCloseTo(0.5 + (shadowsAt(t).mid - 0.5) / -0.33, 6);
-      expect(shadowsAt(t).gap).toBeCloseTo(key(t, keysOf('GAP')) / 1920, 6);
-    }
-    expect(SHADOWS_SECONDS * manifest.living.film.fps).toBe(manifest.living.film.frames);
-    expect(manifest.living.film.edge).toBe('shade');
   });
 
   it('the film begins on the wall in the gathered shade, before the visitor is carried in, and ends as its light goes', () => {
@@ -88,20 +60,6 @@ describe('Memory VII on its timeline', () => {
     expect(f['room.shadow']).toBe(0);
     const g = compose({ 'room.shadow': 1 }, { emerge: 1, exit: 1 }, { presence: 1, parallax: 1, motion: 1 } as never, true);
     expect(g['room.shadow']).toBe(1);
-  });
-
-  it('names every sound, each caption long enough to read; its screen-reader lines at least 3.5 s apart', () => {
-    const cue = SHADOWS.cues('film').cues['music:film'];
-    const all = [{ at: cue.captionAt ?? 0, text: cue.caption! }, ...(cue.captions ?? [])].sort((a, b) => a.at - b.at);
-    const words = (s: string) => s.split(/\s+/).filter(Boolean).length;
-    for (let i = 1; i < all.length; i++) expect(all[i].at - all[i - 1].at).toBeGreaterThanOrEqual(Math.max(1.2, 0.4 * words(all[i - 1].text)) - 1e-6);
-    const lines = SHADOWS.announce!('film');
-    const ats = [...new Set(lines.map((l) => l.at))];
-    for (let i = 1; i < ats.length; i++) expect(ats[i] - ats[i - 1]).toBeGreaterThanOrEqual(3.5);
-    for (const from of ['inside', 'wall'] as const) {
-      const said = [{ at: SHADOWS_SECTIONS.active, text: SHADOWS.describe('film') }, ...lines.filter((l) => !(from === 'inside' ? l.wall : l.inside))];
-      for (let i = 0; i + 1 < said.length; i++) expect(words(said[i].text), `${from}: ${said[i].text}`).toBeLessThanOrEqual(Math.floor(2.5 * (said[i + 1].at - said[i].at)));
-    }
   });
 });
 

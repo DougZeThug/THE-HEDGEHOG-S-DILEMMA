@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import * as THREE from 'three';
-import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { squareBar } from '../src/world/Chair';
 
 // The wood atlas wraps round each square bar: v runs w * 2.2 across every face, continuously from
@@ -12,7 +11,6 @@ describe('the chair\'s square bars', () => {
     const uv = g.attributes.uv, idx = g.index;
     const at = (n: number) => (idx ? idx.getX(n) : n);
     const count = idx ? idx.count : uv.count;
-    expect(RoundedBoxGeometry).toBeTruthy();
     const pos = g.attributes.position;
     // The wrap has to fall somewhere: on a thin rounded arris, never across a flat face.
     let faceSweep = 0;

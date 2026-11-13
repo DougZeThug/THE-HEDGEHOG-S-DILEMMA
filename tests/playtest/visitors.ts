@@ -311,7 +311,7 @@ export class Policy {
       const m = this.nextManner;
       this.intent = { k: 'chair', stage: m === 'pausing' && this.distance > 2.2 ? 'ring' : 'in', until: t + 60, manner: m };
       this.startChairLeg();
-    } else if ((x -= w.still) < 0) {
+    } else if (x - w.still < 0) {
       const face = g.floorOnly ? 'north' : pick(r, WALLS.filter((s) => s !== 'south' || r.chance(0.3)));
       this.intent = { k: 'still', until: t + r.range(4, 6) * (1 + (1 - g.tempo) * 2), yaw: YAW[face] + r.range(-0.3, 0.3) };
       this.walk(null);

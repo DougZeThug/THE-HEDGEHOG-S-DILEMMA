@@ -19,4 +19,17 @@ export default tseslint.config(
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
     },
   },
+  {
+    files: ['tests/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-unused-expressions': ['error', { allowTernary: true, allowShortCircuit: true, allowTaggedTemplates: true }],
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      'no-useless-assignment': 'error',
+    },
+  },
+  {
+    // Drives the built page through its untyped `window.__hedgehog` debugging hook.
+    files: ['tests/playtest/woodland-coda-walls.ts'],
+    rules: { '@typescript-eslint/no-explicit-any': 'off' },
+  },
 );

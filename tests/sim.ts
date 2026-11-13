@@ -2,18 +2,27 @@ import { Director } from '../src/state/Director';
 import type { VisitorInput } from '../src/state/VisitorModel';
 import type { Surface } from '../src/content/types';
 import type { TimedCue } from '../src/state/cues';
+import { BASE_INPUT } from './helpers/visitor';
 
 export type Script = (t: number) => Partial<VisitorInput> & { facing?: Surface };
+/** A visitor's behaviour: a function of time, or one fixed posture. */
+type Behaviour = Script | (Partial<VisitorInput> & { facing?: Surface });
+
+/** Tick a Director with a visitor's behaviour from `from` for `seconds`, returning every cue it gave. */
+export function drive(d: Director, behaviour: Behaviour, from: number, seconds: number, dt = 0.1, facing: Surface = 'north'): TimedCue[] {
+  const out: TimedCue[] = [];
+  for (let t = from; t < from + seconds; t += dt) {
+    const s = typeof behaviour === 'function' ? behaviour(t) : behaviour;
+    out.push(...d.tick(dt, { ...BASE_INPUT, ...s }, s.facing ?? facing));
+  }
+  return out;
+}
+
+/** `drive` from the start of the visit; a fixed posture needs no function. */
+export const run = (d: Director, seconds: number, behaviour: Behaviour = {}, facing: Surface = 'north') => drive(d, behaviour, 0, seconds, 0.1, facing);
 
 export function simulate(script: Script, seconds: number, seed = 7, dt = 0.1, d = new Director({ seed })) {
-  const cues: TimedCue[] = [];
-  const base: VisitorInput = { x: 0, z: 2.4, yaw: 0, pitch: 0, gazePhraseId: null, gazeChair: false, nearSurface: null, kneeling: false };
-  for (let t = 0; t < seconds; t += dt) {
-    const s = script(t);
-    const inp = { ...base, ...s };
-    cues.push(...d.tick(dt, inp, s.facing ?? 'north'));
-  }
-  return { d, cues };
+  return { d, cues: drive(d, script, 0, seconds, dt) };
 }
 
 export const scripts: Record<string, Script> = {

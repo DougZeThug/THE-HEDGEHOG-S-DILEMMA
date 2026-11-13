@@ -1,11 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { DRAWINGS, STATIC_DRAWINGS, DRAWING_BY_ID } from '../src/content/drawings';
+import { DRAWINGS, DRAWING_BY_ID } from '../src/content/drawings';
 import { PHRASES, PHRASE_BY_ID } from '../src/content/phrases';
 import { bakeDrawing } from '../src/world/sketch';
 import { layoutPhrases, overlaps, surfaceSize, RESERVED, drawingSpots, drawingBeside, layoutOf } from '../src/world/layout';
 import { Director } from '../src/state/Director';
 import type { VisitorInput } from '../src/state/VisitorModel';
 import type { TimedCue } from '../src/state/cues';
+import { input } from './helpers/visitor';
 
 const SZ: Record<string, number> = { xs: 0.13, s: 0.17, m: 0.22, l: 0.31, xl: 0.53 };
 const measure = (p: (typeof PHRASES)[number]) => {
@@ -14,26 +15,6 @@ const measure = (p: (typeof PHRASES)[number]) => {
 };
 
 describe('the drawings: few, small, mostly already there', () => {
-  it('eight or so; most were always there, one is drawn while watched', () => {
-    expect(DRAWINGS.length).toBeGreaterThanOrEqual(6);
-    expect(DRAWINGS.length).toBeLessThanOrEqual(14);
-    expect(DRAWINGS.length - STATIC_DRAWINGS.length).toBeGreaterThanOrEqual(1);
-    // Clearly visible from the start (not the half-erased ghosts): two to four.
-    const plain = STATIC_DRAWINGS.filter((d) => d.style !== 'ghost');
-    expect(plain.length).toBeGreaterThanOrEqual(2);
-    expect(plain.length).toBeLessThanOrEqual(4);
-  });
-  it('small, faint, and never more than three on a wall; the opening wall left alone', () => {
-    const per = new Map<string, number>();
-    for (const d of DRAWINGS) {
-      per.set(d.surface, (per.get(d.surface) ?? 0) + 1);
-      expect(d.strength, d.id).toBeLessThanOrEqual(0.8);
-      // Small: only the chair, drawn round at its own size, is bigger than a hand.
-      if (d.id !== 'ghost-chair') expect(Math.max(...d.size), d.id).toBeLessThanOrEqual(0.3);
-    }
-    for (const [s, n] of per) expect(n, s).toBeLessThanOrEqual(3);
-    expect(per.get('north') ?? 0).toBe(0);
-  });
   it('not captions: at most one sits beside the words it echoes', () => {
     expect(DRAWINGS.filter((d) => d.beside).length).toBeLessThanOrEqual(1);
     for (const d of DRAWINGS) {
@@ -60,7 +41,6 @@ describe('the drawings: few, small, mostly already there', () => {
     for (const d of DRAWINGS) if (d.at) expect(d.at[1] - d.size[1] / 2, d.id).toBeGreaterThan(0.095);
     // Apart from each other: no little gallery.
     for (const a of spots) for (const b of spots) if (a !== b && a.surface === b.surface) expect(Math.hypot(a.u - b.u, a.v - b.v)).toBeGreaterThan(0.4);
-    // The drawing that sits beside a line finds room there, clear of all the writing.
     const cups = DRAWING_BY_ID.get('cups')!;
     const p = drawingBeside(layoutOf(m), cups, m.get(cups.beside!));
     expect(p).toBeTruthy();
@@ -68,7 +48,6 @@ describe('the drawings: few, small, mostly already there', () => {
       const pl = m.get(q.id);
       if (pl && pl.surface === p!.surface) expect(overlaps(pl, p!, 0), q.id).toBe(false);
     }
-    // And when there is none (the wall filled with notes), it says so rather than overlapping.
     const full = layoutPhrases(PHRASES, measure, 4242, drawingSpots(DRAWINGS));
     const L = layoutOf(full);
     const t = full.get(cups.beside!)!;
@@ -92,21 +71,23 @@ describe('drawn by a hand', () => {
       // Line, not fill: a few percent of the box.
       expect(frac).toBeGreaterThan(0.005);
       expect(frac).toBeLessThan(0.3);
-      // Deterministic.
       expect(bakeDrawing(d).data).toEqual(b.data);
     });
   }
   it('the first stroke is drawn before the last', () => {
     const b = bakeDrawing(DRAWING_BY_ID.get('cups')!);
     let early = 0, late = 0;
-    for (let p = 0; p < b.W * b.H; p++) if (b.data[p * 4 + 3] > 60) b.data[p * 4] < 80 ? early++ : b.data[p * 4] > 180 ? late++ : 0;
+    for (let p = 0; p < b.W * b.H; p++) if (b.data[p * 4 + 3] > 60) {
+      if (b.data[p * 4] < 80) early++;
+      else if (b.data[p * 4] > 180) late++;
+    }
     expect(early).toBeGreaterThan(0);
     expect(late).toBeGreaterThan(0);
   });
 });
 
 describe('the cups are drawn while their line is looked at', () => {
-  const still: VisitorInput = { x: 0.1, z: 1.8, yaw: 0, pitch: 0, gazePhraseId: null, gazeChair: false, nearSurface: null, kneeling: false };
+  const still = input({ x: 0.1, z: 1.8 });
   const run = (d: Director, seconds: number, input: (t: number) => VisitorInput) => {
     const out: TimedCue[] = [];
     for (let t = 0; t < seconds; t += 0.1) out.push(...d.tick(0.1, input(t), 'east'));

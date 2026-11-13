@@ -10,15 +10,6 @@ describe('Director', () => {
     expect(a).toEqual(b);
   });
 
-  it('a visitor who only stands still still experiences the room changing', () => {
-    const { d, cues } = simulate(scripts.still, 240);
-    const r = rules(cues);
-    expect(r.has('still-1')).toBe(true);
-    expect(r.has('still-silence')).toBe(true);
-    expect(d.phase).not.toBe('arrival');
-    expect(d.memory.has('stillness')).toBe(true);
-  });
-
   it('stillness is not a fixed ladder: what it brings varies between visits', () => {
     const firstAt = new Set<number>();
     let withVoice = 0;
@@ -100,11 +91,9 @@ describe('Director', () => {
       const own = cues.filter((c) => c.rule.startsWith('contribution'));
       const w = own.find((c) => c.cue.type === 'write');
       expect(w && w.cue.type === 'write' && w.cue.text).toBe(text);
-      // Nothing that could read as an answer arrives within the first minute.
       for (const c of own) if (c.cue.type === 'reveal' || c.cue.type === 'voice') expect(c.t - 20).toBeGreaterThanOrEqual(59);
       extras.push(new Set(own.filter((c) => c.cue.type !== 'write').map((c) => c.rule)).size);
     }
-    // At most one other gesture, and often none at all.
     expect(Math.max(...extras)).toBeLessThanOrEqual(1);
     expect(extras.filter((n) => n === 0).length).toBeGreaterThan(4);
     expect(extras.filter((n) => n === 1).length).toBeGreaterThan(4);

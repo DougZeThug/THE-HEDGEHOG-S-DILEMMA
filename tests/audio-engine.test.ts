@@ -96,7 +96,7 @@ describe("the room's music stops under a memory, its reverb with it", () => {
 });
 
 describe("the room's silences inside one another", () => {
-  it('a deeper, shorter silence inside a longer one returns to the longer one, not to the full room (sound review, 2026-11-06)', () => {
+  it('a deeper, shorter silence inside a longer one returns to the longer one, not to the full room', () => {
     const { a, g } = engine();
     const ctx = a.ctx as unknown as FakeCtx;
     ctx.currentTime = 10;

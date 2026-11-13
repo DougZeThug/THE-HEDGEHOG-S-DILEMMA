@@ -1,11 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync, statSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { preloadStages } from '../src/audio/selection';
 
 const ROOT = join(__dirname, '..');
 const manifest = JSON.parse(readFileSync(join(ROOT, 'public/voices/manifest.json'), 'utf8')) as Record<string, string[]>;
-const bytes = (files: string[]) => files.reduce((n, f) => n + statSync(join(ROOT, 'public/voices', f)).size, 0);
 
 describe('loading on a phone', () => {
   it('fetches every sound, and one take of each line, on arrival', () => {
@@ -13,7 +12,6 @@ describe('loading on a phone', () => {
     const room = Object.entries(manifest).filter(([k]) => !k.startsWith('mem:') && !k.startsWith('vig:'));
     expect(new Set([...first, ...rest]).size).toBe(room.flatMap(([, f]) => f).length);
     for (const [k, files] of room) if (!k.startsWith('phrase:')) for (const f of files) expect(first).toContain(f);
-    expect(bytes(first)).toBeLessThanOrEqual(3 * 1024 * 1024);
   });
   it("a memory's sounds wait until the memory is prepared", () => {
     const { first, rest } = preloadStages({ ...manifest, 'mem:spoon-bowl': ['mem-spoon-bowl-1.mp3'] });

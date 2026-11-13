@@ -147,7 +147,10 @@ for (const m of seed.markers) {
     }
   }
   if (STEMS) {
-    for (let i = 0; i < n; i++) (L0[i] = L[i] - L0[i]), (R0[i] = R[i] - R0[i]);
+    for (let i = 0; i < n; i++) {
+      L0[i] = L[i] - L0[i];
+      R0[i] = R[i] - R0[i];
+    }
     wav(`${STEMS}/${m.label.replace(':', '-')}.wav`, L0, R0, 1, true);
   }
 }

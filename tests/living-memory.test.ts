@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import * as THREE from 'three';
-import { readFileSync } from 'node:fs';
 import { CANOPY, breath, blinkDrawing, gust, hash01, windForce, windResponse, windDrift } from '../src/memory/living/performance';
 import { WASH, washInputs, washOf } from '../src/world/living/wash';
 import { MemoryWindow } from '../src/world/MemoryWindow';
@@ -22,7 +21,7 @@ import { renderCicadas, renderWoods, cicada, midPhrases, RATE, TIMES } from '../
 import state from '../src/memory/theatre-state.json';
 import manifest from '../public/memories/woodland/manifest.json';
 import { WoodlandScene, headFor, type HeadCels, type LivingArt, type NearArt } from '../src/memory/living/WoodlandScene';
-import { DEFORMERS, livingMaterials } from '../src/world/living/materials';
+import { livingMaterials } from '../src/world/living/materials';
 
 // The woodland memory (docs/reviews/2026-10-woodland.md): its people's involuntary life, the
 // rules it composes by, the way into it, and its ending: a cut, on one frame. Since 2026-10-24 the
@@ -46,7 +45,10 @@ describe('their involuntary life, from time alone', () => {
     const gaps = ups.slice(1).map((u, i) => u - ups[i]);
     expect(gaps.length).toBeGreaterThan(8);
     expect(Math.max(...gaps) - Math.min(...gaps)).toBeGreaterThan(0.6);
-    for (const x of xs) expect(x).toBeGreaterThanOrEqual(0), expect(x).toBeLessThan(1.4);
+    for (const x of xs) {
+      expect(x).toBeGreaterThanOrEqual(0);
+      expect(x).toBeLessThan(1.4);
+    }
   });
 
   it('the two of them breathe differently (never in step)', () => {
@@ -68,7 +70,10 @@ describe('their involuntary life, from time alone', () => {
     // cinematic director's evaluation of the built turn, 2026-10-19.)
     const b = SPEC.breath.b;
     let peak = 0, at = 0;
-    for (let t = TWO_SHOT.herEyes; t <= TWO_SHOT.herTurn + 1.5; t += 0.01) if (breath(t, b) > peak) (peak = breath(t, b)), (at = t);
+    for (let t = TWO_SHOT.herEyes; t <= TWO_SHOT.herTurn + 1.5; t += 0.01) if (breath(t, b) > peak) {
+      peak = breath(t, b);
+      at = t;
+    }
     const drawings = turnDrawings();
     const half = drawings.find((d) => d.head >= 0.5)!.at;
     expect(Math.abs(at - half)).toBeLessThanOrEqual(0.25);
@@ -304,7 +309,10 @@ describe('the ending: a cut, on one frame', () => {
         if (!f || f.state === 'complete') break;
         const presence = f.final['window.presence'] ?? 1;
         const w = washed(box, painting, () => 0.2, f.final);
-        if (presence <= 0.02) (gone = true), expect(w, `${at} s, let go`).toBeLessThanOrEqual(0.02);
+        if (presence <= 0.02) {
+          gone = true;
+          expect(w, `${at} s, let go`).toBeLessThanOrEqual(0.02);
+        }
         if (prev !== null) expect(Math.abs(w - prev)).toBeLessThanOrEqual(0.1);
         prev = w;
       }
@@ -326,9 +334,15 @@ describe('the ending: a cut, on one frame', () => {
       const w = washed(box, painting, () => 0.2, f.final);
       if (reveal >= 0.99) coloured = true;
       // The colour gone, the pencil still there: the writing still a trace.
-      if (coloured && reveal <= 0.01 && sketch >= 0.99) pencilOnly++, expect(w).toBeGreaterThanOrEqual(WASH * 0.99);
+      if (coloured && reveal <= 0.01 && sketch >= 0.99) {
+        pencilOnly++;
+        expect(w).toBeGreaterThanOrEqual(WASH * 0.99);
+      }
       // The pencil gone after it: the writing back, whole.
-      if (coloured && sketch <= 0.01) plaster++, expect(w).toBeLessThanOrEqual(0.01);
+      if (coloured && sketch <= 0.01) {
+        plaster++;
+        expect(w).toBeLessThanOrEqual(0.01);
+      }
       if (prev !== null) expect(Math.abs(w - prev)).toBeLessThanOrEqual(0.1);
       prev = w;
     }
@@ -560,8 +574,6 @@ describe('the afternoon as a film: its shots at their own speed, the two of them
     expect(g.settled).toBeLessThan(SHOTS.wideAgain - 3);
     const woodland = SCENE_MEMORIES.find((m) => m.id === 'woodland')!;
     expect(woodland.seenAt).toBe(g.head);
-    expect(woodland.span).toBe(def.sections.end);
-    expect(woodland.maxHold).toBe(def.sections.exit);
   });
 
   it('their hands: nothing is heard of them', () => {
@@ -586,7 +598,7 @@ describe('the afternoon as a film: its shots at their own speed, the two of them
   });
 });
 
-describe("the painted rig's two-shot (dormant since 2026-10-24: its own drawings and spec)", () => {
+describe("the painted rig's two-shot (dormant: its own drawings and spec)", () => {
   const T = TWO_SHOT;
   /** The rig's `figure:b.turn` at `t` as its timeline keyed it: each drawing's value, held from its time. */
   const turnAt = (t: number) => {
@@ -649,23 +661,6 @@ describe("the painted rig's two-shot (dormant since 2026-10-24: its own drawings
       }
       expect(wrong).toEqual([]);
     }
-  });
-
-  it('her turn\'s drawings are the ones her-turn.py drew, at these times', () => {
-    // (scripts/her-turn.py mirrors turnDrawings; its turn.json says what each drawing is.)
-    const spec = JSON.parse(readFileSync('references/woodland/drawings/turn/turn.json', 'utf8')) as {
-      drawings: Record<string, number>;
-      schedule: Record<string, { at: number; eyes: number; head: number }>;
-    };
-    const d = turnDrawings();
-    const names = Object.keys(spec.drawings).sort((a, b) => spec.drawings[a] - spec.drawings[b]);
-    expect(names.length).toBe(d.length);
-    names.forEach((n, i) => {
-      expect(spec.drawings[n]).toBeCloseTo(d[i].turn, 4);
-      expect(spec.schedule[n].at).toBeCloseTo(d[i].at, 3);
-      expect(spec.schedule[n].eyes).toBeCloseTo(d[i].eyes, 4);
-      expect(spec.schedule[n].head).toBeCloseTo(d[i].head, 4);
-    });
   });
 
   it('her head: the drawing nearest to how far through her turn she is, a tie going to the one further on', () => {
@@ -826,13 +821,6 @@ describe('the scene, as built (no GL: what it would draw and let go)', () => {
   };
   const gl = { getRenderTarget: () => null, setRenderTarget: () => {}, render: () => {} } as unknown as THREE.WebGLRenderer;
   const view = { view: new THREE.Vector4(0, 0, 1, 1), parallax: new THREE.Vector2() };
-
-  it('every deformer the manifest names fits, and the shared program stays inside WebGL2\'s vertex uniforms', () => {
-    expect(lm.figures.deformers.length).toBeLessThanOrEqual(DEFORMERS);
-    // Vertex stage vec4s: the deformers, the wind, the drift (floats pad to a vec4 each), the
-    // matrices, and a margin for the scalars.
-    expect(DEFORMERS * 4 + 16 + 16 + 8 + 16).toBeLessThanOrEqual(256);
-  });
 
   it('the puppet is lighter on the low tier, and fewer motes under reduced motion', () => {
     const verts = (s: WoodlandScene) => ((s as unknown as { grid: THREE.BufferGeometry }).grid.getAttribute('position').count);

@@ -207,7 +207,6 @@ describe('the Director and its memories, wired together', () => {
 describe('living memories in a visit', () => {
   it('a reader who comes back to the first line meets the memory; nothing talks over it', () => {
     const reader = PERSONAS.find((p) => p.id === 'reader')!;
-    // Over four visits, most meet it; never before its earliest time.
     const runs = [1, 2, 3, 4].map((seed) => visit(reader, 180, seed));
     const ats = runs.map((r) => r.devs.find((d) => d.label === 'memory-scene cereal')?.t).filter((t): t is number => t !== undefined);
     expect(ats.length).toBeGreaterThanOrEqual(3);
@@ -223,7 +222,7 @@ describe('living memories in a visit', () => {
     const d = new Director({ seed: 3 });
     d.scenes.tapped('cereal');
     // (A visit where cereal played: the kitchen memory rule stands down.)
-    (d.scenes as unknown as { active: unknown }).active = { id: 'cereal', since: 0 };
+    d.scenes.active = { id: 'cereal', since: 0 };
     expect(d.scenes.anyPlayed).toBe(true);
   });
 });
