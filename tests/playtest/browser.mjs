@@ -4,20 +4,9 @@
 //
 //   BASE=http://localhost:4173/ PERSONA=phone SECONDS=120 OUT=dir node tests/playtest/browser.mjs
 //   PERSONA: phone (touch explorer) | still (enters and does nothing) | desktop (mouse, reads)
-import { createRequire } from 'node:module';
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { execSync } from 'node:child_process';
+import { BASE, launch, devices } from './browser-lib.mjs';
 
-const require = createRequire(import.meta.url);
-let chromium, devices;
-try {
-  ({ chromium, devices } = require('playwright'));
-} catch {
-  const root = execSync('npm root -g').toString().trim();
-  ({ chromium, devices } = require(`${root}/playwright`));
-}
-
-const BASE = process.env.BASE ?? 'http://localhost:4173/';
 const PERSONA = process.env.PERSONA ?? 'phone';
 const SECONDS = Number(process.env.SECONDS ?? 120);
 const OUT = process.env.OUT ?? 'test-output/playtest';
@@ -31,10 +20,7 @@ const chooseCaptions = () => {
     localStorage.setItem('hh.prefs.v1', JSON.stringify({ ...p, captions: true, captionsChosen: true }));
   } catch {}
 };
-const browser = await chromium.launch({
-  executablePath: process.env.CHROMIUM_PATH || undefined,
-  args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required', '--ignore-gpu-blocklist'],
-});
+const browser = await launch();
 const mobile = PERSONA !== 'desktop';
 const ctx = await browser.newContext(
   mobile ? { ...devices['iPhone 13'], deviceScaleFactor: 1 } : { viewport: { width: 1280, height: 760 } },

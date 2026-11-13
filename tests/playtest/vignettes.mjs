@@ -6,18 +6,9 @@
 //
 //   npm run build && npx vite preview --port 4173 &
 //   node tests/playtest/vignettes.mjs       (ONLY=charger,gone-quiet  PROFILES=desktop  REDUCED=1)
-import { createRequire } from 'node:module';
 import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
-import { execSync } from 'node:child_process';
+import { BASE, launch, devices } from './browser-lib.mjs';
 
-const require = createRequire(import.meta.url);
-let chromium, devices;
-try {
-  ({ chromium, devices } = require('playwright'));
-} catch {
-  ({ chromium, devices } = require(`${execSync('npm root -g').toString().trim()}/playwright`));
-}
-const BASE = process.env.BASE ?? 'http://localhost:4173/';
 const OUT = process.env.OUT ?? 'test-output/review/vignettes';
 const PROFILES = (process.env.PROFILES ?? 'desktop,phone').split(',');
 const ONLY = process.env.ONLY?.split(',');
@@ -31,10 +22,7 @@ const chooseCaptions = () => {
     localStorage.setItem('hh.prefs.v1', JSON.stringify({ ...p, captions: true, captionsChosen: true }));
   } catch {}
 };
-const browser = await chromium.launch({
-  executablePath: process.env.CHROMIUM_PATH || undefined,
-  args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required'],
-});
+const browser = await launch();
 const report = { at: new Date().toISOString(), runs: [] };
 let failed = 0;
 
