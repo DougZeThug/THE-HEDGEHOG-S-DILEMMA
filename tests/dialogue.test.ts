@@ -8,7 +8,22 @@ import {
 } from '../scripts/dialogue-lib.mjs';
 
 const ROOT = join(__dirname, '..');
-const direction = dialogue as any;
+/** One directed take, as far as these tests read it. */
+interface Perf {
+  id: string;
+  phraseId: string;
+  text: string;
+  input: string;
+  file: string;
+  voice?: string;
+  interpretation?: string;
+  context?: unknown;
+  generation?: number;
+  retired?: boolean;
+  audition?: boolean;
+  variantOf?: string;
+}
+const direction = dialogue as unknown as { performances: Perf[]; voices: Record<string, { voiceId: string | null }> };
 const ledger = JSON.parse(readFileSync(join(ROOT, 'scripts/dialogue-ledger.json'), 'utf8'));
 const manifest = JSON.parse(readFileSync(join(ROOT, 'public/voices/manifest.json'), 'utf8'));
 /** A real recording, as the fake API's audio. */
@@ -19,38 +34,38 @@ describe('voice direction', () => {
     expect(validateDirection(direction, (id) => PHRASE_BY_ID.get(id)?.text)).toEqual([]);
   });
   it('covers the required phrases, with several performances of the most important', () => {
-    const ids = new Set(direction.performances.map((p: any) => p.phraseId));
+    const ids = new Set(direction.performances.map((p: Perf) => p.phraseId));
     for (const id of ['stay', 'closer', 'afraid-leave', 'if-closer', 'why-understand', 'love-go-away', 'two-cups', 'laugh-breathe', 'understood-minute', 'crumbs', 'remember-me', 'glad-came'])
       expect(ids.has(id), id).toBe(true);
     expect(ids.size).toBeGreaterThanOrEqual(18);
     expect(ids.size).toBeLessThanOrEqual(40);
-    const count = (id: string) => direction.performances.filter((p: any) => p.phraseId === id && !p.retired && !p.audition).length;
+    const count = (id: string) => direction.performances.filter((p: Perf) => p.phraseId === id && !p.retired && !p.audition).length;
     expect(count('stay')).toBeGreaterThanOrEqual(3);
     expect(count('closer')).toBeGreaterThanOrEqual(2);
   });
   it('directs a range of feeling, and keeps it in the room after listening', () => {
-    const fresh = direction.performances.filter((p: any) => p.generation === 2);
+    const fresh = direction.performances.filter((p: Perf) => p.generation === 2);
     expect(fresh.length).toBeGreaterThanOrEqual(15);
     // The artist prefers sadder and whispered takes, so there is no cap on them; but laughter,
     // anger and warmth were all directed, and laughter and warmth survived the listening.
-    const inputs = fresh.map((p: any) => p.input.toLowerCase()).join(' ');
+    const inputs = fresh.map((p: Perf) => p.input.toLowerCase()).join(' ');
     for (const w of ['laugh', 'angry', 'frustrated', 'warm', 'embarrassed', 'confused', 'grief', 'tender']) expect(inputs).toContain(w);
-    const live = direction.performances.filter((p: any) => !p.retired && !p.audition);
-    for (const id of ['crumbs--laughing', 'laugh-breathe--joy', 'love-go-away--teasing', 'love-go-away--laughing']) expect(live.map((p: any) => p.id)).toContain(id);
+    const live = direction.performances.filter((p: Perf) => !p.retired && !p.audition);
+    for (const id of ['crumbs--laughing', 'laugh-breathe--joy', 'love-go-away--teasing', 'love-go-away--laughing']) expect(live.map((p: Perf) => p.id)).toContain(id);
     for (const id of ['stay', 'love-go-away', 'happy-then']) {
-      const takes = live.filter((p: any) => p.phraseId === id);
+      const takes = live.filter((p: Perf) => p.phraseId === id);
       // "I think I was happy then." lost two readings in the audition; its new ones are waiting to be heard.
       const min = id === 'happy-then' ? 2 : 3;
       expect(takes.length, id).toBeGreaterThanOrEqual(min);
       // Approved alternative takes ("-b", "-c") share their reading's interpretation.
-      expect(new Set(takes.map((p: any) => p.interpretation)).size, id).toBeGreaterThanOrEqual(min);
-      expect(new Set(takes.map((p: any) => `${p.voice}:${JSON.stringify(p.context)}`)).size, id).toBeGreaterThanOrEqual(min);
-      expect(direction.performances.filter((p: any) => p.phraseId === id && !p.retired).length, id).toBeGreaterThanOrEqual(3);
+      expect(new Set(takes.map((p: Perf) => p.interpretation)).size, id).toBeGreaterThanOrEqual(min);
+      expect(new Set(takes.map((p: Perf) => `${p.voice}:${JSON.stringify(p.context)}`)).size, id).toBeGreaterThanOrEqual(min);
+      expect(direction.performances.filter((p: Perf) => p.phraseId === id && !p.retired).length, id).toBeGreaterThanOrEqual(3);
     }
   });
 
   it('keeps retired takes out of the room but not out of the ledger', () => {
-    const retired = direction.performances.filter((p: any) => p.retired);
+    const retired = direction.performances.filter((p: Perf) => p.retired);
     expect(retired.length).toBeGreaterThan(0);
     const l = emptyLedger();
     for (const p of direction.performances) l.entries[p.id] = { status: 'validated', hash: performanceHash(p, direction) };
@@ -67,7 +82,7 @@ describe('voice direction', () => {
 describe('generation planning', () => {
   it('never repeats an identical generation, and never overwrites an approved one', () => {
     const l = emptyLedger();
-    const perf = direction.performances.find((p: any) => !p.retired);
+    const perf = direction.performances.find((p: Perf) => !p.retired)!;
     l.entries[perf.id] = { status: 'validated', hash: performanceHash(perf, direction) };
     expect(planJobs(direction, l, { only: [perf.id] }).jobs).toHaveLength(0);
     const changed = { ...direction, performances: [{ ...perf, input: perf.text }] };
@@ -79,7 +94,7 @@ describe('generation planning', () => {
     expect(planJobs(direction, l, { only: [perf.id], fileExists: () => false }).jobs).toHaveLength(1);
   });
   it('never regenerates a retired take unless asked to', () => {
-    const r = direction.performances.find((p: any) => p.retired);
+    const r = direction.performances.find((p: Perf) => p.retired)!;
     expect(planJobs(direction, emptyLedger(), { only: [r.id] }).jobs).toHaveLength(0);
     expect(planJobs(direction, emptyLedger(), { only: [r.id], regenerate: [r.id] }).jobs).toHaveLength(1);
   });
@@ -105,7 +120,7 @@ describe('API failure handling', () => {
   const mp3 = new Uint8Array(real('dialogue/crumbs.mp3'));
   const ok = () => ({ ok: true, status: 200, headers: new Map([['character-cost', '34'], ['request-id', 'r1']]), arrayBuffer: async () => mp3.buffer.slice(mp3.byteOffset, mp3.byteOffset + mp3.byteLength), json: async () => ({ text: "You've got crumbs on you" }) });
   const fail = (status: number, code: string, message = '') => ({ ok: false, status, headers: new Map(), text: async () => JSON.stringify({ detail: { code, message } }) });
-  const harness = (responses: any[]) => {
+  const harness = (responses: object[]) => {
     const calls: string[] = [];
     const fetch = async (url: string) => {
       calls.push(url);
@@ -116,7 +131,7 @@ describe('API failure handling', () => {
     return { calls, files, fetch, writeFile: async (f: string) => void files.push(f), saveLedger: async () => {}, sleep: async () => {} };
   };
   // These tests are about the API, not the audition: plan as if no take had been retired.
-  const unretired = { ...direction, performances: direction.performances.map(({ retired, ...p }: any) => p) };
+  const unretired = { ...direction, performances: direction.performances.map(({ retired: _retired, ...p }) => p) };
   const jobsFor = (ids: string[]) => planJobs(unretired, emptyLedger(), { only: ids }).jobs;
 
   it('retries a rate limit, then bills exactly once', async () => {
@@ -186,12 +201,12 @@ describe('the manifest', () => {
 describe('the whole spoken corpus is cast', () => {
   it('every voiced phrase has at least one take, kept or waiting to be heard', async () => {
     const { PHRASES } = await import('../src/content/phrases');
-    const cast = new Set(direction.performances.filter((p: any) => !p.retired).map((p: any) => p.phraseId));
+    const cast = new Set(direction.performances.filter((p: Perf) => !p.retired).map((p: Perf) => p.phraseId));
     for (const p of PHRASES) if (p.voice) expect(cast.has(p.id), p.id).toBe(true);
   });
   it('other seeds point at a direction that exists, and never enter the room unheard', () => {
-    for (const p of direction.performances.filter((x: any) => x.variantOf)) {
-      expect(direction.performances.some((x: any) => x.id === p.variantOf), p.id).toBe(true);
+    for (const p of direction.performances.filter((x: Perf) => x.variantOf)) {
+      expect(direction.performances.some((x: Perf) => x.id === p.variantOf), p.id).toBe(true);
       if (ledger.entries[p.id]?.review !== 'approved') expect(p.audition, p.id).toBe(true);
     }
   });

@@ -24,7 +24,10 @@ describe('phrase corpus', () => {
     expect(multi / PHRASES.length).toBeGreaterThan(0.75);
   });
   it('dimension weights are in range', () => {
-    for (const p of PHRASES) for (const v of Object.values(p.dims)) expect(v).toBeGreaterThan(0), expect(v).toBeLessThanOrEqual(1);
+    for (const p of PHRASES) for (const v of Object.values(p.dims)) {
+      expect(v).toBeGreaterThan(0);
+      expect(v).toBeLessThanOrEqual(1);
+    }
   });
   it('has enough writing on the walls at arrival, and something on the south wall', () => {
     const arrival = PHRASES.filter((p) => p.tier === 'arrival');

@@ -168,6 +168,20 @@ section('the voice recordings, ledger and manifest agree', () => {
   check(bytes <= 3 * 1024 * 1024, `voices: the sounds fetched on arrival are ${(bytes / 1048576).toFixed(2)} MiB, over the 3 MiB phone budget (raise it on purpose in scripts/check-assets.mjs)`);
 });
 
+section("every recording in the room has character timings that match its text (for writing it as it is said)", () => {
+  const timings = json('src/content/voice-timings.json');
+  const direction = json('src/content/dialogue.json');
+  const manifest = json('public/voices/manifest.json');
+  for (const f of Object.entries(manifest).filter(([k]) => k.startsWith('phrase:')).flatMap(([, v]) => v)) {
+    const e = timings[f];
+    const perf = direction.performances.find((p) => p.file === f);
+    check(e && perf, `timings: ${f} has no timings, or no direction (run scripts/align-voices.mjs)`);
+    if (!e || !perf) continue;
+    check(e.text === perf.text && e.chars.length === perf.text.length, `timings: ${f} is timed for different words than the direction has`);
+    for (let i = 1; i < e.chars.length; i++) check(e.chars[i][0] >= e.chars[i - 1][0] - 1e-6, `timings: ${f} has characters out of order at ${i}`);
+  }
+});
+
 section('the memories have every file they draw', () => {
   for (const art of readdirSync(abs('public/memories'), { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name)) {
     const manifest = json(`public/memories/${art}/manifest.json`);

@@ -45,7 +45,10 @@ describe('their involuntary life, from time alone', () => {
     const gaps = ups.slice(1).map((u, i) => u - ups[i]);
     expect(gaps.length).toBeGreaterThan(8);
     expect(Math.max(...gaps) - Math.min(...gaps)).toBeGreaterThan(0.6);
-    for (const x of xs) expect(x).toBeGreaterThanOrEqual(0), expect(x).toBeLessThan(1.4);
+    for (const x of xs) {
+      expect(x).toBeGreaterThanOrEqual(0);
+      expect(x).toBeLessThan(1.4);
+    }
   });
 
   it('the two of them breathe differently (never in step)', () => {
@@ -67,7 +70,10 @@ describe('their involuntary life, from time alone', () => {
     // cinematic director's evaluation of the built turn, 2026-10-19.)
     const b = SPEC.breath.b;
     let peak = 0, at = 0;
-    for (let t = TWO_SHOT.herEyes; t <= TWO_SHOT.herTurn + 1.5; t += 0.01) if (breath(t, b) > peak) (peak = breath(t, b)), (at = t);
+    for (let t = TWO_SHOT.herEyes; t <= TWO_SHOT.herTurn + 1.5; t += 0.01) if (breath(t, b) > peak) {
+      peak = breath(t, b);
+      at = t;
+    }
     const drawings = turnDrawings();
     const half = drawings.find((d) => d.head >= 0.5)!.at;
     expect(Math.abs(at - half)).toBeLessThanOrEqual(0.25);
@@ -303,7 +309,10 @@ describe('the ending: a cut, on one frame', () => {
         if (!f || f.state === 'complete') break;
         const presence = f.final['window.presence'] ?? 1;
         const w = washed(box, painting, () => 0.2, f.final);
-        if (presence <= 0.02) (gone = true), expect(w, `${at} s, let go`).toBeLessThanOrEqual(0.02);
+        if (presence <= 0.02) {
+          gone = true;
+          expect(w, `${at} s, let go`).toBeLessThanOrEqual(0.02);
+        }
         if (prev !== null) expect(Math.abs(w - prev)).toBeLessThanOrEqual(0.1);
         prev = w;
       }
@@ -325,9 +334,15 @@ describe('the ending: a cut, on one frame', () => {
       const w = washed(box, painting, () => 0.2, f.final);
       if (reveal >= 0.99) coloured = true;
       // The colour gone, the pencil still there: the writing still a trace.
-      if (coloured && reveal <= 0.01 && sketch >= 0.99) pencilOnly++, expect(w).toBeGreaterThanOrEqual(WASH * 0.99);
+      if (coloured && reveal <= 0.01 && sketch >= 0.99) {
+        pencilOnly++;
+        expect(w).toBeGreaterThanOrEqual(WASH * 0.99);
+      }
       // The pencil gone after it: the writing back, whole.
-      if (coloured && sketch <= 0.01) plaster++, expect(w).toBeLessThanOrEqual(0.01);
+      if (coloured && sketch <= 0.01) {
+        plaster++;
+        expect(w).toBeLessThanOrEqual(0.01);
+      }
       if (prev !== null) expect(Math.abs(w - prev)).toBeLessThanOrEqual(0.1);
       prev = w;
     }

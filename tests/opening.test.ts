@@ -232,20 +232,6 @@ describe('stroke ownership between lines', () => {
   });
 });
 
-describe('voice timings', () => {
-  it('every recording in the room has character timings that match its text and fit inside it', () => {
-    const manifest = Object.entries((require('../public/voices/manifest.json') as Record<string, string[]>)).filter(([k]) => k.startsWith('phrase:')).flatMap(([, v]) => v);
-    for (const f of manifest) {
-      const e = T[f];
-      expect(e, f).toBeTruthy();
-      const perf = (dialogue.performances as { file: string; text: string }[]).find((p) => p.file === f)!;
-      expect(e.text).toBe(perf.text);
-      expect(e.chars.length).toBe(perf.text.length);
-      for (let i = 1; i < e.chars.length; i++) expect(e.chars[i][0], f).toBeGreaterThanOrEqual(e.chars[i - 1][0] - 1e-6);
-    }
-  });
-});
-
 describe('comfort', () => {
   it('the system reduced-motion setting is followed unless the visitor chose otherwise', async () => {
     const store = new Map<string, string>();

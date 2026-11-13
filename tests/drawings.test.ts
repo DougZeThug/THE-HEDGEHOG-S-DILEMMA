@@ -77,7 +77,10 @@ describe('drawn by a hand', () => {
   it('the first stroke is drawn before the last', () => {
     const b = bakeDrawing(DRAWING_BY_ID.get('cups')!);
     let early = 0, late = 0;
-    for (let p = 0; p < b.W * b.H; p++) if (b.data[p * 4 + 3] > 60) b.data[p * 4] < 80 ? early++ : b.data[p * 4] > 180 ? late++ : 0;
+    for (let p = 0; p < b.W * b.H; p++) if (b.data[p * 4 + 3] > 60) {
+      if (b.data[p * 4] < 80) early++;
+      else if (b.data[p * 4] > 180) late++;
+    }
     expect(early).toBeGreaterThan(0);
     expect(late).toBeGreaterThan(0);
   });

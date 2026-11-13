@@ -37,7 +37,7 @@ function parseFrontmatter(file: string, text: string): Record<string, string> {
 
 const files = readdirSync(AGENT_DIR).filter((f) => f.endsWith('.md')).sort();
 const agents: Agent[] = files.map((file) => ({ file, fm: parseFrontmatter(file, readFileSync(join(AGENT_DIR, file), 'utf8')) }));
-const normTool = (t: string) => t.trim().replace(/^[\s'"\[]+|[\s'"\]]+$/g, '').toLowerCase();
+const normTool = (t: string) => t.trim().replace(/^[\s'"[]+|[\s'"\]]+$/g, '').toLowerCase();
 const toolsOf = (a: Agent) => (a.fm.tools ?? '').split(',').map(normTool).filter(Boolean);
 const READ_ONLY_NORM = READ_ONLY_TOOLS.map((t) => t.toLowerCase());
 const EDIT_NORM = EDIT_TOOLS.map((t) => t.toLowerCase());

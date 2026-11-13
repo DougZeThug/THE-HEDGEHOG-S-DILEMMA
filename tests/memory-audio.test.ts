@@ -432,7 +432,10 @@ describe("the woodland's cut, driven as the App drives it (one reading of the au
       const now = ctx.currentTime, running = ctx.state === 'running';
       const paused = (!!o.pause && c.position >= o.pause[0] && pausedFor < o.pause[1]) || !running;
       if (paused) pausedFor += frame;
-      if (paused !== c.isPaused) paused ? c.pause() : c.resume(now);
+      if (paused !== c.isPaused) {
+        if (paused) c.pause();
+        else c.resume(now);
+      }
       if (o.seek !== undefined && !seeked && c.position >= 30) {
         seeked = true;
         c.scrub(o.seek);

@@ -20,7 +20,7 @@
     "style": "node tests/playtest/style.mjs && python3 tests/playtest/style-metrics.py ${OUT:-test-output/review/style/run}",
     "memories:seed": "vite-node scripts/seed-memories.ts",
     "bake:memories": "node scripts/bake-memories.mjs",
-    "lint": "eslint src",
+    "lint": "eslint src tests",
     "coverage": "vitest run --coverage --testTimeout=30000",
     "analyze": "ANALYZE=1 vite build",
     "a11y": "node tests/playtest/a11y.mjs"
