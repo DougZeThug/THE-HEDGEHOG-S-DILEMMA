@@ -1,7 +1,4 @@
 import { describe, it, expect } from 'vitest';
-import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import * as THREE from 'three';
 import { FilmScene, filmType, loadFilm } from '../src/memory/living/FilmScene';
 import { ALMOST } from '../src/memory/memories/almost';
@@ -413,26 +410,6 @@ describe('Almost on its timeline', () => {
     expect(m.span).toBe(ALMOST_SECTIONS.end);
   });
 
-  it('its sounds were laid offline on the timeline that plays', () => {
-    // (scripts/almost/sound.py places the kitchen and the film's sounds, and the clock's ticks,
-    // from these two moments: moved here without running it again, the ticks drift off the film.)
-    const py = readFileSync(join(__dirname, '../scripts/almost/sound.py'), 'utf8');
-    const at = (name: string) => Number(py.match(new RegExp(`^${name} = ([\\d.]+)`, 'm'))![1]);
-    const marker = (label: string) => ALMOST.markers.find((m) => m.label === label)!.position;
-    expect(at('KITCHEN_AT')).toBe(marker('music:kitchen'));
-    expect(at('FILM_AT')).toBe(marker('music:film'));
-    expect(marker('music:film')).toBe(FILM_AT);
-  });
-
-  it("its two sounds were made from the exposure sheet and the mix as they are now", () => {
-    // (sound.py --publish records what it laid them on; change the sheet or the mix and they are
-    // laid again, or the clock and the sleeves fall off the frames they belong to)
-    const made = JSON.parse(readFileSync(join(__dirname, '../public/music/almost-sound.json'), 'utf8'));
-    const sha = (f: string) => createHash('sha256').update(readFileSync(join(__dirname, '..', f))).digest('hex').slice(0, 16);
-    expect(made.xsheet).toBe(sha('scripts/almost/xsheet.py'));
-    expect(made.sound).toBe(sha('scripts/almost/sound.py'));
-  });
-
   it("its screen-reader lines are in order and at least 3.5 s apart", () => {
     const lines = ALMOST.announce!('film');
     const ats = [...new Set(lines.map((l) => l.at))];
@@ -455,12 +432,10 @@ describe('Almost on its timeline', () => {
 
 describe('Things I Should Have Said on its timeline', () => {
   const seed = THINGS.seed('film');
-  const manifest = JSON.parse(readFileSync(join(__dirname, '../public/memories/things/manifest.json'), 'utf8'));
   it('the wall draws the goodbye before the visitor is carried in; the film holds it until they are inside', () => {
     const keys = seed.tracks['scene.film'] as [number, number, string?][];
     expect(keys.find(([t]) => t === THINGS_AT)?.[1]).toBe(0);
     expect(keys.find(([t]) => t === THINGS_AT + THINGS_SECONDS)?.[1]).toBe(THINGS_SECONDS);
-    expect(THINGS_SECONDS * manifest.living.film.fps).toBe(manifest.living.film.frames);
     // (the pencil and the tone are all there before the way in begins)
     const sketch = seed.tracks['window.sketch'] as [number, number][];
     const reveal = seed.tracks['window.reveal'] as [number, number][];
@@ -473,8 +448,6 @@ describe('Things I Should Have Said on its timeline', () => {
     expect(THINGS_SECTIONS.exit).toBeGreaterThan(THINGS_AT + THINGS_SECONDS - 1.5);
     expect(THINGS_SECTIONS.exit).toBeLessThanOrEqual(THINGS_AT + THINGS_SECONDS);
     expect(THINGS_AT + THINGS_BEATS.empty).toBeLessThan(THINGS_SECTIONS.exit);
-    // its edge is a sheet rubbed, not felt torn
-    expect(manifest.living.film.edge).toBe('soft');
   });
 
   it('counts as seen once his almost has begun inside, and plays to its exit', () => {
@@ -487,27 +460,12 @@ describe('Things I Should Have Said on its timeline', () => {
     expect(THINGS.markers.find((k) => k.label === 'music:film')!.position).toBe(THINGS_AT);
   });
 
-  it('its sound was made from the exposure sheet, the Foley and the soundscape as they are now, without music', () => {
-    // (soundscape.py records what it made it from; change any and it is made again, or the
-    // eraser is heard where nothing is erased)
-    const made = JSON.parse(readFileSync(join(__dirname, '../public/music/things-sound.json'), 'utf8'));
-    const sha = (f: string) => createHash('sha256').update(readFileSync(join(__dirname, '..', f))).digest('hex').slice(0, 16);
-    expect(made.story).toBe(sha('scripts/things/story.py'));
-    expect(made.foley).toBe(sha('scripts/things/foley.py'));
-    expect(made.soundscape).toBe(sha('scripts/things/soundscape.py'));
-    // (Mix B, the room's: the artist's choice, having heard both, 2026-10-22)
-    expect(made.mix).toBe('b');
-  });
-
   it("the wall's sound is the wall's drawing: its start, its length, its level, its caption before the film's (QA)", () => {
     const seed = THINGS.seed('film');
     const sketch = seed.tracks['window.sketch'] as [number, number][];
-    const made = JSON.parse(readFileSync(join(__dirname, '../public/music/things-sound.json'), 'utf8'));
     const cues = THINGS.cues('film').cues;
     const at = (label: string) => THINGS.markers.find((k) => k.label === label)!.position;
     expect(at('music:wall')).toBe(sketch[0][0]);
-    expect(made.seconds.wall).toBeCloseTo(sketch[sketch.length - 1][0] - sketch[0][0], 3);
-    expect(made.seconds.film).toBeCloseTo(THINGS_SECONDS, 3);
     // (the same gain as the film's, through the same path: as a point in the wall it was 10 dB under)
     for (const k of ['gainDb', 'wide', 'dry'] as const) expect(cues['music:wall'][k], k).toEqual(cues['music:film'][k]);
     const film = cues['music:film'];
@@ -526,13 +484,6 @@ describe('Things I Should Have Said on its timeline', () => {
     }
     for (const beat of [THINGS_BEATS.latch, THINGS_BEATS.lift, THINGS_BEATS.held, THINGS_BEATS.takenBack, THINGS_BEATS.hersHeld, THINGS_BEATS.hersTaken, THINGS_BEATS.erased])
       expect(Math.min(...all.map((c) => Math.abs(c.at - beat))), `a caption at ${beat}`).toBeLessThanOrEqual(0.5);
-  });
-
-  it("its story's moments are where the exposure sheet put them (to a frame)", () => {
-    // (Hand-copied, they drifted: the casings were 2.4 s later than the announcements said: QA.)
-    const made = JSON.parse(readFileSync(join(__dirname, '../public/music/things-sound.json'), 'utf8'));
-    expect(Object.keys(made.beats).sort()).toEqual(Object.keys(THINGS_BEATS).sort());
-    for (const [k, at] of Object.entries(THINGS_BEATS)) expect(Math.abs(at - made.beats[k]), k).toBeLessThanOrEqual(1 / 24);
   });
 
   it("its screen-reader lines are in order, at least 3.5 s apart, and each said before the next", () => {

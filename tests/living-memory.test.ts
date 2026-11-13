@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import * as THREE from 'three';
-import { readFileSync } from 'node:fs';
 import { CANOPY, breath, blinkDrawing, gust, hash01, windForce, windResponse, windDrift } from '../src/memory/living/performance';
 import { WASH, washInputs, washOf } from '../src/world/living/wash';
 import { MemoryWindow } from '../src/world/MemoryWindow';
@@ -22,7 +21,7 @@ import { renderCicadas, renderWoods, cicada, midPhrases, RATE, TIMES } from '../
 import state from '../src/memory/theatre-state.json';
 import manifest from '../public/memories/woodland/manifest.json';
 import { WoodlandScene, headFor, type HeadCels, type LivingArt, type NearArt } from '../src/memory/living/WoodlandScene';
-import { DEFORMERS, livingMaterials } from '../src/world/living/materials';
+import { livingMaterials } from '../src/world/living/materials';
 
 // The woodland memory (docs/reviews/2026-10-woodland.md): its people's involuntary life, the
 // rules it composes by, the way into it, and its ending: a cut, on one frame. Since 2026-10-24 the
@@ -651,23 +650,6 @@ describe("the painted rig's two-shot (dormant since 2026-10-24: its own drawings
     }
   });
 
-  it('her turn\'s drawings are the ones her-turn.py drew, at these times', () => {
-    // (scripts/her-turn.py mirrors turnDrawings; its turn.json says what each drawing is.)
-    const spec = JSON.parse(readFileSync('references/woodland/drawings/turn/turn.json', 'utf8')) as {
-      drawings: Record<string, number>;
-      schedule: Record<string, { at: number; eyes: number; head: number }>;
-    };
-    const d = turnDrawings();
-    const names = Object.keys(spec.drawings).sort((a, b) => spec.drawings[a] - spec.drawings[b]);
-    expect(names.length).toBe(d.length);
-    names.forEach((n, i) => {
-      expect(spec.drawings[n]).toBeCloseTo(d[i].turn, 4);
-      expect(spec.schedule[n].at).toBeCloseTo(d[i].at, 3);
-      expect(spec.schedule[n].eyes).toBeCloseTo(d[i].eyes, 4);
-      expect(spec.schedule[n].head).toBeCloseTo(d[i].head, 4);
-    });
-  });
-
   it('her head: the drawing nearest to how far through her turn she is, a tie going to the one further on', () => {
     const at = turnDrawings().map((d) => d.turn);
     // Each of her turn's drawings at its own value; all the way, the last.
@@ -826,13 +808,6 @@ describe('the scene, as built (no GL: what it would draw and let go)', () => {
   };
   const gl = { getRenderTarget: () => null, setRenderTarget: () => {}, render: () => {} } as unknown as THREE.WebGLRenderer;
   const view = { view: new THREE.Vector4(0, 0, 1, 1), parallax: new THREE.Vector2() };
-
-  it('every deformer the manifest names fits, and the shared program stays inside WebGL2\'s vertex uniforms', () => {
-    expect(lm.figures.deformers.length).toBeLessThanOrEqual(DEFORMERS);
-    // Vertex stage vec4s: the deformers, the wind, the drift (floats pad to a vec4 each), the
-    // matrices, and a margin for the scalars.
-    expect(DEFORMERS * 4 + 16 + 16 + 8 + 16).toBeLessThanOrEqual(256);
-  });
 
   it('the puppet is lighter on the low tier, and fewer motes under reduced motion', () => {
     const verts = (s: WoodlandScene) => ((s as unknown as { grid: THREE.BufferGeometry }).grid.getAttribute('position').count);

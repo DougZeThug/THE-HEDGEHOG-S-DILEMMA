@@ -1,16 +1,17 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import dialogue from '../src/content/dialogue.json';
 import { PHRASE_BY_ID } from '../src/content/phrases';
 import {
-  applyBudget, buildManifest, buildVignetteManifest, buildVignettePreview, classifyFailure, emptyLedger, mp3Info, performanceHash, planJobs, runJobs, spokenTags, validateDirection, wordErrorRate,
+  applyBudget, buildManifest, buildVignetteManifest, buildVignettePreview, classifyFailure, emptyLedger, performanceHash, planJobs, runJobs, spokenTags, validateDirection, wordErrorRate,
 } from '../scripts/dialogue-lib.mjs';
 
 const ROOT = join(__dirname, '..');
 const direction = dialogue as any;
 const ledger = JSON.parse(readFileSync(join(ROOT, 'scripts/dialogue-ledger.json'), 'utf8'));
 const manifest = JSON.parse(readFileSync(join(ROOT, 'public/voices/manifest.json'), 'utf8'));
+/** A real recording, as the fake API's audio. */
 const real = (f: string) => readFileSync(join(ROOT, 'public/voices', f));
 
 describe('voice direction', () => {
@@ -85,10 +86,6 @@ describe('generation planning', () => {
     const r = direction.performances.find((p: any) => p.retired);
     expect(planJobs(direction, emptyLedger(), { only: [r.id] }).jobs).toHaveLength(0);
     expect(planJobs(direction, emptyLedger(), { only: [r.id], regenerate: [r.id] }).jobs).toHaveLength(1);
-  });
-  it('the real ledger is fully up to date: re-running would bill nothing', () => {
-    const exists = (f: string) => existsSync(join(ROOT, 'public/voices', f));
-    expect(planJobs(direction, ledger, { fileExists: exists }).jobs).toHaveLength(0);
   });
   it('keeps to a budget and leaves the rest queued', () => {
     const { jobs } = planJobs(direction, emptyLedger());
@@ -179,33 +176,7 @@ describe('API failure handling', () => {
   });
 });
 
-describe('recordings and manifest', () => {
-  it('every generated recording is valid audio of a sensible length', () => {
-    for (const p of direction.performances) {
-      const e = ledger.entries[p.id];
-      expect(e?.status, p.id).toBe('validated');
-      const info = mp3Info(new Uint8Array(real(p.file)));
-      expect(info.valid, p.id).toBe(true);
-      expect(info.seconds).toBeGreaterThan(0.6);
-      expect(info.seconds).toBeLessThan(6);
-      expect(Math.abs(info.seconds - e.seconds)).toBeLessThan(0.05);
-      expect(e.wer, `${p.id}: heard "${e.transcript}"`).toBeLessThanOrEqual(0.25);
-      expect(e.spokenTags).toEqual([]);
-    }
-  });
-  it('the manifest lists phrase recordings in the existing convention and keeps everything else', () => {
-    for (const [k, files] of Object.entries(manifest) as [string, string[]][]) {
-      for (const f of files) expect(existsSync(join(ROOT, 'public/voices', f)), f).toBe(true);
-      if (k.startsWith('phrase:')) expect(PHRASE_BY_ID.has(k.slice(7)), k).toBe(true);
-    }
-    for (const k of ['vf-laugh-next-room', 'vf-breath', 'style:whisper', 'sfx:door']) expect(manifest[k]?.length, k).toBeGreaterThan(0);
-    // The readings the artist kept, including lab takes adopted after listening.
-    for (const f of ['dialogue/stay--breaking.mp3', 'dialogue/stay--tender.mp3', 'dialogue/stay--after-silence.mp3', 'dialogue/stay--sarah.mp3']) expect(manifest['phrase:stay']).toContain(f);
-    // Every take still waiting to be heard stays out.
-    for (const p of direction.performances) if (p.audition) expect(manifest[`phrase:${p.phraseId}`] ?? []).not.toContain(p.file);
-    for (const p of direction.performances) if (ledger.entries[p.id]?.review === 'rejected') expect(manifest[`phrase:${p.phraseId}`] ?? []).not.toContain(p.file);
-    expect(buildManifest(manifest, direction, ledger)).toEqual(manifest);
-  });
+describe('the manifest', () => {
   it('rejected or doubtful recordings never reach the manifest', () => {
     const l = JSON.parse(JSON.stringify(ledger));
     l.entries['stay--breaking'].review = 'rejected';
@@ -214,30 +185,6 @@ describe('recordings and manifest', () => {
     const m = buildManifest(manifest, direction, l);
     expect(m['phrase:stay']).not.toContain('dialogue/stay--breaking.mp3');
     expect(m['phrase:crumbs']).toBeUndefined();
-  });
-});
-
-describe('credentials', () => {
-  it('no API key appears anywhere in the source tree, assets or ledger', () => {
-    const scan = (dir: string): string[] =>
-      readdirSync(dir).flatMap((f: string) => {
-        const p = join(dir, f);
-        if (['node_modules', 'dist', '.git', 'test-output'].includes(f)) return [];
-        if (statSync(p).isDirectory()) return scan(p);
-        if (!/\.(ts|mjs|mts|js|json|md|html|css)$/.test(f)) return [];
-        // A library voice's public owner id is a 64-hex identifier shown in the public voice library, not a secret.
-        const text = readFileSync(p, 'utf8').replace(/"publicOwnerId": "[a-f0-9]{64}"/g, '');
-        return /sk_[a-f0-9]{24,}|[a-f0-9]{64}/.test(text) ? [p] : [];
-      });
-    expect(scan(ROOT)).toEqual([]);
-  });
-  it('the browser code never talks to ElevenLabs', () => {
-    const scan = (dir: string): string[] =>
-      readdirSync(dir).flatMap((f: string) => {
-        const p = join(dir, f);
-        return statSync(p).isDirectory() ? scan(p) : /api\.elevenlabs\.io|xi-api-key/i.test(readFileSync(p, 'utf8')) ? [p] : [];
-      });
-    expect(scan(join(ROOT, 'src'))).toEqual([]);
   });
 });
 

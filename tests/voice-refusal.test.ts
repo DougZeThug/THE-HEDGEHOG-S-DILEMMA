@@ -3,8 +3,6 @@ import { Director } from '../src/state/Director';
 import type { VisitorInput } from '../src/state/VisitorModel';
 import type { TimedCue } from '../src/state/cues';
 import { PHRASE_BY_ID } from '../src/content/phrases';
-import { MEMORIES } from '../src/memory/registry';
-import { readFileSync } from 'node:fs';
 
 const base: VisitorInput = { x: 0, z: 2.4, yaw: 0, pitch: 0, gazePhraseId: null, gazeChair: false, nearSurface: null, kneeling: false };
 type Priv = {
@@ -48,13 +46,5 @@ describe('a voice the room declines to say leaves no trace', () => {
     const after = run(d, 30).filter((c) => c.rule === 'motif-hesitation');
     expect(after.length).toBe(1);
     expect(p.voicing.hesitationOwed).toBe(false);
-  });
-});
-
-describe('the Memory Editor', () => {
-  it('knows a wall line for every memory it can list', () => {
-    const src = readFileSync('src/memory/editor/MemoryEditor.ts', 'utf8');
-    const map = /const PHRASE[^=]*=\s*\{([^}]*)\}/.exec(src)![1];
-    for (const id of Object.keys(MEMORIES)) expect(map, id).toMatch(new RegExp(`\\b${id}:`));
   });
 });

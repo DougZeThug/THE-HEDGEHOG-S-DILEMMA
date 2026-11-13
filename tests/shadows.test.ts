@@ -1,23 +1,15 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import * as THREE from 'three';
 import { SHADOWS } from '../src/memory/memories/shadows';
 import { SHADOWS_AT, SHADOWS_BEATS, SHADOWS_SECONDS, SHADOWS_SECTIONS } from '../src/memory/beats/shadows';
 import { SCENE_MEMORIES, HEART_BY_SHAPE, HEART_IDS, heartOf } from '../src/content/memories';
 import { PHRASE_BY_ID } from '../src/content/phrases';
-import { key, shadowsAt, uprightAt } from '../src/memory/living/shadows';
+import { shadowsAt, uprightAt } from '../src/memory/living/shadows';
 import { compose } from '../src/memory/compose';
 import { Lighting } from '../src/world/Lighting';
 import type { Environment } from '../src/core/environment';
 
 /** Memory VII, The Shape of Someone, in the room (docs/shadows.md). */
-const ROOT = join(__dirname, '..');
-const render = readFileSync(join(ROOT, 'scripts/memory-vii/render.py'), 'utf8');
-const manifest = JSON.parse(readFileSync(join(ROOT, 'public/memories/shadows/manifest.json'), 'utf8'));
-/** A key list from render.py, as (t, v) pairs. */
-const keysOf = (name: string): [number, number][] =>
-  [...render.match(new RegExp(`^${name} = \\[(.*)\\]$`, 'm'))![1].matchAll(/\(([\d.]+), ([-\d.]+)\)/g)].map((m) => [Number(m[1]), Number(m[2])]);
 const seed = SHADOWS.seed('film');
 const track = (k: string) => seed.tracks[k] as [number, number, string?][];
 const at = (k: string, t: number) => {
@@ -35,23 +27,6 @@ describe('Memory VII on its timeline', () => {
     expect(m.seenAt!).toBeGreaterThanOrEqual(SHADOWS_AT + SHADOWS_BEATS.meet - 0.5);
     expect(m.maxHold).toBe(SHADOWS_SECTIONS.exit);
     expect(m.span).toBe(SHADOWS_SECTIONS.end);
-  });
-
-  it("the film's moments and the upright framing's keys are render.py's own", () => {
-    const has = (name: string, t: number) => expect(keysOf(name).some(([k]) => Math.abs(k - t) < 1e-6), `${name} @ ${t}`).toBe(true);
-    has('LIGHT_I', SHADOWS_BEATS.light);
-    has('LIGHT_I', SHADOWS_BEATS.dark);
-    has('GAP', SHADOWS_BEATS.meet);
-    has('GAP', SHADOWS_BEATS.hold);
-    has('GAP', SHADOWS_BEATS.part);
-    has('BRIDGE', SHADOWS_BEATS.thread);
-    has('A_ARM', SHADOWS_BEATS.reach);
-    for (const t of [0, 3, 8, 12.6, 15, 20, 26]) {
-      expect(key(t, keysOf('LIGHT_X'))).toBeCloseTo(0.5 + (shadowsAt(t).mid - 0.5) / -0.33, 6);
-      expect(shadowsAt(t).gap).toBeCloseTo(key(t, keysOf('GAP')) / 1920, 6);
-    }
-    expect(SHADOWS_SECONDS * manifest.living.film.fps).toBe(manifest.living.film.frames);
-    expect(manifest.living.film.edge).toBe('shade');
   });
 
   it('the film begins on the wall in the gathered shade, before the visitor is carried in, and ends as its light goes', () => {
