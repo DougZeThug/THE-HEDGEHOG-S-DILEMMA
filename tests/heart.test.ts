@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { MemoryDirector, HEART_LAPSE, HEART_REINK } from '../src/state/MemoryDirector';
-import { HEART_ANSWER, HEART_BY_SHAPE, HEART_EARLIEST } from '../src/content/memories';
+import { MemoryDirector } from '../src/state/MemoryDirector';
+import { HEART_ANSWER, HEART_BY_SHAPE, HEART_EARLIEST, HEART_LAPSE, HEART_REINK } from '../src/content/memories';
 import { PHRASE_BY_ID } from '../src/content/phrases';
 import { Rng } from '../src/core/rng';
 import { Director } from '../src/state/Director';

@@ -11,8 +11,7 @@ type Priv = {
   speakPhrase: (rule: string, p: unknown, pos: unknown, delay?: number) => boolean;
   memory: { spoken: Map<string, number> };
   memoryQuietUntil: number;
-  hesitationOwed: boolean;
-  onMotif: (m: string) => void;
+  voicing: { hesitationOwed: boolean; onMotif: (m: string) => void };
   now: number;
 };
 const make = () => {
@@ -42,13 +41,13 @@ describe('a voice the room declines to say leaves no trace', () => {
   it('owes the hesitation reply until the room can say it', () => {
     const { d, p } = make();
     p.memoryQuietUntil = p.now + 20;
-    p.onMotif('hesitation');
-    expect(p.hesitationOwed).toBe(true);
+    p.voicing.onMotif('hesitation');
+    expect(p.voicing.hesitationOwed).toBe(true);
     const during = run(d, 15).filter((c) => c.rule === 'motif-hesitation');
     expect(during).toEqual([]);
     const after = run(d, 30).filter((c) => c.rule === 'motif-hesitation');
     expect(after.length).toBe(1);
-    expect(p.hesitationOwed).toBe(false);
+    expect(p.voicing.hesitationOwed).toBe(false);
   });
 });
 

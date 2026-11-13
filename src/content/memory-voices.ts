@@ -81,8 +81,11 @@ export function versionOf(id: string, variant: string, version: string | null | 
   return (version && MEMORY_VOICES_BY_ID.get(id)?.variants[variant]?.versions[version]) || null;
 }
 
-/** About how long a line takes to say (s), before a take exists: a hold, never a cue time. */
-export function saidFor(text: string): number {
+/**
+ * About how long a line takes to say (s), before a take exists: a hold, never a cue time. The one
+ * estimate (the Voices' own copy, src/audio/Voices.ts, should read this).
+ */
+export function estimateSpeech(text: string): number {
   return 0.5 + 0.38 * text.split(/\s+/).length;
 }
 
@@ -97,7 +100,7 @@ export function voicesEnd(id: string, variant: string, version: string | null | 
   const def = MEMORY_VOICES_BY_ID.get(id);
   const v = versionOf(id, variant, version);
   if (!def || !v) return 0;
-  return Math.max(0, ...v.beats.map((b) => b.at + (b.stopAfter ?? saidFor(def.lines.find((l) => l.id === b.line)?.text ?? ''))));
+  return Math.max(0, ...v.beats.map((b) => b.at + (b.stopAfter ?? estimateSpeech(def.lines.find((l) => l.id === b.line)?.text ?? ''))));
 }
 
 /** How a version is named among what may speak (`MemoryDirector.setAvailable`). */
