@@ -30,7 +30,7 @@ export function placeByDrawing(layout: SurfaceLayout, d: Placement, o: { key: st
   return null;
 }
 
-export interface WriteSpot {
+interface WriteSpot {
   key: string;
   text: string;
   hand: Hand;

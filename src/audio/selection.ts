@@ -12,7 +12,7 @@ export type Source =
   | { kind: 'texture'; key: string }
   | { kind: 'synth' };
 
-export interface SourceQuery {
+interface SourceQuery {
   manifest: Record<string, string[]>;
   /** e.g. `phrase:stay` or a fragment id. */
   assetKey?: string;

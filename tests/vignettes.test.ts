@@ -368,7 +368,8 @@ describe('ending without being heard', () => {
 });
 
 import { readingTake } from '../src/content/vignettes';
-import { voicedGain, Voices } from '../src/audio/Voices';
+import { Voices } from '../src/audio/Voices';
+import { voicedGain } from '../src/audio/voiceAssets';
 
 describe('after the evaluation', () => {
   it("five minutes' heard-before version is heard once: after that the chair is the room's again", () => {

@@ -84,7 +84,7 @@ interface LineItem {
 const HANDLED = 0.25;
 
 /** Where a piece of writing is, for light to be laid across it: its wall's writing group, its centre there, and the wall's limits. */
-export interface WallAnchor {
+interface WallAnchor {
   key: string;
   group: THREE.Object3D;
   x: number;
@@ -439,7 +439,6 @@ export class WallText {
     const dir = b.clone().sub(a);
     const len = dir.length();
     const n = dir.clone().normalize();
-    // Start and end just outside each phrase's box.
     const shrink = (p: Placement) => Math.min(p.w / 2 / Math.max(0.01, Math.abs(n.x)), p.h / 2 / Math.max(0.01, Math.abs(n.y))) + 0.04;
     const s0 = shrink(ln.from), s1 = shrink(ln.to!);
     const L = Math.max(0.05, len - s0 - s1);

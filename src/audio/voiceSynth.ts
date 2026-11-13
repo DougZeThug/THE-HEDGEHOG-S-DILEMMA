@@ -25,7 +25,7 @@ export interface VoicePlacement {
 }
 
 /** The spatial tail every sound goes through (Voices.chain): its input node. */
-export type Chain = (place: VoicePlacement, reverb: number, dur: number, gain: number) => GainNode;
+type Chain = (place: VoicePlacement, reverb: number, dur: number, gain: number) => GainNode;
 
 type Formants = [number, number, number];
 const VOWELS: Record<string, Formants> = {

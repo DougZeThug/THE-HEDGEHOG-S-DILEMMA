@@ -36,6 +36,14 @@ export function measure(buf: AudioBuffer) {
   return { rms: Math.sqrt(sum / Math.max(1, n)) || 1e-6, peak: peak || 1e-6 };
 }
 
+/** Loudness every recording is levelled to (RMS, dBFS), the peak ceiling (dBFS) and the most gain ever applied. */
+const TARGET_RMS = Math.pow(10, -24 / 20);
+const PEAK_CEILING = Math.pow(10, -3 / 20);
+const MAX_GAIN = 16;
+
+/** Dialogue performances are the files under `dialogue/`; they are levelled only halfway (see `normaliseGain`). */
+export const isPerformance = (file: string): boolean => file.startsWith('dialogue/');
+
 /**
  * Gain to bring a recording toward -24 dBFS RMS without pushing its peak past -3 dBFS.
  * Performances are only half-corrected: a take whispered "very quietly" should stay quieter
@@ -43,10 +51,8 @@ export function measure(buf: AudioBuffer) {
  */
 export function normaliseGain(buf: AudioBuffer, partial = false): number {
   const { rms, peak } = measure(buf);
-  const target = Math.pow(10, -24 / 20);
-  const ceiling = Math.pow(10, -3 / 20);
-  const full = target / rms;
-  return Math.min(partial ? Math.sqrt(full) : full, ceiling / peak, 16);
+  const full = TARGET_RMS / rms;
+  return Math.min(partial ? Math.sqrt(full) : full, PEAK_CEILING / peak, MAX_GAIN);
 }
 
 /**
@@ -72,7 +78,7 @@ export function voicedGain(buf: AudioBuffer): number {
   if (!loud || !peak) return 1;
   const voiced = frames.filter((f) => f >= loud * 1e-3);
   const rms = Math.sqrt(voiced.reduce((a, f) => a + f, 0) / voiced.length);
-  return Math.min(Math.pow(10, -24 / 20) / rms, Math.pow(10, -3 / 20) / peak, 16);
+  return Math.min(TARGET_RMS / rms, PEAK_CEILING / peak, MAX_GAIN);
 }
 
 /** Authored relative level of each performance file, in dB. */

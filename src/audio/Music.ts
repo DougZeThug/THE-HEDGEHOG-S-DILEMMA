@@ -57,7 +57,6 @@ export class Music {
     const prev = this.motifs.get(mood);
     let seq: number[];
     if (prev && this.rng.chance(0.55)) {
-      // Return to the motif, but not quite the same.
       seq = prev.slice();
       const i = this.rng.int(0, seq.length - 1);
       seq[i] = this.rng.pick(d.pool);
