@@ -78,8 +78,10 @@ export function parseLook(s: string | null): LookName {
   return s === 'original' || s === 'subtle' || s === 'reference' ? s : 'reference';
 }
 
+/** The key and the fill at rest: the light's near-white end. */
+export const LIGHT_WHITE = 0xfff8ee;
 /** The light's colour at rest, from near-white to cream (the Director's warm and cool are its ends). */
-const NEUTRAL_0 = new THREE.Color('#fff8ee');
+const NEUTRAL_0 = new THREE.Color(LIGHT_WHITE);
 const NEUTRAL_1 = new THREE.Color('#ffe9cb');
 export const neutralFor = (warmth: number, out = new THREE.Color()) => out.copy(NEUTRAL_0).lerp(NEUTRAL_1, warmth);
 

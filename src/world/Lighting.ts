@@ -5,7 +5,7 @@ import { PANEL } from './Room';
 import type { Environment } from '../core/environment';
 import { approach } from '../core/math';
 import { shadowMapSize, type Quality } from './quality';
-import { lookFor, neutralFor, type Look } from './Style';
+import { LIGHT_WHITE, lookFor, neutralFor, type Look } from './Style';
 
 export { shadowMapSize };
 
@@ -117,7 +117,7 @@ export class Lighting {
 
   constructor(quality: Quality) {
     RectAreaLightUniformsLib.init();
-    this.area = new THREE.RectAreaLight(0xfff8ee, AREA, 0.9, 0.9);
+    this.area = new THREE.RectAreaLight(LIGHT_WHITE, AREA, 0.9, 0.9);
     this.area.position.set(PANEL.x, ROOM.height - 0.02, PANEL.z);
     this.area.lookAt(PANEL.x, 0, PANEL.z);
     this.group.add(this.area);
@@ -125,7 +125,7 @@ export class Lighting {
     this.hemi = new THREE.HemisphereLight(0xeef1f4, 0xd8d0c4, HEMI);
     this.group.add(this.hemi);
 
-    this.key = new THREE.SpotLight(0xfff8ee, KEY, 0, 0.82, 1, 2);
+    this.key = new THREE.SpotLight(LIGHT_WHITE, KEY, 0, 0.82, 1, 2);
     this.key.position.copy(this.keyBase);
     this.key.target.position.set(0, 0, 0);
     this.key.castShadow = true;
