@@ -6,9 +6,8 @@
  */
 import { writeFileSync } from 'node:fs';
 import { PERSONAS } from '../tests/playtest/personas';
-import { visit, summarise, WINDOWS, meaningful } from '../tests/playtest/measure';
+import { visit, summarise, WINDOWS, meaningful, PLAYTEST_SEEDS as SEEDS } from '../tests/playtest/measure';
 
-const SEEDS = [1, 2, 3, 4, 5, 6, 7, 8];
 const out: string[] = [];
 const say = (s = '') => {
   out.push(s);

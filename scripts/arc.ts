@@ -11,19 +11,11 @@
  * gaze rested on a line, not that anyone was moved. Read differences between arms on the same
  * visitors and seeds, never the numbers as what people feel.
  */
-import { mkdirSync, writeFileSync } from 'node:fs';
-import { dirname } from 'node:path';
 import { Rng } from '../src/core/rng';
-import { Director } from '../src/state/Director';
+import { readArms, writeReport } from './lib/report';
 import { LocalInterpreter } from '../src/interpret/LocalInterpreter';
 import { CLASSES, adversaries, drawGenome, liveVisit, type Genome, type VisitSummary } from '../tests/playtest/visitors';
 
-const printed: string[] = [];
-const log = console.log;
-console.log = (...xs: unknown[]) => {
-  printed.push(xs.join(' '));
-  log(...xs);
-};
 const N = Number(process.env.N ?? 12);
 const SEEDS = Number(process.env.SEEDS ?? 3);
 const ADV_SEEDS = Number(process.env.ADV_SEEDS ?? 4);
@@ -31,12 +23,7 @@ const RETURNS = Number(process.env.RETURNS ?? 40);
 // (Each once, in the order given: a repeated length would be simulated twice and reported once.)
 const HORIZONS = [...new Set((process.env.HORIZONS ?? '180,300,600').split(',').map(Number))];
 if (!HORIZONS.length || HORIZONS.some((h) => !Number.isFinite(h) || h <= 0)) throw new Error(`HORIZONS must be visit lengths in seconds, greater than 0: ${process.env.HORIZONS}`);
-const ARMS = (process.env.ARMS ?? 'base').split(';').map((a) => {
-  const [name, list] = a.includes('=') ? a.split('=') : [a, ''];
-  return { name, experiments: list.split(',').filter(Boolean) };
-});
-const unknown = [...new Set(ARMS.flatMap((a) => a.experiments))].filter((e) => !Director.EXPERIMENTS.includes(e));
-if (unknown.length) throw new Error(`no such experiment: ${unknown.join(', ')} (defined: ${Director.EXPERIMENTS.join(', ') || 'none'})`);
+const ARMS = readArms();
 
 const genomes: Genome[] = [];
 const gr = new Rng(20261106);
@@ -159,7 +146,4 @@ for (const [name, h] of Object.entries(runs)) {
   console.log(`| ${name} | ${sec.length} | ${sec.filter((x) => x.reach.kept).length} of ${hadAnswer} | ${pct(sec.filter((x) => x.reach.heart && x.reach.memories.includes(x.reach.heart)).length, sec.length)} | ${diff} | ${same} | ${f1(mean(sec.map((x) => x.reach.memories.length + (x.reach.kitchen ? 1 : 0))))} |`);
 }
 
-if (process.env.REPORT) {
-  mkdirSync(dirname(process.env.REPORT), { recursive: true });
-  writeFileSync(process.env.REPORT, printed.join('\n') + '\n');
-}
+writeReport();

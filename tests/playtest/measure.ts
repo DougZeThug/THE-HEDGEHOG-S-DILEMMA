@@ -138,6 +138,8 @@ export interface Recognised {
 }
 
 export const WINDOWS = [15, 30, 60, 90, 180];
+/** The seeds every persona is run over in the playtest reports (scripts/playtest.ts, journey.ts, memory-reach.ts). */
+export const PLAYTEST_SEEDS = [1, 2, 3, 4, 5, 6, 7, 8];
 
 /** Run one persona through a visit. */
 /**
