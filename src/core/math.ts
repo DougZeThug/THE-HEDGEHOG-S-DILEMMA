@@ -1,5 +1,4 @@
 export const clamp = (v: number, a = 0, b = 1) => (v < a ? a : v > b ? b : v);
-export const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 export const smoothstep = (a: number, b: number, v: number) => {
   const t = clamp((v - a) / (b - a));
   return t * t * (3 - 2 * t);
@@ -13,3 +12,5 @@ export const angleDiff = (a: number, b: number) => {
   while (d < -Math.PI) d += Math.PI * 2;
   return d;
 };
+/** Cosine ease: 0 → 1 over x in 0..1, flat at both ends. */
+export const easeInOut = (x: number) => 0.5 - 0.5 * Math.cos(Math.PI * clamp(x));

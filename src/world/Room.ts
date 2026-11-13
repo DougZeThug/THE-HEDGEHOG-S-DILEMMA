@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { Surface } from '../content/types';
-import { ROOM, surfaceSize } from './layout';
+import { surfaceSize } from './layout';
+import { ROOM } from '../core/room';
 
 /** Where the frosted panel hangs: north of the chair, so the chair's shadow falls toward whoever arrives. */
 export const PANEL = { x: 0.1, z: -0.95 };

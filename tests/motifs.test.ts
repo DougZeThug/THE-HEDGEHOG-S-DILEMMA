@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { Director } from '../src/state/Director';
 import { Lighting } from '../src/world/Lighting';
 import type { VisitorInput } from '../src/state/VisitorModel';
-import type { Environment } from '../src/state/Director';
+import type { Environment } from '../src/core/environment';
 import type { TimedCue } from '../src/state/cues';
 
 // Standing back from the chair (about 2.6 m) and looking at it.

@@ -1,7 +1,7 @@
 import type { AudioEngine } from './AudioEngine';
-import type { Environment } from '../state/Director';
+import type { Environment } from '../core/environment';
 import { Rng } from '../core/rng';
-import { ROOM } from '../world/layout';
+import { ROOM } from '../core/room';
 
 /**
  * Room tone, built from parts:

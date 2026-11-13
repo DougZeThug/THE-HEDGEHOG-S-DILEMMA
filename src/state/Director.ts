@@ -20,44 +20,12 @@ import type { Interpretation } from '../interpret/schema';
 import { ARCS, type Arc, type EncounterBeat, type Gesture } from '../content/encounters';
 import { belonging, CHARACTER_WALLS } from '../content/walls';
 import { rankPerformances, performancesFor } from './performance';
-import { SituationRunner, type PhraseGeometry, type SituationHost, type ContributionTrace } from './situations/Situation';
+import { SituationRunner, type VisibleState, type PhraseGeometry, type SituationHost, type ContributionTrace } from './situations/Situation';
 import { SITUATIONS, SITUATION_BY_ID, keptWord } from './situations/library';
-import { ROOM } from '../world/layout';
+import { ROOM } from '../core/room';
+import type { Environment } from '../core/environment';
 import { hashString } from '../core/rng';
 
-/** Continuous environment targets, recomputed every tick from the field. */
-export interface Environment {
-  lightIntensity: number;
-  /** -1 cool … +1 warm */
-  lightWarmth: number;
-  /** Radians the key light (and so the chair's shadow) has drifted from where it should be. */
-  shadowDrift: number;
-  /** 1 = room as built; >1 walls further away. */
-  roomScale: number;
-  /** 0..1, near-black at emotional extremes and at departure. */
-  darkness: number;
-  /** Clarity of the writing. */
-  textContrast: number;
-  /** Local warm glow around the chair. */
-  chairGlow: number;
-  saturation: number;
-  // audio
-  hum: number;
-  vent: number;
-  outside: number;
-  drone: number;
-  droneBrightness: number;
-  reverb: number;
-}
-
-export interface VisibleState {
-  mode: 'shown' | 'still';
-  since: number;
-  /** Shown from the start (arrival tier) — never culled. */
-  base: boolean;
-  /** A hide has been queued for it. */
-  hiding?: boolean;
-}
 
 export interface DirectorOptions {
   seed: number;

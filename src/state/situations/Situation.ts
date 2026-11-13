@@ -4,7 +4,6 @@ import type { VisitorModel } from '../VisitorModel';
 import type { Memory } from '../Memory';
 import type { FieldValues } from '../EmotionalField';
 import type { Cue, VoicePosition } from '../cues';
-import type { VisibleState } from '../Director';
 
 /**
  * Situations: authored, multi-beat episodes that bind concrete things (a wall, a phrase,
@@ -29,6 +28,15 @@ export interface ContributionTrace {
   keep: string;
   surface: Surface;
   at: number;
+}
+
+export interface VisibleState {
+  mode: 'shown' | 'still';
+  since: number;
+  /** Shown from the start (arrival tier) — never culled. */
+  base: boolean;
+  /** A hide has been queued for it. */
+  hiding?: boolean;
 }
 
 /** What a situation may see and do. Implemented by the Director. */

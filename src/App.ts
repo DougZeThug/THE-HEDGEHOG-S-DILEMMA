@@ -25,7 +25,7 @@ import { WallText, wallClock, type TextItem } from './world/WallText';
 import { CameraRig } from './world/CameraRig';
 import { Post } from './world/Post';
 import { FONTS_TO_LOAD } from './world/textures';
-import { ROOM } from './world/layout';
+import { ROOM } from './core/room';
 import { Director, returnYaw } from './state/Director';
 import type { Cue, VoicePosition } from './state/cues';
 import type { Surface } from './content/types';

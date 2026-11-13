@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import * as THREE from 'three';
 import { Lighting } from '../src/world/Lighting';
-import { ROOM } from '../src/world/layout';
+import { ROOM } from '../src/core/room';
 import { LOOKS, lookFor, parseLook, neutralFor } from '../src/world/Style';
-import type { Environment } from '../src/state/Director';
+import type { Environment } from '../src/core/environment';
 
 const env = { lightIntensity: 1, lightWarmth: 0, shadowDrift: 0, chairGlow: 0.2 } as unknown as Environment;
 const settle = (l: Lighting, e = env) => {

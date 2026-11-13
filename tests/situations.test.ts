@@ -6,7 +6,8 @@ import type { VisitorInput } from '../src/state/VisitorModel';
 import type { TimedCue, Cue } from '../src/state/cues';
 import type { Surface } from '../src/content/types';
 import { PHRASES, PHRASE_BY_ID } from '../src/content/phrases';
-import { layoutPhrases, layoutToWorld, ROOM } from '../src/world/layout';
+import { layoutPhrases, layoutToWorld } from '../src/world/layout';
+import { ROOM } from '../src/core/room';
 import { interpretLocally } from '../src/interpret/LocalInterpreter';
 import { keptWord, HUM_NOTE, nextRoom } from '../src/state/situations/library';
 

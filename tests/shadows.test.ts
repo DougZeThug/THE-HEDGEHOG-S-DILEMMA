@@ -8,7 +8,7 @@ import { PHRASE_BY_ID } from '../src/content/phrases';
 import { key, shadowsAt, uprightAt } from '../src/memory/living/shadows';
 import { compose } from '../src/memory/compose';
 import { Lighting } from '../src/world/Lighting';
-import type { Environment } from '../src/state/Director';
+import type { Environment } from '../src/core/environment';
 
 /** Memory VII, The Shape of Someone, in the room (docs/shadows.md). */
 const ROOT = join(__dirname, '..');

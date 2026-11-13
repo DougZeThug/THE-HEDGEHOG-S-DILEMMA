@@ -9,7 +9,7 @@ import { bakeDrawing, bakedSize } from './sketch';
 import { wordRanges } from './handwriting';
 import { approach, clamp, smoothstep } from '../core/math';
 import { hashString } from '../core/rng';
-import type { Environment } from '../state/Director';
+import type { Environment } from '../core/environment';
 
 /**
  * Writing on the walls. Every piece of writing is a textured plane lying on its surface, lit

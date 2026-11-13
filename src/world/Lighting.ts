@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import { RectAreaLightUniformsLib } from 'three/examples/jsm/lights/RectAreaLightUniformsLib.js';
-import { ROOM } from './layout';
+import { ROOM } from '../core/room';
 import { PANEL } from './Room';
-import type { Environment } from '../state/Director';
+import type { Environment } from '../core/environment';
 import { approach } from '../core/math';
 import { lookFor, neutralFor, type Look } from './Style';
 

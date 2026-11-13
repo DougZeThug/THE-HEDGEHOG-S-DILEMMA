@@ -9,7 +9,7 @@ import { DRIVE_FROM, uprightAt } from '../src/memory/living/drive';
 import { compose } from '../src/memory/compose';
 import { StreetLight } from '../src/world/StreetLight';
 import { Lighting } from '../src/world/Lighting';
-import type { Environment } from '../src/state/Director';
+import type { Environment } from '../src/core/environment';
 
 /** The Drive Home in the room (docs/drive-home.md). */
 const ROOT = join(__dirname, '..');
