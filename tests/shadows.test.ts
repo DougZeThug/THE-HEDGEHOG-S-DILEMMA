@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import * as THREE from 'three';
 import { SHADOWS } from '../src/memory/memories/shadows';
 import { SHADOWS_AT, SHADOWS_BEATS, SHADOWS_SECONDS, SHADOWS_SECTIONS } from '../src/memory/beats/shadows';
-import { SCENE_MEMORIES, HEART_BY_SHAPE, HEART_IDS, heartOf } from '../src/content/memories';
+import { SCENE_MEMORIES, HEART_IDS, heartOf } from '../src/content/memories';
 import { PHRASE_BY_ID } from '../src/content/phrases';
 import { shadowsAt, uprightAt } from '../src/memory/living/shadows';
 import { compose } from '../src/memory/compose';
@@ -84,7 +84,6 @@ describe('Memory VII on an upright screen', () => {
 
 describe("the shared heart: someone who stayed by the chair", () => {
   it('is given the woodland or the shadows, whichever they have seen less; on a first visit by the coin', () => {
-    expect(HEART_BY_SHAPE.close).toBe('woodland');
     expect(HEART_IDS.has('shadows')).toBe(true);
     expect(heartOf('close', {}, 0.2)).toBe('woodland');
     expect(heartOf('close', {}, 0.7)).toBe('shadows');
@@ -130,9 +129,10 @@ describe("the chair's shadow, held by a memory", () => {
     for (let a = 0; a <= 1; a += 0.05) {
       l.memoryShadow.amount = a;
       run(l, 0.5);
-      least = Math.min(least, Math.hypot(l.key.position.x, l.key.position.z) + (l.key.position.y > 1 ? 0 : 1));
+      least = Math.min(least, Math.hypot(l.key.position.x, l.key.position.z));
     }
     expect(l.key.position.z).toBeGreaterThan(0.9);
-    void least;
+    // On its way round, the key never passes over the chair.
+    expect(least).toBeGreaterThan(0.5);
   });
 });
