@@ -101,9 +101,6 @@ export class EventScheduler<T> {
   mark(key: string, now: number): void {
     this.cooldowns.set(key, now);
   }
-  lastFired(key: string): number | undefined {
-    return this.cooldowns.get(key);
-  }
 
   /**
    * How an event that came due on the last tick was scheduled, to put it back the same: with its

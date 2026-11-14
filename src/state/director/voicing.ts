@@ -8,14 +8,14 @@ import type { VoicePosition } from '../cues';
 import type { VoiceKind } from '../../content/types';
 import { phaseAtLeast } from '../Phase';
 import { performancesFor, pickReadings } from '../performance';
-import { isSituation } from '../rules';
+import { isSituation, type RuleName } from '../rules';
 import type { RuleHost, RuleLinks } from './host';
 
 /** Lines with several directed readings, kept for their own meetings and a second hearing. */
 const KEPT_READINGS = new Set([PHRASE_IDS.stay, 'love-go-away', 'happy-then']);
 
 /** What the voices need to know of the heart, the way out and the opening. */
-type VoicingLink = Pick<RuleLinks, 'northKept' | 'refusesStayWords' | 'legacy'>;
+type VoicingLink = Pick<RuleLinks, 'northKept' | 'refusesStayWords'>;
 
 /**
  * The room's voices: whether it declines to say a line now, which recorded reading is cast, the
@@ -54,7 +54,7 @@ export class Voicing {
    * Whether the room declines to say this now. A refused voice queues nothing, so nothing may be
    * counted for it: callers that commit state around a voice ask first, or use what `voice` returns.
    */
-  voiceRefused(rule: string, phraseId?: string, finish = false): boolean {
+  voiceRefused(rule: RuleName, phraseId?: string, finish = false): boolean {
     // Never "stay" near the way out: not as it appears, nor while they touch it (it would be a plea).
     if (phraseId && STAY_WORDS.has(phraseId) && this.link.refusesStayWords()) return true;
     if (phraseId && !finish && this.h.withheld().includes(phraseId)) return true;
@@ -69,7 +69,7 @@ export class Voicing {
 
   /** Queues the voice; false when the room declined to speak (nothing was queued or counted). */
   voice(
-    rule: string,
+    rule: RuleName,
     delay: number,
     kind: VoiceKind,
     text: string | null,
@@ -86,7 +86,7 @@ export class Voicing {
     // Sometimes what is said writes itself where it belongs, as it is heard — not always: some
     // voices leave a mark, most leave nothing at all.
     // (Never onto the north wall while the heart holds it: the voice is heard, nothing is written.)
-    const writes = !extra.finish && !!extra.phraseId && ranked.length > 0 && !this.h.visible.has(extra.phraseId) && !this.link.legacy && !(this.link.northKept() && PHRASE_BY_ID.get(extra.phraseId)?.surface === 'north') && this.h.rng.chance(0.35);
+    const writes = !extra.finish && !!extra.phraseId && ranked.length > 0 && !this.h.visible.has(extra.phraseId) && !(this.link.northKept() && PHRASE_BY_ID.get(extra.phraseId)?.surface === 'north') && this.h.rng.chance(0.35);
     if (writes) {
       this.h.ledger.accumulating.add(extra.phraseId!);
       this.h.visible.set(extra.phraseId!, { mode: 'shown', since: this.h.now + delay, base: true });
@@ -108,14 +108,14 @@ export class Voicing {
   }
 
   /** Says a phrase; only a voice that was queued is counted as spoken. */
-  speakPhrase(rule: string, p: Phrase, position: VoicePosition, delay = 0, styleOverride?: Phrase['voice'], gain = 0.8): boolean {
+  speakPhrase(rule: RuleName, p: Phrase, position: VoicePosition, delay = 0, styleOverride?: Phrase['voice'], gain = 0.8): boolean {
     const style = styleOverride ?? p.voice ?? 'whisper';
     if (!this.voice(rule, delay, style, p.text, p.text, position, { phraseId: p.id, gain })) return false;
     this.h.memory.spoken.set(p.id, this.h.now + delay);
     return true;
   }
 
-  fragment(rule: string, f: VoiceFragment, position: VoicePosition, delay = 0, gain = 0.6) {
+  fragment(rule: RuleName, f: VoiceFragment, position: VoicePosition, delay = 0, gain = 0.6) {
     if (position.kind === 'chair' && this.h.situations.claimed('chair-voice') && !isSituation(rule)) return;
     // Sounds that belong to an authored situation are not used as generic texture.
     if (this.h.owned.has(f.id) && !isSituation(rule)) return;

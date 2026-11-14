@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { PHRASES, PHRASE_BY_ID } from '../src/content/phrases';
 import { RECONTEXTS, VOICE_FRAGMENTS } from '../src/content/relations';
 import { DIMENSIONS } from '../src/content/types';
-import { DRAWING_IDS, FRAGMENT_IDS, MEMORY_IDS, PHRASE_IDS, SITUATION_IDS } from '../src/content/ids';
+import { DRAWING_IDS, FIRST_WRITTEN, FRAGMENT_IDS, MEMORY_IDS, PHRASE_IDS, SITUATION_IDS } from '../src/content/ids';
 import { ALL_MEMORIES } from '../src/content/memories';
 import { DRAWING_BY_ID } from '../src/content/drawings';
 import { SITUATION_BY_ID } from '../src/state/situations/library';
@@ -39,6 +39,7 @@ describe('phrase corpus', () => {
 describe('ids the Director names', () => {
   it('every phrase id exists', () => {
     for (const id of Object.values(PHRASE_IDS)) expect(PHRASE_BY_ID.has(id), id).toBe(true);
+    for (const id of FIRST_WRITTEN) expect(PHRASE_BY_ID.has(id), id).toBe(true);
   });
   it('every living memory id exists', () => {
     for (const id of Object.values(MEMORY_IDS)) expect(ALL_MEMORIES.some((m) => m.id === id), id).toBe(true);

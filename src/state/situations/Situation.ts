@@ -4,7 +4,7 @@ import type { VisitorModel } from '../VisitorModel';
 import type { Memory } from '../Memory';
 import type { FieldValues } from '../EmotionalField';
 import type { Cue, VoicePosition } from '../cues';
-import { sitRule } from '../rules';
+import { sitRule, type RuleName } from '../rules';
 
 /**
  * Situations: authored, multi-beat episodes that bind concrete things (a wall, a phrase,
@@ -13,7 +13,7 @@ import { sitRule } from '../rules';
  * room's weather; situations are the things that happen in it.
  */
 
-type Channel = 'beyond' | 'chair-voice' | 'music';
+export type Channel = 'beyond' | 'chair-voice' | 'music';
 
 export interface PhraseGeometry {
   surface: Surface;
@@ -54,10 +54,10 @@ export interface SituationHost {
   geometry(phraseId: string): PhraseGeometry | undefined;
   /** Distance from the visitor to a wall (metres). */
   distToSurface(s: Surface): number;
-  emit(rule: string, delay: number, cue: Cue, opts?: { major?: boolean; ttl?: number; priority?: number }): void;
-  cancel(rule: string): void;
-  reveal(rule: string, id: string, delay: number, mode: 'emerge' | 'still', seconds: number): void;
-  speak(rule: string, p: Phrase, position: VoicePosition, delay: number, style: VoiceStyle, gain: number): void;
+  emit(rule: RuleName, delay: number, cue: Cue, opts?: { major?: boolean; ttl?: number; priority?: number }): void;
+  cancel(rule: RuleName): void;
+  reveal(rule: RuleName, id: string, delay: number, mode: 'emerge' | 'still', seconds: number): void;
+  speak(rule: RuleName, p: Phrase, position: VoicePosition, delay: number, style: VoiceStyle, gain: number): void;
   musicReady(seconds: number): boolean;
   markMusic(): void;
   /** The room's music is over for this visit (the woodland's afternoon was its last). */
@@ -76,7 +76,7 @@ export interface SituationContext {
   h: SituationHost;
   st: SituationState;
   /** Rule name used for this situation's cues (`sit:<id>`). */
-  rule: string;
+  rule: RuleName;
   /** Seconds in the current stage. */
   since: number;
   go(stage: string): void;

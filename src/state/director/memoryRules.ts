@@ -8,6 +8,7 @@ import { phaseAtLeast } from '../Phase';
 import { cameBack } from './visitShape';
 
 import { WriteKeys } from '../writeKeys';
+import { RULE } from '../rules';
 import type { RuleHost } from './host';
 
 /**
@@ -145,7 +146,7 @@ export class MemoryRules {
       this.h.queue(0, {
         type: 'write', key: WriteKeys.memory(p.id), text: p.text, hand: p.hand === 'typed' ? 'pencil' : p.hand, size: 's',
         surface: this.h.facing, purpose: 'recall', ttl: 0, source: p.id,
-      }, 'memory-offer');
+      }, RULE.memoryOffer);
       return;
     }
     const v = this.h.visitor;
@@ -162,7 +163,7 @@ export class MemoryRules {
     this.h.shared.memoryQuietUntil = -Infinity;
     // Later memories keep their distance from this one too.
     this.h.scenes.lastEnded = this.h.now + m.attack + m.hold + m.release;
-    this.h.queue(0, { type: 'memory', phraseId: m.phraseId, attack: m.attack, hold: m.hold, release: m.release }, 'memory', { major: true, ttl: 3, priority: DESIGNED });
+    this.h.queue(0, { type: 'memory', phraseId: m.phraseId, attack: m.attack, hold: m.hold, release: m.release }, RULE.memory, { major: true, ttl: 3, priority: DESIGNED });
     // The light is the answer: nothing else while it is there, and a moment after.
     this.h.pacing.holdFor(this.h.now, m.attack + m.hold + m.release + 3);
   }
@@ -232,7 +233,7 @@ export class MemoryRules {
       // Already on the wall they face: written again there, in front of them (no new line).
       this.h.pacing.holdFor(this.h.now, 2.4);
       this.offerHoldTo = this.h.now + 2.4;
-      this.h.queue(0, { type: 'redraw', phraseId: offer.phraseId, ...(offer.key ? { key: offer.key } : {}), seconds: 3 }, 'memory-offer');
+      this.h.queue(0, { type: 'redraw', phraseId: offer.phraseId, ...(offer.key ? { key: offer.key } : {}), seconds: 3 }, RULE.memoryOffer);
     } else if (offer) {
       const p = PHRASE_BY_ID.get(offer.phraseId);
       if (!p) return;
@@ -246,7 +247,7 @@ export class MemoryRules {
         type: 'write', key: WriteKeys.memory(p.id), text: p.text, hand: p.hand === 'typed' ? 'pencil' : p.hand, size: 's',
         surface: under ? under.surface : this.h.facing, purpose: 'recall', ttl: 0, source: p.id,
         ...(under ? { under: under.id } : {}),
-      }, 'memory-offer');
+      }, RULE.memoryOffer);
     }
   }
 

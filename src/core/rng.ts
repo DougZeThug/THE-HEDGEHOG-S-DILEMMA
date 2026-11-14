@@ -38,9 +38,6 @@ export class Rng {
     for (let i = weights.length - 1; i >= 0; i--) if (weights[i] > 0) return i;
     return -1;
   }
-  fork(salt: number): Rng {
-    return new Rng(Math.floor(this.next() * 4294967296) ^ salt);
-  }
 }
 
 export function hashString(s: string): number {

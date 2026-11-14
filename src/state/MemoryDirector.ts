@@ -319,11 +319,6 @@ export class MemoryDirector {
     return !this.available || this.available.has(id);
   }
 
-  /** Is a vignette playing? */
-  get vignetteActive(): boolean {
-    return !!this.active && VIGNETTE_BY_ID.has(this.active.id);
-  }
-
   /**
    * A later memory whose line should now be offered: written alone where the visitor faces.
    * Once per memory per visit; the Director writes it and holds the room a moment.

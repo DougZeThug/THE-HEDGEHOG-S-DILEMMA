@@ -1,3 +1,4 @@
+import type { RuleName } from '../rules';
 import type { Rng } from '../../core/rng';
 import type { EventScheduler } from '../../core/scheduler';
 import type { Phase, Phrase, Surface, Wall } from '../../content/types';
@@ -63,8 +64,6 @@ export interface RuleLinks {
   memoryPlayed(): boolean;
   /** "Stay" and its answers are never said near the way out. */
   refusesStayWords(): boolean;
-  /** The old arrival (the walls already written). */
-  legacy: boolean;
 }
 
 /**
@@ -85,7 +84,7 @@ export interface RuleHost {
   readonly engagement: Engagement;
   readonly pacing: Pacing;
   readonly selector: PhraseSelector;
-  readonly scheduler: EventScheduler<{ cue: Cue; rule: string }>;
+  readonly scheduler: EventScheduler<{ cue: Cue; rule: RuleName }>;
   readonly rng: Rng;
   readonly visible: Map<string, VisibleState>;
   readonly scenes: MemoryDirector;
@@ -100,14 +99,16 @@ export interface RuleHost {
   readonly shared: SharedMarks;
   /** The wall faced, or null when looking at the floor or ceiling. */
   facingWall(): Wall | null;
+  /** The wall opposite the one faced. */
+  behindWall(): Wall | undefined;
 
-  queue(delay: number, cue: Cue, rule: string, opts?: QueueOptions): void;
-  reveal(id: string, delay: number, rule: string, mode?: 'emerge' | 'still', seconds?: number): void;
+  queue(delay: number, cue: Cue, rule: RuleName, opts?: QueueOptions): void;
+  reveal(id: string, delay: number, rule: RuleName, mode?: 'emerge' | 'still', seconds?: number): void;
   /** Says a phrase; only a voice that was queued is counted as spoken. */
-  speakPhrase(rule: string, p: Phrase, position: VoicePosition, delay?: number, styleOverride?: Phrase['voice'], gain?: number): boolean;
-  fragment(rule: string, f: VoiceFragment, position: VoicePosition, delay?: number, gain?: number): void;
+  speakPhrase(rule: RuleName, p: Phrase, position: VoicePosition, delay?: number, styleOverride?: Phrase['voice'], gain?: number): boolean;
+  fragment(rule: RuleName, f: VoiceFragment, position: VoicePosition, delay?: number, gain?: number): void;
   voice(
-    rule: string,
+    rule: RuleName,
     delay: number,
     kind: VoiceKind,
     text: string | null,
@@ -119,7 +120,7 @@ export interface RuleHost {
   /** The visitor is in the middle of meeting a line: its beat is waiting or about to sound. */
   attending(): boolean;
   /** Whether the room declines to say this now (a refused voice queues nothing, so nothing may be counted for it). */
-  voiceRefused(rule: string, phraseId?: string, finish?: boolean): boolean;
+  voiceRefused(rule: RuleName, phraseId?: string, finish?: boolean): boolean;
   /** Kept for its moment: never drifted onto a wall before that. */
   reserved(id: string): boolean;
   /** Lines not to choose from: on the walls, reserved, withheld. */

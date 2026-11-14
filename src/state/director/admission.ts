@@ -1,6 +1,6 @@
 import { PHRASE_BY_ID } from '../../content/phrases';
 import type { Cue } from '../cues';
-import { RULE, ROOM_OWN, isMeetingOrContribution, isSituation, isSituationLife, parseEncounterRule } from '../rules';
+import { RULE, ROOM_OWN, isMeetingOrContribution, isSituation, isSituationLife, parseEncounterRule, type RuleName } from '../rules';
 import { isMemoryOrHeartKey } from '../writeKeys';
 import type { QueueOptions, RuleHost, RuleLinks } from './host';
 
@@ -32,7 +32,7 @@ export class Admission {
   ) {}
 
   /** `opts`: how the cue was scheduled (put back the same when it must wait). */
-  admit(cue: Cue, rule: string, opts: QueueOptions): boolean {
+  admit(cue: Cue, rule: RuleName, opts: QueueOptions): boolean {
     this.dueOpts = opts;
     return this.accept(cue, rule);
   }
@@ -41,7 +41,7 @@ export class Admission {
   private dueOpts: QueueOptions = {};
 
   /** A voice that was decided on but never sounded: undo what it was counted for. */
-  lost(cue: Cue, rule: string) {
+  lost(cue: Cue, rule: RuleName) {
     // A memory that never found room isn't spent: it waits for the next look.
     if (cue.type === 'memory-scene' || cue.type === 'vignette') this.h.scenes.cancel(cue.id, this.h.now);
     if (cue.type === 'memory') this.link.kitchenLightLost();
@@ -72,7 +72,7 @@ export class Admission {
   }
 
   /** Keep the Director's model of what is visible in sync with the cues it lets through. */
-  private accept(cue: Cue, rule: string): boolean {
+  private accept(cue: Cue, rule: RuleName): boolean {
     // After the room's last music, none of its own again, nor anyone humming.
     if (this.h.musicWithdrawn && (cue.type === 'music' || (cue.type === 'voice' && cue.kind === 'hum'))) return false;
     // A situation that took the chair's voice or the space beyond the walls after this was

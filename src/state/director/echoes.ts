@@ -1,7 +1,7 @@
 import { VIGNETTE_BY_ID, lineKey } from '../../content/vignettes';
 import { PHRASE_BY_ID } from '../../content/phrases';
 import { DRAWING_IDS } from '../../content/ids';
-import { WALLS, oppositeWall } from '../../content/types';
+import { WALLS } from '../../content/types';
 import type { Cue, VoicePosition } from '../cues';
 import type { PendingEcho } from '../MemoryDirector';
 import { WriteKeys } from '../writeKeys';
@@ -40,7 +40,7 @@ export class Echoes {
     if (e.write) {
       // Another wall, and not the one being looked at: it is found, not watched being written.
       // The one behind them first (a wall beside can be at the edge of the view).
-      const behind = this.h.facingWall() ? oppositeWall(this.h.facingWall()!) : undefined;
+      const behind = this.h.behindWall();
       // Beside the room's drawn door (B's "tomorrow"): found there, never watched being written.
       if (e.write.atDoor) {
         if (this.h.facing === 'south') return null;
