@@ -11,18 +11,9 @@
 //   before the hand-off; audio runs after the tap; the hand-off comes by ~25 s; Skip works at
 //   any time; touch looks and walks afterwards. Frames go to OUT for people to look at.
 // Software rendering here is slow (~10 fps): times are read from the score's own clock.
-import { createRequire } from 'node:module';
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { execSync } from 'node:child_process';
+import { BASE, devices, launch } from './browser-lib.mjs';
 
-const require = createRequire(import.meta.url);
-let chromium, devices;
-try {
-  ({ chromium, devices } = require('playwright'));
-} catch {
-  ({ chromium, devices } = require(`${execSync('npm root -g').toString().trim()}/playwright`));
-}
-const BASE = process.env.BASE ?? 'http://localhost:4173/';
 const OUT = process.env.OUT ?? 'test-output/opening';
 mkdirSync(OUT, { recursive: true });
 // (Captions are off by default, a choice in settings: these runs check them, as a visitor who chose them.)
@@ -32,9 +23,7 @@ const chooseCaptions = () => {
     localStorage.setItem('hh.prefs.v1', JSON.stringify({ ...p, captions: true, captionsChosen: true }));
   } catch {}
 };
-const browser = await chromium.launch({
-  executablePath: process.env.CHROMIUM_PATH || undefined,
-  args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'],
+const browser = await launch({
 });
 const failures = [];
 const check = (ok, what) => {

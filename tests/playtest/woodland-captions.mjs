@@ -1,11 +1,7 @@
 // Each of the woodland's captions as a visitor sees it (the app's own stylesheet, a 1280×720
 // landscape screen), on a transparent ground, to lay over the film.
-import { createRequire } from 'node:module';
-import { execSync } from 'node:child_process';
 import { mkdirSync, readdirSync, writeFileSync } from 'node:fs';
-const require = createRequire(import.meta.url);
-let chromium;
-try { ({ chromium } = require('playwright')); } catch { ({ chromium } = require(`${execSync('npm root -g').toString().trim()}/playwright`)); }
+import { launch } from './browser-lib.mjs';
 const ROOT = process.cwd();
 const css = readdirSync(`${ROOT}/dist/assets`).find((f) => f.endsWith('.css'));
 const OUT = process.argv[2] ?? 'test-output/review/woodland/sound/caps';
@@ -13,7 +9,7 @@ const OUT = process.argv[2] ?? 'test-output/review/woodland/sound/caps';
 // ([text, over the dark dusk]: there a sound's caption is light words, no pill: src/ui/Captions.ts `dim`.)
 const caps = process.argv[3] ? JSON.parse(process.argv[3]) : [['[cicadas, beyond the wall]', false], ['[cicadas in the trees; a piano]', false], ['[evening cicadas, far off; no piano]', true], ['[an evening cicada, far off]', false]];
 mkdirSync(OUT, { recursive: true });
-const browser = await chromium.launch();
+const browser = await launch();
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
 for (const [i, [text, dim]] of caps.entries()) {
   const html = `<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="file://${ROOT}/dist/assets/${css}">
