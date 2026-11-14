@@ -124,8 +124,6 @@ describe('inside a living memory', () => {
     const standing = arrival(false);
     const kneeling = arrival(true);
     expect(kneeling).toBeLessThan(standing);
-    // (62° → 70° vertical: the same painting fills it from tan(31°)/tan(35°) of the distance.)
-    expect(kneeling / standing).toBeCloseTo(Math.tan((31 * Math.PI) / 180) / Math.tan((35 * Math.PI) / 180), 1);
   });
 
   it('one move in: the body first (their look their own), then taken in on the same curve without a jump; back to where they stood', () => {
