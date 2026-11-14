@@ -40,6 +40,10 @@ export const FRAGMENT_IDS = {
   hum: 'vf-hum',
 } as const;
 
+/** Writing the room starts with, ordinary things first; the rest comes by selection. */
+// ("the light in the kitchen at four in the afternoon" is kept back: it is the memory, late.)
+export const FIRST_WRITTEN: readonly string[] = ['cereal', 'sandwich', 'good-day', 'summer', 'laugh-breathe', 'home', 'rain-carpark'];
+
 export const SITUATION_IDS = {
   erosion: 'erosion',
 } as const;

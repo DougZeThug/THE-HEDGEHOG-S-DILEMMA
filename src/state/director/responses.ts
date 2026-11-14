@@ -2,6 +2,7 @@ import { PHRASES, PHRASE_BY_ID } from '../../content/phrases';
 import { VOICE_FRAGMENTS } from '../../content/relations';
 import { WALLS, oppositeWall, type Phrase, type Tier } from '../../content/types';
 import { devKind } from '../Pacing';
+import { RULE } from '../rules';
 import type { RuleHost } from './host';
 
 /**
@@ -33,7 +34,7 @@ export class Responses {
     if (!this.h.pacing.crowded(now)) options.push(['behind', () => this.respondBehind()], ['sound', () => this.respondSound()]);
     // Sometimes the answer is that nobody speaks: the room hushes, as if about to, and doesn't.
     if (this.h.phase !== 'arrival' && this.lastRespondKind !== 'withhold' && this.h.rng.chance(0.25))
-      options.unshift(['withhold', () => (this.h.queue(0, { type: 'silence', depth: 0.38, seconds: 5 }, 'withhold', { major: true, ttl: 4 }), true)]);
+      options.unshift(['withhold', () => (this.h.queue(0, { type: 'silence', depth: 0.38, seconds: 5 }, RULE.withhold, { major: true, ttl: 4 }), true)]);
     // Not the same kind of answer twice running.
     const tired = this.h.pacing.repeats('text', now, 25);
     options.sort((a, b) => Number(a[0] === this.lastRespondKind) - Number(b[0] === this.lastRespondKind) || (tired ? Number(a[0] !== 'sound') - Number(b[0] !== 'sound') : 0));

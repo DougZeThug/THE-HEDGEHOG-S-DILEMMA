@@ -17,7 +17,7 @@ import { Silence } from './director/silence';
 import { KITCHEN_LIGHT, MemoryRules } from './director/memoryRules';
 import { Admission } from './director/admission';
 import { Voicing } from './director/voicing';
-import { FIRST_WRITTEN, Writing } from './director/writing';
+import { Writing } from './director/writing';
 import { Stillness } from './director/stillness';
 import { Withdraw } from './director/withdraw';
 import { newSharedMarks, type QueueOptions, type RuleHost } from './director/host';
@@ -30,7 +30,7 @@ import { VisitorModel, type VisitorInput } from './VisitorModel';
 import { Memory } from './Memory';
 import { EmotionalField } from './EmotionalField';
 import { PhaseTracker } from './Phase';
-import { RULE, ROOM_OWN, isEncounter, ruleSource } from './rules';
+import { RULE, ROOM_OWN, isEncounter, ruleSource, phaseRule, type RuleName } from './rules';
 import { parseWriteKey } from './writeKeys';
 import { PHRASE_IDS } from '../content/ids';
 import { Engagement } from './Engagement';
@@ -55,11 +55,6 @@ interface DirectorOptions {
   trace?: 'close' | null;
   /** Force a repertoire of situations (for inspection and tests). */
   situations?: string[];
-  /**
-   * The old arrival: the walls already written and a line redrawn as you come in. The room
-   * now begins nearly empty and an authored opening (src/state/OpeningScore.ts) comes first.
-   */
-  legacyOpening?: boolean;
   /**
    * Design experiments, off unless named (docs/reviews/2026-11-core-loop.md): each changes one
    * part of how the room answers, so a visit with and without it can be compared on the same seed.
@@ -100,7 +95,7 @@ export class Director implements RuleHost {
   readonly selector = new PhraseSelector();
   // The room's own things are spaced 4–7 s apart, never at a fixed pulse (its own seeded draw, so
   // the visit's other choices are unchanged by it).
-  readonly scheduler = new EventScheduler<{ cue: Cue; rule: string }>(7, () => this.roomGap());
+  readonly scheduler = new EventScheduler<{ cue: Cue; rule: RuleName }>(7, () => this.roomGap());
   private gapRng = new Rng(1);
   private releaseStep = 0;
   /**
@@ -206,7 +201,6 @@ export class Director implements RuleHost {
   private lastTapAt = -Infinity;
   /** Per-cooldown jitter, re-rolled each time it is used, so periodic rules don't beat in time. */
   private jitter = new Map<string, number>();
-  private readonly legacy: boolean;
   readonly seed: number;
   /** While the authored opening plays, the room's own rules wait and its clock doesn't run. */
   held = false;
@@ -239,7 +233,6 @@ export class Director implements RuleHost {
     this.stillness = new Stillness(this);
     // The room begins nearly empty: only the writing on the floor by the chair, which can only
     // be read by someone who comes close. The rest accumulates (ruleAccumulate).
-    this.legacy = !!opts.legacyOpening;
     this.memoryRules = new MemoryRules(this, {
       northHeld: () => this.heart.northHeld(),
       heartEnded: (id, counted, seen, ranToEnd) => this.heart.memoryEnded(id, counted, seen, ranToEnd),
@@ -248,9 +241,9 @@ export class Director implements RuleHost {
         this.releaseStep = 0;
       },
     });
-    this.voicing = new Voicing(this, { northKept: () => this.heart.northKept(), refusesStayWords: () => this.wayOut.refusesStayWords(), legacy: this.legacy });
-    this.writing = new Writing(this, { legacy: this.legacy }, { memoryPlayed: () => this.memoryRules.memoryPlayed, isWayOut: (id) => this.wayOut.isOpenLine(id) });
-    for (const p of PHRASES) if (this.legacy ? p.tier === 'arrival' || p.tier === 'near' : p.tier === 'near' && p.surface === 'floor') this.visible.set(p.id, { mode: 'shown', since: 0, base: true });
+    this.voicing = new Voicing(this, { northKept: () => this.heart.northKept(), refusesStayWords: () => this.wayOut.refusesStayWords() });
+    this.writing = new Writing(this, { memoryPlayed: () => this.memoryRules.memoryPlayed, isWayOut: (id) => this.wayOut.isOpenLine(id) });
+    for (const p of PHRASES) if (p.tier === 'near' && p.surface === 'floor') this.visible.set(p.id, { mode: 'shown', since: 0, base: true });
     this.geometry = opts.geometry ?? (() => undefined);
     this.inView = opts.inView ?? ((id) => PHRASE_BY_ID.get(id.replace(/^heart:/, ''))?.surface === this.facing);
     this.situations = new SituationRunner(Director.repertoire(this.visits, opts.situations, opts.seed));
@@ -266,7 +259,6 @@ export class Director implements RuleHost {
   /** The one memory a visit that intrudes as light: "the light in the kitchen at four in the afternoon". */
   static readonly MEMORY = KITCHEN_LIGHT;
   /** Writing the room starts with, ordinary things first. */
-  static readonly FIRST_WRITTEN = FIRST_WRITTEN;
   /** What may be written in the air, in order of preference. */
   static readonly AIR_LINES = AIR_LINES;
 
@@ -356,13 +348,13 @@ export class Director implements RuleHost {
     };
   }
 
-  queue(delay: number, cue: Cue, rule: string, opts: QueueOptions = {}) {
+  queue(delay: number, cue: Cue, rule: RuleName, opts: QueueOptions = {}) {
     // The room's own events never come together (a burst reads as a machine): spaced by the scheduler.
     const source = ruleSource(rule);
     this.scheduler.schedule(this.now + delay, { cue, rule }, { ...opts, room: source === 'room', group: rule, marks: source === 'turn' });
   }
 
-  reveal(id: string, delay: number, rule: string, mode: 'emerge' | 'still' = 'emerge', seconds = 9) {
+  reveal(id: string, delay: number, rule: RuleName, mode: 'emerge' | 'still' = 'emerge', seconds = 9) {
     const p = PHRASE_BY_ID.get(id);
     if (!p || p.tier === 'annotation') return;
     this.queue(delay, { type: 'reveal', phraseId: id, mode, seconds }, rule, { key: `reveal:${id}` });
@@ -372,26 +364,26 @@ export class Director implements RuleHost {
    * Whether the room declines to say this now. A refused voice queues nothing, so nothing may be
    * counted for it: callers that commit state around a voice ask first, or use what `voice` returns.
    */
-  voiceRefused(rule: string, phraseId?: string, finish = false): boolean {
+  voiceRefused(rule: RuleName, phraseId?: string, finish = false): boolean {
     return this.voicing.voiceRefused(rule, phraseId, finish);
   }
 
   /** Queues the voice; false when the room declined to speak (nothing was queued or counted). */
-  voice(rule: string, delay: number, kind: VoiceKind, text: string | null, caption: string, position: VoicePosition, extra: { gain?: number; assetId?: string; phraseId?: string; ttl?: number; priority?: number; finish?: boolean } = {}): boolean {
+  voice(rule: RuleName, delay: number, kind: VoiceKind, text: string | null, caption: string, position: VoicePosition, extra: { gain?: number; assetId?: string; phraseId?: string; ttl?: number; priority?: number; finish?: boolean } = {}): boolean {
     return this.voicing.voice(rule, delay, kind, text, caption, position, extra);
   }
 
   /** Says a phrase; only a voice that was queued is counted as spoken. */
-  speakPhrase(rule: string, p: Phrase, position: VoicePosition, delay = 0, styleOverride?: Phrase['voice'], gain = 0.8): boolean {
+  speakPhrase(rule: RuleName, p: Phrase, position: VoicePosition, delay = 0, styleOverride?: Phrase['voice'], gain = 0.8): boolean {
     return this.voicing.speakPhrase(rule, p, position, delay, styleOverride, gain);
   }
 
-  fragment(rule: string, f: VoiceFragment, position: VoicePosition, delay = 0, gain = 0.6): void {
+  fragment(rule: RuleName, f: VoiceFragment, position: VoicePosition, delay = 0, gain = 0.6): void {
     this.voicing.fragment(rule, f, position, delay, gain);
   }
 
   /** A voice that was decided on but never sounded: undo what it was counted for. */
-  private lost(cue: Cue, rule: string): void {
+  private lost(cue: Cue, rule: RuleName): void {
     this.admission.lost(cue, rule);
   }
 
@@ -430,7 +422,6 @@ export class Director implements RuleHost {
         this.shared.pendingPhase = null;
       }
       if (phaseChanged === 'transform') this.shared.transformAt = this.now;
-      if (this.legacy) this.writing.opening();
       // (The heart is decided before the kitchen light may be offered: it waits for the heart.)
       this.heart.decide();
       this.memoryRules.kitchenLight();
@@ -658,7 +649,7 @@ export class Director implements RuleHost {
     if (p === 'contradiction' || p === 'transform') this.shared.markedTurnAt = this.now;
     if (p === 'contradiction') {
       // The contradiction phase brings the fear of being left onto the wall; what it means is left to later meetings.
-      if (!this.visible.has('afraid-leave')) this.reveal('afraid-leave', 0, 'phase-contradiction', 'emerge', 6);
+      if (!this.visible.has(PHRASE_IDS.afraidLeave)) this.reveal(PHRASE_IDS.afraidLeave, 0, phaseRule('contradiction'), 'emerge', 6);
     }
     if (p === 'transform') {
       // Already inside the long held silence: that silence, and its dark, are the turn. It keeps
@@ -669,9 +660,9 @@ export class Director implements RuleHost {
       // (Just after the held silence, not a second one in its exhale: 15 s clear of it.)
       const delay = this.now + d0 > this.shared.heldSilenceUntil ? Math.max(d0, this.shared.heldSilenceUntil + 15 - this.now) : d0;
       if (this.now + d0 > this.shared.heldSilenceUntil)
-        this.queue(delay, { type: 'silence', depth: 0.7, seconds: 14, ...(dark ? { dim: 0.15, dimSeconds: 11 } : {}) }, 'phase-transform', { major: true, ttl: 30 });
+        this.queue(delay, { type: 'silence', depth: 0.7, seconds: 14, ...(dark ? { dim: 0.15, dimSeconds: 11 } : {}) }, phaseRule('transform'), { major: true, ttl: 30 });
       const late = this.selector.select(this.ctx(), { tiers: ['transform'], exclude: this.hiddenExcluding() });
-      if (late) this.reveal(late.id, 10, 'phase-transform', 'emerge', 14);
+      if (late) this.reveal(late.id, 10, phaseRule('transform'), 'emerge', 14);
     }
   }
 

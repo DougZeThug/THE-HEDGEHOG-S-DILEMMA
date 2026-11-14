@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { Director } from '../src/state/Director';
+import { FIRST_WRITTEN } from '../src/content/ids';
 import type { TimedCue } from '../src/state/cues';
 import { input } from './helpers/visitor';
 import { run } from './sim';
@@ -8,7 +9,7 @@ const still = input({ x: 0.1, z: 2.2 });
 
 describe('a memory intruding as light', () => {
   it('is kept back from the first writing: not spent on arrival', () => {
-    expect(Director.FIRST_WRITTEN).not.toContain(Director.MEMORY.phraseId);
+    expect(FIRST_WRITTEN).not.toContain(Director.MEMORY.phraseId);
   });
 
   /** Run still until the line is offered (or is already there), late in the visit. */

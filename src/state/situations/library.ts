@@ -139,7 +139,7 @@ const PENTA = [0, 2, 4, 7, 9, 12];
 export const humming: SituationDef = {
   id: 'humming',
   maxLife: 600,
-  owns: ['vf-hum'],
+  owns: [FRAGMENT_IDS.hum],
   // (Never once the room's music is over: a hum is a tune too.)
   ready: (h, claimed) => h.now > 20 && h.visitor.deepStillFor > 5 && !claimed('beyond') && !h.musicWithdrawn,
   begin(c) {
@@ -207,7 +207,7 @@ export const humming: SituationDef = {
 export const listening: SituationDef = {
   id: 'listening',
   maxLife: 720,
-  owns: ['vf-two-voices'],
+  owns: [FRAGMENT_IDS.twoVoices],
   ready: (h, claimed) =>
     h.now > 45 && h.phase !== 'arrival' && !claimed('beyond') && (h.facing === 'west' || h.distToSurface('west') < 2.2),
   begin(c) {

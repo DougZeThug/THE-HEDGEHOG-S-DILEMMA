@@ -1,31 +1,21 @@
 import { DRAWINGS } from '../../content/drawings';
 import { PHRASES, PHRASE_BY_ID } from '../../content/phrases';
-import { PHRASE_IDS } from '../../content/ids';
+import { FIRST_WRITTEN, PHRASE_IDS } from '../../content/ids';
 import type { Surface } from '../../content/types';
 import { WriteKeys } from '../writeKeys';
+import type { RuleName } from '../rules';
 import type { RuleHost, RuleLinks } from './host';
-
-/** Writing the room starts with, ordinary things first; the rest comes by selection. */
-// ("the light in the kitchen at four in the afternoon" is kept back: it is the memory, late.)
-export const FIRST_WRITTEN: readonly string[] = ['cereal', 'sandwich', 'good-day', 'summer', 'laugh-breathe', 'home', 'rain-carpark'];
-
-interface WritingOptions {
-  /** The old arrival: the walls already written and a line redrawn as you come in. */
-  legacy: boolean;
-}
 
 /** What writing needs to know of the kitchen-light memory and the way out. */
 type WritingLink = Pick<RuleLinks, 'memoryPlayed' | 'isWayOut'>;
 
 /**
  * Writing arrives on the walls: the room fills as the visit goes on, an unfinished line is finished
- * when someone stays with it, the one drawing is made while the visitor watches, and (the old
- * arrival) the first line is redrawn as they come in.
+ * when someone stays with it, and the one drawing is made while the visitor watches.
  */
 export class Writing {
   constructor(
     private readonly h: RuleHost,
-    private readonly o: WritingOptions,
     private readonly link: WritingLink,
   ) {}
 
@@ -46,13 +36,11 @@ export class Writing {
   private facingSince = 0;
   private lastFacing: Surface | null = null;
 
-  private openingDone = false;
   private drawAgainAt = 0;
 
   private drawRetried = new Set<string>();
 
   readonly drawn = new Set<string>();
-
 
   /**
    * The room fills: the walls start almost bare and gather writing through the visit — a few
@@ -60,7 +48,6 @@ export class Writing {
    * Usually on the wall the visitor faces, so it is seen being written.
    */
   accumulate() {
-    if (this.o.legacy) return;
     // Someone staying with a line is answered sooner: something it echoes or contradicts is
     // written near it — reading makes more to read.
     const v = this.h.visitor;
@@ -89,7 +76,7 @@ export class Writing {
     if (!pool.length) return;
     const onWall = (id: string) => pool.some((p) => p.id === id && (!facing || p.surface === this.h.facing));
     let id: string | undefined;
-    let rule = turned ? 'accumulate-turn' : 'accumulate';
+    let rule: RuleName = turned ? 'accumulate-turn' : 'accumulate';
     if (answerRead && reading) {
       const related = [...(reading.contradicts ?? []), ...(reading.echoes ?? [])]
         .map((r) => PHRASE_BY_ID.get(r))
@@ -158,26 +145,6 @@ export class Writing {
       // Then nothing for a while: the sentence is left to stand.
       this.h.pacing.holdFor(this.h.now, 15);
       return;
-    }
-  }
-
-  opening() {
-    if (this.openingDone || this.h.now < 0.3) return;
-    this.openingDone = true;
-    const focal = this.h.visits <= 1 ? PHRASE_IDS.stay : this.h.rng.pick([PHRASE_IDS.stay, 'closer', 'not-going']);
-    this.h.queue(0, { type: 'redraw', phraseId: focal, seconds: 4.5 }, 'opening');
-    const r = this.h.rng.next();
-    if (r < 0.4) {
-      // The hum drops as the line is finished: the room choosing not to say anything more.
-      this.h.queue(4.6, { type: 'silence', depth: 0.55, seconds: 6 }, 'opening');
-    } else if (r < 0.75) {
-      // Someone has just gone out, behind you.
-      this.h.queue(2.2, { type: 'sound', kind: 'door', position: { kind: 'beyond', surface: 'south' }, gain: 0.36 }, 'opening');
-    } else {
-      // Someone has just got up from the chair, as you came in.
-      this.h.shared.creaks++;
-      this.h.queue(0.9, { type: 'sound', kind: 'chair-creak', position: { kind: 'chair' }, gain: 0.28 }, 'opening');
-      this.h.queue(1, { type: 'glow', x: 0, z: 0, amount: 0.2, seconds: 20 }, 'opening');
     }
   }
 

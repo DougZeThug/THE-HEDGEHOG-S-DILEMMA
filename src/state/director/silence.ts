@@ -1,6 +1,7 @@
 import { MEMORY_IDS } from '../../content/ids';
 import { phaseAtLeast } from '../Phase';
 
+import { RULE } from '../rules';
 import type { RuleHost } from './host';
 
 /** What the held silence needs to know of the way out. */
@@ -66,7 +67,7 @@ export class Silence {
     const seconds = this.h.rng.range(30, 42);
     this.h.shared.heldSilenceUntil = this.h.now + seconds;
     const there = table && atChair;
-    this.h.queue(0, { type: 'silence', depth: 0.92, seconds, dim: 0.15, dimSeconds: there ? seconds : 16 }, there ? 'resonance:table' : 'held-silence', { major: true, ttl: 10 });
+    this.h.queue(0, { type: 'silence', depth: 0.92, seconds, dim: 0.15, dimSeconds: there ? seconds : 16 }, there ? RULE.tableSilence : RULE.heldSilence, { major: true, ttl: 10 });
   }
 
   tableLift() {
