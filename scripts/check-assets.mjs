@@ -256,6 +256,18 @@ await section('the voice recordings, ledger and manifest agree', async () => {
   check(bytes <= 3 * 1024 * 1024, `voices: the sounds fetched on arrival are ${(bytes / 1048576).toFixed(2)} MiB, over the 3 MiB phone budget (raise it on purpose in scripts/check-assets.mjs)`);
 });
 
+await section('the voice direction casts every voiced phrase, and other seeds are never in the room unheard', async () => {
+  const { PHRASES } = await import('../src/content/phrases.ts');
+  const direction = json('src/content/dialogue.json');
+  const ledger = json('scripts/dialogue-ledger.json');
+  const cast = new Set(direction.performances.filter((p) => !p.retired).map((p) => p.phraseId));
+  for (const p of PHRASES) if (p.voice) check(cast.has(p.id), `voice direction: the voiced phrase "${p.id}" has no take, kept or waiting to be heard (add one in src/content/dialogue.json)`);
+  for (const p of direction.performances.filter((x) => x.variantOf)) {
+    check(direction.performances.some((x) => x.id === p.variantOf), `voice direction: ${p.id} is a variant of ${p.variantOf}, which does not exist`);
+    if (ledger.entries[p.id]?.review !== 'approved') check(p.audition, `voice direction: ${p.id} is another seed that is not approved but is not marked audition, so it would enter the room unheard`);
+  }
+});
+
 await section("every recording in the room has character timings that match its text (for writing it as it is said)", () => {
   const timings = json('src/content/voice-timings.json');
   const direction = json('src/content/dialogue.json');

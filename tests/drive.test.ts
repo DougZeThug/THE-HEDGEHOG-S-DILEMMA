@@ -7,7 +7,7 @@ import { uprightAt } from '../src/memory/living/drive';
 import { compose } from '../src/memory/compose';
 import { StreetLight } from '../src/world/StreetLight';
 import { Lighting } from '../src/world/Lighting';
-import type { Environment } from '../src/core/environment';
+import { runLighting } from './helpers/lighting';
 
 /** The Drive Home in the room (docs/drive-home.md). */
 const seed = DRIVE.seed('film');
@@ -155,11 +155,7 @@ describe('the streetlights across the wall', () => {
 });
 
 describe("the room's light, at the end", () => {
-  const env = { lightIntensity: 1, lightWarmth: 0, shadowDrift: 0, chairGlow: 0.2 } as unknown as Environment;
-  const chair = new THREE.Vector3(0, 0, 0);
-  const run = (l: Lighting, from: number, s: number) => {
-    for (let i = 0; i < s * 30; i++) l.update(1 / 30, env, from + i / 30, chair, 0);
-  };
+  const run = (l: Lighting, from: number, s: number) => runLighting(l, s, from);
   it('comes to the visitor first, stays a moment, then goes back to the chair by itself', () => {
     const l = new Lighting('low');
     run(l, 0, 2);

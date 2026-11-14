@@ -4,11 +4,11 @@ import { Lighting } from '../src/world/Lighting';
 import { ROOM } from '../src/core/room';
 import { LOOKS, lookFor, parseLook, neutralFor } from '../src/world/Style';
 import type { Environment } from '../src/core/environment';
+import { CALM_ENV, runLighting } from './helpers/lighting';
 
-const env = { lightIntensity: 1, lightWarmth: 0, shadowDrift: 0, chairGlow: 0.2 } as unknown as Environment;
+const env = CALM_ENV;
 const settle = (l: Lighting, e = env) => {
-  const chair = new THREE.Vector3();
-  for (let t = 0; t < 40; t += 0.05) l.update(0.05, e, t, chair);
+  runLighting(l, 40, 0, 20, new THREE.Vector3(), e);
   return l;
 };
 

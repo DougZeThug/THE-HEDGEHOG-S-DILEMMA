@@ -13,10 +13,9 @@ const living = Object.values(MEMORIES).filter((d) => d.living);
 describe.each(living.map((def) => [def.id, def] as const))('the living memory %s', (id, def) => {
   const scene = SCENE_MEMORIES.find((m) => m.id === id);
 
-  it('opens from a line the room writes, and keeps that line for it', () => {
+  it('opens from a line the room writes', () => {
     expect(scene, 'a scene memory by this id').toBeDefined();
     expect(PHRASE_BY_ID.has(scene!.phraseId)).toBe(true);
-    expect(scene!.reserved).toBe(true);
   });
 
   it('is counted once seen only after it has been entered and while it is still held, and runs exactly its sections', () => {

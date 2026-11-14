@@ -1,5 +1,4 @@
 import { describe, it, expect } from 'vitest';
-import * as THREE from 'three';
 import { SHADOWS } from '../src/memory/memories/shadows';
 import { SHADOWS_AT, SHADOWS_BEATS, SHADOWS_SECONDS, SHADOWS_SECTIONS } from '../src/memory/beats/shadows';
 import { SCENE_MEMORIES, HEART_IDS, heartOf } from '../src/content/memories';
@@ -7,7 +6,7 @@ import { PHRASE_BY_ID } from '../src/content/phrases';
 import { shadowsAt, uprightAt } from '../src/memory/living/shadows';
 import { compose } from '../src/memory/compose';
 import { Lighting } from '../src/world/Lighting';
-import type { Environment } from '../src/core/environment';
+import { runLighting } from './helpers/lighting';
 
 /** Memory VII, The Shape of Someone, in the room (docs/shadows.md). */
 const seed = SHADOWS.seed('film');
@@ -96,11 +95,7 @@ describe("the shared heart: someone who stayed by the chair", () => {
 });
 
 describe("the chair's shadow, held by a memory", () => {
-  const env = { lightIntensity: 1, lightWarmth: 0, shadowDrift: 0, chairGlow: 0.2 } as unknown as Environment;
-  const chair = new THREE.Vector3(0, 0, 0);
-  const run = (l: Lighting, s: number) => {
-    for (let i = 0; i < s * 30; i++) l.update(1 / 30, env, i / 30, chair, 0);
-  };
+  const run = (l: Lighting, s: number) => runLighting(l, s);
   it('brings the key down behind the chair, on the line from the wall through it, aimed at the wall, then lets it go', () => {
     const l = new Lighting('low');
     run(l, 2);

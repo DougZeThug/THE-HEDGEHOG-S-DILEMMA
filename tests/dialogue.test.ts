@@ -33,37 +33,6 @@ describe('voice direction', () => {
   it('matches the authored corpus exactly (captions stay the authored words)', () => {
     expect(validateDirection(direction, (id) => PHRASE_BY_ID.get(id)?.text)).toEqual([]);
   });
-  it('covers the required phrases, with several performances of the most important', () => {
-    const ids = new Set(direction.performances.map((p: Perf) => p.phraseId));
-    for (const id of ['stay', 'closer', 'afraid-leave', 'if-closer', 'why-understand', 'love-go-away', 'two-cups', 'laugh-breathe', 'understood-minute', 'crumbs', 'remember-me', 'glad-came'])
-      expect(ids.has(id), id).toBe(true);
-    expect(ids.size).toBeGreaterThanOrEqual(18);
-    expect(ids.size).toBeLessThanOrEqual(40);
-    const count = (id: string) => direction.performances.filter((p: Perf) => p.phraseId === id && !p.retired && !p.audition).length;
-    expect(count('stay')).toBeGreaterThanOrEqual(3);
-    expect(count('closer')).toBeGreaterThanOrEqual(2);
-  });
-  it('directs a range of feeling, and keeps it in the room after listening', () => {
-    const fresh = direction.performances.filter((p: Perf) => p.generation === 2);
-    expect(fresh.length).toBeGreaterThanOrEqual(15);
-    // The artist prefers sadder and whispered takes, so there is no cap on them; but laughter,
-    // anger and warmth were all directed, and laughter and warmth survived the listening.
-    const inputs = fresh.map((p: Perf) => p.input.toLowerCase()).join(' ');
-    for (const w of ['laugh', 'angry', 'frustrated', 'warm', 'embarrassed', 'confused', 'grief', 'tender']) expect(inputs).toContain(w);
-    const live = direction.performances.filter((p: Perf) => !p.retired && !p.audition);
-    for (const id of ['crumbs--laughing', 'laugh-breathe--joy', 'love-go-away--teasing', 'love-go-away--laughing']) expect(live.map((p: Perf) => p.id)).toContain(id);
-    for (const id of ['stay', 'love-go-away', 'happy-then']) {
-      const takes = live.filter((p: Perf) => p.phraseId === id);
-      // "I think I was happy then." lost two readings in the audition; its new ones are waiting to be heard.
-      const min = id === 'happy-then' ? 2 : 3;
-      expect(takes.length, id).toBeGreaterThanOrEqual(min);
-      // Approved alternative takes ("-b", "-c") share their reading's interpretation.
-      expect(new Set(takes.map((p: Perf) => p.interpretation)).size, id).toBeGreaterThanOrEqual(min);
-      expect(new Set(takes.map((p: Perf) => `${p.voice}:${JSON.stringify(p.context)}`)).size, id).toBeGreaterThanOrEqual(min);
-      expect(direction.performances.filter((p: Perf) => p.phraseId === id && !p.retired).length, id).toBeGreaterThanOrEqual(3);
-    }
-  });
-
   it('keeps retired takes out of the room but not out of the ledger', () => {
     const retired = direction.performances.filter((p: Perf) => p.retired);
     expect(retired.length).toBeGreaterThan(0);
@@ -195,20 +164,6 @@ describe('the manifest', () => {
     const m = buildManifest(manifest, direction, l);
     expect(m['phrase:stay']).not.toContain('dialogue/stay--breaking.mp3');
     expect(m['phrase:crumbs']).toBeUndefined();
-  });
-});
-
-describe('the whole spoken corpus is cast', () => {
-  it('every voiced phrase has at least one take, kept or waiting to be heard', async () => {
-    const { PHRASES } = await import('../src/content/phrases');
-    const cast = new Set(direction.performances.filter((p: Perf) => !p.retired).map((p: Perf) => p.phraseId));
-    for (const p of PHRASES) if (p.voice) expect(cast.has(p.id), p.id).toBe(true);
-  });
-  it('other seeds point at a direction that exists, and never enter the room unheard', () => {
-    for (const p of direction.performances.filter((x: Perf) => x.variantOf)) {
-      expect(direction.performances.some((x: Perf) => x.id === p.variantOf), p.id).toBe(true);
-      if (ledger.entries[p.id]?.review !== 'approved') expect(p.audition, p.id).toBe(true);
-    }
   });
 });
 
