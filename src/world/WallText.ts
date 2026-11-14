@@ -32,6 +32,8 @@ export interface TextItem {
   phrase?: Phrase;
   /** For writing that repeats a phrase elsewhere: the phrase it repeats. */
   source?: string;
+  /** The words as written. */
+  text: string;
   purpose: Purpose;
   hand: Hand;
   size: Size;
@@ -182,13 +184,14 @@ export class WallText {
     const { mat, uniforms } = makeTextMaterial(o.tex, o.hand, o.w / o.h, hashString(o.key), o.duration);
     const mesh = new THREE.Mesh(this.geo, mat);
     mesh.scale.set(o.w, o.h, 1);
+    // (Kept for the playtests that read the mesh; the code reads `item.text`.)
     mesh.userData.text = o.text;
     mesh.renderOrder = 2;
     mesh.visible = false;
     mesh.receiveShadow = true;
     this.room.frames[o.placement.surface].writing.add(mesh);
     const item: TextItem = {
-      key: o.key, phrase: o.phrase, purpose: o.purpose, hand: o.hand, size: o.size, placement: o.placement, mesh, uniforms,
+      key: o.key, text: o.text, phrase: o.phrase, purpose: o.purpose, hand: o.hand, size: o.size, placement: o.placement, mesh, uniforms,
       vis: 0, target: 0, rate: 0.1, shy: 1, emphasis: 0, expires: 0,
       centre: new THREE.Vector3(), normal: new THREE.Vector3(),
       words: o.words, duration: o.duration, plan: null, strength: o.strength,
@@ -243,7 +246,7 @@ export class WallText {
   writeOn(id: string, o: { delay?: number; speech?: [number, number][]; audioStart?: number; upto?: number; instant?: boolean } = {}): number {
     const it = this.ensure(id);
     if (!it) return 0;
-    const text = (it.mesh.userData.text as string) ?? '';
+    const text = it.text;
     const now = wallClock();
     const cap = o.upto !== undefined && o.upto < it.words.length ? it.words[Math.max(0, o.upto - 1)][1] : it.duration;
     // Reduced motion: no stroke-by-stroke animation; the writing is simply there, word by word, quickly.
@@ -272,7 +275,7 @@ export class WallText {
     if (!it?.plan || it.plan.cap >= it.duration) return null;
     const k = it.words.findIndex(([, end]) => end > it.plan!.cap + 1e-3);
     if (k < 0) return null;
-    return wordRanges((it.mesh.userData.text as string) ?? '')[k]?.[0] ?? null;
+    return wordRanges(it.text)[k]?.[0] ?? null;
   }
 
   /** Is the hand still writing this? Has it stopped part-way? */
@@ -365,7 +368,7 @@ export class WallText {
    */
   loseWord(key: string, word: string, seconds: number): boolean {
     const it = this.items.get(key);
-    const text = (it?.mesh.userData.text as string) ?? '';
+    const text = it?.text ?? '';
     if (!it || !text) return false;
     const ranges = wordRanges(text);
     const k = ranges.findIndex(([a, b]) => text.slice(a, b).toLowerCase().replace(/[^a-z']/g, '') === word.toLowerCase());
@@ -403,7 +406,7 @@ export class WallText {
   erode(key: string, keep: string, now: number): boolean {
     const it = this.items.get(key);
     if (!it || it.vis <= 0 || !keep) return false;
-    const text = (it.mesh.userData.text as string) ?? '';
+    const text = it.text;
     // (`keep` has its apostrophes straightened, one character for one, so the index holds in the text as written.)
     const idx = text.toLowerCase().replace(/[’']/g, "'").indexOf(keep);
     const word = idx >= 0 ? text.slice(idx, idx + keep.length) : keep;
@@ -572,5 +575,16 @@ export class WallText {
 
   centreOf(key: string): THREE.Vector3 | null {
     return this.items.get(key)?.centre.clone() ?? null;
+  }
+
+  /** Whether a piece of writing can be read as it is now: shown, and at least this present and this dark. */
+  legible(it: TextItem, minVis: number, minOpacity: number): boolean {
+    return it.mesh.visible && it.vis >= minVis && it.uniforms.uOpacity.value >= minOpacity;
+  }
+
+  /** Where a piece of writing is in the world, as a box (null when it has no extent yet). */
+  screenBox(it: TextItem, out = new THREE.Box3()): THREE.Box3 | null {
+    out.setFromObject(it.mesh);
+    return out.isEmpty() ? null : out;
   }
 }

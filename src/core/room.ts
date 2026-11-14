@@ -4,3 +4,6 @@ export const ROOM = { halfW: 3.2, halfD: 3.2, height: 3.6 };
 
 /** How near the chair (metres) kneeling by it can be done; the App reaches for it, the Director believes it only within it. */
 export const KNEEL_REACH = 1.5;
+
+/** The door: where its sounds and voices come from (the switch, a vignette's door). */
+export const DOOR_AT = { x: 0.9, y: 1.25, z: ROOM.halfD - 0.1 } as const;

@@ -5,7 +5,7 @@ import { MEMORIES } from '../registry';
 import { sheetId } from '../memoryDef';
 import { SCENE_MEMORIES } from '../../content/memories';
 import type { TheatreState } from '../seed';
-import type { MemoryInspector } from '../../app/inspector';
+import type { Hedgehog } from '../../app/inspector';
 
 /**
  * The Memory Editor (development only: `?memory&studio`; never in a production build).
@@ -19,7 +19,7 @@ import type { MemoryInspector } from '../../app/inspector';
  * See docs/memories.md.
  */
 
-export function openEditor(app: MemoryInspector): void {
+export function openEditor(app: Hedgehog): void {
   studio.initialize({ __experimental_rafDriver: driver, persistenceKey: 'hedgehog-memories' });
   readStateFrom(() => studio.createContentOfSaveFile(PROJECT_ID) as unknown as TheatreState);
   theatreProject();

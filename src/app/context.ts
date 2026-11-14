@@ -33,7 +33,11 @@ import type { Cues } from './cues';
 import type { Input } from './input';
 import type { Menus } from './menus';
 import type { Hints } from './hints';
+import type { Params } from './params';
 import type { ScreenWake } from './opening';
+
+/** Away from the room (hidden) or its sound stopped for this long (seconds), a memory is let go uncounted. */
+export const GIVE_UP_AFTER_S = 10;
 
 type Mode = 'threshold' | 'room' | 'settings' | 'contribute' | 'departed';
 
@@ -118,6 +122,7 @@ export class AppContext implements World {
     readonly prefs: Prefs,
     readonly captions: Captions,
     public visits: number,
+    readonly params: Params,
   ) {
     this.renderer = world.renderer;
     this.scene = world.scene;
@@ -172,9 +177,9 @@ export interface Parts {
 /** What the parts may call on one another: only these, so a part's other members are its own. */
 export interface Peers {
   opening: Pick<Opening, 'active' | 'enter' | 'skipOpening' | 'advanceTitle'>;
-  living: Pick<LivingMemories, 'playMemory' | 'frameMemory' | 'endLivingMemory' | 'keepTrace' | 'memoryVoices' | 'resetClock'>;
-  vignettes: Pick<Vignettes, 'playVignette' | 'spotWorld' | 'vignettesAvailable' | 'vignetteClock'>;
+  living: Pick<LivingMemories, 'playMemory' | 'frameMemory' | 'endLivingMemory' | 'memoryVoices' | 'onVisibility'>;
+  vignettes: Pick<Vignettes, 'playVignette' | 'spotWorld' | 'vignettesAvailable' | 'onVisibility' | 'release'>;
   cues: Pick<Cues, 'apply' | 'drawingsOn' | 'place' | 'writeWithVoice'>;
-  menus: Pick<Menus, 'openSettings' | 'closeSettings' | 'openContribute' | 'closeContribute' | 'depart' | 'setPref' | 'leaving'>;
+  menus: Pick<Menus, 'openSettings' | 'closeSettings' | 'openContribute' | 'closeContribute' | 'depart' | 'setPref' | 'keepTrace'>;
   wake: Pick<ScreenWake, 'keepAwake' | 'release' | 'dropped'>;
 }

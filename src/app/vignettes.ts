@@ -1,18 +1,18 @@
 import * as THREE from 'three';
 import { clamp } from '../core/math';
 import { hashString } from '../core/rng';
-import { ROOM } from '../core/room';
+import { DOOR_AT } from '../core/room';
 import { MemoryClock } from '../memory/clock';
 import { VignettePlayer, type VignetteHost } from '../memory/VignettePlayer';
 import { isSpot, type SpotPlace } from '../memory/cueSheet';
 import { VIGNETTE_BY_ID, VIGNETTES, vignetteKeys, spokenLines, lineKey, type Effect, type GapKind } from '../content/vignettes';
 import { allVersions, voicesId } from '../content/memory-voices';
 import { countMemory } from '../ui/prefs';
-import { CLASS } from '../ui/dom';
 import { wallClock } from '../world/writePlan';
-import { gentle, gentleDim, HUSH_MAX } from './presentation';
+import { clearHint, gentleDim, HUSH_MAX, setMemoryLight } from './presentation';
 import { memoryAudioHost, previewWhisper } from './audioHost';
-import type { AppContext, Peers } from './context';
+import { GIVE_UP_AFTER_S, type AppContext, type Peers } from './context';
+import type { EndReason } from './living';
 
 /** Where a vignette's places in the room are measured from (fixed as it begins). */
 interface SpotFrame {
@@ -31,7 +31,6 @@ export interface ActiveVignette {
   id: string;
   key: string | null;
   frame: SpotFrame;
-  hiddenSince: number | null;
   preview: boolean;
   /** Seconds moving away from where it began; let go before its end (not counted as heard to the end). */
   leaving: number;
@@ -46,21 +45,22 @@ export interface ActiveVignette {
  * walls and light), and the `?vignette=` / `?memory=` previews that start one a few seconds in.
  */
 export class Vignettes {
-  readonly vignetteClock = new MemoryClock(1);
+  private readonly vignetteClock = new MemoryClock(1);
+  /** The vignette the tab was hidden on, and when (performance.now). */
+  private hiddenAt: { at: number; run: ActiveVignette } | null = null;
   private vignetteGen = 0;
   /**
    * `?vignette=<id>[&variant=<v>]`: play one, as a preview, a few seconds after the room is
    * open (recorded or not: an unrecorded line is a wordless voice with its caption).
    */
-  private previewVignette: { id: string; variant: string; at: number | null } | null = (() => {
-    const p = new URLSearchParams(location.search);
-    const id = p.get('vignette');
-    return id ? { id, variant: p.get('variant') ?? 'first', at: null } : null;
-  })();
+  private previewVignette: { id: string; variant: string; at: number | null } | null;
   constructor(
     private readonly ctx: AppContext,
     private readonly peers: Peers,
-  ) {}
+  ) {
+    const { vignette, variant } = ctx.params;
+    this.previewVignette = vignette ? { id: vignette, variant: variant ?? 'first', at: null } : null;
+  }
 
   /** Where the visitor is and faces as a vignette begins: its places in the room are fixed from it. */
   private spotFrame(anchorKey: string | null): SpotFrame {
@@ -114,7 +114,7 @@ export class Vignettes {
         return [v.x, v.y, v.z];
       }
       case 'door':
-        return [0.9, p.h ?? 1.25, ROOM.halfD - 0.1];
+        return [DOOR_AT.x, p.h ?? DOOR_AT.y, DOOR_AT.z];
       case 'anchor': {
         const a = f.anchor ?? f.eye.clone().addScaledVector(f.fwd, 2);
         return [a.x, a.y, a.z];
@@ -122,7 +122,8 @@ export class Vignettes {
     }
   }
 
-  private vignetteHost(def: { id: string }): VignetteHost | null {
+  /** `isRun`: whether the vignette playing now is the run this host was made for (not just the same id replayed). */
+  private vignetteHost(isRun: () => boolean): VignetteHost | null {
     const base = memoryAudioHost(this.ctx, this.peers);
     if (!base || !this.ctx.voices) return null;
     const voices = this.ctx.voices;
@@ -143,14 +144,14 @@ export class Vignettes {
       fallback: (cue, delay) => {
         setTimeout(() => {
           // Previews only: a visitor hears kept takes or nothing (a take that failed to load stays silent).
-          if (!this.ctx.vignette || this.ctx.vignette.id !== def.id || !this.ctx.vignette.preview) return;
+          if (!isRun() || !this.ctx.vignette?.preview) return;
           const from = isSpot(cue.place) ? this.spotWorld(cue.place) : base.where(cue.place);
           previewWhisper(this.ctx, voices, cue, from);
         }, delay * 1000);
       },
       effect: (fx, delay) => {
         setTimeout(() => {
-          if (this.ctx.vignette?.id === def.id) this.vignetteEffect(fx);
+          if (isRun()) this.vignetteEffect(fx);
         }, delay * 1000);
       },
       gap: (kind, seconds, caption) => this.vignetteGap(kind, seconds, caption),
@@ -169,8 +170,7 @@ export class Vignettes {
       case 'sun': {
         const a = v?.key ? this.ctx.text.anchorOfKey(v.key) : null;
         if (!a || this.ctx.memoryLight.active) break;
-        this.ctx.memoryLight.reducedMotion = this.ctx.prefs.reducedMotion;
-        this.ctx.memoryLight.strength = gentle(this.ctx.prefs.intensity, 'light') * (fx.strength ?? 1);
+        setMemoryLight(this.ctx, fx.strength ?? 1);
         this.ctx.memoryLight.start(a.group, a.x, a.y, a.w, a.h, a.minX, a.maxX, a.maxY, fx, this.ctx.time, 0);
         this.ctx.memoryKey = a.key;
         break;
@@ -219,12 +219,13 @@ export class Vignettes {
   async playVignette(id: string, variant: string, preview = false, line?: string): Promise<boolean> {
     const def = VIGNETTE_BY_ID.get(id);
     if (!def || this.ctx.living || this.ctx.mode !== 'room') return false;
-    const host = this.vignetteHost(def);
+    // (`player` is made below, before any timer of the host can fire.)
+    const host = this.vignetteHost(() => this.ctx.vignette?.player === player);
     if (!host) return false;
     this.ctx.vignette?.player.dispose(0.2);
     this.ctx.vignette = null;
     // A hint on screen goes (on a phone it sits where the vignette's words will be).
-    this.ctx.dom.hint.classList.remove(CLASS.on);
+    clearHint(this.ctx.dom.hint);
     const gen = ++this.vignetteGen;
     // A preview shows its line, if the room hasn't written it (so what it leaves there is seen).
     const opens = line && (line === def.anchor.phrase || def.anchor.also?.includes(line)) ? line : def.anchor.phrase;
@@ -234,9 +235,9 @@ export class Vignettes {
     // (Where its own line is written now: an offer writes it on whichever wall they faced.)
     const a = (opens ? this.ctx.text.anchorOf(opens, this.ctx.gazeId ?? this.ctx.lastTappedKey) : null) ?? (own && own.group === this.ctx.room.frames[this.ctx.director.facing]?.writing ? own : null);
     const frame = this.spotFrame(a?.key ?? null);
-    const player = new VignettePlayer(def, variant, host, hashString(def.id + variant));
+    const player: VignettePlayer = new VignettePlayer(def, variant, host, hashString(def.id + variant));
     // Its places are fixed from now (the frame is read while preparing, too).
-    this.ctx.vignette = { player, id, key: a?.key ?? null, frame, hiddenSince: null, preview, leaving: 0, cutShort: false, uncounted: false, settingsSince: null };
+    this.ctx.vignette = { player, id, key: a?.key ?? null, frame, preview, leaving: 0, cutShort: false, uncounted: false, settingsSince: null };
     try {
       await player.prepare();
     } catch (e) {
@@ -263,6 +264,42 @@ export class Vignettes {
     return true;
   }
 
+  /**
+   * The tab was hidden or brought back. A vignette pauses with the tab; back in time, the sentence
+   * the pause cut is said again from its start; away for more than `GIVE_UP_AFTER_S`, it ends (uncounted).
+   */
+  onVisibility(hidden: boolean) {
+    const vg = this.ctx.vignette;
+    if (vg && hidden) {
+      this.hiddenAt = { at: performance.now(), run: vg };
+      vg.player.pause();
+      return;
+    }
+    const h = this.hiddenAt;
+    this.hiddenAt = null;
+    if (!vg || h?.run !== vg) return;
+    this.vignetteClock.reset();
+    if (performance.now() - h.at > GIVE_UP_AFTER_S * 1000) {
+      vg.uncounted = true;
+      vg.player.release('interrupt');
+    }
+  }
+
+  /**
+   * A living memory is let go (or the visitor leaves): what it means for a vignette. Leaving cuts
+   * it; turning to write lets the sentence being said finish (the writing may be an answer to it),
+   * and nothing more is said.
+   */
+  release(why: EndReason) {
+    const vg = this.ctx.vignette;
+    if (!vg) return;
+    if (why === 'depart' || why === 'hidden' || why === 'switch') vg.player.release('interrupt');
+    else if (why === 'interrupt') {
+      vg.cutShort = true;
+      vg.player.release('natural');
+    }
+  }
+
   /** Each frame: the previews' turn, then the vignette playing now (its clock, its let-go, its end). */
   step() {
     const pv = this.previewVignette;
@@ -285,7 +322,7 @@ export class Vignettes {
     // (its light runs on scene time and wouldn't wait).
     const held = this.ctx.mode === 'settings' || (!!this.ctx.audio && this.ctx.audio.ctx.state !== 'running');
     v.settingsSince = held ? v.settingsSince ?? wallClock() : null;
-    if (v.settingsSince !== null && wallClock() - v.settingsSince > 10 && !p.releasedHow) {
+    if (v.settingsSince !== null && wallClock() - v.settingsSince > GIVE_UP_AFTER_S && !p.releasedHow) {
       v.uncounted = true;
       p.release('interrupt');
     }

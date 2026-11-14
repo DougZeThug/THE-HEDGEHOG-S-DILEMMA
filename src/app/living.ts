@@ -1,6 +1,9 @@
 import type { WallText } from '../world/WallText';
 import type { LivingMemory } from '../memory/runtime';
 
+/** Why a living memory is let go (or what is asked of it): its own lifecycle's reasons, and the visitor's. */
+export type EndReason = 'complete' | 'look-away' | 'walk-away' | 'interrupt' | 'switch' | 'depart' | 'hidden';
+
 /** The living memory playing now (at most one), and the writing it formed round. */
 export interface Living {
   memory: LivingMemory;
@@ -10,7 +13,6 @@ export interface Living {
   anchor: NonNullable<ReturnType<WallText['anchorOf']>>;
   /** What it leaves in the room (the kitchen's sun) has been handed over. */
   bled: boolean;
-  hiddenSince: number | null;
   /** Held at a position by the editor or a capture: shown as if played there, nothing sounds. */
   held: boolean;
   /** A `?memory=` preview: never counted, nothing persisted. */

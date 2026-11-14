@@ -9,7 +9,7 @@ import { PHRASE_BY_ID } from '../content/phrases';
 import { SCENE_BY_PHRASE } from '../content/memories';
 import { voicesEnd, voicesStart } from '../content/memory-voices';
 import { isWallSurface } from '../world/layout';
-import { CLASS } from '../ui/dom';
+import { CLASS, TUNE_ID } from '../ui/dom';
 import type { AppContext, Peers } from './context';
 
 /**
@@ -83,10 +83,10 @@ export class Input {
     const cam = this.ctx.rig.camera.position;
     // (What is written there, wherever it came from: a phrase, a recalled line, the visitor's own words.)
     const vis: { centre: THREE.Vector3; words?: string; where: string }[] = [...this.ctx.text.items.values()]
-      .filter((i) => i.vis > 0.5 && i.purpose !== 'drawing' && i.uniforms.uOpacity.value > 0.2 && i.placement.surface !== 'ceiling')
+      .filter((i) => this.ctx.text.legible(i, 0.5, 0.2) && i.purpose !== 'drawing' && i.placement.surface !== 'ceiling')
       .map((i) => ({
         centre: i.centre,
-        words: i.phrase?.text ?? (i.source ? PHRASE_BY_ID.get(i.source)?.text : undefined) ?? ((i.mesh.userData.text as string) || undefined),
+        words: i.phrase?.text ?? (i.source ? PHRASE_BY_ID.get(i.source)?.text : undefined) ?? (i.text || undefined),
         where: i.placement.surface === 'floor' ? 'On the floor' : 'On the wall',
       }));
     const air = this.ctx.text.airWriting.centre;
@@ -108,8 +108,24 @@ export class Input {
   /** Listen: keys, mouse, touch, and the opening's own taps. Once, when the room is built. */
   bind() {
     const canvas = this.ctx.renderer.domElement;
+    this.bindKeys();
+    this.bindMouse(canvas);
+    this.bindTouch(canvas);
+    this.bindCorners();
+    canvas.addEventListener('touchend', () => {
+      if (this.ctx.audio && this.ctx.mode === 'room' && this.ctx.audio.ctx.state !== 'running') void this.ctx.audio.resume();
+    }, { passive: true });
+    this.ctx.dom.skip.addEventListener('click', () => this.peers.opening.skipOpening());
+    canvas.addEventListener('pointerdown', () => {
+      const o = this.peers.opening.active;
+      // (Not the tap that went in: a moment's grace against a double tap.)
+      if (o && wallClock() - o.start > 1.2 && stageAt(o.score, wallClock() - o.start) === 'title') this.peers.opening.advanceTitle();
+    });
+  }
+
+  private bindKeys() {
     const typing = () =>
-      this.ctx.mode === 'contribute' || document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'SELECT' || !!(document.activeElement as HTMLElement | null)?.closest?.('#tune');
+      this.ctx.mode === 'contribute' || document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'SELECT' || !!(document.activeElement as HTMLElement | null)?.closest?.(`#${TUNE_ID}`);
 
     addEventListener('keydown', (e) => {
       if (!this.ctx.isPlaying()) return;
@@ -181,7 +197,10 @@ export class Input {
       this.ctx.inside.freshKeys.clear();
     });
 
-    // Mouse: pointer lock where possible, drag-to-look otherwise.
+  }
+
+  /** Mouse: pointer lock where possible, drag-to-look otherwise. */
+  private bindMouse(canvas: HTMLCanvasElement) {
     let dragging = false;
     let dragInside = false;
     let lastX = 0, lastY = 0, downX = 0, downY = 0, downT = 0;
@@ -253,7 +272,10 @@ export class Input {
       }
     });
 
-    // Touch: left half walks (vertical) and turns (horizontal); right half looks; tap goes to things.
+  }
+
+  /** Touch: left half walks (vertical) and turns (horizontal); right half looks; tap goes to things. */
+  private bindTouch(canvas: HTMLCanvasElement) {
     const touches = new Map<number, { side: 'L' | 'R'; x: number; y: number; sx: number; sy: number; t: number; inside: boolean }>();
     canvas.addEventListener('pointerdown', (e) => {
       // Touching the room while writing means: keep it to yourself after all.
@@ -296,7 +318,10 @@ export class Input {
     canvas.addEventListener('pointerup', endTouch);
     canvas.addEventListener('pointercancel', endTouch);
 
-    // The corner buttons stay out of sight until the pointer goes looking for them.
+  }
+
+  /** The corner buttons stay out of sight until the pointer goes looking for them. */
+  private bindCorners() {
     const corners = [this.ctx.dom.menuBtn, this.ctx.dom.writeBtn];
     let cornerTimer = 0;
     const away = () => corners.forEach((b) => b.classList.add(CLASS.away));
@@ -308,17 +333,6 @@ export class Input {
         clearTimeout(cornerTimer);
         cornerTimer = window.setTimeout(away, 2500);
       }
-    });
-
-    canvas.addEventListener('touchend', () => {
-      if (this.ctx.audio && this.ctx.mode === 'room' && this.ctx.audio.ctx.state !== 'running') void this.ctx.audio.resume();
-    }, { passive: true });
-
-    this.ctx.dom.skip.addEventListener('click', () => this.peers.opening.skipOpening());
-    canvas.addEventListener('pointerdown', () => {
-      const o = this.peers.opening.active;
-      // (Not the tap that went in: a moment's grace against a double tap.)
-      if (o && wallClock() - o.start > 1.2 && stageAt(o.score, wallClock() - o.start) === 'title') this.peers.opening.advanceTitle();
     });
   }
 
@@ -370,13 +384,12 @@ export class Input {
     const inView = new THREE.Vector3();
     for (const it of this.ctx.text.items.values()) {
       // Only writing that can actually be seen: present, legible from here, in front of the eye.
-      if (it.vis < 0.4 || !it.mesh.visible || it.uniforms.uOpacity.value < 0.15) continue;
+      if (!this.ctx.text.legible(it, 0.4, 0.15)) continue;
       // Drawings are found by looking, not things to touch: a tap goes to the writing.
       if (it.purpose === 'drawing') continue;
       const c = toScreen(it.centre);
       if (!c.front || c.x < -pad || c.x > innerWidth + pad || c.y < -pad || c.y > innerHeight + pad) continue;
-      box.setFromObject(it.mesh);
-      if (box.isEmpty()) continue;
+      if (!this.ctx.text.screenBox(it, box)) continue;
       let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity, behind = false;
       for (let i = 0; i < 8; i++) {
         corner.set(i & 1 ? box.max.x : box.min.x, i & 2 ? box.max.y : box.min.y, i & 4 ? box.max.z : box.min.z);

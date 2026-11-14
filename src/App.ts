@@ -7,7 +7,7 @@ import { loadPrefs, readVisits } from './ui/prefs';
 import { Captions } from './ui/Captions';
 import { lookupDom, setEnter, type Dom } from './ui/dom';
 import type { Prefs } from './ui/prefs';
-import type { Cue } from './state/cues';
+import type { Cue, TimedCue } from './state/cues';
 import { AppContext, type Parts, type World } from './app/context';
 import { buildWorld, restoreOnContextRestored, warmUp } from './app/boot';
 import { applyPrefs, resize, setStyle } from './app/prefsApply';
@@ -19,6 +19,7 @@ import { Input } from './app/input';
 import { Menus } from './app/menus';
 import { Hints } from './app/hints';
 import { Debug } from './app/debug';
+import { readParams, type Params } from './app/params';
 import { bindLifecycle } from './app/lifecycle';
 import { mountTuneControls } from './app/tuneControls';
 import type { Immersion } from './world/living/Immersion';
@@ -37,18 +38,18 @@ export class App {
 
   /** Build the room (behind the black threshold) and start it. Resolves once it can be entered. */
   static async boot(): Promise<App> {
-    const params = new URLSearchParams(location.search);
+    const params = readParams();
     const dom = lookupDom();
     const prefs = loadPrefs();
     const visits = readVisits();
     const { world, immersion } = await buildWorld(params, dom, prefs, visits);
-    const app = new App(world, dom, prefs, visits);
+    const app = new App(world, dom, prefs, visits, params);
     app.start(params, immersion);
     return app;
   }
 
-  private constructor(world: World, dom: Dom, prefs: Prefs, visits: number) {
-    const ctx = (this.ctx = new AppContext(world, dom, prefs, new Captions(dom.captions), visits));
+  private constructor(world: World, dom: Dom, prefs: Prefs, visits: number, params: Params) {
+    const ctx = (this.ctx = new AppContext(world, dom, prefs, new Captions(dom.captions), visits, params));
     const parts = {} as Parts;
     this.parts = parts;
     parts.opening = new Opening(ctx, parts);
@@ -62,11 +63,11 @@ export class App {
     this.debug = new Debug(ctx);
   }
 
-  private start(params: URLSearchParams, immersion: Immersion) {
+  private start(params: Params, immersion: Immersion) {
     const { ctx, parts } = this;
     // Words in the air rubbed out by someone coming close: an eraser where they were, and a breath.
     ctx.text.onAirGone = (how, at) => parts.cues.airGone(how, at);
-    setStyle(ctx, parseLook(params.get('style')));
+    setStyle(ctx, parseLook(params.style));
     applyPrefs(ctx);
     resize(ctx);
     addEventListener('resize', () => resize(ctx));
@@ -74,11 +75,10 @@ export class App {
     parts.input.bind();
     bindLifecycle(ctx, parts);
     parts.menus.bindUI();
-    // The artist's panel: only with ?tune, loaded only then.
-    if (params.has('tune')) void import('./ui/Tune').then(({ mountTune }) => mountTuneControls(ctx, parts, mountTune));
+    if (params.tune) void import('./ui/Tune').then(({ mountTune }) => mountTuneControls(ctx, parts, mountTune));
     window.__hedgehog = this;
     // The Memory Editor (Theatre Studio): development builds only, never shipped.
-    if (import.meta.env.DEV && /[?&]studio\b/.test(location.search)) void import('./memory/editor/MemoryEditor').then((m) => m.openEditor(this));
+    if (import.meta.env.DEV && params.studio) void import('./memory/editor/MemoryEditor').then((m) => m.openEditor(this));
 
     warmUp(ctx, immersion);
     setEnter(ctx.visits > 0 ? 'go in again' : 'go in', true);
@@ -208,6 +208,14 @@ export class App {
     };
   }
 
+  /** Tell the Director how long it has been and where the visitor is; carry out what it asks. */
+  private feedDirector(dt: number, gazePhraseId: string | null, gazeChair: boolean, carried: boolean): TimedCue[] {
+    const c = this.ctx;
+    const cues = c.director.tick(dt, this.directorInput(gazePhraseId, gazeChair, carried), c.room.facing(c.rig.yaw));
+    for (const q of cues) this.parts.cues.apply(q.cue);
+    return cues;
+  }
+
   private frame() {
     const c = this.ctx;
     const { parts } = this;
@@ -244,9 +252,7 @@ export class App {
     c.gazeChair = c.raycaster.intersectObject(c.chair.hit, false).length > 0 && c.rig.distanceToChair() < 6;
 
     if (running) {
-      const cues = c.director.tick(dt, this.directorInput(gazePhrase, c.gazeChair, c.inside.carrying), c.room.facing(c.rig.yaw));
-      for (const q of cues) {
-        parts.cues.apply(q.cue);
+      for (const q of this.feedDirector(dt, gazePhrase, c.gazeChair, c.inside.carrying)) {
         // The way out is told to a screen reader as it is seen: the room going, and what keeps or takes it.
         if (isLeavingBegun(q)) c.announce('The room begins to let you go. Walk on to leave; turn back, or wait, to stay.');
         else if (isLeavingKept(q.rule)) c.announce('The room comes back.');
@@ -302,9 +308,9 @@ export class App {
     const cam = c.rig.camera;
     for (let t = 0; t < seconds; t += step) {
       // (Held where they are: not looking at the chair, not carried.)
-      const input = this.directorInput(c.text.phraseOf(c.text.attention(cam)), false, false);
+      const gaze = c.text.phraseOf(c.text.attention(cam));
       c.time += step;
-      for (const q of c.director.tick(step, input, c.room.facing(c.rig.yaw))) this.parts.cues.apply(q.cue);
+      this.feedDirector(step, gaze, false, false);
       c.text.update(step, c.time, cam, c.director.env, c.text.attention(cam), c.director.visitor.gazeFor);
     }
   }

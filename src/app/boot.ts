@@ -25,8 +25,10 @@ import { THRESHOLD_LINES } from '../content/relations';
 import { readTrace, readHeartAnswer, readMemoryCounts, type Prefs } from '../ui/prefs';
 import { ignored, withTimeout } from '../core/time';
 import { isHeartKey } from '../state/writeKeys';
+import { isWallSurface } from '../world/layout';
 import type { Dom } from '../ui/dom';
 import type { AppContext, World } from './context';
+import type { Params } from './params';
 
 /** The fonts get at most this long (ms), then the scans a little more: the room never waits longer. */
 const FONTS_MS = 4000;
@@ -37,11 +39,10 @@ export interface Built {
   immersion: Immersion;
 }
 
-export async function buildWorld(params: URLSearchParams, dom: Dom, prefs: Prefs, visits: number): Promise<Built> {
-  const seedParam = Number(params.get('seed'));
+export async function buildWorld(params: Params, dom: Dom, prefs: Prefs, visits: number): Promise<Built> {
   // Each visit its own draw (`?seed=` fixes it): by visit count alone, every first visit anyone
   // ever made drew the same room (docs/reviews/2026-11-core-loop.md).
-  const seed = Number.isFinite(seedParam) && seedParam > 0 ? seedParam : 1 + Math.floor(Math.random() * 2 ** 30);
+  const seed = Number.isFinite(params.seed) && params.seed > 0 ? params.seed : 1 + Math.floor(Math.random() * 2 ** 30);
   dom.thresholdLine.textContent = THRESHOLD_LINES[Math.min(THRESHOLD_LINES.length - 1, visits)];
 
   // The fonts (at most four seconds), then the material scans the room's surfaces are baked with
@@ -63,10 +64,9 @@ export async function buildWorld(params: URLSearchParams, dom: Dom, prefs: Prefs
   scene.background = new THREE.Color(0xf3f2ef);
   const rig = new CameraRig(innerWidth / innerHeight);
 
-  const forced = params.get('situations')?.split(',').map((s) => s.trim()).filter(Boolean);
   const trace = visits > 0 ? readTrace() : null;
   // Design experiments for inspection (`?exp=a,b`): only those this build defines.
-  const wanted = params.get('exp')?.split(',').map((s) => s.trim()).filter(Boolean) ?? [];
+  const wanted = params.exp;
   const unknown = wanted.filter((e) => !Director.EXPERIMENTS.includes(e));
   if (unknown.length) console.warn(`[hedgehog] no such experiment: ${unknown.join(', ')} (defined: ${Director.EXPERIMENTS.join(', ') || 'none'})`);
   const director = new Director({
@@ -76,7 +76,7 @@ export async function buildWorld(params: URLSearchParams, dom: Dom, prefs: Prefs
     // What the last visit's heart left is found beside the first line again.
     answer: visits > 0 ? readHeartAnswer() : null,
     memoryCounts: readMemoryCounts(),
-    situations: forced,
+    situations: params.situations,
     experiments: wanted,
     // Is a piece of writing in view (the heart's line is found, never written in front of them).
     inView: (id) => {
@@ -105,7 +105,7 @@ export async function buildWorld(params: URLSearchParams, dom: Dom, prefs: Prefs
     [...director.visible]
       .filter(([, st]) => st.base)
       .map(([id]) => text.placementOf(id))
-      .filter((p): p is NonNullable<typeof p> => !!p && p.surface !== 'floor' && p.surface !== 'ceiling'),
+      .filter((p): p is NonNullable<typeof p> => !!p && isWallSurface(p.surface)),
   );
 
   const memoryLight = new MemoryLight();

@@ -5,6 +5,7 @@
  * or timing. Nothing is stored: a value is kept by copying it into the code.
  */
 import { ignored } from '../core/time';
+import { TUNE_ID } from './dom';
 
 interface TuneControl {
   group: string;
@@ -18,7 +19,7 @@ interface TuneControl {
 
 export function mountTune(controls: TuneControl[], actions: { label: string; run(): void; pressed?(): boolean }[]) {
   const el = document.createElement('div');
-  el.id = 'tune';
+  el.id = TUNE_ID;
   el.setAttribute('role', 'region');
   el.setAttribute('aria-label', 'Tuning');
   el.style.cssText =
