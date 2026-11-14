@@ -41,15 +41,25 @@ export function gentle(intensity: Prefs['intensity'], kind: GentleKind): number 
   return intensity === 'gentle' ? GENTLE[kind] : 1;
 }
 
-/** How long each of the hints stays on screen (ms). */
 /** The most the room is ever hushed for a memory (-26 dB). */
 export const HUSH_MAX = 0.95;
 
+/** How long each of the hints stays on screen (ms). */
 export const HINT_MS = { controls: 5500, walk: 5500, touch: 4500 } as const;
 
 /** Put a line in the hint's place for `ms`, then take it away. */
 export function flashHint(el: HTMLElement, text: string, ms: number): void {
+  clearTimeout(hintTimers.get(el));
   el.textContent = text;
   el.classList.add(CLASS.on);
-  setTimeout(() => el.classList.remove(CLASS.on), ms);
+  hintTimers.set(el, setTimeout(() => el.classList.remove(CLASS.on), ms));
+}
+
+/** The pending take-away of each hint element: a second flash replaces it, never inherits it. */
+const hintTimers = new WeakMap<HTMLElement, ReturnType<typeof setTimeout>>();
+
+/** Take the hint away now (a vignette's words will sit where it is). */
+export function clearHint(el: HTMLElement): void {
+  clearTimeout(hintTimers.get(el));
+  el.classList.remove(CLASS.on);
 }

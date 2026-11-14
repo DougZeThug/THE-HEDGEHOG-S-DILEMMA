@@ -8,9 +8,8 @@ import { isSpot, type SpotPlace } from '../memory/cueSheet';
 import { VIGNETTE_BY_ID, VIGNETTES, vignetteKeys, spokenLines, lineKey, type Effect, type GapKind } from '../content/vignettes';
 import { allVersions, voicesId } from '../content/memory-voices';
 import { countMemory } from '../ui/prefs';
-import { CLASS } from '../ui/dom';
 import { wallClock } from '../world/writePlan';
-import { gentle, gentleDim, HUSH_MAX } from './presentation';
+import { clearHint, gentle, gentleDim, HUSH_MAX } from './presentation';
 import { memoryAudioHost, previewWhisper } from './audioHost';
 import type { AppContext, Peers } from './context';
 
@@ -122,7 +121,8 @@ export class Vignettes {
     }
   }
 
-  private vignetteHost(def: { id: string }): VignetteHost | null {
+  /** `isRun`: whether the vignette playing now is the run this host was made for (not just the same id replayed). */
+  private vignetteHost(isRun: () => boolean): VignetteHost | null {
     const base = memoryAudioHost(this.ctx, this.peers);
     if (!base || !this.ctx.voices) return null;
     const voices = this.ctx.voices;
@@ -143,14 +143,14 @@ export class Vignettes {
       fallback: (cue, delay) => {
         setTimeout(() => {
           // Previews only: a visitor hears kept takes or nothing (a take that failed to load stays silent).
-          if (!this.ctx.vignette || this.ctx.vignette.id !== def.id || !this.ctx.vignette.preview) return;
+          if (!isRun() || !this.ctx.vignette?.preview) return;
           const from = isSpot(cue.place) ? this.spotWorld(cue.place) : base.where(cue.place);
           previewWhisper(this.ctx, voices, cue, from);
         }, delay * 1000);
       },
       effect: (fx, delay) => {
         setTimeout(() => {
-          if (this.ctx.vignette?.id === def.id) this.vignetteEffect(fx);
+          if (isRun()) this.vignetteEffect(fx);
         }, delay * 1000);
       },
       gap: (kind, seconds, caption) => this.vignetteGap(kind, seconds, caption),
@@ -219,12 +219,13 @@ export class Vignettes {
   async playVignette(id: string, variant: string, preview = false, line?: string): Promise<boolean> {
     const def = VIGNETTE_BY_ID.get(id);
     if (!def || this.ctx.living || this.ctx.mode !== 'room') return false;
-    const host = this.vignetteHost(def);
+    // (`player` is made below, before any timer of the host can fire.)
+    const host = this.vignetteHost(() => this.ctx.vignette?.player === player);
     if (!host) return false;
     this.ctx.vignette?.player.dispose(0.2);
     this.ctx.vignette = null;
     // A hint on screen goes (on a phone it sits where the vignette's words will be).
-    this.ctx.dom.hint.classList.remove(CLASS.on);
+    clearHint(this.ctx.dom.hint);
     const gen = ++this.vignetteGen;
     // A preview shows its line, if the room hasn't written it (so what it leaves there is seen).
     const opens = line && (line === def.anchor.phrase || def.anchor.also?.includes(line)) ? line : def.anchor.phrase;
@@ -234,7 +235,7 @@ export class Vignettes {
     // (Where its own line is written now: an offer writes it on whichever wall they faced.)
     const a = (opens ? this.ctx.text.anchorOf(opens, this.ctx.gazeId ?? this.ctx.lastTappedKey) : null) ?? (own && own.group === this.ctx.room.frames[this.ctx.director.facing]?.writing ? own : null);
     const frame = this.spotFrame(a?.key ?? null);
-    const player = new VignettePlayer(def, variant, host, hashString(def.id + variant));
+    const player: VignettePlayer = new VignettePlayer(def, variant, host, hashString(def.id + variant));
     // Its places are fixed from now (the frame is read while preparing, too).
     this.ctx.vignette = { player, id, key: a?.key ?? null, frame, hiddenSince: null, preview, leaving: 0, cutShort: false, uncounted: false, settingsSince: null };
     try {
