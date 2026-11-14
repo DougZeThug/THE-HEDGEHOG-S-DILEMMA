@@ -1,6 +1,6 @@
 import type { CueSheet } from '../cueSheet';
 import type { SheetSeed } from '../seed';
-import { ALMOST_SECTIONS, FILM_AT, KITCHEN_AT, FILM_SECONDS, FILM_BEATS } from '../beats/almost';
+import { ALMOST_SECTIONS, FILM_AT, FILM_SECONDS, FILM_BEATS } from '../beats/almost';
 import { FILM_CUE, entryTracks, filmClock, sectionMarkers, type MemoryDef } from '../memoryDef';
 
 /** Its two sounds' levels (scripts/almost/sound.py lays both at the film mix's own balance, so the
@@ -54,7 +54,7 @@ export const ALMOST: MemoryDef = {
   layers: ['scene', 'fibres'],
   sections: ALMOST_SECTIONS,
   markers: [
-    { label: 'music:kitchen', position: KITCHEN_AT },
+    { label: 'music:kitchen', position: 0.6 },
     { label: FILM_CUE, position: FILM_AT },
   ],
   seed: (): SheetSeed => {

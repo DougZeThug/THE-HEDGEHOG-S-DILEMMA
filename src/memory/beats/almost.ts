@@ -3,8 +3,6 @@ import type { Sections } from '../types';
 export const ALMOST_SECTIONS: Sections = { active: 6, exit: 37.5, residue: 44.5, end: 47.5 };
 /** The film: where it begins on the timeline (half a second after the visitor is inside), and its length (s). */
 export const FILM_AT = 10.3;
-/** Where the kitchen's sound begins (the fridge and the clock, heard through the wall): scripts/almost/sound.py KITCHEN_AT. */
-export const KITCHEN_AT = 0.6;
 export const FILM_SECONDS = 679 / 24;
 /** Its story's moments (seconds into the film: scripts/almost/xsheet.py). */
 export const FILM_BEATS = {
