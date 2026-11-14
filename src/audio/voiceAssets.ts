@@ -11,7 +11,8 @@ export async function loadKeyFile(url: string): Promise<Record<string, string[]>
   let r: Response;
   try {
     r = await fetch(url, { cache: 'no-cache' });
-  } catch {
+  } catch (e) {
+    console.warn(`${url} could not be fetched; using no recordings from it`, e);
     return {};
   }
   if (!r.ok) return {};

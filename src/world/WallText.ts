@@ -300,7 +300,7 @@ export class WallText {
     return !!it?.plan && it.plan.cap < it.duration;
   }
 
-  /** How many characters a hand has written so far (for tests and the inspector). */
+  /** How much of a line a hand has written so far (the playtests' hook). */
   writtenFraction(id: string): number {
     const it = this.items.get(id);
     if (!it || it.vis <= 0) return 0;

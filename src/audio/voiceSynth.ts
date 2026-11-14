@@ -87,12 +87,30 @@ const STYLES: Record<string, StyleDef> = {
 /** The delivery for a kind of voice (whisper when it has none of its own). */
 const styleFor = (kind: string): StyleDef => STYLES[kind] ?? STYLES.whisper;
 
+/** The household sounds a room can make. Each has a synthetic stand-in; a pencil's is silence. */
+export type SoundKind = 'door' | 'chair-creak' | 'cup' | 'switch' | 'graphite' | 'eraser';
+
+/** Which synthesiser makes each sound: a new sound is one entry here. */
+const SOUND_SYNTH: Record<SoundKind, ((s: VoiceSynth, place: VoicePlacement, gain: number) => number) | null> = {
+  door: (s, p, g) => s.door(p, g),
+  cup: (s, p, g) => s.cup(p, g),
+  switch: (s, p, g) => s.click(p, g),
+  eraser: (s, p, g) => s.eraser(p, g),
+  'chair-creak': (s, p, g) => s.creak(p, g),
+  graphite: null,
+};
+
 export class VoiceSynth {
   constructor(private a: AudioEngine, private chain: Chain, private rng: Rng) {}
 
   /** A sentence's worth of syllables in the delivery of `kind`, as the room says it. */
   say(kind: VoiceKind, text: string | null, place: VoicePlacement, gain: number, seed: number): number {
     return this.utter(text ?? '...', styleFor(kind), place, gain, seed);
+  }
+
+  /** The synthetic stand-in for a household sound; how long it sounds (0 for silence). */
+  sound(kind: SoundKind, place: VoicePlacement, gain: number): number {
+    return SOUND_SYNTH[kind]?.(this, place, gain) ?? 0;
   }
 
   /** A door closing: a soft low thud, then the latch. */

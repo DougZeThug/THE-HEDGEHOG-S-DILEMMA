@@ -193,7 +193,7 @@ export class MemoryWindow {
   }
 
   /** Let the memory's textures go (the caller disposes them); back to the neutral dummy. */
-  clearLayers(): void {
+  private clearLayers(): void {
     this.setLiving(null);
     this.setBand(null);
     this.u.uDark.value = 1;
@@ -201,10 +201,6 @@ export class MemoryWindow {
     this.setLayers([]);
     this.u.uPresence.value = 0;
     this.u.uLight.value.set(0, 0, 0);
-  }
-
-  get layerNames(): string[] {
-    return this.layers.map((l) => l.name);
   }
 
   /** Put the window on the wall where its line is written (a WallText anchor). */

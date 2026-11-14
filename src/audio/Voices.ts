@@ -4,12 +4,13 @@ import { Rng, hashString } from '../core/rng';
 import { idle } from '../core/time';
 import { chooseSource, preloadStages, type Source } from './selection';
 import { LEVEL_DB, isPerformance, loadKeyFile, measure, normaliseGain, voicedGain } from './voiceAssets';
-import { VoiceSynth, type VoicePlacement } from './voiceSynth';
+import { VoiceSynth, type SoundKind, type VoicePlacement } from './voiceSynth';
 
 /** Voices at once, beyond which a new one is dropped (unless it is a priority line). */
 const MAX_VOICES = 4;
 /** Seconds after a voice ends before its nodes are disconnected and its tag forgotten. */
 const TAIL_S = 6;
+const tailMs = (dur: number) => (dur + TAIL_S) * 1000;
 /** Milliseconds after a voice ends before its slot is free again. */
 const RELEASE_MS = 500;
 
@@ -171,7 +172,7 @@ export class Voices {
       setTimeout(() => {
         const l = this.tagged.get(place.tag!);
         if (l) this.tagged.set(place.tag!, l.filter((n) => n !== input));
-      }, (dur + TAIL_S) * 1000);
+      }, tailMs(dur));
     }
     let node: AudioNode = input;
     if (place.muffled) {
@@ -231,7 +232,7 @@ export class Voices {
       } catch {
         /* already gone */
       }
-    }, (dur + TAIL_S) * 1000);
+    }, tailMs(dur));
     return input;
   }
 
@@ -270,14 +271,14 @@ export class Voices {
   busyUntil = 0;
 
   private tagged = new Map<string, GainNode[]>();
-  /** Where the most recent voice came from (for inspection and tests). */
+  /** Where the most recent voice came from (the playtests' hook). */
   lastSource: Source | null = null;
 
   /**
    * A small household sound somewhere: a door closing in another room, a cup set down,
    * the chair creaking. Recorded if a clip exists (`sfx:<kind>`), otherwise synthesised.
    */
-  async sound(kind: 'door' | 'chair-creak' | 'cup' | 'switch' | 'graphite' | 'eraser', place: VoicePlacement, gain: number): Promise<number> {
+  async sound(kind: SoundKind, place: VoicePlacement, gain: number): Promise<number> {
     const release = this.reserve();
     if (!release) return 0;
     let dur = 0;
@@ -291,8 +292,7 @@ export class Voices {
         if (buf) return (dur = this.playBuffer(buf, place, g * (this.norm.get(file) ?? 1), 0.45));
       }
       // No recording: a synthetic stand-in where one exists (a pencil has none: silence is better).
-      if (kind === 'graphite') return (dur = 0);
-      dur = kind === 'door' ? this.synth.door(place, g) : kind === 'cup' ? this.synth.cup(place, g) : kind === 'switch' ? this.synth.click(place, g) : kind === 'eraser' ? this.synth.eraser(place, g) : this.synth.creak(place, g);
+      dur = this.synth.sound(kind, place, g);
       return dur;
     } finally {
       release(dur);

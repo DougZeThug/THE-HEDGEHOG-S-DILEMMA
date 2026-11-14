@@ -9,6 +9,9 @@ import { Rng } from '../core/rng';
  */
 type Mood = 'warm' | 'tender' | 'uneasy' | 'sparse' | 'memory';
 
+/** Seconds from now until audio-clock time `t` (never negative). */
+const secondsUntil = (c: AudioContext, t: number) => Math.max(0, t - c.currentTime);
+
 interface MoodDef {
   pool: number[];
   gap: [number, number];
@@ -149,6 +152,6 @@ export class Music {
     n.connect(nf).connect(ng).connect(g);
     n.start(t, this.rng.range(0, 3));
     n.stop(t + 0.05);
-    if (this.onNote) setTimeout(() => this.onNote?.(midi), Math.max(0, (t - c.currentTime) * 1000));
+    if (this.onNote) setTimeout(() => this.onNote?.(midi), secondsUntil(c, t) * 1000);
   }
 }
