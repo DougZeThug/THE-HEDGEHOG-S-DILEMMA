@@ -1,7 +1,7 @@
 import type * as THREE from 'three';
 import type { MemoryAudio, MemoryAudioHost } from './MemoryAudio';
 import type { MemoryDef } from './memoryDef';
-import type { WindowLayer } from '../world/MemoryWindow';
+import type { WindowLayer } from '../core/memoryLayers';
 import type { WoodlandScene } from './living/WoodlandScene';
 import type { FilmScene } from './living/FilmScene';
 import type { FilmSpec } from './living/shared';
@@ -32,8 +32,6 @@ interface PreparedLivingBase {
   immerse: boolean;
   /** What the wall shows first (painting uv: x0, y0, w, h). */
   crop: [number, number, number, number];
-  /** The painting's aspect (w / h). */
-  aspect: number;
   /** When each pencil line is drawn on the wall and the colour comes, or null (the light finds it). */
   order: THREE.Texture | null;
   /** When the colour reaches a point of the painting (uv, y up; the order map's g), or null. */
@@ -48,7 +46,6 @@ export interface PreparedFilm extends PreparedLivingBase {
   torn: boolean;
   /** ... or a shadow's: no raggedness, a wide fall. */
   shade: boolean;
-  /** Its soft edge on the wall (m), if wider than the usual brush. */
   feather?: number;
 }
 

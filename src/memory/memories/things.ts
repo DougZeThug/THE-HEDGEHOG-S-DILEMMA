@@ -1,13 +1,12 @@
 import type { CueSheet } from '../cueSheet';
 import type { SheetSeed } from '../seed';
 import { THINGS_SECTIONS, THINGS_AT, THINGS_SECONDS, THINGS_BEATS } from '../beats/things';
-import { FILM_CUE, entryTracks, filmClock, sectionMarkers, type MemoryDef } from '../memoryDef';
+import { FILM_CUE, WALL_CUE, entryTracks, filmClock, sectionMarkers, type MemoryDef } from '../memoryDef';
 
 /** Its sound's level (soundscape.py places its layers from Memory II's figures' loudness: the same gain). */
 const THINGS_DB = -9;
 
 /** The wall's own sound is the drawing's, and begins as the pencil does. */
-const WALL_CUE = 'music:wall';
 const WALL_AT = 1.5;
 
 /**

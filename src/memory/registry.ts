@@ -60,7 +60,6 @@ export function memoryEntry(id: string): MemoryEntry {
   return e;
 }
 
-/** The framing of a film memory's picture. */
 export function filmSpecOf(id: string): FilmSpec {
   const spec = memoryEntry(id).film;
   if (!spec) throw new Error(`Memory "${id}" has no film spec`);

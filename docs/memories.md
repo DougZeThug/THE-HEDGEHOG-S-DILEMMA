@@ -6,20 +6,22 @@ A line on the wall can open into a memory: the light finds a pencil drawing unde
 
 | Part | File | What it owns |
 |---|---|---|
-| Definitions | `src/memory/memoryDef.ts` (the shape, `filmClock`, `entryTracks`), `src/memory/memories/<id>.ts` (one per memory), `src/memory/registry.ts` (all eight, with each film's or rig's spec) | each memory's layers, seed timeline, cue sheet, exit and residue |
+| Definitions | `src/memory/memoryDef.ts` (the shape, `filmClock`, `entryTracks`), `src/memory/memories/<id>.ts` (one per memory), `src/memory/registry.ts` (all eight, with each film's or rig's spec) | each memory's layers, seed timeline, cue sheet, exit and tail |
 | Beats | `src/memory/beats/<id>.ts` | the film memories' times: sections, when the film begins, its beats (what the sound, captions and announcements read) |
 | Authored timelines | `src/memory/theatre-state.json` (Theatre.js) | everything specific to one image: light curves, layer strengths, holds, section and sound markers |
-| Procedural behaviours | `src/memory/behaviours.ts` (GSAP, paused) | the grammar every memory shares: emerge, dissolve, interrupted exit, residue |
+| Procedural behaviours | `src/memory/behaviours.ts` (GSAP, paused) | the grammar every memory shares: emerge, dissolve, interrupted exit |
 | Composition | `src/memory/compose.ts` | one writer per value: authored base × envelopes |
 | Playback | `src/memory/MemoryPlaybackController.ts` | the lifecycle `dormant → emerging → active → withdrawing → residue → complete`, interruption from any state, pause, scrub |
 | Clock | `src/memory/clock.ts` | a memory advances by the audio clock while sound runs, however long a frame took (a vignette's is capped at a second); nothing else ticks |
-| Sound | `src/memory/MemoryAudio.ts`, `cueSheet.ts` | cue sheets on the memory bus; each event once, never on a seek; one anchor: every cue placed from the frame's one reading of the audio clock, sent ahead of the picture by the sound's reported way to the ear |
+| Sound | `src/memory/MemoryAudio.ts` (with `cueGraph.ts`, the filters and panner a cue passes through, and `captionTimers.ts`), `cueSheet.ts`, `cueDispatch.ts` | cue sheets on the memory bus; `cueDispatch` hands each event out once, never on a seek, and takes back what a pause cut; one anchor: every cue placed from the frame's one reading of the audio clock, sent ahead of the picture by the sound's reported way to the ear |
+| Timelines | `src/memory/theatre.ts` (Theatre.js as the controller's `TimelineSource`; `soundOf`, a variant's timeline and the sound laid on it), `sheets.ts` (what Studio may author), `seed.ts` (the first saved state, `npm run memories:seed`) | one sheet per memory and variant; the sound's markers, voices' included, come from it |
+| Vignettes | `src/memory/VignettePlayer.ts` | a vignette's score played with the same `MemoryAudio` and `CueDispatch`, without a timeline |
 | Renderer | `src/world/MemoryWindow.ts` | the painting multiplied into the lit plaster, plus its light; ink on top |
 | Runtime | `src/memory/runtime.ts` (a barrel), `prefetch.ts`, `prepare.ts` (with `prepareFilm.ts`, `preparePainting.ts`; `stage.ts` holds what is loaded so far), `LivingMemory.ts`, `art.ts` (the art manifest) | a lazy chunk (GSAP, Theatre, the controller) that fetches ahead, prepares and plays a memory |
 | Art | `public/memories/<id>/<variant>/<layer>.webp` | code-painted stand-ins (`src/memory/paint/`), replaceable; the woodland's cut from the artist's references (`scripts/cut-woodland.py`) |
 | Living scene | `src/memory/living/`, `src/world/living/` | a memory that is animated and entered (the woodland): its painting and people drawn into one render target; the way in and out |
 
-The App steps the playing memory once a frame (`App.stepLivingMemory`), with one reading of the audio clock that its clock and every sound it schedules, resumes or brings back share (its position 0 is the instant it began, for its first sounds and its first frame alike). If its sound stops (or isn't running yet as it begins) it waits for it, and is let go uncounted after ten seconds visible without it. Its art and recordings are fetched when its line is armed, or as soon as it may be offered (`MemoryDirector.comingSoon`), and decoded only as it begins (`prefetch`). GSAP's timelines are paused and seeked; its ticker is put back to sleep after every seek (a test fails otherwise). Theatre's sequence position is set by the controller and read back at once; production never plays a sequence.
+The App steps the playing memory once a frame (`LivingMemories.step`, `src/app/livingMemory.ts`), with one reading of the audio clock that its clock and every sound it schedules, resumes or brings back share (its position 0 is the instant it began, for its first sounds and its first frame alike). If its sound stops (or isn't running yet as it begins) it waits for it, and is let go uncounted after ten seconds visible without it. Its art and recordings are fetched when its line is armed, or as soon as it may be offered (`MemoryDirector.comingSoon`), and decoded only as it begins (`prefetch`). GSAP's timelines are paused and seeked; its ticker is put back to sleep after every seek (a test fails otherwise). Theatre's sequence position is set by the controller and read back at once; production never plays a sequence.
 
 ## Which memory a visit is for: the heart (November 2026)
 
@@ -105,7 +107,7 @@ A painted memory may be overheard: a few seconds of the people in it talking to 
   - speakers (voices from `vignettes.dialogue.json`), lines and beats (sequence seconds, places in the painting);
   - `quiet` windows the picture keeps to itself;
   - optionally, versions chosen by rules and the memory's own sounds re-levelled (`gains`) or left out (`mute`). These are unused so far: there is one version.
-- **Playback.** The beats become `voice:` cues and markers on the memory's own sheet and timeline (`withVoices`, called from `prepare.ts`). Its clock, interruption, pause and hush are the memory's.
+- **Playback.** The beats become `voice:` cues and markers on the memory's own sheet and timeline (`withVoices`, called through `soundOf` from `prepare.ts` for the audio and `LivingMemory.ts` for the timeline). Its clock, interruption, pause and hush are the memory's.
 - **Who hears them.** Heard only when every line of the version has a kept take (`vig:<memory>:<line>` in the manifest). Otherwise the memory is wordless, as before.
 - **So far:** only cereal's first sitting speaks ("That's my bowl." / "It's the clean one.", then the laugh), with both lines kept by the artist (`cereal--my-bowl-b`, `cereal--clean-one`), so visitors hear it. The rest are wordless on purpose.
 - **Recording.** Recorded and kept like a vignette's lines: `generate-dialogue.mjs --vignettes`, where a take's `vignette` names the memory. They are read through on the audition sheet.

@@ -74,7 +74,6 @@ function controller(extra: Partial<ConstructorParameters<typeof MemoryPlaybackCo
     entrance: 1.5,
     sways: [{ key: 'sway:curtain.x', amp: 0.02, period: 5, at: 6 }],
     exit: 1.2,
-    residue: { rise: 1.5, hold: 3, fall: 3 },
     maxHold: 40,
     tail: 2,
     onState: (s) => states.push(s),
@@ -149,16 +148,12 @@ describe('behaviours: paused GSAP timelines on the room clock', () => {
     tl.kill();
   });
 
-  it('leaving: natural dissolves, interrupted exits; the residue rises and falls', () => {
+  it('leaving: natural dissolves, interrupted exits', () => {
     const env: Values = {};
-    const nat = leaveTimeline(env, { reduced: false, mode: 'natural', dissolve: 4, exit: 1.2, residue: { rise: 1, hold: 2, fall: 2 } });
+    const nat = leaveTimeline(env, { reduced: false, mode: 'natural', dissolve: 4, exit: 1.2 });
     nat.time(4, true);
     expect(env.dissolve).toBeCloseTo(1, 6);
     expect(env.exit).toBe(1);
-    nat.time(2.4 + 1 + 1, true);
-    expect(env.residue).toBeCloseTo(1, 3);
-    nat.time(nat.duration(), true);
-    expect(env.residue).toBeCloseTo(0, 3);
     nat.kill();
     const int = leaveTimeline(env, { reduced: false, mode: 'interrupt', dissolve: 4, exit: 1.2 });
     int.time(1.2, true);

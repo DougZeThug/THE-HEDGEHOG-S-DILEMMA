@@ -1,10 +1,7 @@
 import { MemoryPlaybackController } from './MemoryPlaybackController';
 import { weightsFor } from './compose';
-import { sheetId } from './memoryDef';
-import { memorySchema } from './sheets';
-import { sheetSource } from './theatre';
+import { soundOf } from './theatre';
 import type { Lifecycle, MemoryFrame, ReleaseReason, TimelineSource } from './types';
-import { withVoices } from '../content/memory-voices';
 import type { Prepared } from './prepared';
 
 export interface PlayOptions {
@@ -19,12 +16,9 @@ export class LivingMemory {
 
   constructor(readonly prepared: Prepared, o: PlayOptions) {
     const { def, variant } = prepared;
-    const sheet = sheetSource(sheetId(def.id, variant), memorySchema(def.layers, def.living), { sections: def.sections, markers: def.markers });
+    const { source: sheet, markers } = soundOf(def, variant, prepared.voices);
     // The voices' markers join the timeline's (the controller hands out the audio's cues from them).
-    const vo = prepared.voices;
-    const timeline: TimelineSource = vo
-      ? { sections: sheet.sections, markers: withVoices(def.cues(variant), sheet.markers, def.id, variant, vo.version, vo.filesOf).markers, at: (p) => sheet.at(p), dispose: () => sheet.dispose() }
-      : sheet;
+    const timeline: TimelineSource = prepared.voices ? { sections: sheet.sections, markers, at: (p) => sheet.at(p), dispose: () => sheet.dispose() } : sheet;
     this.controller = new MemoryPlaybackController({
       timeline,
       audio: prepared.audio ?? undefined,

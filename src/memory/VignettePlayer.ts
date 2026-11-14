@@ -47,7 +47,7 @@ export class VignettePlayer {
   constructor(readonly def: VignetteDef, readonly variant: string, private host: VignetteHost, seed = 1) {
     this.score = def.variants[variant] ?? def.variants.first;
     this.markers = scoreMarkers(this.score);
-    this.dispatch = new CueDispatch(this.markers, 0.3);
+    this.dispatch = new CueDispatch(this.markers);
     this.audio = new MemoryAudio(host, toCueSheet(def, this.score, undefined, (k) => host.filesOf?.(k) ?? []), this.markers, seed);
   }
 
@@ -128,12 +128,7 @@ export class VignettePlayer {
       const from = Math.max(0, Math.min(...this.again.map((m) => m.position)) - 0.6);
       const was = this.position;
       this.position = from;
-      this.dispatch.seek(from);
-      // What had already sounded stays heard (the bed the audio has just restored, an effect):
-      // only what the pause took back is handed out again. (By label and place: the audio's
-      // markers are its own copies.)
-      const back = new Set(this.takenBack.map((m) => `${m.label}@${m.position}`));
-      for (const m of this.markers) if (m.position >= from && m.position < was && !back.has(`${m.label}@${m.position}`)) this.dispatch.markHeard(m);
+      this.dispatch.rewind(from, was, this.takenBack);
     }
     this.again = [];
   }

@@ -49,7 +49,7 @@ await (async () => {
     const D = await beat('drive');
     const film = read('scripts/the-drive-home/film.py');
     const drive = json('public/memories/drive/manifest.json');
-    check(pyNumber(film, 'ROOM_FROM') === D.DRIVE_FROM, `drive: film.py ROOM_FROM ${pyNumber(film, 'ROOM_FROM')} is not DRIVE_FROM ${D.DRIVE_FROM}`);
+    check(pyNumber(film, 'ROOM_FROM') === D.DRIVE_AT, `drive: film.py ROOM_FROM ${pyNumber(film, 'ROOM_FROM')} is not DRIVE_AT ${D.DRIVE_AT}`);
     check(Number(film.match(/^BLINK_ON, BLINK_HZ = ([\d.]+)/m)?.[1]) === D.DRIVE_BEATS.indicator, 'drive: film.py BLINK_ON is not DRIVE_BEATS.indicator');
     check(near(drive.living.film.frames / drive.living.film.fps, D.DRIVE_SECONDS), 'drive: the film manifest length is not DRIVE_SECONDS');
 

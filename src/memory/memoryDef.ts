@@ -34,7 +34,6 @@ export interface MemoryDef {
   /** What stays in the room after a natural close, and when it comes (seconds after `exit`). */
   bleed?: 'kitchen-light';
   bleedAt?: number;
-  /** How deep the room hushes while it plays. */
   hush: number;
   /** A drawing on the room's wall the painting opens from, registered onto its lines. */
   opensFrom?: string;
@@ -92,6 +91,9 @@ export const sectionMarkers = (S: Sections): Marker[] => [
 
 /** The cue (and marker) a film's own sound plays on: begun with the film, withdrawn if the film fails. */
 export const FILM_CUE = 'music:film';
+
+/** The cue a film memory's wall sound plays on: the room's own sound before the film begins. */
+export const WALL_CUE = 'music:wall';
 
 /** A film's own clock (`scene.film`): its first frame until `at`, then real time for `seconds`, then its last frame held. */
 export const filmClock = (at: number, seconds: number): Key[] => [[0, 0, 'hold'], [at, 0, 'linear'], [at + seconds, seconds, 'hold']];

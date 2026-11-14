@@ -2,6 +2,10 @@ import { getProject, types, createRafDriver, type IProject, type ISheet, type IS
 import committed from './theatre-state.json';
 import type { TheatreState } from './seed';
 import { cueKind } from './cueSheet';
+import type { CueSheet } from './cueSheet';
+import { sheetId, type MemoryDef } from './memoryDef';
+import { memorySchema } from './sheets';
+import { withVoices } from '../content/memory-voices';
 import type { Marker, Sections, TimelineSource, Values } from './types';
 
 /**
@@ -27,7 +31,6 @@ let project: IProject | null = null;
 let initial: TheatreState = committed as unknown as TheatreState;
 let stateRead: () => TheatreState = () => initial;
 
-/** The project, created once with the committed state. */
 export function theatreProject(): IProject {
   return (project ??= getProject(PROJECT_ID, { state: initial }));
 }
@@ -72,7 +75,6 @@ function objectFor(sheet: ISheet, sheetId: string, name: string, props: Record<s
   return o;
 }
 
-/** A memory's sheet as the controller's authored timeline. */
 export function sheetSource(sheetId: string, schema: Schema, fallback: { sections: Sections; markers: Marker[] }): TimelineSource & { sheet: ISheet } {
   const sheet = theatreProject().sheet(sheetId);
   const objs = Object.entries(schema).map(([name, props]) => [name, objectFor(sheet, sheetId, name, props)] as const);
@@ -94,4 +96,18 @@ export function sheetSource(sheetId: string, schema: Schema, fallback: { section
       // Objects are kept (tiny, and Studio keeps showing them); nothing ticks while unplayed.
     },
   };
+}
+
+/**
+ * A memory variant's authored timeline (`source`) and the sound laid on it: its cue sheet and
+ * markers, with the voices' own cues and markers joined (one clock, one dispatch). The one place
+ * the two are put together, for the audio (prepare.ts) and the timeline (LivingMemory.ts) alike.
+ */
+export function soundOf(
+  def: MemoryDef,
+  variant: string,
+  voices: { version: string; filesOf?: (key: string) => readonly string[] } | null,
+): { source: TimelineSource & { sheet: ISheet }; sheet: CueSheet; markers: Marker[] } {
+  const source = sheetSource(sheetId(def.id, variant), memorySchema(def.layers, def.living), { sections: def.sections, markers: def.markers });
+  return { source, ...withVoices(def.cues(variant), source.markers, def.id, variant, voices?.version, voices?.filesOf) };
 }

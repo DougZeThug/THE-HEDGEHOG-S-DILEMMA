@@ -1,6 +1,6 @@
 import { fetchBlob } from './fetched';
 import { filmType } from './living/FilmScene';
-import { framesNear, filmUrl, isFilm, livingFiles, manifestOf } from './art';
+import { artUrl, framesNear, filmUrl, isFilm, livingFiles, manifestOf, type ArtFile } from './art';
 import { resolve } from './stage';
 import type { RuntimeHost } from './prepared';
 
@@ -15,7 +15,7 @@ export async function prefetch(id: string, variant: string, host: Pick<RuntimeHo
   try {
     const manifest = await manifestOf(base, def.art);
     const lm = manifest.living?.[v];
-    const wall = manifest.variants[v].filter((l) => !(lm && l.name === 'scene')).map((l) => ({ file: l.file, suffix }));
+    const wall: ArtFile[] = manifest.variants[v].filter((l) => !(lm && l.name === 'scene')).map((l) => ({ file: l.file, suffix }));
     const sounds = Object.values(def.cues(v).cues).map((c) => c.asset).filter((a) => a.startsWith('music/'));
     if (isFilm(lm)) {
       // (Where no video can be asked what it plays, the film waits to be fetched as it begins; its
@@ -23,14 +23,14 @@ export async function prefetch(id: string, variant: string, host: Pick<RuntimeHo
       const type = filmType();
       const files = [...wall, ...(lm.order ? [{ file: lm.order, suffix: '' }] : [])];
       await Promise.all([
-        ...files.map((f) => fetchBlob(`${base}${def.art}/${f.file}${f.suffix}.webp`)),
+        ...files.map((f) => fetchBlob(artUrl(base, def.art, f))),
         ...(type ? [fetchBlob(filmUrl(base, def.art, lm, suffix, type))] : []),
         ...sounds.map((a) => fetchBlob(`./${a}`)),
       ]);
       return;
     }
     const files = lm ? [...wall, ...livingFiles(lm, suffix, !framesNear(host, entry.rig!))] : wall;
-    await Promise.all([...files.map((f) => fetchBlob(`${base}${def.art}/${f.file}${f.suffix}.webp`)), ...sounds.map((a) => fetchBlob(`./${a}`))]);
+    await Promise.all([...files.map((f) => fetchBlob(artUrl(base, def.art, f))), ...sounds.map((a) => fetchBlob(`./${a}`))]);
   } catch (e) {
     // (A failed fetch costs only the head start: it is fetched again when it is needed.)
     console.debug(`memory ${id}: prefetch failed`, e);

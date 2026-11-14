@@ -9,7 +9,7 @@
  */
 
 import { easeInOut } from '../../core/math';
-import { DRIVE_FROM, DRIVE_SHOTS } from '../beats/drive';
+import { DRIVE_AT, DRIVE_SHOTS } from '../beats/drive';
 
 /**
  * The film u an upright screen keeps at its centre at the room cut's own second. Under reduced
@@ -17,7 +17,7 @@ import { DRIVE_FROM, DRIVE_SHOTS } from '../beats/drive';
  * (QA, 2026-11-09).
  */
 export function uprightAt(film: number, reduced = false): [number, number] {
-  const t = film + DRIVE_FROM;
+  const t = film + DRIVE_AT;
   let u = 0.7;
   for (const [at, v] of DRIVE_SHOTS) {
     if (t < at) break;

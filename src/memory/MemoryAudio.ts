@@ -1,6 +1,8 @@
 import type { AudioSink } from './MemoryPlaybackController';
 import type { Due } from './cueDispatch';
-import { cueKind, isSpot, type AnyPlace, type Cue, type CueKind, type CueSheet } from './cueSheet';
+import { CaptionTimers } from './captionTimers';
+import { cueGraph } from './cueGraph';
+import { cueKind, type AnyPlace, type Cue, type CueKind, type CueSheet } from './cueSheet';
 import type { Marker } from './types';
 
 /**
@@ -83,7 +85,7 @@ export class MemoryAudio implements AudioSink {
   private spoken: { text: string; side: Cue['side']; end: number }[] = [];
   private disposed = false;
   /** Captions still to come, each with its sound: kept, shown or dropped with it. */
-  private timers = new Map<ReturnType<typeof setTimeout>, { f: () => void; l: Live }>();
+  private captions = new CaptionTimers<Live>();
   /** Sources fading out for a pause. */
   private fading = new Set<Live>();
 
@@ -122,7 +124,7 @@ export class MemoryAudio implements AudioSink {
     return Object.keys(this.sheet.cues).filter((k) => used.has(k)).every((k) => this.buffers.has(k));
   }
 
-  /** How many sources are scheduled or sounding (for tests and the editor). */
+  /** How many sources are scheduled or sounding (for tests). */
   get sounding(): number {
     return this.live.size;
   }
@@ -243,65 +245,13 @@ export class MemoryAudio implements AudioSink {
     const reached = fadeIn > 0 ? level * Math.min(1, rise / fadeIn) : level;
     gain.gain.setValueAtTime(fadeIn > 0 ? 0 : level, at);
     if (fadeIn > 0) gain.gain.linearRampToValueAtTime(reached, at + rise);
-    const nodes: AudioNode[] = [src, gain];
-    let node: AudioNode = gain;
     src.connect(gain);
     if (cut) {
       // Cut off, not faded: a sentence that stops, but without a click.
       gain.gain.setValueAtTime(reached, at + stop - 0.04);
       gain.gain.linearRampToValueAtTime(SILENT, at + stop);
     }
-    if (cue.lowpass) {
-      const lp = c.createBiquadFilter();
-      lp.type = 'lowpass';
-      lp.Q.value = 0.5;
-      lp.frequency.setValueAtTime(cue.lowpass, at);
-      if (cue.lowpassTo && Number.isFinite(dur)) lp.frequency.exponentialRampToValueAtTime(cue.lowpassTo, at + dur);
-      node.connect(lp);
-      node = lp;
-      nodes.push(lp);
-    }
-    if (cue.highpass) {
-      const hp = c.createBiquadFilter();
-      hp.type = 'highpass';
-      hp.Q.value = 0.7;
-      hp.frequency.setValueAtTime(cue.highpass, at);
-      node.connect(hp);
-      node = hp;
-      nodes.push(hp);
-    }
-    let out: AudioNode;
-    if (kind === 'bed' || (kind === 'music' && cue.wide)) {
-      // A bed is the place's air: wide, leaning toward the window, not a point (and music
-      // marked wide is the place's air laid along the timeline).
-      const sp = c.createStereoPanner();
-      const pan = isSpot(cue.place) ? { left: -0.5, right: 0.5 }[cue.place.at as 'left'] ?? 0 : cue.place.u * 0.6;
-      sp.pan.value = Math.max(-1, Math.min(1, pan));
-      out = sp;
-    } else {
-      const [x, y, z] = this.host.where(cue.place);
-      const p = c.createPanner();
-      p.panningModel = 'HRTF';
-      p.distanceModel = 'inverse';
-      // A voice falls off as the room's speech does (it stays intelligible a few metres away).
-      p.refDistance = kind === 'voice' ? 2 : 1.5;
-      p.rolloffFactor = kind === 'voice' ? 0.6 : 0.8;
-      p.maxDistance = 30;
-      p.positionX.setValueAtTime(x, at);
-      p.positionY.setValueAtTime(y, at);
-      p.positionZ.setValueAtTime(z, at);
-      if (cue.to && Number.isFinite(dur)) {
-        const [x2, y2, z2] = this.host.where(cue.to);
-        p.positionX.linearRampToValueAtTime(x2, at + dur);
-        p.positionY.linearRampToValueAtTime(y2, at + dur);
-        p.positionZ.linearRampToValueAtTime(z2, at + dur);
-      }
-      out = p;
-    }
-    node.connect(out);
-    nodes.push(out);
-    out.connect(this.host.out);
-    if (!cue.dry) out.connect(this.room);
+    const nodes: AudioNode[] = [src, gain, ...cueGraph(this.host, this.room, gain, cue, kind, at, dur)];
     const live: Live = { label, kind, cue, src, gain, nodes, at, from, marker };
     src.onended = () => this.drop(live);
     this.live.add(live);
@@ -313,7 +263,7 @@ export class MemoryAudio implements AudioSink {
     if (kind === 'voice') {
       // The words, for as long as they are said (a sentence that is cut off ends in a dash).
       const text = cue.text;
-      if (text && (into === 0 || caption)) this.later(shown, () => this.host.caption?.(text, dur, true, cue.side), live);
+      if (text && (into === 0 || caption)) this.captions.later(shown, () => this.host.caption?.(text, dur, true, cue.side), live);
       return;
     }
     // A caption says what began, briefly (a bed or music isn't captioned for its whole length).
@@ -325,31 +275,7 @@ export class MemoryAudio implements AudioSink {
       const due = when - into0;
       if (!(into0 === 0 || caption || due > 0)) continue;
       const seconds = kind === 'sfx' ? Math.min(dur, 4) : 2.5;
-      this.later(shown + Math.max(0, due), () => this.host.caption?.(text, seconds), live);
-    }
-  }
-
-  private later(seconds: number, f: () => void, l: Live): void {
-    if (seconds <= 0.02) return f();
-    const h = setTimeout(() => {
-      this.timers.delete(h);
-      f();
-    }, seconds * 1000);
-    this.timers.set(h, { f, l });
-  }
-
-  /**
-   * The captions still to come, when the memory lets go, pauses, seeks or ends: those whose sound
-   * will still be heard as it was (`keep`) wait for it; those whose sound has begun and is heard on
-   * a moment more (`now`) are shown at once; the rest go with their sound (QA, 2026-10-20: a
-   * sentence let go gracefully just before it was said was heard, uncaptioned).
-   */
-  private settleLater(keep: (l: Live) => boolean = () => false, now: (l: Live) => boolean = () => false): void {
-    for (const [h, t] of [...this.timers]) {
-      if (keep(t.l)) continue;
-      clearTimeout(h);
-      this.timers.delete(h);
-      if (now(t.l)) t.f();
+      this.captions.later(shown + Math.max(0, due), () => this.host.caption?.(text, seconds), live);
     }
   }
 
@@ -423,8 +349,8 @@ export class MemoryAudio implements AudioSink {
     // Let go naturally, a sentence or a one-shot plays on (begun or not), captioned as it is heard;
     // interrupted, one that has begun is heard a moment more, and captioned at once.
     const begun = (l: Live) => (l.kind === 'voice' || l.kind === 'sfx') && l.at <= this.now + 0.005;
-    if (mode === 'natural') this.settleLater((l) => l.kind === 'voice' || l.kind === 'sfx');
-    else this.settleLater(undefined, begun);
+    if (mode === 'natural') this.captions.settle((l) => l.kind === 'voice' || l.kind === 'sfx');
+    else this.captions.settle(undefined, begun);
     for (const l of [...this.live]) {
       // Interrupted, a bed or music the picture hasn't reached yet (sent ahead of it by the lead:
       // the evening, let go in the last instant before the cut) goes at once, unseen.
@@ -471,7 +397,7 @@ export class MemoryAudio implements AudioSink {
     this.spoken = [];
     // (A one-shot already ringing finishes, and so does a sentence of a released memory: captioned at once. What is taken back, or said again,
     // is captioned when it is.)
-    this.settleLater(undefined, (l) => (l.kind === 'sfx' || (l.kind === 'voice' && this.released)) && l.at <= t + 0.005);
+    this.captions.settle(undefined, (l) => (l.kind === 'sfx' || (l.kind === 'voice' && this.released)) && l.at <= t + 0.005);
     for (const l of [...this.live]) {
       if (l.at > t + 0.005) {
         back.push(l.marker);
@@ -543,7 +469,7 @@ export class MemoryAudio implements AudioSink {
     if (this.disposed) return;
     this.released = this.releasedNaturally = false;
     this.paused = [];
-    this.settleLater();
+    this.captions.settle();
     for (const l of [...this.live]) this.fadeOut(l, l.kind === 'sfx' ? 0.05 : 0.3);
   }
 
@@ -567,7 +493,7 @@ export class MemoryAudio implements AudioSink {
     if (this.disposed) return;
     this.disposed = true;
     this.paused = [];
-    this.settleLater();
+    this.captions.settle();
     for (const l of [...this.live]) this.fadeOut(l, fade);
     const room = this.room, wet = this.wet;
     const done = () => {

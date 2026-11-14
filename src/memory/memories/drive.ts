@@ -1,12 +1,10 @@
 import type { CueSheet } from '../cueSheet';
 import type { SheetSeed } from '../seed';
 import { DRIVE_SECTIONS, DRIVE_AT, DRIVE_SECONDS, DRIVE_BEATS, DRIVE_PASSES } from '../beats/drive';
-import { FILM_CUE, entryTracks, filmClock, sectionMarkers, type MemoryDef } from '../memoryDef';
+import { FILM_CUE, WALL_CUE, entryTracks, filmClock, sectionMarkers, type MemoryDef } from '../memoryDef';
 
 /** Its sound's level (the film's mix as the artist heard it). */
 const DRIVE_DB = -17;
-
-const WALL_CUE = 'music:wall';
 
 /**
  * The Drive Home (docs/drive-home.md): two grown brothers drive home at night after a difficult

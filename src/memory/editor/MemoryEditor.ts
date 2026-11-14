@@ -3,6 +3,7 @@ import { onChange } from '@theatre/core';
 import { driver, PROJECT_ID, readStateFrom, theatreProject } from '../theatre';
 import { MEMORIES } from '../registry';
 import { sheetId } from '../memoryDef';
+import { SCENE_MEMORIES } from '../../content/memories';
 import type { TheatreState } from '../seed';
 import type { MemoryInspector } from '../../app/inspector';
 
@@ -17,7 +18,6 @@ import type { MemoryInspector } from '../../app/inspector';
  * production plays; commit it. "Download" is the fallback (put the file in the same place).
  * See docs/memories.md.
  */
-const PHRASE: Record<string, string> = { cereal: 'cereal', bedroom: 'happiest-unneeded', door: 'door-open', woodland: 'more-minutes', almost: 'your-hand', things: 'didnt-know-say', shadows: 'understood-minute', drive: 'angry-with-me' };
 
 export function openEditor(app: MemoryInspector): void {
   studio.initialize({ __experimental_rafDriver: driver, persistenceKey: 'hedgehog-memories' });
@@ -51,7 +51,7 @@ export function openEditor(app: MemoryInspector): void {
 
   const start = async () => {
     const id = memory.value, v = variant.value;
-    const phrase = PHRASE[id] ?? id;
+    const phrase = SCENE_MEMORIES.find((m) => m.id === id)?.phraseId ?? id;
     if (!app.text.anchorOf(phrase)) app.text.setShown(phrase);
     await new Promise((r) => setTimeout(r, 600));
     app.frameMemory(phrase);

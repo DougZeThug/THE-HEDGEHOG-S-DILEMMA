@@ -9,6 +9,4 @@
  */
 export { prefetch } from './prefetch';
 export { prepare } from './prepare';
-export { LivingMemory, type PlayOptions } from './LivingMemory';
-export type { Pane } from './art';
-export type { Prepared, PreparedFilm, PreparedLiving, PreparedPainting, RuntimeHost } from './prepared';
+export { LivingMemory } from './LivingMemory';

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { LayerKind } from '../world/MemoryWindow';
+import type { LayerKind } from '../core/memoryLayers';
 import type { FigureArt, Eye } from './living/woodlandArt';
 import type { LivingSpec } from './living/woodland';
 import { fetchBlob } from './fetched';
@@ -160,17 +160,44 @@ export function framesNear(host: { screen?: { width: number; height: number } },
   return a >= spec.near.aspect[0] && a <= spec.near.aspect[1];
 }
 
-/** A living scene's files (maps, grade and sky have one size only); the two-shot's only for a screen that shows it. */
-export function livingFiles(lm: LivingManifest, suffix: string, noNear = false): { file: string; suffix: string }[] {
-  const out = [{ file: lm.plate, suffix }, { file: lm.maps, suffix: '' }];
-  if (lm.grade) out.push({ file: lm.grade, suffix: '' });
-  if (lm.after) out.push({ file: lm.after, suffix });
-  if (lm.sky) out.push({ file: lm.sky.file, suffix: '' });
-  if (lm.figures) out.push({ file: lm.figures.file, suffix }, { file: lm.figures.lids, suffix });
-  if (lm.flowers) out.push({ file: lm.flowers.file, suffix });
-  if (lm.clouds) out.push({ file: lm.clouds.mask, suffix: '' }, { file: lm.clouds.file, suffix: '' }, { file: lm.clouds.after, suffix: '' });
-  if (lm.order) out.push({ file: lm.order, suffix: '' });
-  if (lm.figures?.heads) out.push({ file: lm.figures.heads.file, suffix });
-  if (lm.near && lm.figures?.heads && !noNear) out.push({ file: lm.near.file, suffix }, { file: lm.near.lids, suffix }, { file: lm.near.heads.file, suffix }, { file: lm.near.ground.file, suffix: '' }, { file: lm.near.maps, suffix: '' });
-  return out;
+/** A file of a memory's art: its name, and the quality suffix it has (maps, grade and sky have one size only: ''). */
+export interface ArtFile {
+  file: string;
+  suffix: string;
+}
+
+/** A webp of a memory's art. */
+export const artUrl = (base: string, art: string, f: ArtFile): string => `${base}${art}/${f.file}${f.suffix}.webp`;
+
+/**
+ * A living scene's files, by what they are, at `suffix` (the two-shot's only if the art has a
+ * wide with faces to turn): the one place that says which have a phone size. `livingFiles` lists
+ * them for fetching ahead; the scene loads each by name.
+ */
+export function livingParts(lm: LivingManifest, suffix: string) {
+  const at = (file: string, sfx = suffix): ArtFile => ({ file, suffix: sfx });
+  const n = lm.near;
+  return {
+    plate: at(lm.plate),
+    maps: at(lm.maps, ''),
+    grade: lm.grade ? at(lm.grade, '') : null,
+    after: lm.after ? at(lm.after) : null,
+    sky: lm.sky ? at(lm.sky.file, '') : null,
+    figures: lm.figures ? at(lm.figures.file) : null,
+    lids: lm.figures ? at(lm.figures.lids) : null,
+    flowers: lm.flowers ? at(lm.flowers.file) : null,
+    cloudsMask: lm.clouds ? at(lm.clouds.mask, '') : null,
+    clouds: lm.clouds ? at(lm.clouds.file, '') : null,
+    cloudsAfter: lm.clouds ? at(lm.clouds.after, '') : null,
+    order: lm.order ? at(lm.order, '') : null,
+    heads: lm.figures?.heads ? at(lm.figures.heads.file) : null,
+    near: n && lm.figures?.heads ? { atlas: at(n.file), lids: at(n.lids), heads: at(n.heads.file), ground: at(n.ground.file, ''), maps: at(n.maps, '') } : null,
+  };
+}
+
+/** A living scene's files, to fetch ahead; the two-shot's only for a screen that shows it. */
+export function livingFiles(lm: LivingManifest, suffix: string, noNear = false): ArtFile[] {
+  const p = livingParts(lm, suffix);
+  const near = p.near && !noNear ? [p.near.atlas, p.near.lids, p.near.heads, p.near.ground, p.near.maps] : [];
+  return [p.plate, p.maps, p.grade, p.after, p.sky, p.figures, p.lids, p.flowers, p.cloudsMask, p.clouds, p.cloudsAfter, p.order, p.heads, ...near].filter((f): f is ArtFile => !!f);
 }
