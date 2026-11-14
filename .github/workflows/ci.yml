@@ -10,8 +10,7 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
       - run: npm ci
-      - run: npx tsc --noEmit
       - run: npm run lint
+      - run: npm run typecheck:scripts
       - run: npx vitest run
-      - run: node scripts/check-assets.mjs
-      - run: npm run build
+      - run: npm run build # tsc, vite, check-dist and check-assets

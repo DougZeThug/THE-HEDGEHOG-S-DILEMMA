@@ -15,9 +15,8 @@
  * numbers as differences between arms on the same visitors, not as what people feel.
  */
 import { Rng } from '../src/core/rng';
-import { Director } from '../src/state/Director';
 import { interpretLocally } from '../src/interpret/LocalInterpreter';
-import { readArms, writeReport } from './lib/report';
+import { readArms, startCapture, writeReport } from './lib/report';
 import { CLASSES, adversaries, drawGenome, liveVisit, type Genome, type VisitSummary } from '../tests/playtest/visitors';
 
 const N = Number(process.env.N ?? 27);
@@ -25,6 +24,7 @@ const SEEDS = Number(process.env.SEEDS ?? 5);
 const ADV_SEEDS = Number(process.env.ADV_SEEDS ?? 12);
 const RETURNS = Number(process.env.RETURNS ?? 30);
 const SECONDS = Number(process.env.SECONDS ?? 600);
+startCapture();
 const ARMS = readArms();
 
 const genomes: Genome[] = [];
@@ -38,13 +38,6 @@ const pct = (a: number, b: number) => (b ? `${Math.round((100 * a) / b)}%` : 'â€
 const median = (xs: number[]) => (xs.length ? [...xs].sort((a, b) => a - b)[Math.floor((xs.length - 1) / 2)] : NaN);
 const mean = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : NaN);
 const f1 = (x: number) => (Number.isFinite(x) ? x.toFixed(1) : 'â€”');
-const entropy = (counts: Record<string, number>) => {
-  const n = Object.values(counts).reduce((a, b) => a + b, 0);
-  if (!n) return 0;
-  let h = 0;
-  for (const c of Object.values(counts)) if (c) h -= (c / n) * Math.log2(c / n);
-  return h;
-};
 
 const out: Record<string, VisitSummary[]> = {};
 const t0 = Date.now();

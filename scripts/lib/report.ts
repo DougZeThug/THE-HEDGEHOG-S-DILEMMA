@@ -9,13 +9,23 @@ import { Director } from '../../src/state/Director';
 
 const printed: string[] = [];
 const log = console.log;
-console.log = (...xs: unknown[]) => {
-  printed.push(xs.join(' '));
-  log(...xs);
-};
+
+/** Start keeping what is printed (it still prints) so `writeReport` can also write it. Call once, first. */
+export function startCapture(): void {
+  console.log = (...xs: unknown[]) => {
+    printed.push(xs.join(' '));
+    log(...xs);
+  };
+}
+
+/** Stop keeping it (what was kept stays for `writeReport`). */
+export function stopCapture(): void {
+  console.log = log;
+}
 
 /** Write what has been printed to `REPORT`, if it is set; and `data` to `OUT`, if there is one and it is. */
 export function writeReport(data?: unknown): void {
+  stopCapture();
   const { OUT, REPORT } = process.env;
   if (OUT && data !== undefined) {
     mkdirSync(dirname(OUT), { recursive: true });

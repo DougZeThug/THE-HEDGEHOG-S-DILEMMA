@@ -40,7 +40,10 @@ function decode(file: string, dehum = true): Stereo {
   const raw = execFileSync('ffmpeg', ['-v', 'error', '-i', file, '-f', 'f32le', '-ac', '2', '-ar', String(RATE), '-'], { maxBuffer: 1 << 30 });
   const all = new Float32Array(raw.buffer, raw.byteOffset, raw.byteLength / 4);
   const l = new Float32Array(all.length / 2), r = new Float32Array(all.length / 2);
-  for (let i = 0; i < l.length; i++) (l[i] = all[2 * i]), (r[i] = all[2 * i + 1]);
+  for (let i = 0; i < l.length; i++) {
+    l[i] = all[2 * i];
+    r[i] = all[2 * i + 1];
+  }
   if (dehum) for (const c of [l, r]) for (let k = 1; k <= 6; k++) biquad(c, 'notch', 200 * k, 40);
   return [l, r];
 }
@@ -65,7 +68,10 @@ function lineDb(x: Float32Array, f: number): number {
 function encode(name: string, [l, r]: Stereo): void {
   const tmp = join(tmpdir(), `${name}.f32`);
   const inter = new Float32Array(l.length * 2);
-  for (let i = 0; i < l.length; i++) (inter[2 * i] = l[i]), (inter[2 * i + 1] = r[i]);
+  for (let i = 0; i < l.length; i++) {
+    inter[2 * i] = l[i];
+    inter[2 * i + 1] = r[i];
+  }
   writeFileSync(tmp, Buffer.from(inter.buffer));
   execFileSync('ffmpeg', ['-v', 'error', '-y', '-f', 'f32le', '-ar', String(RATE), '-ac', '2', '-i', tmp, '-c:a', 'libmp3lame', '-b:a', '192k', join(OUT, `${name}.mp3`)]);
   rmSync(tmp);
@@ -88,7 +94,7 @@ function biquad(x: Float32Array, type: 'lowpass' | 'highpass' | 'peak' | 'highsh
     const s = 2 * Math.sqrt(A) * al;
     c = [A * (A + 1 + (A - 1) * cw + s), -2 * A * (A - 1 + (A + 1) * cw), A * (A + 1 + (A - 1) * cw - s), A + 1 - (A - 1) * cw + s, 2 * (A - 1 - (A + 1) * cw), A + 1 - (A - 1) * cw - s];
   }
-  const [b0, b1, b2, a0, a1, a2] = c.map((v) => v / c[3]);
+  const [b0, b1, b2, , a1, a2] = c.map((v) => v / c[3]);
   let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
   for (let i = 0; i < x.length; i++) {
     const y = b0 * x[i] + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2;

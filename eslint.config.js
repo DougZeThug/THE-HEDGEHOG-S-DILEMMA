@@ -2,7 +2,7 @@ import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['dist', 'node_modules', 'test-output', 'scripts/**', 'tests/**/*.mjs', 'public'] },
+  { ignores: ['dist', 'node_modules', 'test-output', 'scripts/**/*.mjs', 'scripts/**/*.d.mts', 'tests/**/*.mjs', 'public'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
@@ -20,7 +20,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ['tests/**/*.ts'],
+    files: ['tests/**/*.ts', 'scripts/**/*.ts'],
     rules: {
       '@typescript-eslint/no-unused-expressions': ['error', { allowTernary: true, allowShortCircuit: true, allowTaggedTemplates: true }],
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
