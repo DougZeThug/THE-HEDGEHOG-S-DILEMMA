@@ -1,6 +1,7 @@
 import type { Dimension, Phase, Phrase, Surface, Tier } from '../content/types';
 import { DIMENSIONS } from '../content/types';
-import { PHRASES, PHRASE_BY_ID, affinity } from '../content/phrases';
+import { PHRASES, PHRASE_BY_ID } from '../content/phrases';
+import { affinity } from '../content/affinity';
 import type { FieldValues } from './EmotionalField';
 import type { Memory } from './Memory';
 import type { Rng } from '../core/rng';

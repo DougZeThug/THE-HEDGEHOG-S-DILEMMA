@@ -1,6 +1,7 @@
 import { DIMENSIONS, type Dimension, type DimVector } from '../content/types';
 import { LEXICON } from '../content/relations';
-import { PHRASES, PHRASE_BY_ID, affinity } from '../content/phrases';
+import { PHRASES, PHRASE_BY_ID } from '../content/phrases';
+import { affinity } from '../content/affinity';
 import { MAX_INTERPRETED, validateInterpretation, type ContributionGesture, type Interpretation } from './schema';
 
 export function tokenize(text: string): string[] {

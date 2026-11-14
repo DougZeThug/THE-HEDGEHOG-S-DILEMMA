@@ -46,7 +46,7 @@ W, H = 1672, 941
 # drawing starts here, at the words (cinematic review, 2026-10-17: from the crop's centre, the
 # first marks came 150–250 px below and right of them).
 WORDS = (0.48, 0.61)
-# The timeline's clocks for the drawing and the colour (src/memory/defs.ts, the woodland's
+# The timeline's clocks for the drawing and the colour (src/memory/memories/woodland.ts, the woodland's
 # window.sketch and window.reveal: where each starts and reaches 1, and how: Theatre's soft key or
 # a straight one; tests/memory-defs.test.ts keeps them the same), and how long after its line the
 # colour may come at the soonest (s).

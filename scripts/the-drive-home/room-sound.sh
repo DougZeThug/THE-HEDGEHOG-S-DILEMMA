@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The Drive Home in the room: its three sound cues (src/memory/defs.ts DRIVE), from the approved takes
+# The Drive Home in the room: its three sound cues (src/memory/memories/drive.ts DRIVE), from the approved takes
 # and the approved mix (audition/the-drive-home/), nothing generated anew. docs/drive-home.md.
 #   scripts/the-drive-home/room-sound.sh
 #   public/music/drive-wall.mp3   tyres on a damp road under the second and third streetlights (memory
