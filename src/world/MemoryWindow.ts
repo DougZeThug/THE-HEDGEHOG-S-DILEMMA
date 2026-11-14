@@ -1,5 +1,16 @@
 import * as THREE from 'three';
+import type { WindowLayer } from '../core/memoryLayers';
 import { FRAG, SLOTS, VERT, kelvin, noiseTexture } from './memoryWindowShader';
+
+/** Furthest a layer may shift, metres: a breath of depth in the plaster, not a hole in it. */
+const MAX_SHIFT = 0.02;
+/** How strongly a living memory's painting sinks into the plaster (cinematic review, 2026-10-17). */
+const SUNK = 0.72;
+/** How far a living painting (drawn in order, or its revisit) is lifted toward the plaster (the
+ *  skeptic's third review): rendered on the wall, the afternoon's median 0.45 of the bare plaster's,
+ *  linear (from about 0.34); image 3's, measured the same way, 0.42–0.53 by which plaster it is set
+ *  against. */
+const LIFT = 0.35;
 
 /**
  * A living memory, in the plaster (docs/memories.md).
@@ -21,24 +32,6 @@ import { FRAG, SLOTS, VERT, kelvin, noiseTexture } from './memoryWindowShader';
  *
  * Nothing here compiles after boot: one material, no defines, dummy textures until art arrives.
  */
-export type LayerKind = 'pigment' | 'light' | 'sketch' | 'shade';
-
-export interface WindowLayer {
-  name: string;
-  kind: LayerKind;
-  texture: THREE.Texture;
-}
-
-/** Furthest a layer may shift, metres: a breath of depth in the plaster, not a hole in it. */
-const MAX_SHIFT = 0.02;
-/** How strongly a living memory's painting sinks into the plaster (cinematic review, 2026-10-17). */
-const SUNK = 0.72;
-/** How far a living painting (drawn in order, or its revisit) is lifted toward the plaster (the
- *  skeptic's third review): rendered on the wall, the afternoon's median 0.45 of the bare plaster's,
- *  linear (from about 0.34); image 3's, measured the same way, 0.42–0.53 by which plaster it is set
- *  against. */
-const LIFT = 0.35;
-
 export class MemoryWindow {
   readonly mesh: THREE.Mesh;
   private readonly dummy: THREE.DataTexture;

@@ -1,11 +1,11 @@
 import type * as THREE from 'three';
-import type { LayerKind } from '../world/MemoryWindow';
+import type { LayerKind } from '../core/memoryLayers';
 import type { MemoryAudio } from './MemoryAudio';
 import type { MemoryDef } from './memoryDef';
 import { memoryEntry, type MemoryEntry } from './registry';
 import type { WoodlandScene } from './living/WoodlandScene';
 import type { FilmScene } from './living/FilmScene';
-import { loadLayer, type ArtManifest } from './art';
+import { artUrl, loadLayer, type ArtManifest } from './art';
 import type { RuntimeHost } from './prepared';
 
 /** A texture and the bitmap it was decoded from (a living scene's own render target has none). */
@@ -30,7 +30,6 @@ export interface Stage {
   /** A living scene's own art. */
   extra: Decoded[];
   scene: WoodlandScene | FilmScene | null;
-  url(file: string, sfx?: string): string;
   /** Let go of everything staged, the audio too. */
   letGo(): void;
 }
@@ -67,7 +66,7 @@ export async function fallBackToPoster(st: Stage): Promise<void> {
   const poster = st.manifest.variants[st.v].find((l) => l.name === 'scene');
   if (!poster) return;
   try {
-    st.loaded.unshift({ ...(await loadLayer(st.url(poster.file))), name: poster.name, kind: poster.kind });
+    st.loaded.unshift({ ...(await loadLayer(artUrl(st.base, st.def.art, { file: poster.file, suffix: st.suffix }))), name: poster.name, kind: poster.kind });
   } catch (err) {
     st.letGo();
     throw err;
