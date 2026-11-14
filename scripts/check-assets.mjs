@@ -78,9 +78,7 @@ await section("Almost's sounds were laid from the exposure sheet and mix as they
   check(almost.xsheet === sha16('scripts/almost/xsheet.py'), 'almost: the exposure sheet changed since its sounds were made (run scripts/almost/sound.py --publish)');
   check(almost.sound === sha16('scripts/almost/sound.py'), 'almost: sound.py changed since its sounds were made (run it with --publish)');
   check(pyNumber(sound, 'FILM_AT', 'scripts/almost/sound.py') === A.FILM_AT, "almost: sound.py FILM_AT is not the timeline's FILM_AT (src/memory/beats/almost.ts)");
-  // TODO(merge main): once beats/almost.ts exports KITCHEN_AT, import it here instead of reading the marker.
-  const kitchen = grab(read('src/memory/memories/almost.ts'), /label: 'music:kitchen', position: ([\d.]+)/, 'src/memory/memories/almost.ts', "the marker written as `label: 'music:kitchen', position: <number>` on one line")[1];
-  check(pyNumber(sound, 'KITCHEN_AT', 'scripts/almost/sound.py') === Number(kitchen), 'almost: sound.py KITCHEN_AT is not the music:kitchen marker');
+  check(pyNumber(sound, 'KITCHEN_AT', 'scripts/almost/sound.py') === A.KITCHEN_AT, 'almost: sound.py KITCHEN_AT is not the music:kitchen marker (src/memory/beats/almost.ts)');
 });
 
 await section("Things I Should Have Said: its sound is from its story, and its beats are the sheet's", async () => {
