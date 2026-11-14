@@ -6,19 +6,6 @@ import { cueKind } from './cueSheet';
 import type { Lifecycle, Marker, MemoryFrame, ReleaseReason, Sections, TimelineSource, Values } from './types';
 
 /**
- * The one owner of a playing memory: its lifecycle and its local time. The App steps it once a
- * frame with the room's dt (0 while hidden or paused); it positions the authored timeline
- * (Theatre.js, through a TimelineSource), positions its procedural behaviours (paused GSAP
- * timelines), composes the two, and hands the audio the events that fall due. Nothing else
- * advances a memory.
- *
- *   dormant → emerging → active → withdrawing → residue → complete
- *
- * A release at the end of the living scene plays the authored withdrawal; one before it (the
- * visitor turned away, walked off) freezes the authored timeline where it is and leaves through a
- * graceful procedural exit. A hard release (a switch, leaving, a long hide) ends it at once.
- */
-/**
  * The sound's side. Every `now` is the AudioContext time the memory's clock read for the frame in
  * question, the instant the sequence's position stands for: the one mapping from the timeline to
  * the audio clock, so a cue is placed the same whenever it is handed out (absent: the context's
@@ -52,8 +39,6 @@ interface PlaybackOptions {
   entrance: number;
   sways: Sway[];
   exit: number;
-  /** The residue envelope (sunlight staying in the room), only after a natural close. */
-  residue?: { rise: number; hold: number; fall: number };
   /** (The Director usually releases it first.) */
   maxHold: number;
   tail: number;
@@ -62,8 +47,23 @@ interface PlaybackOptions {
   onState?: (s: Lifecycle, why?: ReleaseReason) => void;
 }
 
+/** Events are handed out up to this far (seconds) ahead of the picture (the sound is sent ahead by up to 0.3 s, and a slow frame just before a cut must not make the evening come in late: QA, 2026-10-20). */
+const SCENE_LOOKAHEAD = 0.75;
 const HARD: ReleaseReason[] = ['switch', 'depart', 'hidden'];
 
+/**
+ * The one owner of a playing memory: its lifecycle and its local time. The App steps it once a
+ * frame with the room's dt (0 while hidden or paused); it positions the authored timeline
+ * (Theatre.js, through a TimelineSource), positions its procedural behaviours (paused GSAP
+ * timelines), composes the two, and hands the audio the events that fall due. Nothing else
+ * advances a memory.
+ *
+ *   dormant → emerging → active → withdrawing → residue → complete
+ *
+ * A release at the end of the living scene plays the authored withdrawal; one before it (the
+ * visitor turned away, walked off) freezes the authored timeline where it is and leaves through a
+ * graceful procedural exit. A hard release (a switch, leaving, a long hide) ends it at once.
+ */
 export class MemoryPlaybackController {
   private _state: Lifecycle = 'dormant';
   private _t = 0;
@@ -83,12 +83,14 @@ export class MemoryPlaybackController {
   private lastNow: number | undefined;
   /** Back from a pause: the frame it resumes on doesn't move (its sound comes back from there). */
   private still = false;
+  /** Sentences a pause cut part-way (begun before the frozen picture): said again on resume. */
+  private again: Marker[] = [];
+  /** What the audio handed back at the pause (not yet sounded, or cut). */
+  private takenBack: Marker[] = [];
 
   constructor(private o: PlaybackOptions) {
     this.life = lifeTimeline(this.env, { reduced: o.reduced, entrance: o.entrance, sways: o.sways });
-    // (Handed out up to 0.75 s ahead: the sound is sent ahead of the picture by up to 0.3 s, and
-    // a slow frame just before the cut must not leave the evening to come in late: QA, 2026-10-20.)
-    this.dispatch = new CueDispatch(o.timeline.markers, 0.75);
+    this.dispatch = new CueDispatch(o.timeline.markers, SCENE_LOOKAHEAD);
   }
 
   get state(): Lifecycle {
@@ -158,7 +160,6 @@ export class MemoryPlaybackController {
       mode: this.mode,
       dissolve,
       exit: hard ? 0.3 : this.o.exit,
-      residue: this.mode === 'natural' ? this.o.residue : undefined,
     });
     // The sound goes with the picture: under reduced motion the picture's withdrawal is slower, and so is its fade.
     this.o.audio?.release(this.mode, hard ? 0.3 : (this.mode === 'natural' ? dissolve : this.o.exit) * (this.o.reduced ? 1.6 : 1), !hard);
@@ -174,8 +175,6 @@ export class MemoryPlaybackController {
     this.again = back.filter((m) => cueKind(m.label) === 'voice' && m.position <= this.pos + 0.005);
     this.takenBack = back;
   }
-  private again: Marker[] = [];
-  private takenBack: Marker[] = [];
   /** `now`: the audio time of the frame it moves on from (that frame stands still). */
   resume(now?: number): void {
     if (!this.paused) return;
@@ -194,10 +193,7 @@ export class MemoryPlaybackController {
     if (from < was) {
       this._t -= was - from;
       this.pos = from;
-      this.dispatch.seek(from);
-      // (By label and place: the audio's markers are its own copies of the timeline's.)
-      const back = new Set(this.takenBack.map((m) => `${m.label}@${m.position}`));
-      for (const m of this.o.timeline.markers) if (m.position >= from && m.position < was && !back.has(`${m.label}@${m.position}`)) this.dispatch.markHeard(m);
+      this.dispatch.rewind(from, was, this.takenBack);
     }
   }
 
@@ -279,7 +275,7 @@ export class MemoryPlaybackController {
       if (!this.leave || this.mode !== 'natural') {
         this.leave?.kill();
         this.mode = 'natural';
-        this.leave = leaveTimeline(this.env, { reduced: this.o.reduced, mode: 'natural', dissolve: Math.max(0.5, s.residue - s.exit), exit: this.o.exit, residue: this.o.residue });
+        this.leave = leaveTimeline(this.env, { reduced: this.o.reduced, mode: 'natural', dissolve: Math.max(0.5, s.residue - s.exit), exit: this.o.exit });
       }
       this.released = s.exit;
       seek(this.leave, p - s.exit);
@@ -288,7 +284,6 @@ export class MemoryPlaybackController {
       this.leave = null;
       this.env.dissolve = 0;
       this.env.exit = 1;
-      this.env.residue = 0;
     }
     seek(this.life, this._t);
     this.dispatch.seek(p);

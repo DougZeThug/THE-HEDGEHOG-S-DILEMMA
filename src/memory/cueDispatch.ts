@@ -24,6 +24,8 @@ export interface Due {
 const LATE_ONE_SHOT = 3;
 /** How far behind the position an event may be and still be handed out (seconds). */
 const TOLERANCE = 0.12;
+/** How far ahead of the picture (seconds) events are handed out, unless the owner asks for more. */
+export const LOOKAHEAD = 0.3;
 /** A step longer than this (seconds) is treated as a stall that jumped forward, not as playing. */
 const MAX_STEP = 0.5;
 
@@ -31,8 +33,9 @@ export class CueDispatch {
   private fired = new Set<string>();
   private last: number | null = null;
 
-  constructor(readonly markers: Marker[], readonly lookahead = 0.3) {}
+  constructor(readonly markers: Marker[], readonly lookahead = LOOKAHEAD) {}
 
+  /** By label and place: the audio's markers are its own copies of the timeline's. */
   private id(m: Marker): string {
     return `${m.label}@${m.position.toFixed(3)}`;
   }
@@ -93,6 +96,17 @@ export class CueDispatch {
     }
   }
 
+  /**
+   * The sequence steps back from `was` to `from` (a pause took a sentence back to say it again):
+   * what lies ahead is armed again, except what had already sounded in between (the bed the audio
+   * has just restored, an effect): only what the pause took back (`takenBack`) is handed out again.
+   */
+  rewind(from: number, was: number, takenBack: Marker[]): void {
+    this.seek(from);
+    const back = new Set(takenBack.map((m) => this.id(m)));
+    for (const m of this.markers) if (m.position >= from && m.position < was && !back.has(this.id(m))) this.markHeard(m);
+  }
+
   /** It has sounded already: never hand it out again (after a step back that would re-arm it). */
   markHeard(m: Marker): void {
     this.fired.add(this.id(m));
@@ -103,7 +117,4 @@ export class CueDispatch {
     this.fired.delete(this.id(m));
   }
 
-  get heard(): number {
-    return this.fired.size;
-  }
 }

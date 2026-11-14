@@ -10,7 +10,6 @@ import type { Values } from './types';
  *   emerge                 0 → 1   the memory's entrance (a soft fade so no start ever pops)
  *   dissolve               0 → 1   the mask receding
  *   exit                   1 → 0   a graceful early exit (the visitor turned away)
- *   residue                0 → 1 → 0  what stays after the image (sunlight in the room)
  *   sway:<layer>.<x|y|rot> ±amp    secondary motion: a curtain breathing, a spoon settling
  */
 export interface Reduced {
@@ -56,21 +55,14 @@ export function sway(tl: gsap.core.Timeline, env: Values, s: Sway, reduced: bool
 }
 
 /** Leaving, on time since release: the mask receding, or (interrupted) a quicker graceful exit. */
-export function leaveTimeline(env: Values, o: Reduced & { mode: 'natural' | 'interrupt'; dissolve: number; exit: number; residue?: { rise: number; hold: number; fall: number } }): gsap.core.Timeline {
+export function leaveTimeline(env: Values, o: Reduced & { mode: 'natural' | 'interrupt'; dissolve: number; exit: number }): gsap.core.Timeline {
   env.dissolve = 0;
   env.exit = 1;
-  env.residue = 0;
   const tl = gsap.timeline({ paused: true });
   const slow = o.reduced ? 1.6 : 1;
   tl.addLabel('leave', 0);
   if (o.mode === 'natural') tl.to(env, { dissolve: 1, duration: o.dissolve * slow, ease: 'sine.inOut' }, 'leave');
   else tl.to(env, { exit: 0, dissolve: 0.6, duration: o.exit * slow, ease: 'sine.inOut' }, 'leave');
-  if (o.residue) {
-    const r = o.residue;
-    tl.addLabel('residue', o.mode === 'natural' ? o.dissolve * slow * 0.6 : o.exit * slow * 0.6);
-    tl.to(env, { residue: 1, duration: r.rise * slow, ease: 'sine.out' }, 'residue');
-    tl.to(env, { residue: 0, duration: r.fall * slow, ease: 'sine.in' }, `residue+=${(r.rise + r.hold) * slow}`);
-  }
   quiet();
   return tl;
 }
