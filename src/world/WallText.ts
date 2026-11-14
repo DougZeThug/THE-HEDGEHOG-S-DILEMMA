@@ -3,15 +3,15 @@ import type { Phrase, Surface, Hand, Size } from '../content/types';
 import { PHRASES, PHRASE_BY_ID } from '../content/phrases';
 import type { Room } from './Room';
 import { layoutPhrases, layoutOf, surfaceSize, drawingSpots, drawingBeside, isWallSurface, type Placement, type SurfaceLayout } from './layout';
-import { measureText, wordPosition, textTexture, pencilLineTexture, inkTexture } from './textures';
+import { measureText, wordPosition, textTexture, inkTexture } from './textures';
 import { DRAWINGS, DRAWING_BY_ID, type DrawingDef } from '../content/drawings';
 import { bakeDrawing, bakedSize } from './sketch';
 import { wordRanges } from './handwriting';
-import { approach } from '../core/math';
 import { hashString } from '../core/rng';
 import { idle } from '../core/time';
 import type { Environment } from '../core/environment';
 import { AirWriting } from './airText';
+import { PencilLines } from './pencilLines';
 import { stepItem, type TextStepContext } from './textStep';
 import { makeTextMaterial, type TextUniforms } from './textMaterial';
 import { placeByDrawing, placeWithin, placeWrite } from './writePlacement';
@@ -66,19 +66,6 @@ export interface TextItem {
   recede?: RecedeState;
 }
 
-interface LineItem {
-  key: string;
-  mesh: THREE.Mesh;
-  mat: THREE.MeshStandardMaterial;
-  vis: number;
-  target: number;
-  expires: number;
-  surface: Surface;
-  from: Placement;
-  to?: Placement;
-  strikeOf?: Placement;
-}
-
 /** How much of a touch the words keep (of the emphasis, 0–1; a long look reaches 0.7). */
 const HANDLED = 0.25;
 
@@ -98,12 +85,11 @@ interface WallAnchor {
 
 export class WallText {
   readonly items = new Map<string, TextItem>();
-  private lines = new Map<string, LineItem>();
   private layout: SurfaceLayout;
   private placements: Map<string, Placement>;
   private lastScale = 1;
-  private lineTex: THREE.CanvasTexture[];
   private geo = new THREE.PlaneGeometry(1, 1);
+  private pencil: PencilLines;
   reducedMotion = false;
   /** How much faint writing is strengthened (the look's, with the room's light; 1 = as written). */
   faintBoost = 1;
@@ -133,7 +119,7 @@ export class WallText {
     this.placements = layoutPhrases(PHRASES, (p) => measureText(p.text, p.hand, p.size), seed, spots);
     DRAWINGS.filter((d) => d.at).forEach((d, i) => this.drawingPlaces.set(d.id, spots[i]));
     this.layout = layoutOf(this.placements);
-    this.lineTex = [pencilLineTexture(1), pencilLineTexture(2), pencilLineTexture(3)];
+    this.pencil = new PencilLines(room, this.geo);
     // Writing is made when it is first needed: the room begins nearly empty, and baking every
     // phrase up front would cost a phone seconds and tens of megabytes.
   }
@@ -358,75 +344,14 @@ export class WallText {
     return found.waiting;
   }
 
-  private makeLine(key: string, surface: Surface, seed: number): LineItem {
-    const mat = new THREE.MeshStandardMaterial({
-      color: new THREE.Color('#4a4b50'),
-      map: this.lineTex[seed % this.lineTex.length],
-      transparent: true,
-      depthWrite: false,
-      opacity: 0,
-      roughness: 1,
-      polygonOffset: true,
-      polygonOffsetFactor: -3,
-      polygonOffsetUnits: -3,
-    });
-    const mesh = new THREE.Mesh(this.geo, mat);
-    mesh.renderOrder = 3;
-    this.room.frames[surface].writing.add(mesh);
-    return { key, mesh, mat, vis: 0, target: 0.55, expires: 0, surface, from: null as unknown as Placement };
-  }
-
   /** A faint pencil line joining two phrases on the same surface. */
   link(a: string, b: string, ttl: number, now: number): boolean {
-    const pa = this.items.get(a)?.placement, pb = this.items.get(b)?.placement;
-    if (!pa || !pb || pa.surface !== pb.surface) return false;
-    const key = `link:${a}:${b}`;
-    if (this.lines.has(key)) return false;
-    const ln = this.makeLine(key, pa.surface, hashString(key));
-    ln.from = pa;
-    ln.to = pb;
-    ln.expires = now + ttl;
-    ln.target = 0.5;
-    this.lines.set(key, ln);
-    this.positionLine(ln);
-    return true;
+    return this.pencil.link(a, b, this.items.get(a)?.placement, this.items.get(b)?.placement, ttl, now);
   }
 
   strike(id: string, now: number, ttl = 0) {
     const pl = this.items.get(id)?.placement;
-    if (!pl) return;
-    const key = `strike:${id}`;
-    if (this.lines.has(key)) return;
-    const ln = this.makeLine(key, pl.surface, hashString(key));
-    ln.from = pl;
-    ln.strikeOf = pl;
-    ln.target = 0.6;
-    ln.expires = ttl ? now + ttl : 0;
-    this.lines.set(key, ln);
-    this.positionLine(ln);
-  }
-
-  private positionLine(ln: LineItem) {
-    if (ln.strikeOf) {
-      const p = ln.strikeOf;
-      const l = this.room.local(p.surface, p.u, p.v);
-      ln.mesh.position.set(l.x, l.y - p.h * 0.05, 0.006);
-      ln.mesh.scale.set(p.w * 0.95, Math.max(0.012, p.h * 0.1), 1);
-      ln.mesh.rotation.z = p.rot + 0.02;
-      return;
-    }
-    const a = this.room.local(ln.surface, ln.from.u, ln.from.v);
-    const b = this.room.local(ln.surface, ln.to!.u, ln.to!.v);
-    const dir = b.clone().sub(a);
-    const len = dir.length();
-    const n = dir.clone().normalize();
-    const shrink = (p: Placement) => Math.min(p.w / 2 / Math.max(0.01, Math.abs(n.x)), p.h / 2 / Math.max(0.01, Math.abs(n.y))) + 0.04;
-    const s0 = shrink(ln.from), s1 = shrink(ln.to!);
-    const L = Math.max(0.05, len - s0 - s1);
-    const mid = a.clone().add(n.clone().multiplyScalar(s0 + L / 2));
-    ln.mesh.position.set(mid.x, mid.y, 0.005);
-    ln.mesh.scale.set(L, 0.022, 1);
-    ln.mesh.rotation.z = Math.atan2(n.y, n.x);
+    if (pl) this.pencil.strike(id, pl, now, ttl);
   }
 
   /** Every piece of writing that is this line (where it was written, and wherever it was written again). */
@@ -560,7 +485,7 @@ export class WallText {
     if (Math.abs(this.room.scale - this.lastScale) > 0.0005) {
       this.lastScale = this.room.scale;
       for (const it of this.items.values()) this.position(it);
-      for (const ln of this.lines.values()) this.positionLine(ln);
+      this.pencil.reposition();
     }
     const pos = cam.getWorldPosition(new THREE.Vector3());
     const fwd = cam.getWorldDirection(new THREE.Vector3());
@@ -583,16 +508,7 @@ export class WallText {
       it.mesh.visible = true;
       stepItem(it, ctx);
     }
-    for (const ln of [...this.lines.values()]) {
-      if (ln.expires && now > ln.expires) ln.target = 0;
-      ln.vis = approach(ln.vis, ln.target, dt, ln.target > ln.vis ? 2.5 : 4);
-      ln.mat.opacity = ln.vis * env.textContrast;
-      if (ln.target === 0 && ln.vis < 0.01) {
-        ln.mesh.removeFromParent();
-        ln.mat.dispose();
-        this.lines.delete(ln.key);
-      }
-    }
+    this.pencil.update(dt, now, env.textContrast);
   }
 
   private dispose(it: TextItem) {
