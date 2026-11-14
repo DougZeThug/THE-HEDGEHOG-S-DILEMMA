@@ -1,4 +1,4 @@
-import type { Phrase, DimVector, Surface, Tier, Hand, Size, Kind, VoiceStyle } from './types';
+import { DIMENSIONS, type Dimension, type Phrase, type DimVector, type Surface, type Tier, type Hand, type Size, type Kind, type VoiceStyle } from './types';
 
 /**
  * The writing on the walls.
@@ -389,4 +389,16 @@ export function phrase(id: string): Phrase {
   const ph = PHRASE_BY_ID.get(id);
   if (!ph) throw new Error(`unknown phrase ${id}`);
   return ph;
+}
+
+export function affinity(p: Phrase, d: Record<Dimension, number>): number {
+  let s = 0;
+  let w = 0;
+  for (const k of DIMENSIONS) {
+    const pw = p.dims[k] ?? 0;
+    if (!pw) continue;
+    s += pw * d[k];
+    w += pw;
+  }
+  return w > 0 ? s / Math.sqrt(w) : 0;
 }

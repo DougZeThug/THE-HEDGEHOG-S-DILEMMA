@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import type { Values } from '../memory/types';
 import { FRAG, SLOTS, VERT, kelvin, noiseTexture } from './memoryWindowShader';
 
 /**
@@ -231,7 +230,7 @@ export class MemoryWindow {
    * One frame of a playing memory. `final` is the controller's composed frame; `eye` is the
    * visitor's eye without its walking bob (parallax must not swim with each step).
    */
-  update(final: Values, eye: THREE.Vector3, dt: number): void {
+  update(final: Record<string, number>, eye: THREE.Vector3, dt: number): void {
     const a = this.placed;
     if (!a) return;
     const v = (k: string, d: number) => (k in final ? final[k] : d);
@@ -375,7 +374,7 @@ export class MemoryWindow {
   }
 
   /** The light and the layers of a living memory (no parallax: its scene draws its own depth). */
-  private reveal(final: Values, v: (k: string, d: number) => number): void {
+  private reveal(final: Record<string, number>, v: (k: string, d: number) => number): void {
     this.u.uFound.value = v('window.found', 0);
     this.u.uDark.value = this.u.uOrdered.value > 0.5 ? v('window.dark', 1) : 1;
     this.u.uReveal.value = v('window.reveal', 0) * 1.25;

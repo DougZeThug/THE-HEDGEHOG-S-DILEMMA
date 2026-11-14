@@ -56,9 +56,6 @@ export interface PreparedFilm extends PreparedLivingBase {
 export interface PreparedPainting extends PreparedLivingBase {
   kind: 'painting';
   scene: WoodlandScene;
-  torn?: undefined;
-  shade?: undefined;
-  feather?: undefined;
 }
 
 /** A living memory's scene, prepared (src/memory/living/). */

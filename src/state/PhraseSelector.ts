@@ -1,6 +1,6 @@
 import type { Dimension, Phase, Phrase, Surface, Tier } from '../content/types';
 import { DIMENSIONS } from '../content/types';
-import { PHRASES, PHRASE_BY_ID } from '../content/phrases';
+import { PHRASES, PHRASE_BY_ID, affinity } from '../content/phrases';
 import type { FieldValues } from './EmotionalField';
 import type { Memory } from './Memory';
 import type { Rng } from '../core/rng';
@@ -26,18 +26,6 @@ function desireVector(f: FieldValues, phase: Phase): Record<Dimension, number> {
     misunderstanding: f.tension * 0.3 + f.dissonance * 0.4,
     contradiction: f.dissonance * 0.8,
   };
-}
-
-export function affinity(p: Phrase, d: Record<Dimension, number>): number {
-  let s = 0;
-  let w = 0;
-  for (const k of DIMENSIONS) {
-    const pw = p.dims[k] ?? 0;
-    if (!pw) continue;
-    s += pw * d[k];
-    w += pw;
-  }
-  return w > 0 ? s / Math.sqrt(w) : 0;
 }
 
 export const TIER_OPEN: Record<Phase, Tier[]> = {

@@ -21,6 +21,9 @@ import type { Living } from './living';
  * Living memories: a painting that forms in the plaster round a line, plays with its sound, lets
  * go (src/memory is what they are; this plays one in the room and keeps what is kept of it).
  */
+/** Whether the room's own chord stays away while this memory plays: its music is the room's last, or it has none of its own. */
+const silencesDrone = (def: { lastMusic?: string; drone?: boolean }, variant: string) => def.lastMusic === variant || def.drone === false;
+
 export class LivingMemories {
   /** The memories' runtime (GSAP, Theatre.js, the controller): a lazy chunk, loaded once. */
   private memoryRuntime: Promise<typeof import('../memory/runtime')> | null = null;
@@ -161,7 +164,7 @@ export class LivingMemories {
     this.ctx.ambience?.hold(this.ctx.time + prepared.def.sections.end);
     // A memory whose music is the room's last: no chord of the room's under it (its reverb isn't
     // hushed, and four of its five chords are a semitone from the woodland's key).
-    if (this.ctx.ambience && (prepared.def.lastMusic === prepared.variant || prepared.def.drone === false)) this.ctx.ambience.score.drone = 0;
+    if (this.ctx.ambience && silencesDrone(prepared.def, prepared.variant)) this.ctx.ambience.score.drone = 0;
     if (prepared.def.roomDim) this.ctx.lighting.dimToChair(prepared.def.roomDim, Math.max(prepared.def.maxHold, prepared.def.sections.exit) + (prepared.def.roomDimOut ?? 4), this.ctx.time);
     if (this.ctx.director.scenes.active?.id !== id) this.ctx.director.memoryExternal(id, !!prepared.voices);
     // Its position 0 is this instant on the audio clock, for its first sounds and its first frame
@@ -212,12 +215,8 @@ export class LivingMemories {
       }
       // Its music was the room's last: seen, the room's own never comes back this visit (the
       // drone stays away, and the Director plays nothing); let go before then, the drone returns.
-      if (p.def.lastMusic === p.variant) {
-        if (seen) this.ctx.director.withdrawMusic();
-        if (this.ctx.ambience && !this.ctx.director.musicWithdrawn) this.ctx.ambience.score.drone = 1;
-      } else if (p.def.drone === false && this.ctx.ambience && !this.ctx.director.musicWithdrawn) {
-        this.ctx.ambience.score.drone = 1;
-      }
+      if (p.def.lastMusic === p.variant && seen) this.ctx.director.withdrawMusic();
+      if (silencesDrone(p.def, p.variant) && this.ctx.ambience && !this.ctx.director.musicWithdrawn) this.ctx.ambience.score.drone = 1;
       this.ctx.ambience?.hold(this.ctx.time + Math.max(12, this.ctx.director.aftermathLeft()));
     }
   }
