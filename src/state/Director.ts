@@ -1,7 +1,7 @@
 
 import { MemoryDirector } from './MemoryDirector';
 import { VIGNETTE_BY_ID } from '../content/vignettes';
-import { SCENE_MEMORIES, type HeartShape } from '../content/memories';
+import { SCENE_MEMORIES } from '../content/memories';
 import { computeEnvironment } from './director/environment';
 import { Contributions } from './director/contributions';
 import { Echoes } from './director/echoes';
@@ -25,23 +25,23 @@ import { Rng } from '../core/rng';
 import { EventScheduler } from '../core/scheduler';
 import { PHRASES, PHRASE_BY_ID } from '../content/phrases';
 import { AIR_LINES, DEPARTURE_BY_VISIT, DEPARTURE_STILL, WELCOME_BACK, type VoiceFragment } from '../content/relations';
-import { WALLS, type Phase, type Wall, type Phrase, type Surface } from '../content/types';
+import { WALLS, oppositeWall, type Phase, type Wall, type Phrase, type Surface } from '../content/types';
 import { VisitorModel, type VisitorInput } from './VisitorModel';
 import { Memory } from './Memory';
 import { EmotionalField } from './EmotionalField';
 import { PhaseTracker } from './Phase';
-import { RULE, ROOM_OWN, isEncounter, ruleSource, phaseRule, type RuleName } from './rules';
+import { RULE, isEncounter, ruleSource, phaseRule, type RuleName } from './rules';
 import { parseWriteKey } from './writeKeys';
 import { PHRASE_IDS } from '../content/ids';
 import { Engagement } from './Engagement';
-import { Pacing } from './Pacing';
+import { Pacing, DEEP_SILENCE } from './Pacing';
 import { PhraseSelector, type SelectContext } from './PhraseSelector';
 import type { Cue, TimedCue, VoicePosition } from './cues';
 import type { VoiceKind } from '../content/types';
 import type { Interpretation } from '../interpret/schema';
 import { SituationRunner, type VisibleState, type PhraseGeometry, type SituationHost } from './situations/Situation';
 import { pickRepertoire } from './situations/library';
-import { ROOM } from '../core/room';
+import { ROOM, KNEEL_REACH } from '../core/room';
 import type { Environment } from '../core/environment';
 
 interface DirectorOptions {
@@ -73,7 +73,6 @@ interface DirectorOptions {
 }
 
 
-export { ROOM_OWN };
 
 /**
  * The chair on return (docs/reviews/2026-10-emotional-depth.md): after a visit that stayed close,
@@ -84,6 +83,12 @@ export function returnYaw(leaving: 'close' | null, base: number): number | null 
 }
 /** How far it is turned (radians), seen in the returning opening's chair-only frame. */
 export const CLOSE_TURN = 1.9;
+
+/** The seconds between the room's own events, ordinarily. */
+const ROOM_GAP: readonly [number, number] = [4, 7];
+/** Coming out of an aftermath the room's own events return slowly: the gaps (s) of its first three, within this many seconds of its end. */
+const AFTERMATH_RELEASE: readonly (readonly [number, number])[] = [[12, 16], [8, 11], [6, 8]];
+const AFTERMATH_WINDOW = 45;
 
 export class Director implements RuleHost {
   readonly visitor = new VisitorModel();
@@ -104,11 +109,11 @@ export class Director implements RuleHost {
    */
   private roomGap(): number {
     const since = this.now - this.aftermathUntil;
-    if (since >= 0 && since < 45 && this.releaseStep < 3) {
-      const [a, b] = [[12, 16], [8, 11], [6, 8]][this.releaseStep++];
+    if (since >= 0 && since < AFTERMATH_WINDOW && this.releaseStep < AFTERMATH_RELEASE.length) {
+      const [a, b] = AFTERMATH_RELEASE[this.releaseStep++];
       return this.gapRng.range(a, b);
     }
-    return this.gapRng.range(4, 7);
+    return this.gapRng.range(ROOM_GAP[0], ROOM_GAP[1]);
   }
   readonly rng: Rng;
   readonly visible = new Map<string, VisibleState>();
@@ -125,6 +130,11 @@ export class Director implements RuleHost {
   facingWall(): Wall | null {
     return (WALLS as readonly Surface[]).includes(this._facing) ? (this._facing as Wall) : null;
   }
+  /** The wall behind the visitor, or undefined when they face the floor or ceiling. */
+  behindWall(): Wall | undefined {
+    const w = this.facingWall();
+    return w ? oppositeWall(w) : undefined;
+  }
   readonly situations: SituationRunner;
   readonly ledger = new WallLedger();
   /** Times and counts that more than one rule group reads or sets. */
@@ -137,7 +147,7 @@ export class Director implements RuleHost {
   private readonly approach = new Approach(this);
   private readonly withdraw = new Withdraw(this);
   private readonly stillness: Stillness;
-  private readonly heart: Heart;
+  readonly heart: Heart;
   private readonly writing: Writing;
   private readonly voicing: Voicing;
   private readonly memoryRules: MemoryRules;
@@ -154,7 +164,7 @@ export class Director implements RuleHost {
     rewindEncounter: (id, n) => this.encounters.rewind(id, n),
     forgetReading: (id) => this.voicing.forget(id),
   });
-  private readonly roomLife = new RoomLife(this, { northKept: () => this.heart.northKept() });
+  readonly roomLife = new RoomLife(this, { northKept: () => this.heart.northKept() });
   private readonly silence = new Silence(this, { wayOutRecent: () => this.wayOut.engaged() || this.wayOut.keptWithin(20) });
   private readonly host: SituationHost;
   readonly owned: Set<string>;
@@ -393,9 +403,9 @@ export class Director implements RuleHost {
     // During the opening the room's own life hasn't begun: no rule runs and no time passes
     // for it (its clock is the visitor model's), so nothing is owed at the hand-off.
     if (this.held) return [];
-    // Kneeling is kneeling by the chair (the App's own reach for it, 1.5 m): K pressed across the
+    // Kneeling is kneeling by the chair (the App's own reach for it): K pressed across the
     // room lowers the eye, but the room doesn't take it for kneeling there.
-    if (input.kneeling && Math.hypot(input.x, input.z) > 1.5) input = { ...input, kneeling: false };
+    if (input.kneeling && Math.hypot(input.x, input.z) > KNEEL_REACH) input = { ...input, kneeling: false };
     this._facing = facing;
     const v = this.visitor;
     v.update(dt, input);
@@ -594,11 +604,6 @@ export class Director implements RuleHost {
   // ─────────────────────────── the visit's heart ───────────────────────────
   // (docs/reviews/2026-11-emotional-arc.md)
 
-  /** Lines that have migrated to a wall that isn't theirs: phrase id → wall. */
-  get strays(): ReadonlyMap<string, Surface> {
-    return this.roomLife.strays;
-  }
-
   /** A drawing found no room on its wall: it may be tried again later, once. */
   drawFailed(id: string): void {
     this.writing.drawFailed(id);
@@ -631,17 +636,8 @@ export class Director implements RuleHost {
     return this.memoryRules.memoryEnded(id, seen, ranToEnd);
   }
 
-  answerKept(): string | null {
-    return this.heart.answerKept();
-  }
-  answerRead(): string | null {
-    return this.heart.answerRead();
-  }
   heartLeft(watched?: string): string | null {
     return this.heart.heartLeft(watched);
-  }
-  heartShape(): HeartShape | null {
-    return this.heart.heartShape();
   }
 
   private onPhase(p: Phase) {
@@ -660,7 +656,7 @@ export class Director implements RuleHost {
       // (Just after the held silence, not a second one in its exhale: 15 s clear of it.)
       const delay = this.now + d0 > this.shared.heldSilenceUntil ? Math.max(d0, this.shared.heldSilenceUntil + 15 - this.now) : d0;
       if (this.now + d0 > this.shared.heldSilenceUntil)
-        this.queue(delay, { type: 'silence', depth: 0.7, seconds: 14, ...(dark ? { dim: 0.15, dimSeconds: 11 } : {}) }, phaseRule('transform'), { major: true, ttl: 30 });
+        this.queue(delay, { type: 'silence', depth: DEEP_SILENCE, seconds: 14, ...(dark ? { dim: 0.15, dimSeconds: 11 } : {}) }, phaseRule('transform'), { major: true, ttl: 30 });
       const late = this.selector.select(this.ctx(), { tiers: ['transform'], exclude: this.hiddenExcluding() });
       if (late) this.reveal(late.id, 10, phaseRule('transform'), 'emerge', 14);
     }

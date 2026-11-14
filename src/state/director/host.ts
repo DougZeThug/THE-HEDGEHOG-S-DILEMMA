@@ -99,6 +99,8 @@ export interface RuleHost {
   readonly shared: SharedMarks;
   /** The wall faced, or null when looking at the floor or ceiling. */
   facingWall(): Wall | null;
+  /** The wall opposite the one faced. */
+  behindWall(): Wall | undefined;
 
   queue(delay: number, cue: Cue, rule: RuleName, opts?: QueueOptions): void;
   reveal(id: string, delay: number, rule: RuleName, mode?: 'emerge' | 'still', seconds?: number): void;

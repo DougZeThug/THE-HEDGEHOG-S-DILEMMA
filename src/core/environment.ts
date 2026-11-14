@@ -14,7 +14,6 @@ export interface Environment {
   /** Local warm glow around the chair. */
   chairGlow: number;
   saturation: number;
-  // audio
   hum: number;
   vent: number;
   outside: number;

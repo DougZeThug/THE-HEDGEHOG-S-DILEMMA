@@ -3,7 +3,8 @@
  * that the mechanisms behave as decided; whether any of it is felt is for visitors to say.
  */
 import { describe, it, expect, beforeAll } from 'vitest';
-import { Director, returnYaw, ROOM_OWN, CLOSE_TURN } from '../src/state/Director';
+import { Director, returnYaw, CLOSE_TURN } from '../src/state/Director';
+import { ROOM_OWN } from '../src/state/rules';
 import { EventScheduler } from '../src/core/scheduler';
 import { VIGNETTE_BY_ID } from '../src/content/vignettes';
 import { PHRASES } from '../src/content/phrases';

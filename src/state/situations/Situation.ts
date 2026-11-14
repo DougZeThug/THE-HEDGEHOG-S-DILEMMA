@@ -13,7 +13,7 @@ import { sitRule, type RuleName } from '../rules';
  * room's weather; situations are the things that happen in it.
  */
 
-type Channel = 'beyond' | 'chair-voice' | 'music';
+export type Channel = 'beyond' | 'chair-voice' | 'music';
 
 export interface PhraseGeometry {
   surface: Surface;

@@ -233,13 +233,11 @@ export class VisitorModel {
       if (this.distance > BANDS.far) this.totalFar += dt;
     }
 
-    // Surfaces
     if (inp.nearSurface) {
       this.surfaceDwell[inp.nearSurface] += dt;
       if (this.surfaceDwell[inp.nearSurface] > 2) this.surfacesVisited.add(inp.nearSurface);
     }
 
-    // Attention
     if (inp.gazePhraseId && inp.gazePhraseId === this.gazeId) this.gazeFor += dt;
     else {
       this.gazeId = inp.gazePhraseId;

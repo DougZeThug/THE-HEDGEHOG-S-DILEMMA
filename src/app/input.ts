@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { clamp } from '../core/math';
+import { KNEEL_REACH } from '../core/room';
 import type { TextItem } from '../world/WallText';
 import { wallClock } from '../world/writePlan';
 import { stageAt } from '../state/OpeningScore';
@@ -36,7 +37,7 @@ export class Input {
     const gazeSurface = this.ctx.gazeId ? this.ctx.text.items.get(this.ctx.gazeId)?.placement.surface : undefined;
     const wallLine = !this.ctx.gazeChair && !!gazeSurface && isWallSurface(gazeSurface);
     if (this.ctx.gazeChair || (d < 1.2 && !wallLine)) {
-      if (d < 1.5) this.ctx.rig.setKneel(true);
+      if (d < KNEEL_REACH) this.ctx.rig.setKneel(true);
       else this.lookAtChair();
       return;
     }
@@ -358,7 +359,7 @@ export class Input {
     if (chairHit) {
       this.ctx.touched = true;
       this.ctx.director.tapped({ chair: true });
-      if (this.ctx.rig.distanceToChair() < 1.5) this.ctx.rig.setKneel(!this.ctx.rig.kneeling);
+      if (this.ctx.rig.distanceToChair() < KNEEL_REACH) this.ctx.rig.setKneel(!this.ctx.rig.kneeling);
       else this.lookAtChair();
       return;
     }

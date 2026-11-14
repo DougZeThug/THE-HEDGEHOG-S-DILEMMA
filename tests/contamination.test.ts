@@ -29,7 +29,7 @@ describe('the walls are not neatly partitioned', () => {
       const s = strays(cues).filter((c) => c.rule === 'stray');
       expect(s.length).toBeGreaterThanOrEqual(4);
       expect(s[0].t).toBeGreaterThanOrEqual(45);
-      expect(d.strays.size).toBeLessThanOrEqual(7);
+      expect(d.roomLife.strays.size).toBeLessThanOrEqual(7);
       const anchors = new Set<string>();
       for (const c of s) {
         const w = c.cue as Write;

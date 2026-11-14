@@ -1,6 +1,6 @@
 import { PHRASES, PHRASE_BY_ID } from '../../content/phrases';
 import { VOICE_FRAGMENTS } from '../../content/relations';
-import { WALLS, oppositeWall, type Phrase, type Tier } from '../../content/types';
+import { WALLS, type Phrase, type Tier } from '../../content/types';
 import { devKind } from '../Pacing';
 import { RULE } from '../rules';
 import type { RuleHost } from './host';
@@ -81,7 +81,7 @@ export class Responses {
 
   /** Something appears on a wall the visitor has just turned away from, to be found. */
   private respondBehind(): boolean {
-    const behind = this.h.facingWall() ? oppositeWall(this.h.facingWall()!) : undefined;
+    const behind = this.h.behindWall();
     const walls = [behind ?? 'south', ...WALLS.filter((s) => s !== this.h.facing && s !== behind)];
     // Early on, the room's next layer of writing is already within reach.
     const tiers: Tier[] | undefined = this.h.phase === 'arrival' ? ['arrival', 'familiar'] : undefined;

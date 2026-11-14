@@ -24,7 +24,7 @@
 import { writeFileSync } from 'node:fs';
 import { PERSONAS, type Persona } from '../tests/playtest/personas';
 import { visit, facingOf, PLAYTEST_SEEDS as SEEDS, type Development } from '../tests/playtest/measure';
-import { ROOM_OWN } from '../src/state/Director';
+import { ROOM_OWN } from '../src/state/rules';
 
 const SECONDS = Number(process.env.SECONDS ?? 600);
 const looped = (p: Persona): Persona => ({ ...p, frame: (t) => p.frame(t < 240 ? t : 60 + ((t - 240) % 180)) });

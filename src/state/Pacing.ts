@@ -2,6 +2,9 @@ import type { Phase } from '../content/types';
 import type { Cue } from './cues';
 import { RULE, isSituation } from './rules';
 
+/** A silence this deep is one the room holds: it waits it out and recovers after it. */
+export const DEEP_SILENCE = 0.7;
+
 /**
  * Pacing — the room's sense of rhythm.
  *
@@ -84,7 +87,7 @@ export class Pacing {
     const kind = devKind(cue);
     if (!kind) return;
     // A dip in the room tone is a gesture, but it does not end a stall on its own.
-    const intense = kind === 'voice' || kind === 'music' || (cue.type === 'silence' && cue.depth >= 0.7) || isSituation(rule);
+    const intense = kind === 'voice' || kind === 'music' || (cue.type === 'silence' && cue.depth >= DEEP_SILENCE) || isSituation(rule);
     this.devs.push({ t, kind, rule, intense });
     if (this.devs.length > 200) this.devs.shift();
     // A dip in the room tone does not end a stall — unless it is the room deliberately not speaking.
@@ -95,9 +98,9 @@ export class Pacing {
       this.recoverUntil = Math.max(this.recoverUntil, this.recoverOther);
     }
     // A deep silence, or the room deliberately not speaking, is held: nothing breaks into it.
-    if (cue.type === 'silence' && (cue.depth >= 0.7 || rule === RULE.withhold)) this.holdUntil = Math.max(this.holdUntil, t + cue.seconds);
+    if (cue.type === 'silence' && (cue.depth >= DEEP_SILENCE || rule === RULE.withhold)) this.holdUntil = Math.max(this.holdUntil, t + cue.seconds);
     // And a moment for the room's tone to come back from a deep one before music or a voice of its own.
-    if (cue.type === 'silence' && cue.depth >= 0.7) this.recoverUntil = Math.max(this.recoverUntil, t + cue.seconds + 6);
+    if (cue.type === 'silence' && cue.depth >= DEEP_SILENCE) this.recoverUntil = Math.max(this.recoverUntil, t + cue.seconds + 6);
   }
 
   /**
