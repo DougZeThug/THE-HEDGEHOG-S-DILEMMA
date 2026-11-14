@@ -3,12 +3,13 @@ import type { AppContext } from './context';
 
 /** `?debug`: a few lines of the room's state over the picture, four times a second. */
 export class Debug {
-  readonly enabled = new URLSearchParams(location.search).has('debug');
+  readonly enabled: boolean;
   /** A smoothed frames per second (the playtests read it through `window.__hedgehog.fps`). */
   fps = 60;
   private lastShown = 0;
 
   constructor(private readonly ctx: AppContext) {
+    this.enabled = ctx.params.debug;
     if (this.enabled) ctx.dom.debug.hidden = false;
   }
 

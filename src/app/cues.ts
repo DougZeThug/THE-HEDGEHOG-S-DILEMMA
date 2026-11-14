@@ -3,19 +3,23 @@ import { ROOM } from '../core/room';
 import { hashString } from '../core/rng';
 import { sleep } from '../core/time';
 import { wallClock } from '../world/writePlan';
+import { isWallSurface } from '../world/layout';
 import type { Cue, VoicePosition } from '../state/cues';
 import type { Surface } from '../content/types';
 import type { Played } from '../audio/Voices';
 import type { VoicePlacement } from '../audio/voiceSynth';
 import VOICE_TIMINGS from '../content/voice-timings.json';
 import { FRAGMENT_IDS } from '../content/ids';
-import { gentle, gentleDim } from './presentation';
+import { gentle, gentleDim, setMemoryLight } from './presentation';
 import type { AppContext, Peers } from './context';
 
 /**
  * What the Director asks of the room: each cue (`apply`), as the walls, the light, the sound and
  * the chair carry it out, and the places those cues name.
  */
+/** Height of the chair's own sounds (the seat). */
+const CHAIR_SEAT_Y = 0.45;
+
 export class Cues {
   constructor(
     private readonly ctx: AppContext,
@@ -93,8 +97,7 @@ export class Cues {
       case 'memory': {
         const a = this.ctx.text.anchorOf(cue.phraseId, this.ctx.gazeId ?? this.ctx.lastTappedKey);
         if (!a) break;
-        this.ctx.memoryLight.reducedMotion = this.ctx.prefs.reducedMotion;
-        this.ctx.memoryLight.strength = gentle(this.ctx.prefs.intensity, 'light');
+        setMemoryLight(this.ctx);
         // The room hushes first; 0.8 s later the light arrives; the present comes back only after it has gone.
         const lead = 0.8, total = cue.attack + cue.hold + cue.release;
         this.ctx.memoryLight.start(a.group, a.x, a.y, a.w, a.h, a.minX, a.maxX, a.maxY, cue, this.ctx.time, lead);
@@ -172,27 +175,21 @@ export class Cues {
    */
   private viewPointOn(surface: Surface, level = false): { u: number; v: number } | undefined {
     const frame = this.ctx.room.frames[surface];
-    const wall = surface !== 'floor' && surface !== 'ceiling';
-    if (level && wall) {
+    if (level && isWallSurface(surface)) {
       const cam = this.ctx.rig.camera;
       const dir = cam.getWorldDirection(new THREE.Vector3()).setY(0);
       if (dir.lengthSq() > 1e-6) {
         this.ctx.raycaster.set(new THREE.Vector3(cam.position.x, 1.35, cam.position.z), dir.normalize());
         const hit = this.ctx.raycaster.intersectObject(frame.mesh, false)[0];
         if (hit) {
-          const local = frame.group.worldToLocal(hit.point.clone());
-          return { u: local.x / this.ctx.room.scale + frame.size.w / 2, v: local.y + frame.size.h / 2 };
+          return this.ctx.room.uvOf(surface, frame.group.worldToLocal(hit.point.clone()));
         }
       }
     }
     this.ctx.raycaster.setFromCamera(new THREE.Vector2(0, 0), this.ctx.rig.camera);
     const hit = this.ctx.raycaster.intersectObject(frame.mesh, false)[0];
     if (!hit) return undefined;
-    const local = frame.group.worldToLocal(hit.point.clone());
-    const s = this.ctx.room.scale;
-    if (surface === 'floor') return { u: local.x / s + frame.size.w / 2, v: frame.size.h / 2 - local.y / s };
-    if (surface === 'ceiling') return { u: local.x / s + frame.size.w / 2, v: local.y / s + frame.size.h / 2 };
-    return { u: local.x / s + frame.size.w / 2, v: local.y + frame.size.h / 2 };
+    return this.ctx.room.uvOf(surface, frame.group.worldToLocal(hit.point.clone()));
   }
 
   place(p: VoicePosition): VoicePlacement {
@@ -200,7 +197,7 @@ export class Cues {
     const cam = this.ctx.rig.camera.position;
     switch (p.kind) {
       case 'chair':
-        return { from: [c.x, 0.45, c.z] };
+        return { from: [c.x, CHAIR_SEAT_Y, c.z] };
       case 'behind': {
         const f = this.ctx.rig.camera.getWorldDirection(new THREE.Vector3()).setY(0).normalize();
         return { from: [cam.x - f.x * 1.1, cam.y, cam.z - f.z * 1.1] };

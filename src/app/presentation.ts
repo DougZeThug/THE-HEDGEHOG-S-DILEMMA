@@ -5,6 +5,7 @@
 import type { Prefs } from '../ui/prefs';
 import { STREET_GENTLE } from '../world/StreetLight';
 import { CLASS } from '../ui/dom';
+import type { AppContext } from './context';
 
 /** What 'gentle' intensity multiplies each kind of effect by (1 at 'full'). */
 const GENTLE = {
@@ -27,6 +28,12 @@ const GENTLE = {
 } as const;
 
 type GentleKind = keyof typeof GENTLE;
+
+/** The memory's light, ready to start: moving or still, and as strong as the visitor's intensity lets it be (`scale`: this memory's own). */
+export function setMemoryLight(ctx: AppContext, scale = 1): void {
+  ctx.memoryLight.reducedMotion = ctx.prefs.reducedMotion;
+  ctx.memoryLight.strength = gentle(ctx.prefs.intensity, 'light') * scale;
+}
 
 /** At gentle intensity a held dim never takes the room's light below this fraction. */
 const GENTLE_DIM_FLOOR = 0.5;

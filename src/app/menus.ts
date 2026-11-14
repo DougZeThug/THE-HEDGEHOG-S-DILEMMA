@@ -2,7 +2,7 @@ import { ROOM_LEVELS } from '../state/OpeningScore';
 import { wallClock } from '../world/writePlan';
 import { interpretLocally } from '../interpret/LocalInterpreter';
 import { MAX_CONTRIBUTION } from '../interpret/schema';
-import { forgetVisits, savePrefs, type Prefs } from '../ui/prefs';
+import { forgetVisits, savePrefs, writeHeartAnswer, writeTrace, type Prefs } from '../ui/prefs';
 import { CLASS } from '../ui/dom';
 import { applyPrefs } from './prefsApply';
 import type { AppContext, Peers } from './context';
@@ -48,10 +48,11 @@ export class Menus {
       // Nothing of this visit is kept from here on (its counts, how it left).
       this.ctx.forgotten = true;
       const b = this.ctx.dom.forget;
+      const label = b.textContent;
       b.textContent = 'forgotten';
       b.disabled = true;
       setTimeout(() => {
-        b.textContent = 'forget what I wrote, and that I was here';
+        b.textContent = label;
         b.disabled = false;
       }, 3000);
     });
@@ -84,7 +85,6 @@ export class Menus {
       }
       e.stopPropagation();
     });
-    // Focus trap for the settings dialog.
     this.ctx.dom.settings.addEventListener('keydown', (e) => {
       if (e.key !== 'Tab') return;
       const f = [...this.ctx.dom.settings.querySelectorAll<HTMLElement>('button, input, select')].filter((x) => !x.hasAttribute('disabled'));
@@ -172,6 +172,19 @@ export class Menus {
     this.ctx.director.contribute(text, it);
   }
 
+  /** One word for the next visit about how this one left the chair; nothing after a forget. */
+  keepTrace() {
+    if (this.ctx.forgotten) return;
+    writeTrace(this.ctx.director.leaving());
+    // What the heart left, written on the wall yet or not; a visit whose heart wasn't seen leaves
+    // the last one where it was. (A tab closed in the heart's memory, already played past its
+    // heart, closed on a heart that was seen: the memory never ended, but it counts.)
+    const l = this.ctx.living;
+    const watched = l && !l.preview && l.seenAt !== undefined && l.reached >= l.seenAt && (this.ctx.inside.entered || !l.memory.prepared.living?.immerse) ? l.id : undefined;
+    const answer = this.ctx.director.heartLeft(watched);
+    if (answer) writeHeartAnswer(answer);
+  }
+
   depart(how: 'door' | 'menu' = 'menu') {
     if (this.ctx.mode !== 'settings' && this.ctx.mode !== 'room') return;
     this.peers.living.endLivingMemory('depart');
@@ -179,7 +192,7 @@ export class Menus {
     this.ctx.mode = 'departed';
     this.peers.wake.release();
     const line = this.ctx.director.departureLine(how);
-    this.peers.living.keepTrace();
+    this.keepTrace();
     this.ctx.director.depart();
     this.leaving = wallClock();
     this.ctx.voices?.stopSpeech();

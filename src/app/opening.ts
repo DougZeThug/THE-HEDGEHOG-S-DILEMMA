@@ -1,5 +1,5 @@
 import { STATIC_DRAWINGS } from '../content/drawings';
-import { ROOM } from '../core/room';
+import { DOOR_AT, ROOM } from '../core/room';
 import { idle, ignored, sleep } from '../core/time';
 import { wallClock } from '../world/writePlan';
 import { AudioEngine } from '../audio/AudioEngine';
@@ -12,6 +12,26 @@ import { readOpeningSeen, writeOpeningSeen, writeVisits } from '../ui/prefs';
 import { CLASS } from '../ui/dom';
 import { applyPrefs } from './prefsApply';
 import type { AppContext, Peers } from './context';
+
+type SoundKind = Parameters<Voices['sound']>[0];
+/** Every sound the voices can make of a score's `sfx:` key: a key with no kind here is a mistake the compiler names. */
+const SFX_KINDS = { door: 0, 'chair-creak': 0, cup: 0, switch: 0, graphite: 0, eraser: 0 } satisfies Record<SoundKind, 0>;
+
+function sfxKind(key: string): SoundKind | null {
+  const k = key.replace(/^sfx:/, '');
+  return k in SFX_KINDS ? (k as SoundKind) : null;
+}
+
+/** What a score plays, to be fetched first: its sounds, the hand's pencil, its recorded voice. */
+function openingAssets(score: Score): string[] {
+  const out = new Set<string>();
+  for (const ev of score.events) {
+    if (ev.kind === 'sound') out.add(ev.key);
+    else if (ev.kind === 'write' && ev.sound) out.add(ev.sound);
+    else if (ev.kind === 'voice') out.add(ev.file);
+  }
+  return [...out];
+}
 
 /**
  * The opening: the dark, the title, the light coming up, what is written and said, and the hand-off
@@ -62,7 +82,7 @@ export class Opening {
       this.ctx.voices = new Voices(this.ctx.audio);
       // What the opening needs comes first.
       void this.ctx.voices.loadManifest().then(() => {
-        this.ctx.voices!.preload(['sfx:switch', 'sfx:chair-creak', 'sfx:graphite', 'dialogue/crumbs--laughing.mp3']);
+        this.ctx.voices!.preload(openingAssets(openingScore({ returning: false, touch: this.ctx.touch })));
         // Vignettes speak only once their voices are recorded and kept (the rest wait, or play voiceless).
         this.ctx.director.scenes.setAvailable(this.peers.vignettes.vignettesAvailable());
       });
@@ -174,10 +194,10 @@ export class Opening {
       }
       case 'sound': {
         if (skipping || !this.ctx.voices || !this.ctx.audio) break;
-        const c = this.ctx.chair.group.position;
         const place: VoicePlacement =
-          ev.where === 'chair' ? { from: [c.x, 0.45, c.z] } : ev.where === 'door' ? { from: [0.9, 1.25, ROOM.halfD - 0.1] } : { from: [0, ROOM.height - 0.1, -0.95] };
-        const kind = ev.key.replace('sfx:', '') as 'switch' | 'chair-creak' | 'door' | 'cup' | 'graphite';
+          ev.where === 'chair' ? this.peers.cues.place({ kind: 'chair' }) : ev.where === 'door' ? { from: [DOOR_AT.x, DOOR_AT.y, DOOR_AT.z] } : { from: [0, ROOM.height - 0.1, -0.95] };
+        const kind = sfxKind(ev.key);
+        if (!kind) break;
         void this.ctx.voices.sound(kind, place, ev.gain).then((dur) => {
           if (dur > 0 && ev.caption) this.ctx.captions.say('sound', ev.caption, dur);
         });
@@ -213,7 +233,6 @@ export class Opening {
   private prepareVoiceLine(ev: Extract<ScoreEvent, { kind: 'voice' }>): string | null {
     const key = `opening:${ev.phrase}`;
     if (this.ctx.text.items.has(key)) return key;
-    void ev.besideOf;
     // To the right of the chair at about eye height, well below the cornice: in frame from the
     // door on a phone held upright (the wall's u runs west to east from its west end).
     const c = this.ctx.chair.group.position;

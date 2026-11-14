@@ -397,6 +397,16 @@ export class Room {
     return new THREE.Vector2((u - size.w / 2) * s, v - size.h / 2);
   }
 
+  /** The layout (u, v) of a surface-local point (metres, centred): the inverse of `local`. */
+  uvOf(surface: Surface, p: { x: number; y: number }): { u: number; v: number } {
+    const size = this.frames[surface].size;
+    const s = this.scale;
+    const u = p.x / s + size.w / 2;
+    if (surface === 'floor') return { u, v: size.h / 2 - p.y / s };
+    if (surface === 'ceiling') return { u, v: p.y / s + size.h / 2 };
+    return { u, v: p.y + size.h / 2 };
+  }
+
   /** World position of a layout point on a surface. */
   world(surface: Surface, u: number, v: number, out = new THREE.Vector3()): THREE.Vector3 {
     const l = this.local(surface, u, v);

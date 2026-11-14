@@ -10,7 +10,18 @@ export const CLASS = {
   on: 'on',
   away: 'away',
   titling: 'titling',
+  /** The captions' own (ui/Captions.ts; src/style.css `.captions .cap`). */
+  dim: 'dim',
+  cap: 'cap',
+  sound: 'sound',
+  vig: 'vig',
+  waiting: 'waiting',
+  /** `side-left` / `side-right`: the prefix a speaker's side is appended to. */
+  sidePrefix: 'side-',
 } as const;
+
+/** The artist's panel's element id (ui/Tune.ts; the room's keys wait while focus is inside it: app/input.ts). */
+export const TUNE_ID = 'tune';
 
 function find<T extends HTMLElement>(id: string): T {
   const el = document.getElementById(id);

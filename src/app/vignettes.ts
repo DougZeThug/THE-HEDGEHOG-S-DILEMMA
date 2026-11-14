@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { clamp } from '../core/math';
 import { hashString } from '../core/rng';
-import { ROOM } from '../core/room';
+import { DOOR_AT } from '../core/room';
 import { MemoryClock } from '../memory/clock';
 import { VignettePlayer, type VignetteHost } from '../memory/VignettePlayer';
 import { isSpot, type SpotPlace } from '../memory/cueSheet';
@@ -9,9 +9,10 @@ import { VIGNETTE_BY_ID, VIGNETTES, vignetteKeys, spokenLines, lineKey, type Eff
 import { allVersions, voicesId } from '../content/memory-voices';
 import { countMemory } from '../ui/prefs';
 import { wallClock } from '../world/writePlan';
-import { clearHint, gentle, gentleDim, HUSH_MAX } from './presentation';
+import { clearHint, gentleDim, HUSH_MAX, setMemoryLight } from './presentation';
 import { memoryAudioHost, previewWhisper } from './audioHost';
-import type { AppContext, Peers } from './context';
+import { GIVE_UP_AFTER_S, type AppContext, type Peers } from './context';
+import type { EndReason } from './living';
 
 /** Where a vignette's places in the room are measured from (fixed as it begins). */
 interface SpotFrame {
@@ -30,7 +31,6 @@ export interface ActiveVignette {
   id: string;
   key: string | null;
   frame: SpotFrame;
-  hiddenSince: number | null;
   preview: boolean;
   /** Seconds moving away from where it began; let go before its end (not counted as heard to the end). */
   leaving: number;
@@ -45,21 +45,22 @@ export interface ActiveVignette {
  * walls and light), and the `?vignette=` / `?memory=` previews that start one a few seconds in.
  */
 export class Vignettes {
-  readonly vignetteClock = new MemoryClock(1);
+  private readonly vignetteClock = new MemoryClock(1);
+  /** The vignette the tab was hidden on, and when (performance.now). */
+  private hiddenAt: { at: number; run: ActiveVignette } | null = null;
   private vignetteGen = 0;
   /**
    * `?vignette=<id>[&variant=<v>]`: play one, as a preview, a few seconds after the room is
    * open (recorded or not: an unrecorded line is a wordless voice with its caption).
    */
-  private previewVignette: { id: string; variant: string; at: number | null } | null = (() => {
-    const p = new URLSearchParams(location.search);
-    const id = p.get('vignette');
-    return id ? { id, variant: p.get('variant') ?? 'first', at: null } : null;
-  })();
+  private previewVignette: { id: string; variant: string; at: number | null } | null;
   constructor(
     private readonly ctx: AppContext,
     private readonly peers: Peers,
-  ) {}
+  ) {
+    const { vignette, variant } = ctx.params;
+    this.previewVignette = vignette ? { id: vignette, variant: variant ?? 'first', at: null } : null;
+  }
 
   /** Where the visitor is and faces as a vignette begins: its places in the room are fixed from it. */
   private spotFrame(anchorKey: string | null): SpotFrame {
@@ -113,7 +114,7 @@ export class Vignettes {
         return [v.x, v.y, v.z];
       }
       case 'door':
-        return [0.9, p.h ?? 1.25, ROOM.halfD - 0.1];
+        return [DOOR_AT.x, p.h ?? DOOR_AT.y, DOOR_AT.z];
       case 'anchor': {
         const a = f.anchor ?? f.eye.clone().addScaledVector(f.fwd, 2);
         return [a.x, a.y, a.z];
@@ -169,8 +170,7 @@ export class Vignettes {
       case 'sun': {
         const a = v?.key ? this.ctx.text.anchorOfKey(v.key) : null;
         if (!a || this.ctx.memoryLight.active) break;
-        this.ctx.memoryLight.reducedMotion = this.ctx.prefs.reducedMotion;
-        this.ctx.memoryLight.strength = gentle(this.ctx.prefs.intensity, 'light') * (fx.strength ?? 1);
+        setMemoryLight(this.ctx, fx.strength ?? 1);
         this.ctx.memoryLight.start(a.group, a.x, a.y, a.w, a.h, a.minX, a.maxX, a.maxY, fx, this.ctx.time, 0);
         this.ctx.memoryKey = a.key;
         break;
@@ -237,7 +237,7 @@ export class Vignettes {
     const frame = this.spotFrame(a?.key ?? null);
     const player: VignettePlayer = new VignettePlayer(def, variant, host, hashString(def.id + variant));
     // Its places are fixed from now (the frame is read while preparing, too).
-    this.ctx.vignette = { player, id, key: a?.key ?? null, frame, hiddenSince: null, preview, leaving: 0, cutShort: false, uncounted: false, settingsSince: null };
+    this.ctx.vignette = { player, id, key: a?.key ?? null, frame, preview, leaving: 0, cutShort: false, uncounted: false, settingsSince: null };
     try {
       await player.prepare();
     } catch (e) {
@@ -264,6 +264,42 @@ export class Vignettes {
     return true;
   }
 
+  /**
+   * The tab was hidden or brought back. A vignette pauses with the tab; back in time, the sentence
+   * the pause cut is said again from its start; away for more than `GIVE_UP_AFTER_S`, it ends (uncounted).
+   */
+  onVisibility(hidden: boolean) {
+    const vg = this.ctx.vignette;
+    if (vg && hidden) {
+      this.hiddenAt = { at: performance.now(), run: vg };
+      vg.player.pause();
+      return;
+    }
+    const h = this.hiddenAt;
+    this.hiddenAt = null;
+    if (!vg || h?.run !== vg) return;
+    this.vignetteClock.reset();
+    if (performance.now() - h.at > GIVE_UP_AFTER_S * 1000) {
+      vg.uncounted = true;
+      vg.player.release('interrupt');
+    }
+  }
+
+  /**
+   * A living memory is let go (or the visitor leaves): what it means for a vignette. Leaving cuts
+   * it; turning to write lets the sentence being said finish (the writing may be an answer to it),
+   * and nothing more is said.
+   */
+  release(why: EndReason) {
+    const vg = this.ctx.vignette;
+    if (!vg) return;
+    if (why === 'depart' || why === 'hidden' || why === 'switch') vg.player.release('interrupt');
+    else if (why === 'interrupt') {
+      vg.cutShort = true;
+      vg.player.release('natural');
+    }
+  }
+
   /** Each frame: the previews' turn, then the vignette playing now (its clock, its let-go, its end). */
   step() {
     const pv = this.previewVignette;
@@ -286,7 +322,7 @@ export class Vignettes {
     // (its light runs on scene time and wouldn't wait).
     const held = this.ctx.mode === 'settings' || (!!this.ctx.audio && this.ctx.audio.ctx.state !== 'running');
     v.settingsSince = held ? v.settingsSince ?? wallClock() : null;
-    if (v.settingsSince !== null && wallClock() - v.settingsSince > 10 && !p.releasedHow) {
+    if (v.settingsSince !== null && wallClock() - v.settingsSince > GIVE_UP_AFTER_S && !p.releasedHow) {
       v.uncounted = true;
       p.release('interrupt');
     }

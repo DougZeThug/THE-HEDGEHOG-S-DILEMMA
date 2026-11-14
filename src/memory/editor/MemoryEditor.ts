@@ -4,7 +4,7 @@ import { driver, PROJECT_ID, readStateFrom, theatreProject } from '../theatre';
 import { MEMORIES } from '../registry';
 import { sheetId } from '../memoryDef';
 import type { TheatreState } from '../seed';
-import type { MemoryInspector } from '../../app/inspector';
+import type { Hedgehog } from '../../app/inspector';
 
 /**
  * The Memory Editor (development only: `?memory&studio`; never in a production build).
@@ -19,7 +19,7 @@ import type { MemoryInspector } from '../../app/inspector';
  */
 const PHRASE: Record<string, string> = { cereal: 'cereal', bedroom: 'happiest-unneeded', door: 'door-open', woodland: 'more-minutes', almost: 'your-hand', things: 'didnt-know-say', shadows: 'understood-minute', drive: 'angry-with-me' };
 
-export function openEditor(app: MemoryInspector): void {
+export function openEditor(app: Hedgehog): void {
   studio.initialize({ __experimental_rafDriver: driver, persistenceKey: 'hedgehog-memories' });
   readStateFrom(() => studio.createContentOfSaveFile(PROJECT_ID) as unknown as TheatreState);
   theatreProject();

@@ -1,3 +1,5 @@
+import { CLASS } from './dom';
+
 /**
  * What a caption is for, which decides the least time it stays: a person's words, a sound (a door,
  * music), or the brief [rubbed out] of a word erased from the air.
@@ -25,7 +27,7 @@ export class Captions {
    * light (the cinematic director's evaluation, 2026-10-19).
    */
   set dim(v: boolean) {
-    this.el.classList.toggle('dim', v);
+    this.el.classList.toggle(CLASS.dim, v);
   }
   private wordsUntil = 0;
   /** A caption of words (not a sound) is on screen: a sound's caption must not replace it. */
@@ -43,18 +45,18 @@ export class Captions {
     const alongside = vignette && sound && this.speaking;
     if (!alongside)
       for (const old of [...this.el.children]) {
-        old.classList.remove('on');
+        old.classList.remove(CLASS.on);
         setTimeout(() => old.remove(), 900);
       }
     const s = document.createElement('span');
-    s.className = 'cap' + (sound ? ' sound' : '') + (side ? ` side-${side}` : '') + (vignette ? ' vig' : '');
+    s.className = [CLASS.cap, sound && CLASS.sound, side && `${CLASS.sidePrefix}${side}`, vignette && CLASS.vig].filter(Boolean).join(' ');
     s.textContent = text;
     this.el.appendChild(s);
-    requestAnimationFrame(() => s.classList.add('on'));
+    requestAnimationFrame(() => s.classList.add(CLASS.on));
     const hold = Math.max(2.5, seconds + 1.2) * 1000;
     this.wordsUntil = sound ? (this.speaking ? this.wordsUntil : 0) : performance.now() + hold;
     const timer = setTimeout(() => {
-      s.classList.remove('on');
+      s.classList.remove(CLASS.on);
       setTimeout(() => s.remove(), 1600);
     }, hold);
     if (!sound) this.lastWords = { el: s, timer };
@@ -76,13 +78,13 @@ export class Captions {
    */
   linger(seconds: number) {
     const w = this.lastWords;
-    if (!this.enabled || !w || !w.el.isConnected || !w.el.classList.contains('on')) return;
+    if (!this.enabled || !w || !w.el.isConnected || !w.el.classList.contains(CLASS.on)) return;
     clearTimeout(w.timer);
-    w.el.classList.add('waiting');
+    w.el.classList.add(CLASS.waiting);
     // (Its words are on screen still: a sound's caption goes beneath them, not over.)
     this.wordsUntil = performance.now() + seconds * 1000;
     w.timer = setTimeout(() => {
-      w.el.classList.remove('on');
+      w.el.classList.remove(CLASS.on);
       setTimeout(() => w.el.remove(), 1600);
     }, seconds * 1000);
   }

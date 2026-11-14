@@ -11,7 +11,6 @@ import { CLASS } from '../src/ui/dom';
 
 beforeEach(() => {
   vi.useFakeTimers();
-  vi.stubGlobal('location', { search: '' });
 });
 afterEach(() => {
   vi.useRealTimers();
@@ -26,6 +25,7 @@ describe('a vignette effect is delivered to the run that asked for it', () => {
     const ctx: any = {
       vignette: null,
       time: 0,
+      params: { vignette: null, variant: null },
       prefs: { intensity: 'full', reducedMotion: false },
       lighting: { dimToChair: (...a: unknown[]) => dimmed.push(a) },
       voices: { filesOf: () => [], voicedLevel: () => 1 },
