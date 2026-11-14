@@ -25,7 +25,7 @@ import { Rng } from '../core/rng';
 import { EventScheduler } from '../core/scheduler';
 import { PHRASES, PHRASE_BY_ID } from '../content/phrases';
 import { AIR_LINES, DEPARTURE_BY_VISIT, DEPARTURE_STILL, WELCOME_BACK, type VoiceFragment } from '../content/relations';
-import { WALLS, oppositeWall, type Phase, type Wall, type Phrase, type Surface } from '../content/types';
+import { WALLS, oppositeWall, type Motif, type Phase, type Wall, type Phrase, type Surface } from '../content/types';
 import { VisitorModel, type VisitorInput } from './VisitorModel';
 import { Memory } from './Memory';
 import { EmotionalField } from './EmotionalField';
@@ -407,6 +407,18 @@ export class Director implements RuleHost {
     // room lowers the eye, but the room doesn't take it for kneeling there.
     if (input.kneeling && Math.hypot(input.x, input.z) > KNEEL_REACH) input = { ...input, kneeling: false };
     this._facing = facing;
+    const { phaseChanged, formed } = this.tickVisitor(dt, input, facing);
+
+    if (!this.departing) this.tickRoom(dt, input, phaseChanged, formed);
+    this.pacing.tick(dt, this.now, this.phase, this.engagement.activity(this.now));
+
+    this.env = this.computeEnv();
+
+    return this.drainDue();
+  }
+
+  /** The visitor's model, the memory, the phase and the field advance; returns what changed. */
+  private tickVisitor(dt: number, input: VisitorInput, facing: Surface) {
     const v = this.visitor;
     v.update(dt, input);
     this.writing.noteFacing(facing);
@@ -414,78 +426,80 @@ export class Director implements RuleHost {
     const formed = this.memory.update(v, dt);
     const phaseChanged = this.phaseTracker.update(v, this.memory, this.engagement);
     this.field.update(dt, v, this.memory, this.phase);
+    return { phaseChanged, formed };
+  }
 
-    if (!this.departing) {
-      for (const m of formed) this.voicing.onMotif(m);
-      // The turn into a new phase waits for a living memory to end (it would black out the room
-      // in the middle of it), and a few seconds more.
-      if (phaseChanged) {
-        if (!this.shared.pendingPhase) this.pendingPhaseAt = this.now;
-        this.shared.pendingPhase = phaseChanged;
-      }
-      // (A phase turns after a memory's aftermath, never inside it, nor while the visitor stays
-      // with the kitchen-light line: the room waits with them. Nor while they may be coming back
-      // to the chair: the recoil is theirs, and the turn's line comes after it, not over it.)
-      const returnWaits = this.approach.returnInReach() && this.now - this.pendingPhaseAt < 30;
-      if (this.shared.pendingPhase && !returnWaits && !this.scenes.active && this.now >= this.memoryRules.quietAt && !this.aftermath() && !this.memoryRules.memoryAwaited() && !this.wayOut.engaged()) {
-        this.onPhase(this.shared.pendingPhase);
-        this.shared.pendingPhase = null;
-      }
-      if (phaseChanged === 'transform') this.shared.transformAt = this.now;
-      // (The heart is decided before the kitchen light may be offered: it waits for the heart.)
-      this.heart.decide();
-      this.memoryRules.kitchenLight();
-      this.memoryRules.scenes();
-      this.heart.writeAnswer();
-      this.heart.keptAnswer();
-      // (The answer has been read: the card may end on it.)
-      this.heart.watchAnswer(dt);
-      this.echoes.tick();
-      this.writing.accumulate();
-      this.writing.drawings();
-      this.writing.finish();
-      this.situations.tick(this.host);
-      // A memory and its aftermath are the memory's: stillness or closeness that grew while the
-      // visitor was carried, or in the quiet after it, is not theirs to be answered for, and both
-      // are counted again from when the aftermath ends (decision 117). What the visitor does is
-      // still answered, a first approach to the chair among it.
-      if (this.scenes.active || this.aftermath()) {
-        this.stillness.pause();
-        if (this.visitor.near && this.approach.spokenFirst) this.visitor.nearSince = this.visitor.t;
-      }
-      // In a memory's aftermath, and inside a held silence, the room's own life waits; what the
-      // visitor does is still answered. (That the room's own things never come together is the
-      // scheduler's: they are spaced 4–7 s apart.)
-      const quiet = this.aftermath() || this.now < this.shared.heldSilenceUntil;
-      if (!quiet) this.roomLife.drift();
-      this.stillness.tick(dt);
-      this.approach.tick();
-      this.withdraw.tick();
-      this.encounters.tick();
-      if (!quiet) {
-        this.roomLife.resurface();
-        this.roomLife.music();
-        this.roomLife.recontext();
-        this.roomLife.contaminate();
-        this.roomLife.distantLife();
-      }
-      this.roomLife.kneel();
-      if (!quiet) {
-        this.roomLife.chairNudge(input);
-        this.voicing.attention();
-        this.voicing.rehear();
-        this.voicing.payHesitation();
-      }
-      this.silence.tick();
-      this.roomLife.air();
-      if (!quiet) this.responses.tick();
-      this.silence.tableLift();
-      this.wayOut.tick(input);
+  /** The room's rules, in order: each reads what the ones before it queued or marked. */
+  private tickRoom(dt: number, input: VisitorInput, phaseChanged: Phase | null, formed: readonly Motif[]): void {
+    for (const m of formed) this.voicing.onMotif(m);
+    // The turn into a new phase waits for a living memory to end (it would black out the room
+    // in the middle of it), and a few seconds more.
+    if (phaseChanged) {
+      if (!this.shared.pendingPhase) this.pendingPhaseAt = this.now;
+      this.shared.pendingPhase = phaseChanged;
     }
-    this.pacing.tick(dt, this.now, this.phase, this.engagement.activity(this.now));
+    // (A phase turns after a memory's aftermath, never inside it, nor while the visitor stays
+    // with the kitchen-light line: the room waits with them. Nor while they may be coming back
+    // to the chair: the recoil is theirs, and the turn's line comes after it, not over it.)
+    const returnWaits = this.approach.returnInReach() && this.now - this.pendingPhaseAt < 30;
+    if (this.shared.pendingPhase && !returnWaits && !this.scenes.active && this.now >= this.memoryRules.quietAt && !this.aftermath() && !this.memoryRules.memoryAwaited() && !this.wayOut.engaged()) {
+      this.onPhase(this.shared.pendingPhase);
+      this.shared.pendingPhase = null;
+    }
+    if (phaseChanged === 'transform') this.shared.transformAt = this.now;
+    // (The heart is decided before the kitchen light may be offered: it waits for the heart.)
+    this.heart.decide();
+    this.memoryRules.kitchenLight();
+    this.memoryRules.scenes();
+    this.heart.writeAnswer();
+    this.heart.keptAnswer();
+    // (The answer has been read: the card may end on it.)
+    this.heart.watchAnswer(dt);
+    this.echoes.tick();
+    this.writing.accumulate();
+    this.writing.drawings();
+    this.writing.finish();
+    this.situations.tick(this.host);
+    // A memory and its aftermath are the memory's: stillness or closeness that grew while the
+    // visitor was carried, or in the quiet after it, is not theirs to be answered for, and both
+    // are counted again from when the aftermath ends (decision 117). What the visitor does is
+    // still answered, a first approach to the chair among it.
+    if (this.scenes.active || this.aftermath()) {
+      this.stillness.pause();
+      if (this.visitor.near && this.approach.spokenFirst) this.visitor.nearSince = this.visitor.t;
+    }
+    // In a memory's aftermath, and inside a held silence, the room's own life waits; what the
+    // visitor does is still answered. (That the room's own things never come together is the
+    // scheduler's: they are spaced 4–7 s apart.)
+    const quiet = this.aftermath() || this.now < this.shared.heldSilenceUntil;
+    if (!quiet) this.roomLife.drift();
+    this.stillness.tick(dt);
+    this.approach.tick();
+    this.withdraw.tick();
+    this.encounters.tick();
+    if (!quiet) {
+      this.roomLife.resurface();
+      this.roomLife.music();
+      this.roomLife.recontext();
+      this.roomLife.contaminate();
+      this.roomLife.distantLife();
+    }
+    this.roomLife.kneel();
+    if (!quiet) {
+      this.roomLife.chairNudge(input);
+      this.voicing.attention();
+      this.voicing.rehear();
+      this.voicing.payHesitation();
+    }
+    this.silence.tick();
+    this.roomLife.air();
+    if (!quiet) this.responses.tick();
+    this.silence.tableLift();
+    this.wayOut.tick(input);
+  }
 
-    this.env = this.computeEnv();
-
+  /** What the scheduler has due, admitted or lost, as the cues the App plays. */
+  private drainDue(): TimedCue[] {
     const out: TimedCue[] = [];
     const due = this.scheduler.tick(this.now);
     // A meeting's voice that never found room is owed to the next meeting, not lost.
@@ -508,6 +522,7 @@ export class Director implements RuleHost {
     }
     return out;
   }
+
 
   // ───────────────────────────── rules ─────────────────────────────
 
