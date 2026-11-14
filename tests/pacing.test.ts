@@ -121,7 +121,7 @@ describe('rhythm', () => {
   it('tells chosen quiet from waiting, and holds quiet after something strong', () => {
     const p = new Pacing();
     expect(p.rhythm(3, 'arrival', 0)).toBe('arrival');
-    p.note(10, { type: 'voice', kind: 'tender', text: 'x', caption: 'x', position: { kind: 'chair' }, gain: 0.5 }, 'test');
+    p.note(10, { type: 'voice', kind: 'tender', text: 'x', caption: 'x', position: { kind: 'chair' }, gain: 0.5 }, 'voice-attention');
     expect(p.rhythm(25, 'familiar', 0.3)).toBe('recovery');
     expect(p.intenseFree(25)).toBe(false);
     // Someone who is doing things is answered sooner than someone who isn't — who is never "kept waiting".
@@ -129,7 +129,7 @@ describe('rhythm', () => {
     expect(p.rhythm(30.5, 'familiar', 0.05)).toBe('quiet');
     expect(p.rhythm(200, 'familiar', 0)).toBe('quiet');
     // A dip in the room tone is a gesture, but does not end a stall by itself.
-    p.note(40, { type: 'silence', depth: 0.3, seconds: 3 }, 'tap');
+    p.note(40, { type: 'silence', depth: 0.3, seconds: 3 }, 'respond-sound');
     expect(p.sinceDev(40)).toBe(30);
   });
 

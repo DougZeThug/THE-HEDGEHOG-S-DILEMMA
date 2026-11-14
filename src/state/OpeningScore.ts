@@ -49,7 +49,7 @@ export type ScoreEvent =
   /** A hand writes a phrase, silently; `upto` words, then stops. */
   | { at: number; kind: 'write'; phrase: string; upto?: number; sound?: string }
   /** A voice, and its words written as they are heard, at `place` beside an existing phrase. */
-  | { at: number; kind: 'voice'; phrase: string; file: string; text: string; hand: 'crayon' | 'pencil' | 'pen'; besideOf: string; afterStop?: number }
+  | { at: number; kind: 'voice'; phrase: string; file: string; text: string; hand: 'crayon' | 'pencil' | 'pen'; afterStop?: number }
   | { at: number; kind: 'handoff' };
 
 export interface Score {
@@ -167,7 +167,7 @@ export function openingScore(o: { returning: boolean; touch: boolean }): Score {
       { at: at(8.6), kind: 'write', phrase: PHRASE_IDS.stay, upto: 4, sound: 'sfx:graphite' },
       // The laugh comes after the hand has stopped and the stop has been held (the App waits for
       // the hand: this is the earliest it may come).
-      { at: at(13.0), kind: 'voice', phrase: 'crumbs', file: 'dialogue/crumbs--laughing.mp3', text: "You've got crumbs on you.", hand: 'crayon', besideOf: PHRASE_IDS.stay, afterStop: 2.0 },
+      { at: at(13.0), kind: 'voice', phrase: 'crumbs', file: 'dialogue/crumbs--laughing.mp3', text: "You've got crumbs on you.", hand: 'crayon', afterStop: 2.0 },
       { at: at(17.6), kind: 'handoff' },
     ],
     handoff: at(17.6),

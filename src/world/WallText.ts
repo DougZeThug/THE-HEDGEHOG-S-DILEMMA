@@ -185,7 +185,6 @@ export class WallText {
     const mesh = new THREE.Mesh(this.geo, mat);
     mesh.scale.set(o.w, o.h, 1);
     // (Kept for the playtests that read the mesh; the code reads `item.text`.)
-    mesh.userData.text = o.text;
     mesh.renderOrder = 2;
     mesh.visible = false;
     mesh.receiveShadow = true;

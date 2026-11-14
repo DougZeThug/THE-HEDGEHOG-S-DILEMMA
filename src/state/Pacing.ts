@@ -1,6 +1,6 @@
 import type { Phase } from '../content/types';
 import type { Cue } from './cues';
-import { RULE, isSituation } from './rules';
+import { RULE, isSituation, type RuleName } from './rules';
 
 /** A silence this deep is one the room holds: it waits it out and recovers after it. */
 export const DEEP_SILENCE = 0.7;
@@ -29,7 +29,7 @@ type DevKind = 'voice' | 'sound' | 'music' | 'text' | 'light' | 'chair' | 'silen
 export interface Dev {
   t: number;
   kind: DevKind;
-  rule: string;
+  rule: RuleName;
   intense: boolean;
 }
 
@@ -83,7 +83,7 @@ export class Pacing {
   /** Seconds spent stalled (waiting with nothing happening) so far — for the inspector and tests. */
   stalledSeconds = 0;
 
-  note(t: number, cue: Cue, rule: string) {
+  note(t: number, cue: Cue, rule: RuleName) {
     const kind = devKind(cue);
     if (!kind) return;
     // A dip in the room tone is a gesture, but it does not end a stall on its own.

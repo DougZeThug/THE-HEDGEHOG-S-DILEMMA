@@ -1,4 +1,5 @@
 import type { Hand, Size, Surface, VoiceKind } from '../content/types';
+import type { RuleName } from './rules';
 
 /**
  * Cues are the only way the composer talks to the world and the sound.
@@ -138,5 +139,5 @@ export type Cue =
 export interface TimedCue {
   t: number;
   cue: Cue;
-  rule: string;
+  rule: RuleName;
 }
