@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import * as THREE from 'three';
 import { Director } from '../src/state/Director';
 import { Lighting } from '../src/world/Lighting';
-import type { Environment } from '../src/core/environment';
+import { CALM_ENV } from './helpers/lighting';
 import { input } from './helpers/visitor';
 import { run } from './sim';
 
@@ -50,14 +50,13 @@ describe('writing in the air', () => {
 });
 
 describe('light as a motif', () => {
-  const env = { lightIntensity: 1, lightWarmth: 0, shadowDrift: 0, chairGlow: 0.2 } as unknown as Environment;
   it('the room goes back to the chair alone, slowly, and returns', () => {
     const l = new Lighting('low');
     const chair = new THREE.Vector3();
     l.dimToChair(0.25, 11, 0);
     const at: number[] = [];
     for (let t = 0; t <= 12; t += 0.05) {
-      l.update(0.05, env, t, chair);
+      l.update(0.05, CALM_ENV, t, chair);
       at.push(l.roomLight);
     }
     const level = (t: number) => at[Math.round(t / 0.05)];
@@ -77,7 +76,7 @@ describe('light as a motif', () => {
     let prev = 1, jump = 0;
     for (let t = 0; t <= 30; t += 1 / 60) {
       if (Math.abs(t - 6) < 1 / 120) l.dimToChair(0.15, 16, t);
-      l.update(1 / 60, env, t, chair);
+      l.update(1 / 60, CALM_ENV, t, chair);
       jump = Math.max(jump, Math.abs(l.roomLight - prev));
       prev = l.roomLight;
     }

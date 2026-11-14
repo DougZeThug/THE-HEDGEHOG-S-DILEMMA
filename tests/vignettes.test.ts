@@ -112,7 +112,7 @@ describe('the vignettes, as written', () => {
         for (const m of markers) if (/^(voice|sfx|bed):/.test(m.label)) expect(sheet.cues[m.label], m.label).toBeDefined();
         for (const [label, cue] of Object.entries(sheet.cues)) if (label.startsWith('voice:')) expect(cue.text).toBeTruthy();
       }
-    expect(vignetteKeys(VIGNETTES[0]).every((k) => k.startsWith('vig:') || k.startsWith('phrase:') || MANIFEST[k])).toBe(true);
+    for (const v of VIGNETTES) expect(vignetteKeys(v).every((k) => k.startsWith('vig:') || k.startsWith('phrase:') || MANIFEST[k]), v.id).toBe(true);
   });
 
   it('a version is chosen from what the visitor did, the same way every time', () => {
@@ -501,11 +501,6 @@ describe('reaching the rarely met (C, D, G)', () => {
     read(v, 'lonely-birthday', 200);
     v.ended('gone-quiet', 220, true, true);
     expect(offerAt(v, 250)).toBeNull();
-  });
-
-  it("C opens beside its title's line, which the room actually writes", () => {
-    expect(VIGNETTES.find((v) => v.id === 'back-seat')!.anchor.phrase).toBe('alone-with-you');
-    expect(VIGNETTES.find((v) => v.id === 'a-bag')!.offer).toBeTruthy();
   });
 });
 

@@ -4,22 +4,13 @@
 //
 //   npm run build && npx vite preview --port 4173 &
 //   node tests/playtest/vignette-traces.mjs     (OUT=test-output/review/vignettes/traces)
-import { createRequire } from 'node:module';
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { execSync } from 'node:child_process';
+import { BASE, devices, launch } from './browser-lib.mjs';
 
-const require = createRequire(import.meta.url);
-let chromium, devices;
-try {
-  ({ chromium, devices } = require('playwright'));
-} catch {
-  ({ chromium, devices } = require(`${execSync('npm root -g').toString().trim()}/playwright`));
-}
-const BASE = process.env.BASE ?? 'http://localhost:4173/';
 const OUT = process.env.OUT ?? 'test-output/review/vignettes/traces';
 const PROFILES = (process.env.PROFILES ?? 'desktop,phone').split(',');
 mkdirSync(OUT, { recursive: true });
-const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required'] });
+const browser = await launch();
 const report = {};
 
 async function enter(profile) {

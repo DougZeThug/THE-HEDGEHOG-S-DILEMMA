@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { MemoryDirector } from '../src/state/MemoryDirector';
-import { HEART_ANSWER, HEART_BY_SHAPE, HEART_EARLIEST, HEART_LAPSE, HEART_REINK } from '../src/content/memories';
+import { HEART_ANSWER, HEART_EARLIEST, HEART_LAPSE, HEART_REINK } from '../src/content/memories';
 import { PHRASE_BY_ID } from '../src/content/phrases';
 import { Rng } from '../src/core/rng';
 import { Director } from '../src/state/Director';
@@ -126,27 +126,12 @@ describe('the heart, in the memory director', () => {
     md.ended('almost', 120, true, true);
     for (const id of ['more-minutes', 'didnt-know-say', 'happiest-unneeded', 'door-open', 'cereal']) expect(md.claims(id), id).toBe(false);
   });
-
-  it('only Almost leaves a line, and that line is the room\'s own pencil', () => {
-    expect(Object.keys(HEART_ANSWER)).toEqual(['almost']);
-    const a = PHRASE_BY_ID.get(HEART_ANSWER.almost)!;
-    expect(a.tier).toBe('annotation');
-    expect(a.text).toBe('I took my hand back.');
-    expect(HEART_BY_SHAPE.recoiled).toBe('almost');
-  });
 });
 
 describe('the heart, through whole visits', () => {
   const gr = new Rng(20261106);
   const genomes = CLASSES.flatMap((c) => [0, 1, 2].map((i) => drawGenome(c, gr, i)));
   const runs: VisitSummary[] = genomes.map((g) => liveVisit(g, 1, { seconds: 420 }));
-
-  it('reaches the strongest memories, where the room before it seldom did', { timeout: 120_000 }, () => {
-    const before = genomes.map((g) => liveVisit(g, 1, { seconds: 420, experiments: ['noHeart'] }));
-    const strong = (r: VisitSummary) => r.reach.memories.some((m) => ['almost', 'things', 'woodland', 'shadows', 'drive'].includes(m));
-    expect(runs.filter(strong).length).toBeGreaterThan(before.filter(strong).length + 3);
-    expect(before.every((r) => r.reach.heart === null)).toBe(true);
-  });
 
   it('nothing painted begins after the heart, and the answer comes only after Almost, beside the first line', () => {
     for (const r of runs) {

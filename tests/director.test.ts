@@ -70,6 +70,13 @@ describe('Director', () => {
     const { d, cues } = simulate(scripts.wanderer, 500);
     const reveals = cues.filter((c) => c.cue.type === 'reveal');
     expect(reveals.length).toBeGreaterThan(8);
+    const up = new Set<string>();
+    for (const c of cues) {
+      if (c.cue.type === 'reveal') {
+        expect(up.has(c.cue.phraseId), `${c.cue.phraseId} revealed again at ${c.t.toFixed(1)} s while visible`).toBe(false);
+        up.add(c.cue.phraseId);
+      } else if (c.cue.type === 'hide') up.delete(c.cue.phraseId);
+    }
     const revealedNow = [...d.visible.values()].filter((v) => !v.base && v.mode === 'shown').length;
     expect(revealedNow).toBeLessThanOrEqual(26 + 2);
   });
@@ -102,9 +109,9 @@ describe('Director', () => {
   it('chooses a departure line from the visit, and returns gracefully', () => {
     const d = simulate(scripts.hesitant, 200).d;
     const line = d.departureLine();
-    expect(typeof line).toBe('string');
+    expect(line.length).toBeGreaterThan(0);
     d.depart();
-    expect(d.env.darkness).toBeLessThanOrEqual(1);
+    expect(d.departing).toBe(true);
     d.returnAfterDeparture();
     expect(d.departing).toBe(false);
   });

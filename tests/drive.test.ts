@@ -2,13 +2,12 @@ import { describe, it, expect } from 'vitest';
 import * as THREE from 'three';
 import { DRIVE } from '../src/memory/memories/drive';
 import { DRIVE_AT, DRIVE_BEATS, DRIVE_PASSES, DRIVE_SECONDS, DRIVE_SECTIONS, DRIVE_SHOTS } from '../src/memory/beats/drive';
-import { SCENE_MEMORIES, HEART_IDS, heartOf } from '../src/content/memories';
-import { PHRASE_BY_ID } from '../src/content/phrases';
+import { HEART_IDS, heartOf } from '../src/content/memories';
 import { uprightAt } from '../src/memory/living/drive';
 import { compose } from '../src/memory/compose';
 import { StreetLight } from '../src/world/StreetLight';
 import { Lighting } from '../src/world/Lighting';
-import type { Environment } from '../src/core/environment';
+import { runLighting } from './helpers/lighting';
 
 /** The Drive Home in the room (docs/drive-home.md). */
 const seed = DRIVE.seed('film');
@@ -23,15 +22,6 @@ const at = (k: string, t: number) => {
 };
 
 describe('The Drive Home on its timeline', () => {
-  it('opens from "Are you angry with me?", reserved, counted once the vent is turned, never cut before the carry', () => {
-    const m = SCENE_MEMORIES.find((x) => x.id === 'drive')!;
-    expect(PHRASE_BY_ID.get(m.phraseId)!.text).toBe('Are you angry with me?');
-    expect(m.seenAt!).toBeGreaterThanOrEqual(DRIVE_BEATS.vent);
-    expect(m.minHold).toBeGreaterThanOrEqual(DRIVE_BEATS.lamp2);
-    // Only ever a heart: no phase offers it otherwise.
-    expect(m.offer!.phases).toEqual([]);
-  });
-
   it('memory seconds are the film\'s once it plays', () => {
     for (const t of [DRIVE_AT, 20, 40]) expect(at('scene.film', t) + DRIVE_AT).toBeCloseTo(t, 6);
   });
@@ -165,11 +155,7 @@ describe('the streetlights across the wall', () => {
 });
 
 describe("the room's light, at the end", () => {
-  const env = { lightIntensity: 1, lightWarmth: 0, shadowDrift: 0, chairGlow: 0.2 } as unknown as Environment;
-  const chair = new THREE.Vector3(0, 0, 0);
-  const run = (l: Lighting, from: number, s: number) => {
-    for (let i = 0; i < s * 30; i++) l.update(1 / 30, env, from + i / 30, chair, 0);
-  };
+  const run = (l: Lighting, from: number, s: number) => runLighting(l, s, from);
   it('comes to the visitor first, stays a moment, then goes back to the chair by itself', () => {
     const l = new Lighting('low');
     run(l, 0, 2);

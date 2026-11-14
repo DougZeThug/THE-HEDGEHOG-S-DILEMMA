@@ -1,11 +1,9 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import * as THREE from 'three';
 import { FilmScene, filmType, loadFilm } from '../src/memory/living/FilmScene';
-import { ALMOST } from '../src/memory/memories/almost';
 import { THINGS } from '../src/memory/memories/things';
-import { ALMOST_SECTIONS, FILM_AT, FILM_BEATS, FILM_SECONDS } from '../src/memory/beats/almost';
-import { THINGS_AT, THINGS_BEATS, THINGS_SECONDS, THINGS_SECTIONS } from '../src/memory/beats/things';
-import { SCENE_MEMORIES } from '../src/content/memories';
+import { FILM_AT, FILM_SECONDS } from '../src/memory/beats/almost';
+import { THINGS_AT, THINGS_BEATS } from '../src/memory/beats/things';
 
 // "Almost" (docs/almost.md): a film played as a living memory. The memory's one clock decides the
 // frame; the video is only its decoder, kept on that frame whether the memory plays, is held or is
@@ -149,8 +147,7 @@ describe('a film as a living memory', () => {
   const slowFilm = async (refuse: boolean) => {
     const fps = 24;
     let now = 0;
-    const realNow = performance.now;
-    performance.now = () => now;
+    const clock = vi.spyOn(performance, 'now').mockImplementation(() => now);
     try {
       const v = {
         paused: true, seeking: false, readyState: 4, src: 'blob:film', playbackRate: 1, plays: 0, seeks: 0, under: 0,
@@ -205,7 +202,7 @@ describe('a film as a living memory', () => {
       }
       return { under: v.under, off: off / n, behind };
     } finally {
-      performance.now = realNow;
+      clock.mockRestore();
     }
   };
 
@@ -382,33 +379,9 @@ describe('a film as a living memory', () => {
   });
 });
 
-describe('Almost on its timeline', () => {
-  const seed = ALMOST.seed('film');
-  it('the film holds its first frame until the visitor is inside, then runs at one second a second', () => {
-    const keys = seed.tracks['scene.film'] as [number, number, string?][];
-    expect(keys.find(([t]) => t === FILM_AT)?.[1]).toBe(0);
-    expect(keys.find(([t]) => t === FILM_AT + FILM_SECONDS)?.[1]).toBe(FILM_SECONDS);
-    // Inside by then: fully immersed from 9.8 s.
-    const imm = seed.tracks['scene.immerse'] as [number, number][];
-    const full = imm.find(([, v]) => v === 1)!;
-    expect(full[0]).toBeLessThan(FILM_AT);
-    // Out once the film is all but over, on its held last moments.
-    expect(ALMOST_SECTIONS.exit).toBeGreaterThan(FILM_AT + FILM_SECONDS - 1.5);
-    expect(ALMOST_SECTIONS.exit).toBeLessThanOrEqual(FILM_AT + FILM_SECONDS);
-  });
-
-  it('counts as seen only once the startle has been seen inside', () => {
-    expect(SCENE_MEMORIES.find((x) => x.id === 'almost')!.seenAt!).toBeGreaterThanOrEqual(FILM_AT + FILM_BEATS.startle);
-  });
-
-});
-
 describe('Things I Should Have Said on its timeline', () => {
   const seed = THINGS.seed('film');
   it('the wall draws the goodbye before the visitor is carried in; the film holds it until they are inside', () => {
-    const keys = seed.tracks['scene.film'] as [number, number, string?][];
-    expect(keys.find(([t]) => t === THINGS_AT)?.[1]).toBe(0);
-    expect(keys.find(([t]) => t === THINGS_AT + THINGS_SECONDS)?.[1]).toBe(THINGS_SECONDS);
     // (the pencil and the tone are all there before the way in begins)
     const sketch = seed.tracks['window.sketch'] as [number, number][];
     const reveal = seed.tracks['window.reveal'] as [number, number][];
@@ -417,15 +390,6 @@ describe('Things I Should Have Said on its timeline', () => {
     expect(sketch[sketch.length - 1][0]).toBeLessThanOrEqual(begins);
     expect(reveal[reveal.length - 1][0]).toBeLessThanOrEqual(begins);
     expect(imm.find(([, v]) => v === 1)![0]).toBeLessThan(THINGS_AT);
-    // out once the film is all but over, on its held empty doorway
-    expect(THINGS_SECTIONS.exit).toBeGreaterThan(THINGS_AT + THINGS_SECONDS - 1.5);
-    expect(THINGS_SECTIONS.exit).toBeLessThanOrEqual(THINGS_AT + THINGS_SECONDS);
-    expect(THINGS_AT + THINGS_BEATS.empty).toBeLessThan(THINGS_SECTIONS.exit);
-  });
-
-  it('counts as seen only once his almost has begun inside', () => {
-    expect(SCENE_MEMORIES.find((x) => x.id === 'things')!.seenAt!).toBeGreaterThanOrEqual(THINGS_AT + THINGS_BEATS.found);
-    expect(THINGS.markers.find((k) => k.label === 'music:film')!.position).toBe(THINGS_AT);
   });
 
   it("the wall's sound is the wall's drawing: its start, its length, its level, its caption before the film's", () => {

@@ -8,18 +8,10 @@
 //
 // Slow under software GL (seconds a frame): it can be recorded in parts, START to END seconds
 // (START=0 END=27, then START=27, which joins the film when it reaches the end).
-import { createRequire } from 'node:module';
-import { mkdirSync, rmSync, existsSync, writeFileSync, copyFileSync } from 'node:fs';
 import { execSync } from 'node:child_process';
+import { mkdirSync, rmSync, existsSync, writeFileSync, copyFileSync } from 'node:fs';
+import { BASE, devices, launch } from './browser-lib.mjs';
 
-const require = createRequire(import.meta.url);
-let chromium, devices;
-try {
-  ({ chromium, devices } = require('playwright'));
-} catch {
-  ({ chromium, devices } = require(`${execSync('npm root -g').toString().trim()}/playwright`));
-}
-const BASE = process.env.BASE ?? 'http://localhost:4173/';
 // 12 a second: the memory's own drawings are on twos (12 a second); encoded at 24.
 const FPS = Number(process.env.FPS ?? 12);
 const PROFILE = process.env.PROFILE ?? 'desktop';
@@ -35,9 +27,7 @@ const frames = `${OUT}/frames-${PROFILE}-${VARIANT}`;
 if (START === 0 && END === LAST) rmSync(frames, { recursive: true, force: true });
 mkdirSync(frames, { recursive: true });
 
-const browser = await chromium.launch({
-  executablePath: process.env.CHROMIUM_PATH || undefined,
-  args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'],
+const browser = await launch({
 });
 const opts = PROFILE === 'phone' ? { ...devices['iPhone 13'], deviceScaleFactor: 2 } : { viewport: { width: W, height: H } };
 const page = await browser.newPage(opts);

@@ -74,11 +74,16 @@ export class FakeCtx {
   state: 'running' | 'suspended' = 'running';
   nodes = new Set<FakeNode>();
   sources: FakeSource[] = [];
+  /** Each source's own gain (the one made just after it), kept: a source that has ended is disconnected. */
+  gains = new Map<FakeSource, FakeParam>();
+  private lastSource: FakeSource | null = null;
   createBufferSource() {
-    return new FakeSource(this);
+    return (this.lastSource = new FakeSource(this));
   }
   createGain() {
-    return Object.assign(new FakeNode(this), { gain: new FakeParam() });
+    const g = Object.assign(new FakeNode(this), { gain: new FakeParam() });
+    if (this.lastSource && !this.gains.has(this.lastSource)) this.gains.set(this.lastSource, g.gain);
+    return g;
   }
   createBiquadFilter() {
     return Object.assign(new FakeNode(this), { type: '', Q: new FakeParam(), frequency: new FakeParam() });

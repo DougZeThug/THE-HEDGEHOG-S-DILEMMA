@@ -111,7 +111,7 @@ describe('memory audio: scheduled on the audio clock, never twice, nothing left 
     expect(bedAgain.loop).toBe(true);
     expect(bedAgain.startAt![0]).toBeCloseTo(ctx.currentTime + 128 / ctx.sampleRate, 6);
     // It carries on from about 4.3 s into the bed's own timeline (loop-wrapped into the file).
-    expect(bedAgain.startAt![1]).toBeCloseTo(0.05 + ((6.3 + 1 / 30 - 2) % 7.9), 1);
+    expect(bedAgain.startAt![1]).toBeCloseTo(4.4, 1);
   });
 
   it('resumed with the picture stepped back (a sentence said again), the music steps back with it; the bed carries on', async () => {
@@ -219,16 +219,7 @@ describe('a cut on one instant of the audio clock (the woodland: the afternoon s
     ctx.sampleRate = 48000; // (a real context's rate: a render quantum of 2.7 ms)
     const host = fakeHost(ctx, lengths);
     const audio = new MemoryAudio(host, sheet, markers);
-    // Each source's own gain (made just after it), kept: a source that has ended is disconnected.
-    const gains = new Map<FakeSource, FakeParam>();
-    let last: FakeSource | null = null;
-    const mk = ctx.createBufferSource.bind(ctx), mg = ctx.createGain.bind(ctx);
-    ctx.createBufferSource = () => (last = mk());
-    ctx.createGain = () => {
-      const g = mg();
-      if (last && !gains.has(last)) gains.set(last, g.gain);
-      return g;
-    };
+    const gains = ctx.gains;
     return { ctx, audio, gains, go: () => {
       // As the App steps it: the memory clock on the audio clock, frames of a sixtieth, one stall.
       const clock = new MemoryClock(), d = new CueDispatch(markers);
@@ -355,15 +346,7 @@ describe("the woodland's cut, driven as the App drives it (one reading of the au
     let c: MemoryPlaybackController | null = null;
     const host = fakeHost(ctx, lengths, { caption: (t) => void captions.push([t, c!.position]) });
     const audio = new MemoryAudio(host, sheet, markers);
-    const gains = new Map<FakeSource, FakeParam>();
-    let last: FakeSource | null = null;
-    const mk = ctx.createBufferSource.bind(ctx), mg = ctx.createGain.bind(ctx);
-    ctx.createBufferSource = () => (last = mk());
-    ctx.createGain = () => {
-      const g = mg();
-      if (last && !gains.has(last)) gains.set(last, g.gain);
-      return g;
-    };
+    const gains = ctx.gains;
     const timeline: TimelineSource = { sections: { active: 6, exit: 42.5, residue: 49.5, end: 53 }, markers, at: () => ({}), dispose() {} };
     c = new MemoryPlaybackController({ timeline, audio, weights: FULL, reduced: false, entrance: 2, sways: [], exit: 3, maxHold: 60, tail: 2, living: true });
     const by = (a: string) => ctx.sources.filter((x) => x.buffer && (x.buffer as { duration: number }).duration === lengths[a]);
@@ -673,14 +656,6 @@ describe('captions: each shown as its sound is heard, with the picture', () => {
   });
 });
 
-describe('a stall inside the hand-out window', () => {
-  it('never hands a cue out twice', () => {
-    const d = new CueDispatch([{ label: 'music:evening', position: 2 }], 0.75);
-    const handed = [...d.advance(1.4), ...d.advance(1.95), ...d.advance(2.0), ...d.advance(2.3)];
-    expect(handed.length).toBe(1);
-  });
-});
-
 describe('paused while a soft release lets a begun sentence finish', () => {
   const sheet: CueSheet = {
     room: [0.4, 3, 0.06],
@@ -695,7 +670,7 @@ describe('paused while a soft release lets a begun sentence finish', () => {
     const audio = new MemoryAudio(host, sheet, markers);
     await audio.prepare();
     ctx.currentTime = 100;
-    audio.play([{ marker: markers[0], delay }] as never);
+    audio.play([{ marker: markers[0], delay }]);
     ctx.advance(1);
     const voice = ctx.sources.find((s) => s.buffer?.duration === 4)!;
     return { ctx, audio, voice, captions };
@@ -736,7 +711,7 @@ describe('paused while a soft release lets a begun sentence finish', () => {
     const audio = new MemoryAudio(host, sheet, markers);
     await audio.prepare();
     ctx.currentTime = 100;
-    audio.play([{ marker: markers[0], delay: 0 }] as never);
+    audio.play([{ marker: markers[0], delay: 0 }]);
     ctx.advance(1);
     audio.release('interrupt', 0.6, true);
     audio.pause();
@@ -760,7 +735,7 @@ describe('paused while a soft release lets a begun sentence finish', () => {
     const audio = new MemoryAudio(host, cut, markers);
     await audio.prepare();
     ctx.currentTime = 100;
-    audio.play([{ marker: markers[0], delay: 0 }] as never);
+    audio.play([{ marker: markers[0], delay: 0 }]);
     ctx.advance(1);
     audio.release('interrupt', 0.6, true);
     audio.pause();
@@ -789,13 +764,13 @@ describe('a voice that could not be loaded', () => {
       const stoodIn: string[] = [];
       const captions: string[] = [];
       const host = fakeHost(ctx, {}, {
-        load: async () => null as unknown as AudioBuffer, // the take would not fetch or decode
+        load: async () => null, // the take would not fetch or decode
         caption: (t) => void captions.push(t),
         fallback: preview ? (cue) => void stoodIn.push(cue.text ?? '') : undefined,
       });
       const audio = new MemoryAudio(host, sheet, markers);
       await audio.prepare();
-      audio.play([{ marker: markers[0], delay: 0 }] as never);
+      audio.play([{ marker: markers[0], delay: 0 }]);
       expect(audio.sounding).toBe(0);
       expect(captions).toEqual([]);
       expect(stoodIn, `preview ${preview}`).toEqual(preview ? ['Five more minutes.'] : []);

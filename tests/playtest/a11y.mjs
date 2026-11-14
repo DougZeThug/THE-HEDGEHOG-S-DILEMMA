@@ -3,18 +3,14 @@
 // Usage: npm run build && npx vite preview --port 4173 & npm run a11y
 import { createRequire } from 'node:module';
 import { mkdirSync, writeFileSync } from 'node:fs';
+import { BASE, launch } from './browser-lib.mjs';
 
 const require = createRequire(import.meta.url);
-const { chromium } = require('playwright');
 const { AxeBuilder } = require('@axe-core/playwright');
 
-const BASE = process.env.BASE ?? 'http://localhost:4173/';
 const OUT = process.env.OUT ?? 'test-output';
 mkdirSync(OUT, { recursive: true });
-const browser = await chromium.launch({
-  executablePath: process.env.CHROMIUM_PATH || undefined,
-  args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'],
-});
+const browser = await launch();
 const context = await browser.newContext({ viewport: { width: 1280, height: 760 } });
 const page = await context.newPage();
 await page.goto(BASE);

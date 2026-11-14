@@ -91,7 +91,10 @@ describe("the room's music stops under a memory, its reverb with it", () => {
     g.memoryDuck.gain.value = 1;
     a.memoryHush(0, 20);
     a.memoryHush(0.7, 1.4);
-    expect(last(g.memoryDuck.gain)).toEqual(['target', 0.30000000000000004, 25]);
+    const heard = last(g.memoryDuck.gain);
+    expect(heard[0]).toBe('target');
+    expect(heard[1]).toBeCloseTo(0.3, 9);
+    expect(heard[2]).toBe(25);
   });
 });
 

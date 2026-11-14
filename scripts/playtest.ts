@@ -23,7 +23,7 @@ for (const p of PERSONAS) {
   for (const w of WINDOWS) {
     const s = summarise(runs, w);
     const r = runs[0].recognised[w];
-    const fr = (x: number) => (x > w ? '—' : `${x}s`);
+    const fr = (x: number | null) => (x === null || x > w ? '—' : `${x}s`);
     say(`| ${w}s | ${fr(s.firstResponse)} | ${fr(s.firstAnything)} | ${s.perMinute} | ${s.voices} (${s.recordedVoices}) | ${s.otherSounds} | ${s.text} (${s.textUnseen}) | ${s.silences} | ${s.longestGap}s (${s.longestSeenGap}s) | ${s.overlaps} | ${r.reads} | ${r.meetings} (${r.returns}) | ${r.approaches} | ${r.taps} |`);
   }
   const ph = runs.map((r) => r.phases.map((x) => `${x.phase[0]}@${Math.round(x.t)}`).join(' ')).slice(0, 4);

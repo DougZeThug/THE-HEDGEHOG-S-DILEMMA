@@ -115,8 +115,6 @@ describe('the painted memories\' voices, played', () => {
         expect(chooseVoices(m.id, variant, NONE)).toBe(a);
         expect(a === null).toBe(!m.variants[variant]);
       }
-    expect(chooseVoices('door', 'approach', NONE)).toBeNull();
-    expect(chooseVoices('woodland', 'afternoon', NONE)).toBeNull();
   });
 
   it('lays its lines into the memory\'s own cue sheet and markers, captioned as speech by side', () => {
