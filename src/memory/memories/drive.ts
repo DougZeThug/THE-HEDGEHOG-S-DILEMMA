@@ -104,15 +104,16 @@ export const DRIVE: MemoryDef = {
   roomDim: 0.5,
   roomDimOut: 13.5,
   living: true,
-  // (Said as the film begins, so it holds what was found and what is there, true under reduced
-  // motion too, where no streetlight crosses; the first announce is 5 s after it: QA, 2026-11-09.)
-  describe: () => 'Night falls in the room, and two faces are found in the dark: two men side by side in a car at night. Neither looks at the other.',
+  // (Said as the film begins, so it holds what is there, true under reduced motion too, where no
+  // streetlight crosses, and names the two the announce lines call the driver and the passenger.
+  // Short enough to be said before the first announce, 5.5 s after it begins: QA, 2026-11-09.)
+  describe: () => 'Two men in a car at night, driver and passenger. Neither looks over.',
   // (Only what is seen, in order, at least 3.5 s apart, never what it means.)
   announce: () => [
     { at: DRIVE_BEATS.window + 0.6, text: 'The passenger looks out of his window.', inside: true },
     { at: DRIVE_BEATS.hands, text: 'He rubs his hands together for warmth.' },
     { at: DRIVE_BEATS.vent, text: 'Without looking over, the driver turns the heater vent toward him.' },
-    { at: DRIVE_BEATS.ventBack, text: 'Later the passenger turns it partway back, toward the driver.' },
+    { at: DRIVE_BEATS.ventBack, text: 'The passenger turns it partway back, toward the driver.' },
     { at: DRIVE_BEATS.indicator + 1.0, text: 'The indicator ticks. Town lights pass over them.' },
     { at: DRIVE_BEATS.away + 0.6, text: 'The car goes on into the dark.' },
     { at: DRIVE_SECTIONS.residue - 2, text: 'Its red tail lamps fade into the wall.' },

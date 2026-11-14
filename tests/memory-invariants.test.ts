@@ -9,10 +9,6 @@ import { PHRASE_BY_ID } from '../src/content/phrases';
 
 const words = (s: string) => s.split(/\s+/).filter(Boolean).length;
 const living = Object.values(MEMORIES).filter((d) => d.living);
-// Held to speakable-in-time so far. The woodland's and the drive's first descriptions are longer
-// than the gap to their next line allows (22 words in 10 s, 28 in 13 s): for the writers, not
-// excused here by loosening the rule for everyone.
-const SPEAKABLE = new Set(['almost', 'things', 'shadows']);
 
 describe.each(living.map((def) => [def.id, def] as const))('the living memory %s', (id, def) => {
   const scene = SCENE_MEMORIES.find((m) => m.id === id);
@@ -37,17 +33,16 @@ describe.each(living.map((def) => [def.id, def] as const))('the living memory %s
       for (let i = 1; i < ats.length; i++) expect(ats[i] - ats[i - 1], `${ats[i - 1]} → ${ats[i]}`).toBeGreaterThanOrEqual(3.5);
     });
 
-    if (SPEAKABLE.has(id))
-      it(`${variant}: each screen-reader line can be said before the next begins`, () => {
-        const lines = def.announce?.(variant) ?? [];
-        // Read at 180 words a minute and queued behind the last: 2.5 words for each second until the
-        // next line, from the description read as the memory begins, seen from inside or from the wall.
-        for (const from of ['inside', 'wall'] as const) {
-          const said = [{ at: def.sections.active, text: def.describe(variant) }, ...lines.filter((l) => !(from === 'inside' ? l.wall : l.inside))];
-          for (let i = 0; i + 1 < said.length; i++)
-            expect(words(said[i].text), `${from}: "${said[i].text}"`).toBeLessThanOrEqual(Math.floor(2.5 * (said[i + 1].at - said[i].at)));
-        }
-      });
+    it(`${variant}: each screen-reader line can be said before the next begins`, () => {
+      const lines = def.announce?.(variant) ?? [];
+      // Read at 180 words a minute and queued behind the last: 2.5 words for each second until the
+      // next line, from the description read as the memory begins, seen from inside or from the wall.
+      for (const from of ['inside', 'wall'] as const) {
+        const said = [{ at: def.sections.active, text: def.describe(variant) }, ...lines.filter((l) => !(from === 'inside' ? l.wall : l.inside))];
+        for (let i = 0; i + 1 < said.length; i++)
+          expect(words(said[i].text), `${from}: "${said[i].text}"`).toBeLessThanOrEqual(Math.floor(2.5 * (said[i + 1].at - said[i].at)));
+      }
+    });
 
     it(`${variant}: each caption is up long enough to read before the next (0.4 s a word, at least 1.2 s)`, () => {
       for (const [label, cue] of Object.entries(def.cues(variant).cues)) {

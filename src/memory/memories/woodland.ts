@@ -232,7 +232,7 @@ export const WOODLAND: MemoryDef = {
   coda: { variant: 'afternoon', at: 47.0, text: 'we had all afternoon' },
   describe: (v) => v === 'empty'
     ? 'A painting forms in the wall by the words: a clearing in a wood at dusk, a fallen log, a tree, the grass. Nobody is there.'
-    : 'A pencil drawing forms in the wall by the words: a clearing in a wood, two young people lying in the grass.',
+    : 'A drawing forms: two young people lying in a clearing.',
   // (Short, at least 3.5 s apart; only what is seen, in order, never what it means: interaction,
   // QA and creative reviews. The film shows the same shots inside and on the wall, so what they do
   // is told to everyone; how it opens is told as it is seen.)
