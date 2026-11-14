@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import * as THREE from 'three';
 import { DRIVE } from '../src/memory/memories/drive';
-import { DRIVE_AT, DRIVE_BEATS, DRIVE_FROM, DRIVE_PASSES, DRIVE_SECONDS, DRIVE_SECTIONS, DRIVE_SHOTS } from '../src/memory/beats/drive';
+import { DRIVE_AT, DRIVE_BEATS, DRIVE_PASSES, DRIVE_SECONDS, DRIVE_SECTIONS, DRIVE_SHOTS } from '../src/memory/beats/drive';
 import { SCENE_MEMORIES, HEART_IDS, heartOf } from '../src/content/memories';
 import { PHRASE_BY_ID } from '../src/content/phrases';
 import { uprightAt } from '../src/memory/living/drive';
@@ -33,7 +33,7 @@ describe('The Drive Home on its timeline', () => {
   });
 
   it('memory seconds are the film\'s once it plays', () => {
-    for (const t of [DRIVE_AT, 20, 40]) expect(at('scene.film', t) + DRIVE_FROM).toBeCloseTo(t, 6);
+    for (const t of [DRIVE_AT, 20, 40]) expect(at('scene.film', t) + DRIVE_AT).toBeCloseTo(t, 6);
   });
 
   it('three streetlights, the first silent, the third crossing as the film\'s own lamp; the faces found one pass at a time', () => {
@@ -100,21 +100,21 @@ describe('The Drive Home on its timeline', () => {
 
   it('an upright screen holds each shot still across its cuts, and pans only within the second two-shot', () => {
     for (let t = 0; t < DRIVE_SECONDS; t += 0.1) {
-      const film = t + DRIVE_FROM;
+      const film = t + DRIVE_AT;
       if (!crosses(film, cuts)) expect(Math.abs(uprightAt(t + 0.1)[0] - uprightAt(t)[0]), `${film.toFixed(1)}`).toBeLessThan(0.03);
     }
-    expect(uprightAt(panStart - DRIVE_FROM)[0]).toBeCloseTo(panFrom, 1);
-    expect(uprightAt(panEnd - DRIVE_FROM)[0]).toBeCloseTo(panTo, 1);
+    expect(uprightAt(panStart - DRIVE_AT)[0]).toBeCloseTo(panFrom, 1);
+    expect(uprightAt(panEnd - DRIVE_AT)[0]).toBeCloseTo(panTo, 1);
   });
 
   it('under reduced motion, the pan is a cut at its middle', () => {
     const middle = (panStart + panEnd) / 2;
     for (let t = 0; t < DRIVE_SECONDS; t += 0.1) {
-      const film = t + DRIVE_FROM;
+      const film = t + DRIVE_AT;
       if (Math.abs(uprightAt(t + 0.1, true)[0] - uprightAt(t, true)[0]) > 1e-9) expect(crosses(film, [...cuts, middle]), `${film.toFixed(2)}`).toBe(true);
     }
-    expect(uprightAt(middle - 0.4 - DRIVE_FROM, true)[0]).toBeCloseTo(panFrom, 6);
-    expect(uprightAt(middle + 0.4 - DRIVE_FROM, true)[0]).toBeCloseTo(panTo, 6);
+    expect(uprightAt(middle - 0.4 - DRIVE_AT, true)[0]).toBeCloseTo(panFrom, 6);
+    expect(uprightAt(middle + 0.4 - DRIVE_AT, true)[0]).toBeCloseTo(panTo, 6);
   });
 
   it('the relay, after the natural release, is part of its going: it may begin once the memory has let go', () => {

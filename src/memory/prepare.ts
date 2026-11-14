@@ -1,13 +1,13 @@
 import { MemoryAudio } from './MemoryAudio';
-import { sheetId } from './memoryDef';
-import { memorySchema } from './sheets';
-import { sheetSource } from './theatre';
-import { withVoices } from '../content/memory-voices';
-import { isFilm, loadLayer, manifestOf } from './art';
+import { soundOf } from './theatre';
+import { artUrl, isFilm, loadLayer, manifestOf } from './art';
 import { prepareFilm } from './prepareFilm';
 import { preparePainting } from './preparePainting';
 import type { Prepared, PreparedLiving, RuntimeHost } from './prepared';
 import { resolve, type Stage } from './stage';
+
+/** The audio's seed (its random choices, which of a cue's takes): a small hash of which memory and variant. Kept as it was: not `hashString`'s number. */
+const audioSeed = (id: string, variant: string): number => id.length * 7 + variant.length;
 
 /** Fetch and decode a memory's art and sounds (in parallel), uploading one texture a frame. */
 export async function prepare(id: string, variant: string, host: RuntimeHost): Promise<Prepared> {
@@ -16,19 +16,16 @@ export async function prepare(id: string, variant: string, host: RuntimeHost): P
   let audio: MemoryAudio | null = null;
   const voices = host.voices?.version ? { version: host.voices.version, filesOf: host.voices.filesOf } : null;
   if (host.audio) {
-    const sid = sheetId(def.id, v);
-    const src = sheetSource(sid, memorySchema(def.layers, def.living), { sections: def.sections, markers: def.markers });
     // Its voices, if any, are its own cues on its own markers: one clock, one dispatch.
-    const sound = withVoices(def.cues(v), src.markers, def.id, v, voices?.version, voices?.filesOf);
-    audio = new MemoryAudio(host.audio, sound.sheet, sound.markers, id.length * 7 + v.length);
+    const sound = soundOf(def, v, voices);
+    audio = new MemoryAudio(host.audio, sound.sheet, sound.markers, audioSeed(id, v));
   }
   // A living variant draws its painting itself: the wall's flattened poster is only its fallback.
   const lm = def.living && host.noise ? manifest.living?.[v] ?? null : null;
   const wallLayers = manifest.variants[v].filter((l) => !(lm && l.name === 'scene'));
-  const url = (file: string, sfx = suffix) => `${base}${def.art}/${file}${sfx}.webp`;
-  const settled = await Promise.allSettled(wallLayers.map((l) => loadLayer(url(l.file))));
+  const settled = await Promise.allSettled(wallLayers.map((l) => loadLayer(artUrl(base, def.art, { file: l.file, suffix }))));
   const st: Stage = {
-    entry, def, v, host, base, suffix, manifest, audio, url,
+    entry, def, v, host, base, suffix, manifest, audio,
     loaded: [],
     extra: [],
     scene: null,

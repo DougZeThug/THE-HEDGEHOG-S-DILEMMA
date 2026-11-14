@@ -1,7 +1,8 @@
 import { FilmScene, filmType, loadFilm, releaseFilm } from './living/FilmScene';
-import { FILM_FETCH_MS, colourTimes, filmUrl, loadLayer, type FilmManifest } from './art';
+import { FILM_FETCH_MS, artUrl, colourTimes, filmUrl, loadLayer, type FilmManifest } from './art';
 import { fetchBlob } from './fetched';
 import { FILM_CUE } from './memoryDef';
+import { filmSpecOf } from './registry';
 import { dropScene, fallBackToPoster, targetSize, type Stage } from './stage';
 import type { PreparedFilm } from './prepared';
 
@@ -11,7 +12,7 @@ import type { PreparedFilm } from './prepared';
  * wall's poster in its place) if the film couldn't be had.
  */
 export async function prepareFilm(st: Stage, lm: FilmManifest): Promise<PreparedFilm | null> {
-  const { def, entry, host, base, suffix, manifest } = st;
+  const { def, host, base, suffix, manifest } = st;
   let video: HTMLVideoElement | null = null;
   try {
     const type = filmType();
@@ -23,10 +24,9 @@ export async function prepareFilm(st: Stage, lm: FilmManifest): Promise<Prepared
       new Promise<never>((_, no) => setTimeout(() => no(new Error('film not fetched in time')), FILM_FETCH_MS)),
     ]);
     video = await loadFilm(URL.createObjectURL(blob));
-    const orderR = lm.order ? await loadLayer(st.url(lm.order, ''), { data: true }) : null;
+    const orderR = lm.order ? await loadLayer(artUrl(base, def.art, { file: lm.order, suffix: '' }), { data: true }) : null;
     if (orderR) st.extra.push(orderR);
-    const spec = entry.film;
-    if (!spec) throw new Error(`Memory "${def.id}" has no film spec`);
+    const spec = filmSpecOf(def.id);
     const scene = new FilmScene({ video, fps: lm.fps, frames: lm.frames }, { ...targetSize(host), reduced: !!host.reduced, close: spec.close?.frames });
     st.scene = scene;
     st.loaded.unshift({ texture: scene.target.texture, bitmap: null as unknown as ImageBitmap, name: 'scene', kind: 'pigment' });
@@ -38,7 +38,6 @@ export async function prepareFilm(st: Stage, lm: FilmManifest): Promise<Prepared
       torn: (lm.edge ?? 'torn') === 'torn',
       shade: lm.edge === 'shade',
       crop: manifest.crop ?? [0, 0, 1, 1],
-      aspect: manifest.size[0] / manifest.size[1],
       order: orderR?.texture ?? null,
       colourAt: orderR ? colourTimes(orderR.bitmap) : null,
       feather: lm.feather,

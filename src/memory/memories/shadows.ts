@@ -1,12 +1,10 @@
 import type { CueSheet } from '../cueSheet';
 import type { SheetSeed } from '../seed';
 import { SHADOWS_SECTIONS, SHADOWS_AT, SHADOWS_SECONDS, SHADOWS_BEATS } from '../beats/shadows';
-import { FILM_CUE, entryTracks, filmClock, sectionMarkers, type MemoryDef } from '../memoryDef';
+import { FILM_CUE, WALL_CUE, entryTracks, filmClock, sectionMarkers, type MemoryDef } from '../memoryDef';
 
 /** Its sound's level (the film's mix is 8 dB louder than Almost's: the two sit together). */
 const SHADOWS_DB = -17;
-
-const WALL_CUE = 'music:wall';
 
 /**
  * Memory VII, The Shape of Someone (docs/shadows.md): a shadow-puppet film, rendered offline

@@ -2,6 +2,10 @@ import { getProject, types, createRafDriver, type IProject, type ISheet, type IS
 import committed from './theatre-state.json';
 import type { TheatreState } from './seed';
 import { cueKind } from './cueSheet';
+import type { CueSheet } from './cueSheet';
+import { sheetId, type MemoryDef } from './memoryDef';
+import { memorySchema } from './sheets';
+import { withVoices } from '../content/memory-voices';
 import type { Marker, Sections, TimelineSource, Values } from './types';
 
 /**
@@ -94,4 +98,18 @@ export function sheetSource(sheetId: string, schema: Schema, fallback: { section
       // Objects are kept (tiny, and Studio keeps showing them); nothing ticks while unplayed.
     },
   };
+}
+
+/**
+ * A memory variant's authored timeline (`source`) and the sound laid on it: its cue sheet and
+ * markers, with the voices' own cues and markers joined (one clock, one dispatch). The one place
+ * the two are put together, for the audio (prepare.ts) and the timeline (LivingMemory.ts) alike.
+ */
+export function soundOf(
+  def: MemoryDef,
+  variant: string,
+  voices: { version: string; filesOf?: (key: string) => readonly string[] } | null,
+): { source: TimelineSource & { sheet: ISheet }; sheet: CueSheet; markers: Marker[] } {
+  const source = sheetSource(sheetId(def.id, variant), memorySchema(def.layers, def.living), { sections: def.sections, markers: def.markers });
+  return { source, ...withVoices(def.cues(variant), source.markers, def.id, variant, voices?.version, voices?.filesOf) };
 }

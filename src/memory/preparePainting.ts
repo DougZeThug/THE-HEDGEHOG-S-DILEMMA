@@ -1,7 +1,7 @@
 import type * as THREE from 'three';
 import { WoodlandScene } from './living/WoodlandScene';
 import type { HeadCels, LivingArt, NearArt } from './living/woodlandArt';
-import { framesNear, loadLayer, colourTimes, type LivingManifest } from './art';
+import { artUrl, framesNear, livingParts, loadLayer, colourTimes, type ArtFile, type LivingManifest } from './art';
 import { dropScene, fallBackToPoster, targetSize, type Stage } from './stage';
 import type { PreparedPainting } from './prepared';
 
@@ -11,39 +11,41 @@ import type { PreparedPainting } from './prepared';
  * scene couldn't be made.
  */
 export async function preparePainting(st: Stage, lm: LivingManifest): Promise<PreparedPainting | null> {
-  const { def, entry, host, manifest, extra, suffix } = st;
-  const url = st.url;
+  const { def, entry, host, manifest, extra, suffix, base } = st;
+  const url = (f: ArtFile) => artUrl(base, def.art, f);
+  const parts = livingParts(lm, suffix);
   const spec = entry.rig;
   if (!spec) throw new Error(`Memory "${def.id}" has no painted rig`);
   try {
-    const one = async (file: string, o: { data?: boolean; sfx?: string } = {}) => {
-      const r = await loadLayer(url(file, o.sfx ?? suffix), { living: true, data: o.data });
+    const one = async (f: ArtFile | null, o: { data?: boolean } = {}) => {
+      if (!f) return null;
+      const r = await loadLayer(url(f), { living: true, data: o.data });
       extra.push(r);
       return r.texture;
     };
     const mainP = Promise.all([
-      one(lm.plate),
-      one(lm.maps, { data: true, sfx: '' }),
-      lm.grade ? one(lm.grade, { data: true, sfx: '' }) : Promise.resolve(null),
-      lm.sky ? one(lm.sky.file, { sfx: '' }) : Promise.resolve(null),
-      lm.figures ? one(lm.figures.file) : Promise.resolve(null),
-      lm.figures ? one(lm.figures.lids) : Promise.resolve(null),
-      lm.after ? one(lm.after) : Promise.resolve(null),
-      lm.flowers ? one(lm.flowers.file) : Promise.resolve(null),
-      lm.clouds ? one(lm.clouds.mask, { data: true, sfx: '' }) : Promise.resolve(null),
-      lm.clouds ? one(lm.clouds.file, { sfx: '' }) : Promise.resolve(null),
-      lm.clouds ? one(lm.clouds.after, { sfx: '' }) : Promise.resolve(null),
+      one(parts.plate) as Promise<THREE.Texture>,
+      one(parts.maps, { data: true }) as Promise<THREE.Texture>,
+      one(parts.grade, { data: true }),
+      one(parts.sky),
+      one(parts.figures),
+      one(parts.lids),
+      one(parts.after),
+      one(parts.flowers),
+      one(parts.cloudsMask, { data: true }),
+      one(parts.clouds),
+      one(parts.cloudsAfter),
     ]);
     // (The pencil's order is mipmapped, unlike the scene's layers: seen from across the room.)
     // (If it can be had: else the light finds the painting unordered, and the memory still plays.)
-    const orderP = lm.order ? loadLayer(url(lm.order, ''), { data: true }).then((r) => (extra.push(r), r), () => null) : Promise.resolve(null);
+    const orderP = parts.order ? loadLayer(url(parts.order), { data: true }).then((r) => (extra.push(r), r), () => null) : Promise.resolve(null);
     // Her turn in the wide (at its size), if it can be had (else her head stays as the panel has
     // it; the memory still plays).
     const headsP = (async (): Promise<HeadCels | null> => {
       const h = lm.figures?.heads;
-      if (!h) return null;
+      if (!h || !parts.heads) return null;
       try {
-        const r = await loadLayer(url(h.file), { living: true });
+        const r = await loadLayer(url(parts.heads), { living: true });
         extra.push(r);
         return { texture: r.texture, box: h.box, at: h.at, cells: h.cells, grid: h.grid };
       } catch (e) {
@@ -55,14 +57,14 @@ export async function preparePainting(st: Stage, lm: LivingManifest): Promise<Pr
     // The two-shot: all of it, or none (its shot is then the wide), and only for a screen that
     // shows it.
     const nearP = (async (): Promise<NearArt | null> => {
-      const n = lm.near;
-      if (!n || !lm.figures?.heads || !framesNear(host, spec)) return null;
+      const n = lm.near, f = parts.near;
+      if (!n || !f || !framesNear(host, spec)) return null;
       const got = await Promise.allSettled([
-        loadLayer(url(n.file), { living: true }),
-        loadLayer(url(n.lids), { living: true }),
-        loadLayer(url(n.heads.file), { living: true }),
-        loadLayer(url(n.ground.file, ''), { living: true }),
-        loadLayer(url(n.maps, ''), { living: true, data: true }),
+        loadLayer(url(f.atlas), { living: true }),
+        loadLayer(url(f.lids), { living: true }),
+        loadLayer(url(f.heads), { living: true }),
+        loadLayer(url(f.ground), { living: true }),
+        loadLayer(url(f.maps), { living: true, data: true }),
       ]);
       const ok = got.every((r) => r.status === 'fulfilled');
       for (const r of got) {
@@ -113,7 +115,7 @@ export async function preparePainting(st: Stage, lm: LivingManifest): Promise<Pr
     const scene = new WoodlandScene(art, spec, { ...size, noise: host.noise!, reduced: !!host.reduced, low: host.quality === 'low' });
     st.scene = scene;
     st.loaded.unshift({ texture: scene.target.texture, bitmap: null as unknown as ImageBitmap, name: 'scene', kind: 'pigment' });
-    return { kind: 'painting', scene, spec, immerse: lm.immerse, crop: manifest.crop ?? [0, 0, 1, 1], aspect: manifest.size[0] / manifest.size[1], order, colourAt: orderR ? colourTimes(orderR.bitmap) : null };
+    return { kind: 'painting', scene, spec, immerse: lm.immerse, crop: manifest.crop ?? [0, 0, 1, 1], order, colourAt: orderR ? colourTimes(orderR.bitmap) : null };
   } catch (e) {
     // The living scene couldn't be made: the wall's poster instead, as any memory.
     console.warn('living scene unavailable; the painting stays still', e);
