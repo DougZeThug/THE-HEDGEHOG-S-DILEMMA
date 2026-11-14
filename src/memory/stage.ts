@@ -50,6 +50,20 @@ export function targetSize(host: RuntimeHost): { width: number; height: number }
   return aspect >= 1 ? { width: Math.round(long), height: Math.round(long / aspect) } : { width: Math.round(long * aspect), height: Math.round(long) };
 }
 
+/**
+ * Let go of the staged art and the living scene. A living scene's own render target has no bitmap
+ * (QA, 2026-10-20) and goes with the scene: `targets` also disposes its texture here, as a failed
+ * prepare does (a played memory leaves it to the scene).
+ */
+export function releaseArt(st: Stage, targets: boolean): void {
+  for (const l of [...st.loaded, ...st.extra]) {
+    if (!l.bitmap && !targets) continue;
+    l.texture.dispose();
+    l.bitmap?.close();
+  }
+  st.scene?.dispose();
+}
+
 /** Let go of a living scene's art, and the scene itself (a scene that failed half-made). */
 export function dropScene(st: Stage): void {
   for (const l of st.extra) {

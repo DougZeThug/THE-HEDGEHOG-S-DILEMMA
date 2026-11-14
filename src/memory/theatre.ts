@@ -31,7 +31,6 @@ let project: IProject | null = null;
 let initial: TheatreState = committed as unknown as TheatreState;
 let stateRead: () => TheatreState = () => initial;
 
-/** The project, created once with the committed state. */
 export function theatreProject(): IProject {
   return (project ??= getProject(PROJECT_ID, { state: initial }));
 }
@@ -76,7 +75,6 @@ function objectFor(sheet: ISheet, sheetId: string, name: string, props: Record<s
   return o;
 }
 
-/** A memory's sheet as the controller's authored timeline. */
 export function sheetSource(sheetId: string, schema: Schema, fallback: { sections: Sections; markers: Marker[] }): TimelineSource & { sheet: ISheet } {
   const sheet = theatreProject().sheet(sheetId);
   const objs = Object.entries(schema).map(([name, props]) => [name, objectFor(sheet, sheetId, name, props)] as const);

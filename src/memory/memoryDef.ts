@@ -34,7 +34,6 @@ export interface MemoryDef {
   /** What stays in the room after a natural close, and when it comes (seconds after `exit`). */
   bleed?: 'kitchen-light';
   bleedAt?: number;
-  /** How deep the room hushes while it plays. */
   hush: number;
   /** A drawing on the room's wall the painting opens from, registered onto its lines. */
   opensFrom?: string;

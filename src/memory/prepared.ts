@@ -46,7 +46,6 @@ export interface PreparedFilm extends PreparedLivingBase {
   torn: boolean;
   /** ... or a shadow's: no raggedness, a wide fall. */
   shade: boolean;
-  /** Its soft edge on the wall (m), if wider than the usual brush. */
   feather?: number;
 }
 

@@ -4,7 +4,7 @@ import { artUrl, isFilm, loadLayer, manifestOf } from './art';
 import { prepareFilm } from './prepareFilm';
 import { preparePainting } from './preparePainting';
 import type { Prepared, PreparedLiving, RuntimeHost } from './prepared';
-import { resolve, type Stage } from './stage';
+import { releaseArt, resolve, type Stage } from './stage';
 
 /** The audio's seed (its random choices, which of a cue's takes): a small hash of which memory and variant. Kept as it was: not `hashString`'s number. */
 const audioSeed = (id: string, variant: string): number => id.length * 7 + variant.length;
@@ -30,12 +30,7 @@ export async function prepare(id: string, variant: string, host: RuntimeHost): P
     extra: [],
     scene: null,
     letGo() {
-      for (const l of [...st.loaded, ...st.extra]) {
-        l.texture.dispose();
-        // (The living scene's own entry has no bitmap: QA, 2026-10-20.)
-        l.bitmap?.close();
-      }
-      st.scene?.dispose();
+      releaseArt(st, true);
       audio?.dispose(0);
     },
   };
@@ -76,12 +71,8 @@ export async function prepare(id: string, variant: string, host: RuntimeHost): P
     dispose() {
       if (gone) return;
       gone = true;
-      for (const l of [...st.loaded, ...st.extra]) {
-        if (!l.bitmap) continue;
-        l.texture.dispose();
-        l.bitmap.close();
-      }
-      st.scene?.dispose();
+      // (The audio is its controller's to dispose.)
+      releaseArt(st, false);
     },
   };
 }
