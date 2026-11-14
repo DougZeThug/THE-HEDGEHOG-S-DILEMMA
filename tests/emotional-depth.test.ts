@@ -11,6 +11,7 @@ import { PERSONAS, type Persona } from './playtest/personas';
 import { visit, type Development } from './playtest/measure';
 import { simulate, drive } from './sim';
 import { BASE_INPUT as base } from './helpers/visitor';
+import { stubStorage } from './helpers/storage';
 import type { Surface } from '../src/content/types';
 import type { TimedCue } from '../src/state/cues';
 
@@ -353,13 +354,9 @@ describe('absence: how the visitor left the chair', () => {
 });
 
 describe('return: one word kept, and forgotten on asking', () => {
-  const store = new Map<string, string>();
+  let store = new Map<string, string>();
   beforeAll(() => {
-    (globalThis as unknown as { localStorage: Storage }).localStorage = {
-      getItem: (k: string) => store.get(k) ?? null,
-      setItem: (k: string, v: string) => void store.set(k, v),
-      removeItem: (k: string) => void store.delete(k),
-    } as Storage;
+    store = stubStorage();
   });
 
   it('only how the visit left the chair is stored, versioned, and nothing else about it', async () => {

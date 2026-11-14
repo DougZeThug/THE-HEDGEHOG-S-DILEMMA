@@ -3,9 +3,8 @@ import { PERSONAS, explorer, phone, stillVisitor, reader } from './playtest/pers
 import { visit, windowStats, meaningful } from './playtest/measure';
 import { Director } from '../src/state/Director';
 import { Pacing } from '../src/state/Pacing';
-import type { VisitorInput } from '../src/state/VisitorModel';
+import { SEEDS, input } from './helpers/visitor';
 
-const SEEDS = [1, 2, 3, 4];
 const runs = new Map(PERSONAS.map((p) => [p.id, SEEDS.map((s) => visit(p, 320, s))]));
 const median = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.floor((xs.length - 1) / 2)];
 
@@ -95,7 +94,7 @@ describe('engagement: many kinds of attention are recognised', () => {
 
   it('each kneel is held for a second before it is noticed, not only the first of the visit', () => {
     const d = new Director({ seed: 2, situations: ['residue'] });
-    const base: VisitorInput = { x: 0.3, z: 1.2, yaw: 0, pitch: 0, gazePhraseId: null, gazeChair: true, nearSurface: null, kneeling: false };
+    const base = input({ x: 0.3, z: 1.2, gazeChair: true });
     const go = (kneeling: boolean, seconds: number) => { for (let t = 0; t < seconds; t += 0.1) d.tick(0.1, { ...base, kneeling }, 'north'); };
     go(true, 5);
     expect(d.engagement.count('kneel')).toBe(1);
@@ -109,7 +108,7 @@ describe('engagement: many kinds of attention are recognised', () => {
 
   it('touch on the chair counts, and coming close is answered at once', () => {
     const d = new Director({ seed: 2, situations: ['residue'] });
-    const base: VisitorInput = { x: 0, z: 2.4, yaw: 0, pitch: 0, gazePhraseId: null, gazeChair: true, nearSurface: null, kneeling: false };
+    const base = input({ gazeChair: true });
     expect(d.tapped({ chair: true })).toBe(true);
     const cues = [];
     for (let t = 0; t < 12; t += 0.1) cues.push(...d.tick(0.1, { ...base, z: Math.max(0.8, 2.4 - t) }, 'north'));

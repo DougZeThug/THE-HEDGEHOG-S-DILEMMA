@@ -7,12 +7,8 @@ import { Director } from '../src/state/Director';
 import type { VisitorInput } from '../src/state/VisitorModel';
 import type { TimedCue } from '../src/state/cues';
 import { input } from './helpers/visitor';
+import { measure } from './helpers/measure';
 
-const SZ: Record<string, number> = { xs: 0.13, s: 0.17, m: 0.22, l: 0.31, xl: 0.53 };
-const measure = (p: (typeof PHRASES)[number]) => {
-  const w = Math.min(2.6, p.text.length * 0.034 * (SZ[p.size] / 0.17));
-  return { w, h: SZ[p.size] * Math.ceil((p.text.length * 0.034 * (SZ[p.size] / 0.17)) / 2.6) };
-};
 
 describe('the drawings: few, small, mostly already there', () => {
   it('not captions: at most one sits beside the words it echoes', () => {

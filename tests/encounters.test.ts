@@ -17,8 +17,7 @@ class Visit {
     this.d.release({ written: ['stay'] });
   }
   run(seconds: number, inp: Partial<VisitorInput> = {}) {
-    const base = BASE_INPUT;
-    for (let t = 0; t < seconds; t += 0.1) this.cues.push(...this.d.tick(0.1, { ...base, ...inp }, 'north'));
+    for (let t = 0; t < seconds; t += 0.1) this.cues.push(...this.d.tick(0.1, { ...BASE_INPUT, ...inp }, 'north'));
   }
   look(id: string, seconds = 6) {
     const from = this.cues.length;
@@ -27,16 +26,14 @@ class Visit {
   }
   /** Look elsewhere and wander a little (so stillness doesn't take over the room). */
   away(seconds = 30) {
-    const base = BASE_INPUT;
     for (let t = 0; t < seconds; t += 0.1)
-      this.cues.push(...this.d.tick(0.1, { ...base, x: Math.sin(t * 0.4) * 0.8, z: 2.2 + Math.cos(t * 0.4) * 0.3, yaw: t * 0.2 }, 'north'));
+      this.cues.push(...this.d.tick(0.1, { ...BASE_INPUT, x: Math.sin(t * 0.4) * 0.8, z: 2.2 + Math.cos(t * 0.4) * 0.3, yaw: t * 0.2 }, 'north'));
   }
 }
 const own = (cs: TimedCue[], id: string) => cs.filter((c) => c.rule.startsWith(`encounter:${id}:`));
 const types = (cs: TimedCue[]) => cs.map((c) => c.cue.type);
 
 describe('a meeting that comes due while a memory plays', () => {
-  const base = BASE_INPUT;
   const play = (cue: Cue, rule: string) => {
     const d = new Director({ seed: 3, situations: ['residue'] });
     d.release({ written: ['stay'] });
@@ -44,10 +41,10 @@ describe('a meeting that comes due while a memory plays', () => {
     d.scenes.active = { id: 'biscuit', since: d.now };
     q.queue(0.5, cue, rule);
     const during: TimedCue[] = [];
-    for (let t = 0; t < 3; t += 0.1) during.push(...d.tick(0.1, base, 'north'));
+    for (let t = 0; t < 3; t += 0.1) during.push(...d.tick(0.1, BASE_INPUT, 'north'));
     d.scenes.active = null;
     const after: TimedCue[] = [];
-    for (let t = 0; t < 15; t += 0.1) after.push(...d.tick(0.1, base, 'north'));
+    for (let t = 0; t < 15; t += 0.1) after.push(...d.tick(0.1, BASE_INPUT, 'north'));
     return { during: during.filter((c) => c.rule === rule), after: after.filter((c) => c.rule === rule) };
   };
 
@@ -71,8 +68,7 @@ describe('a meeting put off by a memory', () => {
     const x = d as unknown as { queue: (delay: number, cue: Cue, rule: string, o?: object) => void };
     d.scenes.active = { id: 'biscuit', since: d.now };
     x.queue(0.5, { type: 'sound', kind: 'door', position: { kind: 'chair' }, gain: 0.45 } as Cue, 'encounter:stay:3', { priority: 5, key: 'enc-door' });
-    const base = BASE_INPUT;
-    for (let t = 0; t < 1; t += 0.1) d.tick(0.1, base, 'north');
+    for (let t = 0; t < 1; t += 0.1) d.tick(0.1, BASE_INPUT, 'north');
     const waiting = d.scheduler.pending().find((e) => e.payload.rule === 'encounter:stay:3');
     expect(waiting?.priority).toBe(5);
     expect(waiting?.key).toBe('enc-door');

@@ -3,13 +3,8 @@ import { PHRASES } from '../src/content/phrases';
 import { layoutPhrases, layoutOf, overlaps, surfaceSize, RESERVED, SurfaceLayout, drawingSpots, type Placement } from '../src/world/layout';
 import { DRAWINGS } from '../src/content/drawings';
 import { Rng } from '../src/core/rng';
+import { measure } from './helpers/measure';
 
-// Approximate text metrics (the browser uses real font measurement).
-const SZ: Record<string, number> = { xs: 0.13, s: 0.17, m: 0.22, l: 0.31, xl: 0.53 };
-const measure = (p: (typeof PHRASES)[number]) => {
-  const w = Math.min(2.6, p.text.length * 0.034 * (SZ[p.size] / 0.17));
-  return { w, h: SZ[p.size] * Math.ceil((p.text.length * 0.034 * (SZ[p.size] / 0.17)) / 2.6) };
-};
 
 describe('wall layout', () => {
   const m = layoutPhrases(PHRASES, measure, 4242, drawingSpots(DRAWINGS));
