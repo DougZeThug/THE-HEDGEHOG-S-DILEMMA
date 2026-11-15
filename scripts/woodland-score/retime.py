@@ -52,7 +52,7 @@ GIVE_FADE = 0.03
 SHIFT = OLD_CUT - NEW_CUT
 MAKEUP_DB = 0.265
 EXTRA = (JOIN_B - JOIN_A) - SHIFT
-# Her glance (src/memory/defs.ts WOODLAND_FILM.glance).
+# Her glance (src/memory/beats/woodland.ts WOODLAND_FILM.glance).
 GLANCE = {'eyes': 19.3, 'head': 20.2, 'turned': 21.5, 'settled': 21.8}
 
 

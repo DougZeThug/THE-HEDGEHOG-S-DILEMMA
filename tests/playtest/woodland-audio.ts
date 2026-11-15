@@ -1,6 +1,6 @@
 /**
  * The woodland memory's sound, mixed offline for the review film (tests/playtest/record-woodland.mjs):
- * its own cue sheet and markers (src/memory/defs.ts), its own renders (src/memory/synthWoods.ts) and
+ * its own cue sheet and markers (src/memory/memories/woodland.ts), its own renders (src/memory/synthWoods.ts) and
  * its recordings (`music/<file>` cues, from public/music/, decoded by ffmpeg), at their authored
  * levels; places approximated (a pan from where each sits, a little less for what is further off);
  * a cue's `stopAfter` or `until` cut where the room cuts it (40 ms, ending there). Raised as a
@@ -16,7 +16,7 @@
  */
 import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
-import { WOODLAND } from '../../src/memory/defs';
+import { WOODLAND } from '../../src/memory/memories/woodland';
 import { renderCicadas, renderWoods, RATE as SYNTH_RATE } from '../../src/memory/synthWoods';
 import { isSpot, type Cue } from '../../src/memory/cueSheet';
 
@@ -147,7 +147,10 @@ for (const m of seed.markers) {
     }
   }
   if (STEMS) {
-    for (let i = 0; i < n; i++) (L0[i] = L[i] - L0[i]), (R0[i] = R[i] - R0[i]);
+    for (let i = 0; i < n; i++) {
+      L0[i] = L[i] - L0[i];
+      R0[i] = R[i] - R0[i];
+    }
     wav(`${STEMS}/${m.label.replace(':', '-')}.wav`, L0, R0, 1, true);
   }
 }

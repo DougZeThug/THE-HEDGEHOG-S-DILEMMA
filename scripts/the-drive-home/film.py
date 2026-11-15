@@ -332,7 +332,7 @@ def frame_at(f, room=False):
         break
     if room:
         # (In the room it begins and ends on the wall: no fade from or to black of its own, the wall
-        # takes it in and gives it back: src/memory/defs.ts DRIVE.)
+        # takes it in and gives it back: src/memory/memories/drive.ts DRIVE.)
         return np.clip(img, 0, 1)
     fade_in = smooth01(t / 1.6)
     fade_out = 1 - smooth01((t - (LENGTH - 3.0)) / 2.4)

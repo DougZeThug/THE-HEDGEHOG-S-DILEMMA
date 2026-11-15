@@ -95,7 +95,6 @@ export class EmotionalField {
     for (const k of FIELD_KEYS) {
       const tgt = clamp(target[k] + this.impulse[k]);
       this.v[k] = clamp(approach(this.v[k], tgt, dt, tau[k]));
-      // impulses decay
       this.impulse[k] = approach(this.impulse[k], 0, dt, k === 'reminiscence' || k === 'dissonance' ? 50 : 18);
     }
     this.exposurePeak = Math.max(this.exposurePeak, this.v.exposure);

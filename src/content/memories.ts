@@ -1,11 +1,16 @@
 /**
  * Which lines open into a living memory, and when (docs/memories.md). What each memory is (its
- * art, timeline and sound) is in src/memory/defs.ts; this is only what the Director needs.
+ * art, timeline and sound) is in src/memory/memories/; this is only what the Director needs.
  *
  * A line without a memory stays a line: nothing about it says otherwise.
  */
 import type { Phase, Surface } from './types';
 import { VIGNETTES, type Tone } from './vignettes';
+import { ALMOST_SECTIONS, ALMOST_SEEN_AT } from '../memory/beats/almost';
+import { DRIVE_SECTIONS, DRIVE_SEEN_AT } from '../memory/beats/drive';
+import { SHADOWS_SECTIONS, SHADOWS_SEEN_AT } from '../memory/beats/shadows';
+import { THINGS_SECTIONS, THINGS_SEEN_AT } from '../memory/beats/things';
+import { WOODLAND_SECTIONS, WOODLAND_SEEN_AT } from '../memory/beats/woodland';
 
 export interface SceneMemory {
   id: string;
@@ -61,6 +66,11 @@ export interface SceneMemory {
   afterFinished?: string;
   /** Heard this many times (over all visits), it no longer comes. */
   maxSeen?: number;
+  /**
+   * A drawing (src/content/drawings.ts) its offered line is written beneath, instead of on the wall
+   * faced: the door's line goes under the room's drawn door, which its memory opens from.
+   */
+  under?: string;
   /** Its line is kept off the walls until the memory offers it (it belongs to that moment). */
   reserved?: boolean;
   /** Once it has played, no other painted memory is offered in that visit (it ends the arc). */
@@ -77,45 +87,41 @@ export const SCENE_MEMORIES: SceneMemory[] = [
   // (it takes a first visit's late place; the bedroom comes on a visit after it). Nothing painted
   // comes after it in that visit. A return visit meets the clearing again, empty, kept in the wall.
   {
-    // (seenAt: her head turning to him, defs.ts WOODLAND_FILM.glance.head; maxHold and span the
-    // afternoon's exit and end; tested.)
-    id: 'woodland', phraseId: 'more-minutes', earliest: 200, arc: 'afterAnother', arm: 2.5, commit: 1.0, minHold: 12, seenAt: 20.2, maxHold: 38.5, span: 47.5,
+    id: 'woodland', phraseId: 'more-minutes', earliest: 200, arc: 'afterAnother', arm: 2.5, commit: 1.0, minHold: 12, seenAt: WOODLAND_SEEN_AT, maxHold: WOODLAND_SECTIONS.exit, span: WOODLAND_SECTIONS.end,
     variants: { first: 'afternoon', revisit: ['empty'] }, lookBack: false, offer: { phases: ['contradiction', 'transform'], apart: 120 }, reserved: true, last: true,
   },
   // Almost (docs/almost.md): a felt film, two people side by side at a kitchen table at night; a
   // hand that reaches, a start, a hand taken back, an arm laid nearer too late. Offered once
   // another memory has been, as the room begins to contradict itself. It counts as seen once it
-  // has been entered and played to the startle (defs.ts FILM_AT + FILM_BEATS.startle, 17.1 s). A
-  // return visit plays it again.
+  // has been entered and played to the startle. A return visit plays it again.
   {
-    id: 'almost', phraseId: 'your-hand', earliest: 170, arc: 'afterAnother', arm: 2.5, commit: 1.0, minHold: 12, seenAt: 18, maxHold: 37.5, span: 47.5,
+    id: 'almost', phraseId: 'your-hand', earliest: 170, arc: 'afterAnother', arm: 2.5, commit: 1.0, minHold: 12, seenAt: ALMOST_SEEN_AT, maxHold: ALMOST_SECTIONS.exit, span: ALMOST_SECTIONS.end,
     variants: { first: 'film', revisit: [] }, lookBack: false, offer: { phases: ['contradiction', 'transform'], apart: 120 }, reserved: true,
   },
   // Things I Should Have Said (docs/things.md): a charcoal drawing of a goodbye at a door, tried
   // again in pencil and erased. It opens from "I didn't know what to say." Offered once another
   // memory has been, as the room begins to contradict itself; seen once it has been entered and
-  // played to his almost (defs.ts THINGS_AT + THINGS_BEATS.found, 23.8 s).
+  // played to his turning back.
   {
-    id: 'things', phraseId: 'didnt-know-say', earliest: 210, arc: 'afterAnother', arm: 2.5, commit: 1.0, minHold: 12, seenAt: 26, maxHold: 53.0, span: 63.0,
+    id: 'things', phraseId: 'didnt-know-say', earliest: 210, arc: 'afterAnother', arm: 2.5, commit: 1.0, minHold: 12, seenAt: THINGS_SEEN_AT, maxHold: THINGS_SECTIONS.exit, span: THINGS_SECTIONS.end,
     variants: { first: 'film', revisit: [] }, lookBack: false, offer: { phases: ['contradiction', 'transform'], apart: 120 }, reserved: true,
   },
   // Memory VII, The Shape of Someone (docs/shadows.md): the chair's shadow climbs the wall, shade
   // gathers round it, and in it two people's shadows come together and hold each other while the
   // people stay apart. It opens from "You understood me once, completely, for about a minute."
   // Offered once another memory has been, as the room begins to contradict itself; seen once it
-  // has been entered and played to their meeting (defs.ts SHADOWS_AT + SHADOWS_BEATS.meet, 18.1 s).
+  // has been entered and played to their meeting.
   {
-    id: 'shadows', phraseId: 'understood-minute', earliest: 190, arc: 'afterAnother', arm: 2.5, commit: 1.0, minHold: 12, seenAt: 18, maxHold: 30.5, span: 44.0,
+    id: 'shadows', phraseId: 'understood-minute', earliest: 190, arc: 'afterAnother', arm: 2.5, commit: 1.0, minHold: 12, seenAt: SHADOWS_SEEN_AT, maxHold: SHADOWS_SECTIONS.exit, span: SHADOWS_SECTIONS.end,
     variants: { first: 'film', revisit: [] }, lookBack: false, offer: { phases: ['contradiction', 'transform'], apart: 120 }, reserved: true,
   },
   // The Drive Home (docs/drive-home.md): two brothers drive home at night, angry; without looking,
   // the driver turns the heater vent toward the other, who later turns it partway back. It opens
   // from "Are you angry with me?" Only ever a heart: on a return visit, once Almost has been seen,
   // the room's recoil leads here instead (HEART_SHARED). Seen once it has been entered and played
-  // to the driver's turn of the vent (defs.ts DRIVE_BEATS.vent, 28.1 s); not before the carry in
-  // (13.6 s) can looking away end it.
+  // to the driver's turn of the vent; not before the carry in can looking away end it.
   {
-    id: 'drive', phraseId: 'angry-with-me', earliest: 170, arc: 'afterAnother', arm: 2.5, commit: 1.0, minHold: 17, seenAt: 29, maxHold: 44.0, span: 58.5,
+    id: 'drive', phraseId: 'angry-with-me', earliest: 170, arc: 'afterAnother', arm: 2.5, commit: 1.0, minHold: 17, seenAt: DRIVE_SEEN_AT, maxHold: DRIVE_SECTIONS.exit, span: DRIVE_SECTIONS.end,
     variants: { first: 'film', revisit: [] }, lookBack: false, offer: { phases: [], apart: 120 }, reserved: true,
   },
   // Peace with a cost: the longest, once the room has begun to contradict itself.
@@ -129,7 +135,7 @@ export const SCENE_MEMORIES: SceneMemory[] = [
   // to the door and stops; a return visit, they only pass.
   {
     id: 'door', phraseId: 'door-open', earliest: 240, arc: 'afterAnother', arm: 2.5, commit: 1.0, minHold: 9, maxHold: 18,
-    variants: { first: 'approach', revisit: ['passing'] }, lookBack: false, offer: { phases: ['contradiction', 'transform'], apart: 120, wall: 'south' }, reserved: true,
+    variants: { first: 'approach', revisit: ['passing'] }, lookBack: false, offer: { phases: ['contradiction', 'transform'], apart: 120, wall: 'south' }, reserved: true, under: 'ghost-door',
   },
 ];
 
@@ -190,24 +196,25 @@ export type HeartShape = keyof typeof HEART_BY_SHAPE;
  * shadows hold each other "for about a minute"), whichever they have seen fewer times on earlier
  * visits; on a first visit, by the visit's own coin. (As an offered memory after another, it played
  * in 0-2% of simulated visits: the interaction designer's review, 2026-11-09.)
- */
-export const HEART_SHARED: Partial<Record<HeartShape, readonly string[]>> = { close: ['woodland', 'shadows'], recoiled: ['almost', 'drive'] };
-/**
- * A shared heart whose first is kept on a tie, not left to the visit's coin: the recoil is Almost's
+ *
+ * `firstOnTie`: the first is kept on a tie, not left to the visit's coin. The recoil is Almost's
  * on a first visit (its rhyme, and the only heart that leaves a line), and The Drive Home's on a
  * return once Almost has been seen more often (the artist chose it, 2026-11-09: docs/drive-home.md).
  * After the room has flinched at them, "Are you angry with me?" is their own question.
  */
-export const HEART_FIRST_ON_TIE: ReadonlySet<HeartShape> = new Set(['recoiled']);
+const HEART_SHARED: Partial<Record<HeartShape, { ids: readonly string[]; firstOnTie?: true }>> = {
+  close: { ids: ['woodland', 'shadows'] },
+  recoiled: { ids: ['almost', 'drive'], firstOnTie: true },
+};
 /** Every memory that can be a heart. */
-export const HEART_IDS: ReadonlySet<string> = new Set([...Object.values(HEART_BY_SHAPE), ...Object.values(HEART_SHARED).flat()]);
+export const HEART_IDS: ReadonlySet<string> = new Set([...Object.values(HEART_BY_SHAPE), ...Object.values(HEART_SHARED).flatMap((h) => h.ids)]);
 /** This visit's heart for a shape: `counts` seen on earlier visits, `coin` the visit's own draw (0..1). */
 export function heartOf(shape: HeartShape, counts: Record<string, number>, coin: number): string {
   const shared = HEART_SHARED[shape];
   if (!shared) return HEART_BY_SHAPE[shape];
-  const least = Math.min(...shared.map((id) => counts[id] ?? 0));
-  const fewest = shared.filter((id) => (counts[id] ?? 0) === least);
-  if (HEART_FIRST_ON_TIE.has(shape)) return fewest[0];
+  const least = Math.min(...shared.ids.map((id) => counts[id] ?? 0));
+  const fewest = shared.ids.filter((id) => (counts[id] ?? 0) === least);
+  if (shared.firstOnTie) return fewest[0];
   return fewest[Math.min(fewest.length - 1, Math.floor(coin * fewest.length))];
 }
 /** What a heart leaves beside "I wanted you to stay." (a phrase id): Almost only. */
@@ -216,5 +223,13 @@ export const HEART_ANSWER: Record<string, string> = { almost: 'took-hand-back' }
 export const HEART_EARLIEST = 75;
 /** The other hearts are chosen only from here (the recoil, a median 103 s in, comes first). */
 export const HEART_DECIDE = 150;
+/** A heart pointed at and let be this long no longer keeps the others back. */
+export const HEART_LAPSE = 120;
+/** A heart pointed at and not taken up is written again once, no sooner than this. */
+export const HEART_REINK = 30;
+/** The heart keeps this far from the last pointing, the last memory and the last vignette. */
+export const HEART_POINT_APART = 45;
+/** Seconds before the heart's line, finding no room beside the first line, is tried again. */
+export const HEART_RETRY = 20;
 /** Almost is pointed at no sooner than this after the recoil (its 7 s hold, and a breath). */
 export const HEART_AFTER_RECOIL = 17;

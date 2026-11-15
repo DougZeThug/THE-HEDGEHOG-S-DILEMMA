@@ -1,26 +1,12 @@
 // Browser smoke test: builds nothing, expects a server at BASE (default: vite preview on 4173).
 // Usage: npm run build && npx vite preview --port 4173 & npm run smoke
-import { createRequire } from 'node:module';
 import { mkdirSync } from 'node:fs';
-import { execSync } from 'node:child_process';
+import { BASE, launch } from './playtest/browser-lib.mjs';
 
-const require = createRequire(import.meta.url);
-let chromium;
-try {
-  ({ chromium } = require('playwright'));
-} catch {
-  const globalRoot = execSync('npm root -g').toString().trim();
-  ({ chromium } = require(`${globalRoot}/playwright`));
-}
-
-const BASE = process.env.BASE ?? 'http://localhost:4173/';
 const OUT = process.env.OUT ?? 'test-output';
 mkdirSync(OUT, { recursive: true });
 const errors = [];
-const browser = await chromium.launch({
-  executablePath: process.env.CHROMIUM_PATH || undefined,
-  args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required', '--ignore-gpu-blocklist'],
-});
+const browser = await launch();
 const page = await browser.newPage({ viewport: { width: 1280, height: 760 } });
 page.on('console', (m) => {
   if (m.type() === 'error') errors.push(m.text());

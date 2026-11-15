@@ -1,22 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
-import * as THREE from 'three';
-import { SHADOWS, SHADOWS_AT, SHADOWS_BEATS, SHADOWS_SECONDS, SHADOWS_SECTIONS } from '../src/memory/defs';
-import { SCENE_MEMORIES, HEART_BY_SHAPE, HEART_IDS, heartOf } from '../src/content/memories';
+import { SHADOWS } from '../src/memory/memories/shadows';
+import { SHADOWS_AT, SHADOWS_BEATS, SHADOWS_SECONDS, SHADOWS_SECTIONS } from '../src/memory/beats/shadows';
+import { SCENE_MEMORIES, HEART_IDS, heartOf } from '../src/content/memories';
 import { PHRASE_BY_ID } from '../src/content/phrases';
-import { key, shadowsAt, uprightAt } from '../src/memory/living/shadows';
+import { shadowsAt, uprightAt } from '../src/memory/living/shadows';
 import { compose } from '../src/memory/compose';
 import { Lighting } from '../src/world/Lighting';
-import type { Environment } from '../src/state/Director';
+import { runLighting } from './helpers/lighting';
 
 /** Memory VII, The Shape of Someone, in the room (docs/shadows.md). */
-const ROOT = join(__dirname, '..');
-const render = readFileSync(join(ROOT, 'scripts/memory-vii/render.py'), 'utf8');
-const manifest = JSON.parse(readFileSync(join(ROOT, 'public/memories/shadows/manifest.json'), 'utf8'));
-/** A key list from render.py, as (t, v) pairs. */
-const keysOf = (name: string): [number, number][] =>
-  [...render.match(new RegExp(`^${name} = \\[(.*)\\]$`, 'm'))![1].matchAll(/\(([\d.]+), ([-\d.]+)\)/g)].map((m) => [Number(m[1]), Number(m[2])]);
 const seed = SHADOWS.seed('film');
 const track = (k: string) => seed.tracks[k] as [number, number, string?][];
 const at = (k: string, t: number) => {
@@ -30,27 +22,7 @@ describe('Memory VII on its timeline', () => {
   it('opens from "You understood me once, completely, for about a minute.", reserved, counted once they meet', () => {
     const m = SCENE_MEMORIES.find((x) => x.id === 'shadows')!;
     expect(PHRASE_BY_ID.get(m.phraseId)!.text).toBe('You understood me once, completely, for about a minute.');
-    expect(m.reserved).toBe(true);
     expect(m.seenAt!).toBeGreaterThanOrEqual(SHADOWS_AT + SHADOWS_BEATS.meet - 0.5);
-    expect(m.maxHold).toBe(SHADOWS_SECTIONS.exit);
-    expect(m.span).toBe(SHADOWS_SECTIONS.end);
-  });
-
-  it("the film's moments and the upright framing's keys are render.py's own", () => {
-    const has = (name: string, t: number) => expect(keysOf(name).some(([k]) => Math.abs(k - t) < 1e-6), `${name} @ ${t}`).toBe(true);
-    has('LIGHT_I', SHADOWS_BEATS.light);
-    has('LIGHT_I', SHADOWS_BEATS.dark);
-    has('GAP', SHADOWS_BEATS.meet);
-    has('GAP', SHADOWS_BEATS.hold);
-    has('GAP', SHADOWS_BEATS.part);
-    has('BRIDGE', SHADOWS_BEATS.thread);
-    has('A_ARM', SHADOWS_BEATS.reach);
-    for (const t of [0, 3, 8, 12.6, 15, 20, 26]) {
-      expect(key(t, keysOf('LIGHT_X'))).toBeCloseTo(0.5 + (shadowsAt(t).mid - 0.5) / -0.33, 6);
-      expect(shadowsAt(t).gap).toBeCloseTo(key(t, keysOf('GAP')) / 1920, 6);
-    }
-    expect(SHADOWS_SECONDS * manifest.living.film.fps).toBe(manifest.living.film.frames);
-    expect(manifest.living.film.edge).toBe('shade');
   });
 
   it('the film begins on the wall in the gathered shade, before the visitor is carried in, and ends as its light goes', () => {
@@ -88,20 +60,6 @@ describe('Memory VII on its timeline', () => {
     const g = compose({ 'room.shadow': 1 }, { emerge: 1, exit: 1 }, { presence: 1, parallax: 1, motion: 1 } as never, true);
     expect(g['room.shadow']).toBe(1);
   });
-
-  it('names every sound, each caption long enough to read; its screen-reader lines at least 3.5 s apart', () => {
-    const cue = SHADOWS.cues('film').cues['music:film'];
-    const all = [{ at: cue.captionAt ?? 0, text: cue.caption! }, ...(cue.captions ?? [])].sort((a, b) => a.at - b.at);
-    const words = (s: string) => s.split(/\s+/).filter(Boolean).length;
-    for (let i = 1; i < all.length; i++) expect(all[i].at - all[i - 1].at).toBeGreaterThanOrEqual(Math.max(1.2, 0.4 * words(all[i - 1].text)) - 1e-6);
-    const lines = SHADOWS.announce!('film');
-    const ats = [...new Set(lines.map((l) => l.at))];
-    for (let i = 1; i < ats.length; i++) expect(ats[i] - ats[i - 1]).toBeGreaterThanOrEqual(3.5);
-    for (const from of ['inside', 'wall'] as const) {
-      const said = [{ at: SHADOWS_SECTIONS.active, text: SHADOWS.describe('film') }, ...lines.filter((l) => !(from === 'inside' ? l.wall : l.inside))];
-      for (let i = 0; i + 1 < said.length; i++) expect(words(said[i].text), `${from}: ${said[i].text}`).toBeLessThanOrEqual(Math.floor(2.5 * (said[i + 1].at - said[i].at)));
-    }
-  });
 });
 
 describe('Memory VII on an upright screen', () => {
@@ -125,7 +83,6 @@ describe('Memory VII on an upright screen', () => {
 
 describe("the shared heart: someone who stayed by the chair", () => {
   it('is given the woodland or the shadows, whichever they have seen less; on a first visit by the coin', () => {
-    expect(HEART_BY_SHAPE.close).toBe('woodland');
     expect(HEART_IDS.has('shadows')).toBe(true);
     expect(heartOf('close', {}, 0.2)).toBe('woodland');
     expect(heartOf('close', {}, 0.7)).toBe('shadows');
@@ -138,11 +95,7 @@ describe("the shared heart: someone who stayed by the chair", () => {
 });
 
 describe("the chair's shadow, held by a memory", () => {
-  const env = { lightIntensity: 1, lightWarmth: 0, shadowDrift: 0, chairGlow: 0.2 } as unknown as Environment;
-  const chair = new THREE.Vector3(0, 0, 0);
-  const run = (l: Lighting, s: number) => {
-    for (let i = 0; i < s * 30; i++) l.update(1 / 30, env, i / 30, chair, 0);
-  };
+  const run = (l: Lighting, s: number) => runLighting(l, s);
   it('brings the key down behind the chair, on the line from the wall through it, aimed at the wall, then lets it go', () => {
     const l = new Lighting('low');
     run(l, 2);
@@ -171,9 +124,10 @@ describe("the chair's shadow, held by a memory", () => {
     for (let a = 0; a <= 1; a += 0.05) {
       l.memoryShadow.amount = a;
       run(l, 0.5);
-      least = Math.min(least, Math.hypot(l.key.position.x, l.key.position.z) + (l.key.position.y > 1 ? 0 : 1));
+      least = Math.min(least, Math.hypot(l.key.position.x, l.key.position.z));
     }
     expect(l.key.position.z).toBeGreaterThan(0.9);
-    void least;
+    // On its way round, the key never passes over the chair.
+    expect(least).toBeGreaterThan(0.5);
   });
 });

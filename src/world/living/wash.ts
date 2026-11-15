@@ -15,7 +15,7 @@ export const WASH = 0.85;
 const EVERYWHERE = () => 0.5;
 
 /**
- * What a playing memory's frame washes the room's writing by (src/App.ts, `washUnderPainting`),
+ * What a playing memory's frame washes the room's writing by (src/app/livingMemory.ts, `washUnderPainting`),
  * or null if it keeps its words: only a living memory lies under its writing (the cereal, bedroom
  * and door memories keep theirs on bare plaster, legible). `scene`: its living scene this
  * variant, if it has one (its order map's colour times; none for a revisit: the colour everywhere

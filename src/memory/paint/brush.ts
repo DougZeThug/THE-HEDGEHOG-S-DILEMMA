@@ -10,7 +10,7 @@
  */
 export type Pt = [number, number];
 
-export class Rand {
+class Rand {
   constructor(private s: number) {}
   next(): number {
     this.s = (this.s * 1664525 + 1013904223) >>> 0;

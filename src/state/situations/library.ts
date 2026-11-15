@@ -1,18 +1,16 @@
+import { FRAGMENT_IDS, SITUATION_IDS } from '../../content/ids';
+import { HUM_NOTE } from '../../core/hum';
 import { PHRASES, PHRASE_BY_ID } from '../../content/phrases';
-import type { Phrase, Surface } from '../../content/types';
+import { WALLS, type Phrase, type Surface } from '../../content/types';
+import { hashString, Rng } from '../../core/rng';
 import { warmthOf } from '../Memory';
 import type { SituationContext, SituationDef, SituationHost } from './Situation';
-
-const WALLS: Surface[] = ['north', 'east', 'south', 'west'];
 
 function otherWalls(not: Surface[]): Surface[] {
   return WALLS.filter((w) => !not.includes(w));
 }
 
-/** Seconds per hummed note; fixed so the room knows which note was cut off. */
-export const HUM_NOTE = 0.62;
-/** A rest inside a hummed sequence. */
-export const REST = -100;
+const REST = -100;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. The next room
@@ -25,7 +23,7 @@ const LAUGH_SECONDS = 4.5;
 export const nextRoom: SituationDef = {
   id: 'next-room',
   maxLife: 720,
-  owns: ['vf-laugh-next-room'],
+  owns: [FRAGMENT_IDS.laughNextRoom],
   ready: (h, claimed) => h.phase !== 'arrival' && h.now > 25 && !claimed('beyond') && h.visitor.speed < 0.6,
   begin(c) {
     if (!c.claim('beyond')) return c.end('abort');
@@ -115,7 +113,7 @@ export const nextRoom: SituationDef = {
 function laugh(c: SituationContext, wall: Surface, gain: number, delay = 0) {
   c.emit(delay, {
     type: 'voice', kind: 'laugh', text: null, caption: '(laughter, through the wall)', position: { kind: 'beyond', surface: wall },
-    gain, assetId: 'vf-laugh-next-room', tag: 'next-room',
+    gain, assetId: FRAGMENT_IDS.laughNextRoom, tag: 'next-room',
   }, { major: true, ttl: 12 });
 }
 
@@ -141,7 +139,7 @@ const PENTA = [0, 2, 4, 7, 9, 12];
 export const humming: SituationDef = {
   id: 'humming',
   maxLife: 600,
-  owns: ['vf-hum'],
+  owns: [FRAGMENT_IDS.hum],
   // (Never once the room's music is over: a hum is a tune too.)
   ready: (h, claimed) => h.now > 20 && h.visitor.deepStillFor > 5 && !claimed('beyond') && !h.musicWithdrawn,
   begin(c) {
@@ -209,7 +207,7 @@ export const humming: SituationDef = {
 export const listening: SituationDef = {
   id: 'listening',
   maxLife: 720,
-  owns: ['vf-two-voices'],
+  owns: [FRAGMENT_IDS.twoVoices],
   ready: (h, claimed) =>
     h.now > 45 && h.phase !== 'arrival' && !claimed('beyond') && (h.facing === 'west' || h.distToSurface('west') < 2.2),
   begin(c) {
@@ -296,7 +294,8 @@ export const residue: SituationDef = {
 //    the same word in it, and it appears faintly beside what is left.
 // ─────────────────────────────────────────────────────────────────────────────
 export const erosion: SituationDef = {
-  id: 'erosion',
+  id: SITUATION_IDS.erosion,
+  tag: 'contribution',
   maxLife: 600,
   gentle: true,
   ready: (h) => {
@@ -322,19 +321,22 @@ export const erosion: SituationDef = {
   },
 };
 
-export const SITUATIONS: SituationDef[] = [nextRoom, humming, listening, residue, erosion];
+const SITUATIONS: SituationDef[] = [nextRoom, humming, listening, residue, erosion];
 export const SITUATION_BY_ID = new Map(SITUATIONS.map((s) => [s.id, s]));
 
-const STOP = new Set(
-  'the a an and or but if then so to of in on at by for with from as is are was were be been am i me my you your we our they them it its this that there here not no do did does have has had just very really what who why how when where all some any one'.split(' '),
-);
-
-/** The word that survives: the longest word that carries something. */
-export function keptWord(text: string): string {
-  const words = text.toLowerCase().replace(/[’']/g, "'").match(/[a-z']+/g) ?? [];
-  const content = words.map((w) => w.replace(/^'+|'+$/g, '')).filter((w) => w.length > 1 && !STOP.has(w));
-  const pool = content.length ? content : words;
-  let best = pool[0] ?? '';
-  for (const w of pool) if (w.length > best.length) best = w;
-  return best;
+/**
+ * Which situations a visit can hold: three of the main ones, chosen by the visit's seed (by visit
+ * count alone, every visitor's first visit held the same three, and one of them never came on a
+ * first or second visit), plus those tagged to the visitor's own writing (erosion) every time.
+ * `forced` names a repertoire outright (inspection and tests).
+ */
+export function pickRepertoire(visits: number, forced?: string[], seed?: number): SituationDef[] {
+  if (forced?.length) return forced.map((id) => SITUATION_BY_ID.get(id)).filter((d): d is SituationDef => !!d);
+  const r = new Rng(hashString(seed === undefined ? `situations:${visits}` : `situations:${visits}:${seed}`));
+  const main = SITUATIONS.filter((d) => d.tag !== 'contribution');
+  for (let i = main.length - 1; i > 0; i--) {
+    const j = r.int(0, i);
+    [main[i], main[j]] = [main[j], main[i]];
+  }
+  return [...main.slice(0, 3), ...SITUATIONS.filter((d) => d.tag === 'contribution')];
 }

@@ -1,8 +1,14 @@
 import * as THREE from 'three';
+import { smoothstep } from '../../core/math';
 import { DEFORMERS, livingCamera, livingMaterials, livingTarget, type LivingMaterials } from '../../world/living/materials';
+import { SHEET, rowsOf, puppet, flowerStrips, airborne } from './woodlandGeometry';
 import { CANOPY, blinkDrawing, breath, hash01, windDrift, windResponse } from './performance';
 import type { LivingSpec } from './woodland';
 import type { Values } from '../types';
+import { headFor, type FigureArt, type LivingArt } from './woodlandArt';
+import { bandFor, hasNear, headCel, mayReturn } from './shotPolicy';
+
+export { headFor, type Eye, type FigureArt, type HeadCels, type LivingArt, type NearArt } from './woodlandArt';
 
 /**
  * A living memory's scene (docs/reviews/2026-10-woodland.md): the painting and the people,
@@ -15,118 +21,6 @@ import type { Values } from '../types';
  * on the screen) moves at the screen's rate.
  */
 
-/** One of the puppet's deformers (figure uv, y up; src/memory/living/woodland.ts drives them). */
-export interface Deformer {
-  name: string;
-  c: [number, number];
-  r: [number, number];
-  angle: number;
-  edge: number;
-  pivot: [number, number];
-  part: 'body' | 'limb';
-}
-
-export interface FigureArt {
-  /** An atlas: the body, then her forearm (rows of `pixels`, `gutter` apart). */
-  texture: THREE.Texture;
-  /** An atlas: their lids shut, half, and her sleeve. */
-  lids: THREE.Texture;
-  /** Where they lie on the painting: x0, y0, w, h (painting uv, y up). */
-  place: [number, number, number, number];
-  pixels: [number, number];
-  gutter: number;
-  split: number;
-  deformers: Deformer[];
-  /** Her forearm's extent (figure uv: u0, v0, u1, v1) and the way back along it (a unit vector, sheet px). */
-  limb: { box: [number, number, number, number]; axis: [number, number] };
-}
-
-/** Her turn (cells: its drawings, then the region they are laid in by), where its cells lie on the panel (sheet px, y down: x0, y0, w, h), each drawing's `figure:b.turn` (how far through her turn's drawings: 0 the panel's head .. 1 the last), how many cells, and how they are laid out (columns, rows; each cell's inset in its frame, a fraction of its pitch across and up). */
-export interface HeadCels {
-  texture: THREE.Texture;
-  box: [number, number, number, number];
-  at: number[];
-  cells: number;
-  grid: [number, number, number, number];
-}
-
-/**
- * Which of her heads to show for how far through her turn's drawings she is (`figure:b.turn`): 0 the
- * panel's own, i + 1 the drawing at `at[i]`; the nearest, a tie going to the one further on.
- */
-export function headFor(turn: number, at: readonly number[]): number {
-  let cel = 0, best = Math.abs(turn);
-  at.forEach((a, i) => {
-    const d = Math.abs(turn - a);
-    if (d < best - 1e-9 || (d <= best + 1e-9 && a > (cel ? at[cel - 1] : 0))) {
-      cel = i + 1;
-      best = d;
-    }
-  });
-  return cel;
-}
-
-/**
- * An eye (sheet px, y down): its opening (centre, radii, angle: positive turns its outer end down),
- * its iris (centre, radius), its white (rgb).
- */
-export type Eye = [number, number, number, number, number, number, number, number, number, number, number];
-
-/**
- * The two-shot (scripts/two-shot.py): the two of them close. The same puppet as the wide (the wide's
- * people are this panel at 0.8, its deformers in the panel's pixels), drawn from the panel at its
- * own size, over the ground round them, out of focus; her turn (scripts/her-turn.py), in either
- * shot.
- */
-export interface NearArt {
-  /** An atlas: the body, her forearm (rows of `pixels`, `gutter` apart), as far across the panel as `reach` (sheet px). */
-  texture: THREE.Texture;
-  /** Their lids shut, half, and her sleeve (rows), at this size, over `lidBox` (sheet px, y down: x0, y0, w, h). */
-  lids: THREE.Texture;
-  /** Her turn, at this size. */
-  heads: HeadCels;
-  /** The ground round them, out of focus. */
-  ground: THREE.Texture;
-  /** Where their bed's grass moves in the air (R, over the atlas's reach). */
-  maps: THREE.Texture;
-  pixels: [number, number];
-  gutter: number;
-  reach: number;
-  lidBox: [number, number, number, number];
-  /** Where the ground lies (stage px, y down: x0, y0, w, h). */
-  groundBox: [number, number, number, number];
-  /** Their eyes: his two, then hers. */
-  eyes: Eye[];
-}
-
-export interface LivingArt {
-  plate: THREE.Texture;
-  /** The near flowers' heads (cut from the plate) and where they are (painting uv: x, y, radius as a fraction of the width). */
-  flowers: { texture: THREE.Texture; heads: [number, number, number][] } | null;
-  /** The sky in the canopy's gap, drifting: where it shows, the afternoon's and the evening's, their box and left margin. */
-  clouds: { mask: THREE.Texture; day: THREE.Texture; after: THREE.Texture; box: [number, number, number, number]; pad: number } | null;
-  maps: THREE.Texture;
-  grade: THREE.Texture | null;
-  /** The same composition later, nobody there (the cut, `scene.after`). */
-  after: THREE.Texture | null;
-  sky: { texture: THREE.Texture; box: [number, number, number, number] } | null;
-  figures: FigureArt | null;
-  /** Her head turned to him, at the wide's size (her look, in the wide), if it could be had. */
-  heads?: HeadCels | null;
-  /** The two-shot, if it could be had and her look in the wide too (else its shot is the wide). */
-  near?: NearArt | null;
-  /** The plate's pixels. */
-  size: [number, number];
-}
-
-/** The figures' sheet (deformers are fractions of this; figure uv × this = sheet pixels, y up). */
-const SHEET = new THREE.Vector2(1448, 505);
-
-/** An atlas of `n` rows of `px` (with `gutter` between): a row's height and pitch (fractions). */
-function rowsOf(px: number, gutter: number, n: number): THREE.Vector2 {
-  const total = n * px + (n - 1) * gutter;
-  return new THREE.Vector2(px / total, (px + gutter) / total);
-}
 const FPS = 12;
 /** A turn (radians) that gives the close shot way to the wide, and one under which it may come back (after RETURN s). */
 const GIVE_WAY = 0.244;
@@ -135,127 +29,6 @@ const RETURN = 1.2;
 /** A screen's aspect when none is given (16:9). */
 const WIDE = 16 / 9;
 
-/**
- * The puppet's mesh: the body finer where faces and hands are (an eye is ~20 sheet px), her forearm
- * a patch of its own (`part` 1), one draw.
- */
-function puppet(limb: [number, number, number, number], low: boolean): THREE.BufferGeometry {
-  const fine = (a: number, b: number, lo: number, hi: number, f: number, c: number) => {
-    const out: number[] = [];
-    for (let x = a; x < b; ) {
-      out.push(x);
-      x += x >= lo && x < hi ? f : c;
-    }
-    out.push(b);
-    return out;
-  };
-  // Sheet px (y down) → figure uv (y up).
-  // (Every 4 sheet px across the faces and hands, 12 elsewhere; on the low tier 6 and 18: the
-  // phone's painting is smaller on its screen.)
-  const [f, c] = low ? [6, 18] : [4, 12];
-  const us = fine(0, SHEET.x, 120, 760, f, c).map((x) => x / SHEET.x);
-  const vs = fine(0, SHEET.y, 0, 200, f, c).map((y) => 1 - y / SHEET.y);
-  const pos: number[] = [];
-  const uv: number[] = [];
-  const part: number[] = [];
-  const idx: number[] = [];
-  const grid = (u: number[], v: number[], k: number) => {
-    const base = pos.length / 3;
-    for (const y of v) {
-      for (const x of u) {
-        pos.push(x, y, 0);
-        uv.push(x, y);
-        part.push(k);
-      }
-    }
-    const n = u.length;
-    for (let j = 0; j < v.length - 1; j++)
-      for (let i = 0; i < n - 1; i++) {
-        const a = base + j * n + i;
-        idx.push(a, a + n, a + 1, a + 1, a + n, a + n + 1);
-      }
-  };
-  grid(us, vs, 0);
-  const lin = (a: number, b: number, n: number) => Array.from({ length: n + 1 }, (_, i) => a + ((b - a) * i) / n);
-  grid(lin(limb[0], limb[2], 24), lin(limb[3], limb[1], 24), 1);
-  const g = new THREE.BufferGeometry();
-  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
-  g.setAttribute('part', new THREE.Float32BufferAttribute(part, 1));
-  g.setIndex(idx);
-  return g;
-}
-
-/**
- * The near flowers: each a strip from its root (below its head, in the grass) up past its head,
- * bent about the root by the shader. Painting uv; `stem` = (how far up, swing px, root x, phase).
- */
-function flowerStrips(heads: [number, number, number][], plate: [number, number]): THREE.BufferGeometry {
-  const pos: number[] = [];
-  const uv: number[] = [];
-  const stem: number[] = [];
-  const idx: number[] = [];
-  const px = 1 / plate[0], py = 1 / plate[1];
-  heads.forEach(([x, y, r], k) => {
-    const rad = r * plate[0] + 4;
-    const rootY = y - 70 * py; // the stem goes down into the grass
-    const topY = y + rad * py;
-    const swing = 6 + 6 * Math.min(1, (r * plate[0]) / 22); // bigger heads (nearer) swing further
-    const phase = (k * 2.399) % 6.2831;
-    const base = pos.length / 3;
-    const rows = 8;
-    for (let j = 0; j <= rows; j++) {
-      const v = rootY + ((topY - rootY) * j) / rows;
-      const up = (v - rootY) / (y - rootY); // 1 at the head's centre
-      for (const side of [-1, 1]) {
-        const u = x + side * rad * px;
-        pos.push(u, v, 0);
-        uv.push(u, v);
-        stem.push(Math.min(1.2, Math.max(0, up)), swing, x, phase);
-      }
-    }
-    for (let j = 0; j < rows; j++) {
-      const a = base + j * 2;
-      idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2);
-    }
-  });
-  const g = new THREE.BufferGeometry();
-  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
-  g.setAttribute('stem', new THREE.Float32BufferAttribute(stem, 4));
-  g.setIndex(idx);
-  return g;
-}
-
-/**
- * What is in the air: motes (`stem` = kind 0, index, size px). Each a quad round its centre
- * (`position` its corner, ±1; the shader places it).
- */
-function airborne(items: { stem: [number, number, number, number]; home: [number, number] }[]): THREE.BufferGeometry {
-  const pos: number[] = [];
-  const uv: number[] = [];
-  const stem: number[] = [];
-  const home: number[] = [];
-  const idx: number[] = [];
-  items.forEach((it, k) => {
-    for (const [x, y] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
-      pos.push(x, y, 0);
-      uv.push((x + 1) / 2, (y + 1) / 2);
-      stem.push(...it.stem);
-      home.push(...it.home);
-    }
-    const a = k * 4;
-    idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2);
-  });
-  const g = new THREE.BufferGeometry();
-  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
-  g.setAttribute('stem', new THREE.Float32BufferAttribute(stem, 4));
-  g.setAttribute('home', new THREE.Float32BufferAttribute(home, 2));
-  g.setIndex(idx);
-  return g;
-}
-
 /** The kinds of things the air moves, as springs (Hz, damping): see `windResponse`. */
 // (The canopy slower than the grass, as big trees sway; what is heard of a gust follows it:
 // src/memory/synthWoods.ts. The skeptic's second review, 2026-10-17.)
@@ -263,7 +36,7 @@ const SPRINGS = { grass: [0.7, 0.5], flower: [1.2, 0.3], leaves: CANOPY } as con
 /** How fast the sky drifts (plate px a second): the afternoon's, the evening's. */
 const DRIFT = { day: 2, after: 1.4 };
 
-export class LivingScene {
+export class WoodlandScene {
   readonly target: THREE.WebGLRenderTarget;
   private readonly scene = new THREE.Scene();
   private readonly camera = livingCamera();
@@ -513,7 +286,7 @@ export class LivingScene {
     const two = shot > 0 && this.hasNear;
     // A cut (the people, the evening, the shot, her head's drawing) is drawn on its own frame, not
     // at the next drawing.
-    const state = `${(v['scene.after'] ?? 0) >= 0.5 ? 1 : 0}|${(v['scene.people'] ?? 1) > 0.001 ? 1 : 0}|${shot}|${this.headCel(v)}`;
+    const state = `${(v['scene.after'] ?? 0) >= 0.5 ? 1 : 0}|${(v['scene.people'] ?? 1) > 0.001 ? 1 : 0}|${shot}|${headCel(this.art, v)}`;
     if (tq === this.drawnAt && !viewMoved && !lookMoved && !tapping && state === this.lastState) return false;
     this.lastState = state;
     this.drawnAt = tq;
@@ -546,7 +319,7 @@ export class LivingScene {
     }
     const pu = this.m.plate.uniforms;
     // The real dusk sky arrives in the gap as the evening comes (weather, not a cross-dissolve).
-    pu.uDuskSky.value = this.art.sky ? smooth(0.35, 0.95, dusk) : 0;
+    pu.uDuskSky.value = this.art.sky ? smoothstep(0.35, 0.95, dusk) : 0;
     const after = this.art.after && val('scene.after', 0) >= 0.5 ? 1 : 0;
     pu.uAfter.value = after;
     this.m.flowers.uniforms.uAfter.value = after;
@@ -563,7 +336,7 @@ export class LivingScene {
     if (two) {
       // The two of them close, the camera locked (its frame the screen's: `aspect`), over the
       // ground round them; nothing else of the wide.
-      this.frameStage(...(this.band ?? this.bandFor(o.aspect ?? WIDE)).frame);
+      this.frameStage(...(this.band ?? bandFor(this.spec, o.aspect ?? WIDE)).frame);
     }
     if (this.people) this.pose(tq, val);
     // The two-shot shows them over their ground alone; the wide shows everything else.
@@ -611,7 +384,7 @@ export class LivingScene {
     // It comes on only for the aspects it is shown for. On, its frame holds through a resize while
     // it still holds both faces and the hands; past that it is framed again for the screen (by a
     // frame that holds them there), or it is the wide.
-    const on = this.shot === 1, b = this.band, next = sp ? this.bandFor(aspect) : null;
+    const on = this.shot === 1, b = this.band, next = sp ? bandFor(this.spec, aspect) : null;
     const holds = (x: { holds: [number, number] } | null) => !!x && aspect >= x.holds[0] && aspect <= x.holds[1];
     const held = on && holds(b);
     const near = this.hasNear && !!sp && (held || (aspect >= sp.aspect[0] && aspect <= sp.aspect[1]) || (on && holds(next)));
@@ -632,7 +405,7 @@ export class LivingScene {
       } else if (this.gaveWay) {
         if (o.turn > SETTLE) this.settled = -1;
         else if (this.settled < 0) this.settled = now;
-        if (this.settled >= 0 && now - this.settled >= RETURN && fresh && this.mayReturn(o.t)) this.gaveWay = false;
+        if (this.settled >= 0 && now - this.settled >= RETURN && fresh && mayReturn(this.spec, o.t)) this.gaveWay = false;
       }
     }
     this.lastDrawing = drawing;
@@ -644,39 +417,19 @@ export class LivingScene {
     if (asked > 0 && o.inside && !this.gaveWay) {
       if (!near) this.unframed = true;
       else if (this.unframed) {
-        if (fresh && this.mayReturn(o.t)) this.unframed = false;
+        if (fresh && mayReturn(this.spec, o.t)) this.unframed = false;
         else shot = 0;
       }
     }
     // Its frame is the screen's as it comes on, held while it holds them.
-    if (shot === 1 && !held) this.band = this.bandFor(aspect);
+    if (shot === 1 && !held) this.band = bandFor(this.spec, aspect);
     this.shot = shot;
     return this.shot;
   }
 
-  /** Her head's drawing for these values (the same in either shot: both atlases hold the same drawings). */
-  private headCel(v: Values): number {
-    const heads = this.art.near?.heads ?? this.art.heads;
-    return heads ? headFor(v['figure:b.turn'] ?? 0, heads.at) : 0;
-  }
-
-  /** The two-shot's band for a screen's aspect (`near.frames`). */
-  private bandFor(aspect: number): NonNullable<LivingSpec['near']>['frames'][number] {
-    const fr = this.spec.near!.frames;
-    return fr.find((b) => aspect <= b.upTo) ?? fr[fr.length - 1];
-  }
-
-  /** Whether the two-shot may come back at `t`: not near a beat, not in its last two seconds. */
-  private mayReturn(t: number): boolean {
-    const sp = this.spec.near;
-    if (!sp) return false;
-    if (t > sp.span[1] - 2) return false;
-    return sp.beats.every((b) => Math.abs(t - b) >= 0.5);
-  }
-
   /** Whether the two-shot could be had (with her look drawn in the wide too: every state in both shots). */
   get hasNear(): boolean {
-    return !!this.art.near && !!this.art.figures && !!this.art.heads;
+    return hasNear(this.art);
   }
 
   /** The people at `t`: their breathing, blinks and hair (from time) and what they do (authored). */
@@ -772,9 +525,4 @@ export class LivingScene {
       mat.uniforms.uAfter.value = 0;
     }
   }
-}
-
-function smooth(e0: number, e1: number, x: number): number {
-  const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0)));
-  return t * t * (3 - 2 * t);
 }

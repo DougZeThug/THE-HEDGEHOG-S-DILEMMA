@@ -1,5 +1,5 @@
 {
-  "$comment": "Voices overheard inside the painted memories (src/content/memory-voices.ts, docs/memories.md; decisions in docs/reviews/2026-10-overheard.md). The only place their words are written. Times are the memory's sequence seconds (src/memory/defs.ts); places are inside the painting (u, v across it, d metres behind the wall). Only cereal's first sitting speaks: its later variant, the bedroom, the door, the woodland, Almost and Things stay wordless on purpose.",
+  "$comment": "Voices overheard inside the painted memories (src/content/memory-voices.ts, docs/memories.md; decisions in docs/reviews/2026-10-overheard.md). The only place their words are written. Times are the memory's sequence seconds (src/memory/memories/); places are inside the painting (u, v across it, d metres behind the wall). Only cereal's first sitting speaks: its later variant, the bedroom, the door, the woodland, Almost and Things stay wordless on purpose.",
   "memories": [
     {
       "id": "cereal",

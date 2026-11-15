@@ -1,4 +1,5 @@
-import type { Hand, Size, Surface, VoiceStyle } from '../content/types';
+import type { Hand, Size, Surface, VoiceKind } from '../content/types';
+import type { RuleName } from './rules';
 
 /**
  * Cues are the only way the composer talks to the world and the sound.
@@ -13,7 +14,6 @@ export type VoicePosition =
   /** Starts far away in a corner and drifts towards the chair while it plays. */
   | { kind: 'approach' };
 
-export type VoiceKind = VoiceStyle | 'laugh' | 'murmur' | 'breath' | 'hum';
 
 export type Cue =
   | { type: 'reveal'; phraseId: string; mode: 'emerge' | 'still'; seconds: number }
@@ -139,5 +139,5 @@ export type Cue =
 export interface TimedCue {
   t: number;
   cue: Cue;
-  rule: string;
+  rule: RuleName;
 }

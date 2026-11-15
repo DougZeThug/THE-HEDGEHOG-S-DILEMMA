@@ -13,7 +13,7 @@ Writes, into OUT_DIR (public/memories/drive/film/):
   scene.webp, @low    the poster (the still the wall keeps if the film can't be had): the two of
                       them as the first streetlight crosses them, from FILM (film.py room).
 
-The clocks below are the timeline's (`window.sketch` and `window.reveal`, src/memory/defs.ts DRIVE):
+The clocks below are the timeline's (`window.sketch` and `window.reveal`, src/memory/memories/drive.ts DRIVE):
 tests/memory-defs.test.ts holds them together.
 """
 import json, subprocess, sys

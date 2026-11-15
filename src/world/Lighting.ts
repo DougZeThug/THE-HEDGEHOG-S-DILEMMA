@@ -1,10 +1,11 @@
 import * as THREE from 'three';
 import { RectAreaLightUniformsLib } from 'three/examples/jsm/lights/RectAreaLightUniformsLib.js';
-import { ROOM } from './layout';
+import { ROOM } from '../core/room';
 import { PANEL } from './Room';
-import type { Environment } from '../state/Director';
+import type { Environment } from '../core/environment';
 import { approach } from '../core/math';
-import { lookFor, neutralFor, type Look } from './Style';
+import { QUALITY, type Quality } from './quality';
+import { LIGHT_WHITE, lookFor, neutralFor, type Look } from './Style';
 
 /** One frosted overhead source does nearly all the work; the fill is only bounce. */
 /** The lights were set for a 3.1 m ceiling; from higher they fall off with distance. */
@@ -15,7 +16,6 @@ const HEMI = 1.15;
 
 /** VSM blur radius, in texels of a 512 map (the radius scales with the map, so the penumbra doesn't). */
 const SHADOW_RADIUS = 5;
-export const shadowMapSize = (quality: 'low' | 'medium' | 'high') => (quality === 'low' ? 512 : 1024);
 
 /** What may change before the shadow is redrawn: key and target (m), cone (rad), chair (m, rad), blur, map. */
 const SIG_TOL = [0.003, 0.003, 0.003, 0.003, 0.003, 0.003, 0.002, 0.002, 0.003, 0.01, 0.5];
@@ -113,9 +113,9 @@ export class Lighting {
   /** How far the light has come to the visitor now (0..1). */
   leanNow = 0;
 
-  constructor(quality: 'low' | 'medium' | 'high') {
+  constructor(quality: Quality) {
     RectAreaLightUniformsLib.init();
-    this.area = new THREE.RectAreaLight(0xfff8ee, AREA, 0.9, 0.9);
+    this.area = new THREE.RectAreaLight(LIGHT_WHITE, AREA, 0.9, 0.9);
     this.area.position.set(PANEL.x, ROOM.height - 0.02, PANEL.z);
     this.area.lookAt(PANEL.x, 0, PANEL.z);
     this.group.add(this.area);
@@ -123,11 +123,11 @@ export class Lighting {
     this.hemi = new THREE.HemisphereLight(0xeef1f4, 0xd8d0c4, HEMI);
     this.group.add(this.hemi);
 
-    this.key = new THREE.SpotLight(0xfff8ee, KEY, 0, 0.82, 1, 2);
+    this.key = new THREE.SpotLight(LIGHT_WHITE, KEY, 0, 0.82, 1, 2);
     this.key.position.copy(this.keyBase);
     this.key.target.position.set(0, 0, 0);
     this.key.castShadow = true;
-    const size = shadowMapSize(quality);
+    const size = QUALITY[quality].shadowMap;
     this.key.shadow.mapSize.set(size, size);
     // Only the chair casts a shadow, so the shadow's camera looks at the middle of the cone,
     // not all of it (a 115° frustum spent most of the map on bare floor): its texels shrink

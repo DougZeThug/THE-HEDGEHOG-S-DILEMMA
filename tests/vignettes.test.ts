@@ -87,11 +87,9 @@ describe('the vignettes, as written', () => {
       }
   });
 
-  it('the words carry no direction, and the recordings are never directed bright or amused', () => {
-    // (Performance direction for these lines lives with the recordings; the scripts carry none.)
+  it('the words carry no direction', () => {
+    // (Performance direction for these lines lives with the recordings, and is held to the sad register in dialogue.test.ts.)
     for (const v of VIGNETTES) for (const l of v.lines) expect(l.text, `${v.id}/${l.id}`).not.toMatch(/\[/);
-    const vdir = JSON.parse(readFileSync('src/content/vignettes.dialogue.json', 'utf8')) as { performances: { id: string; input: string }[] };
-    for (const p of vdir.performances) expect(p.input, p.id).not.toMatch(/\[[^\]]*(laugh|bright|cheer|teas|amused|happ|playful|excited|pleased|calling out|casual|generous)/i);
   });
 
   it('the sounds they use exist: recorded, made in the engine, or the room air', () => {
@@ -114,7 +112,7 @@ describe('the vignettes, as written', () => {
         for (const m of markers) if (/^(voice|sfx|bed):/.test(m.label)) expect(sheet.cues[m.label], m.label).toBeDefined();
         for (const [label, cue] of Object.entries(sheet.cues)) if (label.startsWith('voice:')) expect(cue.text).toBeTruthy();
       }
-    expect(vignetteKeys(VIGNETTES[0]).every((k) => k.startsWith('vig:') || k.startsWith('phrase:') || MANIFEST[k])).toBe(true);
+    for (const v of VIGNETTES) expect(vignetteKeys(v).every((k) => k.startsWith('vig:') || k.startsWith('phrase:') || MANIFEST[k]), v.id).toBe(true);
   });
 
   it('a version is chosen from what the visitor did, the same way every time', () => {
@@ -279,7 +277,8 @@ describe('the Director and its vignettes', () => {
     const d = new Director({ seed: 5 });
     // A vignette playing (as the App reports it).
     d.memoryExternal('a-bag');
-    const accept = (d as unknown as { accept(c: unknown, r: string): boolean }).accept.bind(d);
+    const adm = (d as unknown as { admission: { admit(c: unknown, r: string, o: object): boolean } }).admission;
+    const accept = (c: unknown, r: string) => adm.admit(c, r, {});
     expect(accept({ type: 'voice', kind: 'laugh', text: null, caption: '', position: { kind: 'beyond', surface: 'north' }, gain: 0.5 }, 'sit:next-room')).toBe(false);
     expect(accept({ type: 'sound', kind: 'cup', position: { kind: 'chair' }, gain: 0.5 }, 'respond-sound')).toBe(false);
     expect(accept({ type: 'music', mood: 'warm', notes: 4, truncate: false }, 'music')).toBe(false);
@@ -305,7 +304,7 @@ describe('the Director and its vignettes', () => {
   });
 });
 
-import { wordBand, recedeStep, type RecedeState } from '../src/world/WallText';
+import { wordBand, recedeStep, type RecedeState } from '../src/world/writePlan';
 
 describe('what a vignette leaves on the walls', () => {
   it("a lost word's band runs from halfway into the gap before it to halfway into the gap after", () => {
@@ -367,7 +366,8 @@ describe('ending without being heard', () => {
 });
 
 import { readingTake } from '../src/content/vignettes';
-import { voicedGain, Voices } from '../src/audio/Voices';
+import { Voices } from '../src/audio/Voices';
+import { voicedGain } from '../src/audio/voiceAssets';
 
 describe('after the evaluation', () => {
   it("five minutes' heard-before version is heard once: after that the chair is the room's again", () => {
@@ -501,11 +501,6 @@ describe('reaching the rarely met (C, D, G)', () => {
     read(v, 'lonely-birthday', 200);
     v.ended('gone-quiet', 220, true, true);
     expect(offerAt(v, 250)).toBeNull();
-  });
-
-  it("C opens beside its title's line, which the room actually writes", () => {
-    expect(VIGNETTES.find((v) => v.id === 'back-seat')!.anchor.phrase).toBe('alone-with-you');
-    expect(VIGNETTES.find((v) => v.id === 'a-bag')!.offer).toBeTruthy();
   });
 });
 

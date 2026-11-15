@@ -117,27 +117,3 @@ export function speechTiming(text: string, hand: Hand, key: string, speech: [num
   for (let i = 0; i < text.length; i++) if (text[i] === ' ' && i > 0) chars[i] = [chars[i - 1][1], chars[i - 1][1]];
   return { ...finish(text, chars), speech: true };
 }
-
-/** Maximum words a single piece of writing can time separately (the shader's array size). */
-export const MAX_WORDS = 32;
-
-/**
- * Per-word [start, end] for the shader, with words past `upto` never written (a sentence
- * nobody finished). Longer texts share the last slot.
- */
-export function wordSlots(t: Timing, upto = Infinity): [number, number][] {
-  const out: [number, number][] = [];
-  for (let k = 0; k < MAX_WORDS; k++) {
-    const wd = t.words[k];
-    if (!wd) out.push([1e6, 1e6]);
-    else if (k >= upto) out.push([1e6, 1e6]);
-    else if (k === MAX_WORDS - 1 && t.words.length > MAX_WORDS) out.push([wd.start, t.words[t.words.length - 1].end]);
-    else out.push([wd.start, wd.end]);
-  }
-  return out;
-}
-
-/** Index of a word's slot in the shader (words beyond the array share the last slot). */
-export function slotOf(wordIndex: number): number {
-  return Math.min(wordIndex, MAX_WORDS - 1);
-}

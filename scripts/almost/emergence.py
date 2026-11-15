@@ -49,7 +49,7 @@ SIZE = (1.6, 1.8)
 CROP = (0.16, 0.30, 0.62, 0.50)
 # Where the line is written (painting uv, y up): across the top of that part, by the lamp.
 WORDS = (0.47, 0.76)
-# The timeline's clocks for the fibres and the colour (src/memory/defs.ts, ALMOST's window.sketch
+# The timeline's clocks for the fibres and the colour (src/memory/memories/almost.ts, ALMOST's window.sketch
 # and window.reveal: tests/memory-defs.test.ts holds them to these), and how long after its own
 # fibres the colour may come at the soonest (s).
 DRAWN = (1.5, 5.5, 'soft')

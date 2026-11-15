@@ -1,15 +1,13 @@
 import { clamp } from '../core/math';
 import type { VisitorModel } from './VisitorModel';
 import { PHRASE_BY_ID } from '../content/phrases';
-import type { DimVector } from '../content/types';
+import { MOTIFS, type DimVector, type Motif } from '../content/types';
 
 /**
  * Memory — patterns the room notices across a visit. Each motif has a strength in
  * 0..1; once a motif reaches 1 it is "formed" and stays formed for the session.
  * Motifs bias what the room offers later; they are never shown to the visitor.
  */
-export const MOTIFS = ['hesitation', 'closeness', 'distance', 'stillness', 'warmth', 'wandering', 'reading', 'contributor'] as const;
-export type Motif = (typeof MOTIFS)[number];
 
 export function warmthOf(d: DimVector): number {
   return (d.happiness ?? 0) + (d.affection ?? 0) * 0.8 + (d.nostalgia ?? 0) * 0.7 + (d.relief ?? 0) * 0.4;

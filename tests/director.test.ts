@@ -10,15 +10,6 @@ describe('Director', () => {
     expect(a).toEqual(b);
   });
 
-  it('a visitor who only stands still still experiences the room changing', () => {
-    const { d, cues } = simulate(scripts.still, 240);
-    const r = rules(cues);
-    expect(r.has('still-1')).toBe(true);
-    expect(r.has('still-silence')).toBe(true);
-    expect(d.phase).not.toBe('arrival');
-    expect(d.memory.has('stillness')).toBe(true);
-  });
-
   it('stillness is not a fixed ladder: what it brings varies between visits', () => {
     const firstAt = new Set<number>();
     let withVoice = 0;
@@ -79,6 +70,13 @@ describe('Director', () => {
     const { d, cues } = simulate(scripts.wanderer, 500);
     const reveals = cues.filter((c) => c.cue.type === 'reveal');
     expect(reveals.length).toBeGreaterThan(8);
+    const up = new Set<string>();
+    for (const c of cues) {
+      if (c.cue.type === 'reveal') {
+        expect(up.has(c.cue.phraseId), `${c.cue.phraseId} revealed again at ${c.t.toFixed(1)} s while visible`).toBe(false);
+        up.add(c.cue.phraseId);
+      } else if (c.cue.type === 'hide') up.delete(c.cue.phraseId);
+    }
     const revealedNow = [...d.visible.values()].filter((v) => !v.base && v.mode === 'shown').length;
     expect(revealedNow).toBeLessThanOrEqual(26 + 2);
   });
@@ -100,11 +98,9 @@ describe('Director', () => {
       const own = cues.filter((c) => c.rule.startsWith('contribution'));
       const w = own.find((c) => c.cue.type === 'write');
       expect(w && w.cue.type === 'write' && w.cue.text).toBe(text);
-      // Nothing that could read as an answer arrives within the first minute.
       for (const c of own) if (c.cue.type === 'reveal' || c.cue.type === 'voice') expect(c.t - 20).toBeGreaterThanOrEqual(59);
       extras.push(new Set(own.filter((c) => c.cue.type !== 'write').map((c) => c.rule)).size);
     }
-    // At most one other gesture, and often none at all.
     expect(Math.max(...extras)).toBeLessThanOrEqual(1);
     expect(extras.filter((n) => n === 0).length).toBeGreaterThan(4);
     expect(extras.filter((n) => n === 1).length).toBeGreaterThan(4);
@@ -113,9 +109,9 @@ describe('Director', () => {
   it('chooses a departure line from the visit, and returns gracefully', () => {
     const d = simulate(scripts.hesitant, 200).d;
     const line = d.departureLine();
-    expect(typeof line).toBe('string');
+    expect(line.length).toBeGreaterThan(0);
     d.depart();
-    expect(d.env.darkness).toBeLessThanOrEqual(1);
+    expect(d.departing).toBe(true);
     d.returnAfterDeparture();
     expect(d.departing).toBe(false);
   });

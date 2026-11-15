@@ -6,26 +6,15 @@
 //
 //   BASE=http://localhost:4173/ OUT=dir node tests/playtest/core-loop-after.mjs
 // (EXP=name,… passes `?exp=` for a future experiment; this build defines none.)
-import { createRequire } from 'node:module';
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { execSync } from 'node:child_process';
+import { BASE, launch } from './browser-lib.mjs';
 
-const require = createRequire(import.meta.url);
-let chromium;
-try {
-  ({ chromium } = require('playwright'));
-} catch {
-  ({ chromium } = require(`${execSync('npm root -g').toString().trim()}/playwright`));
-}
-const BASE = process.env.BASE ?? 'http://localhost:4173/';
 const EXP = process.env.EXP ?? '';
 const OUT = process.env.OUT ?? 'test-output/core-loop/observed-after';
 const SEED = process.env.SEED ?? '7';
 mkdirSync(OUT, { recursive: true });
 
-const browser = await chromium.launch({
-  executablePath: process.env.CHROMIUM_PATH || undefined,
-  args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required', '--ignore-gpu-blocklist'],
+const browser = await launch({
 });
 try {
 const ctx = await browser.newContext({ viewport: { width: 880, height: 520 } });

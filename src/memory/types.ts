@@ -21,7 +21,6 @@ export interface Sections {
   exit: number;
   /** What remains after the image has gone (sound tails, sunlight in the room). */
   residue: number;
-  /** The end of the sequence. */
   end: number;
 }
 
@@ -51,7 +50,6 @@ export interface MemoryFrame {
   state: Lifecycle;
   /** Local time since the memory started (seconds). */
   t: number;
-  /** The authored sequence position shown. */
   position: number;
   /** Authored values (Theatre), procedural envelopes (GSAP), and the composed result. */
   base: Values;

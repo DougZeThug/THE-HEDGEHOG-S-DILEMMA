@@ -6,14 +6,23 @@ import { PHRASE_BY_ID } from '../content/phrases';
  * The experience engine only ever acts on a validated Interpretation; it never runs
  * code, styles or audio commands supplied by an interpreter.
  */
-export const GESTURES = ['writeOnWall', 'quiet', 'revealRelated', 'distantRecollection', 'temperatureShift', 'rearrange', 'music'] as const;
-export type Gesture = (typeof GESTURES)[number];
+const GESTURES = ['writeOnWall', 'quiet', 'revealRelated', 'distantRecollection', 'temperatureShift', 'rearrange'] as const;
+/** What the room may do with a visitor's words (not an encounter's `Gesture`, src/content/encounters.ts). */
+export type ContributionGesture = (typeof GESTURES)[number];
+
+/**
+ * The longest a contribution may be. index.html's `#contribute-input` carries the same number as its
+ * `maxlength`: change both together (the field stops typing there; the App trims to it all the same).
+ */
+export const MAX_CONTRIBUTION = 140;
+/** What the interpreter reads of one: twice what the field admits, so a longer text from elsewhere still reads whole. */
+export const MAX_INTERPRETED = MAX_CONTRIBUTION * 2;
 
 export interface Interpretation {
   dims: DimVector;
   related: string[];
   contradictions: string[];
-  gestures: Gesture[];
+  gestures: ContributionGesture[];
   intensity: number;
   tense: 'past' | 'present' | 'future' | 'none';
   question: boolean;
@@ -38,7 +47,7 @@ export function validateInterpretation(raw: unknown): Interpretation | null {
   const ids = (x: unknown, max: number) =>
     Array.isArray(x) ? [...new Set(x.filter((i): i is string => typeof i === 'string' && PHRASE_BY_ID.has(i)))].slice(0, max) : [];
   const gestures = Array.isArray(r.gestures)
-    ? [...new Set(r.gestures.filter((g): g is Gesture => typeof g === 'string' && (GESTURES as readonly string[]).includes(g)))]
+    ? [...new Set(r.gestures.filter((g): g is ContributionGesture => typeof g === 'string' && (GESTURES as readonly string[]).includes(g)))]
     : [];
   const tense = r.tense === 'past' || r.tense === 'present' || r.tense === 'future' ? r.tense : 'none';
   return {

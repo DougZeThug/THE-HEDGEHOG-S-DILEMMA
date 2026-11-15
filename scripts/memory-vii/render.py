@@ -7,7 +7,7 @@ holding between them for a moment as they part.
 
     python3 scripts/memory-vii/render.py OUT.mp4 [--room] [--still SECONDS]
 
---room renders the film the installation plays (src/memory/defs.ts SHADOWS): it opens and
+--room renders the film the installation plays (src/memory/memories/shadows.ts SHADOWS): it opens and
 closes on the dim wall, never on black, so the wall's gathering shade (the first frame, revealed
 by order.py's map) and the film are one picture, in and out.
 

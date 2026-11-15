@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { EventScheduler } from '../src/core/scheduler';
-import { Rng } from '../src/core/rng';
 
 describe('EventScheduler', () => {
   it('fires events in time order', () => {
@@ -45,18 +44,6 @@ describe('EventScheduler', () => {
   });
 });
 
-describe('Rng', () => {
-  it('is deterministic per seed', () => {
-    const a = new Rng(42), b = new Rng(42);
-    for (let i = 0; i < 20; i++) expect(a.next()).toBe(b.next());
-  });
-  it('weighted never picks zero weights', () => {
-    const r = new Rng(1);
-    for (let i = 0; i < 200; i++) expect(r.weighted([0, 1, 0, 2])).not.toBe(0);
-    expect(r.weighted([0, 0])).toBe(-1);
-  });
-});
-
 describe('EventScheduler: putting a due event back', () => {
   it('as it was: its priority, its time to live from the new time', () => {
     const s = new EventScheduler<{ n: string }>(5);
@@ -95,4 +82,33 @@ describe('EventScheduler: a major kept from earlier and one decided now', () => 
   it('a higher priority lets the moment decided now go first (the other waits, it has time)', () => {
     expect(setup(3)).toEqual(['decided']);
   });
+});
+
+describe('EventScheduler: the room’s own gap', () => {
+  it('the scheduler keeps the next of them until the gap has passed, and loses none', () => {
+    const s = new EventScheduler<string>(7, 2.5);
+    s.schedule(1, 'a', { room: true });
+    s.schedule(1, 'b', { room: true });
+    s.schedule(1, 'answer');
+    expect(s.tick(1)).toEqual(['a', 'answer']);
+    expect(s.tick(2)).toEqual([]);
+    expect(s.tick(3.6)).toEqual(['b']);
+  });
+
+  it('a major one held back for the room’s gap takes no major slot, and is not lost', () => {
+    const s = new EventScheduler<string>(7, 2.5);
+    s.schedule(1, 'room', { room: true });
+    s.schedule(2, 'major room', { room: true, major: true, ttl: 4 });
+    expect(s.tick(1)).toEqual(['room']);
+    expect(s.tick(2)).toEqual([]);
+    expect(s.tick(3.6)).toEqual(['major room']);
+    // A drawn gap: never a fixed pulse.
+    let n = 0;
+    const j = new EventScheduler<number>(7, () => [4, 6.5, 5][n++ % 3]);
+    for (let i = 0; i < 4; i++) j.schedule(0, i, { room: true });
+    const at: number[] = [];
+    for (let t = 0; t < 20; t += 0.5) if (j.tick(t).length) at.push(t);
+    expect(at).toEqual([0, 4, 10.5, 15.5]);
+  });
+
 });

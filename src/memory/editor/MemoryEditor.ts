@@ -1,8 +1,11 @@
 import studio from '@theatre/studio';
 import { onChange } from '@theatre/core';
 import { driver, PROJECT_ID, readStateFrom, theatreProject } from '../theatre';
-import { MEMORIES, sheetId } from '../defs';
+import { MEMORIES } from '../registry';
+import { sheetId } from '../memoryDef';
+import { SCENE_MEMORIES } from '../../content/memories';
 import type { TheatreState } from '../seed';
+import type { Hedgehog } from '../../app/inspector';
 
 /**
  * The Memory Editor (development only: `?memory&studio`; never in a production build).
@@ -15,21 +18,8 @@ import type { TheatreState } from '../seed';
  * production plays; commit it. "Download" is the fallback (put the file in the same place).
  * See docs/memories.md.
  */
-export interface EditorHost {
-  playMemory(id: string, phraseId: string, variant: string): Promise<boolean>;
-  heldAt(position: number | null): unknown;
-  followPlayhead(position: number): void;
-  memoryWindow: { stylize: number };
-  frameMemory(phraseId: string): void;
-  endLivingMemory(why: 'complete' | 'interrupt' | 'depart'): void;
-  /** Ticks Theatre's driver from the App frame (Studio's UI and playback). */
-  studioTick: ((now: number) => void) | null;
-  text: { anchorOf(id: string): unknown; setShown(id: string): void };
-}
 
-const PHRASE: Record<string, string> = { cereal: 'cereal', bedroom: 'happiest-unneeded', door: 'door-open', woodland: 'more-minutes', almost: 'your-hand', things: 'didnt-know-say', shadows: 'understood-minute', drive: 'angry-with-me' };
-
-export function openEditor(app: EditorHost): void {
+export function openEditor(app: Hedgehog): void {
   studio.initialize({ __experimental_rafDriver: driver, persistenceKey: 'hedgehog-memories' });
   readStateFrom(() => studio.createContentOfSaveFile(PROJECT_ID) as unknown as TheatreState);
   theatreProject();
@@ -61,7 +51,7 @@ export function openEditor(app: EditorHost): void {
 
   const start = async () => {
     const id = memory.value, v = variant.value;
-    const phrase = PHRASE[id] ?? id;
+    const phrase = SCENE_MEMORIES.find((m) => m.id === id)?.phraseId ?? id;
     if (!app.text.anchorOf(phrase)) app.text.setShown(phrase);
     await new Promise((r) => setTimeout(r, 600));
     app.frameMemory(phrase);

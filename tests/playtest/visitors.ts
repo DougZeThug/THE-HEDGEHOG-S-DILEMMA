@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
-import { Director, ROOM_OWN } from '../../src/state/Director';
+import { Director } from '../../src/state/Director';
+import { ROOM_OWN } from '../../src/state/rules';
 import { OPENING_WRITTEN, OPENING_SPOKEN, OPENING_UNFINISHED } from '../../src/state/OpeningScore';
 import { PHRASE_BY_ID } from '../../src/content/phrases';
 import { SCENE_MEMORIES } from '../../src/content/memories';
@@ -311,7 +312,7 @@ export class Policy {
       const m = this.nextManner;
       this.intent = { k: 'chair', stage: m === 'pausing' && this.distance > 2.2 ? 'ring' : 'in', until: t + 60, manner: m };
       this.startChairLeg();
-    } else if ((x -= w.still) < 0) {
+    } else if (x - w.still < 0) {
       const face = g.floorOnly ? 'north' : pick(r, WALLS.filter((s) => s !== 'south' || r.chance(0.3)));
       this.intent = { k: 'still', until: t + r.range(4, 6) * (1 + (1 - g.tempo) * 2), yaw: YAW[face] + r.range(-0.3, 0.3) };
       this.walk(null);
@@ -1017,11 +1018,11 @@ export function liveVisit(g: Genome, seed: number, o: VisitOptions = {}): VisitS
       firstMemoryAt: firstMem?.t ?? null,
       offers: devs.filter((x) => x.rule === 'memory-offer').length,
       heart: d.scenes.heart,
-      heartShape: d.heartShape(),
+      heartShape: d.heart.heartShape(),
       heartAt: d.scenes.heart ? devs.find((x) => x.label === `memory-scene ${d.scenes.heart}`)?.t ?? null : null,
-      answer: d.answerKept(),
+      answer: d.heart.answerKept(),
       answerAt: devs.find((x) => x.rule === 'heart-answer')?.t ?? null,
-      answerRead: d.answerRead(),
+      answerRead: d.heart.answerRead(),
       left: d.heartLeft(),
       northAfter,
       northWhileKept,

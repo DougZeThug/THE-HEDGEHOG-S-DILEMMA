@@ -1,6 +1,6 @@
 """Render the woodland's score (scripts/woodland-score/score.py) on the sampler (piano.py), as composed
 for the painted rig's 53 s timeline: audition/woodland/woodland-score-53s.mp3, from 8.2 s of the
-memory (SCORE_FROM in src/memory/defs.ts) to the cut at 34.5, where it ends (25 ms). The memory's
+memory (SCORE_FROM in src/memory/beats/woodland.ts) to the cut at 34.5, where it ends (25 ms). The memory's
 file, public/music/woodland-score.mp3, is this one joined for the film's timeline
 (scripts/woodland-score/retime.py: run it after this). It is mastered to −23 LUFS on the piano
 (the cue sheet sets its level in the room): the piano with the recording's sparse crackle

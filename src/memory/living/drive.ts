@@ -8,28 +8,8 @@
  * tail lamps. Every cut is a cut here too: each shot's place is held, never eased across a cut.
  */
 
-const ease = (x: number) => 0.5 - 0.5 * Math.cos(Math.PI * Math.min(1, Math.max(0, x)));
-
-/** Where the room's cut begins in the film (s): film.py ROOM_FROM. */
-export const DRIVE_FROM = 6.0;
-
-/**
- * The column's centre (u across the frame) by the film's own second (the full film's, not the room
- * cut's), measured on the room cut's frames: from each shot's start to the next. A pair is a pan
- * within the shot: [start u, end u, from s, to s].
- */
-const SHOTS: [number, number | [number, number, number, number]][] = [
-  [6.0, 0.7], //    two: the passenger, at his window (the driver on the left, in the dark)
-  [10.9, 0.42], //  window: his face
-  [16.9, 0.6], //   hands: his hands, rubbed together
-  [21.4, 0.45], //  driver: the driver's face, eyes on the road
-  [25.9, 0.56], //  vent: the hand on the vent
-  [29.9, 0.47], //  warm: the passenger, the air on him
-  [34.3, 0.43], //  vent-back: his hand on it
-  [37.8, [0.72, 0.24, 38.0, 40.7]], // two-again: from the passenger, slowly, to the driver
-  [40.8, 0.3], //   town: the two of them under the town's lights
-  [44.0, 0.47], //  away: the tail lamps
-];
+import { easeInOut } from '../../core/math';
+import { DRIVE_AT, DRIVE_SHOTS } from '../beats/drive';
 
 /**
  * The film u an upright screen keeps at its centre at the room cut's own second. Under reduced
@@ -37,17 +17,17 @@ const SHOTS: [number, number | [number, number, number, number]][] = [
  * (QA, 2026-11-09).
  */
 export function uprightAt(film: number, reduced = false): [number, number] {
-  const t = film + DRIVE_FROM;
+  const t = film + DRIVE_AT;
   let u = 0.7;
-  for (const [at, v] of SHOTS) {
+  for (const [at, v] of DRIVE_SHOTS) {
     if (t < at) break;
     const x = typeof v === 'number' ? 0 : (t - v[2]) / (v[3] - v[2]);
-    u = typeof v === 'number' ? v : v[0] + (v[1] - v[0]) * (reduced ? (x < 0.5 ? 0 : 1) : ease(x));
+    u = typeof v === 'number' ? v : v[0] + (v[1] - v[0]) * (reduced ? (x < 0.5 ? 0 : 1) : easeInOut(x));
   }
   return [u, 0.5];
 }
 
 export const DRIVE = {
-  cover: { wide: [0.5, 0.5] as [number, number], upright: uprightAt(0), ultra: [0.5, 0.48] as [number, number], uprightScale: 1 },
+  cover: { wide: [0.5, 0.5] as [number, number], upright: uprightAt(0), ultra: [0.5, 0.48] as [number, number] },
   uprightAt,
 };

@@ -20,7 +20,7 @@ import type { Values } from '../types';
  * the two figures. Both are the film as photographed (the spec's `cover` focus points).
  */
 
-export interface FilmArt {
+interface FilmArt {
   video: HTMLVideoElement;
   fps: number;
   frames: number;
@@ -30,7 +30,12 @@ export interface FilmArt {
  * Whether this browser plays a film type ('webm' VP9 or 'mp4' H.264), best first. WebKit (Safari,
  * and every browser on an iPhone) gets H.264 first: what it decodes in hardware on every device.
  */
-export function filmType(probe: HTMLVideoElement = document.createElement('video')): 'webm' | 'mp4' | null {
+export function filmType(probe?: HTMLVideoElement): 'webm' | 'mp4' | null {
+  // (No video element to ask, as outside a browser: no film to play.)
+  if (!probe) {
+    if (typeof document === 'undefined') return null;
+    probe = document.createElement('video');
+  }
   const vp9 = !!probe.canPlayType('video/webm; codecs="vp9"');
   const h264 = !!(probe.canPlayType('video/mp4; codecs="avc1.640028"') || probe.canPlayType('video/mp4; codecs="avc1.42E01E"'));
   if (h264 && 'webkitSetPresentationMode' in probe) return 'mp4';
@@ -53,7 +58,9 @@ export function drawable(v: HTMLVideoElement): boolean {
     g.drawImage(v, 0, 0, 2, 2);
     g.getImageData(0, 0, 1, 1);
     return true;
-  } catch {
+  } catch (e) {
+    // (A frame the canvas will not read back: a cross-origin `SecurityError`, or a decoder not yet ready.)
+    console.debug('film frame not drawable', e);
     return false;
   }
 }

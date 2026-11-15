@@ -45,7 +45,7 @@ const SHEAR = 0.22;
 /** The angle swept each way from square (rad): the light's speed along the wall goes as tan. */
 const SWEEP = 1.15;
 /** How much brighter the lit plaster gets, in linear light (sodium: about 2000 K). */
-export const STREET_GAIN = 2.4;
+const STREET_GAIN = 2.4;
 const SODIUM = new THREE.Vector3(1.0, 0.56, 0.2);
 /** Its strength under the gentle intensity (QA, 2026-11-09: ×1.6 at its peak, not ×2.5). */
 export const STREET_GENTLE = 0.4;

@@ -10,25 +10,13 @@
 //
 //   npm run build && npx vite preview --port 4173 &
 //   node tests/playtest/woodland-coda.mjs          (OUT=test-output/review/woodland/coda NAME=ours)
-import { createRequire } from 'node:module';
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { execSync } from 'node:child_process';
+import { BASE, launch } from './browser-lib.mjs';
 
-const require = createRequire(import.meta.url);
-let chromium;
-try {
-  ({ chromium } = require('playwright'));
-} catch {
-  ({ chromium } = require(`${execSync('npm root -g').toString().trim()}/playwright`));
-}
-const BASE = process.env.BASE ?? 'http://localhost:4173/';
 const OUT = process.env.OUT ?? 'test-output/review/woodland/coda';
 const NAME = process.env.NAME ?? 'ours';
 mkdirSync(OUT, { recursive: true });
-const browser = await chromium.launch({
-  executablePath: process.env.CHROMIUM_PATH || undefined,
-  args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required'],
-});
+const browser = await launch();
 const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
 const errors = [];
 page.on('pageerror', (e) => errors.push(String(e)));
@@ -108,7 +96,7 @@ const report = await page.evaluate(() => {
     nearest,
     // The lines whose own place is beside it, kept off the walls for the rest of the visit (137).
     keptBack: [...(a.director.keptBack ?? [])],
-    written: !!it, text: it?.mesh.userData.text ?? null, coda: a.__coda,
+    written: !!it, text: it?.text ?? null, coda: a.__coda,
     line: pl ? { surface: pl.surface, u: +pl.u.toFixed(3), v: +pl.v.toFixed(3), w: +pl.w.toFixed(3), h: +pl.h.toFixed(3) } : null,
     under: an ? { surface: an.surface, u: +an.u.toFixed(3), v: +an.v.toFixed(3), w: +an.w.toFixed(3), h: +an.h.toFixed(3) } : null,
     gap: pl && an ? +((an.v - an.h / 2) - (pl.v + pl.h / 2)).toFixed(3) : null,

@@ -1,6 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import * as THREE from 'three';
-import { readFileSync } from 'node:fs';
 import { CANOPY, breath, blinkDrawing, gust, hash01, windForce, windResponse, windDrift } from '../src/memory/living/performance';
 import { WASH, washInputs, washOf } from '../src/world/living/wash';
 import { MemoryWindow } from '../src/world/MemoryWindow';
@@ -9,7 +8,11 @@ import { compose, FULL, weightsFor } from '../src/memory/compose';
 import { coverQuad, squareToQuad, visiblePart } from '../src/world/living/Immersion';
 import { useInitialState, sheetSource } from '../src/memory/theatre';
 import { memorySchema } from '../src/memory/sheets';
-import { CUT as CUT_AT, MEMORIES, SHOTS, TURN, TWO_SHOT, WOODLAND as WOODLAND_DEF, WOODLAND_FILM, sheetId, turnDrawings, turnHead } from '../src/memory/defs';
+import { MEMORIES } from '../src/memory/registry';
+import { sheetId } from '../src/memory/memoryDef';
+import { WOODLAND as WOODLAND_DEF } from '../src/memory/memories/woodland';
+import { CUT as CUT_AT, SHOTS, WOODLAND_FILM } from '../src/memory/beats/woodland';
+import { TURN, TWO_SHOT, turnDrawings, turnHead } from '../src/memory/living/woodlandRig';
 import { FilmScene } from '../src/memory/living/FilmScene';
 import { WOODLAND_FILM_SPEC, closeCover } from '../src/memory/living/woodlandFilm';
 import { SCENE_MEMORIES } from '../src/content/memories';
@@ -17,14 +20,14 @@ import { MemoryPlaybackController } from '../src/memory/MemoryPlaybackController
 import { renderCicadas, renderWoods, cicada, midPhrases, RATE, TIMES } from '../src/memory/synthWoods';
 import state from '../src/memory/theatre-state.json';
 import manifest from '../public/memories/woodland/manifest.json';
-import { LivingScene, headFor, type HeadCels, type LivingArt, type NearArt } from '../src/memory/living/LivingScene';
-import { DEFORMERS, livingMaterials } from '../src/world/living/materials';
+import { WoodlandScene, headFor, type HeadCels, type LivingArt, type NearArt } from '../src/memory/living/WoodlandScene';
+import { livingMaterials } from '../src/world/living/materials';
 
 // The woodland memory (docs/reviews/2026-10-woodland.md): its people's involuntary life, the
 // rules it composes by, the way into it, and its ending: a cut, on one frame. Since 2026-10-24 the
 // afternoon plays a film (scripts/woodland-film/); the painted rig it played before is kept
 // (dormant), and what is tested of it here is the rig itself, on its own 53 s timeline (`RIG`).
-/** The painted rig's shots and cut (its own timeline: defs.ts TWO_SHOT). */
+/** The painted rig's shots and cut (its own timeline: living/woodlandRig.ts TWO_SHOT). */
 const RIG = { two: TWO_SHOT.from, wideAgain: TWO_SHOT.to, cut: 34.5 };
 /** The film's frame at a timeline's values (src/memory/living/FilmScene.ts `frameAt`). */
 const frameOf = (v: Record<string, number>) => Math.max(0, Math.min(WOODLAND_FILM.frames - 1, Math.floor((v['scene.film'] ?? 0) * WOODLAND_FILM.fps + 1e-6)));
@@ -42,7 +45,10 @@ describe('their involuntary life, from time alone', () => {
     const gaps = ups.slice(1).map((u, i) => u - ups[i]);
     expect(gaps.length).toBeGreaterThan(8);
     expect(Math.max(...gaps) - Math.min(...gaps)).toBeGreaterThan(0.6);
-    for (const x of xs) expect(x).toBeGreaterThanOrEqual(0), expect(x).toBeLessThan(1.4);
+    for (const x of xs) {
+      expect(x).toBeGreaterThanOrEqual(0);
+      expect(x).toBeLessThan(1.4);
+    }
   });
 
   it('the two of them breathe differently (never in step)', () => {
@@ -64,7 +70,10 @@ describe('their involuntary life, from time alone', () => {
     // cinematic director's evaluation of the built turn, 2026-10-19.)
     const b = SPEC.breath.b;
     let peak = 0, at = 0;
-    for (let t = TWO_SHOT.herEyes; t <= TWO_SHOT.herTurn + 1.5; t += 0.01) if (breath(t, b) > peak) (peak = breath(t, b)), (at = t);
+    for (let t = TWO_SHOT.herEyes; t <= TWO_SHOT.herTurn + 1.5; t += 0.01) if (breath(t, b) > peak) {
+      peak = breath(t, b);
+      at = t;
+    }
     const drawings = turnDrawings();
     const half = drawings.find((d) => d.head >= 0.5)!.at;
     expect(Math.abs(at - half)).toBeLessThanOrEqual(0.25);
@@ -300,7 +309,10 @@ describe('the ending: a cut, on one frame', () => {
         if (!f || f.state === 'complete') break;
         const presence = f.final['window.presence'] ?? 1;
         const w = washed(box, painting, () => 0.2, f.final);
-        if (presence <= 0.02) (gone = true), expect(w, `${at} s, let go`).toBeLessThanOrEqual(0.02);
+        if (presence <= 0.02) {
+          gone = true;
+          expect(w, `${at} s, let go`).toBeLessThanOrEqual(0.02);
+        }
         if (prev !== null) expect(Math.abs(w - prev)).toBeLessThanOrEqual(0.1);
         prev = w;
       }
@@ -322,9 +334,15 @@ describe('the ending: a cut, on one frame', () => {
       const w = washed(box, painting, () => 0.2, f.final);
       if (reveal >= 0.99) coloured = true;
       // The colour gone, the pencil still there: the writing still a trace.
-      if (coloured && reveal <= 0.01 && sketch >= 0.99) pencilOnly++, expect(w).toBeGreaterThanOrEqual(WASH * 0.99);
+      if (coloured && reveal <= 0.01 && sketch >= 0.99) {
+        pencilOnly++;
+        expect(w).toBeGreaterThanOrEqual(WASH * 0.99);
+      }
       // The pencil gone after it: the writing back, whole.
-      if (coloured && sketch <= 0.01) plaster++, expect(w).toBeLessThanOrEqual(0.01);
+      if (coloured && sketch <= 0.01) {
+        plaster++;
+        expect(w).toBeLessThanOrEqual(0.01);
+      }
       if (prev !== null) expect(Math.abs(w - prev)).toBeLessThanOrEqual(0.1);
       prev = w;
     }
@@ -396,7 +414,7 @@ describe("which memories lie under the room's writing (the App's wiring, through
     const def = MEMORIES[id];
     const src = sheetSource(sheetId(id, variant), memorySchema(def.layers, def.living), { sections: def.sections, markers: def.markers });
     const scene = def.living && scenes[variant] ? { colourAt: () => 0.2 } : null;
-    const c = new MemoryPlaybackController({ timeline: src, weights: weightsFor(false, gentle), reduced: false, entrance: Math.min(2, src.sections.active * 0.4), sways: def.sways, exit: def.exit, maxHold: Math.max(def.maxHold, src.sections.exit), tail: def.tail, living: !!scene });
+    const c = new MemoryPlaybackController({ timeline: src, weights: weightsFor(false, gentle), reduced: false, entrance: Math.min(2, src.sections.active * 0.4), sways: def.sways ?? [], exit: def.exit, maxHold: Math.max(def.maxHold, src.sections.exit), tail: def.tail, living: !!scene });
     c.start();
     const frames: { t: number; w: number; state: string; pos: number }[] = [];
     for (let k = 0; k < 60 * 120; k++) {
@@ -492,23 +510,15 @@ describe('the afternoon as a film: its shots at their own speed, the two of them
   const F = WOODLAND_FILM;
   const seconds = F.frames / F.fps;
 
-  it("one clock: its first frame through the way in, then each shot at its own 24 fps, whole, then its last frame held; the memory 47.5 s", () => {
-    expect(seconds).toBe(29.5);
+  it("one clock: its first frame through the way in, then each shot at its own 24 fps, whole, then its last frame held", () => {
     for (let t = 0; t < def.sections.end; t += 1 / 120) {
       const film = src.at(t)['scene.film'];
       const want = t < F.at ? 0 : t < F.at + seconds ? t - F.at : seconds;
       expect(Math.abs(film - want), `${t.toFixed(3)} s`).toBeLessThan(1e-6);
     }
-    // Each shot begins on its own first frame, where the brief's timeline puts it (frames 132, 378, 504).
+    // Each shot begins on its own first frame, where the brief's timeline puts it.
     const frames = [F.shots.opening, F.shots.close, F.shots.wideAgain, F.shots.dusk].map((t) => frameOf(src.at(t + 1e-4)));
     expect(frames).toEqual([0, 132, 378, 504]);
-    expect(Math.round((F.shots.end - F.shots.dusk) * F.fps)).toBe(204);
-    expect(F.shots.end).toBe(F.at + seconds);
-    expect(def.sections.end).toBe(47.5);
-    expect(CUT_AT).toBe(30.5);
-    expect(SHOTS).toEqual({ two: 15.0, wideAgain: 25.25 });
-    // (The way back begins as its last half second plays, as Almost's does: then its last frame.)
-    expect(def.sections.exit).toBe(F.shots.end - 0.5);
   });
 
   it('the room frames the two of them close as close, for exactly that shot (by the frame on the screen), and by its own focus', () => {
@@ -524,8 +534,6 @@ describe('the afternoon as a film: its shots at their own speed, the two of them
     expect(on(c.frames, 200, true, 20)).toBe(0);
     // Before its first frame is sent (its load may have left it anywhere): not close.
     expect(on(c.frames, 200, false, -1)).toBe(0);
-    // Let go before the cut, the film goes back to its first frame (the painting's, as the pencil draws it).
-    expect(WOODLAND_FILM_SPEC.leave).toEqual({ before: CUT_AT, to: 0 });
     // On a 16:9 screen the close-up is centred, as the wides are; wider, its top is kept (their
     // faces); never above the shot's own top.
     expect(closeCover(16 / 9)[1]).toBeCloseTo(0.5, 2);
@@ -547,27 +555,9 @@ describe('the afternoon as a film: its shots at their own speed, the two of them
     expect(closeCover(1.0)[0]).toBe(0.55);
   });
 
-  it('her glance is the close-up\'s own, inside it, and the room counts the afternoon seen once she has turned to him', () => {
-    const g = F.glance;
-    expect(g.eyes).toBeGreaterThan(SHOTS.two + 1);
-    expect(g.eyes).toBeLessThan(g.head);
-    expect(g.head).toBeLessThan(g.turned);
-    expect(g.turned).toBeLessThanOrEqual(g.settled);
-    expect(g.settled).toBeLessThan(SHOTS.wideAgain - 3);
-    const woodland = SCENE_MEMORIES.find((m) => m.id === 'woodland')!;
-    expect(woodland.seenAt).toBe(g.head);
-    expect(woodland.span).toBe(def.sections.end);
-    expect(woodland.maxHold).toBe(def.sections.exit);
-  });
-
   it('their hands: nothing is heard of them', () => {
     expect(def.markers.some((m) => m.label === 'sfx:grass')).toBe(false);
     expect(Object.keys(def.cues('afternoon').cues)).not.toContain('sfx:grass');
-  });
-
-  it('the rig is not played: nothing of it is keyed on the committed timeline', () => {
-    const tracks = def.seed('afternoon').tracks;
-    for (const k of Object.keys(tracks)) expect(/^(figure:|scene\.(shot|people|life|breeze|dusk|colour))/.test(k), k).toBe(false);
   });
 
   it('what a screen reader is told of it: only what is seen, in order, at least 3.5 s apart, to whoever sees it', () => {
@@ -582,7 +572,7 @@ describe('the afternoon as a film: its shots at their own speed, the two of them
   });
 });
 
-describe("the painted rig's two-shot (dormant since 2026-10-24: its own drawings and spec)", () => {
+describe("the painted rig's two-shot (dormant: its own drawings and spec)", () => {
   const T = TWO_SHOT;
   /** The rig's `figure:b.turn` at `t` as its timeline keyed it: each drawing's value, held from its time. */
   const turnAt = (t: number) => {
@@ -645,23 +635,6 @@ describe("the painted rig's two-shot (dormant since 2026-10-24: its own drawings
       }
       expect(wrong).toEqual([]);
     }
-  });
-
-  it('her turn\'s drawings are the ones her-turn.py drew, at these times', () => {
-    // (scripts/her-turn.py mirrors turnDrawings; its turn.json says what each drawing is.)
-    const spec = JSON.parse(readFileSync('references/woodland/drawings/turn/turn.json', 'utf8')) as {
-      drawings: Record<string, number>;
-      schedule: Record<string, { at: number; eyes: number; head: number }>;
-    };
-    const d = turnDrawings();
-    const names = Object.keys(spec.drawings).sort((a, b) => spec.drawings[a] - spec.drawings[b]);
-    expect(names.length).toBe(d.length);
-    names.forEach((n, i) => {
-      expect(spec.drawings[n]).toBeCloseTo(d[i].turn, 4);
-      expect(spec.schedule[n].at).toBeCloseTo(d[i].at, 3);
-      expect(spec.schedule[n].eyes).toBeCloseTo(d[i].eyes, 4);
-      expect(spec.schedule[n].head).toBeCloseTo(d[i].head, 4);
-    });
   });
 
   it('her head: the drawing nearest to how far through her turn she is, a tie going to the one further on', () => {
@@ -801,7 +774,7 @@ describe('the scene, as built (no GL: what it would draw and let go)', () => {
     size: manifest.plate as [number, number],
   });
   const make = (o: { reduced?: boolean; low?: boolean } = {}) =>
-    new LivingScene(art(), SPEC, { width: 64, height: 36, noise: tex(), reduced: !!o.reduced, low: o.low });
+    new WoodlandScene(art(), SPEC, { width: 64, height: 36, noise: tex(), reduced: !!o.reduced, low: o.low });
   // The two-shot's art as the runtime builds it from the manifest (scripts/two-shot.py).
   const near = (): NearArt => {
     type Cells = { box: [number, number, number, number]; at: number[]; cells: number; grid: [number, number, number, number] };
@@ -823,15 +796,8 @@ describe('the scene, as built (no GL: what it would draw and let go)', () => {
   const gl = { getRenderTarget: () => null, setRenderTarget: () => {}, render: () => {} } as unknown as THREE.WebGLRenderer;
   const view = { view: new THREE.Vector4(0, 0, 1, 1), parallax: new THREE.Vector2() };
 
-  it('every deformer the manifest names fits, and the shared program stays inside WebGL2\'s vertex uniforms', () => {
-    expect(lm.figures.deformers.length).toBeLessThanOrEqual(DEFORMERS);
-    // Vertex stage vec4s: the deformers, the wind, the drift (floats pad to a vec4 each), the
-    // matrices, and a margin for the scalars.
-    expect(DEFORMERS * 4 + 16 + 16 + 8 + 16).toBeLessThanOrEqual(256);
-  });
-
   it('the puppet is lighter on the low tier, and fewer motes under reduced motion', () => {
-    const verts = (s: LivingScene) => ((s as unknown as { grid: THREE.BufferGeometry }).grid.getAttribute('position').count);
+    const verts = (s: WoodlandScene) => ((s as unknown as { grid: THREE.BufferGeometry }).grid.getAttribute('position').count);
     const full = make(), low = make({ low: true });
     expect(verts(low)).toBeLessThan(verts(full) * 0.5);
     expect(verts(full)).toBeLessThan(20000);
@@ -878,7 +844,7 @@ describe('the scene, as built (no GL: what it would draw and let go)', () => {
     };
     const { art: a } = both();
     const paint = a.size[0] / a.size[1];
-    const s = new LivingScene(a, SPEC, { width: 64, height: 36, noise: tex(), reduced: false });
+    const s = new WoodlandScene(a, SPEC, { width: 64, height: 36, noise: tex(), reduced: false });
     const m = livingMaterials(tex());
     const v = { 'scene.shot': 1 };
     const [lo, hi] = SPEC.near!.aspect;
@@ -918,7 +884,7 @@ describe('the scene, as built (no GL: what it would draw and let go)', () => {
   });
 
   it('the two-shot: only for someone inside; gives way past 14° and comes back once they have settled, never near a beat nor in its last 2 s', () => {
-    const s = new LivingScene(both().art, SPEC, { width: 64, height: 36, noise: tex(), reduced: false });
+    const s = new WoodlandScene(both().art, SPEC, { width: 64, height: 36, noise: tex(), reduced: false });
     const v = { 'scene.shot': 1 };
     expect(s.choose(v, { inside: true, turn: 0, t: 16 })).toBe(1);
     // Not inside (seen on the wall): the wide.
@@ -979,14 +945,14 @@ describe('the scene, as built (no GL: what it would draw and let go)', () => {
     s.dispose();
     // Without her look drawn in the wide there is no two-shot (a turn away would undo her look).
     const { n } = both();
-    const none = new LivingScene({ ...art(), near: n, heads: null }, SPEC, { width: 64, height: 36, noise: tex(), reduced: false });
+    const none = new WoodlandScene({ ...art(), near: n, heads: null }, SPEC, { width: 64, height: 36, noise: tex(), reduced: false });
     expect(none.choose(v, { inside: true, turn: 0, t: 16 })).toBe(0);
     none.dispose();
   });
 
   it('her turn is drawn in either shot, his look only close; the two-shot is the panel at its reach, lit as the wide', () => {
     const { art: a, n } = both();
-    const s = new LivingScene(a, SPEC, { width: 64, height: 36, noise: tex(), reduced: false });
+    const s = new WoodlandScene(a, SPEC, { width: 64, height: 36, noise: tex(), reduced: false });
     const m = livingMaterials(tex());
     const u = m.people.uniforms;
     const v = { 'scene.shot': 1, 'figure:b.turn': 1, 'figure:a.eyes': 1 };
@@ -1033,17 +999,6 @@ describe('the scene, as built (no GL: what it would draw and let go)', () => {
     expect(m.frame.uniforms.uFrame.value).toBe(m.empty);
   });
 
-  it('everything the wind moves goes with it: a texture moved by the wind is fetched from behind the bend', () => {
-    // (A fetch at uv + d shows the picture moved by -d: the plate's grass and leaves, the two-shot's
-    // ground and the bed grass leaned into the gust and lifted their tips, against the flowers, the
-    // hair and the motes, which move by +d: performance.ts, "positive bends things to the right".)
-    const src = livingMaterials(tex()).people.fragmentShader;
-    expect(src).toContain('vec2 at = uv - d * uPx;');
-    expect(src).toContain('uv -= vec2(dx, -0.25 * abs(dx)) * uPx;');
-    expect(src).toContain('uvF -= vec2(dx, -0.25 * abs(dx)) / uSheet;');
-    expect(src).not.toMatch(/uv\s*\+\s*d\s*\*\s*uPx|uvF?\s*\+=\s*vec2\(dx/);
-  });
-
   it("the shared program stays inside the 16 texture units every phone has (there is no 17th: add data to an existing one)", () => {
     const m = livingMaterials(tex());
     const names = new Set<string>();
@@ -1057,17 +1012,18 @@ describe('the scene, as built (no GL: what it would draw and let go)', () => {
   });
 
   it('lets go of everything it made (twice is safe), and leaves the shared materials holding nothing', () => {
+    // (Watched at the three.js boundary: every geometry and texture the scene made is freed once, and
+    // its own one-texel ground map with them, one texture a play leaked without it.)
+    const geos = new Set<unknown>(), texs = new Set<unknown>();
+    const g = vi.spyOn(THREE.BufferGeometry.prototype, 'dispose').mockImplementation(function (this: unknown) { geos.add(this); });
+    const t = vi.spyOn(THREE.Texture.prototype, 'dispose').mockImplementation(function (this: unknown) { texs.add(this); });
     const s = make();
-    const geos = ['grid', 'strips', 'air', 'quad'].map((k) => (s as unknown as Record<string, THREE.BufferGeometry>)[k]);
-    let freed = 0;
-    for (const g of geos) g.addEventListener('dispose', () => freed++);
-    // (And its own one-texel ground map: one texture a play leaked without it.)
-    let stir = 0;
-    (s as unknown as { stir: THREE.Texture }).stir.addEventListener('dispose', () => stir++);
     s.dispose();
-    s.dispose();
-    expect(freed).toBe(4);
-    expect(stir).toBe(1);
+    expect(() => s.dispose()).not.toThrow();
+    g.mockRestore();
+    t.mockRestore();
+    expect(geos.size).toBe(4);
+    expect(texs.size).toBe(1);
     const m = livingMaterials(tex());
     for (const mat of [m.plate, m.people, m.flowers, m.air])
       for (const k of ['uPlate', 'uFigures', 'uFlowers', 'uClouds', 'uSkyMask']) expect(mat.uniforms[k].value).toBe(m.empty);

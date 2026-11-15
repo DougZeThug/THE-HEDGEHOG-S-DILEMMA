@@ -8,7 +8,8 @@
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { MEMORIES, sheetId } from '../src/memory/defs';
+import { MEMORIES } from '../src/memory/registry';
+import { sheetId } from '../src/memory/memoryDef';
 import { seedState, type TheatreState } from '../src/memory/seed';
 
 const path = join(__dirname, '../src/memory/theatre-state.json');

@@ -1,10 +1,11 @@
-import type { Dimension, DimVector, Hand } from './types';
+import { PHRASE_IDS } from './ids';
+import type { DimVector, Hand } from './types';
 
 /**
  * Authored re-contextualisations. Late in a visit, a phrase the visitor has already read
  * can be written again somewhere else, in another hand, beside a phrase that changes it.
  */
-export interface Recontext {
+interface Recontext {
   id: string;
   /** Phrase written again. */
   phrase: string;
@@ -44,6 +45,8 @@ export const VOICE_FRAGMENTS: VoiceFragment[] = [
   { id: 'vf-come-here', caption: 'Come here.', kind: 'speech', dims: { affection: 0.6, desire: 0.5, fear: 0.2 } },
   { id: 'vf-shh', caption: 'shh. it’s alright.', kind: 'speech', dims: { forgiveness: 0.5, affection: 0.5, relief: 0.5 } },
 ];
+
+export const VOICE_FRAGMENT_BY_ID: ReadonlyMap<string, VoiceFragment> = new Map(VOICE_FRAGMENTS.map((f) => [f.id, f]));
 
 /**
  * Lexicon used by the local interpreter: stems → dimensions. Deliberately not a
@@ -185,7 +188,18 @@ export const THRESHOLD_LINES = [
   'Someone has been here.',
 ];
 
-export const DIMENSION_LIST: Dimension[] = [
-  'isolation', 'connection', 'fear', 'happiness', 'grief', 'shame', 'nostalgia', 'affection',
-  'anger', 'uncertainty', 'forgiveness', 'desire', 'relief', 'self', 'misunderstanding', 'contradiction',
+
+const ANSWER_LINES: readonly { id: string; air?: true }[] = [
+  { id: 'w-stay' }, { id: 'closer', air: true }, { id: 'need-no-one' }, { id: 'if-closer' }, { id: 'not-going' }, { id: 'still-here' },
+  { id: PHRASE_IDS.farEnough, air: true }, { id: 'afraid-leave' }, { id: 'come-back-dont', air: true }, { id: 'maybe-wanted' }, { id: 'w-away' }, { id: 'w-almost' },
 ];
+/** The lines that answer "I wanted you to stay." (kept back while it is unfinished). */
+const ANSWERS_TO_STAY: readonly string[] = ANSWER_LINES.map((a) => a.id);
+/** Answers that may also be written in the air, in order of preference. */
+export const AIR_LINES: readonly string[] = ANSWER_LINES.filter((a) => a.air).map((a) => a.id);
+/** Lines kept back while the key line is left unfinished (nothing answers it but the visitor finishing it). */
+export const WITHHELD_WHILE_UNFINISHED: Readonly<Record<string, readonly string[]>> = { [PHRASE_IDS.stay]: ANSWERS_TO_STAY };
+/** The lines that welcome someone back into the room they left (preferred when they return within a session). */
+export const WELCOME_BACK: ReadonlySet<string> = new Set(['glad-came', 'remember-me']);
+/** "I wanted you to stay." and what answers it: never said near the way out. */
+export const STAY_WORDS: ReadonlySet<string> = new Set([PHRASE_IDS.stay, ...ANSWERS_TO_STAY]);

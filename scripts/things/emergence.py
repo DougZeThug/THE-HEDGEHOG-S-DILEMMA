@@ -50,7 +50,7 @@ SIZE = (1.6, 1.8)
 CROP = (0.27, 0.25, 0.44, 0.49)          # (v2: the drawing's columns 392-869, rows 412-1047)
 # How far into the drawing the film takes over: the goodbye finished (story.py's draw-on is 0-6 s).
 FROM = 6.0
-# The timeline's clocks for the lines and the tone (src/memory/defs.ts, THINGS's window.sketch and
+# The timeline's clocks for the lines and the tone (src/memory/memories/things.ts, THINGS's window.sketch and
 # window.reveal: tests/memory-defs.test.ts holds them to these): both the draw-on's own 6 s.
 DRAWN = (1.5, 7.5, 'linear')
 COLOURED = (1.5, 7.5, 'linear')
@@ -92,7 +92,7 @@ def times(sheet, items, keep, t0, t1):
     return np.clip((out - t0) / (t1 - t0), 0, 1), np.isfinite(out)
 
 
-# The story's moments (src/memory/defs.ts THINGS_BEATS, held to these by tests/film-scene.test.ts):
+# The story's moments (src/memory/beats/things.ts THINGS_BEATS, held to these by tests/film-scene.test.ts):
 # where each move begins on the sheet (its marks' names), or ends.
 BEATS = {'going': ('real/turn/', 'start'), 'gone': ('real/door0/', 'start'), 'lift': ('c1/door', 'start'), 'found': ('c1/back', 'start'),
          'turnsBack': ('c1/turn', 'start'), 'hand': ('c1/hand', 'start'), 'held': ('c1/hand', 'end'), 'takenBack': ('c1/out', 'start'),

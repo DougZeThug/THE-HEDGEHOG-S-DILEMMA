@@ -4,7 +4,7 @@ import type { VisitorModel } from '../VisitorModel';
 import type { Memory } from '../Memory';
 import type { FieldValues } from '../EmotionalField';
 import type { Cue, VoicePosition } from '../cues';
-import type { VisibleState } from '../Director';
+import { sitRule, type RuleName } from '../rules';
 
 /**
  * Situations: authored, multi-beat episodes that bind concrete things (a wall, a phrase,
@@ -31,6 +31,14 @@ export interface ContributionTrace {
   at: number;
 }
 
+export interface VisibleState {
+  mode: 'shown' | 'still';
+  since: number;
+  /** Shown from the start (arrival tier) — never culled. */
+  base: boolean;
+  hiding?: boolean;
+}
+
 /** What a situation may see and do. Implemented by the Director. */
 export interface SituationHost {
   readonly now: number;
@@ -46,10 +54,10 @@ export interface SituationHost {
   geometry(phraseId: string): PhraseGeometry | undefined;
   /** Distance from the visitor to a wall (metres). */
   distToSurface(s: Surface): number;
-  emit(rule: string, delay: number, cue: Cue, opts?: { major?: boolean; ttl?: number; priority?: number }): void;
-  cancel(rule: string): void;
-  reveal(rule: string, id: string, delay: number, mode: 'emerge' | 'still', seconds: number): void;
-  speak(rule: string, p: Phrase, position: VoicePosition, delay: number, style: VoiceStyle, gain: number): void;
+  emit(rule: RuleName, delay: number, cue: Cue, opts?: { major?: boolean; ttl?: number; priority?: number }): void;
+  cancel(rule: RuleName): void;
+  reveal(rule: RuleName, id: string, delay: number, mode: 'emerge' | 'still', seconds: number): void;
+  speak(rule: RuleName, p: Phrase, position: VoicePosition, delay: number, style: VoiceStyle, gain: number): void;
   musicReady(seconds: number): boolean;
   markMusic(): void;
   /** The room's music is over for this visit (the woodland's afternoon was its last). */
@@ -57,7 +65,7 @@ export interface SituationHost {
   lastContribution(): ContributionTrace | null;
 }
 
-export interface SituationState {
+interface SituationState {
   stage: string;
   startedAt: number;
   stageAt: number;
@@ -68,7 +76,7 @@ export interface SituationContext {
   h: SituationHost;
   st: SituationState;
   /** Rule name used for this situation's cues (`sit:<id>`). */
-  rule: string;
+  rule: RuleName;
   /** Seconds in the current stage. */
   since: number;
   go(stage: string): void;
@@ -82,6 +90,8 @@ export interface SituationContext {
 
 export interface SituationDef {
   id: string;
+  /** `contribution`: it answers the visitor's own writing, so forgetting that writing closes it. */
+  tag?: 'contribution';
   /** Upper bound on how long it may stay open (seconds). */
   maxLife: number;
   /** Quiet enough to begin at any moment (it claims nothing and makes no sound when it starts). */
@@ -107,8 +117,8 @@ export class SituationRunner {
   private lastStart = -Infinity;
   /** Last time any situation held the 'beyond' channel. */
   lastBeyond = -Infinity;
-  maxActive = 2;
-  startGap = 40;
+  private readonly maxActive = 2;
+  private readonly startGap = 40;
 
   constructor(readonly repertoire: SituationDef[]) {
     this.pending = [...repertoire];
@@ -123,7 +133,7 @@ export class SituationRunner {
   }
 
   private ctx(h: SituationHost, a: Active): SituationContext {
-    const rule = `sit:${a.def.id}`;
+    const rule = sitRule(a.def.id);
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this;
     return {
@@ -188,12 +198,12 @@ export class SituationRunner {
     if (a.ended === 'abort') this.pending.push(a.def);
   }
 
-  /** Close a situation from outside (e.g. the visitor asked the room to forget their words). */
-  drop(id: string) {
-    const i = this.active.findIndex((a) => a.def.id === id);
-    if (i >= 0) {
-      for (const [ch, holder] of [...this.claims]) if (holder === id) this.claims.delete(ch);
-      this.active.splice(i, 1);
+  /** Close the open situations with this tag from outside (the visitor asked the room to forget their words). */
+  dropTagged(tag: NonNullable<SituationDef['tag']>) {
+    for (const a of [...this.active]) {
+      if (a.def.tag !== tag) continue;
+      for (const [ch, holder] of [...this.claims]) if (holder === a.def.id) this.claims.delete(ch);
+      this.active.splice(this.active.indexOf(a), 1);
     }
   }
 

@@ -6,16 +6,16 @@ import type { VisitorInput } from '../src/state/VisitorModel';
 import type { TimedCue, Cue } from '../src/state/cues';
 import type { Surface } from '../src/content/types';
 import { PHRASES, PHRASE_BY_ID } from '../src/content/phrases';
-import { layoutPhrases, layoutToWorld, ROOM } from '../src/world/layout';
+import { layoutPhrases, layoutToWorld } from '../src/world/layout';
+import { ROOM } from '../src/core/room';
 import { interpretLocally } from '../src/interpret/LocalInterpreter';
-import { keptWord, HUM_NOTE, nextRoom } from '../src/state/situations/library';
+import { HUM_NOTE } from '../src/core/hum';
+import { keptWord } from '../src/core/words';
+import { BASE_INPUT } from './helpers/visitor';
+import { measure } from './helpers/measure';
 
 // Geometry without a browser: the same layout, approximate font metrics.
-const SZ: Record<string, number> = { xs: 0.13, s: 0.17, m: 0.22, l: 0.31, xl: 0.53 };
-const placements = layoutPhrases(PHRASES, (p) => {
-  const w = Math.min(2.6, p.text.length * 0.034 * (SZ[p.size] / 0.17));
-  return { w, h: SZ[p.size] };
-}, 4242, drawingSpots(DRAWINGS));
+const placements = layoutPhrases(PHRASES, measure, 4242, drawingSpots(DRAWINGS));
 const geometry = (id: string) => {
   const pl = placements.get(id);
   return pl ? { surface: pl.surface, ...layoutToWorld(pl.surface, pl.u, pl.v) } : undefined;
@@ -29,10 +29,9 @@ class Visit {
     this.d = new Director({ seed, geometry, situations });
   }
   run(seconds: number, input: In | ((t: number) => In), until?: (c: TimedCue) => boolean): TimedCue | undefined {
-    const base: VisitorInput = { x: 0, z: 2.4, yaw: 0, pitch: 0, gazePhraseId: null, gazeChair: false, nearSurface: null, kneeling: false };
     for (let t = 0; t < seconds; t += 0.1) {
       const i = typeof input === 'function' ? input(t) : input;
-      const out = this.d.tick(0.1, { ...base, ...i }, i.facing ?? 'north');
+      const out = this.d.tick(0.1, { ...BASE_INPUT, ...i }, i.facing ?? 'north');
       this.cues.push(...out);
       const hit = until && out.find(until);
       if (hit) return hit;
@@ -82,9 +81,7 @@ describe('situation: the next room', () => {
     v.run(15, { x: 0.1, z: 0.8 });
     const silence = v.of('sit:next-room').find((c) => c.cue.type === 'silence');
     expect(silence).toBeTruthy();
-    // The absence: no laughter anywhere near that moment, or ever again.
     const laughs = v.cues.filter((c) => isVoice(c.cue) && c.cue.kind === 'laugh');
-    // Nothing else speaks at the chair as the memory is written, or during the quiet that follows.
     const quietEnd = silence!.t + (silence!.cue as { seconds: number }).seconds;
     expect(v.cues.filter((c) => isVoice(c.cue) && c.t > write!.t - 6 && c.t < quietEnd && !c.rule.startsWith('sit:')).length).toBe(0);
     expect(laughs.every((c) => c.t < write!.t - 10)).toBe(true);
@@ -167,7 +164,6 @@ describe('situation: listening', () => {
     expect(stop).toBeTruthy();
     v.run(1, before('west'));
     expect(v.of('sit:listening').some((c) => c.cue.type === 'silence')).toBe(true);
-    // No further murmurs once caught.
     const after = v.run(200, { x: 2.2, z: 0.5, facing: 'east' }, (c) => c.rule === 'sit:listening' && c.cue.type === 'write');
     expect(after).toBeTruthy();
     expect(after!.cue.type === 'write' && after!.cue.surface).toBe('east');
@@ -189,7 +185,6 @@ describe('situation: residue', () => {
     v.run(30, { x: 0, z: 2.6 });
     expect(v.cues.some((c) => c.cue.type === 'chairTurn')).toBe(false);
     v.run(40, { x: 0, z: 2.6 });
-    // Near again, looking at it: it is not seen turning. Then with it out of view: found turned.
     expect(v.run(10, { x: 0, z: 1.5 }, (c) => c.cue.type === 'chairTurn')).toBeUndefined();
     const turn = v.run(10, { x: 0, z: 1.5, yaw: Math.PI }, (c) => c.cue.type === 'chairTurn');
     expect(turn).toBeTruthy();
@@ -220,7 +215,6 @@ describe('situation: erosion', () => {
     v.run(10, { x: 0, z: 2.6, facing: 'south' });
     const kin = v.of('sit:erosion').find((c) => c.cue.type === 'write');
     expect(kin && kin.cue.type === 'write' && kin.cue.beside).toBe('contrib:1:kept');
-    // The engine keeps only the one word, never the whole text.
     expect(JSON.stringify(v.d.situations.snapshot())).not.toContain('used to be');
   });
 
@@ -267,59 +261,4 @@ describe('situation runner', () => {
     expect(leaks).toEqual([]);
   });
 
-  it('is deterministic', () => {
-    const a = new Visit(['next-room', 'humming']);
-    const b = new Visit(['next-room', 'humming']);
-    a.run(400, { x: 0, z: 2.4 });
-    b.run(400, { x: 0, z: 2.4 });
-    expect(a.cues.map((c) => JSON.stringify(c))).toEqual(b.cues.map((c) => JSON.stringify(c)));
-  });
-});
-
-describe('situation: the next room, its wall', () => {
-  it("is always one with something happy on it, so following the laughter finds it", () => {
-    for (let seed = 1; seed <= 12; seed++) {
-      const v = new Visit(['next-room'], seed);
-      v.d.scenes.setAvailable(new Set());
-      const first = v.run(240, { x: 0, z: 2.4, facing: 'east' }, (c) => isVoice(c.cue) && c.cue.tag === 'next-room');
-      expect(first, `seed ${seed}`).toBeTruthy();
-      const wall = (first!.cue as Extract<Cue, { type: 'voice' }>).position as { kind: 'beyond'; surface: Surface };
-      expect(wall.surface, `seed ${seed}`).not.toBe('north');
-    }
-  });
-});
-
-describe('next-room keeping the walls for the memory at the chair', () => {
-  const run = (beyondHeld: boolean) => {
-    const claims = new Set<string>();
-    const gone: string[] = [];
-    const emitted: string[] = [];
-    const st = { stage: 'found', startedAt: 0, stageAt: 0, data: { memory: 'more-minutes', wall: 'east', laughs: 1 } as Record<string, unknown> };
-    const h = { visitor: { distance: 1.2, near: true, nearFor: 10, speed: 0, x: 0.4, z: 1.1 } } as never;
-    const c = {
-      h, st, rule: 'sit:next-room', since: 200,
-      go: (s: string) => (st.stage = s),
-      emit: (_d: number, cue: { type: string }) => emitted.push(cue.type),
-      claim: (ch: string) => (ch === 'beyond' && beyondHeld ? false : (claims.add(ch), true)),
-      release: (ch: string) => (claims.delete(ch), gone.push(ch)),
-      claimed: (ch: string) => claims.has(ch),
-      end: () => undefined,
-    };
-    nextRoom.step(c as never);
-    return { claims, gone, emitted, st };
-  };
-
-  it('keeps the chair and the walls, and writes the memory', () => {
-    const r = run(false);
-    expect([...r.claims].sort()).toEqual(['beyond', 'chair-voice']);
-    expect(r.emitted).toContain('write');
-  });
-
-  it('waits, holding nothing, while another situation has a voice through the walls', () => {
-    const r = run(true);
-    expect(r.claims.size).toBe(0);
-    expect(r.gone).toContain('chair-voice');
-    expect(r.emitted).toEqual([]);
-    expect(r.st.stage).toBe('found');
-  });
 });

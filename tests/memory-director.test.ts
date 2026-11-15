@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { MemoryDirector, type SceneState } from '../src/state/MemoryDirector';
-import { Director } from '../src/state/Director';
 import { ALL_MEMORIES } from '../src/content/memories';
 import { PERSONAS } from './playtest/personas';
 import { visit } from './playtest/measure';
@@ -207,7 +206,6 @@ describe('the Director and its memories, wired together', () => {
 describe('living memories in a visit', () => {
   it('a reader who comes back to the first line meets the memory; nothing talks over it', () => {
     const reader = PERSONAS.find((p) => p.id === 'reader')!;
-    // Over four visits, most meet it; never before its earliest time.
     const runs = [1, 2, 3, 4].map((seed) => visit(reader, 180, seed));
     const ats = runs.map((r) => r.devs.find((d) => d.label === 'memory-scene cereal')?.t).filter((t): t is number => t !== undefined);
     expect(ats.length).toBeGreaterThanOrEqual(3);
@@ -217,14 +215,6 @@ describe('living memories in a visit', () => {
     // Nothing spoken while it plays (about 28 s, as the harness plays it).
     const spoken = r.devs.filter((d) => d.kind === 'voice' && d.t > at! && d.t < at! + 27);
     expect(spoken).toEqual([]);
-  });
-
-  it('the kitchen-light memory is not offered in a visit where cereal has opened', () => {
-    const d = new Director({ seed: 3 });
-    d.scenes.tapped('cereal');
-    // (A visit where cereal played: the kitchen memory rule stands down.)
-    (d.scenes as unknown as { active: unknown }).active = { id: 'cereal', since: 0 };
-    expect(d.scenes.anyPlayed).toBe(true);
   });
 });
 

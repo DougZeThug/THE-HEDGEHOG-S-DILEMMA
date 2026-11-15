@@ -2,6 +2,7 @@
 export function makeNoise(seed: number) {
   const perm = new Uint8Array(512);
   let s = seed >>> 0 || 1;
+  // Not core/rng's mulberry32: the baked textures (and so the look) are seeded from this exact stream.
   const rnd = () => ((s = (Math.imul(s ^ (s >>> 15), 2246822507) + 0x9e3779b9) >>> 0) / 4294967296);
   const p = Array.from({ length: 256 }, (_, i) => i);
   for (let i = 255; i > 0; i--) {

@@ -3,6 +3,7 @@ import { VignettePlayer, type VignetteHost } from '../src/memory/VignettePlayer'
 import type { Effect, GapKind, VignetteDef } from '../src/content/vignettes';
 import type { Cue } from '../src/memory/cueSheet';
 import { FakeCtx, FakeNode } from './fakeAudio';
+import { fakeHost } from './helpers/memoryHost';
 import { MemoryClock } from '../src/memory/clock';
 
 /** A small vignette: two people, a pause, one line cut off, a light, a deliberate silence. */
@@ -52,19 +53,16 @@ function setup(missing: string[] = []) {
   const gaps: GapKind[] = [];
   const fallbacks: Cue[] = [];
   let letGo: string | null = null;
-  const host: VignetteHost = {
-    ctx: ctx as unknown as BaseAudioContext,
+  const host = fakeHost<VignetteHost>(ctx, {}, {
     out: bus as unknown as AudioNode,
     load: async (asset) => (missing.includes(asset) || !LEN[asset] ? null : ({ duration: LEN[asset] } as AudioBuffer)),
-    impulse: () => ({}) as AudioBuffer,
-    intensity: 1,
     where: () => [0, 1.5, 0],
     caption: (t, _s, speech, side) => captions.push([t, !!speech, side]),
     fallback: (cue) => fallbacks.push(cue),
     effect: (f, d) => fx.push([f, d]),
     gap: (g) => gaps.push(g),
     letGo: (m) => (letGo = m),
-  };
+  });
   const baseline = ctx.nodes.size;
   return { ctx, host, captions, fx, gaps, fallbacks, baseline, letGo: () => letGo };
 }
@@ -82,7 +80,7 @@ function run(p: VignettePlayer, ctx: FakeCtx, seconds: number, dt = 1 / 60) {
 afterEach(() => vi.useRealTimers());
 
 describe('a vignette, played', () => {
-  it('a long frame never loses a line: its clock keeps its cap of a second (QA, 2026-10-19)', async () => {
+  it('a long frame never loses a line: its clock keeps its cap of a second', async () => {
     vi.useFakeTimers();
     for (const stall of [1.5, 2, 3]) {
       for (const before of [0.5, 3, 7]) {

@@ -16,6 +16,7 @@ import { execSync } from 'node:child_process';
 import { PHRASES } from '../../src/content/phrases';
 import { MEMORY_BY_PHRASE } from '../../src/content/memories';
 import { Director } from '../../src/state/Director';
+import { FIRST_WRITTEN } from '../../src/content/ids';
 import { Rng } from '../../src/core/rng';
 
 type Got = { du: number; gap: number; kept: string[] } | null;
@@ -35,8 +36,8 @@ const OWN = PHRASES.filter((p) => p.at).map((p) => p.id);
 // The lines a visit has written by then: the room's first ones, then others it could write first.
 const pool = PHRASES.filter((p) => p.tier === 'arrival' && p.surface !== 'floor' && p.surface !== 'ceiling' && !MEMORY_BY_PHRASE.has(p.id) && !Director.RESERVED.has(p.id)).map((p) => p.id);
 const rng = new Rng(Number(process.env.SEED ?? 1));
-const rest = pool.filter((id) => !Director.FIRST_WRITTEN.includes(id)).sort(() => rng.next() - 0.5);
-const SHOWN = [...Director.FIRST_WRITTEN, ...rest].slice(0, Number(process.env.SHOWN ?? 0));
+const rest = pool.filter((id) => !FIRST_WRITTEN.includes(id)).sort(() => rng.next() - 0.5);
+const SHOWN = [...FIRST_WRITTEN, ...rest].slice(0, Number(process.env.SHOWN ?? 0));
 
 const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required'] });
 const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });

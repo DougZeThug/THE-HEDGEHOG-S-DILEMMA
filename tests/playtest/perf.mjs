@@ -8,27 +8,14 @@
 // containers) absolute frame times are meaningless; counts (programs, textures, draw calls),
 // memory, startup ordering and relative changes between two runs on the same machine are not.
 // A real GPU run is the same command against a real browser (CHROMIUM_PATH, HEADED=1).
-import { createRequire } from 'node:module';
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { execSync } from 'node:child_process';
+import { BASE, devices, launch } from './browser-lib.mjs';
 
-const require = createRequire(import.meta.url);
-let chromium, devices;
-try {
-  ({ chromium, devices } = require('playwright'));
-} catch {
-  ({ chromium, devices } = require(`${execSync('npm root -g').toString().trim()}/playwright`));
-}
-const BASE = process.env.BASE ?? 'http://localhost:4173/';
 const OUT = process.env.OUT ?? 'test-output/perf/run';
 const SAMPLE_S = Number(process.env.SAMPLE_S ?? 8);
 mkdirSync(OUT, { recursive: true });
 
-const browser = await chromium.launch({
-  executablePath: process.env.CHROMIUM_PATH || undefined,
-  headless: !process.env.HEADED,
-  args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required'],
-});
+const browser = await launch({ headless: !process.env.HEADED });
 
 const stats = (xs) => {
   const s = [...xs].sort((a, b) => a - b);

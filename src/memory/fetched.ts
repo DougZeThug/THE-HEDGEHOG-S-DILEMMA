@@ -1,6 +1,6 @@
 /**
  * Fetched bytes, kept so a memory armed earlier starts without a network wait: its art and its
- * recordings are fetched when its line is armed (runtime.prefetch), and decoded only when it is
+ * recordings are fetched when its line is armed (prefetch), and decoded only when it is
  * prepared. (Its own small module, so the room's sound loader shares it without loading the
  * memories' runtime.)
  */
@@ -10,6 +10,7 @@ export function fetchBlob(url: string): Promise<Blob> {
   let p = fetched.get(url);
   if (!p) {
     p = fetch(url).then((r) => (r.ok ? r.blob() : Promise.reject(new Error(`${url}: ${r.status}`))));
+    // (A failed fetch is forgotten, so the next ask tries again; the caller sees the rejection.)
     p.catch(() => fetched.delete(url));
     fetched.set(url, p);
   }

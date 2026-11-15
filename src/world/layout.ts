@@ -1,12 +1,27 @@
 import type { DrawingDef } from '../content/drawings';
-import type { Phrase, Surface } from '../content/types';
+import { isSideWall, type Phrase, type Surface, type Wall } from '../content/types';
 import { Rng, hashString } from '../core/rng';
+import { ROOM } from '../core/room';
 
-/** The room as built (metres). The chair stands at the origin. */
-// 3.6 m high: a taller box than a house's room (the artist's reference is this proportion).
-export const ROOM = { halfW: 3.2, halfD: 3.2, height: 3.6 };
+/** Walls that play a part of their own. Everything else asks the wall by role, not by compass name. */
+export const WALL_ROLE = {
+  /** Behind the chair: the quiet wall, plastered plainly, its column left empty for answers. */
+  calm: 'north',
+  behindChair: 'north',
+  /** Where a visitor's own words are written. */
+  contribution: 'south',
+} as const satisfies Record<string, Wall>;
 
-export interface SurfaceSize {
+/** Where writing goes, in this order, when its own wall is full. */
+const OVERFLOW_ORDER: readonly Wall[] = ['south', 'west', 'north', 'east'];
+
+/** The floor or the ceiling: the surfaces laid out by depth, not by height. */
+export const isFlat = (s: Surface): s is 'floor' | 'ceiling' => s === 'floor' || s === 'ceiling';
+
+/** A wall, not the floor or the ceiling. */
+export const isWallSurface = (s: Surface): s is Wall => !isFlat(s);
+
+interface SurfaceSize {
   /** Extent along u (metres). */
   w: number;
   /** Extent along v (metres). */
@@ -14,9 +29,9 @@ export interface SurfaceSize {
 }
 
 export function surfaceSize(s: Surface): SurfaceSize {
-  if (s === 'north' || s === 'south') return { w: ROOM.halfW * 2, h: ROOM.height };
-  if (s === 'east' || s === 'west') return { w: ROOM.halfD * 2, h: ROOM.height };
-  return { w: ROOM.halfW * 2, h: ROOM.halfD * 2 };
+  if (isSideWall(s)) return { w: ROOM.halfD * 2, h: ROOM.height };
+  if (isFlat(s)) return { w: ROOM.halfW * 2, h: ROOM.halfD * 2 };
+  return { w: ROOM.halfW * 2, h: ROOM.height };
 }
 
 /**
@@ -91,8 +106,8 @@ const CLUSTERS: Record<Surface, Cluster[]> = {
  * the band of the south wall where visitors' own words will be written.
  */
 export const RESERVED: Partial<Record<Surface, Rect[]>> = {
-  north: [{ u: ROOM.halfW, v: 1.55, w: 1.1, h: 1.2 }],
-  south: [{ u: ROOM.halfW, v: 1.45, w: 2.2, h: 0.9 }],
+  [WALL_ROLE.behindChair]: [{ u: ROOM.halfW, v: 1.55, w: 1.1, h: 1.2 }],
+  [WALL_ROLE.contribution]: [{ u: ROOM.halfW, v: 1.45, w: 2.2, h: 0.9 }],
   // The skylight's opening (Room.PANEL), with a margin: nothing is written into the light.
   ceiling: [{ u: ROOM.halfW + 0.1, v: ROOM.halfD - 0.95, w: 1.6, h: 1.6 }],
 };
@@ -188,7 +203,7 @@ export class SurfaceLayout {
     const cands: Rect[] = [];
     for (let v = h / 2 + 0.13; v <= size.h - h / 2 - 0.08; v += step)
       for (let u = w / 2 + 0.06; u <= size.w - w / 2 - 0.06; u += step) cands.push({ u, v, w, h });
-    const mid = surface === 'floor' || surface === 'ceiling' ? size.h / 2 : 1.5;
+    const mid = isFlat(surface) ? size.h / 2 : 1.5;
     cands.sort((a, b) => Math.abs(a.v - mid) - Math.abs(b.v - mid) + (this.rng.next() - 0.5) * 0.4);
     for (const r of cands) if (this.free(surface, r, pad, ignoreReserved)) return r;
     return null;
@@ -265,7 +280,7 @@ export class SurfaceLayout {
     const size = surfaceSize(p.surface);
     const rot = p.hand === 'typed' ? 0 : ((hashString(p.id) % 1000) / 1000 - 0.5) * 0.05;
     // The wall is full: the writing goes onto another wall rather than over other writing.
-    for (const other of ['south', 'west', 'north', 'east'] as Surface[]) {
+    for (const other of OVERFLOW_ORDER) {
       if (other === p.surface) continue;
       const o = this.scan(other, w, h, 0.02);
       if (o) return this.add({ surface: other, ...o, rot });
@@ -279,7 +294,7 @@ export class SurfaceLayout {
     const size = surfaceSize(p.surface);
     const rot = p.hand === 'typed' ? 0 : ((hashString(p.id) % 1000) / 1000 - 0.5) * 0.05;
     if (p.at) {
-      return this.add({ surface: p.surface, u: p.at[0] * size.w, v: p.surface === 'floor' || p.surface === 'ceiling' ? p.at[1] * size.h : p.at[1], w, h, rot });
+      return this.add({ surface: p.surface, u: p.at[0] * size.w, v: isFlat(p.surface) ? p.at[1] * size.h : p.at[1], w, h, rot });
     }
     const cname = chooseCluster(p);
     const clusters = CLUSTERS[p.surface];

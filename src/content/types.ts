@@ -20,6 +20,11 @@ export type Dimension = (typeof DIMENSIONS)[number];
 export type DimVector = Partial<Record<Dimension, number>>;
 
 export type Surface = 'north' | 'east' | 'south' | 'west' | 'floor' | 'ceiling';
+
+export type Wall = 'north' | 'east' | 'south' | 'west';
+export const WALLS: readonly Wall[] = ['north', 'east', 'south', 'west'];
+export const isSideWall = (s: Surface): s is 'east' | 'west' => s === 'east' || s === 'west';
+export const oppositeWall = (w: Wall): Wall => ({ north: 'south', south: 'north', east: 'west', west: 'east' }[w] as Wall);
 export type Hand = 'pencil' | 'pen' | 'marker' | 'typed' | 'child' | 'faint' | 'crayon' | 'cyan' | 'visitor';
 export type Size = 'xs' | 's' | 'm' | 'l' | 'xl';
 export type Kind = 'word' | 'fragment' | 'question' | 'statement' | 'passage';
@@ -37,6 +42,7 @@ export type Kind = 'word' | 'fragment' | 'question' | 'statement' | 'passage';
 export type Tier = 'arrival' | 'familiar' | 'contradiction' | 'transform' | 'still' | 'near' | 'annotation';
 
 export type VoiceStyle = 'whisper' | 'tender' | 'flat' | 'distant' | 'child';
+export type VoiceKind = VoiceStyle | 'laugh' | 'murmur' | 'breath' | 'hum';
 
 export interface Phrase {
   id: string;
@@ -58,5 +64,8 @@ export interface Phrase {
   keywords?: string[];
 }
 
-export const PHASES = ['arrival', 'familiar', 'contradiction', 'transform'] as const;
-export type Phase = (typeof PHASES)[number];
+export type Phase = 'arrival' | 'familiar' | 'contradiction' | 'transform';
+
+/** Patterns the room notices across a visit (state/Memory.ts tracks them; content refers to them). */
+export const MOTIFS = ['hesitation', 'closeness', 'distance', 'stillness', 'warmth', 'wandering', 'reading', 'contributor'] as const;
+export type Motif = (typeof MOTIFS)[number];

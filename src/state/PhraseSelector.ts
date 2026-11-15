@@ -1,12 +1,13 @@
 import type { Dimension, Phase, Phrase, Surface, Tier } from '../content/types';
 import { DIMENSIONS } from '../content/types';
 import { PHRASES, PHRASE_BY_ID } from '../content/phrases';
+import { affinity } from '../content/affinity';
 import type { FieldValues } from './EmotionalField';
 import type { Memory } from './Memory';
 import type { Rng } from '../core/rng';
 
 /** What the room is "reaching for" given its field. */
-export function desireVector(f: FieldValues, phase: Phase): Record<Dimension, number> {
+function desireVector(f: FieldValues, phase: Phase): Record<Dimension, number> {
   const late = phase === 'transform' ? 1 : 0;
   return {
     happiness: f.warmth * 0.6 + f.relief * 0.3 + f.reminiscence * 0.3,
@@ -28,19 +29,7 @@ export function desireVector(f: FieldValues, phase: Phase): Record<Dimension, nu
   };
 }
 
-export function affinity(p: Phrase, d: Record<Dimension, number>): number {
-  let s = 0;
-  let w = 0;
-  for (const k of DIMENSIONS) {
-    const pw = p.dims[k] ?? 0;
-    if (!pw) continue;
-    s += pw * d[k];
-    w += pw;
-  }
-  return w > 0 ? s / Math.sqrt(w) : 0;
-}
-
-const TIER_OPEN: Record<Phase, Tier[]> = {
+export const TIER_OPEN: Record<Phase, Tier[]> = {
   arrival: ['arrival', 'near'],
   familiar: ['arrival', 'near', 'familiar'],
   contradiction: ['arrival', 'near', 'familiar', 'contradiction'],
@@ -134,5 +123,3 @@ export class PhraseSelector {
     return i < 0 ? null : top[i].p;
   }
 }
-
-export { TIER_OPEN };

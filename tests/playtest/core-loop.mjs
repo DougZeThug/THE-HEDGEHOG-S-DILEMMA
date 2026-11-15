@@ -7,26 +7,15 @@
 //
 // Software rendering runs at about 10–18 fps here: room time runs slower than the clock, so read
 // timings as upper bounds; what was emitted, and in what order, is what this shows.
-import { createRequire } from 'node:module';
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { execSync } from 'node:child_process';
+import { BASE, launch } from './browser-lib.mjs';
 
-const require = createRequire(import.meta.url);
-let chromium;
-try {
-  ({ chromium } = require('playwright'));
-} catch {
-  ({ chromium } = require(`${execSync('npm root -g').toString().trim()}/playwright`));
-}
-const BASE = process.env.BASE ?? 'http://localhost:4173/';
 const EXP = process.env.EXP ?? '';
 const OUT = process.env.OUT ?? 'test-output/core-loop/observed';
 const SEED = process.env.SEED ?? '7';
 mkdirSync(OUT, { recursive: true });
 
-const browser = await chromium.launch({
-  executablePath: process.env.CHROMIUM_PATH || undefined,
-  args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required', '--ignore-gpu-blocklist'],
+const browser = await launch({
 });
 // Small and at low quality: software rendering is the bottleneck, and room time only runs as fast as frames come.
 try {

@@ -20,7 +20,7 @@ export interface Place {
 
 /**
  * A place in the white room rather than in a painting (a vignette has no window): fixed when the
- * vignette begins, from where the visitor is and which way they face (src/App.ts `spot`).
+ * vignette begins, from where the visitor is and which way they face (src/app/vignettes.ts `spotWorld`).
  * - `chair`: the chair, at the height of someone sitting on it
  * - `left`/`right`: beside the visitor, a little ahead (two people, the space between them)
  * - `close`: just beside the visitor's head (a phone held to the ear)
@@ -107,3 +107,9 @@ export function cueKind(label: string): CueKind | null {
   const k = label.slice(0, label.indexOf(':'));
   return k === 'sfx' || k === 'bed' || k === 'music' || k === 'voice' ? k : null;
 }
+
+/** State rather than an event: a bed or music, which a stall that passed its start still owes. */
+export const isLasting = (label: string): boolean => {
+  const k = cueKind(label);
+  return k === 'bed' || k === 'music';
+};

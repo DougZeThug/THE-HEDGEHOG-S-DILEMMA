@@ -1,7 +1,7 @@
 import type { AudioEngine } from './AudioEngine';
-import type { Environment } from '../state/Director';
+import type { Environment } from '../core/environment';
 import { Rng } from '../core/rng';
-import { ROOM } from '../world/layout';
+import { ROOM } from '../core/room';
 
 /**
  * Room tone, built from parts:
@@ -149,7 +149,7 @@ export class Ambience {
     this.nextChord = Math.max(this.nextChord, until + 35);
   }
 
-  update(_dt: number, env: Environment, t: number) {
+  update(env: Environment, t: number) {
     if (!this.started) return;
     const a = this.a;
     const f = this.fade;

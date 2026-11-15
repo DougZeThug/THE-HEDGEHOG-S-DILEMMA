@@ -6,7 +6,7 @@
  * gestures on top of each other; a due major event that would crowd the last one is
  * deferred, not dropped (unless it has expired).
  */
-export interface ScheduledEvent<T> {
+interface ScheduledEvent<T> {
   id: number;
   at: number;
   payload: T;
@@ -23,7 +23,7 @@ export interface ScheduledEvent<T> {
   key?: string;
 }
 
-export interface ScheduleOptions {
+interface ScheduleOptions {
   major?: boolean;
   room?: boolean;
   group?: string;
@@ -100,9 +100,6 @@ export class EventScheduler<T> {
   }
   mark(key: string, now: number): void {
     this.cooldowns.set(key, now);
-  }
-  lastFired(key: string): number | undefined {
-    return this.cooldowns.get(key);
   }
 
   /**

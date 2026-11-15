@@ -67,7 +67,7 @@ describe('performance follows the emotional field', () => {
     Object.assign(d.field.v, field({ solitude: 0.9, exposure: 0.6 }));
     (d as unknown as { voice: (...a: unknown[]) => void }).voice('t', 0, 'tender', 'I wanted you to stay.', 'I wanted you to stay.', { kind: 'chair' }, { phraseId: 'stay' });
     const cue = d.scheduler.pending().at(-1)!.payload.cue as Extract<Cue, { type: 'voice' }>;
-    expect(['stay--breaking', 'stay--after-silence', 'stay--breaking-lean', 'stay--tears-loose']).toContain(cue.performance);
+    expect(performancesFor('stay').map((p) => p.id)).toContain(cue.performance);
     expect(cue.performances?.[0]).toBe(`dialogue/${cue.performance}.mp3`);
     expect(cue.caption).toBe('I wanted you to stay.');
   });

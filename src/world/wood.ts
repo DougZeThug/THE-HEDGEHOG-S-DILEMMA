@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { canvas } from './canvas';
 import { makeNoise } from './noise';
 import { Rng } from '../core/rng';
 import { scanDetail, scanNormal, sampleDetail, type NormalTile } from './scans';
@@ -38,14 +39,8 @@ function tileAt(t: NormalTile, xm: number, ym: number, out: number[]): number[] 
 
 export function woodMaps(seed = 7): { map: THREE.CanvasTexture; rough: THREE.CanvasTexture; normal: THREE.CanvasTexture | null } {
   const W = 1024, H = 512;
-  const c = document.createElement('canvas');
-  c.width = W;
-  c.height = H;
-  const g = c.getContext('2d')!;
-  const rc = document.createElement('canvas');
-  rc.width = W;
-  rc.height = H;
-  const rg = rc.getContext('2d')!;
+  const [c, g] = canvas(W, H);
+  const [rc, rg] = canvas(W, H);
   const img = g.createImageData(W, H);
   const rimg = rg.createImageData(W, H);
   const warp = makeNoise(seed), fig = makeNoise(seed + 1), pore = new Rng(seed + 2);
@@ -131,10 +126,7 @@ export function woodMaps(seed = 7): { map: THREE.CanvasTexture; rough: THREE.Can
 function woodNormal(W: number, H: number, seatH: number, seatW: number): THREE.CanvasTexture | null {
   const grain = scanNormal('wood-grain'), seat = scanNormal('wood-seat');
   if (!grain || !seat) return null;
-  const c = document.createElement('canvas');
-  c.width = W;
-  c.height = H;
-  const g = c.getContext('2d')!;
+  const [c, g] = canvas(W, H);
   const img = g.createImageData(W, H);
   const px = [0, 0, 0];
   for (let y = 0; y < H; y++)

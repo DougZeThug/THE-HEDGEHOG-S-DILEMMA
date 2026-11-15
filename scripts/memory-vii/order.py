@@ -15,7 +15,7 @@ Writes, into OUT_DIR (public/memories/shadows/film/):
   scene.webp, @low    the film's held embrace (its poster: the still the wall keeps if the film
                       can't be had), from FILM (render.py --room).
 
-The clocks below are the timeline's (`window.sketch` and `window.reveal`, src/memory/defs.ts
+The clocks below are the timeline's (`window.sketch` and `window.reveal`, src/memory/memories/shadows.ts
 SHADOWS): tests/memory-defs.test.ts holds the three of them together.
 """
 import json, subprocess, sys

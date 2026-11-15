@@ -61,7 +61,7 @@ numpy, OpenCV, ffmpeg and the project's own browser recorder. No model, no netwo
 ## The performance
 
 - **On twos.** Twelve drawings a second, each held until the next, the way the timeline's held keys
-  play them. Put the schedule in `src/memory/defs.ts`, mirror it in the script, and test that both
+  play them. Put the schedule in the memory's file under `src/memory/memories/` (its timings in `src/memory/beats/`), mirror it in the script, and test that both
   agree (`turnDrawings`, `schedule`, `tests/living-memory.test.ts`).
 - **Every part on its own clock.** Her eyes go to him first, then a moment, then her head. As her
   head comes round, her eyes ease back in their sockets and stay on him. Code that moves every part

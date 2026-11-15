@@ -6,10 +6,9 @@
  *   npx vite-node scripts/memory-reach.ts
  */
 import { PERSONAS } from '../tests/playtest/personas';
-import { visit } from '../tests/playtest/measure';
+import { visit, PLAYTEST_SEEDS as SEEDS } from '../tests/playtest/measure';
 import { Director } from '../src/state/Director';
 
-const SEEDS = [1, 2, 3, 4, 5, 6, 7, 8];
 const LINES = ['happiest-unneeded', 'door-open'];
 for (const p of PERSONAS) {
   const firsts: (number | null)[] = [];

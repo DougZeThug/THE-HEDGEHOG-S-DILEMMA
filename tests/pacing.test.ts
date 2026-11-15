@@ -3,9 +3,8 @@ import { PERSONAS, explorer, phone, stillVisitor, reader } from './playtest/pers
 import { visit, windowStats, meaningful } from './playtest/measure';
 import { Director } from '../src/state/Director';
 import { Pacing } from '../src/state/Pacing';
-import type { VisitorInput } from '../src/state/VisitorModel';
+import { SEEDS, input } from './helpers/visitor';
 
-const SEEDS = [1, 2, 3, 4];
 const runs = new Map(PERSONAS.map((p) => [p.id, SEEDS.map((s) => visit(p, 320, s))]));
 const median = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.floor((xs.length - 1) / 2)];
 
@@ -62,7 +61,6 @@ describe('pacing: phases open through engagement, not timers', () => {
   it('depth decides, not the clock: visitors who engage differently arrive at different times', () => {
     const times = ['explorer', 'reader', 'phone', 'chair'].map((id) => at(id, 'transform'));
     expect(new Set(times).size).toBeGreaterThanOrEqual(3);
-    // Engaging in any way counts for more than standing at the door.
     expect(Math.max(...times)).toBeLessThan(at('still', 'transform'));
   });
 
@@ -96,7 +94,7 @@ describe('engagement: many kinds of attention are recognised', () => {
 
   it('each kneel is held for a second before it is noticed, not only the first of the visit', () => {
     const d = new Director({ seed: 2, situations: ['residue'] });
-    const base: VisitorInput = { x: 0.3, z: 1.2, yaw: 0, pitch: 0, gazePhraseId: null, gazeChair: true, nearSurface: null, kneeling: false };
+    const base = input({ x: 0.3, z: 1.2, gazeChair: true });
     const go = (kneeling: boolean, seconds: number) => { for (let t = 0; t < seconds; t += 0.1) d.tick(0.1, { ...base, kneeling }, 'north'); };
     go(true, 5);
     expect(d.engagement.count('kneel')).toBe(1);
@@ -110,7 +108,7 @@ describe('engagement: many kinds of attention are recognised', () => {
 
   it('touch on the chair counts, and coming close is answered at once', () => {
     const d = new Director({ seed: 2, situations: ['residue'] });
-    const base: VisitorInput = { x: 0, z: 2.4, yaw: 0, pitch: 0, gazePhraseId: null, gazeChair: true, nearSurface: null, kneeling: false };
+    const base = input({ gazeChair: true });
     expect(d.tapped({ chair: true })).toBe(true);
     const cues = [];
     for (let t = 0; t < 12; t += 0.1) cues.push(...d.tick(0.1, { ...base, z: Math.max(0.8, 2.4 - t) }, 'north'));
@@ -123,8 +121,7 @@ describe('rhythm', () => {
   it('tells chosen quiet from waiting, and holds quiet after something strong', () => {
     const p = new Pacing();
     expect(p.rhythm(3, 'arrival', 0)).toBe('arrival');
-    p.note(10, { type: 'voice', kind: 'tender', text: 'x', caption: 'x', position: { kind: 'chair' }, gain: 0.5 }, 'test');
-    // After a voice, a long held quiet.
+    p.note(10, { type: 'voice', kind: 'tender', text: 'x', caption: 'x', position: { kind: 'chair' }, gain: 0.5 }, 'voice-attention');
     expect(p.rhythm(25, 'familiar', 0.3)).toBe('recovery');
     expect(p.intenseFree(25)).toBe(false);
     // Someone who is doing things is answered sooner than someone who isn't — who is never "kept waiting".
@@ -132,7 +129,7 @@ describe('rhythm', () => {
     expect(p.rhythm(30.5, 'familiar', 0.05)).toBe('quiet');
     expect(p.rhythm(200, 'familiar', 0)).toBe('quiet');
     // A dip in the room tone is a gesture, but does not end a stall by itself.
-    p.note(40, { type: 'silence', depth: 0.3, seconds: 3 }, 'tap');
+    p.note(40, { type: 'silence', depth: 0.3, seconds: 3 }, 'respond-sound');
     expect(p.sinceDev(40)).toBe(30);
   });
 

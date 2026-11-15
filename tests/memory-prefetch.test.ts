@@ -1,11 +1,12 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
-import { WOODLAND } from '../src/memory/defs';
+import { WOODLAND } from '../src/memory/memories/woodland';
 
 afterEach(() => vi.unstubAllGlobals());
 
 describe('a memory armed ahead', () => {
-  it('fetches its recordings with its art, so beginning it waits on decoding only (QA, 2026-10-19: they had waited until it began)', async () => {
+  // (They had waited until it began: QA, 2026-10-19.)
+  it('fetches its recordings with its art, so beginning it waits on decoding only', async () => {
     const asked: string[] = [];
     vi.stubGlobal('fetch', async (url: string) => {
       asked.push(url);

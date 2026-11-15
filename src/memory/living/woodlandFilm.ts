@@ -1,5 +1,5 @@
-import { WOODLAND_FILM } from '../defs';
-import type { LivingSpec } from './woodland';
+import { WOODLAND_FILM } from '../beats/woodland';
+import { COVER_OVERSCAN as OVER, type FilmSpec } from './shared';
 
 /**
  * "Five More Minutes" as a film (2026-10-24; scripts/woodland-film/): how it sits on a screen. The
@@ -10,8 +10,6 @@ import type { LivingSpec } from './woodland';
 
 /** Film uv of the shots' own frame inside the film (references/woodland/film/film.json). */
 const SHOT = { top: 1 - 22 / 764, bottom: 1 - 742 / 764 };
-/** coverQuad's overscan (src/world/living/Immersion.ts). */
-const OVER = 1.06;
 const PAINT = 1354 / 764;
 
 /** The close-up's two faces across the film (u: his left edge, her right edge, measured on its frames). */
@@ -32,26 +30,6 @@ export function closeCover(aspect: number): [number, number] {
   const across = Math.min(1, aspect / PAINT) / OVER;
   if (across >= 0.999 / OVER) return [0.5, v];
   return [across >= FACES.to - FACES.from ? (FACES.from + FACES.to) / 2 : HERS, v];
-}
-
-export interface FilmSpec extends Pick<LivingSpec, 'cover' | 'coverAt' | 'uprightAt'> {
-  /**
-   * Let go before `before` (memory s), the film cuts to its frame at `to` (its own seconds) and
-   * holds it as it goes back into the wall: the frame the wall's pencil draws.
-   */
-  leave?: { before: number; to: number };
-  /**
-   * Its close shots (memory s, from–to), when there are any: the room frames them as close (its
-   * vignette centred and further out, as for the rig's two-shot), and frames them by their own
-   * focus: `upright`, on a screen narrower than it is tall; `coverAt`, on any other.
-   */
-  close?: {
-    spans: [number, number][];
-    /** The same, in the film's frames: the room frames by the frame on the screen, not the clock. */
-    frames: [number, number][];
-    upright: [number, number];
-    coverAt: (aspect: number) => [number, number];
-  };
 }
 
 export const WOODLAND_FILM_SPEC: FilmSpec = {

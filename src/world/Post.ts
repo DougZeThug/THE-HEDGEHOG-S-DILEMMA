@@ -4,7 +4,7 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { approach } from '../core/math';
-import type { Environment } from '../state/Director';
+import type { Environment } from '../core/environment';
 
 /**
  * One quiet grading pass: saturation, a vignette that deepens at extremes, film grain,

@@ -8,6 +8,8 @@
  * (Theatre), not here.
  */
 
+import { easeInOut } from '../../core/math';
+
 /** A small integer hash to [0, 1). */
 export function hash01(n: number, seed: number): number {
   let h = (Math.imul(n | 0, 0x27d4eb2d) ^ Math.imul(seed | 0, 0x165667b1)) >>> 0;
@@ -40,7 +42,6 @@ export interface BreathProfile {
   steady?: [number, number][];
 }
 
-const ease = (x: number) => 0.5 - 0.5 * Math.cos(Math.PI * Math.min(1, Math.max(0, x)));
 
 /**
  * How full the chest is at `t` (0 = rested out, ~1 = a full breath in). Breaths are laid end to
@@ -61,8 +62,8 @@ export function breath(t: number, p: BreathProfile): number {
       const x = t - start;
       const tin = core * p.inhale;
       const tout = core * (1 - p.inhale - p.rest);
-      if (x < tin) return depth * ease(x / tin);
-      if (x < tin + tout) return depth * (1 - ease((x - tin) / tout));
+      if (x < tin) return depth * easeInOut(x / tin);
+      if (x < tin + tout) return depth * (1 - easeInOut((x - tin) / tout));
       return 0;
     }
     start += len;
@@ -90,7 +91,7 @@ export function gust(t: number, gusts: readonly Gust[]): { strength: number; fro
     const x = (t - g.at) / g.cross;
     if (x < -0.3 || x > 1.6) continue;
     // Up quickly, down slowly: the air arrives, then the grass settles.
-    const env = x < 0 ? 0 : x < 0.25 ? ease(x / 0.25) : 1 - ease((x - 0.25) / 1.35);
+    const env = x < 0 ? 0 : x < 0.25 ? easeInOut(x / 0.25) : 1 - easeInOut((x - 0.25) / 1.35);
     if (env * g.strength > best.strength) best = { strength: env * g.strength, front: x };
   }
   return best;
@@ -101,14 +102,14 @@ export function gust(t: number, gusts: readonly Gust[]): { strength: number; fro
  * incommensurate rates, travelling left to right) plus the gusts, each arriving at `x` as its front
  * crosses. Signed: positive bends things to the right (the gusts come from the left).
  */
-export interface Breeze {
+interface Breeze {
   /** Hz, relative strength, phase (radians), and how far it travels across the frame per second (frames). */
   waves: { f: number; a: number; p: number }[];
   /** The breeze's lean (its mean force: things lean a little right, as the painting's grass does). */
   lean: number;
 }
 
-export const BREEZE: Breeze = {
+const BREEZE: Breeze = {
   waves: [
     { f: 0.11, a: 0.45, p: 0.7 },
     { f: 0.23, a: 0.35, p: 2.1 },
@@ -119,14 +120,13 @@ export const BREEZE: Breeze = {
   lean: 0.15,
 };
 
-/** The canopy as a spring (Hz, damping): slower than the grass, as big trees sway. What is heard
- *  of a gust follows it (`gustSway`). */
+/** The canopy as a spring (Hz, damping): slower than the grass, as big trees sway. */
 export const CANOPY = [0.45, 0.6] as const;
 
 /** A gust's envelope (in crossings, as `gust`'s), in straight pieces. */
 const KNOTS: [number, number][] = [0, 1 / 6, 2 / 6, 3 / 6, 4 / 6, 5 / 6, 1]
-  .map((u): [number, number] => [0.25 * u, ease(u)])
-  .concat([1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i): [number, number] => [0.25 + 1.35 * (i / 10), 1 - ease(i / 10)]));
+  .map((u): [number, number] => [0.25 * u, easeInOut(u)])
+  .concat([1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i): [number, number] => [0.25 + 1.35 * (i / 10), 1 - easeInOut(i / 10)]));
 
 /** Seconds a gust's front takes from the left edge to `x`. */
 const arrive = (g: Gust, x: number) => g.at + x * g.cross;
@@ -177,30 +177,6 @@ export function windResponse(t: number, x: number, hz: number, zeta: number, gus
     y -= prev * ramp(tau - 1.6 * g.cross);
   }
   return y;
-}
-
-/** How far a full gust (strength 1, a second to cross) bends the canopy at its most. */
-const SWAY_PEAK = (() => {
-  let m = 0;
-  for (let t = 0; t < 8; t += 0.01) m = Math.max(m, windResponse(t, 0, CANOPY[0], CANOPY[1], [{ at: 0, cross: 1, strength: 1 }], 0));
-  return m;
-})();
-
-/**
- * The gusts as the leaves over painting `x` answer them (the canopy's spring): how far the gusts
- * alone bend them, as a share of how far a full gust does at its most; and where the front of the
- * one bending them most is across the frame (0 left .. 1 right). What is heard of a gust follows
- * this (src/memory/synthWoods.ts), so the sound swells and settles with what is seen to move
- * (the skeptic's second review, 2026-10-17).
- */
-export function gustSway(t: number, x: number, gusts: readonly Gust[]): { strength: number; front: number } {
-  let best = { strength: 0, front: -1 };
-  for (const g of gusts) {
-    // (`still` 0: the gust's part of the answer alone, without the breeze's.)
-    const s = Math.max(0, windResponse(t, x, CANOPY[0], CANOPY[1], [g], 0)) / SWAY_PEAK;
-    if (s > best.strength) best = { strength: s, front: (t - g.at) / g.cross };
-  }
-  return best;
 }
 
 /**

@@ -67,7 +67,7 @@ describe('coming to the chair, or only passing it', () => {
     expect(m.hesitations).toBe(1);
   });
 
-  it('walking to stand right beside it, at an angle, and staying is coming to it (QA)', () => {
+  it('walking to stand right beside it, at an angle, and staying is coming to it', () => {
     const m = run(new VisitorModel(), path([{ to: [0.55, 0.15], speed: 1.05, hold: 10 }]));
     expect(m.comings).toHaveLength(1);
   });
@@ -171,7 +171,8 @@ describe('the way out', () => {
     expect(d.departureLine()).toBe('The chair, from the door.');
   });
 
-  it('walking on at once, as the room begins to let them go, is going too (Codex review, PR #56)', () => {
+  // Found in review of PR #56.
+  it('walking on at once, as the room begins to let them go, is going too', () => {
     const { d, here } = atTheDoor();
     still(d, here, 2);
     d.tapped({ phraseId: Director.EXIT });
@@ -230,7 +231,8 @@ describe('the way out', () => {
     expect(still(d, here, 12).some((c) => c.rule === 'leaving')).toBe(false);
   });
 
-  it('a step back on the diagonal keeps them at once; walking on a little off straight still goes (cubic, PR #56)', () => {
+  // Found in review of PR #56.
+  it('a step back on the diagonal keeps them at once; walking on a little off straight still goes', () => {
     const diag = atTheDoor();
     still(diag.d, diag.here, 2);
     diag.d.tapped({ phraseId: Director.EXIT });

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Memory VII in the room: its two sound cues (src/memory/defs.ts SHADOWS), from the approved takes
+# Memory VII in the room: its two sound cues (src/memory/memories/shadows.ts SHADOWS), from the approved takes
 # and the approved mix, nothing generated anew.
 #   scripts/memory-vii/room-sound.sh
 #   public/music/shadows-wall.mp3  the shade gathering on the wall (memory 0.3-7.3 s): the room-tone

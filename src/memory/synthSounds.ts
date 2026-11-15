@@ -8,7 +8,7 @@
  * one-shots peak at about −12 dBFS. What carries each sound sits above 200 Hz, where a phone can play it.
  * Seeded: the same sound every time.
  */
-export type SynthKind = 'road' | 'indicator' | 'fridge' | 'till' | 'drip' | 'rustle' | 'rain' | 'sill';
+type SynthKind = 'road' | 'indicator' | 'fridge' | 'till' | 'drip' | 'rustle' | 'rain' | 'sill';
 
 export const SYNTH_KINDS: SynthKind[] = ['road', 'indicator', 'fridge', 'till', 'drip', 'rustle', 'rain', 'sill'];
 

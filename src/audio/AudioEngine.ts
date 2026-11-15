@@ -16,7 +16,7 @@ const MIX = 0.64 * 1.1 * 2.1;
 export class AudioEngine {
   readonly ctx: AudioContext;
   readonly master: GainNode;
-  readonly limiter: DynamicsCompressorNode;
+  private readonly limiter: DynamicsCompressorNode;
   readonly out: GainNode;
   readonly buses: { ambience: GainNode; music: GainNode; voices: GainNode; memory: GainNode };
   /** Ducking stage for "silence" moments (ambience + music). */
@@ -33,7 +33,7 @@ export class AudioEngine {
   private revLarge: ConvolverNode;
   private revSmallGain: GainNode;
   private revLargeGain: GainNode;
-  readonly analyser: AnalyserNode;
+  private readonly analyser: AnalyserNode;
   /** Whole-mix stage for pausing (settings open); independent of silences. */
   readonly pause: GainNode;
   private readonly memoryDuck: GainNode;
